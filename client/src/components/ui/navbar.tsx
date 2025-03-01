@@ -16,6 +16,9 @@ export function Navbar() {
 
         {user && (
           <div className="flex items-center space-x-4">
+            <Link href="/saved-cims">
+              <a className="text-sm font-medium hover:text-primary">My Saved CIMs</a>
+            </Link>
             {user.isAdmin && (
               <Link href="/admin">
                 <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
