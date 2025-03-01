@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { subscriptionPlans } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -76,7 +78,8 @@ export default function AdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Username</TableHead>
-                  <TableHead>Subscription Status</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Monthly Usage</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -85,7 +88,14 @@ export default function AdminPage() {
                 {users?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.subscriptionStatus}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.subscriptionStatus === "premium" ? "default" : "secondary"}>
+                        {user.subscriptionStatus.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.monthlyUsage} / {subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans].limit} CIMs
+                    </TableCell>
                     <TableCell>
                       {user.subscriptionEndsAt
                         ? new Date(user.subscriptionEndsAt).toLocaleDateString()
@@ -121,13 +131,14 @@ export default function AdminPage() {
                             }}
                             className="space-y-4"
                           >
-                            <Select name="status" defaultValue="premium">
+                            <Select name="status" defaultValue="free">
                               <SelectTrigger>
                                 <SelectValue placeholder="Select plan" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="premium">Premium</SelectItem>
+                                <SelectItem value="free">Free - 1 CIM/month</SelectItem>
+                                <SelectItem value="standard">Standard - 10 CIMs/month ($500)</SelectItem>
+                                <SelectItem value="premium">Premium - 100 CIMs/month ($4,000)</SelectItem>
                               </SelectContent>
                             </Select>
 
