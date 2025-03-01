@@ -19,11 +19,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const data = insertCimDocumentSchema.parse(req.body);
-      const analysis = await analyzeCimTranscript(data.transcript);
 
+      // If docId is provided, this is a regeneration request
+      if (req.body.docId) {
+        const doc = await storage.getCimDocument(req.body.docId);
+        if (!doc || doc.userId !== req.user!.id) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Check regeneration limits
+        const plan = subscriptionPlans[req.user!.subscriptionStatus as keyof typeof subscriptionPlans];
+        if (doc.regenerationCount >= plan.regenLimit) {
+          return res.status(400).json({ error: "Regeneration limit reached for this document" });
+        }
+
+        // Generate new analysis with updated directions
+        const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
+        const updatedDoc = await storage.updateCimDocument(doc.id, {
+          ...doc,
+          directions: req.body.directions,
+          analysis,
+          regenerationCount: (doc.regenerationCount || 0) + 1
+        });
+
+        return res.json(updatedDoc);
+      }
+
+      // For new documents
+      const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
+        directions: req.body.directions,
         analysis,
+        regenerationCount: 0
       });
 
       res.json(doc);
@@ -64,11 +92,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sig = req.headers["stripe-signature"];
     if (!sig) return res.sendStatus(400);
 
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable');
+      return res.status(500).json({ error: "Missing Stripe webhook secret configuration" });
+    }
+
     try {
       const event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET
       );
 
       const userId = await handleStripeWebhook(event);
