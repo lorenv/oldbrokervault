@@ -5,7 +5,10 @@ import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
 import { createSubscriptionSession, handleStripeWebhook } from "./stripe";
-import type Stripe from "stripe";
+import Stripe from "stripe";
+import * as express from 'express';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -51,12 +54,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json({ url: session.url });
     } catch (error) {
+      console.error('Stripe session creation error:', error);
       res.status(400).json({ error: "Failed to create checkout session" });
     }
   });
 
   // Stripe webhook endpoint
-  app.post("/api/webhook/stripe", async (req, res) => {
+  app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers["stripe-signature"];
     if (!sig) return res.sendStatus(400);
 
@@ -67,13 +71,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
 
-      const userId = await handleStripeWebhook(event as Stripe.Event);
+      const userId = await handleStripeWebhook(event);
       if (userId) {
         // Update the user's subscription
         const session = event.data.object as Stripe.Checkout.Session;
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        const planName = lineItems.data[0]?.description?.toLowerCase().includes('premium') 
-          ? 'premium' 
+        const planName = lineItems.data[0]?.price?.id === process.env.STRIPE_PRICE_ID_PREMIUM
+          ? 'premium'
           : 'standard';
 
         const endsAt = new Date();
@@ -84,6 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ received: true });
     } catch (error) {
+      console.error('Stripe webhook error:', error);
       res.status(400).json({ error: "Webhook signature verification failed" });
     }
   });
