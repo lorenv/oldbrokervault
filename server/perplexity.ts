@@ -2,34 +2,103 @@
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
-  summary: string;
-  businessDetails: {
-    yearStarted?: string;
-    businessModel?: string;
-    structure?: string;
-    ownerBackground?: string[];
+  story: {
+    yearStarted: string;
+    businessIdea: string;
+    businessModel: string;
+    orderProcess: string;
+    growthHistory: string;
+    businessStructure: string;
+  };
+  executiveSummary: {
+    buyerAttractions: string[];
+    growthOpportunities: string[];
+  };
+  assets: {
+    digitalAssets: string[];
+    location: string;
+    equipmentValue: string;
+  };
+  ownership: {
+    owners: Array<{
+      name: string;
+      percentage: string;
+      background: string;
+    }>;
+    intellectualProperty: string[];
   };
   marketAnalysis: {
+    uniqueFeatures: string[];
+    customerProfile: string;
+    saleReason: string;
     competitors: string[];
     strengths: string[];
-    uniqueFeatures: string[];
   };
-  financials: {
-    revenue?: {
-      total: number;
-      breakdown: Record<string, number>;
+  operations: {
+    suppliers: {
+      count: string;
+      transferability: string;
+      concentration: string;
+      terms: string;
+      replaceability: string;
     };
-    customerMetrics?: {
-      averageOrderValue: number;
-      recurring: number;
+    customers: {
+      recurring: string;
+      relationships: string;
+      concentration: string;
+      contracts: string;
+      replaceability: string;
     };
+  };
+  inventory: {
+    leadTime: string;
+    sourcing: string;
+    storage: string;
+    value: string;
+    skuCount: string;
+    topProducts: string[];
+  };
+  sales: {
+    channels?: Record<string, number>;
+    seasonality: string;
+    averageOrderValue: string;
+    competitivePricing: string;
+    pricingModel: string;
+    paymentMethods: string[];
+  };
+  marketing: {
+    strategies: string[];
+    paidAdvertising: {
+      channels: string[];
+      effectiveness: string;
+    };
+    emailMarketing: {
+      listSize: string;
+      usage: string;
+    };
+    seoEfforts: string;
   };
   team: {
+    ownerResponsibilities: string;
+    ownerHours: string;
     employees: Array<{
       role: string;
-      tenure: string;
-      description: string;
+      status: string;
+      compensation: string;
+      tenure?: string;
     }>;
+    turnover: string;
+    hiring: string;
+    retention: string;
+    organization: string;
+    keyEmployees: string[];
+    management: string;
+  };
+  facility: {
+    ownership: string;
+    size: string;
+    cost: string;
+    leaseDetails?: string;
   };
 };
 
@@ -69,7 +138,7 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     const analysis = JSON.parse(matches[0]);
 
     // Validate the response has the required fields
-    if (!analysis.summary || !analysis.marketAnalysis || !analysis.team) {
+    if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
       throw new Error("Invalid response format from Perplexity API");
     }
 
@@ -86,38 +155,105 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum. When analyzing the provided transcript, you must respond with ONLY a JSON object (no other text) with this exact structure:
+        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
+
 {
-  "summary": "Brief overview of the business",
-  "businessDetails": {
-    "yearStarted": "YYYY if mentioned",
-    "businessModel": "Description of the business model",
-    "structure": "Business structure (LLC, Corp, etc)",
-    "ownerBackground": ["List of background details"]
+  "story": {
+    "yearStarted": "What year did the business begin?",
+    "businessIdea": "How did you get the idea?",
+    "businessModel": "What services/products does the business provide?",
+    "orderProcess": "What is the order/process flow from start to finish?",
+    "growthHistory": "How did you grow it?",
+    "businessStructure": "How is the company structured (LLC, Inc., etc.)?"
+  },
+  "executiveSummary": {
+    "buyerAttractions": ["What makes the business attractive to buyers?"],
+    "growthOpportunities": ["What growth opportunities are available?"]
+  },
+  "assets": {
+    "digitalAssets": ["List digital assets (websites, social media)"],
+    "location": "Business address",
+    "equipmentValue": "Estimated value of FF&E"
+  },
+  "ownership": {
+    "owners": [{
+      "name": "Owner's full name",
+      "percentage": "Ownership percentage",
+      "background": "Background, experience, and education"
+    }],
+    "intellectualProperty": ["Trademarks or copyrights"]
   },
   "marketAnalysis": {
-    "competitors": ["List of competitors"],
-    "strengths": ["List of business strengths"],
-    "uniqueFeatures": ["List of unique features"]
+    "uniqueFeatures": ["What is unique about the business?"],
+    "customerProfile": "Profile of average customer/typical client",
+    "saleReason": "Why is the business being sold?",
+    "competitors": ["Top three competitors"],
+    "strengths": ["Business strengths"]
   },
-  "financials": {
-    "revenue": {
-      "total": 0,
-      "breakdown": {"source1": 0, "source2": 0}
+  "operations": {
+    "suppliers": {
+      "count": "Number of suppliers",
+      "transferability": "Will relationships transfer?",
+      "concentration": "Supplier concentration percentages",
+      "terms": "Contract terms (net30, etc)",
+      "replaceability": "Easy to replace suppliers?"
     },
-    "customerMetrics": {
-      "averageOrderValue": 0,
-      "recurring": 0
+    "customers": {
+      "recurring": "Does business have recurring customers?",
+      "relationships": "Number of recurring customers",
+      "concentration": "Revenue concentration by customer",
+      "contracts": "Contract terms with customers",
+      "replaceability": "Easy to replace customers?"
     }
   },
+  "inventory": {
+    "leadTime": "Typical lead time",
+    "sourcing": "Local or import?",
+    "storage": "Where is inventory held?",
+    "value": "Value of inventory on hand",
+    "skuCount": "Number of SKUs/services",
+    "topProducts": ["Best selling products/services and % of revenue"]
+  },
+  "sales": {
+    "channels": {"channel": "percentage"},
+    "seasonality": "Does business have seasonality?",
+    "averageOrderValue": "Average order value per customer",
+    "competitivePricing": "How does pricing compare to competitors?",
+    "pricingModel": "How does pricing work?",
+    "paymentMethods": ["Payment methods accepted"]
+  },
+  "marketing": {
+    "strategies": ["How does owner market to find new clients?"],
+    "paidAdvertising": {
+      "channels": ["Which channels?"],
+      "effectiveness": "Was it successful and why?"
+    },
+    "emailMarketing": {
+      "listSize": "Number of email addresses",
+      "usage": "How is the list used?"
+    },
+    "seoEfforts": "What regular SEO efforts are engaged?"
+  },
   "team": {
-    "employees": [
-      {
-        "role": "Role title",
-        "tenure": "Time at company",
-        "description": "Brief description"
-      }
-    ]
+    "ownerResponsibilities": "Owner's average work week responsibilities",
+    "ownerHours": "Expected hours/week for buyer",
+    "employees": [{
+      "role": "Staff role",
+      "status": "Full/part-time, contractor/employee",
+      "compensation": "Hourly/salary rate"
+    }],
+    "turnover": "Is there frequent employee turnover?",
+    "hiring": "Is it difficult to find new employees?",
+    "retention": "Will employees stay after sale?",
+    "organization": "Is there an org chart?",
+    "keyEmployees": ["List key employees"],
+    "management": "Is there a GM or potential GM?"
+  },
+  "facility": {
+    "ownership": "Owned or leased?",
+    "size": "Square footage",
+    "cost": "Monthly cost",
+    "leaseDetails": "If leased: terms and expiration"
   }
 }`
       },
