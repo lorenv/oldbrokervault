@@ -1,6 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { loadStripe } from "@stripe/stripe-js";
 
 interface SubscriptionCardProps {
   status?: string;
@@ -8,7 +13,11 @@ interface SubscriptionCardProps {
   monthlyUsage?: number;
 }
 
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: SubscriptionCardProps) {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
   const isStandard = status === "standard";
 
@@ -20,6 +29,30 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
         return 10;
       default:
         return 1;
+    }
+  };
+
+  const handleUpgrade = async (plan: string) => {
+    try {
+      setIsLoading(true);
+      const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan });
+      const data = await response.json();
+
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe failed to load");
+
+      // Redirect to Stripe Checkout
+      await stripe.redirectToCheckout({
+        sessionId: data.sessionId
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initiate upgrade. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,6 +102,35 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               {monthlyUsage} / {getLimit()} CIMs generated
             </p>
           </div>
+
+          {!isPremium && (
+            <div className="space-y-3">
+              {status === "free" && (
+                <Button
+                  className="w-full"
+                  onClick={() => handleUpgrade("standard")}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    "Processing..."
+                  ) : (
+                    "Upgrade to Standard - $500/month"
+                  )}
+                </Button>
+              )}
+              <Button
+                className="w-full"
+                onClick={() => handleUpgrade("premium")}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  "Processing..."
+                ) : (
+                  "Upgrade to Premium - $4,000/month"
+                )}
+              </Button>
+            </div>
+          )}
 
           <ul className="space-y-2 text-sm">
             <li className="flex items-center">
