@@ -13,12 +13,13 @@ import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
-const DEFAULT_DIRECTIONS = `Please analyze this transcript to create a comprehensive Confidential Information Memorandum (CIM) that includes:
+const DEFAULT_DIRECTIONS = `Please analyze this transcript and the company website (if provided) to create a comprehensive Confidential Information Memorandum (CIM) that includes:
 
 1. Business Overview
    - Company background and history
    - Business model and structure
    - Growth trajectory
+   - Company logo and relevant images from the website (up to 3)
 
 2. Investment Highlights
    - Key attractions for potential buyers
@@ -29,6 +30,7 @@ const DEFAULT_DIRECTIONS = `Please analyze this transcript to create a comprehen
    - Target market and customer profile
    - Competitive landscape
    - Market position and unique features
+   - Online presence and digital assets
 
 4. Operations
    - Customer relationships and revenue structure
@@ -40,7 +42,7 @@ const DEFAULT_DIRECTIONS = `Please analyze this transcript to create a comprehen
    - Employee composition
    - Roles and responsibilities
 
-Please format the output in a clear, professional structure suitable for potential investors or buyers.`;
+Please format the output in a clear, professional structure suitable for potential investors or buyers, and include relevant visual elements from the website when available.`;
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -78,6 +80,27 @@ export function CimGenerator() {
     }
   });
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/cim/${currentDocId}/save`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "CIM saved successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save CIM",
+        variant: "destructive",
+      });
+    }
+  });
+
   const getRegenLimit = () => {
     const plan = subscriptionPlans[user?.subscriptionStatus || 'free'];
     return plan.regenLimit;
@@ -95,7 +118,8 @@ export function CimGenerator() {
 
     generateMutation.mutate({
       title: form.getValues("title"),
-      transcript: form.getValues("transcript")
+      transcript: form.getValues("transcript"),
+      websiteUrl: form.getValues("websiteUrl")
     });
   };
 
@@ -114,6 +138,13 @@ export function CimGenerator() {
               <Input
                 placeholder="Document Title"
                 {...form.register("title")}
+              />
+            </div>
+            <div>
+              <Input
+                type="url"
+                placeholder="Company Website URL (optional)"
+                {...form.register("websiteUrl")}
               />
             </div>
             <div>
@@ -170,7 +201,20 @@ export function CimGenerator() {
       {analysis && (
         <Card>
           <CardHeader>
-            <CardTitle>Confidential Information Memorandum</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Confidential Information Memorandum</CardTitle>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Save This CIM
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">

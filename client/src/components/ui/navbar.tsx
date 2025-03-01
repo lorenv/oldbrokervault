@@ -12,6 +12,11 @@ export function Navbar() {
           <Link href="/">
             <a className="font-semibold text-lg">CIM Generator</a>
           </Link>
+          {user && (
+            <Link href="/saved-cims">
+              <a className="text-sm font-medium hover:text-primary">My Saved CIMs</a>
+            </Link>
+          )}
         </div>
 
         {user && (

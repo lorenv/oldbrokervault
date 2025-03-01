@@ -39,9 +39,11 @@ export const cimDocuments = pgTable("cim_documents", {
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   transcript: text("transcript").notNull(),
+  websiteUrl: text("website_url"),
   directions: text("directions"),
   analysis: jsonb("analysis").notNull(),
   regenerationCount: integer("regeneration_count").default(0).notNull(),
+  isSaved: boolean("is_saved").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -56,7 +58,8 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   title: true,
   transcript: true,
 }).extend({
-  directions: z.string().optional()
+  directions: z.string().optional(),
+  websiteUrl: z.string().url().optional()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
