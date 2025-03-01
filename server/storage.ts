@@ -15,6 +15,8 @@ export interface IStorage {
   createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument>;
   getCimDocuments(userId: number): Promise<CimDocument[]>;
   getAllUsers(): Promise<User[]>;
+  getCimDocument(id: number): Promise<CimDocument | undefined>;
+  updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   sessionStore: session.Store;
 }
 
@@ -136,6 +138,19 @@ export class MemStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  async getCimDocument(id: number): Promise<CimDocument | undefined> {
+    return this.cimDocs.get(id);
+  }
+
+  async updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument> {
+    const existing = await this.getCimDocument(id);
+    if (!existing) throw new Error("Document not found");
+
+    const updated = { ...existing, ...doc };
+    this.cimDocs.set(id, updated);
+    return updated;
   }
 }
 

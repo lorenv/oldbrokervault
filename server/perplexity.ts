@@ -2,104 +2,104 @@
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
-  story: {
-    yearStarted: string;
-    businessIdea: string;
-    businessModel: string;
-    orderProcess: string;
-    growthHistory: string;
-    businessStructure: string;
-  };
-  executiveSummary: {
-    buyerAttractions: string[];
-    growthOpportunities: string[];
-  };
-  assets: {
-    digitalAssets: string[];
-    location: string;
-    equipmentValue: string;
-  };
-  ownership: {
-    owners: Array<{
-      name: string;
-      percentage: string;
-      background: string;
-    }>;
-    intellectualProperty: string[];
-  };
-  marketAnalysis: {
-    uniqueFeatures: string[];
-    customerProfile: string;
-    saleReason: string;
-    competitors: string[];
-    strengths: string[];
-  };
-  operations: {
-    suppliers: {
-      count: string;
-      transferability: string;
-      concentration: string;
-      terms: string;
-      replaceability: string;
-    };
-    customers: {
-      recurring: string;
-      relationships: string;
-      concentration: string;
-      contracts: string;
-      replaceability: string;
-    };
-  };
-  inventory: {
-    leadTime: string;
-    sourcing: string;
-    storage: string;
-    value: string;
-    skuCount: string;
-    topProducts: string[];
-  };
-  sales: {
-    channels?: Record<string, number>;
-    seasonality: string;
-    averageOrderValue: string;
-    competitivePricing: string;
-    pricingModel: string;
-    paymentMethods: string[];
-  };
-  marketing: {
-    strategies: string[];
-    paidAdvertising: {
-      channels: string[];
-      effectiveness: string;
-    };
-    emailMarketing: {
-      listSize: string;
-      usage: string;
-    };
-    seoEfforts: string;
-  };
-  team: {
-    ownerResponsibilities: string;
-    ownerHours: string;
-    employees: Array<{
-      role: string;
-      status: string;
-      compensation: string;
-      tenure?: string;
-    }>;
-    turnover: string;
-    hiring: string;
-    retention: string;
-    organization: string;
-    keyEmployees: string[];
-    management: string;
-  };
-  facility: {
-    ownership: string;
-    size: string;
-    cost: string;
-    leaseDetails?: string;
-  };
+ story: {
+   yearStarted: string;
+   businessIdea: string;
+   businessModel: string;
+   orderProcess: string;
+   growthHistory: string;
+   businessStructure: string;
+ },
+ executiveSummary: {
+   buyerAttractions: string[];
+   growthOpportunities: string[];
+ },
+ assets: {
+   digitalAssets: string[];
+   location: string;
+   equipmentValue: string;
+ },
+ ownership: {
+   owners: Array<{
+     name: string;
+     percentage: string;
+     background: string;
+   }>;
+   intellectualProperty: string[];
+ },
+ marketAnalysis: {
+   uniqueFeatures: string[];
+   customerProfile: string;
+   saleReason: string;
+   competitors: string[];
+   strengths: string[];
+ },
+ operations: {
+   suppliers: {
+     count: string;
+     transferability: string;
+     concentration: string;
+     terms: string;
+     replaceability: string;
+   };
+   customers: {
+     recurring: string;
+     relationships: string;
+     concentration: string;
+     contracts: string;
+     replaceability: string;
+   };
+ },
+ inventory: {
+   leadTime: string;
+   sourcing: string;
+   storage: string;
+   value: string;
+   skuCount: string;
+   topProducts: string[];
+ },
+ sales: {
+   channels?: Record<string, number>;
+   seasonality: string;
+   averageOrderValue: string;
+   competitivePricing: string;
+   pricingModel: string;
+   paymentMethods: string[];
+ },
+ marketing: {
+   strategies: string[];
+   paidAdvertising: {
+     channels: string[];
+     effectiveness: string;
+   };
+   emailMarketing: {
+     listSize: string;
+     usage: string;
+   };
+   seoEfforts: string;
+ },
+ team: {
+   ownerResponsibilities: string;
+   ownerHours: string;
+   employees: Array<{
+     role: string;
+     status: string;
+     compensation: string;
+     tenure?: string;
+   }>;
+   turnover: string;
+   hiring: string;
+   retention: string;
+   organization: string;
+   keyEmployees: string[];
+   management: string;
+ },
+ facility: {
+   ownership: string;
+   size: string;
+   cost: string;
+   leaseDetails?: string;
+ }
 };
 
 async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
@@ -149,14 +149,13 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 }
 
-export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
-
+        content: directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
 {
   "story": {
     "yearStarted": "What year did the business begin?",
