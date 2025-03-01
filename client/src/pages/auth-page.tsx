@@ -40,11 +40,11 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <LoginForm onSubmit={(data) => loginMutation.mutate(data)} />
               </TabsContent>
-              
+
               <TabsContent value="register">
                 <RegisterForm onSubmit={(data) => registerMutation.mutate(data)} />
               </TabsContent>
@@ -114,6 +114,13 @@ function RegisterForm({ onSubmit }) {
           type="password"
           placeholder="Choose a password"
           {...form.register("password")}
+        />
+      </div>
+      <div>
+        <Input
+          type="password"
+          placeholder="Admin Code (optional)"
+          {...form.register("adminCode")}
         />
       </div>
       <Button type="submit" className="w-full">

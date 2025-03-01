@@ -43,6 +43,8 @@ export const cimDocuments = pgTable("cim_documents", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+}).extend({
+  adminCode: z.string().optional()
 });
 
 export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
