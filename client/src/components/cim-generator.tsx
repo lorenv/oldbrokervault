@@ -10,12 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { DocumentExport } from "./document-export";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
@@ -79,186 +73,239 @@ export function CimGenerator() {
             <CardTitle>Confidential Information Memorandum</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              <Accordion type="single" collapsible className="w-full">
-                {/* The Story */}
-                <AccordionItem value="story">
-                  <AccordionTrigger>The Story</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
+            <div className="space-y-8 max-w-4xl mx-auto">
+              {/* Section: Business Overview */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Background</h3>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-semibold">When did the business begin?</h4>
+                        <p className="font-medium">Founded</p>
                         <p className="text-muted-foreground">{analysis.story.yearStarted}</p>
                       </div>
                       <div>
-                        <h4 className="font-semibold">How did you get the idea?</h4>
-                        <p className="text-muted-foreground">{analysis.story.businessIdea}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Business Model</h4>
-                        <p className="text-muted-foreground">{analysis.story.businessModel}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Order/Process Flow</h4>
-                        <p className="text-muted-foreground">{analysis.story.orderProcess}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Growth History</h4>
-                        <p className="text-muted-foreground">{analysis.story.growthHistory}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Business Structure</h4>
+                        <p className="font-medium">Structure</p>
                         <p className="text-muted-foreground">{analysis.story.businessStructure}</p>
                       </div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
 
-                {/* Executive Summary */}
-                <AccordionItem value="summary">
-                  <AccordionTrigger>Executive Summary</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold">Why is this business attractive to buyers?</h4>
-                        <ul className="list-disc pl-5 text-muted-foreground">
-                          {analysis.executiveSummary.buyerAttractions.map((item: string, i: number) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Growth Opportunities</h4>
-                        <ul className="list-disc pl-5 text-muted-foreground">
-                          {analysis.executiveSummary.growthOpportunities.map((item: string, i: number) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Business Description</h3>
+                    <p className="text-muted-foreground">{analysis.story.businessModel}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Growth History</h3>
+                    <p className="text-muted-foreground">{analysis.story.growthHistory}</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Investment Highlights */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
+                    <ul className="list-disc pl-6 space-y-1">
+                      {analysis.executiveSummary.buyerAttractions.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
+                    <ul className="list-disc pl-6 space-y-1">
+                      {analysis.executiveSummary.growthOpportunities.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Market Position */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Target Market</h3>
+                    <p className="text-muted-foreground">{analysis.marketAnalysis.customerProfile}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2">Competitors</th>
+                            <th className="text-left py-2">Business Strengths</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="py-2 pr-4">
+                              <ul className="list-disc pl-6 space-y-1">
+                                {analysis.marketAnalysis.competitors.map((competitor: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">{competitor}</li>
+                                ))}
+                              </ul>
+                            </td>
+                            <td className="py-2">
+                              <ul className="list-disc pl-6 space-y-1">
+                                {analysis.marketAnalysis.strengths.map((strength: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">{strength}</li>
+                                ))}
+                              </ul>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </div>
+              </section>
 
-                {/* Market Analysis */}
-                <AccordionItem value="market">
-                  <AccordionTrigger>Market Analysis</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold">What makes this business unique?</h4>
-                        <ul className="list-disc pl-5 text-muted-foreground">
-                          {analysis.marketAnalysis.uniqueFeatures.map((feature: string, i: number) => (
-                            <li key={i}>{feature}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Customer Profile</h4>
-                        <p className="text-muted-foreground">{analysis.marketAnalysis.customerProfile}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Why is the business being sold?</h4>
-                        <p className="text-muted-foreground">{analysis.marketAnalysis.saleReason}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Top Competitors</h4>
-                        <ul className="list-disc pl-5 text-muted-foreground">
-                          {analysis.marketAnalysis.competitors.map((competitor: string, i: number) => (
-                            <li key={i}>{competitor}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+              {/* Section: Operations */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
 
-                {/* Operations */}
-                <AccordionItem value="operations">
-                  <AccordionTrigger>Operations</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-semibold mb-3">Suppliers</h4>
-                        <div className="space-y-2 text-muted-foreground">
-                          <p><strong>Count:</strong> {analysis.operations.suppliers.count}</p>
-                          <p><strong>Will relationships transfer?</strong> {analysis.operations.suppliers.transferability}</p>
-                          <p><strong>Concentration:</strong> {analysis.operations.suppliers.concentration}</p>
-                          <p><strong>Terms:</strong> {analysis.operations.suppliers.terms}</p>
-                          <p><strong>Ease of replacement:</strong> {analysis.operations.suppliers.replaceability}</p>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
+                    <div className="bg-muted rounded-lg p-4">
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <dt className="font-medium">Recurring Revenue</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.recurring}</dd>
                         </div>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-3">Customers</h4>
-                        <div className="space-y-2 text-muted-foreground">
-                          <p><strong>Recurring customers:</strong> {analysis.operations.customers.recurring}</p>
-                          <p><strong>Number of relationships:</strong> {analysis.operations.customers.relationships}</p>
-                          <p><strong>Concentration:</strong> {analysis.operations.customers.concentration}</p>
-                          <p><strong>Contract terms:</strong> {analysis.operations.customers.contracts}</p>
-                          <p><strong>Ease of replacement:</strong> {analysis.operations.customers.replaceability}</p>
+                        <div>
+                          <dt className="font-medium">Customer Base</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.relationships}</dd>
                         </div>
-                      </div>
+                        <div>
+                          <dt className="font-medium">Revenue Concentration</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.concentration}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Contract Terms</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.contracts}</dd>
+                        </div>
+                      </dl>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
 
-                {/* Team */}
-                <AccordionItem value="team">
-                  <AccordionTrigger>Team</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold">Owner's Responsibilities</h4>
-                        <p className="text-muted-foreground">{analysis.team.ownerResponsibilities}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Expected Hours for Buyer</h4>
-                        <p className="text-muted-foreground">{analysis.team.ownerHours}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Employees</h4>
-                        <div className="space-y-3">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
+                    <div className="bg-muted rounded-lg p-4">
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <dt className="font-medium">Number of Suppliers</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.count}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Supplier Terms</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.terms}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Concentration</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.concentration}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Relationship Transfer</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.transferability}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Team */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Ownership & Management</h3>
+                    <div className="space-y-2">
+                      <p><strong>Owner's Role:</strong> {analysis.team.ownerResponsibilities}</p>
+                      <p><strong>Required Hours:</strong> {analysis.team.ownerHours}</p>
+                      <p><strong>Management Structure:</strong> {analysis.team.management}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2">Role</th>
+                            <th className="text-left py-2">Status</th>
+                            <th className="text-left py-2">Compensation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                           {analysis.team.employees.map((employee: any, i: number) => (
-                            <div key={i} className="p-3 bg-muted rounded-lg">
-                              <p className="font-medium">{employee.role}</p>
-                              <p className="text-sm">{employee.status}</p>
-                              <p className="text-sm text-muted-foreground">{employee.compensation}</p>
-                            </div>
+                            <tr key={i} className="border-b">
+                              <td className="py-2">{employee.role}</td>
+                              <td className="py-2">{employee.status}</td>
+                              <td className="py-2">{employee.compensation}</td>
+                            </tr>
                           ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Employee Turnover</h4>
-                        <p className="text-muted-foreground">{analysis.team.turnover}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Hiring Difficulty</h4>
-                        <p className="text-muted-foreground">{analysis.team.hiring}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Employee Retention Post-Sale</h4>
-                        <p className="text-muted-foreground">{analysis.team.retention}</p>
-                      </div>
+                        </tbody>
+                      </table>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
 
-                {/* Facility */}
-                <AccordionItem value="facility">
-                  <AccordionTrigger>Facility</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-2 text-muted-foreground">
-                      <p><strong>Ownership:</strong> {analysis.facility.ownership}</p>
-                      <p><strong>Size:</strong> {analysis.facility.size}</p>
-                      <p><strong>Monthly Cost:</strong> {analysis.facility.cost}</p>
-                      {analysis.facility.leaseDetails && (
-                        <p><strong>Lease Details:</strong> {analysis.facility.leaseDetails}</p>
-                      )}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Team Stability</h3>
+                    <div className="space-y-2">
+                      <p><strong>Turnover Rate:</strong> {analysis.team.turnover}</p>
+                      <p><strong>Hiring Environment:</strong> {analysis.team.hiring}</p>
+                      <p><strong>Post-Sale Retention:</strong> {analysis.team.retention}</p>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                  </div>
+                </div>
+              </section>
 
-              <DocumentExport analysis={analysis} />
+              {/* Section: Facilities */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
+                <div className="bg-muted rounded-lg p-4">
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <dt className="font-medium">Ownership Status</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.ownership}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium">Size</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.size}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium">Monthly Cost</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.cost}</dd>
+                    </div>
+                    {analysis.facility.leaseDetails && (
+                      <div>
+                        <dt className="font-medium">Lease Details</dt>
+                        <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              </section>
+
+              {/* Export Button */}
+              <div className="pt-4">
+                <DocumentExport analysis={analysis} />
+              </div>
             </div>
           </CardContent>
         </Card>
