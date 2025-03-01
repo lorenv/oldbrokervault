@@ -34,15 +34,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Generate new analysis with updated directions
-        const analysis = await analyzeCimTranscript(
-          data.transcript,
-          req.body.directions,
-          data.websiteUrl || undefined
-        );
-
+        const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
         const updatedDoc = await storage.updateCimDocument(doc.id, {
           ...doc,
-          websiteUrl: data.websiteUrl || null,
           directions: req.body.directions,
           analysis,
           regenerationCount: (doc.regenerationCount || 0) + 1
@@ -52,45 +46,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // For new documents
-      const analysis = await analyzeCimTranscript(
-        data.transcript,
-        req.body.directions,
-        data.websiteUrl || undefined
-      );
-
+      const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
-        websiteUrl: data.websiteUrl || null,
         directions: req.body.directions,
         analysis,
-        regenerationCount: 0,
-        isSaved: false
+        regenerationCount: 0
       });
 
       res.json(doc);
-    } catch (error) {
-      console.error("Error creating CIM:", error);
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.post("/api/cim/:id/save", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const docId = parseInt(req.params.id);
-      const doc = await storage.getCimDocument(docId);
-
-      if (!doc || doc.userId !== req.user!.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      const updatedDoc = await storage.updateCimDocument(docId, {
-        ...doc,
-        isSaved: true
-      });
-
-      res.json(updatedDoc);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }

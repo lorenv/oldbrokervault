@@ -7,7 +7,6 @@ import { Navbar } from "@/components/ui/navbar";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import AdminPage from "@/pages/admin-page";
-import SavedCimsPage from "@/pages/saved-cims";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -17,7 +16,6 @@ function Router() {
       <Navbar />
       <Switch>
         <ProtectedRoute path="/" component={HomePage} />
-        <ProtectedRoute path="/saved-cims" component={SavedCimsPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
         <Route component={NotFound} />
