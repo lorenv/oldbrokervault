@@ -64,11 +64,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sig = req.headers["stripe-signature"];
     if (!sig) return res.sendStatus(400);
 
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('ERROR: Missing STRIPE_WEBHOOK_SECRET environment variable');
+      return res.status(500).json({ error: "Missing Stripe webhook secret configuration" });
+    }
+
     try {
       const event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET
       );
 
       const userId = await handleStripeWebhook(event);
