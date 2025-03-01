@@ -1,4 +1,4 @@
-// the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
+// the newest Perplexity model is "llama-3.1-sonar-small-128k-online", use this by default
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
@@ -128,7 +128,6 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 
   const data = await response.json();
   try {
-    // Extract the content and parse it as JSON
     const contentStr = data.choices[0].message.content;
     const matches = contentStr.match(/\{[\s\S]*\}/);
     if (!matches) {
@@ -136,8 +135,6 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     }
 
     const analysis = JSON.parse(matches[0]);
-
-    // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
       throw new Error("Invalid response format from Perplexity API");
     }
@@ -149,116 +146,25 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 }
 
-export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string, directions?: string, websiteUrl?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
+
+    let systemContent = directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers.`;
+    let userContent = `Please analyze this transcript${websiteUrl ? ' and the provided website' : ''} and respond with ONLY a JSON object (no other text) structured to answer key questions about the business:\n\n${transcript}`;
+
+    if (websiteUrl) {
+      userContent += `\n\nWebsite URL: ${websiteUrl}`;
+    }
+
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
-{
-  "story": {
-    "yearStarted": "What year did the business begin?",
-    "businessIdea": "How did you get the idea?",
-    "businessModel": "What services/products does the business provide?",
-    "orderProcess": "What is the order/process flow from start to finish?",
-    "growthHistory": "How did you grow it?",
-    "businessStructure": "How is the company structured (LLC, Inc., etc.)?"
-  },
-  "executiveSummary": {
-    "buyerAttractions": ["What makes the business attractive to buyers?"],
-    "growthOpportunities": ["What growth opportunities are available?"]
-  },
-  "assets": {
-    "digitalAssets": ["List digital assets (websites, social media)"],
-    "location": "Business address",
-    "equipmentValue": "Estimated value of FF&E"
-  },
-  "ownership": {
-    "owners": [{
-      "name": "Owner's full name",
-      "percentage": "Ownership percentage",
-      "background": "Background, experience, and education"
-    }],
-    "intellectualProperty": ["Trademarks or copyrights"]
-  },
-  "marketAnalysis": {
-    "uniqueFeatures": ["What is unique about the business?"],
-    "customerProfile": "Profile of average customer/typical client",
-    "saleReason": "Why is the business being sold?",
-    "competitors": ["Top three competitors"],
-    "strengths": ["Business strengths"]
-  },
-  "operations": {
-    "suppliers": {
-      "count": "Number of suppliers",
-      "transferability": "Will relationships transfer?",
-      "concentration": "Supplier concentration percentages",
-      "terms": "Contract terms (net30, etc)",
-      "replaceability": "Easy to replace suppliers?"
-    },
-    "customers": {
-      "recurring": "Does business have recurring customers?",
-      "relationships": "Number of recurring customers",
-      "concentration": "Revenue concentration by customer",
-      "contracts": "Contract terms with customers",
-      "replaceability": "Easy to replace customers?"
-    }
-  },
-  "inventory": {
-    "leadTime": "Typical lead time",
-    "sourcing": "Local or import?",
-    "storage": "Where is inventory held?",
-    "value": "Value of inventory on hand",
-    "skuCount": "Number of SKUs/services",
-    "topProducts": ["Best selling products/services and % of revenue"]
-  },
-  "sales": {
-    "channels": {"channel": "percentage"},
-    "seasonality": "Does business have seasonality?",
-    "averageOrderValue": "Average order value per customer",
-    "competitivePricing": "How does pricing compare to competitors?",
-    "pricingModel": "How does pricing work?",
-    "paymentMethods": ["Payment methods accepted"]
-  },
-  "marketing": {
-    "strategies": ["How does owner market to find new clients?"],
-    "paidAdvertising": {
-      "channels": ["Which channels?"],
-      "effectiveness": "Was it successful and why?"
-    },
-    "emailMarketing": {
-      "listSize": "Number of email addresses",
-      "usage": "How is the list used?"
-    },
-    "seoEfforts": "What regular SEO efforts are engaged?"
-  },
-  "team": {
-    "ownerResponsibilities": "Owner's average work week responsibilities",
-    "ownerHours": "Expected hours/week for buyer",
-    "employees": [{
-      "role": "Staff role",
-      "status": "Full/part-time, contractor/employee",
-      "compensation": "Hourly/salary rate"
-    }],
-    "turnover": "Is there frequent employee turnover?",
-    "hiring": "Is it difficult to find new employees?",
-    "retention": "Will employees stay after sale?",
-    "organization": "Is there an org chart?",
-    "keyEmployees": ["List key employees"],
-    "management": "Is there a GM or potential GM?"
-  },
-  "facility": {
-    "ownership": "Owned or leased?",
-    "size": "Square footage",
-    "cost": "Monthly cost",
-    "leaseDetails": "If leased: terms and expiration"
-  }
-}`
+        content: systemContent
       },
       {
         role: "user",
-        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${transcript}`
+        content: userContent
       }
     ]);
 

@@ -59,7 +59,7 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   transcript: true,
 }).extend({
   directions: z.string().optional(),
-  websiteUrl: z.string().url().optional()
+  websiteUrl: z.string().url().optional().nullable()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
