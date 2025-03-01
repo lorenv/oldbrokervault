@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { SubscriptionCard } from "@/components/ui/subscription-card";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -15,19 +14,21 @@ export function Navbar() {
           </Link>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {user?.isAdmin && (
-            <Link href="/admin">
-              <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
-            </Link>
-          )}
-          <Button 
-            variant="outline" 
-            onClick={() => logoutMutation.mutate()}
-          >
-            Logout
-          </Button>
-        </div>
+        {user && (
+          <div className="flex items-center space-x-4">
+            {user.isAdmin && (
+              <Link href="/admin">
+                <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
+              </Link>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={() => logoutMutation.mutate()}
+            >
+              Logout
+            </Button>
+          </div>
+        )}
       </div>
     </nav>
   );
