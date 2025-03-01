@@ -43,8 +43,7 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     body: JSON.stringify({
       model: "llama-3.1-sonar-small-128k-online",
       messages,
-      temperature: 0.2,
-      response_format: { type: "json_object" }
+      temperature: 0.2
     })
   });
 
@@ -60,8 +59,14 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 
   const data = await response.json();
   try {
-    // Parse the content as JSON since it should be a JSON string based on response_format
-    const analysis = JSON.parse(data.choices[0].message.content);
+    // Extract the content and parse it as JSON
+    const contentStr = data.choices[0].message.content;
+    const matches = contentStr.match(/\{[\s\S]*\}/);
+    if (!matches) {
+      throw new Error("No JSON object found in response");
+    }
+
+    const analysis = JSON.parse(matches[0]);
 
     // Validate the response has the required fields
     if (!analysis.summary || !analysis.marketAnalysis || !analysis.team) {
@@ -81,44 +86,44 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum. Analyze the provided transcript and structure the information in a clear, professional format. You must return a JSON object with this exact structure:
-        {
-          "summary": "Brief overview of the business",
-          "businessDetails": {
-            "yearStarted": "YYYY if mentioned",
-            "businessModel": "Description of the business model",
-            "structure": "Business structure (LLC, Corp, etc)",
-            "ownerBackground": ["List of background details"]
-          },
-          "marketAnalysis": {
-            "competitors": ["List of competitors"],
-            "strengths": ["List of business strengths"],
-            "uniqueFeatures": ["List of unique features"]
-          },
-          "financials": {
-            "revenue": {
-              "total": 0,
-              "breakdown": {"source1": 0, "source2": 0}
-            },
-            "customerMetrics": {
-              "averageOrderValue": 0,
-              "recurring": 0
-            }
-          },
-          "team": {
-            "employees": [
-              {
-                "role": "Role title",
-                "tenure": "Time at company",
-                "description": "Brief description"
-              }
-            ]
-          }
-        }`
+        content: `You are a professional business analyst creating a Confidential Information Memorandum. When analyzing the provided transcript, you must respond with ONLY a JSON object (no other text) with this exact structure:
+{
+  "summary": "Brief overview of the business",
+  "businessDetails": {
+    "yearStarted": "YYYY if mentioned",
+    "businessModel": "Description of the business model",
+    "structure": "Business structure (LLC, Corp, etc)",
+    "ownerBackground": ["List of background details"]
+  },
+  "marketAnalysis": {
+    "competitors": ["List of competitors"],
+    "strengths": ["List of business strengths"],
+    "uniqueFeatures": ["List of unique features"]
+  },
+  "financials": {
+    "revenue": {
+      "total": 0,
+      "breakdown": {"source1": 0, "source2": 0}
+    },
+    "customerMetrics": {
+      "averageOrderValue": 0,
+      "recurring": 0
+    }
+  },
+  "team": {
+    "employees": [
+      {
+        "role": "Role title",
+        "tenure": "Time at company",
+        "description": "Brief description"
+      }
+    ]
+  }
+}`
       },
       {
         role: "user",
-        content: `Please analyze this business transcript and provide structured information in the specified JSON format:\n\n${transcript}`
+        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${transcript}`
       }
     ]);
 
