@@ -64,9 +64,13 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Username already exists");
     }
 
+    // Special admin code check
+    const isAdmin = req.body.adminCode === process.env.ADMIN_CODE;
+
     const user = await storage.createUser({
-      ...req.body,
+      username: req.body.username,
       password: await hashPassword(req.body.password),
+      isAdmin,
     });
 
     req.login(user, (err) => {
