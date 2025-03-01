@@ -3,9 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { loadStripe } from "@stripe/stripe-js";
 
 interface SubscriptionCardProps {
   status?: string;
@@ -13,10 +10,7 @@ interface SubscriptionCardProps {
   monthlyUsage?: number;
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
 export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: SubscriptionCardProps) {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
   const isStandard = status === "standard";
@@ -32,30 +26,10 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
     }
   };
 
-  const handleUpgrade = async (plan: string) => {
-    try {
-      setIsLoading(true);
-      const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan });
-      const data = await response.json();
-
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Stripe failed to load");
-
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("Invalid checkout session");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to initiate upgrade. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleUpgrade = (checkoutUrl: string) => {
+    setIsLoading(true);
+    // Simple redirect to the provided checkout URL
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -110,7 +84,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               {status === "free" && (
                 <Button
                   className="w-full"
-                  onClick={() => handleUpgrade("standard")}
+                  onClick={() => handleUpgrade("https://buy.stripe.com/eVa9DA8cO86ugqA3ce")}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -122,7 +96,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               )}
               <Button
                 className="w-full"
-                onClick={() => handleUpgrade("premium")}
+                onClick={() => handleUpgrade("https://buy.stripe.com/aEUg1YfFg1I65LW9AB")}
                 disabled={isLoading}
               >
                 {isLoading ? (
