@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -9,6 +9,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
+  updateUserUsage(userId: number): Promise<void>;
+  resetMonthlyUsage(userId: number): Promise<void>;
+  checkUserLimit(userId: number): Promise<boolean>;
   createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument>;
   getCimDocuments(userId: number): Promise<CimDocument[]>;
   getAllUsers(): Promise<User[]>;
@@ -50,6 +53,8 @@ export class MemStorage implements IStorage {
       isAdmin: false,
       subscriptionStatus: "free",
       subscriptionEndsAt: null,
+      monthlyUsage: 0,
+      lastUsageReset: new Date(),
     };
     this.users.set(id, user);
     return user;
@@ -58,7 +63,7 @@ export class MemStorage implements IStorage {
   async updateSubscription(userId: number, status: string, endsAt: Date): Promise<void> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
-    
+
     this.users.set(userId, {
       ...user,
       subscriptionStatus: status,
@@ -66,7 +71,50 @@ export class MemStorage implements IStorage {
     });
   }
 
+  async updateUserUsage(userId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    // Reset usage if it's a new month
+    const now = new Date();
+    const lastReset = new Date(user.lastUsageReset);
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+      await this.resetMonthlyUsage(userId);
+      return;
+    }
+
+    this.users.set(userId, {
+      ...user,
+      monthlyUsage: user.monthlyUsage + 1,
+    });
+  }
+
+  async resetMonthlyUsage(userId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    this.users.set(userId, {
+      ...user,
+      monthlyUsage: 0,
+      lastUsageReset: new Date(),
+    });
+  }
+
+  async checkUserLimit(userId: number): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
+    return user.monthlyUsage < plan.limit;
+  }
+
   async createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument> {
+    // Check if user is within their limit
+    const canCreate = await this.checkUserLimit(userId);
+    if (!canCreate) {
+      throw new Error("Monthly CIM generation limit reached");
+    }
+
     const id = this.currentDocId++;
     const cimDoc: CimDocument = {
       id,
@@ -76,7 +124,9 @@ export class MemStorage implements IStorage {
       analysis: doc.analysis,
       createdAt: new Date(),
     };
+
     this.cimDocs.set(id, cimDoc);
+    await this.updateUserUsage(userId);
     return cimDoc;
   }
 
