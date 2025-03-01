@@ -40,7 +40,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = parseInt(session.client_reference_id!);
-      
+
       // Update user's subscription based on the successful payment
       // This will be implemented in the storage layer
       return userId;

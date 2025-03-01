@@ -42,9 +42,11 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
       if (!stripe) throw new Error("Stripe failed to load");
 
       // Redirect to Stripe Checkout
-      await stripe.redirectToCheckout({
-        sessionId: data.sessionId
-      });
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("Invalid checkout session");
+      }
     } catch (error) {
       toast({
         title: "Error",
