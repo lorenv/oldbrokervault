@@ -25,10 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { subscriptionPlans } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   // Redirect non-admin users
   if (user && !user.isAdmin) {
@@ -51,15 +54,31 @@ export default function AdminPage() {
       months: number;
       additionalCims?: number;
     }) => {
-      await apiRequest("POST", "/api/admin/subscription", {
+      const res = await apiRequest("POST", "/api/admin/subscription", {
         userId,
         status,
         months,
         additionalCims,
       });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update subscription");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "User subscription updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -121,11 +140,14 @@ export default function AdminPage() {
                           : "N/A"}
                       </TableCell>
                       <TableCell>
-                        <Dialog>
+                        <Dialog open={isDialogOpen && selectedUser === user.id} onOpenChange={setIsDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
                               variant="outline"
-                              onClick={() => setSelectedUser(user.id)}
+                              onClick={() => {
+                                setSelectedUser(user.id);
+                                setIsDialogOpen(true);
+                              }}
                             >
                               Update Subscription
                             </Button>
@@ -182,8 +204,12 @@ export default function AdminPage() {
                                 />
                               </div>
 
-                              <Button type="submit" className="w-full">
-                                Update
+                              <Button 
+                                type="submit" 
+                                className="w-full"
+                                disabled={updateSubscriptionMutation.isPending}
+                              >
+                                {updateSubscriptionMutation.isPending ? "Updating..." : "Update"}
                               </Button>
                             </form>
                           </DialogContent>
