@@ -8,6 +8,8 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import AdminPage from "@/pages/admin-page";
 import SavedCimsPage from "@/pages/saved-cims";
+import AccountPage from "@/pages/account-page";
+import SupportPage from "@/pages/support-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -19,6 +21,8 @@ function Router() {
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <ProtectedRoute path="/saved-cims" component={SavedCimsPage} />
+        <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute path="/support" component={SupportPage} />
         <Route path="/auth" component={AuthPage} />
         <Route component={NotFound} />
       </Switch>
