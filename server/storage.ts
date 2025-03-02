@@ -7,7 +7,7 @@ const MemoryStore = createMemoryStore(session);
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
   resetMonthlyUsage(userId: number): Promise<void>;
@@ -47,12 +47,13 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & { isAdmin?: boolean }): Promise<User> {
     const id = this.currentId++;
     const user: User = {
-      ...insertUser,
       id,
-      isAdmin: false,
+      username: insertUser.username,
+      password: insertUser.password,
+      isAdmin: insertUser.isAdmin || false,
       subscriptionStatus: "free",
       subscriptionEndsAt: null,
       monthlyUsage: 0,
