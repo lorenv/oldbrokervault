@@ -18,6 +18,7 @@ export interface IStorage {
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   sessionStore: session.Store;
+  updateUserLimit(userId: number, newLimit: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -58,6 +59,7 @@ export class MemStorage implements IStorage {
       subscriptionEndsAt: null,
       monthlyUsage: 0,
       lastUsageReset: new Date(),
+      customLimit: undefined, // Added customLimit
     };
     this.users.set(id, user);
     return user;
@@ -108,7 +110,8 @@ export class MemStorage implements IStorage {
     if (!user) throw new Error("User not found");
 
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    return user.monthlyUsage < plan.limit;
+    const effectiveLimit = user.customLimit || plan.limit;
+    return user.monthlyUsage < effectiveLimit;
   }
 
   async createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument> {
@@ -152,6 +155,18 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...doc };
     this.cimDocs.set(id, updated);
     return updated;
+  }
+
+  async updateUserLimit(userId: number, newLimit: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const basePlan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
+
+    this.users.set(userId, {
+      ...user,
+      customLimit: newLimit > basePlan.limit ? newLimit : undefined
+    });
   }
 }
 
