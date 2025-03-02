@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { UserCircle, HelpCircle } from "lucide-react";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -18,6 +19,18 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             <Link href="/saved-cims">
               <a className="text-sm font-medium hover:text-primary">My Saved CIMs</a>
+            </Link>
+            <Link href="/account">
+              <a className="text-sm font-medium hover:text-primary flex items-center">
+                <UserCircle className="w-4 h-4 mr-1" />
+                Account
+              </a>
+            </Link>
+            <Link href="/support">
+              <a className="text-sm font-medium hover:text-primary flex items-center">
+                <HelpCircle className="w-4 h-4 mr-1" />
+                Support
+              </a>
             </Link>
             {user.isAdmin && (
               <Link href="/admin">

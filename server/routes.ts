@@ -7,6 +7,7 @@ import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
 import { createSubscriptionSession, handleStripeWebhook } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
+import { sendSupportEmail } from "./email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -64,6 +65,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const docs = await storage.getCimDocuments(req.user!.id);
     res.json(docs);
+  });
+
+  // Support Route
+  app.post("/api/support", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { subject, message } = req.body;
+      await sendSupportEmail(
+        subject,
+        message,
+        req.user!.username
+      );
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Support email error:', error);
+      res.status(500).json({ error: "Failed to send support message" });
+    }
   });
 
   // Subscription Routes
