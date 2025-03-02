@@ -159,11 +159,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.sendStatus(401);
     }
 
-    const { userId, status, months } = req.body;
+    const { userId, status, months, additionalCims } = req.body;
     const endsAt = new Date();
     endsAt.setMonth(endsAt.getMonth() + months);
 
     await storage.updateSubscription(userId, status, endsAt);
+
+    // If additional CIMs are provided, update the user's monthly limit
+    if (additionalCims) {
+      const user = await storage.getUser(userId);
+      if (user) {
+        const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
+        const newLimit = plan.limit + additionalCims;
+        await storage.updateUserLimit(userId, newLimit);
+      }
+    }
+
     res.sendStatus(200);
   });
 
