@@ -49,24 +49,36 @@ export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [directions, setDirections] = useState(DEFAULT_DIRECTIONS);
   const [regenerationCount, setRegenerationCount] = useState(0);
+  const [showDirections, setShowDirections] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
+    defaultValues: {
+      title: "",
+      transcript: "",
+    }
   });
 
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/cim", {
+      const response = await apiRequest("POST", "/api/cim", {
         ...data,
-        directions,
+        directions: showDirections ? directions : DEFAULT_DIRECTIONS,
         docId: currentDocId
       });
-      return res.json();
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to generate CIM");
+      }
+
+      return response.json();
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       setRegenerationCount(data.regenerationCount || 0);
+      setShowDirections(true);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
     },
     onError: (error: any) => {
@@ -115,6 +127,11 @@ export function CimGenerator() {
                 placeholder="Document Title"
                 {...form.register("title")}
               />
+              {form.formState.errors.title && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.title.message}
+                </p>
+              )}
             </div>
             <div>
               <Textarea
@@ -122,23 +139,32 @@ export function CimGenerator() {
                 className="min-h-[200px]"
                 {...form.register("transcript")}
               />
+              {form.formState.errors.transcript && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.transcript.message}
+                </p>
+              )}
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Analysis Directions
-                {analysis && (
-                  <span className="text-muted-foreground ml-2">
-                    ({regenerationCount}/{getRegenLimit()} regenerations used)
-                  </span>
-                )}
-              </label>
-              <Textarea
-                value={directions}
-                onChange={(e) => setDirections(e.target.value)}
-                className="min-h-[150px]"
-                placeholder="Enter specific directions for how to analyze the transcript..."
-              />
-            </div>
+
+            {showDirections && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Analysis Directions
+                  {analysis && (
+                    <span className="text-muted-foreground ml-2">
+                      ({regenerationCount}/{getRegenLimit()} regenerations used)
+                    </span>
+                  )}
+                </label>
+                <Textarea
+                  value={directions}
+                  onChange={(e) => setDirections(e.target.value)}
+                  className="min-h-[150px]"
+                  placeholder="Enter specific directions for how to analyze the transcript..."
+                />
+              </div>
+            )}
+
             {analysis ? (
               <Button
                 type="button"
