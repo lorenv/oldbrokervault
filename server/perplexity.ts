@@ -166,44 +166,36 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
   try {
     console.log("Analyzing transcript with Perplexity API");
 
-    const systemPrompt = directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. 
-When analyzing the provided transcript, respond with ONLY a JSON object (no other text) that follows this exact structure:
+    const systemPrompt = directions || `You are a business analyst creating a CIM. Return ONLY a JSON object with NO additional text or explanation.
+
+REQUIRED FORMAT (all fields must be present):
 {
   "story": {
-    "yearStarted": "What year did the business begin?",
-    "businessIdea": "How did you get the idea?",
-    "businessModel": "What services/products does the business provide?",
-    "orderProcess": "What is the order/process flow from start to finish?",
-    "growthHistory": "How did you grow it?",
-    "businessStructure": "How is the company structured (LLC, Inc., etc.)?"
-  },
-  "executiveSummary": {
-    "buyerAttractions": ["What makes the business attractive to buyers?"],
-    "growthOpportunities": ["What growth opportunities are available?"]
-  },
-  "assets": {
-    "digitalAssets": ["List digital assets (websites, social media)"],
-    "location": "Business address",
-    "equipmentValue": "Estimated value of FF&E"
-  },
-  "ownership": {
-    "owners": [{
-      "name": "Owner's full name",
-      "percentage": "Ownership percentage",
-      "background": "Background, experience, and education"
-    }],
-    "intellectualProperty": ["Trademarks or copyrights"]
+    "yearStarted": "[year]",
+    "businessModel": "[description]",
+    "growthHistory": "[description]",
+    "businessStructure": "[structure type]"
   },
   "marketAnalysis": {
-    "uniqueFeatures": ["What is unique about the business?"],
-    "customerProfile": "Profile of average customer/typical client",
-    "saleReason": "Why is the business being sold?",
-    "competitors": ["Top three competitors"],
-    "strengths": ["Business strengths"]
+    "customerProfile": "[description]",
+    "competitors": ["competitor1", "competitor2"],
+    "strengths": ["strength1", "strength2"]
+  },
+  "team": {
+    "ownerResponsibilities": "[description]",
+    "ownerHours": "[hours]",
+    "management": "[description]",
+    "employees": [
+      {
+        "role": "[role]",
+        "status": "[status]",
+        "compensation": "[amount]"
+      }
+    ]
   }
 }
 
-Extract information from the transcript and fill in the JSON structure with actual values. Do not include any explanatory text outside the JSON object.`;
+Extract the information from the transcript and fill in ALL the required fields. If information is not available, use "Not specified in transcript" as the value. Do not omit any fields.`;
 
     const result = await makePerplexityRequest([
       {
