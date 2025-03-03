@@ -2,160 +2,172 @@
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
- story: {
-   yearStarted: string;
-   businessIdea: string;
-   businessModel: string;
-   orderProcess: string;
-   growthHistory: string;
-   businessStructure: string;
- },
- executiveSummary: {
-   buyerAttractions: string[];
-   growthOpportunities: string[];
- },
- assets: {
-   digitalAssets: string[];
-   location: string;
-   equipmentValue: string;
- },
- ownership: {
-   owners: Array<{
-     name: string;
-     percentage: string;
-     background: string;
-   }>;
-   intellectualProperty: string[];
- },
- marketAnalysis: {
-   uniqueFeatures: string[];
-   customerProfile: string;
-   saleReason: string;
-   competitors: string[];
-   strengths: string[];
- },
- operations: {
-   suppliers: {
-     count: string;
-     transferability: string;
-     concentration: string;
-     terms: string;
-     replaceability: string;
-   };
-   customers: {
-     recurring: string;
-     relationships: string;
-     concentration: string;
-     contracts: string;
-     replaceability: string;
-   };
- },
- inventory: {
-   leadTime: string;
-   sourcing: string;
-   storage: string;
-   value: string;
-   skuCount: string;
-   topProducts: string[];
- },
- sales: {
-   channels?: Record<string, number>;
-   seasonality: string;
-   averageOrderValue: string;
-   competitivePricing: string;
-   pricingModel: string;
-   paymentMethods: string[];
- },
- marketing: {
-   strategies: string[];
-   paidAdvertising: {
-     channels: string[];
-     effectiveness: string;
-   };
-   emailMarketing: {
-     listSize: string;
-     usage: string;
-   };
-   seoEfforts: string;
- },
- team: {
-   ownerResponsibilities: string;
-   ownerHours: string;
-   employees: Array<{
-     role: string;
-     status: string;
-     compensation: string;
-     tenure?: string;
-   }>;
-   turnover: string;
-   hiring: string;
-   retention: string;
-   organization: string;
-   keyEmployees: string[];
-   management: string;
- },
- facility: {
-   ownership: string;
-   size: string;
-   cost: string;
-   leaseDetails?: string;
- }
+  story: {
+    yearStarted: string;
+    businessIdea: string;
+    businessModel: string;
+    orderProcess: string;
+    growthHistory: string;
+    businessStructure: string;
+  },
+  executiveSummary: {
+    buyerAttractions: string[];
+    growthOpportunities: string[];
+  },
+  assets: {
+    digitalAssets: string[];
+    location: string;
+    equipmentValue: string;
+  },
+  ownership: {
+    owners: Array<{
+      name: string;
+      percentage: string;
+      background: string;
+    }>;
+    intellectualProperty: string[];
+  },
+  marketAnalysis: {
+    uniqueFeatures: string[];
+    customerProfile: string;
+    saleReason: string;
+    competitors: string[];
+    strengths: string[];
+  },
+  operations: {
+    suppliers: {
+      count: string;
+      transferability: string;
+      concentration: string;
+      terms: string;
+      replaceability: string;
+    };
+    customers: {
+      recurring: string;
+      relationships: string;
+      concentration: string;
+      contracts: string;
+      replaceability: string;
+    };
+  },
+  inventory: {
+    leadTime: string;
+    sourcing: string;
+    storage: string;
+    value: string;
+    skuCount: string;
+    topProducts: string[];
+  },
+  sales: {
+    channels?: Record<string, number>;
+    seasonality: string;
+    averageOrderValue: string;
+    competitivePricing: string;
+    pricingModel: string;
+    paymentMethods: string[];
+  },
+  marketing: {
+    strategies: string[];
+    paidAdvertising: {
+      channels: string[];
+      effectiveness: string;
+    };
+    emailMarketing: {
+      listSize: string;
+      usage: string;
+    };
+    seoEfforts: string;
+  },
+  team: {
+    ownerResponsibilities: string;
+    ownerHours: string;
+    employees: Array<{
+      role: string;
+      status: string;
+      compensation: string;
+      tenure?: string;
+    }>;
+    turnover: string;
+    hiring: string;
+    retention: string;
+    organization: string;
+    keyEmployees: string[];
+    management: string;
+  },
+  facility: {
+    ownership: string;
+    size: string;
+    cost: string;
+    leaseDetails?: string;
+  }
 };
 
 async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
-  const response = await fetch(PERPLEXITY_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-sonar-small-128k-online",
-      messages,
-      temperature: 0.2
-    })
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("Perplexity API error:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: text
-    });
-    throw new Error(`Perplexity API error (${response.status}): ${text}`);
-  }
-
-  const data = await response.json();
   try {
-    // Extract the content and parse it as JSON
+    const response = await fetch(PERPLEXITY_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-sonar-small-128k-online",
+        messages,
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Perplexity API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: text
+      });
+      throw new Error(`Perplexity API error (${response.status}): ${text}`);
+    }
+
+    const data = await response.json();
     const contentStr = data.choices[0].message.content;
-    const matches = contentStr.match(/\{[\s\S]*\}/);
-    if (!matches) {
+
+    // Log the entire response for debugging
+    console.log("Perplexity API Response:", contentStr);
+
+    // Try to find a JSON object in the response
+    const jsonMatches = contentStr.match(/\{[\s\S]*\}/);
+    if (!jsonMatches) {
       throw new Error("No JSON object found in response");
     }
 
-    const analysis = JSON.parse(matches[0]);
+    try {
+      const analysis = JSON.parse(jsonMatches[0]);
 
-    // Validate the response has the required fields
-    if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
-      throw new Error("Invalid response format from Perplexity API");
+      // Validate required fields with detailed error reporting
+      const requiredFields = ['story', 'marketAnalysis', 'team'];
+      const missingFields = requiredFields.filter(field => !analysis[field]);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      return analysis;
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Attempted to parse:", jsonMatches[0]);
+      throw new Error(`Failed to parse JSON response: ${parseError.message}`);
     }
-
-    return analysis;
   } catch (error) {
-    console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
-    throw new Error("Failed to parse CIM analysis response");
+    console.error("Failed to make Perplexity request:", error);
+    throw error;
   }
 }
 
 export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
-    const result = await makePerplexityRequest([
-      {
-        role: "system",
-        content: directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
+
+    const systemPrompt = directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. 
+When analyzing the provided transcript, respond with ONLY a JSON object (no other text) that follows this exact structure:
 {
   "story": {
     "yearStarted": "What year did the business begin?",
@@ -188,73 +200,15 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
     "saleReason": "Why is the business being sold?",
     "competitors": ["Top three competitors"],
     "strengths": ["Business strengths"]
-  },
-  "operations": {
-    "suppliers": {
-      "count": "Number of suppliers",
-      "transferability": "Will relationships transfer?",
-      "concentration": "Supplier concentration percentages",
-      "terms": "Contract terms (net30, etc)",
-      "replaceability": "Easy to replace suppliers?"
-    },
-    "customers": {
-      "recurring": "Does business have recurring customers?",
-      "relationships": "Number of recurring customers",
-      "concentration": "Revenue concentration by customer",
-      "contracts": "Contract terms with customers",
-      "replaceability": "Easy to replace customers?"
-    }
-  },
-  "inventory": {
-    "leadTime": "Typical lead time",
-    "sourcing": "Local or import?",
-    "storage": "Where is inventory held?",
-    "value": "Value of inventory on hand",
-    "skuCount": "Number of SKUs/services",
-    "topProducts": ["Best selling products/services and % of revenue"]
-  },
-  "sales": {
-    "channels": {"channel": "percentage"},
-    "seasonality": "Does business have seasonality?",
-    "averageOrderValue": "Average order value per customer",
-    "competitivePricing": "How does pricing compare to competitors?",
-    "pricingModel": "How does pricing work?",
-    "paymentMethods": ["Payment methods accepted"]
-  },
-  "marketing": {
-    "strategies": ["How does owner market to find new clients?"],
-    "paidAdvertising": {
-      "channels": ["Which channels?"],
-      "effectiveness": "Was it successful and why?"
-    },
-    "emailMarketing": {
-      "listSize": "Number of email addresses",
-      "usage": "How is the list used?"
-    },
-    "seoEfforts": "What regular SEO efforts are engaged?"
-  },
-  "team": {
-    "ownerResponsibilities": "Owner's average work week responsibilities",
-    "ownerHours": "Expected hours/week for buyer",
-    "employees": [{
-      "role": "Staff role",
-      "status": "Full/part-time, contractor/employee",
-      "compensation": "Hourly/salary rate"
-    }],
-    "turnover": "Is there frequent employee turnover?",
-    "hiring": "Is it difficult to find new employees?",
-    "retention": "Will employees stay after sale?",
-    "organization": "Is there an org chart?",
-    "keyEmployees": ["List key employees"],
-    "management": "Is there a GM or potential GM?"
-  },
-  "facility": {
-    "ownership": "Owned or leased?",
-    "size": "Square footage",
-    "cost": "Monthly cost",
-    "leaseDetails": "If leased: terms and expiration"
   }
-}`
+}
+
+Extract information from the transcript and fill in the JSON structure with actual values. Do not include any explanatory text outside the JSON object.`;
+
+    const result = await makePerplexityRequest([
+      {
+        role: "system",
+        content: systemPrompt
       },
       {
         role: "user",
