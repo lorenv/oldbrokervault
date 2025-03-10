@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { analyzeCimTranscript } from "./perplexity";
+import { analyzeCimTranscript } from "./openai";
 import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
 import { createSubscriptionSession, handleStripeWebhook } from "./stripe";
 import Stripe from "stripe";
