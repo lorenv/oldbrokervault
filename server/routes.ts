@@ -47,15 +47,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // For new documents
-      const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
-      const doc = await storage.createCimDocument(req.user!.id, {
-        ...data,
-        directions: req.body.directions,
-        analysis,
-        regenerationCount: 0
-      });
+      try {
+        const analysis = await analyzeCimTranscript(data.transcript, req.body.directions);
+        const doc = await storage.createCimDocument(req.user!.id, {
+          ...data,
+          directions: req.body.directions,
+          analysis,
+          regenerationCount: 0
+        });
 
-      res.json(doc);
+        res.json(doc);
+      } catch (analyzeError) {
+        console.error("Error analyzing transcript:", analyzeError);
+        res.status(400).json({ 
+          error: "Failed to analyze transcript. Please try again or contact support.",
+          details: analyzeError instanceof Error ? analyzeError.message : String(analyzeError)
+        });
+      }
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }
