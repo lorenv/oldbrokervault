@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
@@ -28,6 +30,34 @@ type CimAnalysis = {
   }
 };
 
+const analysisSchema = z.object({
+  story: z.object({
+    yearStarted: z.string(),
+    businessModel: z.string(),
+    growthHistory: z.string(),
+    businessStructure: z.string(),
+  }),
+  executiveSummary: z.object({
+    buyerAttractions: z.array(z.string()),
+    growthOpportunities: z.array(z.string()),
+  }),
+  marketAnalysis: z.object({
+    customerProfile: z.string(),
+    competitors: z.array(z.string()),
+    strengths: z.array(z.string()),
+  }),
+  team: z.object({
+    ownerResponsibilities: z.string(),
+    ownerHours: z.string(),
+    management: z.string(),
+    employees: z.array(z.object({
+      role: z.string(),
+      status: z.string(),
+      compensation: z.string(),
+    })),
+  }),
+});
+
 async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   try {
     const response = await fetch(PERPLEXITY_API_URL, {
@@ -53,68 +83,47 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       throw new Error(`Perplexity API error (${response.status}): ${text}`);
     }
 
+    const data = await response.json();
+    const contentStr = data.choices[0].message.content;
+
+    // Log raw response for debugging
+    console.log("Raw Perplexity API Response:", contentStr);
+
+    // Clean up the response string
+    const cleanedContent = contentStr
+      .replace(/```json\s*|\s*```/g, '') // Remove markdown code blocks
+      .trim();
+
+    console.log("Cleaned content:", cleanedContent);
+
     try {
-      const data = await response.json();
-      const contentStr = data.choices[0].message.content;
+      const parsedJson = JSON.parse(cleanedContent);
+      console.log("Parsed JSON:", JSON.stringify(parsedJson, null, 2));
 
-      // Log the entire response for debugging
-      console.log("Perplexity API Response:", contentStr);
+      // Validate against schema
+      const validationResult = analysisSchema.safeParse(parsedJson);
 
-      // More robust JSON extraction approach
-      let jsonContent = "";
+      if (!validationResult.success) {
+        console.error("Schema validation errors:", validationResult.error);
 
-      // First, try to find a JSON object with a more flexible regex
-      const jsonMatches = contentStr.match(/\{[\s\S]*?\}/g);
-      if (jsonMatches && jsonMatches.length > 0) {
-        // Find the largest match which is likely the complete JSON
-        jsonContent = jsonMatches.reduce((longest, current) => 
-          current.length > longest.length ? current : longest, "");
-      } else {
-        // Try to extract JSON by looking for the start and end braces
-        const startIdx = contentStr.indexOf('{');
-        const endIdx = contentStr.lastIndexOf('}');
-
-        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-          jsonContent = contentStr.substring(startIdx, endIdx + 1);
-        } else {
-          throw new Error("No valid JSON structure found in response");
-        }
-      }
-
-      try {
-        // Clean up any markdown code block syntax if present
-        jsonContent = jsonContent.replace(/```json|```/g, '').trim();
-        console.log("Attempting to parse JSON:", jsonContent);
-
-        const analysis = JSON.parse(jsonContent);
-
-        // Validate required fields with detailed error reporting
-        const requiredFields = ['story', 'executiveSummary', 'marketAnalysis', 'team'];
-        const missingFields = requiredFields.filter(field => !analysis[field]);
-
-        if (missingFields.length > 0) {
-          console.warn(`Analysis is missing fields: ${missingFields.join(', ')}. Creating placeholder values.`);
-
-          // Add missing required fields with placeholder values
-          if (!analysis.story) analysis.story = { 
+        // Create a default analysis object with placeholder values
+        const defaultAnalysis: CimAnalysis = {
+          story: {
             yearStarted: "Not specified in transcript",
             businessModel: "Not specified in transcript",
             growthHistory: "Not specified in transcript",
             businessStructure: "Not specified in transcript"
-          };
-
-          if (!analysis.executiveSummary) analysis.executiveSummary = {
+          },
+          executiveSummary: {
             buyerAttractions: ["Not specified in transcript"],
             growthOpportunities: ["Not specified in transcript"]
-          };
-
-          if (!analysis.marketAnalysis) analysis.marketAnalysis = {
+          },
+          marketAnalysis: {
             customerProfile: "Not specified in transcript",
             competitors: ["Not specified in transcript"],
             strengths: ["Not specified in transcript"]
-          };
-
-          if (!analysis.team) analysis.team = {
+          },
+          team: {
             ownerResponsibilities: "Not specified in transcript",
             ownerHours: "Not specified in transcript",
             management: "Not specified in transcript",
@@ -123,18 +132,21 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
               status: "Not specified",
               compensation: "Not specified"
             }]
-          };
-        }
+          }
+        };
 
-        return analysis;
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        console.error("Attempted to parse:", jsonContent);
-        throw new Error(`Failed to parse JSON response: ${parseError.message}`);
+        // Merge any valid data from the API response
+        return {
+          ...defaultAnalysis,
+          ...parsedJson
+        };
       }
-    } catch (error) {
-      console.error("Error parsing JSON response:", error);
-      throw new Error("Failed to parse JSON response");
+
+      return validationResult.data;
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Failed content:", cleanedContent);
+      throw new Error(`Failed to parse JSON response: ${parseError.message}`);
     }
   } catch (error) {
     console.error("Failed to make Perplexity request:", error);
@@ -148,13 +160,12 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
 
     // Check if API key is available
     if (!process.env.PERPLEXITY_API_KEY) {
-      console.error("ERROR: Missing PERPLEXITY_API_KEY environment variable");
+      console.error('ERROR: Missing PERPLEXITY_API_KEY environment variable');
       throw new Error("Missing API key configuration");
     }
 
-    const systemPrompt = directions || `You are a business analyst creating a CIM. Your ONLY response should be a valid JSON object with NO additional text, markdown formatting, or explanation.
+    const systemPrompt = directions || `You are an expert business analyst. Analyze the provided transcript and return ONLY a JSON object with NO additional text or explanation. Follow this exact format:
 
-REQUIRED FORMAT (all fields must be present):
 {
   "story": {
     "yearStarted": "[year]",
@@ -163,13 +174,13 @@ REQUIRED FORMAT (all fields must be present):
     "businessStructure": "[structure type]"
   },
   "executiveSummary": {
-    "buyerAttractions": ["attraction1", "attraction2"],
-    "growthOpportunities": ["opportunity1", "opportunity2"]
+    "buyerAttractions": ["[attraction1]", "[attraction2]"],
+    "growthOpportunities": ["[opportunity1]", "[opportunity2]"]
   },
   "marketAnalysis": {
     "customerProfile": "[description]",
-    "competitors": ["competitor1", "competitor2"],
-    "strengths": ["strength1", "strength2"]
+    "competitors": ["[competitor1]", "[competitor2]"],
+    "strengths": ["[strength1]", "[strength2]"]
   },
   "team": {
     "ownerResponsibilities": "[description]",
@@ -185,7 +196,7 @@ REQUIRED FORMAT (all fields must be present):
   }
 }
 
-Extract the information from the transcript and fill in ALL the required fields. If information is not available, use "Not specified in transcript" as the value. Do not omit any fields.`;
+Replace all [placeholders] with actual values from the transcript. If information is missing, use "Not specified in transcript". Your response must be ONLY this JSON object, with no additional text.`;
 
     const result = await makePerplexityRequest([
       {
