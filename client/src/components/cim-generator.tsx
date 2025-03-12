@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCimDocumentSchema } from "@shared/schema";
+import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, subscriptionPlans } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,24 +10,59 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { DocumentExport } from "./document-export";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export function CimGenerator() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [analysis, setAnalysis] = useState<any>(null);
+  const [currentDocId, setCurrentDocId] = useState<number | null>(null);
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
+    defaultValues: {
+      directions: DEFAULT_CIM_DIRECTIONS
+    }
   });
 
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/cim", data);
+      const res = await apiRequest("POST", "/api/cim", {
+        ...data,
+        docId: currentDocId // Pass docId for regeneration
+      });
       return res.json();
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
+      setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate CIM",
+        variant: "destructive"
+      });
+    }
   });
+
+  const handleGenerate = (data: any) => {
+    // Check regeneration limits
+    if (currentDocId) {
+      const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
+      if (analysis?.regenerationCount >= plan.regenerationLimit) {
+        toast({
+          title: "Regeneration Limit Reached",
+          description: `Your ${plan.name} plan allows ${plan.regenerationLimit} regenerations per CIM. Please upgrade to increase this limit.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    generateMutation.mutate(data);
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +72,7 @@ export function CimGenerator() {
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={form.handleSubmit((data) => generateMutation.mutate(data))}
+            onSubmit={form.handleSubmit(handleGenerate)}
             className="space-y-4"
           >
             <div>
@@ -53,6 +88,22 @@ export function CimGenerator() {
                 {...form.register("transcript")}
               />
             </div>
+            <div>
+              <Textarea
+                placeholder="Analysis Directions"
+                className="min-h-[150px]"
+                {...form.register("directions")}
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                {currentDocId ? (
+                  <>
+                    Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
+                  </>
+                ) : (
+                  "Customize how the AI analyzes your transcript"
+                )}
+              </p>
+            </div>
             <Button
               type="submit"
               disabled={generateMutation.isPending}
@@ -61,7 +112,7 @@ export function CimGenerator() {
               {generateMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Generate CIM
+              {currentDocId ? "Regenerate CIM" : "Generate CIM"}
             </Button>
           </form>
         </CardContent>
