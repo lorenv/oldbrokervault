@@ -42,56 +42,106 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        return done(null, user);
+    new LocalStrategy(
+      { usernameField: "email" },
+      async (email, password, done) => {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (!user || !(await comparePasswords(password, user.password))) {
+            return done(null, false, { message: "Invalid email or password" });
+          }
+          return done(null, user);
+        } catch (error) {
+          return done(error);
+        }
       }
-    }),
+    )
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
-  });
-
-  app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (error) {
+      done(error);
     }
-
-    // Special admin code check
-    const isAdmin = req.body.adminCode === process.env.ADMIN_CODE;
-
-    const user = await storage.createUser({
-      username: req.body.username,
-      password: await hashPassword(req.body.password),
-      isAdmin,
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/register", async (req, res) => {
+    try {
+      const existingUser = await storage.getUserByEmail(req.body.email);
+      if (existingUser) {
+        return res.status(400).json({
+          message: "An account with this email already exists"
+        });
+      }
+
+      // Special admin code check
+      const isAdmin = req.body.adminCode === process.env.ADMIN_CODE;
+
+      const user = await storage.createUser({
+        email: req.body.email,
+        password: await hashPassword(req.body.password),
+        isAdmin,
+      });
+
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({
+            message: "Failed to log in after registration"
+          });
+        }
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({
+        message: "Failed to create account. Please try again."
+      });
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        return res.status(500).json({
+          message: "Authentication error occurred"
+        });
+      }
+      if (!user) {
+        return res.status(401).json({
+          message: info?.message || "Invalid email or password"
+        });
+      }
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({
+            message: "Failed to establish session"
+          });
+        }
+        return res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        return res.status(500).json({
+          message: "Failed to log out"
+        });
+      }
       res.sendStatus(200);
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        message: "Not authenticated"
+      });
+    }
     res.json(req.user);
   });
 }

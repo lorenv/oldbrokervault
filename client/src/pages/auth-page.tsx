@@ -13,6 +13,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Loader2 } from "lucide-react";
+import type { z } from "zod";
+
+type LoginFormData = z.infer<typeof insertUserSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -31,7 +43,7 @@ export default function AuthPage() {
           <CardHeader>
             <CardTitle>Welcome to CIM Generator</CardTitle>
             <CardDescription>
-              Login or create an account to get started
+              Login or create an account with your email address to get started
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -41,12 +53,12 @@ export default function AuthPage() {
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login">
-                <LoginForm onSubmit={(data) => loginMutation.mutate(data)} />
+              <TabsContent value="login" className="mt-4">
+                <LoginForm mutation={loginMutation} />
               </TabsContent>
 
-              <TabsContent value="register">
-                <RegisterForm onSubmit={(data) => registerMutation.mutate(data)} />
+              <TabsContent value="register" className="mt-4">
+                <RegisterForm mutation={registerMutation} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -69,63 +81,154 @@ export default function AuthPage() {
   );
 }
 
-function LoginForm({ onSubmit }) {
-  const form = useForm({
+function LoginForm({ mutation }: { mutation: any }) {
+  const form = useForm<LoginFormData>({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Input
-          placeholder="Username"
-          {...form.register("username")}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email address</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="name@example.com"
+                  type="email"
+                  autoComplete="email"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Input
-          type="password"
-          placeholder="Password"
-          {...form.register("password")}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <Button type="submit" className="w-full">
-        Login
-      </Button>
-    </form>
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Logging in...
+            </>
+          ) : (
+            "Login"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }
 
-function RegisterForm({ onSubmit }) {
-  const form = useForm({
+function RegisterForm({ mutation }: { mutation: any }) {
+  const form = useForm<LoginFormData>({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      adminCode: "",
+    },
   });
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Input
-          placeholder="Choose a username"
-          {...form.register("username")}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email address</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="name@example.com"
+                  type="email"
+                  autoComplete="email"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Input
-          type="password"
-          placeholder="Choose a password"
-          {...form.register("password")}
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Choose a secure password (min. 8 characters)"
+                  autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <Input
-          type="password"
-          placeholder="Admin Code (optional)"
-          {...form.register("adminCode")}
+        <FormField
+          control={form.control}
+          name="adminCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Admin Code (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter admin code if provided"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <Button type="submit" className="w-full">
-        Create Account
-      </Button>
-    </form>
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            "Create Account"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }
