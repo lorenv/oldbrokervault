@@ -7,34 +7,56 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const MAX_TEXT_LENGTH = 4000; // OpenAI's token limit threshold
 
 type CimAnalysis = {
-  summary: string;
-  businessDetails: {
+  story: {
     yearStarted?: string;
     businessModel?: string;
     structure?: string;
     ownerBackground?: string[];
   };
+  executiveSummary: {
+    businessDescription: string; // Robust 4+ sentence summary
+    buyerAttractions: string[];
+    growthOpportunities: string[];
+    saleReason: string; // Made mandatory
+  };
   marketAnalysis: {
+    customerProfile: string;
     competitors: string[];
     strengths: string[];
-    uniqueFeatures: string[];
   };
-  financials: {
-    revenue?: {
-      total: number;
-      breakdown: Record<string, number>;
+  operations: {
+    suppliers: {
+      count: string;
+      terms: string;
+      concentration: string;
+      transferability: string;
     };
-    customerMetrics?: {
-      averageOrderValue: number;
-      recurring: number;
+    customers: {
+      recurring: string;
+      relationships: string;
+      concentration: string;
+      contracts: string;
     };
   };
   team: {
+    ownerResponsibilities: string;
+    ownerHours: string;
+    management: string;
     employees: Array<{
       role: string;
-      tenure: string;
-      description: string;
+      status: string;
+      compensation?: string; // Made optional
+      tenure?: string; // Made optional
     }>;
+    turnover: string;
+    hiring: string;
+    retention: string;
+  };
+  facility: {
+    ownership: string;
+    size: string;
+    cost: string;
+    leaseDetails?: string;
   };
 };
 
@@ -52,7 +74,25 @@ export async function analyzeCimTranscript(transcript: string, directions: strin
         messages: [
           {
             role: "system",
-            content: directions
+            content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, structure the information in a way that emphasizes the business's value and potential. Pay special attention to:
+
+1. Business Description (CRITICAL):
+   - Write a minimum 4-sentence robust summary that positions the business as an attractive investment
+   - Highlight key differentiators, market position, and growth trajectory
+   - Emphasize stable revenue streams, operational efficiency, and market opportunities
+   - Focus on elements that make the business appealing to potential buyers
+
+2. Sale Reason (MANDATORY):
+   - ALWAYS include the reason for sale if mentioned in the transcript
+   - If not explicitly mentioned, note "Reason for sale not provided in transcript"
+   - This is crucial information for potential buyers and must be addressed
+
+3. Team Structure:
+   - Provide a comprehensive overview of the team composition
+   - If detailed information (compensation, tenure, etc.) is available, present in a structured table
+   - If limited information is available, provide a clear summary paragraph or bullet points
+   - Include total headcount, roles, and employment status (full-time/part-time/contractor)
+   - Note any key personnel or management positions`
           },
           {
             role: "user",
