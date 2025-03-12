@@ -130,26 +130,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe webhook endpoint
   app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers["stripe-signature"];
-    if (!sig) return res.sendStatus(400);
+    if (!sig) {
+      console.log("No Stripe signature found");
+      return res.sendStatus(400);
+    }
 
     try {
+      console.log("Received Stripe webhook event");
       const event = stripe.webhooks.constructEvent(
         req.body,
         sig,
         process.env.STRIPE_WEBHOOK_SECRET!
       );
 
+      console.log("Webhook event type:", event.type);
+
       const result = await handleStripeWebhook(event);
       if (result) {
         const { userId, status, endsAt } = result;
+        console.log("Updating subscription:", { userId, status, endsAt });
+
         await storage.updateSubscription(userId, status, endsAt);
-        console.log(`Updated subscription for user ${userId} to ${status}`);
+        console.log(`Successfully updated subscription for user ${userId} to ${status}`);
+
+        // Force refresh the user's session
+        const user = await storage.getUser(userId);
+        if (req.session.passport?.user === userId) {
+          req.session.passport.user = user;
+          await new Promise((resolve) => req.session.save(resolve));
+        }
+      } else {
+        console.log("No subscription update required for event:", event.type);
       }
 
       res.json({ received: true });
     } catch (error) {
       console.error('Stripe webhook error:', error);
-      res.status(400).json({ error: "Webhook signature verification failed" });
+      res.status(400).json({ error: "Webhook handling failed" });
     }
   });
 
