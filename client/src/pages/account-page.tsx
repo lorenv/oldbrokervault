@@ -21,7 +21,7 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
 const profileSchema = z.object({
@@ -57,21 +57,28 @@ export default function AccountPage() {
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
+      console.log("Verifying session:", sessionId);
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
       const data = await response.json();
 
       if (data.success) {
+        // Invalidate the user query to refresh the subscription status
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
         toast({
           title: "Subscription Updated",
-          description: `Your subscription has been updated to ${data.status}`,
+          description: `Your subscription has been upgraded to ${data.status}`,
         });
         // Remove session_id from URL
         window.history.replaceState({}, '', '/account');
+      } else {
+        throw new Error(data.error || "Failed to verify subscription");
       }
     } catch (error) {
+      console.error("Stripe session verification error:", error);
       toast({
         title: "Error",
-        description: "Failed to verify subscription status",
+        description: "Failed to verify subscription status. Please contact support if this persists.",
         variant: "destructive",
       });
     }
