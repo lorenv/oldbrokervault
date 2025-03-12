@@ -30,7 +30,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard",
-      price: "$49",
+      price: "$500",
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -40,10 +40,11 @@ export default function PricingPage() {
         "Unlimited regenerations",
       ],
       current: user?.subscriptionStatus === "standard",
+      checkoutLink: "https://buy.stripe.com/eVa9DA8cO86ugqA3ce"
     },
     {
       name: "Premium",
-      price: "$99",
+      price: "$4,000",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
@@ -54,20 +55,13 @@ export default function PricingPage() {
         "Team collaboration",
       ],
       current: user?.subscriptionStatus === "premium",
+      checkoutLink: "https://buy.stripe.com/aEUg1YfFg1I65LW9AB"
     },
   ];
 
-  const handleUpgrade = async (planName: string) => {
-    try {
-      window.location.href = planName === "standard" 
-        ? `/api/create-subscription?priceId=${process.env.STRIPE_PRICE_ID_STANDARD}`
-        : `/api/create-subscription?priceId=${process.env.STRIPE_PRICE_ID_PREMIUM}`;
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to initiate upgrade. Please try again.",
-        variant: "destructive",
-      });
+  const handleUpgrade = (planLink?: string) => {
+    if (planLink) {
+      window.location.href = planLink;
     }
   };
 
@@ -111,7 +105,7 @@ export default function PricingPage() {
               ) : (
                 <Button 
                   className="w-full" 
-                  onClick={() => handleUpgrade(plan.name.toLowerCase())}
+                  onClick={() => handleUpgrade(plan.checkoutLink)}
                 >
                   Upgrade
                 </Button>
