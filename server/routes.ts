@@ -19,11 +19,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const data = insertCimDocumentSchema.parse(req.body);
-      const analysis = await analyzeCimTranscript(data.transcript);
+      const docId = req.body.docId; // For regeneration
 
+      // Check if this is a regeneration request
+      if (docId) {
+        const existingDoc = await storage.getCimDocument(docId);
+        if (!existingDoc || existingDoc.userId !== req.user!.id) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Check regeneration limit
+        const plan = subscriptionPlans[req.user!.subscriptionStatus as keyof typeof subscriptionPlans];
+        if (existingDoc.regenerationCount >= plan.regenerationLimit) {
+          return res.status(403).json({ error: "Regeneration limit reached" });
+        }
+
+        // Analyze with new directions
+        const analysis = await analyzeCimTranscript(data.transcript, data.directions);
+        const updatedDoc = await storage.updateCimDocument(docId, {
+          ...existingDoc,
+          directions: data.directions,
+          analysis,
+          regenerationCount: existingDoc.regenerationCount + 1
+        });
+
+        return res.json(updatedDoc);
+      }
+
+      // New document generation
+      const analysis = await analyzeCimTranscript(data.transcript, data.directions);
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
+        regenerationCount: 0
       });
 
       res.json(doc);

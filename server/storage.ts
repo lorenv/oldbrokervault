@@ -12,9 +12,11 @@ export interface IStorage {
   updateUserUsage(userId: number): Promise<void>;
   resetMonthlyUsage(userId: number): Promise<void>;
   checkUserLimit(userId: number): Promise<boolean>;
-  createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument>;
+  createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any; regenerationCount: number }): Promise<CimDocument>;
   getCimDocuments(userId: number): Promise<CimDocument[]>;
   getAllUsers(): Promise<User[]>;
+  getCimDocument(id: number): Promise<CimDocument | undefined>;
+  updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   sessionStore: session.Store;
 }
 
@@ -108,7 +110,7 @@ export class MemStorage implements IStorage {
     return user.monthlyUsage < plan.limit;
   }
 
-  async createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any }): Promise<CimDocument> {
+  async createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any; regenerationCount: number }): Promise<CimDocument> {
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
     if (!canCreate) {
@@ -121,6 +123,8 @@ export class MemStorage implements IStorage {
       userId,
       title: doc.title,
       transcript: doc.transcript,
+      directions: doc.directions,
+      regenerationCount: doc.regenerationCount,
       analysis: doc.analysis,
       createdAt: new Date(),
     };
@@ -131,11 +135,30 @@ export class MemStorage implements IStorage {
   }
 
   async getCimDocuments(userId: number): Promise<CimDocument[]> {
-    return Array.from(this.cimDocs.values()).filter(doc => doc.userId === userId);
+    return Array.from(this.cimDocs.values()).filter((doc) => doc.userId === userId);
   }
 
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  async getCimDocument(id: number): Promise<CimDocument | undefined> {
+    return this.cimDocs.get(id);
+  }
+
+  async updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument> {
+    const existingDoc = await this.getCimDocument(id);
+    if (!existingDoc) {
+      throw new Error("Document not found");
+    }
+
+    const updatedDoc = {
+      ...existingDoc,
+      ...doc,
+    };
+
+    this.cimDocs.set(id, updatedDoc);
+    return updatedDoc;
   }
 }
 
