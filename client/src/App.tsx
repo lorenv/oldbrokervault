@@ -8,7 +8,8 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
-import AccountPage from "@/pages/account-page"; // Added import
+import AccountPage from "@/pages/account-page";
+import PricingPage from "@/pages/pricing-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -19,7 +20,8 @@ function Router() {
       <Switch>
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/documents" component={DocumentsPage} />
-        <ProtectedRoute path="/account" component={AccountPage} /> {/* Added route */}
+        <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
         <Route component={NotFound} />
