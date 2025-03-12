@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -42,6 +43,39 @@ export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [location] = useLocation();
+
+  useEffect(() => {
+    // Check for Stripe session verification
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    if (sessionId) {
+      verifyStripeSession(sessionId);
+    }
+  }, [location]);
+
+  const verifyStripeSession = async (sessionId: string) => {
+    try {
+      const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Subscription Updated",
+          description: `Your subscription has been updated to ${data.status}`,
+        });
+        // Remove session_id from URL
+        window.history.replaceState({}, '', '/account');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify subscription status",
+        variant: "destructive",
+      });
+    }
+  };
 
   const form = useForm({
     resolver: zodResolver(profileSchema),
