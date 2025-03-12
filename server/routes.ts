@@ -13,7 +13,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Configure Express to handle large payloads
+  // Configure Express to handle large payloads - these must be set before any route handlers
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use(express.raw({ type: 'application/json', limit: '50mb' }));

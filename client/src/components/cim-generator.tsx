@@ -13,6 +13,7 @@ import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { File, FileText } from "lucide-react";
+import { chunkTranscript, mergeAnalysisResults } from "@/lib/transcript-chunker"; // Import chunking functions
 
 
 export function CimGenerator() {
@@ -63,8 +64,69 @@ export function CimGenerator() {
         return;
       }
     }
-    generateMutation.mutate(data);
+    handleSubmission(data); // Use the new handling function
   };
+
+  const handleSubmission = async (data: any) => {
+    if (!user) {
+      return;
+    }
+
+    // Check if transcript is very large and needs chunking
+    if (data.transcript.length > 1000000) { // 1MB threshold
+      toast({
+        title: "Processing large transcript",
+        description: "Your transcript is large and will be processed in chunks. This may take a little longer.",
+      });
+
+      try {
+        // Split transcript into chunks
+        const chunks = chunkTranscript(data.transcript);
+        console.log(`Processing transcript in ${chunks.length} chunks`);
+
+        // Process first chunk to get initial document
+        const firstChunkData = { ...data, transcript: chunks[0] };
+        const firstResponse = await generateMutation.mutateAsync(firstChunkData);
+
+        if (chunks.length === 1) {
+          return; // No additional processing needed
+        }
+
+        // Process remaining chunks and merge results
+        const remainingChunks = chunks.slice(1);
+        const results = [firstResponse];
+
+        for (const chunk of remainingChunks) {
+          const chunkData = { 
+            ...data, 
+            transcript: chunk,
+            docId: firstResponse.id // Use same doc ID for updates
+          };
+
+          const chunkResponse = await generateMutation.mutateAsync(chunkData);
+          results.push(chunkResponse);
+        }
+
+        toast({
+          title: "Processing complete",
+          description: `Successfully processed transcript in ${chunks.length} chunks`,
+          variant: "success"
+        });
+
+      } catch (error) {
+        console.error("Error processing chunks:", error);
+        toast({
+          title: "Error processing transcript",
+          description: "Failed to process the transcript chunks. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } else {
+      // Standard processing for smaller transcripts
+      generateMutation.mutate(data);
+    }
+  };
+
 
   const handlePdfExport = () => {
     // Placeholder for PDF export function
