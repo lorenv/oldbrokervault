@@ -55,75 +55,80 @@ type CimAnalysis = {
 
 export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
-    const systemPrompt = directions || `You are a business analyst. You must respond with ONLY a valid JSON object - no markdown, no additional text. The response must follow this exact structure:
+    // Log the input transcript for debugging
+    console.log("Input transcript:", transcript);
+
+    const systemPrompt = directions || `As a business analyst, analyze the provided transcript and create a Confidential Information Memorandum (CIM). Extract specific details and return ONLY a JSON object matching this structure:
 
 {
   "story": {
-    "yearStarted": "When did the business start",
-    "businessModel": "What the business does",
-    "growthHistory": "How it has grown",
-    "businessStructure": "Type of business structure"
+    "yearStarted": "Extract specific year or time period when business started",
+    "businessModel": "Explain core business activities and revenue model",
+    "growthHistory": "Describe growth trajectory and milestones",
+    "businessStructure": "Specify business structure (LLC, Corp, etc)"
   },
   "executiveSummary": {
-    "buyerAttractions": ["List of key selling points"],
-    "growthOpportunities": ["List of growth opportunities"]
+    "buyerAttractions": ["List 3-5 key selling points"],
+    "growthOpportunities": ["List 3-5 growth opportunities"]
   },
   "marketAnalysis": {
-    "customerProfile": "Target customer description",
-    "competitors": ["List of main competitors"],
-    "strengths": ["List of business strengths"]
+    "customerProfile": "Describe typical customer demographics and needs",
+    "competitors": ["Name main competitors"],
+    "strengths": ["List competitive advantages"]
   },
   "operations": {
     "suppliers": {
-      "count": "Number of suppliers",
-      "transferability": "Will relationships transfer?",
-      "concentration": "Supplier concentration",
-      "terms": "Contract terms"
+      "count": "Number of key suppliers",
+      "transferability": "Can supplier relationships transfer to new owner?",
+      "concentration": "Percentage of supply from top suppliers",
+      "terms": "Payment and delivery terms"
     },
     "customers": {
-      "recurring": "Does business have recurring revenue?",
-      "relationships": "Customer relationship details",
-      "concentration": "Customer concentration",
-      "contracts": "Contract terms with customers"
+      "recurring": "Percentage of recurring revenue",
+      "relationships": "Nature of customer relationships",
+      "concentration": "Revenue from top customers",
+      "contracts": "Contract terms and duration"
     }
   },
   "facility": {
-    "ownership": "Owned or leased",
+    "ownership": "Owned/leased status",
     "size": "Square footage",
-    "cost": "Monthly cost",
-    "leaseDetails": "If leased: terms and expiration"
+    "cost": "Monthly facility costs",
+    "leaseDetails": "Terms if leased"
   },
   "team": {
-    "ownerResponsibilities": "What the owner does",
-    "ownerHours": "Hours worked per week",
-    "management": "Management structure description",
+    "ownerResponsibilities": "Current owner's role",
+    "ownerHours": "Owner's weekly time commitment",
+    "management": "Management team structure",
     "employees": [
       {
-        "role": "Employee role/title",
-        "status": "Employment type",
-        "compensation": "Pay information"
+        "role": "Employee position",
+        "status": "Full-time/part-time",
+        "compensation": "Salary/wage info"
       }
     ],
     "turnover": "Employee turnover rate",
-    "hiring": "Hiring environment",
-    "retention": "Expected post-sale retention"
+    "hiring": "Ease of finding staff",
+    "retention": "Expected employee retention post-sale"
   }
-}`;
+}
+
+IMPORTANT: Focus on extracting specific facts and figures from the transcript. Use "Not available" only if information is truly missing.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
-          content: `${systemPrompt}\n\nIMPORTANT: Your response must be ONLY the JSON object, with NO additional text or explanation.`
+          content: systemPrompt
         },
         {
           role: "user",
-          content: `Analyze this transcript and provide information in the specified JSON format ONLY:\n\n${transcript}`
+          content: `Please analyze this business transcript carefully and extract all relevant information into the specified JSON format:\n\n${transcript}`
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.1 // Lower temperature for more consistent output
+      temperature: 0.3 // Slightly higher temperature for better analysis
     });
 
     if (!response.choices[0].message.content) {
@@ -139,51 +144,51 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
       // Default values for missing fields
       const defaultAnalysis: CimAnalysis = {
         story: {
-          yearStarted: "Not specified",
-          businessModel: "Not specified",
-          growthHistory: "Not specified",
-          businessStructure: "Not specified"
+          yearStarted: "Not available",
+          businessModel: "Not available",
+          growthHistory: "Not available",
+          businessStructure: "Not available"
         },
         executiveSummary: {
-          buyerAttractions: ["Not specified"],
-          growthOpportunities: ["Not specified"]
+          buyerAttractions: ["Not available"],
+          growthOpportunities: ["Not available"]
         },
         marketAnalysis: {
-          customerProfile: "Not specified",
-          competitors: ["Not specified"],
-          strengths: ["Not specified"]
+          customerProfile: "Not available",
+          competitors: ["Not available"],
+          strengths: ["Not available"]
         },
         operations: {
           suppliers: {
-            count: "Not specified",
-            transferability: "Not specified",
-            concentration: "Not specified",
-            terms: "Not specified"
+            count: "Not available",
+            transferability: "Not available",
+            concentration: "Not available",
+            terms: "Not available"
           },
           customers: {
-            recurring: "Not specified",
-            relationships: "Not specified",
-            concentration: "Not specified",
-            contracts: "Not specified"
+            recurring: "Not available",
+            relationships: "Not available",
+            concentration: "Not available",
+            contracts: "Not available"
           }
         },
         facility: {
-          ownership: "Not specified",
-          size: "Not specified",
-          cost: "Not specified"
+          ownership: "Not available",
+          size: "Not available",
+          cost: "Not available"
         },
         team: {
-          ownerResponsibilities: "Not specified",
-          ownerHours: "Not specified",
-          management: "Not specified",
+          ownerResponsibilities: "Not available",
+          ownerHours: "Not available",
+          management: "Not available",
           employees: [{
-            role: "Not specified",
-            status: "Not specified",
-            compensation: "Not specified"
+            role: "Not available",
+            status: "Not available",
+            compensation: "Not available"
           }],
-          turnover: "Not specified",
-          hiring: "Not specified",
-          retention: "Not specified"
+          turnover: "Not available",
+          hiring: "Not available",
+          retention: "Not available"
         }
       };
 
@@ -197,8 +202,8 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
           customers: { ...defaultAnalysis.operations.customers, ...analysis.operations?.customers }
         },
         facility: { ...defaultAnalysis.facility, ...analysis.facility },
-        team: { 
-          ...defaultAnalysis.team, 
+        team: {
+          ...defaultAnalysis.team,
           ...analysis.team,
           employees: analysis.team?.employees || defaultAnalysis.team.employees
         }
