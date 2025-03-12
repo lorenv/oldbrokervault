@@ -9,10 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { SupportDialog } from "./support-dialog";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   return (
     <nav className="border-b">
@@ -58,6 +61,10 @@ export function Navbar() {
                     </a>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Support
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
                   <LogOut className="h-4 w-4 mr-2" />
@@ -68,6 +75,7 @@ export function Navbar() {
           </div>
         )}
       </div>
+      <SupportDialog open={isSupportOpen} onOpenChange={setIsSupportOpen} />
     </nav>
   );
 }
