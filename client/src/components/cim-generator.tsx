@@ -13,7 +13,6 @@ import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { File, FileText } from "lucide-react";
-import { chunkTranscript, mergeAnalysisResults } from "@/lib/transcript-chunker"; // Import chunking functions
 
 
 export function CimGenerator() {
@@ -33,43 +32,12 @@ export function CimGenerator() {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/cim", {
         ...data,
-        docId: currentDocId
+        docId: currentDocId // Pass docId for regeneration
       });
-      const responseData = await res.json();
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Failed to generate CIM');
-      }
-      return responseData;
+      return res.json();
     },
     onSuccess: (data) => {
-      // Transform API response to match frontend structure
-      const transformedAnalysis = {
-        BusinessDescription: data.analysis?.BusinessDescription || {},
-        SaleReason: data.analysis?.SaleReason || { Text: 'Not provided' },
-        TeamStructure: data.analysis?.TeamStructure || {
-          TotalHeadcount: 0,
-          Roles: [],
-          EmploymentStatus: [],
-          KeyPersonnel: []
-        },
-        story: {
-          yearStarted: data.analysis?.BusinessDescription?.Founded || 'Not specified',
-          businessModel: data.analysis?.BusinessDescription?.Summary?.Text || 'Not specified',
-          structure: data.analysis?.BusinessDescription?.Structure?.Text || 'Not specified'
-        },
-        marketAnalysis: {
-          customerProfile: data.analysis?.BusinessDescription?.MarketPosition?.Text || '',
-          competitors: data.analysis?.Competitors || [],
-          strengths: data.analysis?.BusinessDescription?.KeyDifferentiators || []
-        },
-        operations: {
-          customers: {},
-          suppliers: {}
-        },
-        facility: data.analysis?.facility || null
-      };
-
-      setAnalysis(transformedAnalysis);
+      setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
     },
@@ -82,73 +50,7 @@ export function CimGenerator() {
     }
   });
 
-  const handleSubmission = async (data: any) => {
-    if (!user) {
-      return;
-    }
-
-    // Check if transcript is very large and needs chunking
-    if (data.transcript.length > 8000) { // Reduced threshold for testing
-      toast({
-        title: "Processing large transcript",
-        description: "Your transcript will be processed in chunks. This may take a little longer.",
-      });
-
-      try {
-        // Clean the transcript first
-        const cleanedTranscript = data.transcript
-          .split('\n')
-          .filter((line: string) => line.trim().length > 0)
-          .join('\n');
-
-        // Split into chunks of ~8000 characters
-        const chunks = cleanedTranscript.match(/.{1,8000}/g) || [cleanedTranscript];
-        console.log(`Processing transcript in ${chunks.length} chunks`);
-
-        // Process first chunk
-        const firstChunkData = { ...data, transcript: chunks[0] };
-        const firstResponse = await generateMutation.mutateAsync(firstChunkData);
-
-        if (chunks.length === 1) {
-          return; // No additional processing needed
-        }
-
-        // Process remaining chunks
-        for (let i = 1; i < chunks.length; i++) {
-          const chunkData = { 
-            ...data, 
-            transcript: chunks[i],
-            docId: firstResponse.id
-          };
-
-          await generateMutation.mutateAsync(chunkData);
-
-          toast({
-            title: "Processing chunks",
-            description: `Processed chunk ${i + 1} of ${chunks.length}`,
-          });
-        }
-
-        toast({
-          title: "Processing complete",
-          description: `Successfully processed all ${chunks.length} chunks`,
-        });
-
-      } catch (error) {
-        console.error("Error processing chunks:", error);
-        toast({
-          title: "Error processing transcript",
-          description: error instanceof Error ? error.message : "Failed to process the transcript chunks",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // Standard processing for smaller transcripts
-      await generateMutation.mutateAsync(data);
-    }
-  };
-
-  const handleGenerate = async (data: any) => {
+  const handleGenerate = (data: any) => {
     // Check regeneration limits
     if (currentDocId) {
       const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
@@ -161,7 +63,7 @@ export function CimGenerator() {
         return;
       }
     }
-    await handleSubmission(data);
+    generateMutation.mutate(data);
   };
 
   const handlePdfExport = () => {
@@ -174,237 +76,6 @@ export function CimGenerator() {
     console.log("Exporting to Word");
   };
 
-  const renderBusinessOverview = () => {
-    if (!analysis?.story) return null;
-
-    return (
-      <section>
-        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Background</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="font-medium">Founded</p>
-                <p className="text-muted-foreground">
-                  {analysis.story.yearStarted || 'Not specified'}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Structure</p>
-                <p className="text-muted-foreground">
-                  {analysis.story.structure || 'Not specified'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Business Description</h3>
-            <p className="text-muted-foreground">
-              {analysis.story.businessModel || 'Not provided'}
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  };
-
-  const renderInvestmentHighlights = () => {
-    if (!analysis?.executiveSummary && !analysis?.BusinessDescription) return null;
-
-    return (
-      <section>
-        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
-            <ul className="list-disc pl-6 space-y-1">
-              {(analysis.executiveSummary?.buyerAttractions || analysis.BusinessDescription?.KeyDifferentiators || []).map((item: string, i: number) => (
-                <li key={i} className="text-muted-foreground">{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
-            <ul className="list-disc pl-6 space-y-1">
-              {(analysis.executiveSummary?.growthOpportunities || []).map((item: string, i: number) => (
-                <li key={i} className="text-muted-foreground">{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          {(analysis.SaleReason?.Text || analysis.executiveSummary?.saleReason) && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Sale Reason</h3>
-              <p className="text-muted-foreground">
-                {analysis.SaleReason?.Text || analysis.executiveSummary?.saleReason}
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-    );
-  };
-
-  const renderTeamStructure = () => {
-    if (!analysis?.team && !analysis?.TeamStructure) return null;
-
-    const team = analysis.TeamStructure || analysis.team;
-
-    return (
-      <section>
-        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
-        <div className="space-y-6">
-          {team.TotalHeadcount && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Total Headcount</h3>
-              <p className="text-muted-foreground">{team.TotalHeadcount}</p>
-            </div>
-          )}
-
-          {(team.Roles?.length > 0 || team.EmploymentStatus?.length > 0) && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Role</th>
-                      <th className="text-left py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(team.EmploymentStatus || []).map((employee: any, i: number) => (
-                      <tr key={i} className="border-b">
-                        <td className="py-2">{employee.Role}</td>
-                        <td className="py-2">{employee.Status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {team.KeyPersonnel?.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Key Personnel</h3>
-              {team.KeyPersonnel.map((person: any, i: number) => (
-                <div key={i} className="mb-4">
-                  <h4 className="font-medium">{person.Name} - {person.Role}</h4>
-                  <ul className="list-disc pl-6 mt-2">
-                    {person.Responsibilities.map((resp: string, j: number) => (
-                      <li key={j} className="text-muted-foreground">{resp}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    );
-  };
-
-  const renderOperations = () => {
-    if (!analysis?.operations && !analysis?.BusinessOperations) return null;
-
-    const operations = analysis?.operations || analysis?.BusinessOperations || {};
-    const customers = operations?.customers || {};
-    const suppliers = operations?.suppliers || {};
-
-    return (
-      <section>
-        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
-        <div className="space-y-6">
-          {/* Customer Relationships */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
-            <div className="bg-muted rounded-lg p-4">
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <dt className="font-medium">Recurring Revenue</dt>
-                  <dd className="text-muted-foreground">{customers?.recurring || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Customer Base</dt>
-                  <dd className="text-muted-foreground">{customers?.relationships || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Revenue Concentration</dt>
-                  <dd className="text-muted-foreground">{customers?.concentration || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Contract Terms</dt>
-                  <dd className="text-muted-foreground">{customers?.contracts || 'Not specified'}</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-
-          {/* Supply Chain */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
-            <div className="bg-muted rounded-lg p-4">
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <dt className="font-medium">Number of Suppliers</dt>
-                  <dd className="text-muted-foreground">{suppliers?.count || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Supplier Terms</dt>
-                  <dd className="text-muted-foreground">{suppliers?.terms || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Concentration</dt>
-                  <dd className="text-muted-foreground">{suppliers?.concentration || 'Not specified'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Relationship Transfer</dt>
-                  <dd className="text-muted-foreground">{suppliers?.transferability || 'Not specified'}</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  };
-
-  // Only render facility section if data exists
-  const renderFacility = () => {
-    if (!analysis?.facility) return null;
-
-    return (
-      <section>
-        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
-        <div className="bg-muted rounded-lg p-4">
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <dt className="font-medium">Ownership Status</dt>
-              <dd className="text-muted-foreground">{analysis.facility.ownership || 'Not specified'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">Size</dt>
-              <dd className="text-muted-foreground">{analysis.facility.size || 'Not specified'}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">Monthly Cost</dt>
-              <dd className="text-muted-foreground">{analysis.facility.cost || 'Not specified'}</dd>
-            </div>
-            {analysis.facility.leaseDetails && (
-              <div>
-                <dt className="font-medium">Lease Details</dt>
-                <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
-              </div>
-            )}
-          </dl>
-        </div>
-      </section>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -467,11 +138,280 @@ export function CimGenerator() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
-              {renderBusinessOverview()}
-              {renderInvestmentHighlights()}
-              {renderTeamStructure()}
-              {renderOperations()}
-              {renderFacility()}
+              {/* Section: Business Overview */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Background</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-medium">Founded</p>
+                        <p className="text-muted-foreground">{analysis.story.yearStarted}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">Structure</p>
+                        <p className="text-muted-foreground">{analysis.story.businessStructure}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Business Description</h3>
+                    <p className="text-muted-foreground">{analysis.story.businessModel}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Growth History</h3>
+                    <p className="text-muted-foreground">{analysis.story.growthHistory}</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Investment Highlights */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
+                    <ul className="list-disc pl-6 space-y-1">
+                      {analysis.executiveSummary.buyerAttractions.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
+                    <ul className="list-disc pl-6 space-y-1">
+                      {analysis.executiveSummary.growthOpportunities.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Market Position */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Target Market</h3>
+                    <p className="text-muted-foreground">{analysis.marketAnalysis.customerProfile}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2">Competitors</th>
+                            <th className="text-left py-2">Business Strengths</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="py-2 pr-4">
+                              <ul className="list-disc pl-6 space-y-1">
+                                {analysis.marketAnalysis.competitors.map((competitor: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">{competitor}</li>
+                                ))}
+                              </ul>
+                            </td>
+                            <td className="py-2">
+                              <ul className="list-disc pl-6 space-y-1">
+                                {analysis.marketAnalysis.strengths.map((strength: string, i: number) => (
+                                  <li key={i} className="text-muted-foreground">{strength}</li>
+                                ))}
+                              </ul>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Operations */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
+                    <div className="bg-muted rounded-lg p-4">
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <dt className="font-medium">Recurring Revenue</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.recurring}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Customer Base</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.relationships}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Revenue Concentration</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.concentration}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Contract Terms</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.customers.contracts}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
+                    <div className="bg-muted rounded-lg p-4">
+                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <dt className="font-medium">Number of Suppliers</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.count}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Supplier Terms</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.terms}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Concentration</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.concentration}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium">Relationship Transfer</dt>
+                          <dd className="text-muted-foreground">{analysis.operations.suppliers.transferability}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Team */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Ownership & Management</h3>
+                    <div className="space-y-2">
+                      <p><strong>Owner's Role:</strong> {analysis.team.ownerResponsibilities}</p>
+                      <p><strong>Required Hours:</strong> {analysis.team.ownerHours}</p>
+                      <p><strong>Management Structure:</strong> {analysis.team.management}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2">Role</th>
+                            <th className="text-left py-2">Status</th>
+                            <th className="text-left py-2">Compensation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysis.team.employees.map((employee: any, i: number) => (
+                            <tr key={i} className="border-b">
+                              <td className="py-2">{employee.role}</td>
+                              <td className="py-2">{employee.status}</td>
+                              <td className="py-2">{employee.compensation}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Team Stability</h3>
+                    <div className="space-y-2">
+                      <p><strong>Turnover Rate:</strong> {analysis.team.turnover}</p>
+                      <p><strong>Hiring Environment:</strong> {analysis.team.hiring}</p>
+                      <p><strong>Post-Sale Retention:</strong> {analysis.team.retention}</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section: Facilities */}
+              <section>
+                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
+                <div className="bg-muted rounded-lg p-4">
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <dt className="font-medium">Ownership Status</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.ownership}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium">Size</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.size}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium">Monthly Cost</dt>
+                      <dd className="text-muted-foreground">{analysis.facility.cost}</dd>
+                    </div>
+                    {analysis.facility.leaseDetails && (
+                      <div>
+                        <dt className="font-medium">Lease Details</dt>
+                        <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              </section>
+
+              {/* Export Button */}
+              <div className="pt-4">
+                <div className="flex items-center space-x-2 ml-auto">
+                    {user?.subscriptionStatus === "free" ? (
+                      <div className="flex flex-col items-end">
+                        <Button
+                          onClick={() => toast({
+                            title: "Premium Feature",
+                            description: "Export to PDF and Word is available on Standard and Premium plans.",
+                            variant: "default"
+                          })}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs mb-1"
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          Export PDF
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Available on paid plans
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={handlePdfExport}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          Export PDF
+                        </Button>
+                        <Button
+                          onClick={handleWordExport}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <File className="mr-1 h-3 w-3" />
+                          Export Word
+                        </Button>
+                      </>
+                    )}
+                  </div>
+              </div>
             </div>
           </CardContent>
         </Card>
