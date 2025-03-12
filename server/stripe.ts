@@ -41,7 +41,7 @@ export async function verifyCheckoutSession(sessionId: string) {
     console.log("Verifying checkout session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    if (session.status === 'complete' && session.subscription) {
+    if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
       const priceId = subscription.items.data[0].price.id;
