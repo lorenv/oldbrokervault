@@ -25,13 +25,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { subscriptionPlans } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   // Redirect non-admin users
   if (user && !user.isAdmin) {
@@ -47,38 +44,19 @@ export default function AdminPage() {
       userId,
       status,
       months,
-      additionalCims,
     }: {
       userId: number;
       status: string;
       months: number;
-      additionalCims?: number;
     }) => {
-      const res = await apiRequest("POST", "/api/admin/subscription", {
+      await apiRequest("POST", "/api/admin/subscription", {
         userId,
         status,
         months,
-        additionalCims,
       });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to update subscription");
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      setIsDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "User subscription updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 
@@ -102,122 +80,85 @@ export default function AdminPage() {
                   <TableHead>Username</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Monthly Usage</TableHead>
-                  <TableHead>CIM Limit</TableHead>
                   <TableHead>Expires</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users?.map((user) => {
-                  const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-                  const effectiveLimit = user.customLimit || plan.limit;
+                {users?.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.subscriptionStatus === "premium" ? "default" : "secondary"}>
+                        {user.subscriptionStatus.toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.monthlyUsage} / {subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans].limit} CIMs
+                    </TableCell>
+                    <TableCell>
+                      {user.subscriptionEndsAt
+                        ? new Date(user.subscriptionEndsAt).toLocaleDateString()
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            onClick={() => setSelectedUser(user.id)}
+                          >
+                            Update Subscription
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Update Subscription</DialogTitle>
+                            <DialogDescription>
+                              Update subscription status and duration for {user.username}
+                            </DialogDescription>
+                          </DialogHeader>
 
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.subscriptionStatus === "premium" ? "default" : "secondary"}>
-                          {user.subscriptionStatus.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.monthlyUsage} / {effectiveLimit} CIMs
-                      </TableCell>
-                      <TableCell>
-                        {user.customLimit ? (
-                          <Badge variant="outline">
-                            Custom: {user.customLimit}
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            Standard: {plan.limit}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {user.subscriptionEndsAt
-                          ? new Date(user.subscriptionEndsAt).toLocaleDateString()
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <Dialog open={isDialogOpen && selectedUser === user.id} onOpenChange={setIsDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedUser(user.id);
-                                setIsDialogOpen(true);
-                              }}
-                            >
-                              Update Subscription
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData(e.currentTarget);
+                              updateSubscriptionMutation.mutate({
+                                userId: selectedUser!,
+                                status: formData.get("status") as string,
+                                months: Number(formData.get("months")),
+                              });
+                            }}
+                            className="space-y-4"
+                          >
+                            <Select name="status" defaultValue="free">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select plan" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="free">Free - 1 CIM/month</SelectItem>
+                                <SelectItem value="standard">Standard - 10 CIMs/month ($500)</SelectItem>
+                                <SelectItem value="premium">Premium - 100 CIMs/month ($4,000)</SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            <Input
+                              type="number"
+                              name="months"
+                              placeholder="Number of months"
+                              min="1"
+                              defaultValue="1"
+                            />
+
+                            <Button type="submit" className="w-full">
+                              Update
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Update Subscription</DialogTitle>
-                              <DialogDescription>
-                                Update subscription status and CIM limits for {user.username}
-                              </DialogDescription>
-                            </DialogHeader>
-
-                            <form
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const formData = new FormData(e.currentTarget);
-                                updateSubscriptionMutation.mutate({
-                                  userId: selectedUser!,
-                                  status: formData.get("status") as string,
-                                  months: Number(formData.get("months")),
-                                  additionalCims: Number(formData.get("additionalCims") || 0),
-                                });
-                              }}
-                              className="space-y-4"
-                            >
-                              <Select name="status" defaultValue={user.subscriptionStatus}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select plan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="free">Free - 1 CIM/month</SelectItem>
-                                  <SelectItem value="standard">Standard - 10 CIMs/month ($500)</SelectItem>
-                                  <SelectItem value="premium">Premium - 100 CIMs/month ($4,000)</SelectItem>
-                                </SelectContent>
-                              </Select>
-
-                              <Input
-                                type="number"
-                                name="months"
-                                placeholder="Number of months"
-                                min="1"
-                                defaultValue="1"
-                              />
-
-                              <div>
-                                <label className="text-sm font-medium mb-2 block">
-                                  Additional CIMs (Optional)
-                                </label>
-                                <Input
-                                  type="number"
-                                  name="additionalCims"
-                                  placeholder="Extra CIMs above plan limit"
-                                  min="0"
-                                />
-                              </div>
-
-                              <Button 
-                                type="submit" 
-                                className="w-full"
-                                disabled={updateSubscriptionMutation.isPending}
-                              >
-                                {updateSubscriptionMutation.isPending ? "Updating..." : "Update"}
-                              </Button>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>

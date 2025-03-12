@@ -1,11 +1,7 @@
 import Stripe from "stripe";
 import { subscriptionPlans } from "@shared/schema";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error('ERROR: Missing STRIPE_SECRET_KEY environment variable');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number) {
   const priceId = planId === 'premium' 
