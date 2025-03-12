@@ -51,22 +51,6 @@ export function CimGenerator() {
     }
   });
 
-  const handleGenerate = (data: any) => {
-    // Check regeneration limits
-    if (currentDocId) {
-      const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
-      if (analysis?.regenerationCount >= plan.regenerationLimit) {
-        toast({
-          title: "Regeneration Limit Reached",
-          description: `Your ${plan.name} plan allows ${plan.regenerationLimit} regenerations per CIM. Please upgrade to increase this limit.`,
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-    handleSubmission(data); // Use the new handling function
-  };
-
   const handleSubmission = async (data: any) => {
     if (!user) {
       return;
@@ -128,6 +112,22 @@ export function CimGenerator() {
   };
 
 
+  const handleGenerate = (data: any) => {
+    // Check regeneration limits
+    if (currentDocId) {
+      const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
+      if (analysis?.regenerationCount >= plan.regenerationLimit) {
+        toast({
+          title: "Regeneration Limit Reached",
+          description: `Your ${plan.name} plan allows ${plan.regenerationLimit} regenerations per CIM. Please upgrade to increase this limit.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    handleSubmission(data); // Use the new handling function
+  };
+
   const handlePdfExport = () => {
     // Placeholder for PDF export function
     console.log("Exporting to PDF");
@@ -137,7 +137,6 @@ export function CimGenerator() {
     // Placeholder for Word export function
     console.log("Exporting to Word");
   };
-
 
   return (
     <div className="space-y-6">
