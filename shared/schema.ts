@@ -6,19 +6,16 @@ export const subscriptionPlans = {
   free: {
     name: "Free",
     limit: 1,
-    regenLimit: 2,
     price: 0
   },
   standard: {
     name: "Standard",
     limit: 10,
-    regenLimit: 5,
     price: 500
   },
   premium: {
     name: "Premium",
     limit: 100,
-    regenLimit: 7,
     price: 4000
   }
 } as const;
@@ -39,9 +36,7 @@ export const cimDocuments = pgTable("cim_documents", {
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   transcript: text("transcript").notNull(),
-  directions: text("directions"),
   analysis: jsonb("analysis").notNull(),
-  regenerationCount: integer("regeneration_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
@@ -55,8 +50,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   title: true,
   transcript: true,
-}).extend({
-  directions: z.string().optional()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

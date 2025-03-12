@@ -67,21 +67,16 @@ export function setupAuth(app: Express) {
     // Special admin code check
     const isAdmin = req.body.adminCode === process.env.ADMIN_CODE;
 
-    try {
-      const user = await storage.createUser({
-        username: req.body.username,
-        password: await hashPassword(req.body.password),
-        isAdmin,
-      });
+    const user = await storage.createUser({
+      username: req.body.username,
+      password: await hashPassword(req.body.password),
+      isAdmin,
+    });
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
-      });
-    } catch (error) {
-      console.error('Registration error:', error);
-      res.status(500).json({ error: "Failed to create user" });
-    }
+    req.login(user, (err) => {
+      if (err) return next(err);
+      res.status(201).json(user);
+    });
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {

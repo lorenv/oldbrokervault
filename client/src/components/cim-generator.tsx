@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
+import { insertCimDocumentSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,106 +10,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { DocumentExport } from "./document-export";
-import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
-
-const DEFAULT_DIRECTIONS = `Please analyze this transcript to create a comprehensive Confidential Information Memorandum (CIM) that includes:
-
-1. Business Overview
-   - Company background and history
-   - Business model and structure
-   - Growth trajectory
-
-2. Investment Highlights
-   - Key attractions for potential buyers
-   - Growth opportunities
-   - Competitive advantages
-
-3. Market Analysis
-   - Target market and customer profile
-   - Competitive landscape
-   - Market position and unique features
-
-4. Operations
-   - Customer relationships and revenue structure
-   - Supply chain and vendor relationships
-   - Key processes and systems
-
-5. Team Structure
-   - Management overview
-   - Employee composition
-   - Roles and responsibilities
-
-Please format the output in a clear, professional structure suitable for potential investors or buyers.`;
 
 export function CimGenerator() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [directions, setDirections] = useState(DEFAULT_DIRECTIONS);
-  const [regenerationCount, setRegenerationCount] = useState(0);
-  const [showDirections, setShowDirections] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
-    defaultValues: {
-      title: "",
-      transcript: "",
-    }
   });
 
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/cim", {
-        ...data,
-        directions: showDirections ? directions : DEFAULT_DIRECTIONS,
-        docId: currentDocId
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to generate CIM");
-      }
-
-      return response.json();
+      const res = await apiRequest("POST", "/api/cim", data);
+      return res.json();
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
-      setCurrentDocId(data.id);
-      setRegenerationCount(data.regenerationCount || 0);
-      setShowDirections(true);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate CIM",
-        variant: "destructive",
-      });
-    }
   });
-
-  const getRegenLimit = () => {
-    const plan = subscriptionPlans[user?.subscriptionStatus || 'free'];
-    return plan.regenLimit;
-  };
-
-  const handleRegenerate = () => {
-    if (regenerationCount >= getRegenLimit()) {
-      toast({
-        title: "Limit Reached",
-        description: `You've reached the regeneration limit for your subscription tier (${getRegenLimit()} times per CIM)`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    generateMutation.mutate({
-      title: form.getValues("title"),
-      transcript: form.getValues("transcript")
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -127,11 +45,6 @@ export function CimGenerator() {
                 placeholder="Document Title"
                 {...form.register("title")}
               />
-              {form.formState.errors.title && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.title.message}
-                </p>
-              )}
             </div>
             <div>
               <Textarea
@@ -139,56 +52,17 @@ export function CimGenerator() {
                 className="min-h-[200px]"
                 {...form.register("transcript")}
               />
-              {form.formState.errors.transcript && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.transcript.message}
-                </p>
-              )}
             </div>
-
-            {showDirections && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Analysis Directions
-                  {analysis && (
-                    <span className="text-muted-foreground ml-2">
-                      ({regenerationCount}/{getRegenLimit()} regenerations used)
-                    </span>
-                  )}
-                </label>
-                <Textarea
-                  value={directions}
-                  onChange={(e) => setDirections(e.target.value)}
-                  className="min-h-[150px]"
-                  placeholder="Enter specific directions for how to analyze the transcript..."
-                />
-              </div>
-            )}
-
-            {analysis ? (
-              <Button
-                type="button"
-                onClick={handleRegenerate}
-                disabled={generateMutation.isPending || regenerationCount >= getRegenLimit()}
-                className="w-full"
-              >
-                {generateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                Regenerate CIM
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={generateMutation.isPending}
-                className="w-full"
-              >
-                {generateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                Generate CIM
-              </Button>
-            )}
+            <Button
+              type="submit"
+              disabled={generateMutation.isPending}
+              className="w-full"
+            >
+              {generateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Generate CIM
+            </Button>
           </form>
         </CardContent>
       </Card>
