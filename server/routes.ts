@@ -7,13 +7,24 @@ import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
 import { createSubscriptionSession, handleStripeWebhook } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
+import multer from 'multer';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // CIM Document Routes
+  // CIM Document Routes with file upload support
   app.post("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -35,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        const analysis = await analyzeCimTranscript(data.transcript, data.directions);
+        const analysis = await analyzeCimTranscript(data.transcript);
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -47,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      const analysis = await analyzeCimTranscript(data.transcript, data.directions);
+      const analysis = await analyzeCimTranscript(data.transcript);
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
@@ -56,6 +67,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(doc);
     } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // File upload endpoint for large text
+  app.post("/api/cim/upload", upload.single('transcript'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const transcript = req.file.buffer.toString('utf-8');
+      const data = insertCimDocumentSchema.parse({
+        ...req.body,
+        transcript
+      });
+
+      const analysis = await analyzeCimTranscript(transcript);
+      const doc = await storage.createCimDocument(req.user!.id, {
+        ...data,
+        analysis,
+        regenerationCount: 0
+      });
+
+      res.json(doc);
+    } catch (error) {
+      console.error("File upload error:", error);
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });

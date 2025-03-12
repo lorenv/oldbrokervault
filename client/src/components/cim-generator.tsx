@@ -45,11 +45,35 @@ export function CimGenerator() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/cim", {
-        ...data,
-        docId: currentDocId // Pass docId for regeneration
-      });
-      return res.json();
+      if (data.transcript.length > 4000) {
+        const file = new Blob([data.transcript], { type: 'text/plain' });
+        const formData = new FormData();
+        formData.append('transcript', file, 'transcript.txt');
+        formData.append('title', data.title);
+        formData.append('directions', data.directions);
+        if (currentDocId) {
+          formData.append('docId', currentDocId.toString());
+        }
+
+        const res = await fetch('/api/cim/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to generate CIM");
+        }
+
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/cim", {
+          ...data,
+          docId: currentDocId
+        });
+        return res.json();
+      }
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
@@ -66,7 +90,6 @@ export function CimGenerator() {
   });
 
   const handleGenerate = (data: any) => {
-    // Check regeneration limits
     if (currentDocId) {
       const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
       if (analysis?.regenerationCount >= plan.regenerationLimit) {
@@ -83,7 +106,6 @@ export function CimGenerator() {
 
   const handleCopyToClipboard = async () => {
     try {
-      // Create a formatted text version of the CIM
       const cimText = `
 Business Summary:
 ${analysis.story.businessModel}
@@ -112,7 +134,6 @@ ${analysis.team.ownerResponsibilities}
   };
 
   const handleExport = async (format: 'pdf' | 'word') => {
-    // To be implemented: PDF and Word export functionality
     toast({
       title: "Coming Soon",
       description: `Export to ${format.toUpperCase()} will be available soon`,
@@ -193,7 +214,6 @@ ${analysis.team.ownerResponsibilities}
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
-              {/* Section: Business Overview */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                 <div className="space-y-4">
@@ -223,7 +243,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Section: Investment Highlights */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
                 <div className="space-y-4">
@@ -247,7 +266,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Section: Market Position */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
                 <div className="space-y-4">
@@ -290,7 +308,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Section: Operations */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
 
@@ -345,7 +362,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Section: Team */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
 
@@ -394,7 +410,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Section: Facilities */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
                 <div className="bg-muted rounded-lg p-4">
@@ -421,7 +436,6 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              {/* Export Button */}
               <div className="pt-4">
                 <div className="flex items-center space-x-2 ml-auto">
                   <DropdownMenu>
