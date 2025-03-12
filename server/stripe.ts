@@ -81,9 +81,20 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
         const priceId = subscription.items.data[0].price.id;
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
+
+        // Set end date based on current period end
         const endsAt = new Date(subscription.current_period_end * 1000);
 
-        console.log("Subscription details:", { userId, status, endsAt, priceId, subscriptionStatus: subscription.status });
+        console.log("Subscription details:", { 
+          userId, 
+          status, 
+          endsAt, 
+          priceId, 
+          subscriptionStatus: subscription.status,
+          subscriptionId: subscription.id,
+          customer: subscription.customer
+        });
+
         return { userId, status, endsAt };
       }
 
@@ -110,7 +121,15 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
         const endsAt = new Date(subscription.current_period_end * 1000);
 
-        console.log("Updated subscription details:", { userId, status, endsAt, priceId, subscriptionStatus: subscription.status });
+        console.log("Updated subscription details:", { 
+          userId, 
+          status, 
+          endsAt, 
+          priceId,
+          subscriptionStatus: subscription.status,
+          subscriptionId: subscription.id,
+          customer: subscription.customer
+        });
         return { userId, status, endsAt };
       }
 

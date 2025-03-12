@@ -188,9 +188,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Force refresh the user's session if they're currently logged in
         const user = await storage.getUser(userId);
+        console.log("Retrieved updated user:", { 
+          id: user.id, 
+          subscriptionStatus: user.subscriptionStatus,
+          subscriptionEndsAt: user.subscriptionEndsAt 
+        });
+
         if (req.session.passport?.user === userId) {
           req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
+          console.log("Updated session for user:", userId);
         }
       } else {
         console.log("No subscription update required for event:", event.type);
