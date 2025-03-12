@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
-import { createSubscriptionSession, handleStripeWebhook } from "./stripe";
+import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';
@@ -107,6 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subscription Routes
+  app.get("/api/subscription/verify-session", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { session_id } = req.query;
+    if (!session_id) return res.status(400).json({ error: "No session ID provided" });
+
+    try {
+      const result = await verifyCheckoutSession(session_id as string);
+      if (result) {
+        const { userId, status, endsAt } = result;
+        await storage.updateSubscription(userId, status, endsAt);
+
+        // Update the user's session
+        const user = await storage.getUser(userId);
+        if (req.session.passport?.user === userId) {
+          req.session.passport.user = user;
+          await new Promise((resolve) => req.session.save(resolve));
+        }
+
+        res.json({ success: true, status });
+      } else {
+        res.status(400).json({ error: "Invalid or expired session" });
+      }
+    } catch (error) {
+      console.error('Session verification error:', error);
+      res.status(500).json({ error: "Failed to verify session" });
+    }
+  });
+
   app.post("/api/subscription/create-checkout", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -153,8 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateSubscription(userId, status, endsAt);
         console.log(`Successfully updated subscription for user ${userId} to ${status}`);
 
-        // Force refresh the user's session
+        // Force refresh any active user sessions
         const user = await storage.getUser(userId);
+        // Note: In a real application, you might want to broadcast this to all user's active sessions
         if (req.session.passport?.user === userId) {
           req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));

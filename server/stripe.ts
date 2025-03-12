@@ -19,7 +19,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
         quantity: 1,
       },
     ],
-    success_url: `${process.env.REPL_SLUG}.repl.co/account?success=true`,
+    success_url: `${process.env.REPL_SLUG}.repl.co/account?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.REPL_SLUG}.repl.co/pricing?canceled=true`,
     client_reference_id: userId.toString(),
     subscription_data: {
@@ -31,6 +31,26 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
   console.log("Created subscription session:", session.id);
   return session;
+}
+
+export async function verifyCheckoutSession(sessionId: string) {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.status === 'complete' && session.subscription) {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+      const userId = parseInt(session.client_reference_id!);
+      const priceId = subscription.items.data[0].price.id;
+      const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
+
+      // Set end date based on current period end
+      const endsAt = new Date(subscription.current_period_end * 1000);
+
+      return { userId, status, endsAt };
+    }
+  } catch (error) {
+    console.error('Error verifying checkout session:', error);
+  }
+  return null;
 }
 
 export async function handleStripeWebhook(event: Stripe.Event) {
@@ -46,23 +66,26 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
         // Get subscription details to determine the plan
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-        const priceId = subscription.items.data[0].price.id;
 
-        // Set subscription status based on price ID
+        // Check if subscription is active or in trial
+        if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+          console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+          return null;
+        }
+
+        const priceId = subscription.items.data[0].price.id;
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
 
-        // Set subscription end date to one month from now
-        const endsAt = new Date();
-        endsAt.setMonth(endsAt.getMonth() + 1);
+        // Set end date based on current period end, even for trials
+        const endsAt = new Date(subscription.current_period_end * 1000);
 
-        console.log("Subscription details:", { userId, status, endsAt, priceId });
+        console.log("Subscription details:", { userId, status, endsAt, priceId, subscriptionStatus: subscription.status });
         return { userId, status, endsAt };
       }
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-      case 'invoice.paid':
-      case 'customer.subscription.deleted': {
+      case 'invoice.paid': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
 
@@ -73,21 +96,32 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           return null;
         }
 
-        // For cancelled/deleted subscriptions, revert to free
-        if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
-          console.log("Subscription canceled or unpaid, reverting to free plan");
-          return { userId, status: 'free', endsAt: new Date() };
+        // Handle both active and trialing subscriptions
+        if (!['active', 'trialing'].includes(subscription.status)) {
+          console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+          return null;
         }
 
-        // For active subscriptions, update status based on price
         const priceId = subscription.items.data[0].price.id;
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
-
-        // Set end date based on current period end
         const endsAt = new Date(subscription.current_period_end * 1000);
 
-        console.log("Updated subscription details:", { userId, status, endsAt, priceId });
+        console.log("Updated subscription details:", { userId, status, endsAt, priceId, subscriptionStatus: subscription.status });
         return { userId, status, endsAt };
+      }
+
+      case 'customer.subscription.deleted':
+      case 'customer.subscription.paused': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = parseInt(subscription.metadata.userId);
+
+        if (!userId) {
+          console.error('No userId found in subscription metadata');
+          return null;
+        }
+
+        console.log("Subscription ended or paused, reverting to free plan:", userId);
+        return { userId, status: 'free', endsAt: new Date() };
       }
 
       default:
