@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { File, FileText } from "lucide-react";
+
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -63,6 +65,17 @@ export function CimGenerator() {
     }
     generateMutation.mutate(data);
   };
+
+  const handlePdfExport = () => {
+    // Placeholder for PDF export function
+    console.log("Exporting to PDF");
+  };
+
+  const handleWordExport = () => {
+    // Placeholder for Word export function
+    console.log("Exporting to Word");
+  };
+
 
   return (
     <div className="space-y-6">
@@ -355,7 +368,49 @@ export function CimGenerator() {
 
               {/* Export Button */}
               <div className="pt-4">
-                <DocumentExport analysis={analysis} />
+                <div className="flex items-center space-x-2 ml-auto">
+                    {user?.subscriptionStatus === "free" ? (
+                      <div className="flex flex-col items-end">
+                        <Button
+                          onClick={() => toast({
+                            title: "Premium Feature",
+                            description: "Export to PDF and Word is available on Standard and Premium plans.",
+                            variant: "default"
+                          })}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs mb-1"
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          Export PDF
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Available on paid plans
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={handlePdfExport}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <FileText className="mr-1 h-3 w-3" />
+                          Export PDF
+                        </Button>
+                        <Button
+                          onClick={handleWordExport}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <File className="mr-1 h-3 w-3" />
+                          Export Word
+                        </Button>
+                      </>
+                    )}
+                  </div>
               </div>
             </div>
           </CardContent>
