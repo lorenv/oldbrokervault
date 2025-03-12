@@ -1,6 +1,26 @@
 // the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
+// Helper function to clean transcript
+function cleanTranscript(transcript: string): string {
+  return transcript
+    // Remove empty lines
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    // Remove timestamps (e.g., "10:30:45" or "10:30")
+    .map(line => line.replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, ''))
+    // Remove specific names
+    .map(line => line
+      .replace(/Business Exits/g, '')
+      .replace(/Michelle Branscum/g, '')
+      .replace(/Robert Kale/g, '')
+      .replace(/Loren Vandegrift/g, '')
+    )
+    // Remove multiple spaces
+    .map(line => line.replace(/\s+/g, ' ').trim())
+    .join('\n');
+}
+
 type CimAnalysis = {
   story: {
     yearStarted: string;
@@ -152,6 +172,11 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
+    // Clean up the transcript before analysis
+    const cleanedTranscript = cleanTranscript(transcript);
+    console.log("Transcript length before cleanup:", transcript.length);
+    console.log("Transcript length after cleanup:", cleanedTranscript.length);
+
     const result = await makePerplexityRequest([
       {
         role: "system",
@@ -259,7 +284,7 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
       },
       {
         role: "user",
-        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${transcript}`
+        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${cleanedTranscript}`
       }
     ]);
 
