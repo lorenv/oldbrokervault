@@ -1,0 +1,190 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
+import { z } from "zod";
+import { apiRequest } from "@/lib/queryClient";
+
+const profileSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  if (data.newPassword && data.newPassword !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export default function AccountPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const form = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      email: user?.email || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof profileSchema>) => {
+    setIsUpdating(true);
+    try {
+      const res = await apiRequest("POST", "/api/user/update", values);
+      if (!res.ok) throw new Error("Failed to update profile");
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully",
+      });
+      
+      form.reset({
+        email: values.email,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+      
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Update your email and password</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Updating..." : "Update Profile"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription</CardTitle>
+            <CardDescription>Manage your subscription and billing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium">Current Plan</h3>
+                <p className="text-muted-foreground capitalize">{user?.subscriptionStatus || "Free"}</p>
+              </div>
+              
+              {user?.subscriptionStatus !== "free" && (
+                <Button variant="outline" onClick={() => window.location.href = "https://billing.stripe.com/p/login/test"}>
+                  Manage Subscription
+                </Button>
+              )}
+              
+              {user?.subscriptionStatus === "free" && (
+                <Button variant="default" onClick={() => window.location.href = "/pricing"}>
+                  Upgrade Plan
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

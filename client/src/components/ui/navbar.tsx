@@ -43,6 +43,14 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Account Settings</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link href="/account">
+                    <a className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      My Account
+                    </a>
+                  </Link>
+                </DropdownMenuItem>
                 {user.subscriptionStatus !== "free" && (
                   <DropdownMenuItem>
                     <Link href="https://billing.stripe.com/p/login/test">
