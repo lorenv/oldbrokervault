@@ -385,20 +385,60 @@ ${analysis.team.ownerResponsibilities}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
                     <div className="space-y-2">
-                      <p className="text-muted-foreground">{renderValue(analysis.team.employees)}</p>
-                      <p><strong>Turnover Rate:</strong> {renderValue(analysis.team.turnover)}</p>
-                      <p><strong>Hiring Environment:</strong> {renderValue(analysis.team.hiring)}</p>
-                      <p><strong>Post-Sale Retention:</strong> {renderValue(analysis.team.retention)}</p>
+                      <p><strong>Total Employees:</strong> {renderValue(analysis.team.employeeCount)}</p>
+                      {analysis.team.contractorCount && (
+                        <p><strong>Contractors:</strong> {renderValue(analysis.team.contractorCount)}</p>
+                      )}
+                      <p className="text-muted-foreground">{renderValue(analysis.team.employeeSummary)}</p>
+
                       {analysis.team.keyEmployees?.length > 0 && (
-                        <div>
-                          <p><strong>Key Employees:</strong></p>
-                          <ul className="list-disc pl-6">
+                        <div className="mt-4">
+                          <p className="font-medium">Key Team Members:</p>
+                          <ul className="list-disc pl-6 mt-2">
                             {analysis.team.keyEmployees.map((employee: string, i: number) => (
                               <li key={i} className="text-muted-foreground">{renderValue(employee)}</li>
                             ))}
                           </ul>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Equipment & Assets</h3>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">{renderValue(analysis.assets.equipmentDetails)}</p>
+                      <p className="text-muted-foreground">{renderValue(analysis.assets.inventoryDetails)}</p>
+                      <p><strong>Equipment Value:</strong> {renderValue(analysis.assets.equipmentValue)}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Contract Terms</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="font-medium">Customer Contracts:</p>
+                        <p className="text-muted-foreground">{renderValue(analysis.sales.contractTerms)}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">Supplier Terms:</p>
+                        <p className="text-muted-foreground">{renderValue(analysis.operations.suppliers.terms)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Marketing & Client Acquisition</h3>
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">{renderValue(analysis.marketing.clientAcquisition)}</p>
+                      <div className="mt-2">
+                        <p className="font-medium">Marketing Strategies:</p>
+                        <ul className="list-disc pl-6 mt-2">
+                          {analysis.marketing.strategies.map((strategy: string, i: number) => (
+                            <li key={i} className="text-muted-foreground">{renderValue(strategy)}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
