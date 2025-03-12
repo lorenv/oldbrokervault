@@ -32,34 +32,33 @@ type CimAnalysis = {
 
 export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
-    const systemPrompt = directions || `You are a professional business analyst creating a Confidential Information Memorandum. 
-Format your response as a JSON object with exactly these fields (use "Not specified" if information is missing):
+    const systemPrompt = directions || `You are a business analyst. You must respond with ONLY a valid JSON object - no markdown, no additional text. The response must follow this exact structure:
 
 {
   "story": {
-    "yearStarted": "string - when the business started",
-    "businessModel": "string - what the business does",
-    "growthHistory": "string - how it has grown",
-    "businessStructure": "string - business structure type"
+    "yearStarted": "When did the business start",
+    "businessModel": "What the business does",
+    "growthHistory": "How it has grown",
+    "businessStructure": "Type of business structure"
   },
   "executiveSummary": {
-    "buyerAttractions": ["array of strings - key selling points"],
-    "growthOpportunities": ["array of strings - growth opportunities"]
+    "buyerAttractions": ["List of key selling points"],
+    "growthOpportunities": ["List of growth opportunities"]
   },
   "marketAnalysis": {
-    "customerProfile": "string - target customer description",
-    "competitors": ["array of strings - main competitors"],
-    "strengths": ["array of strings - competitive advantages"]
+    "customerProfile": "Target customer description",
+    "competitors": ["List of main competitors"],
+    "strengths": ["List of business strengths"]
   },
   "team": {
-    "ownerResponsibilities": "string - what the owner does",
-    "ownerHours": "string - owner's working hours",
-    "management": "string - management structure",
+    "ownerResponsibilities": "What the owner does",
+    "ownerHours": "Hours worked per week",
+    "management": "Management structure description",
     "employees": [
       {
-        "role": "string - job title",
-        "status": "string - employment type",
-        "compensation": "string - payment details"
+        "role": "Employee role/title",
+        "status": "Employment type",
+        "compensation": "Pay information"
       }
     ]
   }
@@ -74,10 +73,11 @@ Format your response as a JSON object with exactly these fields (use "Not specif
         },
         {
           role: "user",
-          content: transcript
+          content: `Analyze this transcript and provide information in the specified JSON format ONLY:\n\n${transcript}`
         }
       ],
-      temperature: 0.7
+      response_format: { type: "json_object" },
+      temperature: 0.1 // Lower temperature for more consistent output
     });
 
     if (!response.choices[0].message.content) {
