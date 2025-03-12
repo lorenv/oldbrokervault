@@ -26,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Download, Copy, File, FileText } from "lucide-react";
+import { LoadingAnimation } from "@/components/ui/loading-animation"; // Added import
+
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -33,6 +35,9 @@ export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]); // Added state for documents
+  const [selectedDoc, setSelectedDoc] = useState<any | null>(null); // Added state for selected document
+
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
@@ -77,6 +82,8 @@ export function CimGenerator() {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      // Fetch recent documents after successful CIM generation
+      fetchRecentDocuments();
     },
     onError: (error: any) => {
       toast({
@@ -86,6 +93,17 @@ export function CimGenerator() {
       });
     }
   });
+
+  const fetchRecentDocuments = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/cim/recent");
+      setDocuments(response);
+    } catch (error) {
+      console.error("Error fetching recent documents:", error);
+      // Handle error appropriately (e.g., display a toast message)
+
+    }
+  };
 
   const handleGenerate = (data: any) => {
     if (currentDocId) {
@@ -144,7 +162,7 @@ ${analysis.team.ownerResponsibilities}
     }
     if (typeof value === "object" && value !== null) {
       return Object.entries(value)
-        .map(([key, val]) => `${key}: ${renderValue(val)}`) //recursive call for nested objects
+        .map(([key, val]) => `${key}: ${renderValue(val)}`)
         .join(", ");
     }
     return String(value || "N/A");
@@ -209,9 +227,12 @@ ${analysis.team.ownerResponsibilities}
               className="w-full"
             >
               {generateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              {currentDocId ? "Regenerate CIM" : "Generate CIM"}
+                <LoadingAnimation size="sm" text="Analyzing transcript..." /> // Replaced Loader2 with LoadingAnimation
+              ) : currentDocId ? (
+                "Regenerate CIM"
+              ) : (
+                "Generate CIM"
+              )}
             </Button>
           </form>
         </CardContent>
@@ -503,6 +524,41 @@ ${analysis.team.ownerResponsibilities}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Recent Documents Section */}
+      {documents?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent CIMs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="p-4 rounded-lg border cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => setSelectedDoc(doc)}
+                >
+                  <h3 className="font-semibold">{doc.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Created: {new Date(doc.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* CIM View Modal */}
+      {selectedDoc && (
+        <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
+          <DialogContent className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+            {/*  Placeholder for modal content -  replace with actual modal content from documents-page.tsx */}
+            <p>CIM content for {selectedDoc.title} would go here.</p> {/* Replace with actual CIM display */}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

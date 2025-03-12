@@ -60,15 +60,21 @@ ${analysis.team.ownerResponsibilities}
   };
 
   const renderValue = (value: any): string => {
+    if (!value) return "N/A";
     if (Array.isArray(value)) {
       return value.join(", ");
     }
-    if (typeof value === "object" && value !== null) {
+    if (typeof value === "object") {
+      if ('recurring' in value) return value.recurring;
+      if ('terms' in value) return value.terms;
+      if ('count' in value) return value.count;
+      if ('usage' in value) return value.usage;
       return Object.entries(value)
+        .filter(([_, val]) => val !== null && val !== undefined)
         .map(([key, val]) => `${key}: ${renderValue(val)}`)
         .join(", ");
     }
-    return String(value || "N/A");
+    return String(value);
   };
 
   return (
@@ -111,7 +117,7 @@ ${analysis.team.ownerResponsibilities}
 
       {selectedDoc && (
         <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedDoc.title}</DialogTitle>
             </DialogHeader>
@@ -149,9 +155,7 @@ ${analysis.team.ownerResponsibilities}
                 </DropdownMenu>
               </div>
 
-              {/* Display CIM content - reuse the same structure as in cim-generator.tsx */}
               <div className="space-y-8">
-                {/* Business Overview */}
                 <section>
                   <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                   <div className="space-y-4">
@@ -191,7 +195,86 @@ ${analysis.team.ownerResponsibilities}
                   </div>
                 </section>
 
-                {/* Add other sections as needed, following the same pattern as in cim-generator.tsx */}
+                <section>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Target Market</h3>
+                      <p className="text-muted-foreground">
+                        {renderValue(selectedDoc.analysis.marketAnalysis.customerProfile)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
+                      <div className="bg-muted rounded-lg p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="font-medium mb-2">Key Competitors</h4>
+                            <ul className="list-disc pl-6 space-y-1">
+                              {selectedDoc.analysis.marketAnalysis.competitors?.map((competitor: string, i: number) => (
+                                <li key={i} className="text-muted-foreground">{renderValue(competitor)}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="font-medium mb-2">Business Strengths</h4>
+                            <ul className="list-disc pl-6 space-y-1">
+                              {selectedDoc.analysis.marketAnalysis.strengths?.map((strength: string, i: number) => (
+                                <li key={i} className="text-muted-foreground">{renderValue(strength)}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team & Operations</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
+                      <div className="space-y-2">
+                        <p><strong>Total Employees:</strong> {renderValue(selectedDoc.analysis.team.employeeCount)}</p>
+                        {selectedDoc.analysis.team.contractorCount && (
+                          <p><strong>Contractors:</strong> {renderValue(selectedDoc.analysis.team.contractorCount)}</p>
+                        )}
+                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.team.employeeSummary)}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Contract Terms</h3>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="font-medium">Customer Contracts:</p>
+                          <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.sales.contractTerms)}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Supplier Terms:</p>
+                          <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.terms)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Marketing & Client Acquisition</h3>
+                      <div className="space-y-2">
+                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.marketing.clientAcquisition)}</p>
+                        <div className="mt-2">
+                          <p className="font-medium">Marketing Strategies:</p>
+                          <ul className="list-disc pl-6 mt-2">
+                            {selectedDoc.analysis.marketing.strategies?.map((strategy: string, i: number) => (
+                              <li key={i} className="text-muted-foreground">{renderValue(strategy)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </DialogContent>
