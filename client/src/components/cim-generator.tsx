@@ -44,25 +44,29 @@ export function CimGenerator() {
     onSuccess: (data) => {
       // Transform API response to match frontend structure
       const transformedAnalysis = {
-        ...data.analysis,
-        // Ensure these properties exist with defaults
-        operations: {
-          customers: data.analysis?.operations?.customers || {},
-          suppliers: data.analysis?.operations?.suppliers || {}
-        },
-        marketAnalysis: {
-          customerProfile: data.analysis?.marketAnalysis?.customerProfile || 
-                         data.analysis?.BusinessDescription?.MarketPosition?.Text || '',
-          competitors: data.analysis?.marketAnalysis?.competitors || [],
-          strengths: data.analysis?.marketAnalysis?.strengths || []
+        BusinessDescription: data.analysis?.BusinessDescription || {},
+        SaleReason: data.analysis?.SaleReason || { Text: 'Not provided' },
+        TeamStructure: data.analysis?.TeamStructure || {
+          TotalHeadcount: 0,
+          Roles: [],
+          EmploymentStatus: [],
+          KeyPersonnel: []
         },
         story: {
-          yearStarted: data.analysis?.story?.yearStarted || 
-                      data.analysis?.BusinessDescription?.Founded || '',
-          businessModel: data.analysis?.story?.businessModel || 
-                        data.analysis?.BusinessDescription?.Summary?.Text || '',
-          structure: data.analysis?.story?.structure || ''
-        }
+          yearStarted: data.analysis?.BusinessDescription?.Founded || 'Not specified',
+          businessModel: data.analysis?.BusinessDescription?.Summary?.Text || 'Not specified',
+          structure: data.analysis?.BusinessDescription?.Structure?.Text || 'Not specified'
+        },
+        marketAnalysis: {
+          customerProfile: data.analysis?.BusinessDescription?.MarketPosition?.Text || '',
+          competitors: data.analysis?.Competitors || [],
+          strengths: data.analysis?.BusinessDescription?.KeyDifferentiators || []
+        },
+        operations: {
+          customers: {},
+          suppliers: {}
+        },
+        facility: data.analysis?.facility || null
       };
 
       setAnalysis(transformedAnalysis);
@@ -369,6 +373,39 @@ export function CimGenerator() {
     );
   };
 
+  // Only render facility section if data exists
+  const renderFacility = () => {
+    if (!analysis?.facility) return null;
+
+    return (
+      <section>
+        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
+        <div className="bg-muted rounded-lg p-4">
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt className="font-medium">Ownership Status</dt>
+              <dd className="text-muted-foreground">{analysis.facility.ownership || 'Not specified'}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Size</dt>
+              <dd className="text-muted-foreground">{analysis.facility.size || 'Not specified'}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Monthly Cost</dt>
+              <dd className="text-muted-foreground">{analysis.facility.cost || 'Not specified'}</dd>
+            </div>
+            {analysis.facility.leaseDetails && (
+              <div>
+                <dt className="font-medium">Lease Details</dt>
+                <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -434,128 +471,7 @@ export function CimGenerator() {
               {renderInvestmentHighlights()}
               {renderTeamStructure()}
               {renderOperations()}
-
-              {/* Section: Market Position */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
-                <div className="space-y-4">
-                  {(analysis?.marketAnalysis?.customerProfile || analysis?.BusinessDescription?.MarketPosition?.Text) && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Target Market</h3>
-                      <p className="text-muted-foreground">
-                        {analysis?.marketAnalysis?.customerProfile || analysis?.BusinessDescription?.MarketPosition?.Text}
-                      </p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2">Competitors</th>
-                            <th className="text-left py-2">Business Strengths</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="py-2 pr-4">
-                              <ul className="list-disc pl-6 space-y-1">
-                                {(analysis?.marketAnalysis?.competitors || []).map((competitor: string, i: number) => (
-                                  <li key={i} className="text-muted-foreground">{competitor}</li>
-                                ))}
-                              </ul>
-                            </td>
-                            <td className="py-2">
-                              <ul className="list-disc pl-6 space-y-1">
-                                {(analysis?.marketAnalysis?.strengths || []).map((strength: string, i: number) => (
-                                  <li key={i} className="text-muted-foreground">{strength}</li>
-                                ))}
-                              </ul>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-
-              {/* Section: Facilities */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
-                <div className="bg-muted rounded-lg p-4">
-                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <dt className="font-medium">Ownership Status</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.ownership}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-medium">Size</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.size}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-medium">Monthly Cost</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.cost}</dd>
-                    </div>
-                    {analysis.facility.leaseDetails && (
-                      <div>
-                        <dt className="font-medium">Lease Details</dt>
-                        <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
-              </section>
-
-              {/* Export Button */}
-              <div className="pt-4">
-                <div className="flex items-center space-x-2 ml-auto">
-                  {user?.subscriptionStatus === "free" ? (
-                    <div className="flex flex-col items-end">
-                      <Button
-                        onClick={() => toast({
-                          title: "Premium Feature",
-                          description: "Export to PDF and Word is available on Standard and Premium plans.",
-                          variant: "default"
-                        })}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs mb-1"
-                      >
-                        <FileText className="mr-1 h-3 w-3" />
-                        Export PDF
-                      </Button>
-                      <span className="text-xs text-muted-foreground">
-                        Available on paid plans
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={handlePdfExport}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        <FileText className="mr-1 h-3 w-3" />
-                        Export PDF
-                      </Button>
-                      <Button
-                        onClick={handleWordExport}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        <File className="mr-1 h-3 w-3" />
-                        Export Word
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
+              {renderFacility()}
             </div>
           </CardContent>
         </Card>
