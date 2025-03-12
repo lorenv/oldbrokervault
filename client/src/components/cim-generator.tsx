@@ -147,6 +147,140 @@ export function CimGenerator() {
     console.log("Exporting to Word");
   };
 
+  const renderBusinessOverview = () => {
+    if (!analysis?.story) return null;
+
+    return (
+      <section>
+        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Background</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="font-medium">Founded</p>
+                <p className="text-muted-foreground">
+                  {analysis.story.yearStarted || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Structure</p>
+                <p className="text-muted-foreground">
+                  {analysis.story.businessStructure || 'Not specified'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Business Description</h3>
+            <p className="text-muted-foreground">
+              {analysis.BusinessDescription?.Summary?.Text || analysis.story.businessModel || 'Not provided'}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  const renderInvestmentHighlights = () => {
+    if (!analysis?.executiveSummary && !analysis?.BusinessDescription) return null;
+
+    return (
+      <section>
+        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
+            <ul className="list-disc pl-6 space-y-1">
+              {(analysis.executiveSummary?.buyerAttractions || analysis.BusinessDescription?.KeyDifferentiators || []).map((item: string, i: number) => (
+                <li key={i} className="text-muted-foreground">{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
+            <ul className="list-disc pl-6 space-y-1">
+              {(analysis.executiveSummary?.growthOpportunities || []).map((item: string, i: number) => (
+                <li key={i} className="text-muted-foreground">{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          {(analysis.SaleReason?.Text || analysis.executiveSummary?.saleReason) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Sale Reason</h3>
+              <p className="text-muted-foreground">
+                {analysis.SaleReason?.Text || analysis.executiveSummary?.saleReason}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  const renderTeamStructure = () => {
+    if (!analysis?.team && !analysis?.TeamStructure) return null;
+
+    const team = analysis.TeamStructure || analysis.team;
+
+    return (
+      <section>
+        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
+        <div className="space-y-6">
+          {team.TotalHeadcount && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Total Headcount</h3>
+              <p className="text-muted-foreground">{team.TotalHeadcount}</p>
+            </div>
+          )}
+
+          {(team.Roles?.length > 0 || team.EmploymentStatus?.length > 0) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2">Role</th>
+                      <th className="text-left py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(team.EmploymentStatus || []).map((employee: any, i: number) => (
+                      <tr key={i} className="border-b">
+                        <td className="py-2">{employee.Role}</td>
+                        <td className="py-2">{employee.Status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {team.KeyPersonnel?.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Key Personnel</h3>
+              {team.KeyPersonnel.map((person: any, i: number) => (
+                <div key={i} className="mb-4">
+                  <h4 className="font-medium">{person.Name} - {person.Role}</h4>
+                  <ul className="list-disc pl-6 mt-2">
+                    {person.Responsibilities.map((resp: string, j: number) => (
+                      <li key={j} className="text-muted-foreground">{resp}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -208,59 +342,9 @@ export function CimGenerator() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
-              {/* Section: Business Overview */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Background</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="font-medium">Founded</p>
-                        <p className="text-muted-foreground">{analysis.story.yearStarted}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Structure</p>
-                        <p className="text-muted-foreground">{analysis.story.businessStructure}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Business Description</h3>
-                    <p className="text-muted-foreground">{analysis.story.businessModel}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Growth History</h3>
-                    <p className="text-muted-foreground">{analysis.story.growthHistory}</p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Section: Investment Highlights */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
-                    <ul className="list-disc pl-6 space-y-1">
-                      {analysis.executiveSummary.buyerAttractions.map((item: string, i: number) => (
-                        <li key={i} className="text-muted-foreground">{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
-                    <ul className="list-disc pl-6 space-y-1">
-                      {analysis.executiveSummary.growthOpportunities.map((item: string, i: number) => (
-                        <li key={i} className="text-muted-foreground">{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </section>
+              {renderBusinessOverview()}
+              {renderInvestmentHighlights()}
+              {renderTeamStructure()}
 
               {/* Section: Market Position */}
               <section>
@@ -360,55 +444,6 @@ export function CimGenerator() {
                 </div>
               </section>
 
-              {/* Section: Team */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Ownership & Management</h3>
-                    <div className="space-y-2">
-                      <p><strong>Owner's Role:</strong> {analysis.team.ownerResponsibilities}</p>
-                      <p><strong>Required Hours:</strong> {analysis.team.ownerHours}</p>
-                      <p><strong>Management Structure:</strong> {analysis.team.management}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2">Role</th>
-                            <th className="text-left py-2">Status</th>
-                            <th className="text-left py-2">Compensation</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analysis.team.employees.map((employee: any, i: number) => (
-                            <tr key={i} className="border-b">
-                              <td className="py-2">{employee.role}</td>
-                              <td className="py-2">{employee.status}</td>
-                              <td className="py-2">{employee.compensation}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Team Stability</h3>
-                    <div className="space-y-2">
-                      <p><strong>Turnover Rate:</strong> {analysis.team.turnover}</p>
-                      <p><strong>Hiring Environment:</strong> {analysis.team.hiring}</p>
-                      <p><strong>Post-Sale Retention:</strong> {analysis.team.retention}</p>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
               {/* Section: Facilities */}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
@@ -439,48 +474,48 @@ export function CimGenerator() {
               {/* Export Button */}
               <div className="pt-4">
                 <div className="flex items-center space-x-2 ml-auto">
-                    {user?.subscriptionStatus === "free" ? (
-                      <div className="flex flex-col items-end">
-                        <Button
-                          onClick={() => toast({
-                            title: "Premium Feature",
-                            description: "Export to PDF and Word is available on Standard and Premium plans.",
-                            variant: "default"
-                          })}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs mb-1"
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          Export PDF
-                        </Button>
-                        <span className="text-xs text-muted-foreground">
-                          Available on paid plans
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={handlePdfExport}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          Export PDF
-                        </Button>
-                        <Button
-                          onClick={handleWordExport}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                        >
-                          <File className="mr-1 h-3 w-3" />
-                          Export Word
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  {user?.subscriptionStatus === "free" ? (
+                    <div className="flex flex-col items-end">
+                      <Button
+                        onClick={() => toast({
+                          title: "Premium Feature",
+                          description: "Export to PDF and Word is available on Standard and Premium plans.",
+                          variant: "default"
+                        })}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs mb-1"
+                      >
+                        <FileText className="mr-1 h-3 w-3" />
+                        Export PDF
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        Available on paid plans
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handlePdfExport}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <FileText className="mr-1 h-3 w-3" />
+                        Export PDF
+                      </Button>
+                      <Button
+                        onClick={handleWordExport}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <File className="mr-1 h-3 w-3" />
+                        Export Word
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
