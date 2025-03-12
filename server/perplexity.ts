@@ -1,5 +1,8 @@
 // the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
+const MAX_CHUNK_SIZE = 4000; // Safe character limit per chunk
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 type CimAnalysis = {
   story: {
@@ -106,189 +109,178 @@ type CimAnalysis = {
   };
 };
 
-async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
-  const response = await fetch(PERPLEXITY_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-sonar-small-128k-online",
-      messages,
-      temperature: 0.2
-    })
-  });
+function splitTextIntoChunks(text: string): string[] {
+  const chunks: string[] = [];
+  let currentChunk = "";
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("Perplexity API error:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: text
-    });
-    throw new Error(`Perplexity API error (${response.status}): ${text}`);
+  // Split text into sentences (basic implementation)
+  const sentences = text.split(/(?<=[.!?])\s+/);
+
+  for (const sentence of sentences) {
+    // If adding this sentence would exceed chunk size, start a new chunk
+    if (currentChunk.length + sentence.length > MAX_CHUNK_SIZE && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = "";
+    }
+    currentChunk += sentence + " ";
   }
 
-  const data = await response.json();
+  // Add the last chunk if not empty
+  if (currentChunk.trim().length > 0) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function makePerplexityRequestWithRetry(messages: any[], retryCount = 0): Promise<any> {
   try {
-    // Extract the content and parse it as JSON
-    const contentStr = data.choices[0].message.content;
-    const matches = contentStr.match(/\{[\s\S]*\}/);
-    if (!matches) {
-      throw new Error("No JSON object found in response");
+    const response = await fetch(PERPLEXITY_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-sonar-small-128k-online",
+        messages,
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Perplexity API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: text
+      });
+
+      // If we haven't exceeded max retries and it's a 429 or 5xx error, retry
+      if (retryCount < MAX_RETRIES && (response.status === 429 || response.status >= 500)) {
+        console.log(`Retrying request (attempt ${retryCount + 1} of ${MAX_RETRIES})...`);
+        await sleep(RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        return makePerplexityRequestWithRetry(messages, retryCount + 1);
+      }
+
+      throw new Error(`Perplexity API error (${response.status}): ${text}`);
     }
 
-    const analysis = JSON.parse(matches[0]);
-
-    // Validate the response has the required fields
-    if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
-      throw new Error("Invalid response format from Perplexity API");
-    }
-
-    return analysis;
+    return await response.json();
   } catch (error) {
-    console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
-    throw new Error("Failed to parse CIM analysis response");
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Retrying request due to error (attempt ${retryCount + 1} of ${MAX_RETRIES})...`);
+      await sleep(RETRY_DELAY * Math.pow(2, retryCount));
+      return makePerplexityRequestWithRetry(messages, retryCount + 1);
+    }
+    throw error;
   }
 }
 
-export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
-  try {
-    console.log("Analyzing transcript with Perplexity API");
-    const result = await makePerplexityRequest([
-      {
-        role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. Focus especially on:
+function mergeAnalyses(analyses: CimAnalysis[]): CimAnalysis {
+  // Start with the first analysis as base
+  const merged = { ...analyses[0] };
 
-1. Creating a robust business summary that:
-   - Spans at least 4 sentences
-   - Highlights key business aspects and attractive features
-   - Written as a compelling pitch to potential buyers
-   - Includes growth trajectory and market position
-   - Mentions reason for sale if provided
+  // Helper function to merge arrays without duplicates
+  const mergeArrays = (arrays: string[][]) => {
+    const uniqueItems = new Set(arrays.flat());
+    return Array.from(uniqueItems);
+  };
 
-2. Employee information should be comprehensive:
-   - Total number of employees and contractors
-   - Key employee roles and responsibilities
-   - Salary ranges or compensation structures
-   - Team structure and reporting relationships
-   - Any unique skills or certifications
-   - Length of employment and stability
+  // Merge subsequent analyses
+  for (let i = 1; i < analyses.length; i++) {
+    const current = analyses[i];
 
-The JSON must follow this exact structure:
-{
-  "story": {
-    "businessSummary": "Detailed 4+ sentence summary highlighting key aspects and investment potential",
-    "yearStarted": "Founding year",
-    "businessIdea": "Origin story",
-    "businessModel": "Core services/products and revenue model",
-    "orderProcess": "Detailed process flow",
-    "growthHistory": "Growth trajectory",
-    "businessStructure": "Legal structure",
-    "keyAttractions": ["List of compelling features for buyers"],
-    "saleReason": "Reason for sale if provided, null if not mentioned"
-  },
-  "executiveSummary": {
-    "buyerAttractions": ["What makes the business attractive to buyers?"],
-    "growthOpportunities": ["What growth opportunities are available?"]
-  },
-  "assets": {
-    "digitalAssets": ["List digital assets (websites, social media)"],
-    "location": "Business address",
-    "equipmentValue": "Estimated value of FF&E"
-  },
-  "ownership": {
-    "owners": [{
-      "name": "Owner's full name",
-      "percentage": "Ownership percentage",
-      "background": "Background, experience, and education"
-    }],
-    "intellectualProperty": ["Trademarks or copyrights"]
-  },
-  "marketAnalysis": {
-    "uniqueFeatures": ["What is unique about the business?"],
-    "customerProfile": "Profile of average customer/typical client",
-    "saleReason": "Why is the business being sold?",
-    "competitors": ["Top three competitors"],
-    "strengths": ["Business strengths"]
-  },
-  "operations": {
-    "suppliers": {
-      "count": "Number of suppliers",
-      "transferability": "Will relationships transfer?",
-      "concentration": "Supplier concentration percentages",
-      "terms": "Contract terms (net30, etc)",
-      "replaceability": "Easy to replace suppliers?"
-    },
-    "customers": {
-      "recurring": "Does business have recurring customers?",
-      "relationships": "Number of recurring customers",
-      "concentration": "Revenue concentration by customer",
-      "contracts": "Contract terms with customers",
-      "replaceability": "Easy to replace customers?"
-    }
-  },
-  "inventory": {
-    "leadTime": "Typical lead time",
-    "sourcing": "Local or import?",
-    "storage": "Where is inventory held?",
-    "value": "Value of inventory on hand",
-    "skuCount": "Number of SKUs/services",
-    "topProducts": ["Best selling products/services and % of revenue"]
-  },
-  "sales": {
-    "channels": {"channel": "percentage"},
-    "seasonality": "Does business have seasonality?",
-    "averageOrderValue": "Average order value per customer",
-    "competitivePricing": "How does pricing compare to competitors?",
-    "pricingModel": "How does pricing work?",
-    "paymentMethods": ["Payment methods accepted"]
-  },
-  "marketing": {
-    "strategies": ["How does owner market to find new clients?"],
-    "paidAdvertising": {
-      "channels": ["Which channels?"],
-      "effectiveness": "Was it successful and why?"
-    },
-    "emailMarketing": {
-      "listSize": "Number of email addresses",
-      "usage": "How is the list used?"
-    },
-    "seoEfforts": "What regular SEO efforts are engaged?"
-  },
-  "team": {
-    "ownerResponsibilities": "Owner's average work week responsibilities",
-    "ownerHours": "Expected hours/week for buyer",
-    "employees": [{
-      "role": "Staff role",
-      "status": "Full/part-time, contractor/employee",
-      "compensation": "Hourly/salary rate",
-      "tenure": "Length of employment"
-    }],
-    "turnover": "Is there frequent employee turnover?",
-    "hiring": "Is it difficult to find new employees?",
-    "retention": "Will employees stay after sale?",
-    "organization": "Is there an org chart?",
-    "keyEmployees": ["List key employees"],
-    "management": "Is there a GM or potential GM?"
-  },
-  "facility": {
-    "ownership": "Owned or leased?",
-    "size": "Square footage",
-    "cost": "Monthly cost",
-    "leaseDetails": "If leased: terms and expiration"
-  }
-}`
-      },
-      {
-        role: "user",
-        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${transcript}`
-      }
+    // Merge story section
+    merged.story.businessSummary = merged.story.businessSummary + " " + current.story.businessSummary;
+    merged.story.keyAttractions = mergeArrays([merged.story.keyAttractions, current.story.keyAttractions]);
+
+    // Merge executive summary
+    merged.executiveSummary.buyerAttractions = mergeArrays([
+      merged.executiveSummary.buyerAttractions,
+      current.executiveSummary.buyerAttractions
+    ]);
+    merged.executiveSummary.growthOpportunities = mergeArrays([
+      merged.executiveSummary.growthOpportunities,
+      current.executiveSummary.growthOpportunities
     ]);
 
+    // Merge market analysis
+    merged.marketAnalysis.uniqueFeatures = mergeArrays([
+      merged.marketAnalysis.uniqueFeatures,
+      current.marketAnalysis.uniqueFeatures
+    ]);
+    merged.marketAnalysis.competitors = mergeArrays([
+      merged.marketAnalysis.competitors,
+      current.marketAnalysis.competitors
+    ]);
+    merged.marketAnalysis.strengths = mergeArrays([
+      merged.marketAnalysis.strengths,
+      current.marketAnalysis.strengths
+    ]);
+
+    // Merge employees data
+    merged.team.employees = [...merged.team.employees, ...current.team.employees];
+    merged.team.keyEmployees = mergeArrays([merged.team.keyEmployees, current.team.keyEmployees]);
+  }
+
+  // Clean up and format the merged business summary
+  merged.story.businessSummary = merged.story.businessSummary
+    .split(". ")
+    .filter((sentence, index, array) => array.indexOf(sentence) === index)
+    .join(". ");
+
+  return merged;
+}
+
+export async function analyzeCimTranscript(transcript: string, directions: string): Promise<CimAnalysis> {
+  try {
+    console.log("Analyzing transcript with Perplexity API");
+
+    // Split transcript into chunks if it's too large
+    const chunks = splitTextIntoChunks(transcript);
+    console.log(`Split transcript into ${chunks.length} chunks`);
+
+    // Analyze each chunk
+    const analyses: CimAnalysis[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`Analyzing chunk ${i + 1} of ${chunks.length}`);
+      const result = await makePerplexityRequestWithRetry([
+        {
+          role: "system",
+          content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. Analyze the following part ${i + 1} of ${chunks.length} of the transcript according to these directions:\n\n${directions}`
+        },
+        {
+          role: "user",
+          content: chunks[i]
+        }
+      ]);
+
+      try {
+        // Extract the content and parse it as JSON
+        const contentStr = result.choices[0].message.content;
+        const matches = contentStr.match(/\{[\s\S]*\}/);
+        if (!matches) {
+          throw new Error("No JSON object found in response");
+        }
+
+        const analysis = JSON.parse(matches[0]);
+        analyses.push(analysis);
+      } catch (error) {
+        console.error("Failed to parse Perplexity response:", result.choices[0].message.content);
+        throw new Error("Failed to parse CIM analysis response");
+      }
+    }
+
+    // Merge all analyses into one
+    const mergedAnalysis = mergeAnalyses(analyses);
     console.log("Successfully analyzed transcript");
-    return result;
+    return mergedAnalysis;
+
   } catch (error) {
     console.error("Error analyzing transcript:", error);
     throw new Error(`Failed to analyze transcript: ${error instanceof Error ? error.message : String(error)}`);
