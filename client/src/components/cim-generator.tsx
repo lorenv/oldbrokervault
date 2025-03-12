@@ -350,10 +350,14 @@ export function CimGenerator() {
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Target Market</h3>
-                    <p className="text-muted-foreground">{analysis.marketAnalysis.customerProfile}</p>
-                  </div>
+                  {(analysis?.marketAnalysis?.customerProfile || analysis?.BusinessDescription?.MarketPosition?.Text) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Target Market</h3>
+                      <p className="text-muted-foreground">
+                        {analysis?.marketAnalysis?.customerProfile || analysis?.BusinessDescription?.MarketPosition?.Text}
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
@@ -369,14 +373,14 @@ export function CimGenerator() {
                           <tr>
                             <td className="py-2 pr-4">
                               <ul className="list-disc pl-6 space-y-1">
-                                {analysis.marketAnalysis.competitors.map((competitor: string, i: number) => (
+                                {(analysis?.marketAnalysis?.competitors || []).map((competitor: string, i: number) => (
                                   <li key={i} className="text-muted-foreground">{competitor}</li>
                                 ))}
                               </ul>
                             </td>
                             <td className="py-2">
                               <ul className="list-disc pl-6 space-y-1">
-                                {analysis.marketAnalysis.strengths.map((strength: string, i: number) => (
+                                {(analysis?.marketAnalysis?.strengths || []).map((strength: string, i: number) => (
                                   <li key={i} className="text-muted-foreground">{strength}</li>
                                 ))}
                               </ul>
