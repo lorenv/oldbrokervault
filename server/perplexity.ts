@@ -22,6 +22,9 @@ type CimAnalysis = {
     digitalAssets: string[];
     location: string;
     equipmentValue: string;
+    // Add inventory and equipment details
+    equipmentDetails: string;
+    inventoryDetails: string;
   };
   ownership: {
     owners: Array<{
@@ -69,6 +72,7 @@ type CimAnalysis = {
     competitivePricing: string;
     pricingModel: string;
     paymentMethods: string[];
+    contractTerms: string; // Add contract terms
   };
   marketing: {
     strategies: string[];
@@ -81,21 +85,19 @@ type CimAnalysis = {
       usage: string;
     };
     seoEfforts: string;
+    clientAcquisition: string; // Add details about finding new clients
   };
   team: {
     ownerResponsibilities: string;
     ownerHours: string;
-    employees: Array<{
-      role: string;
-      status: string;
-      compensation: string;
-      tenure?: string;
-    }>;
+    employeeSummary: string; // Changed to a summary string
+    employeeCount: string; // Add total count
+    contractorCount: string; // Add contractor count if any
     turnover: string;
     hiring: string;
     retention: string;
     organization: string;
-    keyEmployees: string[];
+    keyEmployees: string[]; // Array of key employee titles and roles
     management: string;
   };
   facility: {
@@ -168,13 +170,24 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
    - Includes growth trajectory and market position
    - Mentions reason for sale if provided
 
-2. Employee information should be comprehensive:
-   - Total number of employees and contractors
-   - Key employee roles and responsibilities
-   - Salary ranges or compensation structures
-   - Team structure and reporting relationships
-   - Any unique skills or certifications
-   - Length of employment and stability
+2. Employee and contractor information should be comprehensive:
+   - Provide a clear summary of all employees and contractors
+   - Include total number of employees and contractors separately
+   - List key employee titles and roles
+   - Note any specializations or certifications
+   - Mention length of employment where available
+
+3. Contract terms and equipment:
+   - Detail all customer and supplier contract terms
+   - List and describe any significant equipment
+   - Include inventory details and values
+   - Note any special arrangements or agreements
+
+4. Marketing and client acquisition:
+   - Explain how new clients are acquired
+   - Detail marketing strategies and their effectiveness
+   - Include information about referral sources
+   - Note any recurring client relationships
 
 The JSON must follow this exact structure:
 {
@@ -196,7 +209,9 @@ The JSON must follow this exact structure:
   "assets": {
     "digitalAssets": ["List digital assets (websites, social media)"],
     "location": "Business address",
-    "equipmentValue": "Estimated value of FF&E"
+    "equipmentValue": "Estimated value of FF&E",
+    "equipmentDetails": "Detailed description of major equipment",
+    "inventoryDetails": "Detailed description of inventory"
   },
   "ownership": {
     "owners": [{
@@ -243,7 +258,8 @@ The JSON must follow this exact structure:
     "averageOrderValue": "Average order value per customer",
     "competitivePricing": "How does pricing compare to competitors?",
     "pricingModel": "How does pricing work?",
-    "paymentMethods": ["Payment methods accepted"]
+    "paymentMethods": ["Payment methods accepted"],
+    "contractTerms": "Details of any standard contracts or terms"
   },
   "marketing": {
     "strategies": ["How does owner market to find new clients?"],
@@ -255,22 +271,20 @@ The JSON must follow this exact structure:
       "listSize": "Number of email addresses",
       "usage": "How is the list used?"
     },
-    "seoEfforts": "What regular SEO efforts are engaged?"
+    "seoEfforts": "What regular SEO efforts are engaged?",
+    "clientAcquisition": "Detailed explanation of how new clients are found"
   },
   "team": {
     "ownerResponsibilities": "Owner's average work week responsibilities",
     "ownerHours": "Expected hours/week for buyer",
-    "employees": [{
-      "role": "Staff role",
-      "status": "Full/part-time, contractor/employee",
-      "compensation": "Hourly/salary rate",
-      "tenure": "Length of employment"
-    }],
+    "employeeSummary": "Comprehensive summary of all employees and their roles",
+    "employeeCount": "Total number of employees",
+    "contractorCount": "Total number of contractors if any",
     "turnover": "Is there frequent employee turnover?",
     "hiring": "Is it difficult to find new employees?",
     "retention": "Will employees stay after sale?",
     "organization": "Is there an org chart?",
-    "keyEmployees": ["List key employees"],
+    "keyEmployees": ["List key employee titles and roles"],
     "management": "Is there a GM or potential GM?"
   },
   "facility": {
