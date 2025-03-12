@@ -139,19 +139,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
 
-      const userId = await handleStripeWebhook(event);
-      if (userId) {
-        // Update the user's subscription
-        const session = event.data.object as Stripe.Checkout.Session;
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        const planName = lineItems.data[0]?.price?.id === process.env.STRIPE_PRICE_ID_PREMIUM
-          ? 'premium'
-          : 'standard';
-
-        const endsAt = new Date();
-        endsAt.setMonth(endsAt.getMonth() + 1);
-
-        await storage.updateSubscription(userId, planName, endsAt);
+      const result = await handleStripeWebhook(event);
+      if (result) {
+        const { userId, status, endsAt } = result;
+        await storage.updateSubscription(userId, status, endsAt);
+        console.log(`Updated subscription for user ${userId} to ${status}`);
       }
 
       res.json({ received: true });
