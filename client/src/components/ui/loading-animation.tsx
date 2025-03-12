@@ -13,12 +13,9 @@ const sizeClasses = {
 
 export function LoadingAnimation({ text = "Loading...", size = "md" }: LoadingAnimationProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 space-y-4">
-      <div className="relative">
-        <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
-        <div className="absolute -right-2 -top-2 animate-bounce">✨</div>
-      </div>
-      <p className="text-sm text-muted-foreground animate-pulse">{text}</p>
+    <div className="flex items-center justify-center space-x-2">
+      <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
+      <span className="text-sm">{text}</span>
     </div>
   );
 }

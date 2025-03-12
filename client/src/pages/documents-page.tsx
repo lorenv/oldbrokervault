@@ -196,6 +196,29 @@ ${analysis.team.ownerResponsibilities}
                 </section>
 
                 <section>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Investment Highlights</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        {selectedDoc.analysis.story.keyAttractions?.map((item: string, i: number) => (
+                          <li key={i} className="text-muted-foreground">{renderValue(item)}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
+                      <ul className="list-disc pl-6 space-y-1">
+                        {selectedDoc.analysis.executiveSummary.growthOpportunities?.map((item: string, i: number) => (
+                          <li key={i} className="text-muted-foreground">{renderValue(item)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
                   <h2 className="text-2xl font-bold border-b pb-2 mb-4">Market Position</h2>
                   <div className="space-y-4">
                     <div>
@@ -232,30 +255,62 @@ ${analysis.team.ownerResponsibilities}
                 </section>
 
                 <section>
-                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team & Operations</h2>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
-                      <div className="space-y-2">
-                        <p><strong>Total Employees:</strong> {renderValue(selectedDoc.analysis.team.employeeCount)}</p>
-                        {selectedDoc.analysis.team.contractorCount && (
-                          <p><strong>Contractors:</strong> {renderValue(selectedDoc.analysis.team.contractorCount)}</p>
-                        )}
-                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.team.employeeSummary)}</p>
+                      <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
+                      <div className="bg-muted rounded-lg p-4">
+                        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <dt className="font-medium">Recurring Revenue</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.customers.recurring)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Customer Base</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.customers.relationships)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Revenue Concentration</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.customers.concentration)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Contract Terms</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.customers.contracts)}</dd>
+                          </div>
+                        </dl>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">Contract Terms</h3>
+                      <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
+                      <div className="bg-muted rounded-lg p-4">
+                        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <dt className="font-medium">Number of Suppliers</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.count)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Supplier Terms</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.terms)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Concentration</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.concentration)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-medium">Relationship Transfer</dt>
+                            <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.transferability)}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Equipment & Assets</h3>
                       <div className="space-y-2">
-                        <div>
-                          <p className="font-medium">Customer Contracts:</p>
-                          <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.sales.contractTerms)}</p>
-                        </div>
-                        <div>
-                          <p className="font-medium">Supplier Terms:</p>
-                          <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.operations.suppliers.terms)}</p>
-                        </div>
+                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.assets.equipmentDetails)}</p>
+                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.assets.inventoryDetails)}</p>
+                        <p><strong>Equipment Value:</strong> {renderValue(selectedDoc.analysis.assets.equipmentValue)}</p>
                       </div>
                     </div>
 
@@ -273,6 +328,68 @@ ${analysis.team.ownerResponsibilities}
                         </div>
                       </div>
                     </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Ownership & Management</h3>
+                      <div className="space-y-2">
+                        <p><strong>Owner's Role:</strong> {renderValue(selectedDoc.analysis.team.ownerResponsibilities)}</p>
+                        <p><strong>Required Hours:</strong> {renderValue(selectedDoc.analysis.team.ownerHours)}</p>
+                        <p><strong>Management Structure:</strong> {renderValue(selectedDoc.analysis.team.management)}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
+                      <div className="space-y-2">
+                        <p><strong>Total Employees:</strong> {renderValue(selectedDoc.analysis.team.employeeCount)}</p>
+                        {selectedDoc.analysis.team.contractorCount && (
+                          <p><strong>Contractors:</strong> {renderValue(selectedDoc.analysis.team.contractorCount)}</p>
+                        )}
+                        <p className="text-muted-foreground">{renderValue(selectedDoc.analysis.team.employeeSummary)}</p>
+
+                        {selectedDoc.analysis.team.keyEmployees?.length > 0 && (
+                          <div className="mt-4">
+                            <p className="font-medium">Key Team Members:</p>
+                            <ul className="list-disc pl-6 mt-2">
+                              {selectedDoc.analysis.team.keyEmployees.map((employee: string, i: number) => (
+                                <li key={i} className="text-muted-foreground">{renderValue(employee)}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Facilities</h2>
+                  <div className="bg-muted rounded-lg p-4">
+                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <dt className="font-medium">Ownership Status</dt>
+                        <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.facility.ownership)}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium">Size</dt>
+                        <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.facility.size)}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium">Monthly Cost</dt>
+                        <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.facility.cost)}</dd>
+                      </div>
+                      {selectedDoc.analysis.facility.leaseDetails && (
+                        <div>
+                          <dt className="font-medium">Lease Details</dt>
+                          <dd className="text-muted-foreground">{renderValue(selectedDoc.analysis.facility.leaseDetails)}</dd>
+                        </div>
+                      )}
+                    </dl>
                   </div>
                 </section>
               </div>
