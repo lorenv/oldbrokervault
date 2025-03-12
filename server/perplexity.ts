@@ -9,6 +9,10 @@ type CimAnalysis = {
     orderProcess: string;
     growthHistory: string;
     businessStructure: string;
+    // Add new fields for robust business description
+    businessSummary: string;
+    keyAttractions: string[];
+    saleReason: string | null;
   };
   executiveSummary: {
     buyerAttractions: string[];
@@ -155,16 +159,35 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. The JSON must follow this exact structure:
+        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. Focus especially on:
 
+1. Creating a robust business summary that:
+   - Spans at least 4 sentences
+   - Highlights key business aspects and attractive features
+   - Written as a compelling pitch to potential buyers
+   - Includes growth trajectory and market position
+   - Mentions reason for sale if provided
+
+2. Employee information should be comprehensive:
+   - Total number of employees and contractors
+   - Key employee roles and responsibilities
+   - Salary ranges or compensation structures
+   - Team structure and reporting relationships
+   - Any unique skills or certifications
+   - Length of employment and stability
+
+The JSON must follow this exact structure:
 {
   "story": {
-    "yearStarted": "What year did the business begin?",
-    "businessIdea": "How did you get the idea?",
-    "businessModel": "What services/products does the business provide?",
-    "orderProcess": "What is the order/process flow from start to finish?",
-    "growthHistory": "How did you grow it?",
-    "businessStructure": "How is the company structured (LLC, Inc., etc.)?"
+    "businessSummary": "Detailed 4+ sentence summary highlighting key aspects and investment potential",
+    "yearStarted": "Founding year",
+    "businessIdea": "Origin story",
+    "businessModel": "Core services/products and revenue model",
+    "orderProcess": "Detailed process flow",
+    "growthHistory": "Growth trajectory",
+    "businessStructure": "Legal structure",
+    "keyAttractions": ["List of compelling features for buyers"],
+    "saleReason": "Reason for sale if provided, null if not mentioned"
   },
   "executiveSummary": {
     "buyerAttractions": ["What makes the business attractive to buyers?"],
@@ -240,7 +263,8 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
     "employees": [{
       "role": "Staff role",
       "status": "Full/part-time, contractor/employee",
-      "compensation": "Hourly/salary rate"
+      "compensation": "Hourly/salary rate",
+      "tenure": "Length of employment"
     }],
     "turnover": "Is there frequent employee turnover?",
     "hiring": "Is it difficult to find new employees?",

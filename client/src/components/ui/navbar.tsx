@@ -1,6 +1,15 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings, FileText, LogOut, User } from "lucide-react";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -21,12 +30,41 @@ export function Navbar() {
                 <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
               </Link>
             )}
-            <Button 
-              variant="outline" 
-              onClick={() => logoutMutation.mutate()}
-            >
-              Logout
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  My Account
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Account Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {user.subscriptionStatus !== "free" && (
+                  <DropdownMenuItem>
+                    <Link href="https://billing.stripe.com/p/login/test">
+                      <a className="flex items-center">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Manage Subscription
+                      </a>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem>
+                  <Link href="/documents">
+                    <a className="flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      My CIMs
+                    </a>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>

@@ -13,6 +13,13 @@ import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { File, FileText } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, Copy } from "lucide-react";
 
 
 export function CimGenerator() {
@@ -66,14 +73,42 @@ export function CimGenerator() {
     generateMutation.mutate(data);
   };
 
-  const handlePdfExport = () => {
-    // Placeholder for PDF export function
-    console.log("Exporting to PDF");
+  const handleCopyToClipboard = async () => {
+    try {
+      // Create a formatted text version of the CIM
+      const cimText = `
+Business Summary:
+${analysis.story.businessModel}
+
+Market Analysis:
+${analysis.marketAnalysis.customerProfile}
+${analysis.marketAnalysis.strengths.join("\n")}
+
+Operations:
+${analysis.operations.customers.recurring}
+${analysis.team.ownerResponsibilities}
+      `.trim();
+
+      await navigator.clipboard.writeText(cimText);
+      toast({
+        title: "Copied to clipboard",
+        description: "CIM content has been copied to your clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleWordExport = () => {
-    // Placeholder for Word export function
-    console.log("Exporting to Word");
+  const handleExport = async (format: 'pdf' | 'word') => {
+    // To be implemented: PDF and Word export functionality
+    toast({
+      title: "Coming Soon",
+      description: `Export to ${format.toUpperCase()} will be available soon`,
+    });
   };
 
 
@@ -369,48 +404,33 @@ export function CimGenerator() {
               {/* Export Button */}
               <div className="pt-4">
                 <div className="flex items-center space-x-2 ml-auto">
-                    {user?.subscriptionStatus === "free" ? (
-                      <div className="flex flex-col items-end">
-                        <Button
-                          onClick={() => toast({
-                            title: "Premium Feature",
-                            description: "Export to PDF and Word is available on Standard and Premium plans.",
-                            variant: "default"
-                          })}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs mb-1"
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          Export PDF
-                        </Button>
-                        <span className="text-xs text-muted-foreground">
-                          Available on paid plans
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={handlePdfExport}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                        >
-                          <FileText className="mr-1 h-3 w-3" />
-                          Export PDF
-                        </Button>
-                        <Button
-                          onClick={handleWordExport}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                        >
-                          <File className="mr-1 h-3 w-3" />
-                          Export Word
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleCopyToClipboard}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy to Clipboard
+                      </DropdownMenuItem>
+                      {user?.subscriptionStatus !== "free" && (
+                        <>
+                          <DropdownMenuItem onClick={() => handleExport('word')}>
+                            <File className="mr-2 h-4 w-4" />
+                            Export to Word
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Export to PDF
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           </CardContent>

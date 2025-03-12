@@ -25,7 +25,7 @@ export const subscriptionPlans = {
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   subscriptionStatus: text("subscription_status").default("free").notNull(),
@@ -46,9 +46,11 @@ export const cimDocuments = pgTable("cim_documents", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
 }).extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email("Please enter a valid email address"),
   adminCode: z.string().optional()
 });
 
