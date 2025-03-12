@@ -13,17 +13,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Configure Express to handle large payloads - these must be set before any route handlers
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
-  app.use(express.raw({ type: 'application/json', limit: '50mb' }));
-
   // CIM Document Routes
   app.post("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      // Clean and validate input first
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
 
@@ -62,7 +56,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(doc);
     } catch (error) {
-      console.error("Error processing CIM request:", error);
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
