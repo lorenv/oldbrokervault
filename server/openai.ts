@@ -55,164 +55,143 @@ type CimAnalysis = {
 
 export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
-    // Log the input transcript for debugging
-    console.log("Input transcript:", transcript);
+    console.log("Starting transcript analysis...");
+    console.log("Transcript length:", transcript.length);
 
-    const systemPrompt = directions || `As a business analyst, analyze the provided transcript and create a Confidential Information Memorandum (CIM). Extract specific details and return ONLY a JSON object matching this structure:
+    const systemPrompt = directions || `You are a business analyst. Extract information from the transcript and return a JSON object that matches this EXACT structure. Replace placeholders with actual information from the transcript:
 
 {
   "story": {
-    "yearStarted": "Extract specific year or time period when business started",
-    "businessModel": "Explain core business activities and revenue model",
-    "growthHistory": "Describe growth trajectory and milestones",
-    "businessStructure": "Specify business structure (LLC, Corp, etc)"
+    "yearStarted": "Extract when business started",
+    "businessModel": "Describe what business does",
+    "growthHistory": "How has business grown",
+    "businessStructure": "Business structure type"
   },
   "executiveSummary": {
-    "buyerAttractions": ["List 3-5 key selling points"],
-    "growthOpportunities": ["List 3-5 growth opportunities"]
+    "buyerAttractions": ["Key selling point 1", "Key selling point 2"],
+    "growthOpportunities": ["Growth opportunity 1", "Growth opportunity 2"]
   },
   "marketAnalysis": {
-    "customerProfile": "Describe typical customer demographics and needs",
-    "competitors": ["Name main competitors"],
-    "strengths": ["List competitive advantages"]
+    "customerProfile": "Describe target customers",
+    "competitors": ["Main competitor 1", "Main competitor 2"],
+    "strengths": ["Business strength 1", "Business strength 2"]
   },
   "operations": {
     "suppliers": {
-      "count": "Number of key suppliers",
-      "transferability": "Can supplier relationships transfer to new owner?",
-      "concentration": "Percentage of supply from top suppliers",
-      "terms": "Payment and delivery terms"
+      "count": "Number of suppliers",
+      "transferability": "Can relationships transfer",
+      "concentration": "Supply concentration",
+      "terms": "Payment terms"
     },
     "customers": {
-      "recurring": "Percentage of recurring revenue",
-      "relationships": "Nature of customer relationships",
-      "concentration": "Revenue from top customers",
-      "contracts": "Contract terms and duration"
+      "recurring": "Recurring revenue details",
+      "relationships": "Customer relationship type",
+      "concentration": "Customer concentration",
+      "contracts": "Contract terms"
     }
   },
   "facility": {
-    "ownership": "Owned/leased status",
+    "ownership": "Owned or leased",
     "size": "Square footage",
-    "cost": "Monthly facility costs",
-    "leaseDetails": "Terms if leased"
+    "cost": "Monthly cost",
+    "leaseDetails": "Lease terms if applicable"
   },
   "team": {
-    "ownerResponsibilities": "Current owner's role",
-    "ownerHours": "Owner's weekly time commitment",
-    "management": "Management team structure",
+    "ownerResponsibilities": "Owner's role",
+    "ownerHours": "Hours worked",
+    "management": "Management structure",
     "employees": [
       {
-        "role": "Employee position",
-        "status": "Full-time/part-time",
-        "compensation": "Salary/wage info"
+        "role": "Employee role",
+        "status": "Employment status",
+        "compensation": "Pay details"
       }
     ],
     "turnover": "Employee turnover rate",
-    "hiring": "Ease of finding staff",
-    "retention": "Expected employee retention post-sale"
+    "hiring": "Hiring difficulty",
+    "retention": "Expected retention"
   }
-}
-
-IMPORTANT: Focus on extracting specific facts and figures from the transcript. Use "Not available" only if information is truly missing.`;
+}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: `${systemPrompt}\n\nEXTRACT ACTUAL VALUES from the transcript. Do not return placeholder text. If information is truly missing, use "Not available in transcript".`
         },
         {
           role: "user",
-          content: `Please analyze this business transcript carefully and extract all relevant information into the specified JSON format:\n\n${transcript}`
+          content: transcript
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3 // Slightly higher temperature for better analysis
+      temperature: 0.3
     });
 
-    if (!response.choices[0].message.content) {
-      throw new Error("Empty response from OpenAI");
-    }
+    console.log("OpenAI API Response received");
 
-    const content = response.choices[0].message.content.trim();
-    console.log("OpenAI Response:", content);
+    const content = response.choices[0].message.content;
+    console.log("Raw API response content:", content);
 
-    try {
-      const analysis = JSON.parse(content);
+    const analysis = JSON.parse(content);
+    console.log("Parsed analysis:", JSON.stringify(analysis, null, 2));
 
-      // Default values for missing fields
-      const defaultAnalysis: CimAnalysis = {
-        story: {
-          yearStarted: "Not available",
-          businessModel: "Not available",
-          growthHistory: "Not available",
-          businessStructure: "Not available"
+    // Create the complete analysis object with all required fields
+    const completeAnalysis: CimAnalysis = {
+      story: {
+        yearStarted: analysis.story?.yearStarted || "Not available",
+        businessModel: analysis.story?.businessModel || "Not available",
+        growthHistory: analysis.story?.growthHistory || "Not available",
+        businessStructure: analysis.story?.businessStructure || "Not available"
+      },
+      executiveSummary: {
+        buyerAttractions: analysis.executiveSummary?.buyerAttractions || ["Not available"],
+        growthOpportunities: analysis.executiveSummary?.growthOpportunities || ["Not available"]
+      },
+      marketAnalysis: {
+        customerProfile: analysis.marketAnalysis?.customerProfile || "Not available",
+        competitors: analysis.marketAnalysis?.competitors || ["Not available"],
+        strengths: analysis.marketAnalysis?.strengths || ["Not available"]
+      },
+      operations: {
+        suppliers: {
+          count: analysis.operations?.suppliers?.count || "Not available",
+          transferability: analysis.operations?.suppliers?.transferability || "Not available",
+          concentration: analysis.operations?.suppliers?.concentration || "Not available",
+          terms: analysis.operations?.suppliers?.terms || "Not available"
         },
-        executiveSummary: {
-          buyerAttractions: ["Not available"],
-          growthOpportunities: ["Not available"]
-        },
-        marketAnalysis: {
-          customerProfile: "Not available",
-          competitors: ["Not available"],
-          strengths: ["Not available"]
-        },
-        operations: {
-          suppliers: {
-            count: "Not available",
-            transferability: "Not available",
-            concentration: "Not available",
-            terms: "Not available"
-          },
-          customers: {
-            recurring: "Not available",
-            relationships: "Not available",
-            concentration: "Not available",
-            contracts: "Not available"
-          }
-        },
-        facility: {
-          ownership: "Not available",
-          size: "Not available",
-          cost: "Not available"
-        },
-        team: {
-          ownerResponsibilities: "Not available",
-          ownerHours: "Not available",
-          management: "Not available",
-          employees: [{
-            role: "Not available",
-            status: "Not available",
-            compensation: "Not available"
-          }],
-          turnover: "Not available",
-          hiring: "Not available",
-          retention: "Not available"
+        customers: {
+          recurring: analysis.operations?.customers?.recurring || "Not available",
+          relationships: analysis.operations?.customers?.relationships || "Not available",
+          concentration: analysis.operations?.customers?.concentration || "Not available",
+          contracts: analysis.operations?.customers?.contracts || "Not available"
         }
-      };
+      },
+      facility: {
+        ownership: analysis.facility?.ownership || "Not available",
+        size: analysis.facility?.size || "Not available",
+        cost: analysis.facility?.cost || "Not available",
+        leaseDetails: analysis.facility?.leaseDetails
+      },
+      team: {
+        ownerResponsibilities: analysis.team?.ownerResponsibilities || "Not available",
+        ownerHours: analysis.team?.ownerHours || "Not available",
+        management: analysis.team?.management || "Not available",
+        employees: analysis.team?.employees || [{
+          role: "Not available",
+          status: "Not available",
+          compensation: "Not available"
+        }],
+        turnover: analysis.team?.turnover || "Not available",
+        hiring: analysis.team?.hiring || "Not available",
+        retention: analysis.team?.retention || "Not available"
+      }
+    };
 
-      // Deep merge the API response with defaults
-      return {
-        story: { ...defaultAnalysis.story, ...analysis.story },
-        executiveSummary: { ...defaultAnalysis.executiveSummary, ...analysis.executiveSummary },
-        marketAnalysis: { ...defaultAnalysis.marketAnalysis, ...analysis.marketAnalysis },
-        operations: {
-          suppliers: { ...defaultAnalysis.operations.suppliers, ...analysis.operations?.suppliers },
-          customers: { ...defaultAnalysis.operations.customers, ...analysis.operations?.customers }
-        },
-        facility: { ...defaultAnalysis.facility, ...analysis.facility },
-        team: {
-          ...defaultAnalysis.team,
-          ...analysis.team,
-          employees: analysis.team?.employees || defaultAnalysis.team.employees
-        }
-      };
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
-      console.error("Response content:", content);
-      throw new Error("Failed to parse AI response into the required format");
-    }
+    console.log("Final analysis object:", JSON.stringify(completeAnalysis, null, 2));
+    return completeAnalysis;
+
   } catch (error) {
     console.error("OpenAI API Error:", error);
     throw new Error(`Failed to analyze transcript: ${error instanceof Error ? error.message : String(error)}`);
