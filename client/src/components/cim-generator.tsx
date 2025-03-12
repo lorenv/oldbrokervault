@@ -33,7 +33,7 @@ export function CimGenerator() {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/cim", {
         ...data,
-        docId: currentDocId // Pass docId for regeneration
+        docId: currentDocId
       });
       const responseData = await res.json();
       if (!res.ok) {
@@ -42,7 +42,30 @@ export function CimGenerator() {
       return responseData;
     },
     onSuccess: (data) => {
-      setAnalysis(data.analysis);
+      // Transform API response to match frontend structure
+      const transformedAnalysis = {
+        ...data.analysis,
+        // Ensure these properties exist with defaults
+        operations: {
+          customers: data.analysis?.operations?.customers || {},
+          suppliers: data.analysis?.operations?.suppliers || {}
+        },
+        marketAnalysis: {
+          customerProfile: data.analysis?.marketAnalysis?.customerProfile || 
+                         data.analysis?.BusinessDescription?.MarketPosition?.Text || '',
+          competitors: data.analysis?.marketAnalysis?.competitors || [],
+          strengths: data.analysis?.marketAnalysis?.strengths || []
+        },
+        story: {
+          yearStarted: data.analysis?.story?.yearStarted || 
+                      data.analysis?.BusinessDescription?.Founded || '',
+          businessModel: data.analysis?.story?.businessModel || 
+                        data.analysis?.BusinessDescription?.Summary?.Text || '',
+          structure: data.analysis?.story?.structure || ''
+        }
+      };
+
+      setAnalysis(transformedAnalysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
     },
@@ -166,7 +189,7 @@ export function CimGenerator() {
               <div>
                 <p className="font-medium">Structure</p>
                 <p className="text-muted-foreground">
-                  {analysis.story.businessStructure || 'Not specified'}
+                  {analysis.story.structure || 'Not specified'}
                 </p>
               </div>
             </div>
@@ -175,7 +198,7 @@ export function CimGenerator() {
           <div>
             <h3 className="text-lg font-semibold mb-2">Business Description</h3>
             <p className="text-muted-foreground">
-              {analysis.BusinessDescription?.Summary?.Text || analysis.story.businessModel || 'Not provided'}
+              {analysis.story.businessModel || 'Not provided'}
             </p>
           </div>
         </div>
@@ -281,6 +304,71 @@ export function CimGenerator() {
     );
   };
 
+  const renderOperations = () => {
+    if (!analysis?.operations && !analysis?.BusinessOperations) return null;
+
+    const operations = analysis?.operations || analysis?.BusinessOperations || {};
+    const customers = operations?.customers || {};
+    const suppliers = operations?.suppliers || {};
+
+    return (
+      <section>
+        <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
+        <div className="space-y-6">
+          {/* Customer Relationships */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
+            <div className="bg-muted rounded-lg p-4">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt className="font-medium">Recurring Revenue</dt>
+                  <dd className="text-muted-foreground">{customers?.recurring || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Customer Base</dt>
+                  <dd className="text-muted-foreground">{customers?.relationships || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Revenue Concentration</dt>
+                  <dd className="text-muted-foreground">{customers?.concentration || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Contract Terms</dt>
+                  <dd className="text-muted-foreground">{customers?.contracts || 'Not specified'}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          {/* Supply Chain */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
+            <div className="bg-muted rounded-lg p-4">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt className="font-medium">Number of Suppliers</dt>
+                  <dd className="text-muted-foreground">{suppliers?.count || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Supplier Terms</dt>
+                  <dd className="text-muted-foreground">{suppliers?.terms || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Concentration</dt>
+                  <dd className="text-muted-foreground">{suppliers?.concentration || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">Relationship Transfer</dt>
+                  <dd className="text-muted-foreground">{suppliers?.transferability || 'Not specified'}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -345,6 +433,7 @@ export function CimGenerator() {
               {renderBusinessOverview()}
               {renderInvestmentHighlights()}
               {renderTeamStructure()}
+              {renderOperations()}
 
               {/* Section: Market Position */}
               <section>
@@ -393,60 +482,6 @@ export function CimGenerator() {
                 </div>
               </section>
 
-              {/* Section: Operations */}
-              <section>
-                <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
-                    <div className="bg-muted rounded-lg p-4">
-                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <dt className="font-medium">Recurring Revenue</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.recurring}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Customer Base</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.relationships}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Revenue Concentration</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.concentration}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Contract Terms</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.contracts}</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Supply Chain</h3>
-                    <div className="bg-muted rounded-lg p-4">
-                      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <dt className="font-medium">Number of Suppliers</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.count}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Supplier Terms</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.terms}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Concentration</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.concentration}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-medium">Relationship Transfer</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.transferability}</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </section>
 
               {/* Section: Facilities */}
               <section>
