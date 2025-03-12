@@ -8,8 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
-import { DocumentExport } from "./document-export";
+import { Loader2, Settings } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { File, FileText } from "lucide-react";
@@ -27,6 +34,7 @@ export function CimGenerator() {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
+  const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
@@ -111,7 +119,6 @@ ${analysis.team.ownerResponsibilities}
     });
   };
 
-
   return (
     <div className="space-y-6">
       <Card>
@@ -137,20 +144,33 @@ ${analysis.team.ownerResponsibilities}
               />
             </div>
             <div>
-              <Textarea
-                placeholder="Analysis Directions"
-                className="min-h-[150px]"
-                {...form.register("directions")}
-              />
-              <p className="text-sm text-muted-foreground mt-2">
-                {currentDocId ? (
-                  <>
-                    Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
-                  </>
-                ) : (
-                  "Customize how the AI analyzes your transcript"
-                )}
-              </p>
+              <Dialog open={isDirectionsOpen} onOpenChange={setIsDirectionsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" type="button" className="w-full">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Customize Analysis Directions
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Analysis Directions</DialogTitle>
+                    <DialogDescription>
+                      Customize how the AI analyzes your transcript. These directions guide the CIM generation process.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Textarea
+                    className="min-h-[400px]"
+                    {...form.register("directions")}
+                  />
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {currentDocId && (
+                      <>
+                        Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
+                      </>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <Button
               type="submit"
