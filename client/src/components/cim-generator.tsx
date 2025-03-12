@@ -26,8 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Download, Copy, File, FileText } from "lucide-react";
-import { LoadingAnimation } from "@/components/ui/loading-animation"; // Added import
-
+import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -35,9 +34,6 @@ export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
-  const [documents, setDocuments] = useState<any[]>([]); // Added state for documents
-  const [selectedDoc, setSelectedDoc] = useState<any | null>(null); // Added state for selected document
-
 
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
@@ -82,8 +78,6 @@ export function CimGenerator() {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
-      // Fetch recent documents after successful CIM generation
-      fetchRecentDocuments();
     },
     onError: (error: any) => {
       toast({
@@ -93,17 +87,6 @@ export function CimGenerator() {
       });
     }
   });
-
-  const fetchRecentDocuments = async () => {
-    try {
-      const response = await apiRequest("GET", "/api/cim/recent");
-      setDocuments(response);
-    } catch (error) {
-      console.error("Error fetching recent documents:", error);
-      // Handle error appropriately (e.g., display a toast message)
-
-    }
-  };
 
   const handleGenerate = (data: any) => {
     if (currentDocId) {
@@ -175,10 +158,7 @@ ${analysis.team.ownerResponsibilities}
           <CardTitle>Generate CIM Document</CardTitle>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={form.handleSubmit(handleGenerate)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
             <div>
               <Input
                 placeholder="Document Title"
@@ -224,10 +204,10 @@ ${analysis.team.ownerResponsibilities}
             <Button
               type="submit"
               disabled={generateMutation.isPending}
-              className="w-full"
+              className="w-full h-10 flex items-center justify-center"
             >
               {generateMutation.isPending ? (
-                <LoadingAnimation size="sm" text="Analyzing transcript..." /> // Replaced Loader2 with LoadingAnimation
+                <LoadingAnimation size="sm" text="Analyzing transcript..." />
               ) : currentDocId ? (
                 "Regenerate CIM"
               ) : (
@@ -241,7 +221,7 @@ ${analysis.team.ownerResponsibilities}
       {analysis && (
         <Card>
           <CardHeader>
-            <CardTitle>Confidential Information Memorandum</CardTitle>
+            <CardTitle>Generated CIM</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
@@ -524,41 +504,6 @@ ${analysis.team.ownerResponsibilities}
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Recent Documents Section */}
-      {documents?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent CIMs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-4 rounded-lg border cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => setSelectedDoc(doc)}
-                >
-                  <h3 className="font-semibold">{doc.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Created: {new Date(doc.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* CIM View Modal */}
-      {selectedDoc && (
-        <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
-          <DialogContent className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-            {/*  Placeholder for modal content -  replace with actual modal content from documents-page.tsx */}
-            <p>CIM content for {selectedDoc.title} would go here.</p> {/* Replace with actual CIM display */}
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   );
