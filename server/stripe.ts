@@ -8,6 +8,8 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     ? process.env.STRIPE_PRICE_ID_PREMIUM
     : process.env.STRIPE_PRICE_ID_STANDARD;
 
+  console.log("Creating subscription session for user:", userId, "plan:", planId);
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
@@ -27,15 +29,20 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     },
   });
 
+  console.log("Created subscription session:", session.id);
   return session;
 }
 
 export async function handleStripeWebhook(event: Stripe.Event) {
   try {
+    console.log("Processing webhook event:", event.type);
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = parseInt(session.client_reference_id!);
+
+        console.log("Processing completed checkout session for user:", userId);
 
         // Get subscription details to determine the plan
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
@@ -48,13 +55,18 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         const endsAt = new Date();
         endsAt.setMonth(endsAt.getMonth() + 1);
 
+        console.log("Subscription details:", { userId, status, endsAt, priceId });
         return { userId, status, endsAt };
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated':
+      case 'invoice.paid':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
+
+        console.log("Processing subscription event for user:", userId);
 
         if (!userId) {
           console.error('No userId found in subscription metadata');
@@ -63,6 +75,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
         // For cancelled/deleted subscriptions, revert to free
         if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
+          console.log("Subscription canceled or unpaid, reverting to free plan");
           return { userId, status: 'free', endsAt: new Date() };
         }
 
@@ -73,10 +86,14 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         // Set end date based on current period end
         const endsAt = new Date(subscription.current_period_end * 1000);
 
+        console.log("Updated subscription details:", { userId, status, endsAt, priceId });
         return { userId, status, endsAt };
       }
+
+      default:
+        console.log("Unhandled event type:", event.type);
+        return null;
     }
-    return null;
   } catch (error) {
     console.error('Error handling Stripe webhook:', error);
     throw error;
