@@ -35,7 +35,11 @@ export function CimGenerator() {
         ...data,
         docId: currentDocId // Pass docId for regeneration
       });
-      return res.json();
+      const responseData = await res.json();
+      if (!res.ok) {
+        throw new Error(responseData.error || 'Failed to generate CIM');
+      }
+      return responseData;
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
@@ -57,18 +61,24 @@ export function CimGenerator() {
     }
 
     // Check if transcript is very large and needs chunking
-    if (data.transcript.length > 1000000) { // 1MB threshold
+    if (data.transcript.length > 8000) { // Reduced threshold for testing
       toast({
         title: "Processing large transcript",
-        description: "Your transcript is large and will be processed in chunks. This may take a little longer.",
+        description: "Your transcript will be processed in chunks. This may take a little longer.",
       });
 
       try {
-        // Split transcript into chunks
-        const chunks = chunkTranscript(data.transcript);
+        // Clean the transcript first
+        const cleanedTranscript = data.transcript
+          .split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .join('\n');
+
+        // Split into chunks of ~8000 characters
+        const chunks = cleanedTranscript.match(/.{1,8000}/g) || [cleanedTranscript];
         console.log(`Processing transcript in ${chunks.length} chunks`);
 
-        // Process first chunk to get initial document
+        // Process first chunk
         const firstChunkData = { ...data, transcript: chunks[0] };
         const firstResponse = await generateMutation.mutateAsync(firstChunkData);
 
@@ -76,43 +86,42 @@ export function CimGenerator() {
           return; // No additional processing needed
         }
 
-        // Process remaining chunks and merge results
-        const remainingChunks = chunks.slice(1);
-        const results = [firstResponse];
-
-        for (const chunk of remainingChunks) {
+        // Process remaining chunks
+        for (let i = 1; i < chunks.length; i++) {
           const chunkData = { 
             ...data, 
-            transcript: chunk,
-            docId: firstResponse.id // Use same doc ID for updates
+            transcript: chunks[i],
+            docId: firstResponse.id
           };
 
-          const chunkResponse = await generateMutation.mutateAsync(chunkData);
-          results.push(chunkResponse);
+          await generateMutation.mutateAsync(chunkData);
+
+          toast({
+            title: "Processing chunks",
+            description: `Processed chunk ${i + 1} of ${chunks.length}`,
+          });
         }
 
         toast({
           title: "Processing complete",
-          description: `Successfully processed transcript in ${chunks.length} chunks`,
-          variant: "success"
+          description: `Successfully processed all ${chunks.length} chunks`,
         });
 
       } catch (error) {
         console.error("Error processing chunks:", error);
         toast({
           title: "Error processing transcript",
-          description: "Failed to process the transcript chunks. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to process the transcript chunks",
           variant: "destructive"
         });
       }
     } else {
       // Standard processing for smaller transcripts
-      generateMutation.mutate(data);
+      await generateMutation.mutateAsync(data);
     }
   };
 
-
-  const handleGenerate = (data: any) => {
+  const handleGenerate = async (data: any) => {
     // Check regeneration limits
     if (currentDocId) {
       const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
@@ -125,7 +134,7 @@ export function CimGenerator() {
         return;
       }
     }
-    handleSubmission(data); // Use the new handling function
+    await handleSubmission(data);
   };
 
   const handlePdfExport = () => {

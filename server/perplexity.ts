@@ -21,7 +21,7 @@ function cleanTranscript(transcript: string): string {
     .join('\n');
 }
 
-async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
+async function makePerplexityRequest(messages: any[]): Promise<any> {
   const response = await fetch(PERPLEXITY_API_URL, {
     method: "POST",
     headers: {
@@ -47,28 +47,17 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 
   const data = await response.json();
   try {
-    // Extract the content and parse it as JSON
     const contentStr = data.choices[0].message.content;
-    const matches = contentStr.match(/\{[\s\S]*\}/);
-    if (!matches) {
-      throw new Error("No JSON object found in response");
-    }
-
-    const analysis = JSON.parse(matches[0]);
-
-    // Validate the response has the required fields
-    if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
-      throw new Error("Invalid response format from Perplexity API");
-    }
-
-    return analysis;
+    // Remove any potential markdown code block markers
+    const jsonStr = contentStr.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
     throw new Error("Failed to parse CIM analysis response");
   }
 }
 
-export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string): Promise<any> {
   try {
     console.log("Analyzing transcript with Perplexity API");
     // Clean up the transcript before analysis
@@ -97,13 +86,48 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
    - If detailed information (compensation, tenure, etc.) is available, present in a structured table
    - If limited information is available, provide a clear summary paragraph or bullet points
    - Include total headcount, roles, and employment status (full-time/part-time/contractor)
-   - Note any key personnel or management positions
-
-When analyzing the transcript, respond with ONLY a JSON object (no other text) structured to answer these and other key questions about the business. The JSON must follow this exact structure:`
+   - Note any key personnel or management positions`
       },
       {
         role: "user",
-        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${cleanedTranscript}`
+        content: `Analyze this transcript and create a CIM response with the following structure. Format as JSON ONLY, no other text:
+
+{
+  "BusinessDescription": {
+    "Summary": {
+      "Text": "4+ sentence summary"
+    },
+    "KeyDifferentiators": ["list", "of", "differentiators"],
+    "MarketPosition": {
+      "Text": "description"
+    },
+    "GrowthTrajectory": {
+      "Text": "description"
+    }
+  },
+  "SaleReason": {
+    "Text": "reason for sale"
+  },
+  "TeamStructure": {
+    "TotalHeadcount": number,
+    "Roles": ["list", "of", "roles"],
+    "EmploymentStatus": [
+      {
+        "Role": "role name",
+        "Status": "full-time/part-time/contractor"
+      }
+    ],
+    "KeyPersonnel": [
+      {
+        "Name": "name",
+        "Role": "role",
+        "Responsibilities": ["list", "of", "responsibilities"]
+      }
+    ]
+  }
+}
+
+Transcript to analyze:\n\n${cleanedTranscript}`
       }
     ]);
 
