@@ -58,12 +58,12 @@ export default function AccountPage() {
     try {
       const res = await apiRequest("POST", "/api/user/update", values);
       if (!res.ok) throw new Error("Failed to update profile");
-      
+
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully",
       });
-      
+
       form.reset({
         email: values.email,
         currentPassword: "",
@@ -84,7 +84,7 @@ export default function AccountPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-      
+
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -107,7 +107,7 @@ export default function AccountPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="currentPassword"
@@ -121,7 +121,7 @@ export default function AccountPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="newPassword"
@@ -135,7 +135,7 @@ export default function AccountPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="confirmPassword"
@@ -149,7 +149,7 @@ export default function AccountPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <Button type="submit" disabled={isUpdating}>
                   {isUpdating ? "Updating..." : "Update Profile"}
                 </Button>
@@ -169,14 +169,12 @@ export default function AccountPage() {
                 <h3 className="font-medium">Current Plan</h3>
                 <p className="text-muted-foreground capitalize">{user?.subscriptionStatus || "Free"}</p>
               </div>
-              
-              {user?.subscriptionStatus !== "free" && (
+
+              {user?.subscriptionStatus !== "free" ? (
                 <Button variant="outline" onClick={() => window.location.href = "https://billing.stripe.com/p/login/test"}>
                   Manage Subscription
                 </Button>
-              )}
-              
-              {user?.subscriptionStatus === "free" && (
+              ) : (
                 <Button variant="default" onClick={() => window.location.href = "/pricing"}>
                   Upgrade Plan
                 </Button>
