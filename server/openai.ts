@@ -18,6 +18,26 @@ type CimAnalysis = {
     competitors: string[];
     strengths: string[];
   };
+  operations: {
+    suppliers: {
+      count: string;
+      transferability: string;
+      concentration: string;
+      terms: string;
+    };
+    customers: {
+      recurring: string;
+      relationships: string;
+      concentration: string;
+      contracts: string;
+    };
+  };
+  facility: {
+    ownership: string;
+    size: string;
+    cost: string;
+    leaseDetails?: string;
+  };
   team: {
     ownerResponsibilities: string;
     ownerHours: string;
@@ -27,6 +47,9 @@ type CimAnalysis = {
       status: string;
       compensation: string;
     }>;
+    turnover: string;
+    hiring: string;
+    retention: string;
   };
 };
 
@@ -50,6 +73,26 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
     "competitors": ["List of main competitors"],
     "strengths": ["List of business strengths"]
   },
+  "operations": {
+    "suppliers": {
+      "count": "Number of suppliers",
+      "transferability": "Will relationships transfer?",
+      "concentration": "Supplier concentration",
+      "terms": "Contract terms"
+    },
+    "customers": {
+      "recurring": "Does business have recurring revenue?",
+      "relationships": "Customer relationship details",
+      "concentration": "Customer concentration",
+      "contracts": "Contract terms with customers"
+    }
+  },
+  "facility": {
+    "ownership": "Owned or leased",
+    "size": "Square footage",
+    "cost": "Monthly cost",
+    "leaseDetails": "If leased: terms and expiration"
+  },
   "team": {
     "ownerResponsibilities": "What the owner does",
     "ownerHours": "Hours worked per week",
@@ -60,7 +103,10 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
         "status": "Employment type",
         "compensation": "Pay information"
       }
-    ]
+    ],
+    "turnover": "Employee turnover rate",
+    "hiring": "Hiring environment",
+    "retention": "Expected post-sale retention"
   }
 }`;
 
@@ -69,7 +115,7 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
       messages: [
         {
           role: "system",
-          content: systemPrompt
+          content: `${systemPrompt}\n\nIMPORTANT: Your response must be ONLY the JSON object, with NO additional text or explanation.`
         },
         {
           role: "user",
@@ -107,6 +153,25 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
           competitors: ["Not specified"],
           strengths: ["Not specified"]
         },
+        operations: {
+          suppliers: {
+            count: "Not specified",
+            transferability: "Not specified",
+            concentration: "Not specified",
+            terms: "Not specified"
+          },
+          customers: {
+            recurring: "Not specified",
+            relationships: "Not specified",
+            concentration: "Not specified",
+            contracts: "Not specified"
+          }
+        },
+        facility: {
+          ownership: "Not specified",
+          size: "Not specified",
+          cost: "Not specified"
+        },
         team: {
           ownerResponsibilities: "Not specified",
           ownerHours: "Not specified",
@@ -115,7 +180,10 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
             role: "Not specified",
             status: "Not specified",
             compensation: "Not specified"
-          }]
+          }],
+          turnover: "Not specified",
+          hiring: "Not specified",
+          retention: "Not specified"
         }
       };
 
@@ -124,7 +192,16 @@ export async function analyzeCimTranscript(transcript: string, directions?: stri
         story: { ...defaultAnalysis.story, ...analysis.story },
         executiveSummary: { ...defaultAnalysis.executiveSummary, ...analysis.executiveSummary },
         marketAnalysis: { ...defaultAnalysis.marketAnalysis, ...analysis.marketAnalysis },
-        team: { ...defaultAnalysis.team, ...analysis.team }
+        operations: {
+          suppliers: { ...defaultAnalysis.operations.suppliers, ...analysis.operations?.suppliers },
+          customers: { ...defaultAnalysis.operations.customers, ...analysis.operations?.customers }
+        },
+        facility: { ...defaultAnalysis.facility, ...analysis.facility },
+        team: { 
+          ...defaultAnalysis.team, 
+          ...analysis.team,
+          employees: analysis.team?.employees || defaultAnalysis.team.employees
+        }
       };
     } catch (parseError) {
       console.error("Failed to parse OpenAI response:", parseError);
