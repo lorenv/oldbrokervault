@@ -19,15 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { File, FileText } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, Copy } from "lucide-react";
-
+import { Download, Copy, File, FileText } from "lucide-react";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -108,7 +106,7 @@ export function CimGenerator() {
     try {
       const cimText = `
 Business Summary:
-${analysis.story.businessModel}
+${analysis.story.businessSummary}
 
 Market Analysis:
 ${analysis.marketAnalysis.customerProfile}
@@ -138,6 +136,18 @@ ${analysis.team.ownerResponsibilities}
       title: "Coming Soon",
       description: `Export to ${format.toUpperCase()} will be available soon`,
     });
+  };
+
+  const renderValue = (value: any): string => {
+    if (Array.isArray(value)) {
+      return value.join(", ");
+    }
+    if (typeof value === "object" && value !== null) {
+      return Object.entries(value)
+        .map(([key, val]) => `${key}: ${renderValue(val)}`) //recursive call for nested objects
+        .join(", ");
+    }
+    return String(value || "N/A");
   };
 
   return (
@@ -222,24 +232,31 @@ ${analysis.team.ownerResponsibilities}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="font-medium">Founded</p>
-                        <p className="text-muted-foreground">{analysis.story.yearStarted}</p>
+                        <p className="text-muted-foreground">{renderValue(analysis.story.yearStarted)}</p>
                       </div>
                       <div>
                         <p className="font-medium">Structure</p>
-                        <p className="text-muted-foreground">{analysis.story.businessStructure}</p>
+                        <p className="text-muted-foreground">{renderValue(analysis.story.businessStructure)}</p>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Business Description</h3>
-                    <p className="text-muted-foreground">{analysis.story.businessModel}</p>
+                    <h3 className="text-lg font-semibold mb-2">Business Summary</h3>
+                    <p className="text-muted-foreground">{renderValue(analysis.story.businessSummary)}</p>
                   </div>
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Growth History</h3>
-                    <p className="text-muted-foreground">{analysis.story.growthHistory}</p>
+                    <p className="text-muted-foreground">{renderValue(analysis.story.growthHistory)}</p>
                   </div>
+
+                  {analysis.story.saleReason && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Reason for Sale</h3>
+                      <p className="text-muted-foreground">{renderValue(analysis.story.saleReason)}</p>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -249,8 +266,8 @@ ${analysis.team.ownerResponsibilities}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Key Attractions</h3>
                     <ul className="list-disc pl-6 space-y-1">
-                      {analysis.executiveSummary.buyerAttractions.map((item: string, i: number) => (
-                        <li key={i} className="text-muted-foreground">{item}</li>
+                      {analysis.story.keyAttractions?.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{renderValue(item)}</li>
                       ))}
                     </ul>
                   </div>
@@ -258,8 +275,8 @@ ${analysis.team.ownerResponsibilities}
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Growth Opportunities</h3>
                     <ul className="list-disc pl-6 space-y-1">
-                      {analysis.executiveSummary.growthOpportunities.map((item: string, i: number) => (
-                        <li key={i} className="text-muted-foreground">{item}</li>
+                      {analysis.executiveSummary.growthOpportunities?.map((item: string, i: number) => (
+                        <li key={i} className="text-muted-foreground">{renderValue(item)}</li>
                       ))}
                     </ul>
                   </div>
@@ -271,38 +288,30 @@ ${analysis.team.ownerResponsibilities}
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Target Market</h3>
-                    <p className="text-muted-foreground">{analysis.marketAnalysis.customerProfile}</p>
+                    <p className="text-muted-foreground">{renderValue(analysis.marketAnalysis.customerProfile)}</p>
                   </div>
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Competitive Landscape</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2">Competitors</th>
-                            <th className="text-left py-2">Business Strengths</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="py-2 pr-4">
-                              <ul className="list-disc pl-6 space-y-1">
-                                {analysis.marketAnalysis.competitors.map((competitor: string, i: number) => (
-                                  <li key={i} className="text-muted-foreground">{competitor}</li>
-                                ))}
-                              </ul>
-                            </td>
-                            <td className="py-2">
-                              <ul className="list-disc pl-6 space-y-1">
-                                {analysis.marketAnalysis.strengths.map((strength: string, i: number) => (
-                                  <li key={i} className="text-muted-foreground">{strength}</li>
-                                ))}
-                              </ul>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div className="bg-muted rounded-lg p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Key Competitors</h4>
+                          <ul className="list-disc pl-6 space-y-1">
+                            {analysis.marketAnalysis.competitors?.map((competitor: string, i: number) => (
+                              <li key={i} className="text-muted-foreground">{renderValue(competitor)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Business Strengths</h4>
+                          <ul className="list-disc pl-6 space-y-1">
+                            {analysis.marketAnalysis.strengths?.map((strength: string, i: number) => (
+                              <li key={i} className="text-muted-foreground">{renderValue(strength)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -310,7 +319,6 @@ ${analysis.team.ownerResponsibilities}
 
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Operations</h2>
-
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
@@ -318,19 +326,19 @@ ${analysis.team.ownerResponsibilities}
                       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <dt className="font-medium">Recurring Revenue</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.recurring}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.recurring)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Customer Base</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.relationships}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.relationships)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Revenue Concentration</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.concentration}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.concentration)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Contract Terms</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.customers.contracts}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.contracts)}</dd>
                         </div>
                       </dl>
                     </div>
@@ -342,19 +350,19 @@ ${analysis.team.ownerResponsibilities}
                       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <dt className="font-medium">Number of Suppliers</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.count}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.suppliers.count)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Supplier Terms</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.terms}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.suppliers.terms)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Concentration</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.concentration}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.suppliers.concentration)}</dd>
                         </div>
                         <div>
                           <dt className="font-medium">Relationship Transfer</dt>
-                          <dd className="text-muted-foreground">{analysis.operations.suppliers.transferability}</dd>
+                          <dd className="text-muted-foreground">{renderValue(analysis.operations.suppliers.transferability)}</dd>
                         </div>
                       </dl>
                     </div>
@@ -364,47 +372,33 @@ ${analysis.team.ownerResponsibilities}
 
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Team Structure</h2>
-
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Ownership & Management</h3>
                     <div className="space-y-2">
-                      <p><strong>Owner's Role:</strong> {analysis.team.ownerResponsibilities}</p>
-                      <p><strong>Required Hours:</strong> {analysis.team.ownerHours}</p>
-                      <p><strong>Management Structure:</strong> {analysis.team.management}</p>
+                      <p><strong>Owner's Role:</strong> {renderValue(analysis.team.ownerResponsibilities)}</p>
+                      <p><strong>Required Hours:</strong> {renderValue(analysis.team.ownerHours)}</p>
+                      <p><strong>Management Structure:</strong> {renderValue(analysis.team.management)}</p>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Employee Overview</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2">Role</th>
-                            <th className="text-left py-2">Status</th>
-                            <th className="text-left py-2">Compensation</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analysis.team.employees.map((employee: any, i: number) => (
-                            <tr key={i} className="border-b">
-                              <td className="py-2">{employee.role}</td>
-                              <td className="py-2">{employee.status}</td>
-                              <td className="py-2">{employee.compensation}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Team Stability</h3>
                     <div className="space-y-2">
-                      <p><strong>Turnover Rate:</strong> {analysis.team.turnover}</p>
-                      <p><strong>Hiring Environment:</strong> {analysis.team.hiring}</p>
-                      <p><strong>Post-Sale Retention:</strong> {analysis.team.retention}</p>
+                      <p className="text-muted-foreground">{renderValue(analysis.team.employees)}</p>
+                      <p><strong>Turnover Rate:</strong> {renderValue(analysis.team.turnover)}</p>
+                      <p><strong>Hiring Environment:</strong> {renderValue(analysis.team.hiring)}</p>
+                      <p><strong>Post-Sale Retention:</strong> {renderValue(analysis.team.retention)}</p>
+                      {analysis.team.keyEmployees?.length > 0 && (
+                        <div>
+                          <p><strong>Key Employees:</strong></p>
+                          <ul className="list-disc pl-6">
+                            {analysis.team.keyEmployees.map((employee: string, i: number) => (
+                              <li key={i} className="text-muted-foreground">{renderValue(employee)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -416,20 +410,20 @@ ${analysis.team.ownerResponsibilities}
                   <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <dt className="font-medium">Ownership Status</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.ownership}</dd>
+                      <dd className="text-muted-foreground">{renderValue(analysis.facility.ownership)}</dd>
                     </div>
                     <div>
                       <dt className="font-medium">Size</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.size}</dd>
+                      <dd className="text-muted-foreground">{renderValue(analysis.facility.size)}</dd>
                     </div>
                     <div>
                       <dt className="font-medium">Monthly Cost</dt>
-                      <dd className="text-muted-foreground">{analysis.facility.cost}</dd>
+                      <dd className="text-muted-foreground">{renderValue(analysis.facility.cost)}</dd>
                     </div>
                     {analysis.facility.leaseDetails && (
                       <div>
                         <dt className="font-medium">Lease Details</dt>
-                        <dd className="text-muted-foreground">{analysis.facility.leaseDetails}</dd>
+                        <dd className="text-muted-foreground">{renderValue(analysis.facility.leaseDetails)}</dd>
                       </div>
                     )}
                   </dl>
