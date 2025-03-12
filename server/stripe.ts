@@ -10,6 +10,9 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
   console.log("Creating subscription session for user:", userId, "plan:", planId);
 
+  // Construct absolute URLs for success and cancel
+  const baseUrl = `https://${process.env.REPL_SLUG}.replit.dev`;
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
@@ -19,8 +22,8 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
         quantity: 1,
       },
     ],
-    success_url: `${process.env.REPL_SLUG}.repl.co/account?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.REPL_SLUG}.repl.co/pricing?canceled=true`,
+    success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/pricing?canceled=true`,
     client_reference_id: userId.toString(),
     subscription_data: {
       metadata: {
@@ -35,7 +38,9 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
 export async function verifyCheckoutSession(sessionId: string) {
   try {
+    console.log("Verifying checkout session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
     if (session.status === 'complete' && session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
@@ -45,6 +50,7 @@ export async function verifyCheckoutSession(sessionId: string) {
       // Set end date based on current period end
       const endsAt = new Date(subscription.current_period_end * 1000);
 
+      console.log("Verified session details:", { userId, status, endsAt, subscriptionStatus: subscription.status });
       return { userId, status, endsAt };
     }
   } catch (error) {
@@ -64,19 +70,17 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
         console.log("Processing completed checkout session for user:", userId);
 
-        // Get subscription details to determine the plan
+        // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-        // Check if subscription is active or in trial
-        if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        // Important: Both active AND trialing are valid statuses for upgrading
+        if (!['active', 'trialing'].includes(subscription.status)) {
           console.log(`Subscription status ${subscription.status} not valid for upgrade`);
           return null;
         }
 
         const priceId = subscription.items.data[0].price.id;
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
-
-        // Set end date based on current period end, even for trials
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Subscription details:", { userId, status, endsAt, priceId, subscriptionStatus: subscription.status });
@@ -96,7 +100,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           return null;
         }
 
-        // Handle both active and trialing subscriptions
+        // Important: Both active AND trialing are valid statuses
         if (!['active', 'trialing'].includes(subscription.status)) {
           console.log(`Subscription status ${subscription.status} not valid for upgrade`);
           return null;
@@ -110,8 +114,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         return { userId, status, endsAt };
       }
 
-      case 'customer.subscription.deleted':
-      case 'customer.subscription.paused': {
+      case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
 
@@ -120,7 +123,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           return null;
         }
 
-        console.log("Subscription ended or paused, reverting to free plan:", userId);
+        console.log("Subscription ended, reverting to free plan:", userId);
         return { userId, status: 'free', endsAt: new Date() };
       }
 

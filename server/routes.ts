@@ -114,9 +114,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!session_id) return res.status(400).json({ error: "No session ID provided" });
 
     try {
+      console.log("Verifying session:", session_id);
       const result = await verifyCheckoutSession(session_id as string);
       if (result) {
         const { userId, status, endsAt } = result;
+        console.log("Session verified, updating subscription:", { userId, status, endsAt });
+
         await storage.updateSubscription(userId, status, endsAt);
 
         // Update the user's session
@@ -128,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({ success: true, status });
       } else {
+        console.log("Invalid or expired session");
         res.status(400).json({ error: "Invalid or expired session" });
       }
     } catch (error) {
@@ -182,9 +186,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateSubscription(userId, status, endsAt);
         console.log(`Successfully updated subscription for user ${userId} to ${status}`);
 
-        // Force refresh any active user sessions
+        // Force refresh the user's session if they're currently logged in
         const user = await storage.getUser(userId);
-        // Note: In a real application, you might want to broadcast this to all user's active sessions
         if (req.session.passport?.user === userId) {
           req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
