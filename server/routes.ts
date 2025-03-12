@@ -13,6 +13,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Configure Express to handle large payloads
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
   // CIM Document Routes
   app.post("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
