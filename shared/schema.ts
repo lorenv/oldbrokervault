@@ -64,80 +64,57 @@ export type CimDocument = typeof cimDocuments.$inferSelect;
 export type InsertCimDocument = z.infer<typeof insertCimDocumentSchema>;
 
 // Default analysis prompt for CIM generation
-export const DEFAULT_CIM_DIRECTIONS = `You are to create custom text for generating an offering memorandum. Include extracting the exact questions from the knowledge base and applying them to the new memorandum. The answers for the Q&A section are derived directly from a provided transcript, ensuring alignment with the new data while maintaining aesthetic and organizational consistency. The answers should have a professional tone, and give as much pertinent information as possible. If the answer is not provided by the transcript, you can remove the question from the CIM.
+export const DEFAULT_CIM_DIRECTIONS = `You are to create custom text for generating an offering memorandum. includes extracting the exact questions from the knowledge base attached and applying them to the new memorandum. The answers for the Q&A section are derived directly from a provided transcript, ensuring alignment with the new data while maintaining the example's aesthetic and organizational consistency. The answers should have a professional tone, and give as much pertinent information as possible. If the answer is not provided by the transcript, you can remove the question from the CIM.
 
-Not only should it include the exact questions from the questions attached, but you should add additional questions that are relevant. Especially include any breakdowns in the numbers, like if revenue is 60% commercial business and 40% residential business, or break down staff roles with their tenures and responsibilities. Create tables for these breakdowns. 
+Not only should it include the exact questions from the questions attached, but you should add additional questions that are relevant. Especially include any breakdowns in the numbers, like if revenue is 60% commercial business and 40% residential business, or break down staff roles with their tenures and responsibilities. Create tables for these breakdowns. At the top of the CIM, have a business summary that gives a high level, robust summary of the business and its attractive features.
 
-At the top of the CIM, have a business summary that gives a high level, robust summary of the business and its attractive features.
+Tell me the story of the business?
+What year did the business begin?  
+How did you get the idea? 
+Can you describe the business model in your own words - what services (or products) does the business provide? 
+Take me through the flow of the order/process from start to finish and how you get paid.   
+How did you grow it? 
 
-Include the following sections with specific questions:
+Describe each of the owner's backgrounds.  Please include: What they were doing before joining or starting the company?  Which past businesses have they worked for?  List formal education, training, and skills.)
 
-1. Business Summary
-   - High-level overview of the business
-   - Key attractive features
-   - Investment highlights
+Executive Summary: 
+What makes your business extremely attractive to a prospective buyer?  
+What growth opportunities are available to the buyer to expand the business?
+Owners full name and their ownership percentages:
+Are there any trademarks or copyright associated with the business?
+What is unique about the business?
+What is the profile of the average customer/typical client?
+Why is the business being sold?
+Who are the top three competitors?
+What are the business' strengths?
+Does the business have suppliers? 
+How many suppliers does the business have and will the relationships transfer?  Please estimate what percentage each supplier represents.  
+Describe the contracts/terms of the suppliers. (any contracts and payment terms net30, net60, etc)
+Is it easy to replace suppliers if needed?
+Does the business have recurring customers, or clients? 
+How many recurring customers/clients does the business have and will the relationships transfer?  How does revenue by customer look - do a few customers make up a large portion? Does [broker] have a client concentration breakdown?
+Describe the contracts/terms of the customers/clients. (any contracts and payment terms net30, net60, etc)
+Is it easy to replace customers/clients if needed?
+What is the typical lead time for inventory?
+Do you buy local or import the inventory?
+Where is inventory held?
+How much inventory is on hand (at cost)? Is it included in the sales price?
+How many SKUs, or services, does the company have?
 
-2. Business Story
-   - What year did the business begin?
-   - How did you get the idea?
-   - What services/products does the business provide?
-   - What is the order/process flow from start to finish?
-   - How did you grow it?
-   - How is the company structured (LLC, Inc., etc.)?
+Monetization: 
+Does the business have seasonality? If so, please explain.
+What is the average order value per customer?
+How does the business compare in pricing with other competitors?
+How does the pricing work (is it a set price per service/product, or a quote made up by someone, discount if buying large quantities, etc) 
+By what methods does the business receive payments? 
 
-3. Executive Summary
-   - What makes the business attractive to buyers?
-   - What growth opportunities are available?
+Marketing:
+In what ways does the owner market to find new clients? 
+Has paid advertising been done? If so, what channels (Facebook, Google Ads, etc) and was it successful? Explain why or why not.  
+Is there a customer email list & if so how is the list used (promotions, company news updates, etc)? How many email addresses are on the list? 
+What regular SEO efforts are engaged?
 
-4. Assets
-   - List digital assets (websites, social media)
-   - Business address
-   - Estimated value of FF&E
-
-5. Ownership
-   - Owner's full name, percentage, background, experience, and education
-   - Trademarks or copyrights
-
-6. Market Analysis
-   - What is unique about the business?
-   - Profile of average customer/typical client
-   - Why is the business being sold?
-   - Top competitors
-   - Business strengths
-
-7. Operations
-   - Suppliers information (count, transferability, concentration, terms, replaceability)
-   - Customers information (recurring, relationships, concentration, contracts, replaceability)
-
-8. Inventory
-   - Lead time
-   - Sourcing
-   - Storage
-   - Value
-   - SKU count
-   - Top products
-
-9. Sales
-   - Revenue breakdown by channel/category (include tables)
-   - Seasonality
-   - Average order value
-   - Competitive pricing
-   - Pricing model
-   - Payment methods
-
-10. Marketing
-    - Strategies
-    - Paid advertising channels and effectiveness
-
-11. Team Structure
-    - Detailed breakdown of staff roles, tenures, and responsibilities (include tables)
-    - Management responsibilities
-    - Training systems
-
-12. Financials
-    - Revenue and profit trends
-    - Breakdown of revenue streams (include tables)
-    - Operating expenses
-    - Customer metrics
-
-Present all information in a professional format suitable for potential business buyers. Create tables where appropriate to show breakdowns of financial data, customer segments, and team structure.`;
+Operations:
+Describe the responsibilities of each owner during the average work week.  
+Describe each staff member. Please include if the staff members are full-time or part-time, if they are paid hourly or salary, and if they are contractors or employees (CIM team-put information in a chart for ease of reading
+Who are the key employees?`;
