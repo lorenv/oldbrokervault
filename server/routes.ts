@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe webhook endpoint
-  app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
+  app.post("/api/webhook/stripe", async (req, res) => {
     const sig = req.headers["stripe-signature"];
     if (!sig) {
       console.log("No Stripe signature found");
