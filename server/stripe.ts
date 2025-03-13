@@ -38,9 +38,8 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
 export async function verifyCheckoutSession(sessionId: string) {
   try {
-    console.log("Verifying checkout session:", sessionId);
+    console.log("Verifying session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
@@ -81,8 +80,6 @@ export async function handleStripeWebhook(event: Stripe.Event) {
 
         const priceId = subscription.items.data[0].price.id;
         const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
-
-        // Set end date based on current period end
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Subscription details:", { 
