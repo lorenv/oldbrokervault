@@ -31,7 +31,8 @@ export const users = pgTable("users", {
   subscriptionStatus: text("subscription_status").default("free").notNull(),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   monthlyUsage: integer("monthly_usage").default(0).notNull(),
-  lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull()
+  lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull(),
+  stripeCustomerId: text("stripe_customer_id").unique(),
 });
 
 export const cimDocuments = pgTable("cim_documents", {
