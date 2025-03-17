@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
-import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession } from "./stripe";
+import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';
@@ -189,9 +189,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Force refresh the user's session if they're currently logged in
         const user = await storage.getUser(userId);
         console.log("Retrieved updated user:", {
-          id: user.id,
-          subscriptionStatus: user.subscriptionStatus,
-          subscriptionEndsAt: user.subscriptionEndsAt
+          id: user?.id,
+          subscriptionStatus: user?.subscriptionStatus,
+          subscriptionEndsAt: user?.subscriptionEndsAt
         });
 
         if (req.session.passport?.user === userId) {
@@ -220,9 +220,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating portal session:', error);
       const message = error instanceof Error ? error.message : "Failed to create portal session";
-      res.status(500).json({ 
-        error: message === "No Stripe customer ID found" 
-          ? "Please subscribe to a plan first before managing your subscription" 
+      res.status(500).json({
+        error: message === "No Stripe customer ID found"
+          ? "Please subscribe to a plan first before managing your subscription"
           : "Failed to access subscription management"
       });
     }

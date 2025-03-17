@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 async function getOrCreateCustomer(userId: number, email: string) {
   const user = await storage.getUser(userId);
 
-  if (user.stripeCustomerId) {
+  if (user?.stripeCustomerId) {
     return user.stripeCustomerId;
   }
 
@@ -52,6 +52,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     ],
     success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/pricing?canceled=true`,
+    client_reference_id: userId.toString(),
     subscription_data: {
       metadata: {
         userId: userId.toString(),
@@ -66,7 +67,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 export async function createCustomerPortalSession(userId: number) {
   const user = await storage.getUser(userId);
 
-  if (!user.stripeCustomerId) {
+  if (!user?.stripeCustomerId) {
     throw new Error("No Stripe customer ID found");
   }
 
@@ -80,16 +81,30 @@ export async function verifyCheckoutSession(sessionId: string) {
   try {
     console.log("Verifying session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
       const priceId = subscription.items.data[0].price.id;
       const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
 
+      // Important: Both active AND trialing are valid statuses
+      if (!['active', 'trialing'].includes(subscription.status)) {
+        console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+        return null;
+      }
+
       // Set end date based on current period end
       const endsAt = new Date(subscription.current_period_end * 1000);
 
-      console.log("Verified session details:", { userId, status, endsAt, subscriptionStatus: subscription.status });
+      console.log("Verified session details:", { 
+        userId, 
+        status, 
+        endsAt, 
+        subscriptionStatus: subscription.status,
+        subscriptionId: subscription.id,
+        customer: subscription.customer
+      });
       return { userId, status, endsAt };
     }
   } catch (error) {
