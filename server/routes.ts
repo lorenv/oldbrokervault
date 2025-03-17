@@ -215,23 +215,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      // Get the customer's subscription
-      const subscriptions = await stripe.subscriptions.list({
-        customer: req.user!.stripeCustomerId,
-        status: 'active',
-        limit: 1,
-      });
-
-      // Create the portal session
-      const session = await stripe.billingPortal.sessions.create({
-        customer: req.user!.stripeCustomerId,
-        return_url: `https://${process.env.REPL_SLUG}.replit.dev/account`,
-      });
-
+      const session = await createCustomerPortalSession(req.user!.id);
       res.json({ url: session.url });
     } catch (error) {
       console.error('Error creating portal session:', error);
-      res.status(500).json({ error: "Failed to create portal session" });
+      const message = error instanceof Error ? error.message : "Failed to create portal session";
+      res.status(500).json({ 
+        error: message === "No Stripe customer ID found" 
+          ? "Please subscribe to a plan first before managing your subscription" 
+          : "Failed to access subscription management"
+      });
     }
   });
 

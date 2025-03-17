@@ -1,7 +1,31 @@
 import Stripe from "stripe";
 import { subscriptionPlans } from "@shared/schema";
+import { storage } from "./storage";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+async function getOrCreateCustomer(userId: number, email: string) {
+  const user = await storage.getUser(userId);
+
+  if (user.stripeCustomerId) {
+    return user.stripeCustomerId;
+  }
+
+  // Create a new customer
+  const customer = await stripe.customers.create({
+    email,
+    metadata: {
+      userId: userId.toString()
+    }
+  });
+
+  // Update user with Stripe customer ID
+  await storage.updateUser(userId, {
+    stripeCustomerId: customer.id
+  });
+
+  return customer.id;
+}
 
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number) {
   const priceId = planId === 'premium' 
@@ -10,11 +34,15 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
   console.log("Creating subscription session for user:", userId, "plan:", planId);
 
+  const user = await storage.getUser(userId);
+  const customerId = await getOrCreateCustomer(userId, user.email);
+
   // Construct absolute URLs for success and cancel
   const baseUrl = `https://${process.env.REPL_SLUG}.replit.dev`;
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
+    customer: customerId,
     payment_method_types: ['card'],
     line_items: [
       {
@@ -24,7 +52,6 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     ],
     success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/pricing?canceled=true`,
-    client_reference_id: userId.toString(),
     subscription_data: {
       metadata: {
         userId: userId.toString(),
@@ -34,6 +61,19 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
 
   console.log("Created subscription session:", session.id);
   return session;
+}
+
+export async function createCustomerPortalSession(userId: number) {
+  const user = await storage.getUser(userId);
+
+  if (!user.stripeCustomerId) {
+    throw new Error("No Stripe customer ID found");
+  }
+
+  return stripe.billingPortal.sessions.create({
+    customer: user.stripeCustomerId,
+    return_url: `https://${process.env.REPL_SLUG}.replit.dev/account`,
+  });
 }
 
 export async function verifyCheckoutSession(sessionId: string) {
