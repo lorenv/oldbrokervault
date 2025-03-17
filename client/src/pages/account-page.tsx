@@ -43,7 +43,32 @@ export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [location] = useLocation();
+  const [, navigate] = useLocation();
+
+  const handleSubscriptionAction = async () => {
+    try {
+      if (user?.subscriptionStatus === "free") {
+        // Free tier users go to pricing page
+        navigate("/pricing");
+      } else {
+        // Paid tier users get access to Stripe Customer Portal
+        const response = await apiRequest("POST", "/api/subscription/create-portal-session");
+        const { url } = await response.json();
+        if (url) {
+          window.location.href = url;
+        } else {
+          throw new Error("Failed to get portal URL");
+        }
+      }
+    } catch (error) {
+      console.error("Subscription action error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     // Check for Stripe session verification
@@ -53,7 +78,7 @@ export default function AccountPage() {
     if (sessionId) {
       verifyStripeSession(sessionId);
     }
-  }, [location]);
+  }, []);
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
@@ -79,21 +104,6 @@ export default function AccountPage() {
       toast({
         title: "Error",
         description: "Failed to verify subscription status. Please contact support if this persists.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    try {
-      const response = await apiRequest("POST", "/api/subscription/create-portal-session");
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (error) {
-      console.error("Error accessing subscription management:", error);
-      toast({
-        title: "Error",
-        description: "Unable to access subscription management. Please try again later.",
         variant: "destructive",
       });
     }
@@ -228,10 +238,10 @@ export default function AccountPage() {
 
               <Button 
                 variant="default"
-                onClick={handleManageSubscription}
+                onClick={handleSubscriptionAction}
                 className="w-full md:w-auto"
               >
-                Manage Subscription
+                {user?.subscriptionStatus === "free" ? "Upgrade Plan" : "Manage Subscription"}
               </Button>
             </div>
           </CardContent>
