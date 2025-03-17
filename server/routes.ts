@@ -188,10 +188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Force refresh the user's session if they're currently logged in
         const user = await storage.getUser(userId);
-        console.log("Retrieved updated user:", { 
-          id: user.id, 
+        console.log("Retrieved updated user:", {
+          id: user.id,
           subscriptionStatus: user.subscriptionStatus,
-          subscriptionEndsAt: user.subscriptionEndsAt 
+          subscriptionEndsAt: user.subscriptionEndsAt
         });
 
         if (req.session.passport?.user === userId) {
@@ -209,6 +209,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: "Webhook handling failed" });
     }
   });
+
+  // New route for creating Stripe Customer Portal session
+  app.post("/api/subscription/create-portal-session", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      // Get the customer's subscription
+      const subscriptions = await stripe.subscriptions.list({
+        customer: req.user!.stripeCustomerId,
+        status: 'active',
+        limit: 1,
+      });
+
+      // Create the portal session
+      const session = await stripe.billingPortal.sessions.create({
+        customer: req.user!.stripeCustomerId,
+        return_url: `https://${process.env.REPL_SLUG}.replit.dev/account`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error('Error creating portal session:', error);
+      res.status(500).json({ error: "Failed to create portal session" });
+    }
+  });
+
 
   // Admin Routes
   app.get("/api/admin/users", async (req, res) => {
