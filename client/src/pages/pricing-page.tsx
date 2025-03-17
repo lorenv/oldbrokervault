@@ -16,20 +16,16 @@ export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const handleSubscriptionAction = async (planId?: string) => {
+  const handleSubscriptionAction = async (checkoutLink?: string) => {
     try {
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         window.location.href = url;
-      } else if (planId) {
-        // For new subscriptions, create a Checkout session
-        const response = await apiRequest("POST", "/api/subscription/create-checkout", {
-          plan: planId
-        });
-        const { url } = await response.json();
-        window.location.href = url;
+      } else if (checkoutLink) {
+        // For new subscriptions, go directly to Stripe checkout
+        window.location.href = checkoutLink;
       }
     } catch (error) {
       console.error("Subscription action error:", error);
@@ -66,7 +62,7 @@ export default function PricingPage() {
         "Unlimited regenerations",
       ],
       current: user?.subscriptionStatus === "standard",
-      id: "standard"
+      checkoutLink: "https://buy.stripe.com/eVa9DA8cO86ugqA3ce"
     },
     {
       name: "Premium",
@@ -81,7 +77,7 @@ export default function PricingPage() {
         "Team collaboration",
       ],
       current: user?.subscriptionStatus === "premium",
-      id: "premium"
+      checkoutLink: "https://buy.stripe.com/aEUg1YfFg1I65LW9AB"
     },
   ];
 
@@ -118,7 +114,7 @@ export default function PricingPage() {
               ) : (
                 <Button 
                   className="w-full" 
-                  onClick={() => handleSubscriptionAction(plan.id)}
+                  onClick={() => handleSubscriptionAction(plan.checkoutLink)}
                 >
                   {user?.subscriptionStatus !== "free" ? "Change Plan" : "Upgrade"}
                 </Button>
