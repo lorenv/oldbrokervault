@@ -84,6 +84,21 @@ export default function AccountPage() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    try {
+      const response = await apiRequest("POST", "/api/subscription/create-portal-session");
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      console.error("Error accessing subscription management:", error);
+      toast({
+        title: "Error",
+        description: "Unable to access subscription management. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const form = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -211,15 +226,13 @@ export default function AccountPage() {
                 <p className="text-muted-foreground capitalize">{user?.subscriptionStatus || "Free"}</p>
               </div>
 
-              {user?.subscriptionStatus !== "free" ? (
-                <Button variant="outline" onClick={() => window.location.href = "https://billing.stripe.com/p/login/test"}>
-                  Manage Subscription
-                </Button>
-              ) : (
-                <Button variant="default" onClick={() => window.location.href = "/pricing"}>
-                  Upgrade Plan
-                </Button>
-              )}
+              <Button 
+                variant="default"
+                onClick={handleManageSubscription}
+                className="w-full md:w-auto"
+              >
+                Manage Subscription
+              </Button>
             </div>
           </CardContent>
         </Card>
