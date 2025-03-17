@@ -91,7 +91,6 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscriptionId: subscription.id,
           customer: subscription.customer
         });
-
         return { userId, status, endsAt };
       }
 

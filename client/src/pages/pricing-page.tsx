@@ -10,10 +10,36 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const handleSubscriptionAction = async (planId?: string) => {
+    try {
+      if (user?.subscriptionStatus !== "free") {
+        // For existing subscribers, create a Customer Portal session
+        const response = await apiRequest("POST", "/api/subscription/create-portal-session");
+        const { url } = await response.json();
+        window.location.href = url;
+      } else if (planId) {
+        // For new subscriptions, create a Checkout session
+        const response = await apiRequest("POST", "/api/subscription/create-checkout", {
+          plan: planId
+        });
+        const { url } = await response.json();
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Subscription action error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process subscription request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const plans = [
     {
@@ -40,7 +66,7 @@ export default function PricingPage() {
         "Unlimited regenerations",
       ],
       current: user?.subscriptionStatus === "standard",
-      checkoutLink: "https://buy.stripe.com/eVa9DA8cO86ugqA3ce"
+      id: "standard"
     },
     {
       name: "Premium",
@@ -55,15 +81,9 @@ export default function PricingPage() {
         "Team collaboration",
       ],
       current: user?.subscriptionStatus === "premium",
-      checkoutLink: "https://buy.stripe.com/aEUg1YfFg1I65LW9AB"
+      id: "premium"
     },
   ];
-
-  const handleUpgrade = (planLink?: string) => {
-    if (planLink) {
-      window.location.href = planLink;
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -95,19 +115,12 @@ export default function PricingPage() {
             <CardFooter>
               {plan.current ? (
                 <Button className="w-full" disabled>Current Plan</Button>
-              ) : user?.subscriptionStatus !== "free" ? (
-                <Button 
-                  className="w-full" 
-                  onClick={() => window.location.href = "https://billing.stripe.com/p/login/test"}
-                >
-                  Manage Subscription
-                </Button>
               ) : (
                 <Button 
                   className="w-full" 
-                  onClick={() => handleUpgrade(plan.checkoutLink)}
+                  onClick={() => handleSubscriptionAction(plan.id)}
                 >
-                  Upgrade
+                  {user?.subscriptionStatus !== "free" ? "Change Plan" : "Upgrade"}
                 </Button>
               )}
             </CardFooter>
