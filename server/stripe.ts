@@ -81,7 +81,6 @@ export async function verifyCheckoutSession(sessionId: string) {
   try {
     console.log("Verifying session:", sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
@@ -94,10 +93,9 @@ export async function verifyCheckoutSession(sessionId: string) {
         return null;
       }
 
-      // Set end date based on current period end
       const endsAt = new Date(subscription.current_period_end * 1000);
 
-      console.log("Verified session details:", { 
+      console.log("Subscription details:", { 
         userId, 
         status, 
         endsAt, 
@@ -123,6 +121,11 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         const userId = parseInt(session.client_reference_id!);
 
         console.log("Processing completed checkout session for user:", userId);
+
+        if (!session.subscription) {
+          console.log("No subscription found in session");
+          return null;
+        }
 
         // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
@@ -150,8 +153,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
       }
 
       case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'invoice.paid': {
+      case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
 

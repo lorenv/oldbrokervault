@@ -177,8 +177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       console.log("Webhook event type:", event.type);
-
       const result = await handleStripeWebhook(event);
+
       if (result) {
         const { userId, status, endsAt } = result;
         console.log("Updating subscription:", { userId, status, endsAt });
