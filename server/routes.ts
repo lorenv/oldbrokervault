@@ -191,7 +191,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Retrieved updated user:", {
           id: user?.id,
           subscriptionStatus: user?.subscriptionStatus,
-          subscriptionEndsAt: user?.subscriptionEndsAt
+          subscriptionEndsAt: user?.subscriptionEndsAt,
+          stripeCustomerId: user?.stripeCustomerId
         });
 
         if (req.session.passport?.user === userId) {
@@ -206,7 +207,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ received: true });
     } catch (error) {
       console.error('Stripe webhook error:', error);
-      res.status(400).json({ error: "Webhook handling failed" });
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      return res.status(400).json({ error: "Webhook handling failed" });
     }
   });
 
