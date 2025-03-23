@@ -1,8 +1,10 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { db, pool } from "./db";
+import { eq } from "drizzle-orm";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -20,57 +22,47 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private cimDocs: Map<number, CimDocument>;
-  private currentId: number;
-  private currentDocId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.cimDocs = new Map();
-    this.currentId = 1;
-    this.currentDocId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
   }
 
   async createUser(insertUser: InsertUser & { isAdmin: boolean }): Promise<User> {
-    const id = this.currentId++;
-    const user: User = {
-      ...insertUser,
-      id,
-      isAdmin: insertUser.isAdmin,
-      subscriptionStatus: "free",
-      subscriptionEndsAt: null,
-      monthlyUsage: 0,
-      lastUsageReset: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: insertUser.email,
+        password: insertUser.password,
+        isAdmin: insertUser.isAdmin,
+        subscriptionStatus: insertUser.isAdmin ? "admin" : "free",
+      })
+      .returning();
     return user;
   }
 
   async updateSubscription(userId: number, status: string, endsAt: Date): Promise<void> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-
-    this.users.set(userId, {
-      ...user,
-      subscriptionStatus: status,
-      subscriptionEndsAt: endsAt,
-    });
+    await db
+      .update(users)
+      .set({
+        subscriptionStatus: status,
+        subscriptionEndsAt: endsAt,
+      })
+      .where(eq(users.id, userId));
   }
 
   async updateUserUsage(userId: number): Promise<void> {
@@ -85,21 +77,22 @@ export class MemStorage implements IStorage {
       return;
     }
 
-    this.users.set(userId, {
-      ...user,
-      monthlyUsage: user.monthlyUsage + 1,
-    });
+    await db
+      .update(users)
+      .set({
+        monthlyUsage: user.monthlyUsage + 1,
+      })
+      .where(eq(users.id, userId));
   }
 
   async resetMonthlyUsage(userId: number): Promise<void> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-
-    this.users.set(userId, {
-      ...user,
-      monthlyUsage: 0,
-      lastUsageReset: new Date(),
-    });
+    await db
+      .update(users)
+      .set({
+        monthlyUsage: 0,
+        lastUsageReset: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   async checkUserLimit(userId: number): Promise<boolean> {
@@ -117,49 +110,48 @@ export class MemStorage implements IStorage {
       throw new Error("Monthly CIM generation limit reached");
     }
 
-    const id = this.currentDocId++;
-    const cimDoc: CimDocument = {
-      id,
-      userId,
-      title: doc.title,
-      transcript: doc.transcript,
-      directions: doc.directions,
-      regenerationCount: doc.regenerationCount,
-      analysis: doc.analysis,
-      createdAt: new Date(),
-    };
+    const [cimDoc] = await db
+      .insert(cimDocuments)
+      .values({
+        userId,
+        title: doc.title,
+        transcript: doc.transcript,
+        directions: doc.directions,
+        regenerationCount: doc.regenerationCount,
+        analysis: doc.analysis,
+      })
+      .returning();
 
-    this.cimDocs.set(id, cimDoc);
     await this.updateUserUsage(userId);
     return cimDoc;
   }
 
   async getCimDocuments(userId: number): Promise<CimDocument[]> {
-    return Array.from(this.cimDocs.values()).filter((doc) => doc.userId === userId);
+    return db.select().from(cimDocuments).where(eq(cimDocuments.userId, userId));
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return db.select().from(users);
   }
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
-    return this.cimDocs.get(id);
+    const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
+    return doc;
   }
 
   async updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument> {
-    const existingDoc = await this.getCimDocument(id);
-    if (!existingDoc) {
+    const [updatedDoc] = await db
+      .update(cimDocuments)
+      .set(doc)
+      .where(eq(cimDocuments.id, id))
+      .returning();
+
+    if (!updatedDoc) {
       throw new Error("Document not found");
     }
 
-    const updatedDoc = {
-      ...existingDoc,
-      ...doc,
-    };
-
-    this.cimDocs.set(id, updatedDoc);
     return updatedDoc;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
