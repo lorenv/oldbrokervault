@@ -101,7 +101,7 @@ export class DatabaseStorage implements IStorage {
     if (!user) throw new Error("User not found");
 
     // Admin users bypass all limits
-    if (user.subscriptionStatus === "admin") {
+    if (user.isAdmin || user.subscriptionStatus === "admin") {
       return true;
     }
 
