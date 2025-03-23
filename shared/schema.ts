@@ -20,6 +20,12 @@ export const subscriptionPlans = {
     limit: 100,
     regenerationLimit: Infinity,
     price: 4000
+  },
+  admin: {  // Added admin plan type
+    name: "Admin",
+    limit: Infinity,
+    regenerationLimit: Infinity,
+    price: 0
   }
 } as const;
 
