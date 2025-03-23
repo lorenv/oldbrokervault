@@ -49,6 +49,7 @@ export class DatabaseStorage implements IStorage {
         email: insertUser.email,
         password: insertUser.password,
         isAdmin: insertUser.isAdmin,
+        // If user is admin, set subscription status to "admin" to grant unlimited privileges
         subscriptionStatus: insertUser.isAdmin ? "admin" : "free",
       })
       .returning();
@@ -98,6 +99,11 @@ export class DatabaseStorage implements IStorage {
   async checkUserLimit(userId: number): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
+
+    // Admin users bypass all limits
+    if (user.subscriptionStatus === "admin") {
+      return true;
+    }
 
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
     return user.monthlyUsage < plan.limit;
