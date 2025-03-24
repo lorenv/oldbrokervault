@@ -256,6 +256,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
+  app.post("/api/admin/grant-admin", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.sendStatus(401);
+    }
+
+    const { email } = req.body;
+    const user = await storage.getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await storage.db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+    res.sendStatus(200);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
