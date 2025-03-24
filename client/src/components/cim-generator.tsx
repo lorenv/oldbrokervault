@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, Copy, File, FileText } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { DocumentExport } from './document-export';  // Fixed import path
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -471,36 +472,11 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </section>
 
-              <div className="pt-4">
-                <div className="flex items-center space-x-2 ml-auto">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleCopyToClipboard}>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy to Clipboard
-                      </DropdownMenuItem>
-                      {user?.subscriptionStatus !== "free" && (
-                        <>
-                          <DropdownMenuItem onClick={() => handleExport('word')}>
-                            <File className="mr-2 h-4 w-4" />
-                            Export to Word
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Export to PDF
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+              {analysis && (
+                <div className="pt-4">
+                  <DocumentExport analysis={analysis} docId={currentDocId!} user={user} />
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

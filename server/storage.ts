@@ -19,6 +19,11 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
+  updateGoogleTokens(userId: number, tokens: { 
+    accessToken: string;
+    refreshToken?: string | null;
+    expiryDate: Date | null;
+  }): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -157,6 +162,21 @@ export class DatabaseStorage implements IStorage {
     }
 
     return updatedDoc;
+  }
+
+  async updateGoogleTokens(userId: number, tokens: { 
+    accessToken: string;
+    refreshToken?: string | null;
+    expiryDate: Date | null;
+  }): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        googleAccessToken: tokens.accessToken,
+        googleRefreshToken: tokens.refreshToken || undefined,
+        googleTokenExpiry: tokens.expiryDate,
+      })
+      .where(eq(users.id, userId));
   }
 }
 

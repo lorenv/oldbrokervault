@@ -5,10 +5,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText } from "lucide-react";
+import { Copy, Download, FileText, File } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
-export function DocumentExport({ analysis }: { analysis: any }) {
+export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
   const { toast } = useToast();
 
   const copyToClipboard = () => {
@@ -20,27 +21,95 @@ export function DocumentExport({ analysis }: { analysis: any }) {
     });
   };
 
-  const downloadHtml = () => {
-    const html = generateHtml(analysis);
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cim-document.html";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadWord = async () => {
+    try {
+      const response = await fetch(`/api/cim/export/word/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate Word document');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cim-${docId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to Word",
+        variant: "destructive"
+      });
+    }
   };
 
-  const downloadPdf = () => {
-    // Note: In a production environment, this would typically
-    // make a request to the server to generate a PDF
-    toast({
-      title: "PDF Generation",
-      description: "PDF download will be available in the next update",
-    });
+  const downloadPdf = async () => {
+    try {
+      const response = await fetch(`/api/cim/export/pdf/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF document');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cim-${docId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to PDF",
+        variant: "destructive"
+      });
+    }
   };
+
+  const exportToGoogleDocs = async () => {
+    try {
+      const response = await fetch(`/api/cim/export/gdocs/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.needsAuth) {
+          // Redirect to Google OAuth flow
+          const authResponse = await fetch('/api/auth/google');
+          const { url } = await authResponse.json();
+          window.location.href = url;
+          return;
+        }
+        throw new Error(error.error || 'Failed to export to Google Docs');
+      }
+
+      const { url } = await response.json();
+      window.open(url, '_blank');
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to Google Docs",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const canAccessPremiumFeatures = user?.isAdmin || user?.subscriptionStatus === "premium";
 
   return (
     <div className="flex justify-end">
@@ -56,14 +125,22 @@ export function DocumentExport({ analysis }: { analysis: any }) {
             <Copy className="h-4 w-4 mr-2" />
             Copy to Clipboard
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={downloadHtml}>
-            <Download className="h-4 w-4 mr-2" />
-            Download HTML
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={downloadPdf}>
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </DropdownMenuItem>
+          {canAccessPremiumFeatures && (
+            <>
+              <DropdownMenuItem onClick={downloadWord}>
+                <File className="h-4 w-4 mr-2" />
+                Export to Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadPdf}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToGoogleDocs}>
+                <Download className="h-4 w-4 mr-2" />
+                Export to Google Docs
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -93,11 +170,11 @@ INVESTMENT HIGHLIGHTS
 ===================
 Key Attractions
 --------------
-${analysis.executiveSummary.buyerAttractions.map(item => `• ${item}`).join('\n')}
+${analysis.executiveSummary.buyerAttractions.map((item: string) => `• ${item}`).join('\n')}
 
 Growth Opportunities
 ------------------
-${analysis.executiveSummary.growthOpportunities.map(item => `• ${item}`).join('\n')}
+${analysis.executiveSummary.growthOpportunities.map((item: string) => `• ${item}`).join('\n')}
 
 MARKET POSITION
 =============
@@ -108,56 +185,11 @@ ${analysis.marketAnalysis.customerProfile}
 Competitive Landscape
 -------------------
 Competitors:
-${analysis.marketAnalysis.competitors.map(item => `• ${item}`).join('\n')}
+${analysis.marketAnalysis.competitors.map((item: string) => `• ${item}`).join('\n')}
 
 Business Strengths:
-${analysis.marketAnalysis.strengths.map(item => `• ${item}`).join('\n')}
-
-OPERATIONS
-=========
-Customer Relationships
---------------------
-• Recurring Revenue: ${analysis.operations.customers.recurring}
-• Customer Base: ${analysis.operations.customers.relationships}
-• Revenue Concentration: ${analysis.operations.customers.concentration}
-• Contract Terms: ${analysis.operations.customers.contracts}
-
-Supply Chain
------------
-• Number of Suppliers: ${analysis.operations.suppliers.count}
-• Supplier Terms: ${analysis.operations.suppliers.terms}
-• Concentration: ${analysis.operations.suppliers.concentration}
-• Relationship Transfer: ${analysis.operations.suppliers.transferability}
-
-TEAM STRUCTURE
-============
-Ownership & Management
---------------------
-Owner's Role: ${analysis.team.ownerResponsibilities}
-Required Hours: ${analysis.team.ownerHours}
-Management Structure: ${analysis.team.management}
-
-Employee Overview
----------------
-${analysis.team.employees.map(emp => 
-  `Role: ${emp.role}
-   Status: ${emp.status}
-   Compensation: ${emp.compensation}
-  `).join('\n\n')}
-
-Team Stability
--------------
-Turnover Rate: ${analysis.team.turnover}
-Hiring Environment: ${analysis.team.hiring}
-Post-Sale Retention: ${analysis.team.retention}
-
-FACILITIES
-=========
-• Ownership Status: ${analysis.facility.ownership}
-• Size: ${analysis.facility.size}
-• Monthly Cost: ${analysis.facility.cost}
-${analysis.facility.leaseDetails ? `• Lease Details: ${analysis.facility.leaseDetails}` : ''}
-`;
+${analysis.marketAnalysis.strengths.map((item: string) => `• ${item}`).join('\n')}
+`.trim();
 }
 
 function generateHtml(analysis: any): string {
@@ -251,12 +283,12 @@ function generateHtml(analysis: any): string {
     <h1>INVESTMENT HIGHLIGHTS</h1>
     <h2>Key Attractions</h2>
     <ul>
-      ${analysis.executiveSummary.buyerAttractions.map(item => `<li>${item}</li>`).join('')}
+      ${analysis.executiveSummary.buyerAttractions.map((item: string) => `<li>${item}</li>`).join('')}
     </ul>
 
     <h2>Growth Opportunities</h2>
     <ul>
-      ${analysis.executiveSummary.growthOpportunities.map(item => `<li>${item}</li>`).join('')}
+      ${analysis.executiveSummary.growthOpportunities.map((item: string) => `<li>${item}</li>`).join('')}
     </ul>
   </section>
 
@@ -270,13 +302,13 @@ function generateHtml(analysis: any): string {
       <div class="info-card">
         <h3>Competitors</h3>
         <ul>
-          ${analysis.marketAnalysis.competitors.map(item => `<li>${item}</li>`).join('')}
+          ${analysis.marketAnalysis.competitors.map((item: string) => `<li>${item}</li>`).join('')}
         </ul>
       </div>
       <div class="info-card">
         <h3>Business Strengths</h3>
         <ul>
-          ${analysis.marketAnalysis.strengths.map(item => `<li>${item}</li>`).join('')}
+          ${analysis.marketAnalysis.strengths.map((item: string) => `<li>${item}</li>`).join('')}
         </ul>
       </div>
     </div>
@@ -349,7 +381,7 @@ function generateHtml(analysis: any): string {
         <th>Status</th>
         <th>Compensation</th>
       </tr>
-      ${analysis.team.employees.map(emp => `
+      ${analysis.team.employees.map((emp: any) => `
         <tr>
           <td>${emp.role}</td>
           <td>${emp.status}</td>

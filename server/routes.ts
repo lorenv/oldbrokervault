@@ -10,6 +10,8 @@ import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { generateWordDocument, generatePDF, exportToGoogleDocs, createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from "./document-export";
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -23,6 +25,45 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Google OAuth routes
+  app.get("/api/auth/google", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const authUrl = getGoogleAuthUrl();
+    res.json({ url: authUrl });
+  });
+
+  app.get("/api/auth/google/callback", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { code } = req.query;
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ error: "Invalid authorization code" });
+    }
+
+    try {
+      const success = await handleGoogleCallback(code as string, req.user!.id);
+      if (success) {
+        res.redirect("/");
+      } else {
+        res.status(500).json({ error: "Failed to authenticate with Google" });
+      }
+    } catch (error) {
+      console.error("Google OAuth error:", error);
+      res.status(500).json({ error: "Failed to authenticate with Google" });
+    }
+  });
+
+  app.get("/api/user/google-status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = await storage.getUser(req.user!.id);
+    res.json({ 
+      connected: Boolean(user?.googleAccessToken),
+      tokenExpiry: user?.googleTokenExpiry
+    });
+  });
+
 
   // CIM Document Routes with file upload support
   app.post("/api/cim", async (req, res) => {
@@ -267,8 +308,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "User not found" });
     }
 
-    await storage.db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+    await storage.db.update(storage.users).set({ isAdmin: true }).where(storage.db.where(storage.users.id, user.id));
     res.sendStatus(200);
+  });
+
+  app.post("/api/cim/export/word/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      const buffer = await generateWordDocument(doc.analysis);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.docx`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Word export error:", error);
+      res.status(500).json({ error: "Failed to generate Word document" });
+    }
+  });
+
+  app.post("/api/cim/export/pdf/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      const buffer = await generatePDF(doc.analysis);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.pdf`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("PDF export error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  // Modify the existing Google Docs export endpoint to handle OAuth
+  app.post("/api/cim/export/gdocs/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      if (!user.googleAccessToken) {
+        return res.status(403).json({ 
+          error: "Google account not connected",
+          needsAuth: true 
+        });
+      }
+
+      const url = await createGoogleDoc(user.id, doc.title, doc.analysis);
+      res.json({ url });
+    } catch (error) {
+      console.error("Google Docs export error:", error);
+      res.status(500).json({ error: "Failed to export to Google Docs" });
+    }
   });
 
   const httpServer = createServer(app);
