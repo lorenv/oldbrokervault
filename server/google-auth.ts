@@ -2,10 +2,14 @@ import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import { storage } from "./storage";
 
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error('Missing required Google OAuth credentials');
+}
+
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.REPL_SLUG}.repl.co/api/auth/google/callback` // Replit-specific callback URL
+  `https://${process.env.REPL_SLUG}.repl.co/api/auth/google/callback` // Updated callback URL for Replit deployment
 );
 
 // Scopes needed for Google Drive and Docs
@@ -25,7 +29,7 @@ export function getGoogleAuthUrl() {
 export async function handleGoogleCallback(code: string, userId: number) {
   try {
     const { tokens } = await oauth2Client.getToken(code);
-    
+
     // Store tokens in database
     await storage.updateGoogleTokens(userId, {
       accessToken: tokens.access_token!,
