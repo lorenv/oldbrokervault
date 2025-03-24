@@ -5,6 +5,8 @@ import * as docx from "docx";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 
+export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
+
 export async function generateWordDocument(analysis: any): Promise<Buffer> {
   const doc = new docx.Document({
     sections: [{
