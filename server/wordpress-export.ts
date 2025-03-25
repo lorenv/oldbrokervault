@@ -35,21 +35,60 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     customFields = {}
   } = options;
 
-  // WordPress API requires trailing slash
-  const baseUrl = wpUrl.endsWith('/') ? wpUrl : `${wpUrl}/`;
+  // Remove www. prefix if present and ensure URL has trailing slash
+  let baseUrl = wpUrl.replace(/^https?:\/\/www\./i, 'https://');
+  baseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  
+  console.log(`Using WordPress base URL: ${baseUrl}`);
   const apiUrl = `${baseUrl}wp-json/wp/v2/posts${postId ? `/${postId}` : ''}`;
 
   try {
     // Set up basic auth
     const authString = Buffer.from(`${username}:${password}`).toString('base64');
 
-    // Prepare post data
-    const postData = {
-      title,
-      content,
-      status,
-      excerpt
-    };
+    // Check if the WordPress site is accessible and has REST API enabled
+    try {
+      const checkResponse = await fetch(`${baseUrl}wp-json/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${authString}`
+        }
+      });
+      
+      if (!checkResponse.ok) {
+        // Try to get text response to help diagnose the issue
+        const errorText = await checkResponse.text();
+        console.log('WordPress API check response:', errorText);
+        
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+          throw new Error('The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the URL is correct.');
+        }
+        
+        throw new Error(`WordPress API check failed with status ${checkResponse.status}`);
+      }
+      
+      // Make sure we're getting JSON and not HTML
+      const contentType = checkResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`WordPress API returned invalid content type: ${contentType}. Expected application/json.`);
+      }
+      
+    } catch (error) {
+      console.error('WordPress site check error:', error);
+      throw error;
+    }
+
+    // WordPress REST API can be different between versions, try the simplest approach
+    const postData: Record<string, any> = {};
+    
+    // Always include these basic fields
+    postData.title = title;
+    postData.content = content;
+    postData.status = status;
+    
+    if (excerpt) {
+      postData.excerpt = excerpt;
+    }
 
     // Add custom fields if needed
     const meta: Record<string, any> = {};
@@ -61,6 +100,8 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
       Object.assign(postData, { meta });
     }
 
+    console.log(`Making ${postId ? 'PUT' : 'POST'} request to ${apiUrl}`);
+    
     // Create or update post
     const response = await fetch(apiUrl, {
       method: postId ? 'PUT' : 'POST',
@@ -70,6 +111,16 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
       },
       body: JSON.stringify(postData)
     });
+
+    console.log(`WordPress response status: ${response.status}`);
+    
+    // Check response format before trying to parse as JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await response.text();
+      console.error('WordPress non-JSON response:', responseText);
+      throw new Error(`WordPress API returned invalid content type: ${contentType}. Expected application/json.`);
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
