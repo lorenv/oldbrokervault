@@ -20,7 +20,7 @@ import {
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator, SelectLabel } from "@/components/ui/select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
@@ -363,7 +363,28 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wp-template">Listing Template</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="wp-template">Listing Template</Label>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    type="button" 
+                    onClick={fetchBeaverBuilderTemplates}
+                    disabled={isFetchingTemplates || !wordpressForm.wpUrl || !wordpressForm.username || !wordpressForm.password}
+                    className="text-xs h-7 px-2"
+                  >
+                    {isFetchingTemplates ? (
+                      <LoadingAnimation size="sm" text="Loading..." />
+                    ) : (
+                      <>
+                        <svg className="h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Load Templates
+                      </>
+                    )}
+                  </Button>
+                </div>
                 <Select 
                   value={wordpressForm.template}
                   onValueChange={(value) => handleWordPressFormChange('template', value)}
@@ -372,14 +393,28 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                     <SelectValue placeholder="Select template" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="default">Default Template</SelectItem>
+                    <SelectItem value="default">Default WordPress Template</SelectItem>
+                    {/* Regular WordPress templates */}
                     <SelectItem value="premium">Premium Template</SelectItem>
                     <SelectItem value="showcase">Showcase Template</SelectItem>
                     <SelectItem value="featured">Featured Template</SelectItem>
+                    
+                    {/* Beaver Builder templates */}
+                    {beaverBuilderTemplates.length > 0 && (
+                      <>
+                        <SelectSeparator />
+                        <SelectLabel>Beaver Builder Templates</SelectLabel>
+                        {beaverBuilderTemplates.map(template => (
+                          <SelectItem key={template.id} value={String(template.id)}>
+                            {template.title}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Template applied to the listing in WordPress
+                  Template applied to the listing in WordPress. Click "Load Templates" to fetch Beaver Builder templates from your site.
                 </p>
               </div>
             </div>
