@@ -20,7 +20,8 @@ import {
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator, SelectLabel } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
@@ -402,8 +403,10 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                     {/* Beaver Builder templates */}
                     {beaverBuilderTemplates.length > 0 && (
                       <>
-                        <SelectSeparator />
-                        <SelectLabel>Beaver Builder Templates</SelectLabel>
+                        <SelectPrimitive.Separator className="my-1" />
+                        <SelectPrimitive.Label className="px-2 py-1.5 text-sm font-semibold">
+                          Beaver Builder Templates
+                        </SelectPrimitive.Label>
                         {beaverBuilderTemplates.map(template => (
                           <SelectItem key={template.id} value={String(template.id)}>
                             {template.title}
