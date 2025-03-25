@@ -162,7 +162,15 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to export to WordPress');
+        
+        // Check for specific WordPress permission errors
+        if (errorData.error && errorData.error.includes("not allowed to create posts")) {
+          throw new Error("The WordPress user doesn't have permission to create posts. Please use an administrator account or a user with Editor role.");
+        } else if (errorData.error && errorData.error.includes("HTML instead of JSON")) {
+          throw new Error("Could not connect to WordPress REST API. Make sure the site URL is correct and REST API is enabled.");
+        } else {
+          throw new Error(errorData.error || 'Failed to export to WordPress');
+        }
       }
 
       const result = await response.json();
@@ -235,7 +243,8 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
           <DialogHeader>
             <DialogTitle>Export to WordPress</DialogTitle>
             <DialogDescription>
-              Enter your WordPress site details to export this CIM document as a post.
+              Enter your WordPress site details to export this CIM document as a post. 
+              You need an Admin or Editor account with permission to create posts.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

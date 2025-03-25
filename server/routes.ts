@@ -429,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: status || 'draft',
         excerpt: `CIM Document for ${doc.title}`,
         customFields: {
-          cim_generated: true,
+          cim_generated: "true", // Convert to string as WordPress custom fields usually expect string values
           cim_generator_id: doc.id,
           cim_date: new Date().toISOString()
         }

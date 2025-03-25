@@ -10,7 +10,7 @@ interface WordPressExportOptions {
   content: string;
   status?: string; // 'draft', 'publish', 'private'
   excerpt?: string;
-  customFields?: Record<string, string | number>;
+  customFields?: Record<string, string | number>; // WordPress custom fields only accept string or number
 }
 
 /**
@@ -125,6 +125,20 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     if (!response.ok) {
       const errorData = await response.json();
       console.error('WordPress API error:', errorData);
+      
+      // Handle specific error cases with better error messages
+      if (errorData.code === 'rest_cannot_create') {
+        throw new Error('You are not allowed to create posts as this user. Please use an administrator account or a user with Editor role.');
+      }
+      
+      if (errorData.code === 'rest_cannot_edit') {
+        throw new Error('You are not allowed to edit posts as this user. Please use an administrator account or a user with Editor role.');
+      }
+      
+      if (errorData.code === 'rest_invalid_param') {
+        throw new Error(`Invalid WordPress parameter: ${errorData.message}`);
+      }
+      
       throw new Error(errorData.message || 'Failed to export to WordPress');
     }
 
