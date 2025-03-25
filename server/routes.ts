@@ -12,6 +12,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, exportToGoogleDocs, createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from "./document-export";
 import { exportToWordPress, formatWordPressContent } from "./wordpress-export";
+import { formatTextContent } from "./utils";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -406,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      const { wpUrl, username, password, postId, status } = req.body;
+      const { wpUrl, username, password, postId, status, template, useCustomField } = req.body;
       
       if (!wpUrl || !username || !password) {
         return res.status(400).json({ 
@@ -415,8 +416,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Format the CIM data for WordPress
+      // Format the CIM data for WordPress - both as rich content and plain text
       const wpContent = formatWordPressContent(doc.analysis);
+      const plainTextContent = formatTextContent(doc.analysis);
+      
+      // Set up custom fields
+      const customFields: Record<string, string | number> = {
+        cim_generated: "true", // Convert to string as WordPress custom fields usually expect string values
+        cim_generator_id: doc.id,
+        cim_date: new Date().toISOString()
+      };
+      
+      // Always store the raw text in wpcf-text-dump custom field
+      customFields['wpcf-text-dump'] = plainTextContent;
+      
+      // If template is provided, set it as a custom field
+      if (template && template !== 'default') {
+        customFields['_wp_page_template'] = `template-${template}.php`;
+      }
+      
+      // Create minimal content for the main post content if using custom field
+      const content = useCustomField ? 
+        `<!-- wp:paragraph -->
+        <p>This is a business listing created by CIM Generator. The full content is available in the custom fields.</p>
+        <!-- /wp:paragraph -->` : 
+        wpContent;
       
       // Export to WordPress
       const result = await exportToWordPress({
@@ -425,14 +449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         postId: postId ? parseInt(postId) : undefined,
         title: doc.title,
-        content: wpContent,
+        content: content,
         status: status || 'draft',
         excerpt: `CIM Document for ${doc.title}`,
-        customFields: {
-          cim_generated: "true", // Convert to string as WordPress custom fields usually expect string values
-          cim_generator_id: doc.id,
-          cim_date: new Date().toISOString()
-        }
+        customFields
       });
 
       if (result.success) {

@@ -30,7 +30,8 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
     wpUrl: '',
     username: '',
     password: '',
-    status: 'draft'
+    status: 'draft',
+    template: 'default'
   });
 
   const handleWordPressFormChange = (field: string, value: string) => {
@@ -138,7 +139,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
     try {
       setIsWordPressExporting(true);
       
-      const { wpUrl, username, password, status } = wordpressForm;
+      const { wpUrl, username, password, status, template } = wordpressForm;
       
       // Validate form
       if (!wpUrl || !username || !password) {
@@ -156,7 +157,9 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
           wpUrl,
           username,
           password,
-          status
+          status,
+          template,
+          useCustomField: true // This indicates we want to use the custom field wpcf-text-dump
         })
       });
 
@@ -285,21 +288,43 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                 </p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="wp-status">Post Status</Label>
-              <Select 
-                value={wordpressForm.status}
-                onValueChange={(value) => handleWordPressFormChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select post status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="publish">Published</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="wp-status">Post Status</Label>
+                <Select 
+                  value={wordpressForm.status}
+                  onValueChange={(value) => handleWordPressFormChange('status', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select post status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="publish">Published</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wp-template">Listing Template</Label>
+                <Select 
+                  value={wordpressForm.template}
+                  onValueChange={(value) => handleWordPressFormChange('template', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default Template</SelectItem>
+                    <SelectItem value="premium">Premium Template</SelectItem>
+                    <SelectItem value="showcase">Showcase Template</SelectItem>
+                    <SelectItem value="featured">Featured Template</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Template applied to the listing in WordPress
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter className="flex space-x-2 sm:justify-end">
