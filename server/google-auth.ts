@@ -9,10 +9,8 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  // Use window.location.origin in the frontend to determine the correct callback URL
-  process.env.REPLIT_DOMAINS ? 
-    `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/google/callback` : 
-    'http://localhost:5000/api/auth/google/callback'
+  // Make sure the callback URL matches EXACTLY what's registered in Google Cloud Console
+  'https://business-exits-cim-generator.replit.app/api/auth/google/callback'
 );
 
 // Scopes needed for Google Drive and Docs
