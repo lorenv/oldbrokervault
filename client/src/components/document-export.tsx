@@ -67,7 +67,15 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch templates");
+        
+        // Check if the error response includes additional details
+        if (errorData.details) {
+          throw new Error(`${errorData.error || 'Failed to fetch templates'}\n\n${errorData.details}`);
+        } else if (errorData.error) {
+          throw new Error(errorData.error);
+        } else {
+          throw new Error('Failed to fetch templates');
+        }
       }
       
       const { templates } = await response.json();
@@ -224,13 +232,13 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
       if (!response.ok) {
         const errorData = await response.json();
         
-        // Check for specific WordPress permission errors
-        if (errorData.error && errorData.error.includes("not allowed to create posts")) {
-          throw new Error("The WordPress user doesn't have permission to create posts. Please use an administrator account or a user with Editor role.");
-        } else if (errorData.error && errorData.error.includes("HTML instead of JSON")) {
-          throw new Error("Could not connect to WordPress REST API. Make sure the site URL is correct and REST API is enabled.");
+        // Check if the error response includes additional details
+        if (errorData.details) {
+          throw new Error(`${errorData.error || 'Failed to export to WordPress'}\n\n${errorData.details}`);
+        } else if (errorData.error) {
+          throw new Error(errorData.error);
         } else {
-          throw new Error(errorData.error || 'Failed to export to WordPress');
+          throw new Error('Failed to export to WordPress');
         }
       }
 
