@@ -17,6 +17,62 @@ interface WordPressExportOptions {
  * Export CIM content to WordPress via REST API
  * This function creates or updates a WordPress post with the CIM data
  */
+/**
+ * Fetch available Beaver Builder templates from a WordPress site
+ * @param wpUrl WordPress site URL
+ * @param username WordPress username
+ * @param password WordPress password or app password
+ * @returns Array of template objects with id, title, and type
+ */
+export async function fetchBeaverBuilderTemplates(
+  wpUrl: string,
+  username: string,
+  password: string
+): Promise<Array<{ id: number; title: string; type: string }>> {
+  // Remove www. prefix if present and ensure URL has trailing slash
+  let baseUrl = wpUrl.replace(/^https?:\/\/www\./i, 'https://');
+  baseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  
+  const apiUrl = `${baseUrl}wp-json/wp/v2/fl-builder-template?per_page=50`;
+  console.log(`Fetching Beaver Builder templates from: ${apiUrl}`);
+  
+  try {
+    // Set up basic auth
+    const authString = Buffer.from(`${username}:${password}`).toString('base64');
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${authString}`
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch templates:', errorText);
+      
+      if (response.status === 404) {
+        throw new Error('Beaver Builder template post type not found. Is Beaver Builder installed and active?');
+      }
+      
+      throw new Error(`Failed to fetch templates: ${response.statusText}`);
+    }
+    
+    const templates = await response.json();
+    return templates.map((template: any) => ({
+      id: template.id,
+      title: template.title.rendered,
+      type: template.meta?.template_type || 'layout'
+    }));
+  } catch (error) {
+    console.error('Error fetching Beaver Builder templates:', error);
+    throw error;
+  }
+}
+
 export async function exportToWordPress(options: WordPressExportOptions): Promise<{
   success: boolean;
   postId?: number;
