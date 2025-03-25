@@ -11,6 +11,7 @@ import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, exportToGoogleDocs, createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from "./document-export";
+import { exportToWordPress, formatWordPressContent } from "./wordpress-export";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -387,6 +388,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Google Docs export error:", error);
       res.status(500).json({ error: "Failed to export to Google Docs" });
+    }
+  });
+  
+  // Add WordPress export endpoint
+  app.post("/api/cim/export/wordpress/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      const { wpUrl, username, password, postId, status } = req.body;
+      
+      if (!wpUrl || !username || !password) {
+        return res.status(400).json({ 
+          error: "Missing WordPress credentials",
+          requiredFields: ["wpUrl", "username", "password"] 
+        });
+      }
+
+      // Format the CIM data for WordPress
+      const wpContent = formatWordPressContent(doc.analysis);
+      
+      // Export to WordPress
+      const result = await exportToWordPress({
+        wpUrl,
+        username,
+        password,
+        postId: postId ? parseInt(postId) : undefined,
+        title: doc.title,
+        content: wpContent,
+        status: status || 'draft',
+        excerpt: `CIM Document for ${doc.title}`,
+        customFields: {
+          cim_generated: true,
+          cim_generator_id: doc.id,
+          cim_date: new Date().toISOString()
+        }
+      });
+
+      if (result.success) {
+        res.json({ 
+          success: true,
+          postId: result.postId,
+          url: result.url
+        });
+      } else {
+        throw new Error(result.error || "Failed to export to WordPress");
+      }
+    } catch (error) {
+      console.error("WordPress export error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to export to WordPress"
+      });
     }
   });
 

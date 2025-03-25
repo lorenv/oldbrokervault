@@ -5,12 +5,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText, File } from "lucide-react";
+import { Copy, Download, FileText, File, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
   const { toast } = useToast();
+  const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
+  const [isWordPressExporting, setIsWordPressExporting] = useState(false);
+  const [wordpressForm, setWordpressForm] = useState({
+    wpUrl: '',
+    username: '',
+    password: '',
+    status: 'draft'
+  });
+
+  const handleWordPressFormChange = (field: string, value: string) => {
+    setWordpressForm(prev => ({ ...prev, [field]: value }));
+  };
 
   const copyToClipboard = () => {
     const text = formatTextContent(analysis);
@@ -109,41 +134,188 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
     }
   };
 
+  const exportToWordPress = async () => {
+    try {
+      setIsWordPressExporting(true);
+      
+      const { wpUrl, username, password, status } = wordpressForm;
+      
+      // Validate form
+      if (!wpUrl || !username || !password) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      // Make the API request
+      const response = await fetch(`/api/cim/export/wordpress/${docId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          wpUrl,
+          username,
+          password,
+          status
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to export to WordPress');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "WordPress Export Successful",
+        description: `The document has been exported to WordPress as a ${status} post.${result.url ? ' View it on your site.' : ''}`,
+      });
+
+      if (result.url) {
+        window.open(result.url, '_blank');
+      }
+      
+      setIsWordPressDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to WordPress",
+        variant: "destructive"
+      });
+    } finally {
+      setIsWordPressExporting(false);
+    }
+  };
+
   const canAccessPremiumFeatures = user?.isAdmin || user?.subscriptionStatus === "premium";
 
   return (
-    <div className="flex justify-end">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <FileText className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem onClick={copyToClipboard}>
-            <Copy className="h-4 w-4 mr-2" />
-            Copy to Clipboard
-          </DropdownMenuItem>
-          {canAccessPremiumFeatures && (
-            <>
-              <DropdownMenuItem onClick={downloadWord}>
-                <File className="h-4 w-4 mr-2" />
-                Export to Word
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadPdf}>
-                <FileText className="h-4 w-4 mr-2" />
-                Export to PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToGoogleDocs}>
-                <Download className="h-4 w-4 mr-2" />
-                Export to Google Docs
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <>
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={copyToClipboard}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy to Clipboard
+            </DropdownMenuItem>
+            {canAccessPremiumFeatures && (
+              <>
+                <DropdownMenuItem onClick={downloadWord}>
+                  <File className="h-4 w-4 mr-2" />
+                  Export to Word
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadPdf}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export to PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToGoogleDocs}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export to Google Docs
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsWordPressDialogOpen(true)}>
+                  <Globe className="h-4 w-4 mr-2" />
+                  Export to WordPress
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* WordPress Export Dialog */}
+      <Dialog open={isWordPressDialogOpen} onOpenChange={setIsWordPressDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export to WordPress</DialogTitle>
+            <DialogDescription>
+              Enter your WordPress site details to export this CIM document as a post.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="wp-url">WordPress Site URL</Label>
+              <Input 
+                id="wp-url" 
+                placeholder="https://yourdomain.com" 
+                value={wordpressForm.wpUrl}
+                onChange={(e) => handleWordPressFormChange('wpUrl', e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter the root URL of your WordPress site
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="wp-username">Username</Label>
+                <Input 
+                  id="wp-username" 
+                  placeholder="admin" 
+                  value={wordpressForm.username}
+                  onChange={(e) => handleWordPressFormChange('username', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wp-password">Password or App Password</Label>
+                <Input 
+                  id="wp-password" 
+                  type="password" 
+                  placeholder="••••••••"
+                  value={wordpressForm.password}
+                  onChange={(e) => handleWordPressFormChange('password', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wp-status">Post Status</Label>
+              <Select 
+                value={wordpressForm.status}
+                onValueChange={(value) => handleWordPressFormChange('status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select post status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="publish">Published</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex space-x-2 sm:justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsWordPressDialogOpen(false)}
+              disabled={isWordPressExporting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={exportToWordPress}
+              disabled={isWordPressExporting}
+            >
+              {isWordPressExporting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Exporting...
+                </>
+              ) : 'Export to WordPress'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
