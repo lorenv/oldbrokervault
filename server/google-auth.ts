@@ -9,7 +9,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `https://${process.env.REPL_SLUG}.repl.co/api/auth/google/callback` // Updated callback URL for Replit deployment
+  `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/google/callback` // Updated callback URL for Replit deployment
 );
 
 // Scopes needed for Google Drive and Docs
