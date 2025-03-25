@@ -9,7 +9,10 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/google/callback` // Updated callback URL for Replit deployment
+  // Use window.location.origin in the frontend to determine the correct callback URL
+  process.env.REPLIT_DOMAINS ? 
+    `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/google/callback` : 
+    'http://localhost:5000/api/auth/google/callback'
 );
 
 // Scopes needed for Google Drive and Docs
@@ -44,7 +47,7 @@ export async function handleGoogleCallback(code: string, userId: number) {
   }
 }
 
-export async function createGoogleDoc(userId: number, title: string, content: string) {
+export async function createGoogleDoc(userId: number, title: string, content: any) {
   const user = await storage.getUser(userId);
   if (!user?.googleAccessToken) {
     throw new Error('User not connected to Google');
@@ -60,9 +63,86 @@ export async function createGoogleDoc(userId: number, title: string, content: st
   const docs = google.docs({ version: 'v1', auth: oauth2Client });
 
   try {
+    // Format the content as a structured document for a CIM
+    let formattedContent = `CONFIDENTIAL INFORMATION MEMORANDUM\n\n`;
+    
+    // Business Overview Section
+    formattedContent += `BUSINESS OVERVIEW\n==================\n`;
+    formattedContent += `Founded: ${content.story?.yearStarted || 'N/A'}\n`;
+    formattedContent += `Structure: ${content.story?.businessStructure || 'N/A'}\n\n`;
+    
+    // Business Summary
+    formattedContent += `${content.story?.businessSummary || content.story?.businessModel || 'N/A'}\n\n`;
+    
+    // Executive Summary Section
+    formattedContent += `INVESTMENT HIGHLIGHTS\n===================\n`;
+    formattedContent += `Key Attractions:\n`;
+    if (content.executiveSummary?.buyerAttractions?.length) {
+      content.executiveSummary.buyerAttractions.forEach((item: string) => {
+        formattedContent += `• ${item}\n`;
+      });
+    }
+    
+    formattedContent += `\nGrowth Opportunities:\n`;
+    if (content.executiveSummary?.growthOpportunities?.length) {
+      content.executiveSummary.growthOpportunities.forEach((item: string) => {
+        formattedContent += `• ${item}\n`;
+      });
+    }
+    
+    // Market Position
+    formattedContent += `\nMARKET POSITION\n=============\n`;
+    formattedContent += `Target Market: ${content.marketAnalysis?.customerProfile || 'N/A'}\n\n`;
+    
+    formattedContent += `Competitors:\n`;
+    if (content.marketAnalysis?.competitors?.length) {
+      content.marketAnalysis.competitors.forEach((item: string) => {
+        formattedContent += `• ${item}\n`;
+      });
+    }
+    
+    formattedContent += `\nBusiness Strengths:\n`;
+    if (content.marketAnalysis?.strengths?.length) {
+      content.marketAnalysis.strengths.forEach((item: string) => {
+        formattedContent += `• ${item}\n`;
+      });
+    }
+    
+    // Operations Section
+    formattedContent += `\nOPERATIONS\n=========\n`;
+    formattedContent += `Customer Relationships:\n`;
+    formattedContent += `• Recurring Revenue: ${content.operations?.customers?.recurring || 'N/A'}\n`;
+    formattedContent += `• Customer Base: ${content.operations?.customers?.relationships || 'N/A'}\n`;
+    formattedContent += `• Revenue Concentration: ${content.operations?.customers?.concentration || 'N/A'}\n`;
+    formattedContent += `• Contract Terms: ${content.operations?.customers?.contracts || 'N/A'}\n\n`;
+    
+    formattedContent += `Supply Chain:\n`;
+    formattedContent += `• Number of Suppliers: ${content.operations?.suppliers?.count || 'N/A'}\n`;
+    formattedContent += `• Supplier Terms: ${content.operations?.suppliers?.terms || 'N/A'}\n`;
+    formattedContent += `• Concentration: ${content.operations?.suppliers?.concentration || 'N/A'}\n`;
+    formattedContent += `• Transferability: ${content.operations?.suppliers?.transferability || 'N/A'}\n\n`;
+    
+    // Team Structure
+    formattedContent += `TEAM STRUCTURE\n=============\n`;
+    formattedContent += `• Owner Responsibilities: ${content.team?.ownerResponsibilities || 'N/A'}\n`;
+    formattedContent += `• Required Hours: ${content.team?.ownerHours || 'N/A'}\n`;
+    formattedContent += `• Management Structure: ${content.team?.management || 'N/A'}\n`;
+    formattedContent += `• Team Size: ${content.team?.employeeCount || 'N/A'}\n`;
+    formattedContent += `• Turnover Rate: ${content.team?.turnover || 'N/A'}\n`;
+    formattedContent += `• Retention: ${content.team?.retention || 'N/A'}\n\n`;
+    
+    // Facilities
+    formattedContent += `FACILITIES\n=========\n`;
+    formattedContent += `• Ownership Status: ${content.facility?.ownership || 'N/A'}\n`;
+    formattedContent += `• Size: ${content.facility?.size || 'N/A'}\n`;
+    formattedContent += `• Monthly Cost: ${content.facility?.cost || 'N/A'}\n`;
+    if (content.facility?.leaseDetails) {
+      formattedContent += `• Lease Details: ${content.facility.leaseDetails}\n`;
+    }
+
     // Create new Google Doc
     const fileMetadata = {
-      name: title,
+      name: `CIM - ${title}`,
       mimeType: 'application/vnd.google-apps.document'
     };
 
@@ -70,7 +150,7 @@ export async function createGoogleDoc(userId: number, title: string, content: st
       requestBody: fileMetadata,
       media: {
         mimeType: 'text/plain',
-        body: content
+        body: formattedContent
       }
     });
 
