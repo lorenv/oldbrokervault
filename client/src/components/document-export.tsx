@@ -153,42 +153,58 @@ CONFIDENTIAL INFORMATION MEMORANDUM
 
 BUSINESS OVERVIEW
 ================
-Background
-----------
-Founded: ${analysis.story.yearStarted}
-Structure: ${analysis.story.businessStructure}
+Founded: ${analysis.story?.yearStarted || 'N/A'}
+Structure: ${analysis.story?.businessStructure || 'N/A'}
 
-Business Description
-------------------
-${analysis.story.businessModel}
-
-Growth History
--------------
-${analysis.story.growthHistory}
+${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}
 
 INVESTMENT HIGHLIGHTS
 ===================
-Key Attractions
---------------
-${analysis.executiveSummary.buyerAttractions.map((item: string) => `• ${item}`).join('\n')}
+Key Attractions:
+${analysis.executiveSummary?.buyerAttractions?.map((item: string) => `• ${item}`).join('\n') || 'N/A'}
 
-Growth Opportunities
-------------------
-${analysis.executiveSummary.growthOpportunities.map((item: string) => `• ${item}`).join('\n')}
+Growth Opportunities:
+${analysis.executiveSummary?.growthOpportunities?.map((item: string) => `• ${item}`).join('\n') || 'N/A'}
 
 MARKET POSITION
 =============
-Target Market
-------------
-${analysis.marketAnalysis.customerProfile}
+Target Market: ${analysis.marketAnalysis?.customerProfile || 'N/A'}
 
-Competitive Landscape
--------------------
 Competitors:
-${analysis.marketAnalysis.competitors.map((item: string) => `• ${item}`).join('\n')}
+${analysis.marketAnalysis?.competitors?.map((item: string) => `• ${item}`).join('\n') || 'N/A'}
 
 Business Strengths:
-${analysis.marketAnalysis.strengths.map((item: string) => `• ${item}`).join('\n')}
+${analysis.marketAnalysis?.strengths?.map((item: string) => `• ${item}`).join('\n') || 'N/A'}
+
+OPERATIONS
+=========
+Customer Relationships:
+• Recurring Revenue: ${analysis.operations?.customers?.recurring || 'N/A'}
+• Customer Base: ${analysis.operations?.customers?.relationships || 'N/A'}
+• Revenue Concentration: ${analysis.operations?.customers?.concentration || 'N/A'}
+• Contract Terms: ${analysis.operations?.customers?.contracts || 'N/A'}
+
+Supply Chain:
+• Number of Suppliers: ${analysis.operations?.suppliers?.count || 'N/A'}
+• Supplier Terms: ${analysis.operations?.suppliers?.terms || 'N/A'}
+• Concentration: ${analysis.operations?.suppliers?.concentration || 'N/A'}
+• Transferability: ${analysis.operations?.suppliers?.transferability || 'N/A'}
+
+TEAM STRUCTURE
+=============
+• Owner Responsibilities: ${analysis.team?.ownerResponsibilities || 'N/A'}
+• Required Hours: ${analysis.team?.ownerHours || 'N/A'}
+• Management Structure: ${analysis.team?.management || 'N/A'}
+• Team Size: ${analysis.team?.employeeCount || 'N/A'}
+• Turnover Rate: ${analysis.team?.turnover || 'N/A'}
+• Retention: ${analysis.team?.retention || 'N/A'}
+
+FACILITIES
+=========
+• Ownership Status: ${analysis.facility?.ownership || 'N/A'}
+• Size: ${analysis.facility?.size || 'N/A'}
+• Monthly Cost: ${analysis.facility?.cost || 'N/A'}
+${analysis.facility?.leaseDetails ? `• Lease Details: ${analysis.facility.leaseDetails}` : ''}
 `.trim();
 }
 
@@ -255,60 +271,93 @@ function generateHtml(analysis: any): string {
       margin: 10px 0;
       border-radius: 5px;
     }
+    .title-page {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .confidential {
+      font-style: italic;
+      margin-top: 40px;
+      text-align: center;
+      color: #666;
+    }
+    .separator {
+      border-top: 1px solid #ccc;
+      margin: 30px 0;
+    }
+    .bullet-list {
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 10px;
+      color: #777;
+      margin-top: 50px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>CONFIDENTIAL INFORMATION MEMORANDUM</h1>
+  <div class="title-page">
+    <h1>CONFIDENTIAL INFORMATION MEMORANDUM</h1>
+    <p>${analysis.story?.businessSummary || 'Business Information Package'}</p>
+    <div class="separator"></div>
+    <p class="confidential">CONFIDENTIAL</p>
+    <p>This document contains confidential information. It is provided to you for informational purposes only.</p>
+  </div>
 
   <section class="section">
     <h1>BUSINESS OVERVIEW</h1>
-    <h2>Background</h2>
     <div class="info-grid">
       <div class="info-card">
-        <strong>Founded:</strong> ${analysis.story.yearStarted}
+        <strong>Founded:</strong> ${analysis.story?.yearStarted || 'N/A'}
       </div>
       <div class="info-card">
-        <strong>Structure:</strong> ${analysis.story.businessStructure}
+        <strong>Structure:</strong> ${analysis.story?.businessStructure || 'N/A'}
       </div>
     </div>
 
     <h2>Business Description</h2>
-    <p>${analysis.story.businessModel}</p>
+    <p>${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}</p>
 
+    ${analysis.story?.growthHistory ? `
     <h2>Growth History</h2>
     <p>${analysis.story.growthHistory}</p>
+    ` : ''}
   </section>
 
   <section class="section">
     <h1>INVESTMENT HIGHLIGHTS</h1>
     <h2>Key Attractions</h2>
-    <ul>
-      ${analysis.executiveSummary.buyerAttractions.map((item: string) => `<li>${item}</li>`).join('')}
+    <ul class="bullet-list">
+      ${analysis.executiveSummary?.buyerAttractions?.map((item: string) => `<li>${item}</li>`).join('') || '<li>N/A</li>'}
     </ul>
 
     <h2>Growth Opportunities</h2>
-    <ul>
-      ${analysis.executiveSummary.growthOpportunities.map((item: string) => `<li>${item}</li>`).join('')}
+    <ul class="bullet-list">
+      ${analysis.executiveSummary?.growthOpportunities?.map((item: string) => `<li>${item}</li>`).join('') || '<li>N/A</li>'}
     </ul>
   </section>
 
   <section class="section">
     <h1>MARKET POSITION</h1>
     <h2>Target Market</h2>
-    <p>${analysis.marketAnalysis.customerProfile}</p>
+    <p>${analysis.marketAnalysis?.customerProfile || 'N/A'}</p>
 
     <h2>Competitive Landscape</h2>
     <div class="info-grid">
       <div class="info-card">
         <h3>Competitors</h3>
-        <ul>
-          ${analysis.marketAnalysis.competitors.map((item: string) => `<li>${item}</li>`).join('')}
+        <ul class="bullet-list">
+          ${analysis.marketAnalysis?.competitors?.map((item: string) => `<li>${item}</li>`).join('') || '<li>N/A</li>'}
         </ul>
       </div>
       <div class="info-card">
         <h3>Business Strengths</h3>
-        <ul>
-          ${analysis.marketAnalysis.strengths.map((item: string) => `<li>${item}</li>`).join('')}
+        <ul class="bullet-list">
+          ${analysis.marketAnalysis?.strengths?.map((item: string) => `<li>${item}</li>`).join('') || '<li>N/A</li>'}
         </ul>
       </div>
     </div>
@@ -324,19 +373,19 @@ function generateHtml(analysis: any): string {
       </tr>
       <tr>
         <td>Recurring Revenue</td>
-        <td>${analysis.operations.customers.recurring}</td>
+        <td>${analysis.operations?.customers?.recurring || 'N/A'}</td>
       </tr>
       <tr>
         <td>Customer Base</td>
-        <td>${analysis.operations.customers.relationships}</td>
+        <td>${analysis.operations?.customers?.relationships || 'N/A'}</td>
       </tr>
       <tr>
         <td>Revenue Concentration</td>
-        <td>${analysis.operations.customers.concentration}</td>
+        <td>${analysis.operations?.customers?.concentration || 'N/A'}</td>
       </tr>
       <tr>
         <td>Contract Terms</td>
-        <td>${analysis.operations.customers.contracts}</td>
+        <td>${analysis.operations?.customers?.contracts || 'N/A'}</td>
       </tr>
     </table>
 
@@ -348,19 +397,19 @@ function generateHtml(analysis: any): string {
       </tr>
       <tr>
         <td>Number of Suppliers</td>
-        <td>${analysis.operations.suppliers.count}</td>
+        <td>${analysis.operations?.suppliers?.count || 'N/A'}</td>
       </tr>
       <tr>
         <td>Supplier Terms</td>
-        <td>${analysis.operations.suppliers.terms}</td>
+        <td>${analysis.operations?.suppliers?.terms || 'N/A'}</td>
       </tr>
       <tr>
         <td>Concentration</td>
-        <td>${analysis.operations.suppliers.concentration}</td>
+        <td>${analysis.operations?.suppliers?.concentration || 'N/A'}</td>
       </tr>
       <tr>
-        <td>Relationship Transfer</td>
-        <td>${analysis.operations.suppliers.transferability}</td>
+        <td>Transferability</td>
+        <td>${analysis.operations?.suppliers?.transferability || 'N/A'}</td>
       </tr>
     </table>
   </section>
@@ -369,48 +418,45 @@ function generateHtml(analysis: any): string {
     <h1>TEAM STRUCTURE</h1>
     <h2>Ownership & Management</h2>
     <div class="info-card">
-      <p><strong>Owner's Role:</strong> ${analysis.team.ownerResponsibilities}</p>
-      <p><strong>Required Hours:</strong> ${analysis.team.ownerHours}</p>
-      <p><strong>Management Structure:</strong> ${analysis.team.management}</p>
+      <p><strong>Owner's Role:</strong> ${analysis.team?.ownerResponsibilities || 'N/A'}</p>
+      <p><strong>Required Hours:</strong> ${analysis.team?.ownerHours || 'N/A'}</p>
+      <p><strong>Management Structure:</strong> ${analysis.team?.management || 'N/A'}</p>
     </div>
 
+    ${analysis.team?.employeeCount ? `
     <h2>Employee Overview</h2>
-    <table>
-      <tr>
-        <th>Role</th>
-        <th>Status</th>
-        <th>Compensation</th>
-      </tr>
-      ${analysis.team.employees.map((emp: any) => `
-        <tr>
-          <td>${emp.role}</td>
-          <td>${emp.status}</td>
-          <td>${emp.compensation}</td>
-        </tr>
-      `).join('')}
-    </table>
-
-    <h2>Team Stability</h2>
     <div class="info-card">
-      <p><strong>Turnover Rate:</strong> ${analysis.team.turnover}</p>
-      <p><strong>Hiring Environment:</strong> ${analysis.team.hiring}</p>
-      <p><strong>Post-Sale Retention:</strong> ${analysis.team.retention}</p>
+      <p><strong>Team Size:</strong> ${analysis.team.employeeCount}</p>
+      <p><strong>Turnover Rate:</strong> ${analysis.team.turnover || 'N/A'}</p>
+      <p><strong>Retention:</strong> ${analysis.team.retention || 'N/A'}</p>
     </div>
+    ` : ''}
+
+    ${analysis.team?.keyEmployees?.length ? `
+    <h2>Key Personnel</h2>
+    <ul class="bullet-list">
+      ${analysis.team.keyEmployees.map((role: string) => `<li>${role}</li>`).join('')}
+    </ul>
+    ` : ''}
   </section>
 
   <section class="section">
     <h1>FACILITIES</h1>
     <div class="info-grid">
       <div class="info-card">
-        <p><strong>Ownership Status:</strong> ${analysis.facility.ownership}</p>
-        <p><strong>Size:</strong> ${analysis.facility.size}</p>
+        <p><strong>Ownership Status:</strong> ${analysis.facility?.ownership || 'N/A'}</p>
+        <p><strong>Size:</strong> ${analysis.facility?.size || 'N/A'}</p>
       </div>
       <div class="info-card">
-        <p><strong>Monthly Cost:</strong> ${analysis.facility.cost}</p>
-        ${analysis.facility.leaseDetails ? `<p><strong>Lease Details:</strong> ${analysis.facility.leaseDetails}</p>` : ''}
+        <p><strong>Monthly Cost:</strong> ${analysis.facility?.cost || 'N/A'}</p>
+        ${analysis.facility?.leaseDetails ? `<p><strong>Lease Details:</strong> ${analysis.facility.leaseDetails}</p>` : ''}
       </div>
     </div>
   </section>
+
+  <div class="footer">
+    CONFIDENTIAL INFORMATION MEMORANDUM - FOR AUTHORIZED RECIPIENTS ONLY
+  </div>
 </body>
 </html>
 `;
