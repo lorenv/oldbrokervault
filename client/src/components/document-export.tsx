@@ -243,8 +243,8 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
           <DialogHeader>
             <DialogTitle>Export to WordPress</DialogTitle>
             <DialogDescription>
-              Enter your WordPress site details to export this CIM document as a post. 
-              You need an Admin or Editor account with permission to create posts.
+              Enter your WordPress site details to export this CIM document as a "listing" post. 
+              You need an Admin or Editor account with permission to create "listing" post types.
               Some WordPress sites may require an Application Password for API access.
             </DialogDescription>
           </DialogHeader>

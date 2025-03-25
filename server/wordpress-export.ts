@@ -40,7 +40,9 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
   baseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   
   console.log(`Using WordPress base URL: ${baseUrl}`);
-  const apiUrl = `${baseUrl}wp-json/wp/v2/posts${postId ? `/${postId}` : ''}`;
+  // Use "listing" custom post type instead of "posts"
+  const apiUrl = `${baseUrl}wp-json/wp/v2/listing${postId ? `/${postId}` : ''}`;
+  console.log(`Using WordPress API endpoint for custom post type: ${apiUrl}`);
 
   try {
     // Set up basic auth
@@ -139,6 +141,10 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
       
       if (errorData.code === 'rest_invalid_param') {
         throw new Error(`Invalid WordPress parameter: ${errorData.message}`);
+      }
+      
+      if (errorData.code === 'rest_no_route') {
+        throw new Error(`The WordPress 'listing' custom post type is not available. Please ensure the 'listing' post type is properly registered and accessible via the REST API. You may need to check Toolset Types settings or your WordPress site configuration.`);
       }
       
       throw new Error(errorData.message || 'Failed to export to WordPress');
