@@ -58,10 +58,28 @@ export async function fetchBeaverBuilderTemplates(
         throw new Error('Beaver Builder template post type not found. Is Beaver Builder installed and active?');
       }
       
+      if (response.status === 403) {
+        throw new Error('You do not have permission to access templates. Use an administrator account or a user with proper permissions.');
+      }
+      
       throw new Error(`Failed to fetch templates: ${response.statusText}`);
     }
     
-    const templates = await response.json();
+    let templates;
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Check if the response is actually JSON
+    if (!contentType.includes('application/json')) {
+      console.error('WordPress returned non-JSON content type:', contentType);
+      throw new Error('HTML instead of JSON was returned. Please check that the WordPress REST API is enabled and the site URL is correct.');
+    }
+    
+    try {
+      templates = await response.json();
+    } catch (error) {
+      console.error('Error parsing JSON response:', error);
+      throw new Error('Could not parse response from WordPress. The site might be returning HTML instead of JSON.');
+    }
     return templates.map((template: any) => ({
       id: template.id,
       title: template.title.rendered,

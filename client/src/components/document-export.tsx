@@ -316,6 +316,15 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
               You need an Admin or Editor account with permission to create "listing" post types.
               Some WordPress sites may require an Application Password for API access.
             </DialogDescription>
+            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm">
+              <h4 className="font-medium text-amber-800 mb-1">Important Requirements</h4>
+              <ul className="list-disc pl-4 space-y-1 text-amber-800">
+                <li>The WordPress site must have the REST API enabled</li>
+                <li>A "listing" custom post type must be registered and accessible via the REST API</li>
+                <li>Your user account must have permission to create posts</li>
+                <li>For sites with Beaver Builder, templates will be automatically detected</li>
+              </ul>
+            </div>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -327,7 +336,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                 onChange={(e) => handleWordPressFormChange('wpUrl', e.target.value)}
               />
               <p className="text-sm text-muted-foreground">
-                Enter the root URL of your WordPress site
+                Enter the root URL starting with http:// or https:// (e.g., https://yourdomain.com)
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -350,7 +359,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                   onChange={(e) => handleWordPressFormChange('password', e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  For better API access, use an Application Password from your WordPress profile
+                  For secure API access, use an <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Application Password</a> from your WordPress profile (Users → Profile → Application Passwords)
                 </p>
               </div>
             </div>
