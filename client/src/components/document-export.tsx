@@ -245,6 +245,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
             <DialogDescription>
               Enter your WordPress site details to export this CIM document as a post. 
               You need an Admin or Editor account with permission to create posts.
+              Some WordPress sites may require an Application Password for API access.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -279,6 +280,9 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                   value={wordpressForm.password}
                   onChange={(e) => handleWordPressFormChange('password', e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  For better API access, use an Application Password from your WordPress profile
+                </p>
               </div>
             </div>
             <div className="space-y-2">

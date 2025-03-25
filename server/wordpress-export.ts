@@ -45,14 +45,19 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
   try {
     // Set up basic auth
     const authString = Buffer.from(`${username}:${password}`).toString('base64');
+    
+    // WordPress sites may require different authentication methods
+    // Some may use Basic Auth, others use Application Passwords, and some use nonces
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${authString}`
+    };
 
     // Check if the WordPress site is accessible and has REST API enabled
     try {
       const checkResponse = await fetch(`${baseUrl}wp-json/`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Basic ${authString}`
-        }
+        headers
       });
       
       if (!checkResponse.ok) {
@@ -105,10 +110,7 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     // Create or update post
     const response = await fetch(apiUrl, {
       method: postId ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${authString}`
-      },
+      headers,
       body: JSON.stringify(postData)
     });
 
