@@ -407,12 +407,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
-      res.json({ templates });
+      // Basic URL validation
+      if (!wpUrl.startsWith('http://') && !wpUrl.startsWith('https://')) {
+        return res.status(400).json({
+          error: "WordPress URL must start with http:// or https://"
+        });
+      }
+      
+      try {
+        const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
+        res.json({ templates });
+      } catch (error) {
+        // Handle specific WordPress API errors
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch templates";
+        
+        if (errorMessage.includes('HTML instead of JSON')) {
+          return res.status(400).json({
+            error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
+            details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
+          });
+        }
+        
+        if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+          return res.status(404).json({
+            error: "Beaver Builder templates not found on this WordPress site.",
+            details: "Please ensure Beaver Builder is installed and activated on your WordPress site."
+          });
+        }
+        
+        res.status(500).json({ error: errorMessage });
+      }
     } catch (error) {
-      console.error("Error fetching Beaver Builder templates:", error);
+      console.error("Error in template fetch route:", error);
       res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to fetch templates"
+        error: error instanceof Error ? error.message : "Failed to process template request"
       });
     }
   });

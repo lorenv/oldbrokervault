@@ -133,7 +133,15 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
       // Make sure we're getting JSON and not HTML
       const contentType = checkResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`WordPress API returned invalid content type: ${contentType}. Expected application/json.`);
+        // Try to get the response text to better diagnose the issue
+        const responseText = await checkResponse.text();
+        console.error('WordPress API check response text:', responseText.substring(0, 500)); // Log first 500 chars to avoid huge logs
+        
+        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+          throw new Error('The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.');
+        }
+        
+        throw new Error(`WordPress API returned invalid content type: ${contentType || 'unknown'}. Expected application/json.`);
       }
       
     } catch (error) {
@@ -178,8 +186,13 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const responseText = await response.text();
-      console.error('WordPress non-JSON response:', responseText);
-      throw new Error(`WordPress API returned invalid content type: ${contentType}. Expected application/json.`);
+      console.error('WordPress non-JSON response:', responseText.substring(0, 500)); // Log first 500 chars
+      
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        throw new Error('The WordPress site returned HTML instead of JSON. This typically happens when there is a problem with the REST API endpoint or when the "listing" custom post type is not properly registered or accessible via REST API.');
+      }
+      
+      throw new Error(`WordPress API returned invalid content type: ${contentType || 'unknown'}. Expected application/json.`);
     }
 
     if (!response.ok) {
