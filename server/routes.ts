@@ -468,6 +468,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           requiredFields: ["wpUrl", "username", "password"] 
         });
       }
+      
+      // Basic URL validation
+      if (!wpUrl.startsWith('http://') && !wpUrl.startsWith('https://')) {
+        return res.status(400).json({
+          error: "WordPress URL must start with http:// or https://"
+        });
+      }
 
       // Format the CIM data for WordPress - both as rich content and plain text
       const wpContent = formatWordPressContent(doc.analysis);
@@ -503,27 +510,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <!-- /wp:paragraph -->` : 
         wpContent;
       
-      // Export to WordPress
-      const result = await exportToWordPress({
-        wpUrl,
-        username,
-        password,
-        postId: postId ? parseInt(postId) : undefined,
-        title: doc.title,
-        content: content,
-        status: status || 'draft',
-        excerpt: `CIM Document for ${doc.title}`,
-        customFields
-      });
-
-      if (result.success) {
-        res.json({ 
-          success: true,
-          postId: result.postId,
-          url: result.url
+      try {
+        // Export to WordPress
+        const result = await exportToWordPress({
+          wpUrl,
+          username,
+          password,
+          postId: postId ? parseInt(postId) : undefined,
+          title: doc.title,
+          content: content,
+          status: status || 'draft',
+          excerpt: `CIM Document for ${doc.title}`,
+          customFields
         });
-      } else {
-        throw new Error(result.error || "Failed to export to WordPress");
+  
+        if (result.success) {
+          res.json({ 
+            success: true,
+            postId: result.postId,
+            url: result.url
+          });
+        } else {
+          throw new Error(result.error || "Failed to export to WordPress");
+        }
+      } catch (error) {
+        // Handle specific WordPress API errors
+        const errorMessage = error instanceof Error ? error.message : "Failed to export to WordPress";
+        
+        if (errorMessage.includes('HTML instead of JSON')) {
+          return res.status(400).json({
+            error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
+            details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
+          });
+        }
+        
+        if (errorMessage.includes('listing') && errorMessage.includes('not available')) {
+          return res.status(404).json({
+            error: "The 'listing' post type is not available on this WordPress site.",
+            details: "Please ensure your WordPress site has the 'listing' custom post type registered and available via the REST API."
+          });
+        }
+        
+        if (errorMessage.includes('not allowed to create')) {
+          return res.status(403).json({
+            error: "You don't have permission to create posts with this WordPress user.",
+            details: "Please use an administrator account or a user with Editor role that has permissions to create 'listing' posts."
+          });
+        }
+        
+        res.status(500).json({ 
+          error: errorMessage,
+          details: "There was a problem connecting to WordPress or creating the listing."
+        });
       }
     } catch (error) {
       console.error("WordPress export error:", error);
