@@ -17,15 +17,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
 
 export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
   const { toast } = useToast();
   const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
   const [isWordPressExporting, setIsWordPressExporting] = useState(false);
+  const [isFetchingTemplates, setIsFetchingTemplates] = useState(false);
+  const [beaverBuilderTemplates, setBeaverBuilderTemplates] = useState<Array<{id: number, title: string, type: string}>>([]);
   const [wordpressForm, setWordpressForm] = useState({
     wpUrl: '',
     username: '',
@@ -36,6 +39,60 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
 
   const handleWordPressFormChange = (field: string, value: string) => {
     setWordpressForm(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Fetch Beaver Builder templates when credentials are available
+  const fetchBeaverBuilderTemplates = async () => {
+    const { wpUrl, username, password } = wordpressForm;
+    
+    if (!wpUrl || !username || !password) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please enter your WordPress site URL, username, and password first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsFetchingTemplates(true);
+      
+      const response = await fetch("/api/wordpress/fetch-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ wpUrl, username, password })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch templates");
+      }
+      
+      const { templates } = await response.json();
+      
+      if (!templates || templates.length === 0) {
+        toast({
+          title: "No Templates Found",
+          description: "No Beaver Builder templates were found on your WordPress site.",
+        });
+        return;
+      }
+      
+      setBeaverBuilderTemplates(templates);
+      toast({
+        title: "Templates Loaded",
+        description: `Found ${templates.length} Beaver Builder templates.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to Fetch Templates",
+        description: error instanceof Error ? error.message : "Could not connect to WordPress site",
+        variant: "destructive"
+      });
+    } finally {
+      setIsFetchingTemplates(false);
+    }
   };
 
   const copyToClipboard = () => {

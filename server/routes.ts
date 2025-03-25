@@ -11,8 +11,9 @@ import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, exportToGoogleDocs, createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from "./document-export";
-import { exportToWordPress, formatWordPressContent } from "./wordpress-export";
-import { formatTextContent } from "./utils";
+import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
+// Get the formatTextContent function from document-export.tsx
+import { formatTextContent } from "./document-export";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -392,6 +393,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add endpoint to fetch Beaver Builder templates
+  app.post("/api/wordpress/fetch-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { wpUrl, username, password } = req.body;
+      
+      if (!wpUrl || !username || !password) {
+        return res.status(400).json({ 
+          error: "Missing WordPress credentials",
+          requiredFields: ["wpUrl", "username", "password"] 
+        });
+      }
+
+      const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
+      res.json({ templates });
+    } catch (error) {
+      console.error("Error fetching Beaver Builder templates:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to fetch templates"
+      });
+    }
+  });
+
   // Add WordPress export endpoint
   app.post("/api/cim/export/wordpress/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -430,8 +455,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Always store the raw text in wpcf-text-dump custom field
       customFields['wpcf-text-dump'] = plainTextContent;
       
-      // If template is provided, set it as a custom field
-      if (template && template !== 'default') {
+      // If template is a Beaver Builder template (numeric ID)
+      if (template && !isNaN(parseInt(template))) {
+        const templateId = parseInt(template);
+        // Set the Beaver Builder template ID in _fl_builder_template_id custom field
+        customFields['_fl_builder_template_id'] = templateId;
+        // Also set a flag to enable Beaver Builder for this post
+        customFields['_fl_builder_enabled'] = '1';
+      } 
+      // If it's a regular WordPress page template
+      else if (template && template !== 'default') {
         customFields['_wp_page_template'] = `template-${template}.php`;
       }
       
