@@ -1,0 +1,31 @@
+
+
+Change how the wordpress integration is handled. Currently we are populating a summary to one single field. Instead, I want to populate individual toolset custom fields. I’ve provided instructions below: 
+
+Your goal is to retrieve the field titles from the 'Listing Details' field group of a custom post type, interpret a provided transcript using your natural language understanding, and update the text values of those fields with appropriate answers derived from the transcript. Follow these steps:
+1. API Authentication: Use the provided WordPress REST API endpoint and authenticate using Basic Authentication. Allow the user to put in the username and application password and it saves in settings. The credentials are:
+    * Username: <wordpress-username>
+    * Application Password: <application-password> (replace with actual values).
+    * Encode these credentials in Base64 for the Authorization header.
+2. Retrieve Field Titles:
+    * Make a GET request to the WordPress REST API endpoint for a specific post of the custom post type containing the 'Listing Details' field group. Example endpoint: https://broker-vault.com/wp-json/wp/v2/listings/.
+    * In the response, look for the toolset-meta object. Extract the field titles (keys) under toolset-meta that belong to the 'Listing Details' group. These will be in the format toolset-meta.<field-slug>. Ignore any fields not related to 'Listing Details' (you can assume fields in this group are relevant based on their presence in the response).
+3. Understand the Transcript:
+    * User will provide a transcript as input. Use your natural language processing capabilities to analyze the transcript and identify information that corresponds to each field title retrieved in step 2. Treat the field titles as questions or prompts (e.g., if a field is toolset-meta.property-size, interpret it as 'What is the property size?').
+4. Generate Responses:
+    * For each field title, generate a concise text response based on the transcript. If the transcript doesn’t contain relevant information for a field, set its value to 'Not specified in transcript'. For the Executive Summary fields, make it a longer, more robust summary of the business, with key facts, as you would see in a summary in an offering memorandum.
+5. Update the Fields via API:
+    * Make a PUT request to the same endpoint (https://broker-vault.com/wp-json/wp/v2/listings/<post-id>) to update the post.
+    * In the request body, include a meta object where each key is the Toolset field slug prefixed with wpcf- (e.g., wpcf-property-size for toolset-meta.property-size), and the value is the AI-generated response from step 4.
+    * Example request body: json CollapseWrapCopy  {
+    *   "meta": {
+    *     "wpcf-field-slug-1": "Generated response 1",
+    *     "wpcf-field-slug-2": "Generated response 2"
+    *   }
+    * }  
+6. Execution:
+    * Ask me for the specific <post-id> to proceed, and any other authentication or specification as needed.
+    * Once provided, execute the steps above and return a summary of the fields updated and their new values.
+Notes:
+* Assume the Toolset fields are already exposed to the REST API and registered for updates.
+* Handle errors gracefully (e.g., if the API request fails, report the issue).
