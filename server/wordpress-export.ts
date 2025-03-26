@@ -267,17 +267,36 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
         console.log(`  ${fieldId}: ${typeof fieldValue === 'string' ? fieldValue.substring(0, 50) + (fieldValue.length > 50 ? '...' : '') : fieldValue}`);
       }
       
-      // In WordPress meta fields must be assigned directly in the top level of the post data
-      // Some WordPress configurations may require 'meta' object instead of direct assignment
-      // Try both approaches to ensure compatibility
+      // For WordPress REST API, meta fields must be added directly to the post data
+      // Additionally, try multiple approaches since WordPress configurations vary
       
-      // First approach - direct meta field assignment
+      // Create a meta object for the REST API request
+      postData.meta = {};
+      
+      // Add each field to both main postData and meta object
+      // This ensures maximum compatibility with different WordPress configurations
       for (const [key, value] of Object.entries(meta)) {
+        // Add as top-level custom field (some WordPress setups prefer this)
         postData[key] = value;
+        
+        // Add to meta object (standard WordPress REST API approach)
+        postData.meta[key] = value;
+        
+        // Also try without 'wpcf-' prefix in the meta object
+        if (key.startsWith('wpcf-')) {
+          const fieldNameWithoutPrefix = key.substring(5);
+          postData.meta[fieldNameWithoutPrefix] = value;
+        }
       }
       
-      // Second approach - use 'meta' object which works with some WordPress setups
-      postData.meta = meta;
+      // WordPress Toolset may also require a 'toolset-meta' property
+      postData['toolset-meta'] = {};
+      for (const [key, value] of Object.entries(meta)) {
+        if (key.startsWith('wpcf-')) {
+          const fieldNameWithoutPrefix = key.substring(5);
+          postData['toolset-meta'][fieldNameWithoutPrefix] = value;
+        }
+      }
     }
 
     console.log(`Making ${postId ? 'PUT' : 'POST'} request to ${apiUrl}`);
@@ -906,6 +925,16 @@ export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Re
       
       value = parts.join("\n");
       console.log(`Mapped special field '${slug}' to detailed listing information`);
+    }
+    
+    // Add special aliases for direct field mapping
+    // These are common variations in how WordPress might store field identifiers
+    fieldMapping[`_${field.id}`] = value; // Some WP setups use _wpcf-field-name
+    
+    if (field.id.startsWith('wpcf-')) {
+      const nameWithoutPrefix = field.id.substring(5);
+      fieldMapping[nameWithoutPrefix] = value; // Field without prefix
+      fieldMapping[`_${nameWithoutPrefix}`] = value; // _field-name variation
     }
 
     // Set the field value
