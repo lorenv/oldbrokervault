@@ -425,14 +425,16 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                     {beaverBuilderTemplates.length > 0 && (
                       <>
                         <SelectPrimitive.Separator className="my-1" />
-                        <SelectPrimitive.Label className="px-2 py-1.5 text-sm font-semibold">
-                          Beaver Builder Templates
-                        </SelectPrimitive.Label>
-                        {beaverBuilderTemplates.map(template => (
-                          <SelectItem key={template.id} value={String(template.id)}>
-                            {template.title}
-                          </SelectItem>
-                        ))}
+                        <SelectPrimitive.Group>
+                          <SelectPrimitive.Label className="px-2 py-1.5 text-sm font-semibold">
+                            Beaver Builder Templates
+                          </SelectPrimitive.Label>
+                          {beaverBuilderTemplates.map(template => (
+                            <SelectItem key={template.id} value={String(template.id)}>
+                              {template.title}
+                            </SelectItem>
+                          ))}
+                        </SelectPrimitive.Group>
                       </>
                     )}
                   </SelectContent>

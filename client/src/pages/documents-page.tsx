@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { DocumentExport } from "@/components/document-export";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ export default function DocumentsPage() {
     queryKey: ["/api/cim"],
   });
   const [selectedDoc, setSelectedDoc] = useState<CimDocument | null>(null);
+  const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -150,6 +152,14 @@ ${analysis.team.ownerResponsibilities}
                       <FileText className="mr-2 h-4 w-4" />
                       Export to PDF
                       {user?.subscriptionStatus === "free" && <Lock className="ml-2 h-4 w-4" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => (user?.subscriptionStatus === "premium" || user?.isAdmin) ? setIsWordPressDialogOpen(true) : null}
+                      className={(user?.subscriptionStatus !== "premium" && !user?.isAdmin) ? "opacity-50" : ""}
+                    >
+                      <Globe className="mr-2 h-4 w-4" />
+                      Export to WordPress
+                      {(user?.subscriptionStatus !== "premium" && !user?.isAdmin) && <Lock className="ml-2 h-4 w-4" />}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -396,6 +406,16 @@ ${analysis.team.ownerResponsibilities}
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {selectedDoc && (
+        <DocumentExport 
+          analysis={selectedDoc.analysis} 
+          docId={selectedDoc.id} 
+          user={user}
+          isWordPressDialogOpen={isWordPressDialogOpen}
+          setIsWordPressDialogOpen={setIsWordPressDialogOpen}
+        />
       )}
     </div>
   );
