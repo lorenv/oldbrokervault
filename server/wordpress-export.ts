@@ -261,7 +261,23 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     }
 
     if (Object.keys(meta).length > 0) {
-      Object.assign(postData, { meta });
+      // Logging field mappings for debugging
+      console.log("Assigning WordPress meta fields:");
+      for (const [fieldId, fieldValue] of Object.entries(meta)) {
+        console.log(`  ${fieldId}: ${typeof fieldValue === 'string' ? fieldValue.substring(0, 50) + (fieldValue.length > 50 ? '...' : '') : fieldValue}`);
+      }
+      
+      // In WordPress meta fields must be assigned directly in the top level of the post data
+      // Some WordPress configurations may require 'meta' object instead of direct assignment
+      // Try both approaches to ensure compatibility
+      
+      // First approach - direct meta field assignment
+      for (const [key, value] of Object.entries(meta)) {
+        postData[key] = value;
+      }
+      
+      // Second approach - use 'meta' object which works with some WordPress setups
+      postData.meta = meta;
     }
 
     console.log(`Making ${postId ? 'PUT' : 'POST'} request to ${apiUrl}`);
@@ -398,24 +414,233 @@ export async function fetchToolsetFields(
 
     if (!posts || posts.length === 0) {
       console.warn(`No posts found for post type "${postType}". Creating a temporary empty fields list.`);
-      return [];
+      // Let's create some default fields that match our expected CIM data structure
+      return [
+        // Business Overview fields
+        {
+          id: 'wpcf-business-summary',
+          slug: 'business-summary',
+          name: 'Business Summary',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-year-started',
+          slug: 'year-started',
+          name: 'Year Started',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-business-structure',
+          slug: 'business-structure',
+          name: 'Business Structure',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-business-model',
+          slug: 'business-model',
+          name: 'Business Model',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Market Analysis fields
+        {
+          id: 'wpcf-customer-profile',
+          slug: 'customer-profile',
+          name: 'Customer Profile',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-competitors',
+          slug: 'competitors',
+          name: 'Competitors',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-strengths',
+          slug: 'strengths',
+          name: 'Strengths',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-sale-reason',
+          slug: 'sale-reason',
+          name: 'Reason for Sale',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Operations fields
+        {
+          id: 'wpcf-recurring-revenue',
+          slug: 'recurring-revenue',
+          name: 'Recurring Revenue',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-customer-relationships',
+          slug: 'customer-relationships',
+          name: 'Customer Relationships',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Team fields
+        {
+          id: 'wpcf-owner-responsibilities',
+          slug: 'owner-responsibilities',
+          name: 'Owner Responsibilities',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-owner-hours',
+          slug: 'owner-hours',
+          name: 'Owner Hours',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-employee-count',
+          slug: 'employee-count',
+          name: 'Employee Count',
+          type: 'text',
+          group: 'Listing Details'
+        }
+      ];
     }
 
-    // Extract Toolset meta fields (toolset-meta.<field-slug>)
+    // Extract Toolset meta fields
     const post = posts[0];
-    if (!post['toolset-meta']) {
-      console.warn(`No Toolset metadata found in the post. The 'toolset-meta' property is missing.`);
-      return [];
+    
+    // Try to detect Toolset fields via different properties
+    let toolsetMeta: any = {};
+    
+    if (post['toolset-meta']) {
+      console.log('Found Toolset metadata via toolset-meta property');
+      toolsetMeta = post['toolset-meta'];
+    } else if (post['meta'] && Object.keys(post['meta']).some(key => key.startsWith('wpcf-'))) {
+      console.log('Found Toolset metadata via meta property with wpcf- prefix');
+      // Extract fields that start with wpcf-
+      toolsetMeta = Object.fromEntries(
+        Object.entries(post['meta'])
+          .filter(([key]) => key.startsWith('wpcf-'))
+          .map(([key, value]) => [key.replace('wpcf-', ''), value])
+      );
+    } else {
+      console.warn('No Toolset fields detected in WordPress API response. Using default fields.');
+      // If no Toolset fields found, create comprehensive default fields
+      // that match our CIM data structure for best compatibility
+      return [
+        // Business Overview fields
+        {
+          id: 'wpcf-business-summary',
+          slug: 'business-summary',
+          name: 'Business Summary',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-year-started',
+          slug: 'year-started',
+          name: 'Year Started',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-business-structure',
+          slug: 'business-structure',
+          name: 'Business Structure',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-business-model',
+          slug: 'business-model',
+          name: 'Business Model',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Market Analysis fields
+        {
+          id: 'wpcf-customer-profile',
+          slug: 'customer-profile',
+          name: 'Customer Profile',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-competitors',
+          slug: 'competitors',
+          name: 'Competitors',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-strengths',
+          slug: 'strengths',
+          name: 'Strengths',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-sale-reason',
+          slug: 'sale-reason',
+          name: 'Reason for Sale',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Operations fields
+        {
+          id: 'wpcf-recurring-revenue',
+          slug: 'recurring-revenue',
+          name: 'Recurring Revenue',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-customer-relationships',
+          slug: 'customer-relationships',
+          name: 'Customer Relationships',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        // Team fields
+        {
+          id: 'wpcf-owner-responsibilities',
+          slug: 'owner-responsibilities',
+          name: 'Owner Responsibilities',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-owner-hours',
+          slug: 'owner-hours',
+          name: 'Owner Hours',
+          type: 'text',
+          group: 'Listing Details'
+        },
+        {
+          id: 'wpcf-employee-count',
+          slug: 'employee-count',
+          name: 'Employee Count',
+          type: 'text',
+          group: 'Listing Details'
+        }
+      ];
     }
+
+    // Debug output
+    console.log(`Found Toolset fields: ${Object.keys(toolsetMeta).join(', ')}`);
 
     // Convert toolset-meta fields to our ToolsetField format
     const toolsetFields: ToolsetField[] = [];
-    const toolsetMeta = post['toolset-meta'];
 
     for (const [key, value] of Object.entries(toolsetMeta)) {
-      // We'll assume all fields are part of the "Listing Details" group for now
-      // In a real implementation, you'd want to fetch the actual field definitions
-      // from Toolset's API if available
       const slug = key;
       const name = slug
         .split('-')
@@ -445,12 +670,22 @@ export async function fetchToolsetFields(
  * @returns Record mapping field IDs to values
  */
 export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Record<string, string> {
+  console.log("Mapping CIM data to Toolset fields. Fields found:", fields.map(f => f.slug).join(", "));
+  console.log("Analysis data structure:", Object.keys(analysis).join(", "));
+  
   const fieldMapping: Record<string, string> = {};
 
+  // First create mappings for all fields to ensure no fields are missed
+  for (const field of fields) {
+    // Default value before mapping
+    fieldMapping[field.id] = "Not specified in transcript";
+  }
+
+  // Then map specific fields based on the field slugs
   fields.forEach(field => {
     // Simple mapping strategy based on field slugs
-    // This would be customized based on the actual field structure
     const slug = field.slug.toLowerCase();
+    console.log(`Trying to map field: ${slug}`);
 
     // Try to find relevant data in the analysis based on the field name
     let value = "Not specified in transcript";
@@ -458,35 +693,43 @@ export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Re
     // Business Overview fields
     if (slug.includes('year-started') || slug.includes('founded')) {
       value = analysis.story?.yearStarted || value;
+      console.log(`Mapped '${slug}' to:`, value);
     } 
     else if (slug.includes('structure') || slug.includes('entity-type')) {
       value = analysis.story?.businessStructure || value;
+      console.log(`Mapped '${slug}' to:`, value);
     }
     else if (slug.includes('business-model')) {
       value = analysis.story?.businessModel || value;
+      console.log(`Mapped '${slug}' to:`, value);
     }
     else if (slug.includes('summary') || slug.includes('description')) {
       value = analysis.story?.businessSummary || value;
+      console.log(`Mapped '${slug}' to:`, value);
     }
     else if (slug.includes('growth-history')) {
       value = analysis.story?.growthHistory || value;
+      console.log(`Mapped '${slug}' to:`, value);
     }
 
     // Executive Summary fields
     else if (slug.includes('attractions') || slug.includes('highlights')) {
       if (analysis.executiveSummary?.buyerAttractions?.length > 0) {
         value = analysis.executiveSummary.buyerAttractions.join('\n\n');
+        console.log(`Mapped '${slug}' to array of ${analysis.executiveSummary.buyerAttractions.length} items`);
       }
     }
     else if (slug.includes('opportunities')) {
       if (analysis.executiveSummary?.growthOpportunities?.length > 0) {
         value = analysis.executiveSummary.growthOpportunities.join('\n\n');
+        console.log(`Mapped '${slug}' to array of ${analysis.executiveSummary.growthOpportunities.length} items`);
       }
     }
 
     // Market Analysis fields
     else if (slug.includes('target-market') || slug.includes('customer-profile')) {
       value = analysis.marketAnalysis?.customerProfile || value;
+      console.log(`Mapped '${slug}' to:`, value);
     }
     else if (slug.includes('competitors')) {
       if (analysis.marketAnalysis?.competitors?.length > 0) {
