@@ -25,12 +25,28 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { Switch } from "@/components/ui/switch";
 
-export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
+export function DocumentExport({ 
+  analysis, 
+  docId, 
+  user,
+  isWordPressDialogOpen: externalIsWordPressDialogOpen,
+  setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen
+}: { 
+  analysis: any; 
+  docId: number; 
+  user: any;
+  isWordPressDialogOpen?: boolean;
+  setIsWordPressDialogOpen?: (isOpen: boolean) => void;
+}) {
   const { toast } = useToast();
-  const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
+  const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
   const [isWordPressExporting, setIsWordPressExporting] = useState(false);
   const [isFetchingTemplates, setIsFetchingTemplates] = useState(false);
   const [beaverBuilderTemplates, setBeaverBuilderTemplates] = useState<Array<{id: number, title: string, type: string}>>([]);
+  
+  // Use external dialog state if provided, otherwise use internal state
+  const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
+  const setIsWordPressDialogOpen = externalSetIsWordPressDialogOpen || internalSetIsWordPressDialogOpen;
   const [wordpressForm, setWordpressForm] = useState({
     wpUrl: '',
     username: '',
