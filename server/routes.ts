@@ -522,13 +522,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Export to WordPress
+        // Ensure content is properly formatted based on whether we're using Toolset fields
+        const formattedAnalysis = doc.analysis ? 
+          (typeof doc.analysis === 'string' ? JSON.parse(doc.analysis) : doc.analysis) : 
+          {};
+        
+        console.log("Preparing WordPress export. Analysis data:", 
+          Object.keys(formattedAnalysis).join(', '));
+          
         const result = await exportToWordPress({
           wpUrl,
           username,
           password,
           postId: postId ? parseInt(postId) : undefined,
           title: doc.title,
-          content: useToolsetFields ? doc.analysis : content,
+          content: useToolsetFields ? formattedAnalysis : content,
           status: status || 'draft',
           excerpt: `CIM Document for ${doc.title}`,
           customFields,
