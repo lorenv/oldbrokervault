@@ -832,6 +832,81 @@ export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Re
       
       value = parts.join("\n");
     }
+    
+    // Handle special field names from WordPress
+    else if (slug === 'field-group-for-listings' || slug === 'listing-group') {
+      // Use this as a wrapper for business information
+      const parts = [];
+      parts.push(`CONFIDENTIAL INFORMATION MEMORANDUM`);
+      
+      if (analysis.story?.businessSummary) {
+        parts.push(`\nBUSINESS SUMMARY:\n${analysis.story.businessSummary}`);
+      }
+      
+      if (analysis.story?.yearStarted) {
+        parts.push(`\nFounded: ${analysis.story.yearStarted}`);
+      }
+      
+      if (analysis.story?.businessStructure) {
+        parts.push(`\nStructure: ${analysis.story.businessStructure}`);
+      }
+      
+      if (analysis.executiveSummary?.buyerAttractions?.length > 0) {
+        parts.push("\nKEY ATTRACTIONS:");
+        analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
+          parts.push(`• ${item}`);
+        });
+      }
+      
+      value = parts.join("\n");
+      console.log(`Mapped special field '${slug}' to comprehensive business information`);
+    }
+    else if (slug === 'listing-details') {
+      // Use this for the detailed listing information
+      const parts = [];
+      
+      // Market Analysis
+      if (analysis.marketAnalysis?.customerProfile) {
+        parts.push(`TARGET MARKET: ${analysis.marketAnalysis.customerProfile}`);
+      }
+      
+      if (analysis.marketAnalysis?.competitors?.length > 0) {
+        parts.push("\nCOMPETITORS:");
+        analysis.marketAnalysis.competitors.forEach((item: string) => {
+          parts.push(`• ${item}`);
+        });
+      }
+      
+      if (analysis.marketAnalysis?.strengths?.length > 0) {
+        parts.push("\nBUSINESS STRENGTHS:");
+        analysis.marketAnalysis.strengths.forEach((item: string) => {
+          parts.push(`• ${item}`);
+        });
+      }
+      
+      if (analysis.operations?.customers?.recurring) {
+        parts.push(`\nRECURRING REVENUE: ${analysis.operations.customers.recurring}`);
+      }
+      
+      if (analysis.operations?.customers?.relationships) {
+        parts.push(`\nCUSTOMER BASE: ${analysis.operations.customers.relationships}`);
+      }
+      
+      if (analysis.team?.ownerResponsibilities) {
+        parts.push(`\nOWNER RESPONSIBILITIES: ${analysis.team.ownerResponsibilities}`);
+      }
+      
+      if (analysis.team?.ownerHours) {
+        parts.push(`\nOWNER HOURS: ${analysis.team.ownerHours}`);
+      }
+      
+      if (analysis.team?.employeeCount) {
+        parts.push(`\nTEAM SIZE: ${analysis.team.employeeCount}`);
+      }
+      
+      value = parts.join("\n");
+      console.log(`Mapped special field '${slug}' to detailed listing information`);
+    }
 
     // Set the field value
     fieldMapping[field.id] = value;
