@@ -11,6 +11,17 @@ interface WordPressExportOptions {
   status?: string; // 'draft', 'publish', 'private'
   excerpt?: string;
   customFields?: Record<string, string | number>; // WordPress custom fields only accept string or number
+  useToolsetFields?: boolean; // Whether to use Toolset fields for export
+  postType?: string; // The WordPress post type to use (default: 'listing')
+}
+
+interface ToolsetField {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  type: string;
+  group: string;
 }
 
 /**
@@ -96,6 +107,7 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
   postId?: number;
   url?: string;
   error?: string;
+  fieldsUpdated?: number;
 }> {
   const {
     wpUrl,
@@ -106,7 +118,9 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     content,
     status = 'draft',
     excerpt = '',
-    customFields = {}
+    customFields = {},
+    useToolsetFields = false,
+    postType = 'listing'
   } = options;
 
   // Remove www. prefix if present and ensure URL has trailing slash
@@ -114,8 +128,8 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
   baseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   
   console.log(`Using WordPress base URL: ${baseUrl}`);
-  // Use "listing" custom post type instead of "posts"
-  const apiUrl = `${baseUrl}wp-json/wp/v2/listing${postId ? `/${postId}` : ''}`;
+  // Use the specified post type (defaults to "listing")
+  const apiUrl = `${baseUrl}wp-json/wp/v2/${postType}${postId ? `/${postId}` : ''}`;
   console.log(`Using WordPress API endpoint for custom post type: ${apiUrl}`);
 
   try {
@@ -181,8 +195,69 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
 
     // Add custom fields if needed
     const meta: Record<string, any> = {};
-    for (const [key, value] of Object.entries(customFields)) {
-      meta[key] = value;
+    
+    if (useToolsetFields) {
+      try {
+        console.log(`Fetching Toolset fields for post type: ${postType}`);
+        const toolsetFields = await fetchToolsetFields(wpUrl, username, password, postType);
+        
+        if (toolsetFields.length === 0) {
+          console.warn('No Toolset fields found. Falling back to standard custom field approach.');
+          
+          // If no Toolset fields were found, use the default approach
+          for (const [key, value] of Object.entries(customFields)) {
+            meta[key] = value;
+          }
+        } else {
+          console.log(`Found ${toolsetFields.length} Toolset fields. Mapping analysis data to fields.`);
+          
+          // Parse the content as JSON to get the analysis data
+          let analysis;
+          try {
+            // Check if content is passed as an object or a JSON string
+            if (typeof content === 'string') {
+              // Try to see if it's a JSON string
+              if (content.trim().startsWith('{')) {
+                analysis = JSON.parse(content);
+              } else {
+                // It's regular content, just use customFields
+                for (const [key, value] of Object.entries(customFields)) {
+                  meta[key] = value;
+                }
+              }
+            } else {
+              analysis = content;
+            }
+            
+            if (analysis) {
+              // Map the analysis data to Toolset fields
+              const fieldMappings = mapCimToToolsetFields(analysis, toolsetFields);
+              
+              // Add the mapped fields to the meta object
+              Object.assign(meta, fieldMappings);
+              
+              console.log(`Mapped ${Object.keys(fieldMappings).length} Toolset fields.`);
+            }
+          } catch (error) {
+            console.error('Error parsing analysis data:', error);
+            // Fall back to using the custom fields if an error occurs
+            for (const [key, value] of Object.entries(customFields)) {
+              meta[key] = value;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error handling Toolset fields:', error);
+        // Fall back to using the custom fields if an error occurs
+        for (const [key, value] of Object.entries(customFields)) {
+          meta[key] = value;
+        }
+      }
+    } else {
+      // Standard approach - just use the custom fields
+      for (const [key, value] of Object.entries(customFields)) {
+        meta[key] = value;
+      }
     }
 
     if (Object.keys(meta).length > 0) {
@@ -242,7 +317,8 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
     return {
       success: true,
       postId: result.id,
-      url: result.link
+      url: result.link,
+      fieldsUpdated: Object.keys(meta).length
     };
   } catch (error) {
     console.error('WordPress export error:', error);
@@ -251,6 +327,274 @@ export async function exportToWordPress(options: WordPressExportOptions): Promis
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
+}
+
+/**
+ * Fetches Toolset custom field definitions from WordPress
+ * @param wpUrl WordPress site URL
+ * @param username WordPress username
+ * @param password WordPress password or app password
+ * @param postType The post type to fetch fields for
+ * @returns Array of Toolset field objects
+ */
+export async function fetchToolsetFields(
+  wpUrl: string,
+  username: string,
+  password: string,
+  postType: string = 'listings'
+): Promise<ToolsetField[]> {
+  // Remove www. prefix if present and ensure URL has trailing slash
+  let baseUrl = wpUrl.replace(/^https?:\/\/www\./i, 'https://');
+  baseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  
+  // First, get a sample post to extract field structure
+  const apiUrl = `${baseUrl}wp-json/wp/v2/${postType}?per_page=1`;
+  console.log(`Fetching Toolset fields metadata from: ${apiUrl}`);
+  
+  try {
+    // Set up basic auth
+    const authString = Buffer.from(`${username}:${password}`).toString('base64');
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${authString}`
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch Toolset fields:', errorText);
+      
+      if (response.status === 404) {
+        throw new Error(`The post type "${postType}" was not found. Please check that it exists and is accessible via the REST API.`);
+      }
+      
+      if (response.status === 403) {
+        throw new Error('You do not have permission to access this post type. Use an administrator account or a user with proper permissions.');
+      }
+      
+      throw new Error(`Failed to fetch Toolset fields: ${response.statusText}`);
+    }
+    
+    let posts;
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Check if the response is actually JSON
+    if (!contentType.includes('application/json')) {
+      console.error('WordPress returned non-JSON content type:', contentType);
+      throw new Error('HTML instead of JSON was returned. Please check that the REST API is enabled and the site URL is correct.');
+    }
+    
+    try {
+      posts = await response.json();
+    } catch (error) {
+      console.error('Error parsing JSON response:', error);
+      throw new Error('Could not parse response from WordPress. The site might be returning HTML instead of JSON.');
+    }
+
+    if (!posts || posts.length === 0) {
+      console.warn(`No posts found for post type "${postType}". Creating a temporary empty fields list.`);
+      return [];
+    }
+
+    // Extract Toolset meta fields (toolset-meta.<field-slug>)
+    const post = posts[0];
+    if (!post['toolset-meta']) {
+      console.warn(`No Toolset metadata found in the post. The 'toolset-meta' property is missing.`);
+      return [];
+    }
+
+    // Convert toolset-meta fields to our ToolsetField format
+    const toolsetFields: ToolsetField[] = [];
+    const toolsetMeta = post['toolset-meta'];
+
+    for (const [key, value] of Object.entries(toolsetMeta)) {
+      // We'll assume all fields are part of the "Listing Details" group for now
+      // In a real implementation, you'd want to fetch the actual field definitions
+      // from Toolset's API if available
+      const slug = key;
+      const name = slug
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      toolsetFields.push({
+        id: `wpcf-${slug}`, // Prefix with wpcf- as that's what Toolset uses
+        slug,
+        name,
+        type: 'text', // Assume text for now
+        group: 'Listing Details'
+      });
+    }
+
+    return toolsetFields;
+  } catch (error) {
+    console.error('Error fetching Toolset fields:', error);
+    throw error;
+  }
+}
+
+/**
+ * Maps CIM analysis data to Toolset fields
+ * @param analysis The CIM analysis data
+ * @param fields Array of Toolset fields
+ * @returns Record mapping field IDs to values
+ */
+export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Record<string, string> {
+  const fieldMapping: Record<string, string> = {};
+
+  fields.forEach(field => {
+    // Simple mapping strategy based on field slugs
+    // This would be customized based on the actual field structure
+    const slug = field.slug.toLowerCase();
+
+    // Try to find relevant data in the analysis based on the field name
+    let value = "Not specified in transcript";
+
+    // Business Overview fields
+    if (slug.includes('year-started') || slug.includes('founded')) {
+      value = analysis.story?.yearStarted || value;
+    } 
+    else if (slug.includes('structure') || slug.includes('entity-type')) {
+      value = analysis.story?.businessStructure || value;
+    }
+    else if (slug.includes('business-model')) {
+      value = analysis.story?.businessModel || value;
+    }
+    else if (slug.includes('summary') || slug.includes('description')) {
+      value = analysis.story?.businessSummary || value;
+    }
+    else if (slug.includes('growth-history')) {
+      value = analysis.story?.growthHistory || value;
+    }
+
+    // Executive Summary fields
+    else if (slug.includes('attractions') || slug.includes('highlights')) {
+      if (analysis.executiveSummary?.buyerAttractions?.length > 0) {
+        value = analysis.executiveSummary.buyerAttractions.join('\n\n');
+      }
+    }
+    else if (slug.includes('opportunities')) {
+      if (analysis.executiveSummary?.growthOpportunities?.length > 0) {
+        value = analysis.executiveSummary.growthOpportunities.join('\n\n');
+      }
+    }
+
+    // Market Analysis fields
+    else if (slug.includes('target-market') || slug.includes('customer-profile')) {
+      value = analysis.marketAnalysis?.customerProfile || value;
+    }
+    else if (slug.includes('competitors')) {
+      if (analysis.marketAnalysis?.competitors?.length > 0) {
+        value = analysis.marketAnalysis.competitors.join('\n\n');
+      }
+    }
+    else if (slug.includes('strengths')) {
+      if (analysis.marketAnalysis?.strengths?.length > 0) {
+        value = analysis.marketAnalysis.strengths.join('\n\n');
+      }
+    }
+    else if (slug.includes('reason-for-sale') || slug.includes('sale-reason')) {
+      value = analysis.marketAnalysis?.saleReason || value;
+    }
+
+    // Operations fields - Customers
+    else if (slug.includes('recurring') && slug.includes('revenue')) {
+      value = analysis.operations?.customers?.recurring || value;
+    }
+    else if (slug.includes('customer') && slug.includes('relationship')) {
+      value = analysis.operations?.customers?.relationships || value;
+    }
+    else if (slug.includes('customer') && slug.includes('concentration')) {
+      value = analysis.operations?.customers?.concentration || value;
+    }
+    else if (slug.includes('customer') && slug.includes('contract')) {
+      value = analysis.operations?.customers?.contracts || value;
+    }
+
+    // Operations fields - Suppliers
+    else if (slug.includes('supplier') && slug.includes('count')) {
+      value = analysis.operations?.suppliers?.count || value;
+    }
+    else if (slug.includes('supplier') && slug.includes('terms')) {
+      value = analysis.operations?.suppliers?.terms || value;
+    }
+    else if (slug.includes('supplier') && slug.includes('concentration')) {
+      value = analysis.operations?.suppliers?.concentration || value;
+    }
+    else if (slug.includes('supplier') && slug.includes('transfer')) {
+      value = analysis.operations?.suppliers?.transferability || value;
+    }
+
+    // Team fields
+    else if (slug.includes('owner') && slug.includes('responsibilities')) {
+      value = analysis.team?.ownerResponsibilities || value;
+    }
+    else if (slug.includes('owner') && slug.includes('hours')) {
+      value = analysis.team?.ownerHours || value;
+    }
+    else if (slug.includes('management') || slug.includes('reporting')) {
+      value = analysis.team?.management || value;
+    }
+    else if (slug.includes('employee') && slug.includes('count')) {
+      value = analysis.team?.employeeCount || value;
+    }
+    else if (slug.includes('turnover')) {
+      value = analysis.team?.turnover || value;
+    }
+    else if (slug.includes('retention')) {
+      value = analysis.team?.retention || value;
+    }
+
+    // Facility fields
+    else if (slug.includes('facility') && slug.includes('ownership')) {
+      value = analysis.facility?.ownership || value;
+    }
+    else if (slug.includes('facility') && slug.includes('size')) {
+      value = analysis.facility?.size || value;
+    }
+    else if (slug.includes('facility') && slug.includes('cost')) {
+      value = analysis.facility?.cost || value;
+    }
+    else if (slug.includes('lease') && slug.includes('details')) {
+      value = analysis.facility?.leaseDetails || value;
+    }
+
+    // Use executive summary for any field that includes "executive-summary"
+    else if (slug.includes('executive-summary')) {
+      // Create a comprehensive executive summary
+      const parts = [];
+      
+      if (analysis.story?.businessSummary) {
+        parts.push(analysis.story.businessSummary);
+      }
+      
+      if (analysis.executiveSummary?.buyerAttractions?.length > 0) {
+        parts.push("\nKey Attractions:");
+        analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
+          parts.push(`• ${item}`);
+        });
+      }
+      
+      if (analysis.executiveSummary?.growthOpportunities?.length > 0) {
+        parts.push("\nGrowth Opportunities:");
+        analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
+          parts.push(`• ${item}`);
+        });
+      }
+      
+      value = parts.join("\n");
+    }
+
+    // Set the field value
+    fieldMapping[field.id] = value;
+  });
+
+  return fieldMapping;
 }
 
 /**
