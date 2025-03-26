@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { Switch } from "@/components/ui/switch";
 
 export function DocumentExport({ analysis, docId, user }: { analysis: any; docId: number; user: any }) {
   const { toast } = useToast();
@@ -35,10 +36,11 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
     username: '',
     password: '',
     status: 'draft',
-    template: 'default'
+    template: 'default',
+    useToolsetFields: true
   });
 
-  const handleWordPressFormChange = (field: string, value: string) => {
+  const handleWordPressFormChange = (field: string, value: string | boolean) => {
     setWordpressForm(prev => ({ ...prev, [field]: value }));
   };
   
@@ -205,7 +207,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
     try {
       setIsWordPressExporting(true);
       
-      const { wpUrl, username, password, status, template } = wordpressForm;
+      const { wpUrl, username, password, status, template, useToolsetFields } = wordpressForm;
       
       // Validate form
       if (!wpUrl || !username || !password) {
@@ -225,7 +227,8 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
           password,
           status,
           template,
-          useCustomField: true // This indicates we want to use the custom field wpcf-text-dump
+          useCustomField: true, // This indicates we want to use the custom field wpcf-text-dump
+          useToolsetFields // Use Toolset fields for structured data
         })
       });
 
@@ -323,6 +326,7 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                 <li>A "listing" custom post type must be registered and accessible via the REST API</li>
                 <li>Your user account must have permission to create posts</li>
                 <li>For sites with Beaver Builder, templates will be automatically detected</li>
+                <li>For structured data export, Toolset Types plugin must be installed with a "Listing Details" field group</li>
               </ul>
             </div>
           </DialogHeader>
@@ -437,6 +441,30 @@ export function DocumentExport({ analysis, docId, user }: { analysis: any; docId
                   Template applied to the listing in WordPress. Click "Load Templates" to fetch Beaver Builder templates from your site.
                 </p>
               </div>
+            </div>
+            
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium">Use Toolset Fields</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Export structured CIM data to Toolset custom fields in WordPress
+                  </p>
+                </div>
+                <Switch
+                  checked={wordpressForm.useToolsetFields}
+                  onCheckedChange={(checked) => handleWordPressFormChange('useToolsetFields', checked)}
+                />
+              </div>
+              {wordpressForm.useToolsetFields && (
+                <div className="mt-3 text-xs bg-blue-50 text-blue-800 p-3 rounded border border-blue-200">
+                  <p className="font-medium mb-1">Fields Structure</p>
+                  <p>
+                    CIM data will be exported to corresponding Toolset fields in the "Listing Details" field group.
+                    Make sure your WordPress site has Toolset Types plugin installed and properly configured.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter className="flex space-x-2 sm:justify-end">
