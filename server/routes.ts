@@ -460,7 +460,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      const { wpUrl, username, password, postId, status, template, useCustomField } = req.body;
+      const { 
+        wpUrl, 
+        username, 
+        password, 
+        postId, 
+        status, 
+        template, 
+        useCustomField,
+        useToolsetFields = false, 
+        postType = 'listing' 
+      } = req.body;
       
       if (!wpUrl || !username || !password) {
         return res.status(400).json({ 
@@ -487,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cim_date: new Date().toISOString()
       };
       
-      // Always store the raw text in wpcf-text-dump custom field
+      // Always store the raw text in wpcf-text-dump custom field for backward compatibility
       customFields['wpcf-text-dump'] = plainTextContent;
       
       // If template is a Beaver Builder template (numeric ID)
@@ -503,8 +513,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customFields['_wp_page_template'] = `template-${template}.php`;
       }
       
-      // Create minimal content for the main post content if using custom field
-      const content = useCustomField ? 
+      // Create minimal content for the main post content if using custom field or Toolset fields
+      const content = (useCustomField || useToolsetFields) ? 
         `<!-- wp:paragraph -->
         <p>This is a business listing created by CIM Generator. The full content is available in the custom fields.</p>
         <!-- /wp:paragraph -->` : 
@@ -518,17 +528,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password,
           postId: postId ? parseInt(postId) : undefined,
           title: doc.title,
-          content: content,
+          content: useToolsetFields ? doc.analysis : content,
           status: status || 'draft',
           excerpt: `CIM Document for ${doc.title}`,
-          customFields
+          customFields,
+          useToolsetFields,
+          postType
         });
   
         if (result.success) {
           res.json({ 
             success: true,
             postId: result.postId,
-            url: result.url
+            url: result.url,
+            fieldsUpdated: result.fieldsUpdated || 0
           });
         } else {
           throw new Error(result.error || "Failed to export to WordPress");
