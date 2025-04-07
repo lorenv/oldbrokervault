@@ -152,7 +152,32 @@ export function formatTextContent(analysis: any): string {
     
     if (analysis.team.keyEmployees && analysis.team.keyEmployees.length) {
       sections.push('## Key Employees');
-      sections.push(analysis.team.keyEmployees.map((item: string) => `- ${item}`).join('\n'));
+      
+      // Format each employee entry, handling both string and object formats
+      const formattedEmployees = analysis.team.keyEmployees.map((employee: any) => {
+        if (typeof employee === 'string') {
+          return `- ${employee}`;
+        } else if (typeof employee === 'object') {
+          // Extract relevant properties from employee object
+          const parts = [];
+          if (employee.name) parts.push(`Name: ${employee.name}`);
+          if (employee.role) parts.push(`Role: ${employee.role}`);
+          if (employee.background) parts.push(`Background: ${employee.background}`);
+          if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+          
+          // If no properties were found, provide a fallback format
+          if (parts.length === 0) {
+            return `- ${Object.entries(employee)
+              .map(([key, val]) => `${key}: ${val}`)
+              .join(', ')}`;
+          }
+          
+          return `- ${parts.join(', ')}`;
+        }
+        return `- ${String(employee)}`;
+      });
+      
+      sections.push(formattedEmployees.join('\n'));
     }
   }
 
@@ -429,8 +454,60 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     new docx.Paragraph({
       text: `Retention: ${analysis.team?.retention || 'N/A'}`,
       spacing: { before: 100, after: 200 }
-    }),
+    })
+  );
+  
+  // Add Key Team Members section if available
+  if (analysis.team?.keyEmployees?.length > 0) {
+    // Add section heading
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Key Team Members",
+        heading: docx.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      })
+    );
     
+    // Add each team member as a bullet point
+    analysis.team.keyEmployees.forEach((employee: any) => {
+      let employeeText;
+      
+      if (typeof employee === 'string') {
+        employeeText = employee;
+      } else if (typeof employee === 'object') {
+        // Extract relevant properties from employee object
+        const parts = [];
+        if (employee.name) parts.push(`Name: ${employee.name}`);
+        if (employee.role) parts.push(`Role: ${employee.role}`);
+        if (employee.background) parts.push(`Background: ${employee.background}`);
+        if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+        
+        // If no properties were found, provide a fallback format
+        if (parts.length === 0) {
+          employeeText = Object.entries(employee)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(', ');
+        } else {
+          employeeText = parts.join(', ');
+        }
+      } else {
+        employeeText = String(employee);
+      }
+      
+      paragraphs.push(
+        new docx.Paragraph({
+          text: employeeText,
+          bullet: {
+            level: 0
+          },
+          spacing: { before: 50 }
+        })
+      );
+    });
+  }
+  
+  // Continue with FACILITIES section
+  paragraphs.push(
     // FACILITIES
     new docx.Paragraph({
       text: "FACILITIES",
@@ -644,6 +721,44 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
     doc.text(`Team Size: ${analysis.team?.employeeCount || 'N/A'}`);
     doc.text(`Turnover Rate: ${analysis.team?.turnover || 'N/A'}`);
     doc.text(`Retention: ${analysis.team?.retention || 'N/A'}`);
+    
+    // Add Key Team Members if available
+    if (analysis.team?.keyEmployees?.length > 0) {
+      doc.moveDown();
+      doc.fontSize(14).text('Key Team Members');
+      doc.moveDown(0.5);
+      doc.fontSize(12);
+      
+      // Format each employee based on its type
+      analysis.team.keyEmployees.forEach((employee: any) => {
+        let employeeText;
+        
+        if (typeof employee === 'string') {
+          employeeText = employee;
+        } else if (typeof employee === 'object') {
+          // Extract relevant properties from employee object
+          const parts = [];
+          if (employee.name) parts.push(`Name: ${employee.name}`);
+          if (employee.role) parts.push(`Role: ${employee.role}`);
+          if (employee.background) parts.push(`Background: ${employee.background}`);
+          if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+          
+          // If no properties were found, provide a fallback format
+          if (parts.length === 0) {
+            employeeText = Object.entries(employee)
+              .map(([key, val]) => `${key}: ${val}`)
+              .join(', ');
+          } else {
+            employeeText = parts.join(', ');
+          }
+        } else {
+          employeeText = String(employee);
+        }
+        
+        doc.text(`• ${employeeText}`);
+      });
+    }
+    
     doc.moveDown(2);
 
     // FACILITIES SECTION
@@ -762,7 +877,39 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   formattedContent += `• Management Structure: ${analysis.team?.management || 'N/A'}\n`;
   formattedContent += `• Team Size: ${analysis.team?.employeeCount || 'N/A'}\n`;
   formattedContent += `• Turnover Rate: ${analysis.team?.turnover || 'N/A'}\n`;
-  formattedContent += `• Retention: ${analysis.team?.retention || 'N/A'}\n\n`;
+  formattedContent += `• Retention: ${analysis.team?.retention || 'N/A'}\n`;
+  
+  // Add Key Team Members if available
+  if (analysis.team?.keyEmployees?.length > 0) {
+    formattedContent += `\nKey Team Members:\n`;
+    
+    // Format each employee based on its type
+    analysis.team.keyEmployees.forEach((employee: any) => {
+      if (typeof employee === 'string') {
+        formattedContent += `• ${employee}\n`;
+      } else if (typeof employee === 'object') {
+        // Extract relevant properties from employee object
+        const parts = [];
+        if (employee.name) parts.push(`Name: ${employee.name}`);
+        if (employee.role) parts.push(`Role: ${employee.role}`);
+        if (employee.background) parts.push(`Background: ${employee.background}`);
+        if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+        
+        // If no properties were found, provide a fallback format
+        if (parts.length === 0) {
+          formattedContent += `• ${Object.entries(employee)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(', ')}\n`;
+        } else {
+          formattedContent += `• ${parts.join(', ')}\n`;
+        }
+      } else {
+        formattedContent += `• ${String(employee)}\n`;
+      }
+    });
+  }
+  
+  formattedContent += `\n`;
   
   // Facilities
   formattedContent += `FACILITIES\n=========\n`;
