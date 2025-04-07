@@ -10,8 +10,9 @@ import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
-import * as documentExport from "./document-export";
+import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
+import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -363,19 +364,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // HTML export endpoint for clipboard export with formatting
   app.post("/api/cim/export/html/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Authentication required" });
 
     try {
-      const doc = await storage.getCimDocument(parseInt(req.params.id));
-      if (!doc || doc.userId !== req.user!.id) {
+      const docId = parseInt(req.params.id);
+      console.log(`Processing HTML export request for document ID: ${docId}, user ID: ${req.user?.id}`);
+      
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID format" });
+      }
+      
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access denied: Document belongs to user ${doc.userId}, but request is from user ${req.user!.id}`);
+        return res.status(403).json({ error: "You don't have permission to access this document" });
+      }
+      
+      console.log(`Generating HTML for document: ${doc.title}, analysis present: ${Boolean(doc.analysis)}`);
+      
+      if (!doc.analysis) {
+        return res.status(400).json({ error: "Document has no analysis data" });
+      }
+      
       const html = generateHtml(doc.analysis);
+      
+      if (!html) {
+        return res.status(500).json({ error: "Failed to generate HTML content" });
+      }
+      
+      console.log(`Successfully generated HTML content (${html.length} characters)`);
       res.json({ html });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("HTML export error:", error);
-      res.status(500).json({ error: "Failed to generate HTML" });
+      console.error("Error details:", errorMessage);
+      res.status(500).json({ 
+        error: "Failed to generate HTML content", 
+        details: errorMessage 
+      });
     }
   });
 
