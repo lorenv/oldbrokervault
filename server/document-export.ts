@@ -8,6 +8,321 @@ import { Readable } from "stream";
 export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
 
 /**
+ * Generates HTML with inline styling for the CIM data
+ * This function creates a formatted HTML representation suitable for copying to clipboard
+ * and pasting into other applications while preserving formatting
+ */
+export function generateHtml(analysis: any): string {
+  // Define CSS styles for the HTML output
+  const styles = `
+    .cim-container {
+      font-family: 'Arial', sans-serif;
+      color: #333;
+      line-height: 1.5;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .cim-title {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 24px;
+      color: #1a1a1a;
+    }
+    .cim-section {
+      margin-bottom: 28px;
+    }
+    .cim-section-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #2c3e50;
+      border-bottom: 1px solid #e1e1e1;
+      padding-bottom: 8px;
+    }
+    .cim-subsection-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #34495e;
+    }
+    .cim-field-name {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .cim-field-value {
+      margin-bottom: 8px;
+    }
+    .cim-list {
+      margin-left: 24px;
+      margin-bottom: 16px;
+      padding-left: 0;
+      list-style-type: disc;
+    }
+    .cim-list-item {
+      margin-bottom: 6px;
+    }
+  `;
+
+  // Start building the HTML document
+  let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>${styles}</style>
+</head>
+<body>
+  <div class="cim-container">
+    <div class="cim-title">CONFIDENTIAL INFORMATION MEMORANDUM</div>
+`;
+
+  // Business Overview Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">BUSINESS OVERVIEW</h2>
+      <div>
+        <span class="cim-field-name">Founded:</span>
+        <span class="cim-field-value">${analysis.story?.yearStarted || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Structure:</span>
+        <span class="cim-field-value">${analysis.story?.businessStructure || 'N/A'}</span>
+      </div>
+      <div class="cim-field-value" style="margin-top: 12px;">
+        ${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}
+      </div>
+    </div>
+`;
+
+  // Executive Summary Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">INVESTMENT HIGHLIGHTS</h2>
+      <h3 class="cim-subsection-title">Key Attractions</h3>
+      <ul class="cim-list">
+`;
+
+  if (analysis.executiveSummary?.buyerAttractions?.length) {
+    analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
+      html += `        <li class="cim-list-item">${item}</li>\n`;
+    });
+  } else {
+    html += `        <li class="cim-list-item">N/A</li>\n`;
+  }
+
+  html += `
+      </ul>
+      <h3 class="cim-subsection-title">Growth Opportunities</h3>
+      <ul class="cim-list">
+`;
+
+  if (analysis.executiveSummary?.growthOpportunities?.length) {
+    analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
+      html += `        <li class="cim-list-item">${item}</li>\n`;
+    });
+  } else {
+    html += `        <li class="cim-list-item">N/A</li>\n`;
+  }
+
+  html += `
+      </ul>
+    </div>
+`;
+
+  // Market Position Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">MARKET POSITION</h2>
+      <div>
+        <span class="cim-field-name">Target Market:</span>
+        <span class="cim-field-value">${analysis.marketAnalysis?.customerProfile || 'N/A'}</span>
+      </div>
+      
+      <h3 class="cim-subsection-title">Competitors</h3>
+      <ul class="cim-list">
+`;
+
+  if (analysis.marketAnalysis?.competitors?.length) {
+    analysis.marketAnalysis.competitors.forEach((item: string) => {
+      html += `        <li class="cim-list-item">${item}</li>\n`;
+    });
+  } else {
+    html += `        <li class="cim-list-item">N/A</li>\n`;
+  }
+
+  html += `
+      </ul>
+      
+      <h3 class="cim-subsection-title">Business Strengths</h3>
+      <ul class="cim-list">
+`;
+
+  if (analysis.marketAnalysis?.strengths?.length) {
+    analysis.marketAnalysis.strengths.forEach((item: string) => {
+      html += `        <li class="cim-list-item">${item}</li>\n`;
+    });
+  } else {
+    html += `        <li class="cim-list-item">N/A</li>\n`;
+  }
+
+  html += `
+      </ul>
+    </div>
+`;
+
+  // Operations Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">OPERATIONS</h2>
+      <h3 class="cim-subsection-title">Customer Relationships</h3>
+      <div>
+        <span class="cim-field-name">Recurring Revenue:</span>
+        <span class="cim-field-value">${analysis.operations?.customers?.recurring || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Customer Base:</span>
+        <span class="cim-field-value">${analysis.operations?.customers?.relationships || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Revenue Concentration:</span>
+        <span class="cim-field-value">${analysis.operations?.customers?.concentration || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Contract Terms:</span>
+        <span class="cim-field-value">${analysis.operations?.customers?.contracts || 'N/A'}</span>
+      </div>
+      
+      <h3 class="cim-subsection-title">Supply Chain</h3>
+      <div>
+        <span class="cim-field-name">Number of Suppliers:</span>
+        <span class="cim-field-value">${analysis.operations?.suppliers?.count || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Supplier Terms:</span>
+        <span class="cim-field-value">${analysis.operations?.suppliers?.terms || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Concentration:</span>
+        <span class="cim-field-value">${analysis.operations?.suppliers?.concentration || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Transferability:</span>
+        <span class="cim-field-value">${analysis.operations?.suppliers?.transferability || 'N/A'}</span>
+      </div>
+    </div>
+`;
+
+  // Team Structure Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">TEAM STRUCTURE</h2>
+      <div>
+        <span class="cim-field-name">Owner Responsibilities:</span>
+        <span class="cim-field-value">${analysis.team?.ownerResponsibilities || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Required Hours:</span>
+        <span class="cim-field-value">${analysis.team?.ownerHours || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Management Structure:</span>
+        <span class="cim-field-value">${analysis.team?.management || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Team Size:</span>
+        <span class="cim-field-value">${analysis.team?.employeeCount || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Turnover Rate:</span>
+        <span class="cim-field-value">${analysis.team?.turnover || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Retention:</span>
+        <span class="cim-field-value">${analysis.team?.retention || 'N/A'}</span>
+      </div>
+`;
+
+  // Key Team Members
+  if (analysis.team?.keyEmployees?.length > 0) {
+    html += `
+      <h3 class="cim-subsection-title">Key Team Members</h3>
+      <ul class="cim-list">
+`;
+    
+    // Format each employee
+    analysis.team.keyEmployees.forEach((employee: any) => {
+      let employeeText = '';
+      
+      if (typeof employee === 'string') {
+        employeeText = employee;
+      } else if (typeof employee === 'object') {
+        // Extract relevant properties from employee object
+        const parts = [];
+        if (employee.name) parts.push(`<strong>Name:</strong> ${employee.name}`);
+        if (employee.role) parts.push(`<strong>Role:</strong> ${employee.role}`);
+        if (employee.background) parts.push(`<strong>Background:</strong> ${employee.background}`);
+        if (employee.tenure) parts.push(`<strong>Tenure:</strong> ${employee.tenure}`);
+        
+        // If no properties were found, provide a fallback format
+        if (parts.length === 0) {
+          employeeText = Object.entries(employee)
+            .map(([key, val]) => `<strong>${key}:</strong> ${val}`)
+            .join(', ');
+        } else {
+          employeeText = parts.join(', ');
+        }
+      } else {
+        employeeText = String(employee);
+      }
+      
+      html += `        <li class="cim-list-item">${employeeText}</li>\n`;
+    });
+    
+    html += `      </ul>\n`;
+  }
+
+  html += `
+    </div>
+`;
+
+  // Facilities Section
+  html += `
+    <div class="cim-section">
+      <h2 class="cim-section-title">FACILITIES</h2>
+      <div>
+        <span class="cim-field-name">Ownership Status:</span>
+        <span class="cim-field-value">${analysis.facility?.ownership || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Size:</span>
+        <span class="cim-field-value">${analysis.facility?.size || 'N/A'}</span>
+      </div>
+      <div>
+        <span class="cim-field-name">Monthly Cost:</span>
+        <span class="cim-field-value">${analysis.facility?.cost || 'N/A'}</span>
+      </div>
+`;
+
+  if (analysis.facility?.leaseDetails) {
+    html += `
+      <div>
+        <span class="cim-field-name">Lease Details:</span>
+        <span class="cim-field-value">${analysis.facility.leaseDetails}</span>
+      </div>
+`;
+  }
+
+  html += `
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return html;
+}
+
+/**
  * Formats CIM analysis data as plain text
  * This function creates a formatted text representation of the CIM data
  * suitable for storing in a custom field or text dump

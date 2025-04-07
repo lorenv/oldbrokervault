@@ -10,10 +10,8 @@ import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generateWordDocument, generatePDF, exportToGoogleDocs, createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from "./document-export";
+import * as documentExport from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
-// Get the formatTextContent function from document-export.tsx
-import { formatTextContent } from "./document-export";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -360,6 +358,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("PDF export error:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+  
+  // HTML export endpoint for clipboard export with formatting
+  app.post("/api/cim/export/html/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const html = generateHtml(doc.analysis);
+      res.json({ html });
+    } catch (error) {
+      console.error("HTML export error:", error);
+      res.status(500).json({ error: "Failed to generate HTML" });
     }
   });
 

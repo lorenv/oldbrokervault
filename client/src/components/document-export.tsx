@@ -127,8 +127,54 @@ export function DocumentExport({
     navigator.clipboard.writeText(text);
     toast({
       title: "Copied to clipboard",
-      description: "The CIM content has been copied to your clipboard",
+      description: "The CIM content has been copied to your clipboard as plain text",
     });
+  };
+  
+  const copyHtmlToClipboard = async () => {
+    try {
+      const response = await fetch(`/api/cim/export/html/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate HTML content');
+      }
+
+      const { html } = await response.json();
+      
+      // Create a temporary div to hold the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+      
+      // Select the content
+      const range = document.createRange();
+      range.selectNodeContents(tempDiv);
+      
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      
+      // Execute copy command
+      document.execCommand('copy');
+      
+      // Clean up
+      selection?.removeAllRanges();
+      document.body.removeChild(tempDiv);
+      
+      toast({
+        title: "HTML copied to clipboard",
+        description: "The formatted HTML content has been copied to your clipboard with styles preserved",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to copy HTML to clipboard",
+        variant: "destructive"
+      });
+    }
   };
 
   const downloadWord = async () => {
@@ -299,7 +345,11 @@ export function DocumentExport({
           <DropdownMenuContent>
             <DropdownMenuItem onClick={copyToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
-              Copy to Clipboard
+              Copy Plain Text
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={copyHtmlToClipboard}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy as Formatted HTML
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>
