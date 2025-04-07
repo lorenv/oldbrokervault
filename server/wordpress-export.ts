@@ -811,6 +811,39 @@ export function mapCimToToolsetFields(analysis: any, fields: ToolsetField[]): Re
     else if (slug.includes('retention')) {
       value = analysis.team?.retention || value;
     }
+    else if (slug.includes('key-employees') || slug.includes('key-team-members')) {
+      // Handle key employees - could be array of strings or complex objects
+      if (analysis.team?.keyEmployees?.length > 0) {
+        // Format each employee entry, handling both string and object formats
+        const formattedEmployees = analysis.team.keyEmployees.map((employee: any) => {
+          if (typeof employee === 'string') {
+            return employee;
+          } else if (typeof employee === 'object') {
+            // Extract relevant properties from employee object
+            const parts = [];
+            if (employee.name) parts.push(`Name: ${employee.name}`);
+            if (employee.role) parts.push(`Role: ${employee.role}`);
+            if (employee.background) parts.push(`Background: ${employee.background}`);
+            if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+            
+            // If no properties were found, provide a fallback format
+            if (parts.length === 0) {
+              return Object.entries(employee)
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ');
+            }
+            
+            return parts.join(', ');
+          }
+          return String(employee);
+        });
+        
+        value = formattedEmployees.join('\n\n');
+      }
+    }
+    else if (slug.includes('employee-summary') || slug.includes('team-summary')) {
+      value = analysis.team?.employeeSummary || value;
+    }
 
     // Facility fields
     else if (slug.includes('facility') && slug.includes('ownership')) {
@@ -1057,6 +1090,42 @@ ${analysis.marketAnalysis?.strengths?.map((item: string) => `<li>${item}</li>`).
 <strong>Turnover Rate:</strong> ${analysis.team?.turnover || 'N/A'}<br>
 <strong>Retention:</strong> ${analysis.team?.retention || 'N/A'}</p>
 <!-- /wp:paragraph -->
+
+${analysis.team?.keyEmployees?.length > 0 ? `
+<!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Key Team Members</h3>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul>
+${analysis.team.keyEmployees.map((employee: any) => {
+  // Handle different employee data formats
+  let employeeText;
+  if (typeof employee === 'string') {
+    employeeText = employee;
+  } else if (typeof employee === 'object') {
+    const parts = [];
+    if (employee.name) parts.push(`<strong>Name:</strong> ${employee.name}`);
+    if (employee.role) parts.push(`<strong>Role:</strong> ${employee.role}`);
+    if (employee.background) parts.push(`<strong>Background:</strong> ${employee.background}`);
+    if (employee.tenure) parts.push(`<strong>Tenure:</strong> ${employee.tenure}`);
+    
+    // If no properties were found, provide a fallback format
+    if (parts.length === 0) {
+      employeeText = Object.entries(employee)
+        .map(([key, val]) => `<strong>${key}:</strong> ${val}`)
+        .join(', ');
+    } else {
+      employeeText = parts.join(', ');
+    }
+  } else {
+    employeeText = String(employee);
+  }
+  return `<li>${employeeText}</li>`;
+}).join('\n')}
+</ul>
+<!-- /wp:list -->
+` : ''}
 
 <!-- wp:heading {"level":2} -->
 <h2 class="wp-block-heading">FACILITIES</h2>
