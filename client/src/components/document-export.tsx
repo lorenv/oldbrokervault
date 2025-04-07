@@ -133,20 +133,44 @@ export function DocumentExport({
   
   const copyHtmlToClipboard = async () => {
     try {
+      console.log("Starting HTML export for document ID:", docId);
+      
+      if (!docId) {
+        throw new Error('Document ID is missing. Please ensure you have a valid document selected.');
+      }
+      
       const response = await fetch(`/api/cim/export/html/${docId}`, {
         method: 'POST',
         credentials: 'include'
       });
 
+      console.log("HTML export response status:", response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to generate HTML content');
+        // Try to get error details from the response
+        let errorMessage = 'Failed to generate HTML content';
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If we can't parse the error JSON, use the status text
+          errorMessage = `Failed to generate HTML content (${response.status}: ${response.statusText})`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const { html } = await response.json();
+      const responseData = await response.json();
+      console.log("HTML export response received, has HTML:", Boolean(responseData.html));
+      
+      if (!responseData.html) {
+        throw new Error('Server returned an empty HTML response');
+      }
       
       // Create a temporary div to hold the HTML
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = responseData.html;
       document.body.appendChild(tempDiv);
       
       // Select the content
@@ -158,17 +182,22 @@ export function DocumentExport({
       selection?.addRange(range);
       
       // Execute copy command
-      document.execCommand('copy');
+      const copySuccess = document.execCommand('copy');
       
       // Clean up
       selection?.removeAllRanges();
       document.body.removeChild(tempDiv);
+      
+      if (!copySuccess) {
+        throw new Error('Browser clipboard copy operation failed');
+      }
       
       toast({
         title: "HTML copied to clipboard",
         description: "The formatted HTML content has been copied to your clipboard with styles preserved",
       });
     } catch (error) {
+      console.error("HTML clipboard export error:", error);
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to copy HTML to clipboard",
