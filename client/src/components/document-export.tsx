@@ -168,33 +168,12 @@ export function DocumentExport({
         throw new Error('Server returned an empty HTML response');
       }
       
-      // Create a temporary div to hold the HTML
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = responseData.html;
-      document.body.appendChild(tempDiv);
-      
-      // Select the content
-      const range = document.createRange();
-      range.selectNodeContents(tempDiv);
-      
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-      
-      // Execute copy command
-      const copySuccess = document.execCommand('copy');
-      
-      // Clean up
-      selection?.removeAllRanges();
-      document.body.removeChild(tempDiv);
-      
-      if (!copySuccess) {
-        throw new Error('Browser clipboard copy operation failed');
-      }
+      // Copy the actual HTML code to clipboard
+      await navigator.clipboard.writeText(responseData.html);
       
       toast({
-        title: "HTML copied to clipboard",
-        description: "The formatted HTML content has been copied to your clipboard with styles preserved",
+        title: "HTML code copied to clipboard",
+        description: "HTML code with formatting tags has been copied. Paste it into a web editor, CMS, or email composer that accepts HTML to preserve the professional formatting.",
       });
     } catch (error) {
       console.error("HTML clipboard export error:", error);
@@ -378,7 +357,7 @@ export function DocumentExport({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={copyHtmlToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
-              Copy as Formatted HTML
+              Copy HTML Code (Rich Format)
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>
