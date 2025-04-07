@@ -64,31 +64,25 @@ export function generateHtml(analysis: any): string {
     }
   `;
 
-  // Start building the HTML document
+  // Start building the HTML snippet (without doctype and head tags)
   let html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>${styles}</style>
-</head>
-<body>
-  <div class="cim-container">
-    <div class="cim-title">CONFIDENTIAL INFORMATION MEMORANDUM</div>
+<div class="cim-container" style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto;">
+  <div class="cim-title" style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
 `;
 
   // Business Overview Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">BUSINESS OVERVIEW</h2>
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">BUSINESS OVERVIEW</h2>
       <div>
-        <span class="cim-field-name">Founded:</span>
-        <span class="cim-field-value">${analysis.story?.yearStarted || 'N/A'}</span>
+        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Founded:</span>
+        <span style="color: #1f2937;">${analysis.story?.yearStarted || 'N/A'}</span>
       </div>
       <div>
-        <span class="cim-field-name">Structure:</span>
-        <span class="cim-field-value">${analysis.story?.businessStructure || 'N/A'}</span>
+        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Structure:</span>
+        <span style="color: #1f2937;">${analysis.story?.businessStructure || 'N/A'}</span>
       </div>
-      <div class="cim-field-value" style="margin-top: 12px;">
+      <div style="color: #1f2937; margin-top: 12px;">
         ${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}
       </div>
     </div>
@@ -96,32 +90,32 @@ export function generateHtml(analysis: any): string {
 
   // Executive Summary Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">INVESTMENT HIGHLIGHTS</h2>
-      <h3 class="cim-subsection-title">Key Attractions</h3>
-      <ul class="cim-list">
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">INVESTMENT HIGHLIGHTS</h2>
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Key Attractions</h3>
+      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
 `;
 
   if (analysis.executiveSummary?.buyerAttractions?.length) {
     analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
-      html += `        <li class="cim-list-item">${item}</li>\n`;
+      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
     });
   } else {
-    html += `        <li class="cim-list-item">N/A</li>\n`;
+    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
   }
 
   html += `
       </ul>
-      <h3 class="cim-subsection-title">Growth Opportunities</h3>
-      <ul class="cim-list">
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Growth Opportunities</h3>
+      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
 `;
 
   if (analysis.executiveSummary?.growthOpportunities?.length) {
     analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
-      html += `        <li class="cim-list-item">${item}</li>\n`;
+      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
     });
   } else {
-    html += `        <li class="cim-list-item">N/A</li>\n`;
+    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
   }
 
   html += `
@@ -131,38 +125,38 @@ export function generateHtml(analysis: any): string {
 
   // Market Position Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">MARKET POSITION</h2>
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">MARKET POSITION</h2>
       <div>
-        <span class="cim-field-name">Target Market:</span>
-        <span class="cim-field-value">${analysis.marketAnalysis?.customerProfile || 'N/A'}</span>
+        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Target Market:</span>
+        <span style="color: #1f2937;">${analysis.marketAnalysis?.customerProfile || 'N/A'}</span>
       </div>
       
-      <h3 class="cim-subsection-title">Competitors</h3>
-      <ul class="cim-list">
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Competitors</h3>
+      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
 `;
 
   if (analysis.marketAnalysis?.competitors?.length) {
     analysis.marketAnalysis.competitors.forEach((item: string) => {
-      html += `        <li class="cim-list-item">${item}</li>\n`;
+      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
     });
   } else {
-    html += `        <li class="cim-list-item">N/A</li>\n`;
+    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
   }
 
   html += `
       </ul>
       
-      <h3 class="cim-subsection-title">Business Strengths</h3>
-      <ul class="cim-list">
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Business Strengths</h3>
+      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
 `;
 
   if (analysis.marketAnalysis?.strengths?.length) {
     analysis.marketAnalysis.strengths.forEach((item: string) => {
-      html += `        <li class="cim-list-item">${item}</li>\n`;
+      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
     });
   } else {
-    html += `        <li class="cim-list-item">N/A</li>\n`;
+    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
   }
 
   html += `
@@ -172,81 +166,81 @@ export function generateHtml(analysis: any): string {
 
   // Operations Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">OPERATIONS</h2>
-      <h3 class="cim-subsection-title">Customer Relationships</h3>
-      <div>
-        <span class="cim-field-name">Recurring Revenue:</span>
-        <span class="cim-field-value">${analysis.operations?.customers?.recurring || 'N/A'}</span>
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">OPERATIONS</h2>
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Customer Relationships</h3>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Recurring Revenue:</span>
+        <span style="color: #1f2937;">${analysis.operations?.customers?.recurring || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Customer Base:</span>
-        <span class="cim-field-value">${analysis.operations?.customers?.relationships || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Customer Base:</span>
+        <span style="color: #1f2937;">${analysis.operations?.customers?.relationships || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Revenue Concentration:</span>
-        <span class="cim-field-value">${analysis.operations?.customers?.concentration || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Revenue Concentration:</span>
+        <span style="color: #1f2937;">${analysis.operations?.customers?.concentration || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Contract Terms:</span>
-        <span class="cim-field-value">${analysis.operations?.customers?.contracts || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Contract Terms:</span>
+        <span style="color: #1f2937;">${analysis.operations?.customers?.contracts || 'N/A'}</span>
       </div>
       
-      <h3 class="cim-subsection-title">Supply Chain</h3>
-      <div>
-        <span class="cim-field-name">Number of Suppliers:</span>
-        <span class="cim-field-value">${analysis.operations?.suppliers?.count || 'N/A'}</span>
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Supply Chain</h3>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Number of Suppliers:</span>
+        <span style="color: #1f2937;">${analysis.operations?.suppliers?.count || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Supplier Terms:</span>
-        <span class="cim-field-value">${analysis.operations?.suppliers?.terms || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Supplier Terms:</span>
+        <span style="color: #1f2937;">${analysis.operations?.suppliers?.terms || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Concentration:</span>
-        <span class="cim-field-value">${analysis.operations?.suppliers?.concentration || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Concentration:</span>
+        <span style="color: #1f2937;">${analysis.operations?.suppliers?.concentration || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Transferability:</span>
-        <span class="cim-field-value">${analysis.operations?.suppliers?.transferability || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Transferability:</span>
+        <span style="color: #1f2937;">${analysis.operations?.suppliers?.transferability || 'N/A'}</span>
       </div>
     </div>
 `;
 
   // Team Structure Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">TEAM STRUCTURE</h2>
-      <div>
-        <span class="cim-field-name">Owner Responsibilities:</span>
-        <span class="cim-field-value">${analysis.team?.ownerResponsibilities || 'N/A'}</span>
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">TEAM STRUCTURE</h2>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Owner Responsibilities:</span>
+        <span style="color: #1f2937;">${analysis.team?.ownerResponsibilities || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Required Hours:</span>
-        <span class="cim-field-value">${analysis.team?.ownerHours || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Required Hours:</span>
+        <span style="color: #1f2937;">${analysis.team?.ownerHours || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Management Structure:</span>
-        <span class="cim-field-value">${analysis.team?.management || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Management Structure:</span>
+        <span style="color: #1f2937;">${analysis.team?.management || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Team Size:</span>
-        <span class="cim-field-value">${analysis.team?.employeeCount || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Team Size:</span>
+        <span style="color: #1f2937;">${analysis.team?.employeeCount || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Turnover Rate:</span>
-        <span class="cim-field-value">${analysis.team?.turnover || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Turnover Rate:</span>
+        <span style="color: #1f2937;">${analysis.team?.turnover || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Retention:</span>
-        <span class="cim-field-value">${analysis.team?.retention || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Retention:</span>
+        <span style="color: #1f2937;">${analysis.team?.retention || 'N/A'}</span>
       </div>
 `;
 
   // Key Team Members
   if (analysis.team?.keyEmployees?.length > 0) {
     html += `
-      <h3 class="cim-subsection-title">Key Team Members</h3>
-      <ul class="cim-list">
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Key Team Members</h3>
+      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
 `;
     
     // Format each employee
@@ -275,7 +269,7 @@ export function generateHtml(analysis: any): string {
         employeeText = String(employee);
       }
       
-      html += `        <li class="cim-list-item">${employeeText}</li>\n`;
+      html += `        <li style="margin-bottom: 8px; color: #1f2937;">${employeeText}</li>\n`;
     });
     
     html += `      </ul>\n`;
@@ -287,27 +281,27 @@ export function generateHtml(analysis: any): string {
 
   // Facilities Section
   html += `
-    <div class="cim-section">
-      <h2 class="cim-section-title">FACILITIES</h2>
-      <div>
-        <span class="cim-field-name">Ownership Status:</span>
-        <span class="cim-field-value">${analysis.facility?.ownership || 'N/A'}</span>
+    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">FACILITIES</h2>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Ownership Status:</span>
+        <span style="color: #1f2937;">${analysis.facility?.ownership || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Size:</span>
-        <span class="cim-field-value">${analysis.facility?.size || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Size:</span>
+        <span style="color: #1f2937;">${analysis.facility?.size || 'N/A'}</span>
       </div>
-      <div>
-        <span class="cim-field-name">Monthly Cost:</span>
-        <span class="cim-field-value">${analysis.facility?.cost || 'N/A'}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Monthly Cost:</span>
+        <span style="color: #1f2937;">${analysis.facility?.cost || 'N/A'}</span>
       </div>
 `;
 
   if (analysis.facility?.leaseDetails) {
     html += `
-      <div>
-        <span class="cim-field-name">Lease Details:</span>
-        <span class="cim-field-value">${analysis.facility.leaseDetails}</span>
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Lease Details:</span>
+        <span style="color: #1f2937;">${analysis.facility.leaseDetails}</span>
       </div>
 `;
   }
@@ -315,8 +309,6 @@ export function generateHtml(analysis: any): string {
   html += `
     </div>
   </div>
-</body>
-</html>
 `;
 
   return html;
