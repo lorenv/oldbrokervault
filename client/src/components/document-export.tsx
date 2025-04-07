@@ -172,8 +172,8 @@ export function DocumentExport({
       await navigator.clipboard.writeText(responseData.html);
       
       toast({
-        title: "HTML code copied to clipboard",
-        description: "HTML code with formatting tags has been copied. Paste it into a web editor, CMS, or email composer that accepts HTML to preserve the professional formatting.",
+        title: "HTML copied to clipboard",
+        description: "HTML code has been copied. Paste it into a webpage, email, or any editor that accepts HTML to preserve formatting.",
       });
     } catch (error) {
       console.error("HTML clipboard export error:", error);
@@ -357,7 +357,7 @@ export function DocumentExport({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={copyHtmlToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
-              Copy HTML Code (Rich Format)
+              Copy as Formatted HTML
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>
