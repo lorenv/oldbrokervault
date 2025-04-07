@@ -168,6 +168,10 @@ export function DocumentExport({
         throw new Error('Server returned an empty HTML response');
       }
       
+      // Log some details about the HTML to help debug
+      console.log("HTML length:", responseData.html.length, "HTML starts with:", responseData.html.substring(0, 100));
+      console.log("HTML has DOCTYPE:", responseData.html.includes('<!DOCTYPE html>'));
+      
       // Copy the actual HTML code to clipboard
       await navigator.clipboard.writeText(responseData.html);
       
