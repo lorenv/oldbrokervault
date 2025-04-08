@@ -3,7 +3,9 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
-import { insertCimDocumentSchema, subscriptionPlans } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
@@ -148,6 +150,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const docs = await storage.getCimDocuments(req.user!.id);
     res.json(docs);
   });
+  
+  // Delete a CIM document
+  app.delete("/api/cim/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+      
+      // Check if document exists and belongs to user
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "You don't have permission to delete this document" });
+      }
+      
+      await storage.deleteCimDocument(docId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Document deletion error:", error);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
 
   // Subscription Routes
   app.get("/api/subscription/verify-session", async (req, res) => {
@@ -167,7 +197,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Update the user's session
         const user = await storage.getUser(userId);
-        if (req.session.passport?.user === userId) {
+        if (req.session && req.user?.id === userId) {
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
           req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
         }
@@ -238,7 +270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           stripeCustomerId: user?.stripeCustomerId
         });
 
-        if (req.session.passport?.user === userId) {
+        if (req.session && req.user?.id === userId) {
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
           req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
           console.log("Updated session for user:", userId);
@@ -310,7 +344,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "User not found" });
     }
 
-    await storage.db.update(storage.users).set({ isAdmin: true }).where(storage.db.where(storage.users.id, user.id));
+    // Update user in the database to make them an admin
+    await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
     res.sendStatus(200);
   });
 
