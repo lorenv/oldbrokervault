@@ -19,6 +19,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
+  deleteCimDocument(id: number): Promise<void>;
   updateGoogleTokens(userId: number, tokens: { 
     accessToken: string;
     refreshToken?: string | null;
@@ -177,6 +178,17 @@ export class DatabaseStorage implements IStorage {
         googleTokenExpiry: tokens.expiryDate,
       })
       .where(eq(users.id, userId));
+  }
+  
+  async deleteCimDocument(id: number): Promise<void> {
+    // Check if document exists before deleting
+    const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
+    if (!doc) {
+      throw new Error("Document not found");
+    }
+    
+    // Delete the document
+    await db.delete(cimDocuments).where(eq(cimDocuments.id, id));
   }
 }
 

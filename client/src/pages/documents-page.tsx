@@ -1,19 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code } from "lucide-react";
 import { Link } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentExport } from "@/components/document-export";
+import { Input } from "@/components/ui/input";
+import { apiRequest } from "@/lib/queryClient";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
 export default function DocumentsPage() {
@@ -22,9 +25,70 @@ export default function DocumentsPage() {
   });
   const [selectedDoc, setSelectedDoc] = useState<CimDocument | null>(null);
   const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [htmlExportLoading, setHtmlExportLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Filter documents based on search query
+  const filteredDocuments = documents?.filter(doc => 
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  // Delete document mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/cim/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      toast({
+        title: "Success",
+        description: "Document deleted successfully",
+      });
+      setConfirmDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete document",
+        variant: "destructive",
+      });
+    }
+  });
 
+  // Handle HTML export for copying formatted content to clipboard
+  const handleHtmlExport = async (docId: number) => {
+    if (htmlExportLoading) return;
+    
+    try {
+      setHtmlExportLoading(true);
+      const response = await apiRequest("POST", `/api/cim/export/html/${docId}`);
+      const data = await response.json();
+      
+      if (!data.html) {
+        throw new Error("No HTML content received");
+      }
+      
+      await navigator.clipboard.writeText(data.html);
+      toast({
+        title: "Copied to clipboard",
+        description: "Formatted HTML content has been copied to your clipboard. You can paste it into a document or email.",
+      });
+    } catch (error) {
+      console.error("HTML export error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to export HTML",
+        variant: "destructive",
+      });
+    } finally {
+      setHtmlExportLoading(false);
+    }
+  };
+  
   const handleCopyToClipboard = async (analysis: any) => {
     try {
       const cimText = `
@@ -82,21 +146,68 @@ ${analysis.team.ownerResponsibilities}
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold">My CIM Documents</h1>
-          <Link href="/">
-            <Button>
-              <FileText className="mr-2 h-4 w-4" />
-              Create New CIM
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search documents..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Link href="/">
+              <Button className="w-full sm:w-auto whitespace-nowrap">
+                <FileText className="mr-2 h-4 w-4" />
+                Create New CIM
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4">
-          {documents?.map((doc) => (
-            <Card key={doc.id} className="cursor-pointer hover:border-primary transition-colors" onClick={() => setSelectedDoc(doc)}>
-              <CardHeader>
-                <CardTitle>{doc.title}</CardTitle>
+          {filteredDocuments?.map((doc) => (
+            <Card key={doc.id} className="hover:border-primary transition-colors">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle 
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => setSelectedDoc(doc)}
+                  >
+                    {doc.title}
+                  </CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleCopyToClipboard(doc.analysis)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Plain Text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleHtmlExport(doc.id)}
+                        disabled={htmlExportLoading}
+                      >
+                        <Code className="mr-2 h-4 w-4" />
+                        Copy as HTML
+                        {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => setConfirmDelete(doc.id)} 
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground">
@@ -109,6 +220,12 @@ ${analysis.team.ownerResponsibilities}
             </Card>
           ))}
 
+          {filteredDocuments?.length === 0 && documents?.length !== 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No documents match your search. Try a different search term.
+            </div>
+          )}
+
           {documents?.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No CIM documents yet. Create your first one!
@@ -116,6 +233,33 @@ ${analysis.team.ownerResponsibilities}
           )}
         </div>
       </main>
+      
+      {/* Delete confirmation dialog */}
+      <Dialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => confirmDelete && deleteMutation.mutate(confirmDelete)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedDoc && (
         <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
@@ -135,8 +279,17 @@ ${analysis.team.ownerResponsibilities}
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => handleCopyToClipboard(selectedDoc.analysis)}>
                       <Copy className="mr-2 h-4 w-4" />
-                      Copy to Clipboard
+                      Copy Plain Text
                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleHtmlExport(selectedDoc.id)}
+                      disabled={htmlExportLoading}
+                    >
+                      <Code className="mr-2 h-4 w-4" />
+                      Copy as HTML
+                      {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => user?.subscriptionStatus !== "free" ? handleExport('word') : null}
                       className={user?.subscriptionStatus === "free" ? "opacity-50" : ""}
@@ -153,6 +306,7 @@ ${analysis.team.ownerResponsibilities}
                       Export to PDF
                       {user?.subscriptionStatus === "free" && <Lock className="ml-2 h-4 w-4" />}
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => (user?.subscriptionStatus === "premium" || user?.isAdmin) ? setIsWordPressDialogOpen(true) : null}
                       className={(user?.subscriptionStatus !== "premium" && !user?.isAdmin) ? "opacity-50" : ""}
@@ -160,6 +314,13 @@ ${analysis.team.ownerResponsibilities}
                       <Globe className="mr-2 h-4 w-4" />
                       Export to WordPress
                       {(user?.subscriptionStatus !== "premium" && !user?.isAdmin) && <Lock className="ml-2 h-4 w-4" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setConfirmDelete(selectedDoc.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Document
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
