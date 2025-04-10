@@ -164,32 +164,43 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
         content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business. Focus especially on:
 
 1. Creating a robust business summary that:
-   - Spans at least 4 sentences
+   - Spans at least 4-6 sentences with specific details
    - Highlights key business aspects and attractive features
    - Written as a compelling pitch to potential buyers
    - Includes growth trajectory and market position
    - Mentions reason for sale if provided
 
-2. Employee and contractor information should be comprehensive:
-   - Provide a clear summary of all employees and contractors
+2. Full, detailed answers in a clear question-answer style:
+   - Each field should contain COMPLETE answers, not just brief responses
+   - Include specifics, numbers, percentages, and examples wherever possible
+   - When listing items, provide 3-5 bullet points with explanations, not just short phrases
+   - Use full sentences and professional business language
+   - For fields asking about processes (like ordering), provide step-by-step explanations
+
+3. Employee and contractor information should be comprehensive:
+   - Provide a clear, detailed summary of all employees and contractors (at least 3-4 sentences)
    - Include total number of employees and contractors separately
-   - List key employee titles and roles
-   - Note any specializations or certifications
+   - List key employee titles and roles with their responsibilities
+   - Note any specializations, certifications, or unique skills
    - Mention length of employment where available
+   - For key employees, mention their contributions to the business
 
-3. Contract terms and equipment:
-   - Detail all customer and supplier contract terms
-   - List and describe any significant equipment
-   - Include inventory details and values
-   - Note any special arrangements or agreements
+4. Comprehensive details about operations:
+   - Detail all customer and supplier contract terms thoroughly
+   - Provide specific information about customer concentration (with percentages if available)
+   - Include exact details about supplier relationships
+   - List and describe any significant equipment with estimated values
+   - Include inventory details with specific counts, values, and procedures
+   - Note any special arrangements or agreements with detailed terms
 
-4. Marketing and client acquisition:
-   - Explain how new clients are acquired
-   - Detail marketing strategies and their effectiveness
-   - Include information about referral sources
-   - Note any recurring client relationships
+5. Financial and sales information:
+   - For sales channels, include percentages for each channel
+   - Explain pricing models in detail with examples
+   - Specify average order values with exact figures when possible
+   - Describe seasonality patterns with specific peak/low periods
+   - Explain payment terms and contracts in detail
 
-The JSON must follow this exact structure:
+The JSON must follow this exact structure, with full, detailed responses for each field:
 {
   "story": {
     "businessSummary": "Detailed 4+ sentence summary highlighting key aspects and investment potential",

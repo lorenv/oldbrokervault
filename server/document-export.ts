@@ -13,300 +13,490 @@ export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './googl
  * and pasting into other applications while preserving formatting
  */
 export function generateHtml(analysis: any): string {
-  // Define CSS styles for the HTML output
-  const styles = `
-    .cim-container {
-      font-family: 'Arial', sans-serif;
-      color: #333;
-      line-height: 1.5;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .cim-title {
-      font-size: 24px;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 24px;
-      color: #1a1a1a;
-    }
-    .cim-section {
-      margin-bottom: 28px;
-    }
-    .cim-section-title {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 16px;
-      color: #2c3e50;
-      border-bottom: 1px solid #e1e1e1;
-      padding-bottom: 8px;
-    }
-    .cim-subsection-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 12px;
-      color: #34495e;
-    }
-    .cim-field-name {
-      font-weight: bold;
-      margin-right: 8px;
-    }
-    .cim-field-value {
-      margin-bottom: 8px;
-    }
-    .cim-list {
-      margin-left: 24px;
-      margin-bottom: 16px;
-      padding-left: 0;
-      list-style-type: disc;
-    }
-    .cim-list-item {
-      margin-bottom: 6px;
-    }
-  `;
-
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
-<div class="cim-container" style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto;">
-  <div class="cim-title" style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
+<div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
+  <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
 `;
 
-  // Business Overview Section
+  // Business Overview Section with Q&A style
   html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">BUSINESS OVERVIEW</h2>
-      <div>
-        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Founded:</span>
-        <span style="color: #1f2937;">${analysis.story?.yearStarted || 'N/A'}</span>
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Business Overview</h2>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">When was the business founded?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.yearStarted || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the business structure?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.businessStructure || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the business model?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.businessModel || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What process do customers follow to place orders?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.orderProcess || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How has the business grown over time?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.growthHistory || 'Information not provided'}</td>
+        </tr>
+      </table>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Summary</h3>
+      <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+        <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.story?.businessSummary || 'No detailed business summary provided.'}</p>
       </div>
-      <div>
-        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Structure:</span>
-        <span style="color: #1f2937;">${analysis.story?.businessStructure || 'N/A'}</span>
-      </div>
-      <div style="color: #1f2937; margin-top: 12px;">
-        ${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}
-      </div>
+      
+      ${analysis.story?.saleReason ? `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Reason For Sale</h3>
+        <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+          <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.story.saleReason}</p>
+        </div>
+      ` : ''}
     </div>
 `;
 
-  // Executive Summary Section
+  // Investment Highlights Section
   html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">INVESTMENT HIGHLIGHTS</h2>
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Key Attractions</h3>
-      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Investment Highlights</h2>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business attractive to buyers?</h3>
 `;
 
-  if (analysis.executiveSummary?.buyerAttractions?.length) {
-    analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
-      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
+  if (analysis.executiveSummary?.buyerAttractions?.length || analysis.story?.keyAttractions?.length) {
+    const attractions = analysis.executiveSummary?.buyerAttractions || analysis.story?.keyAttractions || [];
+    html += `
+      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+    `;
+    attractions.forEach((item: string) => {
+      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
     });
+    html += `</ul>`;
   } else {
-    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
+    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
   }
 
   html += `
-      </ul>
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Growth Opportunities</h3>
-      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What growth opportunities exist for new ownership?</h3>
 `;
 
   if (analysis.executiveSummary?.growthOpportunities?.length) {
+    html += `
+      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+    `;
     analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
-      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
+      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
     });
+    html += `</ul>`;
   } else {
-    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
+    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
+  }
+
+  html += `</div>`;
+
+  // Market Analysis Section
+  html += `
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Market Analysis</h2>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Who is the target customer?</h3>
+      <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+        <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.marketAnalysis?.customerProfile || 'No customer profile information provided.'}</p>
+      </div>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business unique in the market?</h3>
+`;
+
+  if (analysis.marketAnalysis?.uniqueFeatures?.length) {
+    html += `
+      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+    `;
+    analysis.marketAnalysis.uniqueFeatures.forEach((item: string) => {
+      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
+    });
+    html += `</ul>`;
+  } else {
+    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
   }
 
   html += `
-      </ul>
-    </div>
-`;
-
-  // Market Position Section
-  html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">MARKET POSITION</h2>
-      <div>
-        <span style="font-weight: 600; color: #4b5563; min-width: 120px; display: inline-block;">Target Market:</span>
-        <span style="color: #1f2937;">${analysis.marketAnalysis?.customerProfile || 'N/A'}</span>
-      </div>
-      
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Competitors</h3>
-      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f3f4f6;">
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600; color: #374151; width: 50%;">Who are the key competitors?</th>
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600; color: #374151; width: 50%;">What are the business strengths?</th>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; vertical-align: top;">
 `;
 
   if (analysis.marketAnalysis?.competitors?.length) {
+    html += `<ul style="padding-left: 20px; margin: 0; list-style-type: disc;">`;
     analysis.marketAnalysis.competitors.forEach((item: string) => {
-      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
+      html += `<li style="margin-bottom: 8px; color: #1f2937;">${item}</li>\n`;
     });
+    html += `</ul>`;
   } else {
-    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
+    html += `<p style="color: #6b7280; font-style: italic;">Information not provided.</p>`;
   }
 
   html += `
-      </ul>
-      
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Business Strengths</h3>
-      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
+          </td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; vertical-align: top;">
 `;
 
   if (analysis.marketAnalysis?.strengths?.length) {
+    html += `<ul style="padding-left: 20px; margin: 0; list-style-type: disc;">`;
     analysis.marketAnalysis.strengths.forEach((item: string) => {
-      html += `        <li style="margin-bottom: 6px;">${item}</li>\n`;
+      html += `<li style="margin-bottom: 8px; color: #1f2937;">${item}</li>\n`;
     });
+    html += `</ul>`;
   } else {
-    html += `        <li style="margin-bottom: 6px;">N/A</li>\n`;
+    html += `<p style="color: #6b7280; font-style: italic;">Information not provided.</p>`;
   }
 
   html += `
-      </ul>
+          </td>
+        </tr>
+      </table>
     </div>
 `;
+
+  // Sales Section
+  if (analysis.sales) {
+    html += `
+      <div style="margin-bottom: 30px; padding-bottom: 20px;">
+        <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Sales & Revenue</h2>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the average order value?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.averageOrderValue || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How does pricing compare to competitors?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.competitivePricing || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What pricing model is used?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.pricingModel || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is there seasonality in sales?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.seasonality || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the contract terms with customers?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.contractTerms || 'Information not provided'}</td>
+          </tr>
+        </table>
+    `;
+
+    // Sales Channels
+    if (analysis.sales.channels && typeof analysis.sales.channels === 'object') {
+      html += `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What sales channels are used?</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+          <tr style="background-color: #f3f4f6;">
+            <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600; color: #374151;">Channel</th>
+            <th style="padding: 12px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600; color: #374151;">Percentage</th>
+          </tr>
+      `;
+
+      Object.entries(analysis.sales.channels).forEach(([channel, percentage]: [string, any]) => {
+        html += `
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb;">${channel}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: right;">${percentage}%</td>
+          </tr>
+        `;
+      });
+
+      html += `</table>`;
+    }
+
+    // Payment Methods
+    if (analysis.sales.paymentMethods?.length) {
+      html += `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What payment methods are accepted?</h3>
+        <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+      `;
+      analysis.sales.paymentMethods.forEach((method: string) => {
+        html += `<li style="margin-bottom: 6px; color: #1f2937;">${method}</li>\n`;
+      });
+      html += `</ul>`;
+    }
+
+    html += `</div>`;
+  }
 
   // Operations Section
   html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">OPERATIONS</h2>
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Customer Relationships</h3>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Recurring Revenue:</span>
-        <span style="color: #1f2937;">${analysis.operations?.customers?.recurring || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Customer Base:</span>
-        <span style="color: #1f2937;">${analysis.operations?.customers?.relationships || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Revenue Concentration:</span>
-        <span style="color: #1f2937;">${analysis.operations?.customers?.concentration || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Contract Terms:</span>
-        <span style="color: #1f2937;">${analysis.operations?.customers?.contracts || 'N/A'}</span>
-      </div>
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Business Operations</h2>
       
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Supply Chain</h3>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Number of Suppliers:</span>
-        <span style="color: #1f2937;">${analysis.operations?.suppliers?.count || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Supplier Terms:</span>
-        <span style="color: #1f2937;">${analysis.operations?.suppliers?.terms || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Concentration:</span>
-        <span style="color: #1f2937;">${analysis.operations?.suppliers?.concentration || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Transferability:</span>
-        <span style="color: #1f2937;">${analysis.operations?.suppliers?.transferability || 'N/A'}</span>
-      </div>
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Customer Relationships</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How much revenue is recurring?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.recurring || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How would you describe your customer relationships?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.relationships || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is revenue concentrated among certain customers?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.concentration || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the typical contract terms?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.contracts || 'Information not provided'}</td>
+        </tr>
+      </table>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Supply Chain</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How many suppliers does the business work with?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.count || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the supplier payment terms?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.terms || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is there concentration among certain suppliers?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.concentration || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How easily can supplier relationships be transferred?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.transferability || 'Information not provided'}</td>
+        </tr>
+      </table>
     </div>
 `;
 
+  // Inventory & Assets Section
+  if (analysis.inventory || analysis.assets) {
+    html += `
+      <div style="margin-bottom: 30px; padding-bottom: 20px;">
+        <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Inventory & Assets</h2>
+    `;
+
+    if (analysis.assets) {
+      html += `
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the approximate value of equipment?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.assets?.equipmentValue || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Where is the business located?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.assets?.location || 'Information not provided'}</td>
+          </tr>
+        </table>
+      `;
+
+      if (analysis.assets.equipmentDetails) {
+        html += `
+          <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What equipment is included in the sale?</h3>
+          <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+            <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.assets.equipmentDetails}</p>
+          </div>
+        `;
+      }
+
+      if (analysis.assets.inventoryDetails) {
+        html += `
+          <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What inventory is included in the sale?</h3>
+          <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+            <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.assets.inventoryDetails}</p>
+          </div>
+        `;
+      }
+
+      if (analysis.assets.digitalAssets?.length) {
+        html += `
+          <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What digital assets are included?</h3>
+          <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        `;
+        analysis.assets.digitalAssets.forEach((asset: string) => {
+          html += `<li style="margin-bottom: 6px; color: #1f2937;">${asset}</li>\n`;
+        });
+        html += `</ul>`;
+      }
+    }
+
+    if (analysis.inventory) {
+      html += `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Inventory Details</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the typical lead time for inventory?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.leadTime || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Where is inventory sourced from?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.sourcing || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How and where is inventory stored?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.storage || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #ffffff;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the approximate value of inventory?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.value || 'Information not provided'}</td>
+          </tr>
+          <tr style="background-color: #f9fafb;">
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many SKUs does the business maintain?</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.skuCount || 'Information not provided'}</td>
+          </tr>
+        </table>
+      `;
+
+      if (analysis.inventory.topProducts?.length) {
+        html += `
+          <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What are the top-selling products?</h3>
+          <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+        `;
+        analysis.inventory.topProducts.forEach((product: string) => {
+          html += `<li style="margin-bottom: 6px; color: #1f2937;">${product}</li>\n`;
+        });
+        html += `</ul>`;
+      }
+    }
+
+    html += `</div>`;
+  }
+
   // Team Structure Section
   html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">TEAM STRUCTURE</h2>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Owner Responsibilities:</span>
-        <span style="color: #1f2937;">${analysis.team?.ownerResponsibilities || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Required Hours:</span>
-        <span style="color: #1f2937;">${analysis.team?.ownerHours || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Management Structure:</span>
-        <span style="color: #1f2937;">${analysis.team?.management || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Team Size:</span>
-        <span style="color: #1f2937;">${analysis.team?.employeeCount || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Turnover Rate:</span>
-        <span style="color: #1f2937;">${analysis.team?.turnover || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Retention:</span>
-        <span style="color: #1f2937;">${analysis.team?.retention || 'N/A'}</span>
-      </div>
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Team & Organization</h2>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Owner Involvement</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What are the owner's current responsibilities?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.ownerResponsibilities || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many hours per week does the owner work?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.ownerHours || 'Information not provided'}</td>
+        </tr>
+      </table>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Staff & Organization</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How many employees does the business have?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.employeeCount || 'Information not provided'}</td>
+        </tr>
+        ${analysis.team?.contractorCount ? `
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many contractors does the business use?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team.contractorCount}</td>
+        </tr>` : ''}
+        <tr style="background-color: ${analysis.team?.contractorCount ? '#f9fafb' : '#ffffff'};">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the management structure?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.management || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: ${analysis.team?.contractorCount ? '#ffffff' : '#f9fafb'};">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the employee turnover rate?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.turnover || 'Information not provided'}</td>
+        </tr>
+      </table>
 `;
+
+  if (analysis.team?.employeeSummary) {
+    html += `
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Employee Overview</h3>
+      <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+        <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.team.employeeSummary}</p>
+      </div>
+    `;
+  }
 
   // Key Team Members
   if (analysis.team?.keyEmployees?.length > 0) {
     html += `
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 16px;">Key Team Members</h3>
-      <ul style="padding-left: 20px; margin-bottom: 16px; list-style-type: disc;">
-`;
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Key Team Members</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f3f4f6;">
+          <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: left; font-weight: 600; color: #374151;">Role/Position</th>
+        </tr>
+    `;
     
-    // Format each employee
-    analysis.team.keyEmployees.forEach((employee: any) => {
-      let employeeText = '';
+    // Format each key employee
+    analysis.team.keyEmployees.forEach((employee: any, index: number) => {
+      html += `
+        <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">
+      `;
       
       if (typeof employee === 'string') {
-        employeeText = employee;
+        html += employee;
       } else if (typeof employee === 'object') {
         // Extract relevant properties from employee object
         const parts = [];
-        if (employee.name) parts.push(`<strong>Name:</strong> ${employee.name}`);
         if (employee.role) parts.push(`<strong>Role:</strong> ${employee.role}`);
-        if (employee.background) parts.push(`<strong>Background:</strong> ${employee.background}`);
+        if (employee.name) parts.push(`<strong>Name:</strong> ${employee.name}`);
         if (employee.tenure) parts.push(`<strong>Tenure:</strong> ${employee.tenure}`);
+        if (employee.background) parts.push(`<strong>Background:</strong> ${employee.background}`);
         
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
-          employeeText = Object.entries(employee)
+          html += Object.entries(employee)
             .map(([key, val]) => `<strong>${key}:</strong> ${val}`)
-            .join(', ');
+            .join('<br>');
         } else {
-          employeeText = parts.join(', ');
+          html += parts.join('<br>');
         }
       } else {
-        employeeText = String(employee);
+        html += String(employee);
       }
       
-      html += `        <li style="margin-bottom: 8px; color: #1f2937;">${employeeText}</li>\n`;
+      html += `
+          </td>
+        </tr>
+      `;
     });
     
-    html += `      </ul>\n`;
+    html += `</table>`;
   }
 
-  html += `
-    </div>
-`;
+  html += `</div>`;
 
   // Facilities Section
   html += `
-    <div style="margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
-      <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;">FACILITIES</h2>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Ownership Status:</span>
-        <span style="color: #1f2937;">${analysis.facility?.ownership || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Size:</span>
-        <span style="color: #1f2937;">${analysis.facility?.size || 'N/A'}</span>
-      </div>
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Monthly Cost:</span>
-        <span style="color: #1f2937;">${analysis.facility?.cost || 'N/A'}</span>
-      </div>
-`;
-
-  if (analysis.facility?.leaseDetails) {
-    html += `
-      <div style="margin-bottom: 8px;">
-        <span style="font-weight: 600; color: #4b5563; min-width: 180px; display: inline-block;">Lease Details:</span>
-        <span style="color: #1f2937;">${analysis.facility.leaseDetails}</span>
-      </div>
-`;
-  }
-
-  html += `
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Facilities</h2>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the ownership status of the facility?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.ownership || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the size of the facility?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.size || 'Information not provided'}</td>
+        </tr>
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the monthly cost of the facility?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.cost || 'Information not provided'}</td>
+        </tr>
+        ${analysis.facility?.leaseDetails ? `
+        <tr style="background-color: #ffffff;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the lease details?</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility.leaseDetails}</td>
+        </tr>` : ''}
+      </table>
     </div>
   </div>
 `;
