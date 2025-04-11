@@ -123,12 +123,65 @@ export function DocumentExport({
   };
 
   const copyToClipboard = () => {
-    const text = formatTextContent(analysis);
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: "The CIM content has been copied to your clipboard as plain text",
-    });
+    try {
+      const text = formatTextContent(analysis);
+      
+      // Browser-compatible clipboard copy using fallback methods
+      copyTextToClipboard(text);
+      
+      toast({
+        title: "Copied to clipboard",
+        description: "The CIM content has been copied to your clipboard as plain text",
+      });
+    } catch (error) {
+      console.error("Plain text clipboard error:", error);
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard. Please try a different browser or export option.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Cross-browser clipboard copy function
+  const copyTextToClipboard = (text: string) => {
+    // Try the modern Clipboard API first (works in most browsers)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        navigator.clipboard.writeText(text);
+        return;
+      } catch (err) {
+        console.warn("Clipboard API failed, trying fallback method", err);
+      }
+    }
+    
+    // Fallback method for browsers (especially Safari) that might have issues
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    // Make the textarea out of viewport to prevent visual glitches
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    
+    // Select and copy
+    textArea.focus();
+    textArea.select();
+    
+    let successful = false;
+    try {
+      successful = document.execCommand('copy');
+    } catch (err) {
+      console.error("execCommand error", err);
+    }
+    
+    // Clean up
+    document.body.removeChild(textArea);
+    
+    if (!successful) {
+      throw new Error("Could not copy text");
+    }
   };
   
   const copyHtmlToClipboard = async () => {
@@ -139,12 +192,26 @@ export function DocumentExport({
         throw new Error('Document ID is missing. Please ensure you have a valid document selected.');
       }
       
+      // Create a dialog to show during export
+      const exportDialog = document.createElement('div');
+      exportDialog.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+      exportDialog.innerHTML = `
+        <div class="bg-white p-4 rounded-md shadow-lg">
+          <p class="text-lg font-medium">Preparing HTML export...</p>
+          <div class="mt-2 animate-pulse">Processing document</div>
+        </div>
+      `;
+      document.body.appendChild(exportDialog);
+      
       const response = await fetch(`/api/cim/export/html/${docId}`, {
         method: 'POST',
         credentials: 'include'
       });
 
       console.log("HTML export response status:", response.status);
+      
+      // Remove the dialog now that we've received a response
+      document.body.removeChild(exportDialog);
       
       if (!response.ok) {
         // Try to get error details from the response
@@ -168,12 +235,8 @@ export function DocumentExport({
         throw new Error('Server returned an empty HTML response');
       }
       
-      // Log some details about the HTML to help debug
-      console.log("HTML length:", responseData.html.length, "HTML starts with:", responseData.html.substring(0, 100));
-      console.log("HTML has DOCTYPE:", responseData.html.includes('<!DOCTYPE html>'));
-      
-      // Copy the actual HTML code to clipboard
-      await navigator.clipboard.writeText(responseData.html);
+      // Copy HTML content using our cross-browser method
+      copyTextToClipboard(responseData.html);
       
       toast({
         title: "HTML copied to clipboard",
