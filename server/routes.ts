@@ -12,7 +12,7 @@ import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
+import { generateWordDocument, generatePDF, generateHtml, formatTextContent, generateRichText, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 
@@ -198,9 +198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the user's session
         const user = await storage.getUser(userId);
         if (req.session && req.user?.id === userId) {
-          req.session.passport = req.session.passport || {};
-          // @ts-ignore - we know the passport property exists now
-          req.session.passport.user = user;
+          // Safely update the passport session data
+          const session = req.session as any; // Type assertion for passport property
+          session.passport = session.passport || {};
+          session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
         }
 
@@ -271,9 +272,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         if (req.session && req.user?.id === userId) {
-          req.session.passport = req.session.passport || {};
-          // @ts-ignore - we know the passport property exists now
-          req.session.passport.user = user;
+          // Safely update the passport session data
+          const session = req.session as any; // Type assertion for passport property
+          session.passport = session.passport || {};
+          session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
           console.log("Updated session for user:", userId);
         }
