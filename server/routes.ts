@@ -437,10 +437,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Successfully generated Rich Text content (${rtfContent.length} characters)`);
       
-      // Send as a download file with .rtf extension
-      res.setHeader('Content-Type', 'application/rtf');
-      res.setHeader('Content-Disposition', `attachment; filename=cim-${docId}.rtf`);
-      res.send(rtfContent);
+      // Changed to return as JSON for clipboard copying
+      res.json({ rtfContent });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("Rich Text export error:", error);

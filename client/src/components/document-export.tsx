@@ -310,7 +310,7 @@ export function DocumentExport({
     }
   };
   
-  const downloadRichText = async () => {
+  const copyRichTextToClipboard = async () => {
     try {
       console.log("Starting Rich Text export for document ID:", docId);
       
@@ -319,7 +319,7 @@ export function DocumentExport({
       loadingIndicator.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
       loadingIndicator.innerHTML = `
         <div class="bg-white p-4 rounded-md shadow-lg">
-          <p class="text-lg font-medium">Preparing Rich Text export...</p>
+          <p class="text-lg font-medium">Preparing Rich Text Format...</p>
           <div class="mt-2 animate-pulse">Processing document</div>
         </div>
       `;
@@ -334,7 +334,7 @@ export function DocumentExport({
       document.body.removeChild(loadingIndicator);
       
       if (!response.ok) {
-        let errorMessage = 'Failed to generate Rich Text document';
+        let errorMessage = 'Failed to generate Rich Text content';
         try {
           const errorData = await response.json();
           if (errorData.error) {
@@ -345,30 +345,29 @@ export function DocumentExport({
           }
         } catch (e) {
           // If we can't parse the error JSON, use the status text
-          errorMessage = `Failed to generate Rich Text document (${response.status}: ${response.statusText})`;
+          errorMessage = `Failed to generate Rich Text content (${response.status}: ${response.statusText})`;
         }
         throw new Error(errorMessage);
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cim-${docId}.rtf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const data = await response.json();
+      
+      if (!data.rtfContent) {
+        throw new Error('No Rich Text content received from server');
+      }
+      
+      // Copy the RTF content to clipboard
+      copyTextToClipboard(data.rtfContent);
       
       toast({
-        title: "Rich Text Export Successful",
-        description: "Your document has been exported in Rich Text Format (.rtf) with questions highlighted in larger bold text. You can open this file in most word processors."
+        title: "Rich Text Copied to Clipboard",
+        description: "Rich Text Format content has been copied to your clipboard with questions formatted in larger bold text. Paste it into Word, Google Docs, or any RTF-compatible editor."
       });
     } catch (error) {
       console.error("Rich Text export error:", error);
       toast({
-        title: "Export Failed",
-        description: error instanceof Error ? error.message : "Failed to export to Rich Text format",
+        title: "Copy Failed",
+        description: error instanceof Error ? error.message : "Failed to copy Rich Text Format content",
         variant: "destructive"
       });
     }
@@ -490,9 +489,9 @@ export function DocumentExport({
               <Copy className="h-4 w-4 mr-2" />
               Copy as Formatted HTML
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={downloadRichText}>
+            <DropdownMenuItem onClick={copyRichTextToClipboard}>
               <FileType className="h-4 w-4 mr-2" />
-              Export to Rich Text (.rtf)
+              Copy as Rich Text Format
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>

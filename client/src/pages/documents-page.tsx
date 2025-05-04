@@ -260,7 +260,7 @@ ${analysis.team.ownerResponsibilities}
                         disabled={richTextExportLoading}
                       >
                         <FileType className="mr-2 h-4 w-4" />
-                        Download as Rich Text
+                        Copy as Rich Text Format
                         {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -360,7 +360,7 @@ ${analysis.team.ownerResponsibilities}
                       disabled={richTextExportLoading}
                     >
                       <FileType className="mr-2 h-4 w-4" />
-                      Download as Rich Text
+                      Copy as Rich Text Format
                       {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
