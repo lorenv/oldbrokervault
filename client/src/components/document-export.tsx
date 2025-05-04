@@ -309,6 +309,70 @@ export function DocumentExport({
       });
     }
   };
+  
+  const downloadRichText = async () => {
+    try {
+      console.log("Starting Rich Text export for document ID:", docId);
+      
+      // Create a loading indicator
+      const loadingIndicator = document.createElement('div');
+      loadingIndicator.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+      loadingIndicator.innerHTML = `
+        <div class="bg-white p-4 rounded-md shadow-lg">
+          <p class="text-lg font-medium">Preparing Rich Text export...</p>
+          <div class="mt-2 animate-pulse">Processing document</div>
+        </div>
+      `;
+      document.body.appendChild(loadingIndicator);
+      
+      const response = await fetch(`/api/cim/export/richtext/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      // Remove loading indicator
+      document.body.removeChild(loadingIndicator);
+      
+      if (!response.ok) {
+        let errorMessage = 'Failed to generate Rich Text document';
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += `\n${errorData.details}`;
+            }
+          }
+        } catch (e) {
+          // If we can't parse the error JSON, use the status text
+          errorMessage = `Failed to generate Rich Text document (${response.status}: ${response.statusText})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cim-${docId}.rtf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Rich Text Export Successful",
+        description: "Your document has been exported in Rich Text Format (.rtf) with questions highlighted in larger bold text. You can open this file in most word processors."
+      });
+    } catch (error) {
+      console.error("Rich Text export error:", error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to Rich Text format",
+        variant: "destructive"
+      });
+    }
+  };
 
   const exportToGoogleDocs = async () => {
     try {
@@ -425,6 +489,10 @@ export function DocumentExport({
             <DropdownMenuItem onClick={copyHtmlToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
               Copy as Formatted HTML
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadRichText}>
+              <FileType className="h-4 w-4 mr-2" />
+              Export to Rich Text (.rtf)
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>
