@@ -126,43 +126,97 @@ ${analysis.team.ownerResponsibilities}
     try {
       setRichTextExportLoading(true);
       
-      // Create a hidden anchor element for downloading the file
-      const downloadLink = document.createElement('a');
-      downloadLink.style.display = 'none';
-      
-      // Make the request to get the RTF content
+      // Make the request to get the RTF content as JSON
       const response = await fetch(`/api/cim/export/richtext/${docId}`, {
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Accept': 'application/rtf'
+          'Accept': 'application/json'
         }
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to download Rich Text document');
+        throw new Error(errorData.error || 'Failed to generate Rich Text content');
       }
       
-      // Get the file content as blob
-      const blob = await response.blob();
+      // Get the RTF content from the JSON response
+      const data = await response.json();
       
-      // Create a download URL for the blob
-      const url = window.URL.createObjectURL(blob);
-      downloadLink.href = url;
-      downloadLink.download = `cim-${docId}.rtf`;
+      if (!data.rtfContent) {
+        throw new Error('No Rich Text content received from server');
+      }
       
-      // Append to the document body and trigger click
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
+      // Cross-browser clipboard copy function
+      const copyTextToClipboard = (text: string) => {
+        // Try the modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text)
+            .catch(err => {
+              console.warn("Clipboard API failed, trying fallback method", err);
+              
+              // Fallback method for browsers (especially Safari) that might have issues
+              const textArea = document.createElement("textarea");
+              textArea.value = text;
+              
+              // Make the textarea out of viewport
+              textArea.style.position = "fixed";
+              textArea.style.left = "-999999px";
+              textArea.style.top = "-999999px";
+              document.body.appendChild(textArea);
+              
+              // Select and copy
+              textArea.focus();
+              textArea.select();
+              
+              let successful = false;
+              try {
+                successful = document.execCommand('copy');
+              } catch (err) {
+                console.error("execCommand error", err);
+              }
+              
+              // Clean up
+              document.body.removeChild(textArea);
+              
+              if (!successful) {
+                throw new Error("Could not copy text");
+              }
+            });
+        } else {
+          // If Clipboard API not available, use fallback
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-999999px";
+          textArea.style.top = "-999999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          let successful = false;
+          try {
+            successful = document.execCommand('copy');
+          } catch (err) {
+            console.error("execCommand error", err);
+          }
+          
+          document.body.removeChild(textArea);
+          
+          if (!successful) {
+            throw new Error("Could not copy text");
+          }
+          
+          return Promise.resolve();
+        }
+      };
       
-      // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(downloadLink);
+      // Copy RTF content to clipboard
+      await copyTextToClipboard(data.rtfContent);
       
       toast({
-        title: "Success",
-        description: "Rich Text document downloaded successfully. Questions are formatted with larger bold text.",
+        title: "Copied to Clipboard",
+        description: "Rich Text Format content has been copied. Paste it into Word, Google Docs, or any RTF-compatible editor to see formatted text with larger bold questions.",
       });
     } catch (error) {
       console.error("Rich Text export error:", error);
