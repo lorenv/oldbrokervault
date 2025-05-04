@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, FileType } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -28,6 +28,7 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [htmlExportLoading, setHtmlExportLoading] = useState(false);
+  const [richTextExportLoading, setRichTextExportLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -118,6 +119,63 @@ ${analysis.team.ownerResponsibilities}
     }
   };
 
+  // Handle Rich Text Format export 
+  const handleRichTextExport = async (docId: number) => {
+    if (richTextExportLoading) return;
+    
+    try {
+      setRichTextExportLoading(true);
+      
+      // Create a hidden anchor element for downloading the file
+      const downloadLink = document.createElement('a');
+      downloadLink.style.display = 'none';
+      
+      // Make the request to get the RTF content
+      const response = await fetch(`/api/cim/export/richtext/${docId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/rtf'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download Rich Text document');
+      }
+      
+      // Get the file content as blob
+      const blob = await response.blob();
+      
+      // Create a download URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadLink.download = `cim-${docId}.rtf`;
+      
+      // Append to the document body and trigger click
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(downloadLink);
+      
+      toast({
+        title: "Success",
+        description: "Rich Text document downloaded successfully. Questions are formatted with larger bold text.",
+      });
+    } catch (error) {
+      console.error("Rich Text export error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to export Rich Text",
+        variant: "destructive",
+      });
+    } finally {
+      setRichTextExportLoading(false);
+    }
+  };
+
   const handleExport = async (format: 'pdf' | 'word') => {
     toast({
       title: "Coming Soon",
@@ -196,6 +254,14 @@ ${analysis.team.ownerResponsibilities}
                         <Code className="mr-2 h-4 w-4" />
                         Copy as HTML
                         {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleRichTextExport(doc.id)}
+                        disabled={richTextExportLoading}
+                      >
+                        <FileType className="mr-2 h-4 w-4" />
+                        Download as Rich Text
+                        {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
@@ -288,6 +354,14 @@ ${analysis.team.ownerResponsibilities}
                       <Code className="mr-2 h-4 w-4" />
                       Copy as HTML
                       {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleRichTextExport(selectedDoc.id)}
+                      disabled={richTextExportLoading}
+                    >
+                      <FileType className="mr-2 h-4 w-4" />
+                      Download as Rich Text
+                      {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
