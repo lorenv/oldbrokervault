@@ -396,6 +396,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to generate PDF" });
     }
   });
+
+  // Rich Text export endpoint - for formatted documents with questions highlighted
+  app.post("/api/cim/export/richtext/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      console.log(`Processing Rich Text export request for document ID: ${docId}, user ID: ${req.user?.id}`);
+      
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID format" });
+      }
+      
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access denied: Document belongs to user ${doc.userId}, but request is from user ${req.user!.id}`);
+        return res.status(403).json({ error: "You don't have permission to access this document" });
+      }
+      
+      console.log(`Generating Rich Text for document: ${doc.title}, analysis present: ${Boolean(doc.analysis)}`);
+      
+      if (!doc.analysis) {
+        return res.status(400).json({ error: "Document has no analysis data" });
+      }
+      
+      const rtfContent = generateRichText(doc.analysis);
+      
+      if (!rtfContent) {
+        return res.status(500).json({ error: "Failed to generate Rich Text content" });
+      }
+      
+      console.log(`Successfully generated Rich Text content (${rtfContent.length} characters)`);
+      
+      // Send as a download file with .rtf extension
+      res.setHeader('Content-Type', 'application/rtf');
+      res.setHeader('Content-Disposition', `attachment; filename=cim-${docId}.rtf`);
+      res.send(rtfContent);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Rich Text export error:", error);
+      console.error("Error details:", errorMessage);
+      res.status(500).json({ 
+        error: "Failed to generate Rich Text content", 
+        details: errorMessage 
+      });
+    }
+  });
   
   // HTML export endpoint for clipboard export with formatting
   app.post("/api/cim/export/html/:id", async (req, res) => {
