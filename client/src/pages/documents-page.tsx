@@ -119,10 +119,37 @@ ${analysis.team.ownerResponsibilities}
   };
 
   const handleExport = async (format: 'pdf' | 'word') => {
-    toast({
-      title: "Coming Soon",
-      description: `Export to ${format.toUpperCase()} will be available soon`,
-    });
+    if (!selectedDoc) return;
+    
+    try {
+      // Create a temporary anchor element to trigger download
+      const anchor = document.createElement('a');
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      
+      // Set the download URL based on the export format
+      const url = `/api/cim/export/${format}/${selectedDoc.id}`;
+      anchor.href = url;
+      anchor.download = `cim-${selectedDoc.id}.${format === 'pdf' ? 'pdf' : 'docx'}`;
+      
+      // Trigger the download
+      anchor.click();
+      
+      // Clean up
+      document.body.removeChild(anchor);
+      
+      toast({
+        title: "Export Started",
+        description: `Your ${format.toUpperCase()} export has started. Check your downloads.`,
+      });
+    } catch (error) {
+      console.error(`${format} export error:`, error);
+      toast({
+        title: "Export Failed",
+        description: `Failed to export to ${format.toUpperCase()}. Please try again.`,
+        variant: "destructive",
+      });
+    }
   };
 
   const renderValue = (value: any): string => {
