@@ -258,9 +258,9 @@ The JSON must follow this exact structure, with full, detailed responses for eac
       "replaceability": "Detailed assessment of supplier replaceability with alternative sources identified"
     },
     "customers": {
-      "recurring": "Comprehensive explanation of recurring revenue patterns with retention rates",
+      "recurring": "If mentioned in transcript: Detailed explanation of recurring revenue patterns with retention rates, or '[NOT MENTIONED]' if not applicable",
       "relationships": "Detailed analysis of customer relationships, history, and transferability",
-      "concentration": "Precise revenue concentration by customer segment with top customer percentages",
+      "concentration": "If mentioned in transcript: Details about revenue concentration by customer segment with percentages, or '[NOT MENTIONED]' if not applicable",
       "contracts": "Specific contract terms with customers including duration and renewal history",
       "replaceability": "Detailed assessment of customer replaceability and specific acquisition strategies"
     }

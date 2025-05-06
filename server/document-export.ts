@@ -12,6 +12,25 @@ export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './googl
  * This function creates a formatted HTML representation suitable for copying to clipboard
  * and pasting into other applications while preserving formatting
  */
+// Helper function to safely convert any value to string
+function safeStringify(value: any): string {
+  if (value === undefined || value === null) {
+    return 'Information not provided';
+  }
+  
+  if (typeof value === 'object') {
+    if (Object.keys(value).length === 0) {
+      return '[ANSWER WAS NOT MENTIONED]';
+    }
+    if (Array.isArray(value)) {
+      return value.map(item => safeStringify(item)).join(', ');
+    }
+    return '[ANSWER WAS NOT MENTIONED]';
+  }
+  
+  return String(value);
+}
+
 export function generateHtml(analysis: any): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
@@ -244,15 +263,15 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How much revenue is recurring?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.recurring || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.customers?.recurring)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How would you describe your customer relationships?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.relationships || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.customers?.relationships)}</td>
         </tr>
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is revenue concentrated among certain customers?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.concentration || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.customers?.concentration)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the typical contract terms?</td>
@@ -1190,9 +1209,15 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Customer Relationships:");
           doc.moveDown(0.5);
           const customers = analysis.operations.customers;
-          doc.text(`Recurring Revenue: ${customers.recurring || 'N/A'}`);
-          doc.text(`Customer Base: ${customers.relationships || 'N/A'}`);
-          doc.text(`Revenue Concentration: ${customers.concentration || 'N/A'}`);
+          // Only include recurring revenue if it's not [NOT MENTIONED]
+          if (customers.recurring && !customers.recurring.includes('[NOT MENTIONED]')) {
+            doc.text(`Recurring Revenue: ${safeStringify(customers.recurring)}`);
+          }
+          doc.text(`Customer Base: ${safeStringify(customers.relationships)}`);
+          // Only include concentration if it's not [NOT MENTIONED]
+          if (customers.concentration && !customers.concentration.includes('[NOT MENTIONED]')) {
+            doc.text(`Revenue Concentration: ${safeStringify(customers.concentration)}`);
+          }
           doc.moveDown(1);
         }
         
@@ -1290,16 +1315,24 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   // Operations Section
   formattedContent += `\nOPERATIONS\n=========\n`;
   formattedContent += `Customer Relationships:\n`;
-  formattedContent += `• Recurring Revenue: ${analysis.operations?.customers?.recurring || 'N/A'}\n`;
-  formattedContent += `• Customer Base: ${analysis.operations?.customers?.relationships || 'N/A'}\n`;
-  formattedContent += `• Revenue Concentration: ${analysis.operations?.customers?.concentration || 'N/A'}\n`;
-  formattedContent += `• Contract Terms: ${analysis.operations?.customers?.contracts || 'N/A'}\n\n`;
+  // Only include recurring revenue if it's not [NOT MENTIONED]
+  if (analysis.operations?.customers?.recurring && 
+      !String(analysis.operations?.customers?.recurring).includes('[NOT MENTIONED]')) {
+    formattedContent += `• Recurring Revenue: ${safeStringify(analysis.operations?.customers?.recurring)}\n`;
+  }
+  formattedContent += `• Customer Base: ${safeStringify(analysis.operations?.customers?.relationships)}\n`;
+  // Only include concentration if it's not [NOT MENTIONED]
+  if (analysis.operations?.customers?.concentration && 
+      !String(analysis.operations?.customers?.concentration).includes('[NOT MENTIONED]')) {
+    formattedContent += `• Revenue Concentration: ${safeStringify(analysis.operations?.customers?.concentration)}\n`;
+  }
+  formattedContent += `• Contract Terms: ${safeStringify(analysis.operations?.customers?.contracts)}\n\n`;
   
   formattedContent += `Supply Chain:\n`;
-  formattedContent += `• Number of Suppliers: ${analysis.operations?.suppliers?.count || 'N/A'}\n`;
-  formattedContent += `• Supplier Terms: ${analysis.operations?.suppliers?.terms || 'N/A'}\n`;
-  formattedContent += `• Concentration: ${analysis.operations?.suppliers?.concentration || 'N/A'}\n`;
-  formattedContent += `• Transferability: ${analysis.operations?.suppliers?.transferability || 'N/A'}\n\n`;
+  formattedContent += `• Number of Suppliers: ${safeStringify(analysis.operations?.suppliers?.count)}\n`;
+  formattedContent += `• Supplier Terms: ${safeStringify(analysis.operations?.suppliers?.terms)}\n`;
+  formattedContent += `• Concentration: ${safeStringify(analysis.operations?.suppliers?.concentration)}\n`;
+  formattedContent += `• Transferability: ${safeStringify(analysis.operations?.suppliers?.transferability)}\n\n`;
   
   // Team Structure
   formattedContent += `TEAM STRUCTURE\n=============\n`;
