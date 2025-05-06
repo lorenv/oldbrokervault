@@ -121,22 +121,28 @@ ${analysis.team.ownerResponsibilities}
   const handleExport = async (format: 'pdf' | 'word') => {
     if (!selectedDoc) return;
     
+    console.log(`Starting ${format} export for document ID ${selectedDoc.id}`);
+    
     try {
-      // Create a temporary anchor element to trigger download
-      const anchor = document.createElement('a');
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
+      // Show export started toast
+      toast({
+        title: "Export Starting",
+        description: `Preparing your ${format.toUpperCase()} export...`,
+      });
       
-      // Set the download URL based on the export format
-      const url = `/api/cim/export/${format}/${selectedDoc.id}`;
-      anchor.href = url;
-      anchor.download = `cim-${selectedDoc.id}.${format === 'pdf' ? 'pdf' : 'docx'}`;
+      // For Word/PDF exports, we need to use a form submission approach to handle binary downloads
+      // Create a temporary form to submit a POST request
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `/api/cim/export/${format}/${selectedDoc.id}`;
+      form.target = '_blank'; // Open in new tab or trigger download
+      document.body.appendChild(form);
       
-      // Trigger the download
-      anchor.click();
+      console.log(`Submitting form to: ${form.action}`);
+      form.submit();
       
       // Clean up
-      document.body.removeChild(anchor);
+      document.body.removeChild(form);
       
       toast({
         title: "Export Started",
