@@ -350,23 +350,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/cim/export/word/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log("Word export request received for document ID:", req.params.id);
+    
+    if (!req.isAuthenticated()) {
+      console.log("Word export authentication error - User not authenticated");
+      return res.sendStatus(401);
+    }
 
     try {
-      const doc = await storage.getCimDocument(parseInt(req.params.id));
-      if (!doc || doc.userId !== req.user!.id) {
+      console.log("User authenticated, retrieving document");
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
         return res.status(404).json({ error: "Document not found" });
       }
 
       const user = await storage.getUser(req.user!.id);
+      console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
+      
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
+      console.log("Generating Word document...");
       const buffer = await generateWordDocument(doc.analysis);
+      console.log(`Word document generated, size: ${buffer.length} bytes`);
+      
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.docx`);
+      
+      console.log("Sending Word document to client");
       res.send(buffer);
+      console.log("Word document sent successfully");
     } catch (error) {
       console.error("Word export error:", error);
       res.status(500).json({ error: "Failed to generate Word document" });
@@ -374,23 +397,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/cim/export/pdf/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log("PDF export request received for document ID:", req.params.id);
+    
+    if (!req.isAuthenticated()) {
+      console.log("PDF export authentication error - User not authenticated");
+      return res.sendStatus(401);
+    }
 
     try {
-      const doc = await storage.getCimDocument(parseInt(req.params.id));
-      if (!doc || doc.userId !== req.user!.id) {
+      console.log("User authenticated, retrieving document");
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
         return res.status(404).json({ error: "Document not found" });
       }
 
       const user = await storage.getUser(req.user!.id);
+      console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
+      
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
+      console.log("Generating PDF document...");
       const buffer = await generatePDF(doc.analysis);
+      console.log(`PDF document generated, size: ${buffer.length} bytes`);
+      
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.pdf`);
+      
+      console.log("Sending PDF document to client");
       res.send(buffer);
+      console.log("PDF document sent successfully");
     } catch (error) {
       console.error("PDF export error:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
