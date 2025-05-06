@@ -1055,7 +1055,7 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
   if (analysis.facility?.leaseDetails) {
     paragraphs.push(
       new docx.Paragraph({
-        text: `Lease Details: ${analysis.facility.leaseDetails}`,
+        text: `Lease Details: ${safeStringify(analysis.facility.leaseDetails)}`,
         spacing: { before: 100 }
       })
     );
@@ -1319,43 +1319,43 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   
   // Business Overview Section
   formattedContent += `BUSINESS OVERVIEW\n==================\n`;
-  formattedContent += `Founded: ${analysis.story?.yearStarted || 'N/A'}\n`;
-  formattedContent += `Structure: ${analysis.story?.businessStructure || 'N/A'}\n\n`;
+  formattedContent += `Founded: ${safeStringify(analysis.story?.yearStarted)}\n`;
+  formattedContent += `Structure: ${safeStringify(analysis.story?.businessStructure)}\n\n`;
   
   // Business Summary
-  formattedContent += `${analysis.story?.businessSummary || analysis.story?.businessModel || 'N/A'}\n\n`;
+  formattedContent += `${safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel)}\n\n`;
   
   // Executive Summary Section
   formattedContent += `INVESTMENT HIGHLIGHTS\n===================\n`;
   formattedContent += `Key Attractions:\n`;
   if (analysis.executiveSummary?.buyerAttractions?.length) {
     analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
-      formattedContent += `• ${item}\n`;
+      formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
   
   formattedContent += `\nGrowth Opportunities:\n`;
   if (analysis.executiveSummary?.growthOpportunities?.length) {
     analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
-      formattedContent += `• ${item}\n`;
+      formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
   
   // Market Position
   formattedContent += `\nMARKET POSITION\n=============\n`;
-  formattedContent += `Target Market: ${analysis.marketAnalysis?.customerProfile || 'N/A'}\n\n`;
+  formattedContent += `Target Market: ${safeStringify(analysis.marketAnalysis?.customerProfile)}\n\n`;
   
   formattedContent += `Competitors:\n`;
   if (analysis.marketAnalysis?.competitors?.length) {
     analysis.marketAnalysis.competitors.forEach((item: string) => {
-      formattedContent += `• ${item}\n`;
+      formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
   
   formattedContent += `\nBusiness Strengths:\n`;
   if (analysis.marketAnalysis?.strengths?.length) {
     analysis.marketAnalysis.strengths.forEach((item: string) => {
-      formattedContent += `• ${item}\n`;
+      formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
   
@@ -1383,12 +1383,12 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   
   // Team Structure
   formattedContent += `TEAM STRUCTURE\n=============\n`;
-  formattedContent += `• Owner Responsibilities: ${analysis.team?.ownerResponsibilities || 'N/A'}\n`;
-  formattedContent += `• Required Hours: ${analysis.team?.ownerHours || 'N/A'}\n`;
-  formattedContent += `• Management Structure: ${analysis.team?.management || 'N/A'}\n`;
-  formattedContent += `• Team Size: ${analysis.team?.employeeCount || 'N/A'}\n`;
-  formattedContent += `• Turnover Rate: ${analysis.team?.turnover || 'N/A'}\n`;
-  formattedContent += `• Retention: ${analysis.team?.retention || 'N/A'}\n`;
+  formattedContent += `• Owner Responsibilities: ${safeStringify(analysis.team?.ownerResponsibilities)}\n`;
+  formattedContent += `• Required Hours: ${safeStringify(analysis.team?.ownerHours)}\n`;
+  formattedContent += `• Management Structure: ${safeStringify(analysis.team?.management)}\n`;
+  formattedContent += `• Team Size: ${safeStringify(analysis.team?.employeeCount)}\n`;
+  formattedContent += `• Turnover Rate: ${safeStringify(analysis.team?.turnover)}\n`;
+  formattedContent += `• Retention: ${safeStringify(analysis.team?.retention)}\n`;
   
   // Add Key Team Members if available
   if (analysis.team?.keyEmployees?.length > 0) {
@@ -1397,25 +1397,29 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
     // Format each employee based on its type
     analysis.team.keyEmployees.forEach((employee: any) => {
       if (typeof employee === 'string') {
-        formattedContent += `• ${employee}\n`;
-      } else if (typeof employee === 'object') {
+        formattedContent += `• ${safeStringify(employee)}\n`;
+      } else if (typeof employee === 'object' && employee !== null) {
         // Extract relevant properties from employee object
         const parts = [];
-        if (employee.name) parts.push(`Name: ${employee.name}`);
-        if (employee.role) parts.push(`Role: ${employee.role}`);
-        if (employee.background) parts.push(`Background: ${employee.background}`);
-        if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+        if (employee.name) parts.push(`Name: ${safeStringify(employee.name)}`);
+        if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
+        if (employee.background) parts.push(`Background: ${safeStringify(employee.background)}`);
+        if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
         
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
-          formattedContent += `• ${Object.entries(employee)
-            .map(([key, val]) => `${key}: ${val}`)
-            .join(', ')}\n`;
+          try {
+            formattedContent += `• ${Object.entries(employee)
+              .map(([key, val]) => `${key}: ${safeStringify(val)}`)
+              .join(', ')}\n`;
+          } catch (error) {
+            formattedContent += `• Employee information (could not format details)\n`;
+          }
         } else {
           formattedContent += `• ${parts.join(', ')}\n`;
         }
       } else {
-        formattedContent += `• ${String(employee)}\n`;
+        formattedContent += `• ${safeStringify(employee)}\n`;
       }
     });
   }
@@ -1424,11 +1428,11 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   
   // Facilities
   formattedContent += `FACILITIES\n=========\n`;
-  formattedContent += `• Ownership Status: ${analysis.facility?.ownership || 'N/A'}\n`;
-  formattedContent += `• Size: ${analysis.facility?.size || 'N/A'}\n`;
-  formattedContent += `• Monthly Cost: ${analysis.facility?.cost || 'N/A'}\n`;
+  formattedContent += `• Ownership Status: ${safeStringify(analysis.facility?.ownership)}\n`;
+  formattedContent += `• Size: ${safeStringify(analysis.facility?.size)}\n`;
+  formattedContent += `• Monthly Cost: ${safeStringify(analysis.facility?.cost)}\n`;
   if (analysis.facility?.leaseDetails) {
-    formattedContent += `• Lease Details: ${analysis.facility.leaseDetails}\n`;
+    formattedContent += `• Lease Details: ${safeStringify(analysis.facility.leaseDetails)}\n`;
   }
 
   // Create a new Google Doc
