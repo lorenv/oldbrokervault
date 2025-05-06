@@ -405,7 +405,7 @@ export function DocumentExport({
     }
   };
 
-  const canAccessPremiumFeatures = user?.isAdmin || user?.subscriptionStatus === "premium";
+  const canAccessPremiumFeatures = user?.isAdmin || user?.subscriptionStatus === "premium" || user?.subscriptionStatus === "admin";
 
   return (
     <>
