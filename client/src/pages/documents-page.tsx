@@ -19,11 +19,122 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
+// Define types for the CIM analysis data structure
+interface CimAnalysis {
+  story: {
+    yearStarted?: string;
+    businessIdea?: string;
+    businessModel?: string;
+    orderProcess?: string;
+    growthHistory?: string;
+    businessStructure?: string;
+    businessSummary?: string;
+    keyAttractions?: string[];
+    saleReason?: string | null;
+  };
+  executiveSummary: {
+    buyerAttractions?: string[];
+    growthOpportunities?: string[];
+  };
+  assets?: {
+    digitalAssets?: string[];
+    location?: string;
+    equipmentValue?: string;
+    equipmentDetails?: string;
+    inventoryDetails?: string;
+  };
+  ownership?: {
+    owners?: Array<{
+      name?: string;
+      percentage?: string;
+      background?: string;
+    }>;
+    intellectualProperty?: string[];
+  };
+  marketAnalysis?: {
+    uniqueFeatures?: string[];
+    customerProfile?: string;
+    saleReason?: string;
+    competitors?: string[];
+    strengths?: string[];
+  };
+  operations?: {
+    suppliers?: {
+      count?: string;
+      transferability?: string;
+      concentration?: string;
+      terms?: string;
+      replaceability?: string;
+    };
+    customers?: {
+      recurring?: string;
+      relationships?: string;
+      concentration?: string;
+      contracts?: string;
+      replaceability?: string;
+    };
+  };
+  inventory?: {
+    leadTime?: string;
+    sourcing?: string;
+    storage?: string;
+    value?: string;
+    skuCount?: string;
+    topProducts?: string[];
+  };
+  sales?: {
+    channels?: Record<string, number>;
+    seasonality?: string;
+    averageOrderValue?: string;
+    competitivePricing?: string;
+    pricingModel?: string;
+    paymentMethods?: string[];
+    contractTerms?: string;
+  };
+  marketing?: {
+    strategies?: string[];
+    paidAdvertising?: {
+      channels?: string[];
+      effectiveness?: string;
+    };
+    emailMarketing?: {
+      listSize?: string;
+      usage?: string;
+    };
+    seoEfforts?: string;
+    clientAcquisition?: string;
+  };
+  team?: {
+    ownerResponsibilities?: string;
+    ownerHours?: string;
+    employeeSummary?: string;
+    employeeCount?: string;
+    contractorCount?: string;
+    turnover?: string;
+    hiring?: string;
+    retention?: string;
+    organization?: string;
+    keyEmployees?: string[];
+    management?: string;
+  };
+  facility?: {
+    ownership?: string;
+    size?: string;
+    cost?: string;
+    leaseDetails?: string;
+  };
+}
+
+// Extend the CimDocument type to strongly type the analysis field
+interface CimDocumentWithAnalysis extends CimDocument {
+  analysis: CimAnalysis;
+}
+
 export default function DocumentsPage() {
-  const { data: documents } = useQuery<CimDocument[]>({
+  const { data: documents } = useQuery<CimDocumentWithAnalysis[]>({
     queryKey: ["/api/cim"],
   });
-  const [selectedDoc, setSelectedDoc] = useState<CimDocument | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<CimDocumentWithAnalysis | null>(null);
   const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
@@ -89,19 +200,19 @@ export default function DocumentsPage() {
     }
   };
   
-  const handleCopyToClipboard = async (analysis: any) => {
+  const handleCopyToClipboard = async (analysis: CimAnalysis) => {
     try {
       const cimText = `
 Business Summary:
-${analysis.story.businessSummary}
+${analysis.story.businessSummary || 'N/A'}
 
 Market Analysis:
-${analysis.marketAnalysis.customerProfile}
-${analysis.marketAnalysis.strengths.join("\n")}
+${analysis.marketAnalysis?.customerProfile || 'N/A'}
+${analysis.marketAnalysis?.strengths?.join("\n") || 'N/A'}
 
 Operations:
-${analysis.operations.customers.recurring}
-${analysis.team.ownerResponsibilities}
+${analysis.operations?.customers?.recurring || 'N/A'}
+${analysis.team?.ownerResponsibilities || 'N/A'}
       `.trim();
 
       await navigator.clipboard.writeText(cimText);
@@ -159,19 +270,29 @@ ${analysis.team.ownerResponsibilities}
   };
 
   const renderValue = (value: any): string => {
-    if (!value) return "N/A";
+    if (value === null || value === undefined) return "N/A";
     if (Array.isArray(value)) {
-      return value.join(", ");
+      return value.length > 0 ? value.join(", ") : "N/A";
     }
     if (typeof value === "object") {
-      if ('recurring' in value) return value.recurring;
-      if ('terms' in value) return value.terms;
-      if ('count' in value) return value.count;
-      if ('usage' in value) return value.usage;
-      return Object.entries(value)
-        .filter(([_, val]) => val !== null && val !== undefined)
-        .map(([key, val]) => `${key}: ${renderValue(val)}`)
-        .join(", ");
+      try {
+        if ('recurring' in value && value.recurring) return String(value.recurring);
+        if ('terms' in value && value.terms) return String(value.terms);
+        if ('count' in value && value.count) return String(value.count);
+        if ('usage' in value && value.usage) return String(value.usage);
+        
+        const entries = Object.entries(value)
+          .filter(([_, val]) => val !== null && val !== undefined);
+        
+        if (entries.length === 0) return "N/A";
+        
+        return entries
+          .map(([key, val]) => `${key}: ${renderValue(val)}`)
+          .join(", ");
+      } catch (error) {
+        console.error("Error rendering value:", error);
+        return "N/A";
+      }
     }
     return String(value);
   };
