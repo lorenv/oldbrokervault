@@ -359,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(req.user!.id);
-      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(req.user!.id);
-      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
@@ -457,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(req.user!.id);
-      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
@@ -539,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(req.user!.id);
-      if (!user?.isAdmin && user?.subscriptionStatus !== "premium") {
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
