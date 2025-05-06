@@ -1050,274 +1050,183 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
 }
 
 export async function generatePDF(analysis: any): Promise<Buffer> {
-  try {
-    console.log("Starting PDF generation...");
-    return new Promise((resolve, reject) => {
-      // Create a new PDF document with specified margins
+  console.log("Starting simplified PDF generation...");
+  
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a basic PDF document
       const doc = new PDFDocument({
-        margins: {
-          top: 50,
-          bottom: 50,
-          left: 72,
-          right: 72
-        },
-        autoFirstPage: true,
         size: 'letter',
-        info: {
-          Title: 'Confidential Information Memorandum',
-          Author: 'CIM Generator',
-          Subject: 'Business Summary',
-          Keywords: 'CIM, business, confidential',
-        }
+        margin: 50
       });
-
-      // Set up buffer collection
-      const buffers: Buffer[] = [];
-      doc.on('data', (chunk) => buffers.push(Buffer.from(chunk)));
+      
+      // Collect PDF data in buffers
+      const chunks: Buffer[] = [];
+      
+      doc.on('data', (chunk) => {
+        chunks.push(Buffer.from(chunk));
+      });
+      
       doc.on('end', () => {
-        console.log(`PDF generation complete, total size: ${buffers.reduce((acc, buf) => acc + buf.length, 0)} bytes`);
-        resolve(Buffer.concat(buffers));
+        console.log("PDF document finalized successfully");
+        resolve(Buffer.concat(chunks));
       });
+      
       doc.on('error', (err) => {
-        console.error("Error in PDF generation:", err);
+        console.error("Error in PDF document generation:", err);
         reject(err);
       });
-
-    // Title Page
-    doc.fontSize(24)
-      .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
-        align: 'center'
-      });
-    
-    doc.moveDown(2);
-    doc.fontSize(16)
-      .text(`${analysis.story?.businessSummary || 'Business Information Memorandum'}`, {
-        align: 'center'
-      });
-    
-    doc.moveDown(4);
-    // Add a separator line
-    doc.moveTo(72, doc.y)
-      .lineTo(doc.page.width - 72, doc.y)
-      .stroke();
-    
-    doc.moveDown(4);
-    doc.fontSize(10)
-      .text('CONFIDENTIAL', {
-        align: 'center',
-        oblique: true
-      })
-      .moveDown(0.5)
-      .text('This document contains confidential information. It is provided to you for informational purposes only.', {
-        align: 'center'
-      });
-
-    // Start a new page for the content
-    doc.addPage();
-
-    // BUSINESS OVERVIEW SECTION
-    doc.fontSize(18).text('BUSINESS OVERVIEW', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(12);
-    doc.text(`Founded: ${analysis.story?.yearStarted || 'N/A'}`);
-    doc.text(`Structure: ${analysis.story?.businessStructure || 'N/A'}`);
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Business Description', { 
-      underline: true 
-    });
-    doc.moveDown(0.5);
-    doc.fontSize(12).text(analysis.story?.businessSummary || analysis.story?.businessModel || 'No business description provided.');
-    doc.moveDown(2);
-
-    // INVESTMENT HIGHLIGHTS SECTION
-    doc.fontSize(18).text('INVESTMENT HIGHLIGHTS', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Key Attractions');
-    doc.moveDown(0.5);
-    
-    // Add bullet points for key attractions
-    if (analysis.executiveSummary?.buyerAttractions?.length) {
-      analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
-        doc.fontSize(12).text(`• ${item}`);
-      });
-    }
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Growth Opportunities');
-    doc.moveDown(0.5);
-    
-    // Add bullet points for growth opportunities
-    if (analysis.executiveSummary?.growthOpportunities?.length) {
-      analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
-        doc.fontSize(12).text(`• ${item}`);
-      });
-    }
-    doc.moveDown(2);
-
-    // MARKET POSITION SECTION
-    doc.fontSize(18).text('MARKET POSITION', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Target Market');
-    doc.moveDown(0.5);
-    doc.fontSize(12).text(analysis.marketAnalysis?.customerProfile || 'No target market information provided.');
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Competitive Landscape');
-    doc.moveDown(0.5);
-    doc.fontSize(12).text('Competitors:');
-    
-    // Add bullet points for competitors
-    if (analysis.marketAnalysis?.competitors?.length) {
-      analysis.marketAnalysis.competitors.forEach((item: string) => {
-        doc.text(`• ${item}`);
-      });
-    }
-    doc.moveDown();
-    
-    doc.text('Business Strengths:');
-    if (analysis.marketAnalysis?.strengths?.length) {
-      analysis.marketAnalysis.strengths.forEach((item: string) => {
-        doc.text(`• ${item}`);
-      });
-    }
-    doc.moveDown(2);
-
-    // OPERATIONS SECTION
-    doc.fontSize(18).text('OPERATIONS', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Customer Relationships');
-    doc.moveDown(0.5);
-    doc.fontSize(12);
-    doc.text(`Recurring Revenue: ${analysis.operations?.customers?.recurring || 'N/A'}`);
-    doc.text(`Customer Base: ${analysis.operations?.customers?.relationships || 'N/A'}`);
-    doc.text(`Revenue Concentration: ${analysis.operations?.customers?.concentration || 'N/A'}`);
-    doc.text(`Contract Terms: ${analysis.operations?.customers?.contracts || 'N/A'}`);
-    doc.moveDown();
-    
-    doc.fontSize(14).text('Supply Chain');
-    doc.moveDown(0.5);
-    doc.fontSize(12);
-    doc.text(`Number of Suppliers: ${analysis.operations?.suppliers?.count || 'N/A'}`);
-    doc.text(`Supplier Terms: ${analysis.operations?.suppliers?.terms || 'N/A'}`);
-    doc.text(`Concentration: ${analysis.operations?.suppliers?.concentration || 'N/A'}`);
-    doc.text(`Transferability: ${analysis.operations?.suppliers?.transferability || 'N/A'}`);
-    doc.moveDown(2);
-
-    // Check if we need to add a new page to avoid overflow
-    if (doc.y > doc.page.height - 200) {
+      
+      // Start creating PDF content - first the title page
+      doc.fontSize(22)
+         .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
+           align: 'center'
+         });
+      
+      doc.moveDown(2);
+      
+      // Add business name/title
+      const businessTitle = analysis.story?.businessSummary?.substring(0, 50) || 'Business Information Memorandum';
+      doc.fontSize(16)
+         .text(businessTitle, {
+           align: 'center'
+         });
+      
+      // Add a separator line
+      doc.moveDown(2);
+      doc.moveTo(50, doc.y)
+         .lineTo(doc.page.width - 50, doc.y)
+         .stroke();
+      
+      doc.moveDown(2);
+      doc.fontSize(10)
+         .text('CONFIDENTIAL', {
+           align: 'center'
+         })
+         .moveDown(0.5)
+         .text('This document contains confidential information.', {
+           align: 'center'
+         });
+      
+      // Add core content on subsequent pages
       doc.addPage();
-    }
-
-    // TEAM STRUCTURE SECTION
-    doc.fontSize(18).text('TEAM STRUCTURE', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(12);
-    doc.text(`Owner Responsibilities: ${analysis.team?.ownerResponsibilities || 'N/A'}`);
-    doc.text(`Required Hours: ${analysis.team?.ownerHours || 'N/A'}`);
-    doc.text(`Management Structure: ${analysis.team?.management || 'N/A'}`);
-    doc.text(`Team Size: ${analysis.team?.employeeCount || 'N/A'}`);
-    doc.text(`Turnover Rate: ${analysis.team?.turnover || 'N/A'}`);
-    doc.text(`Retention: ${analysis.team?.retention || 'N/A'}`);
-    
-    // Add Key Team Members if available
-    if (analysis.team?.keyEmployees?.length > 0) {
-      doc.moveDown();
-      doc.fontSize(14).text('Key Team Members');
-      doc.moveDown(0.5);
+      
+      // BUSINESS OVERVIEW
+      doc.fontSize(16)
+         .text('BUSINESS OVERVIEW', {
+           underline: true
+         });
+      
+      doc.moveDown(1);
       doc.fontSize(12);
       
-      // Format each employee based on its type
-      analysis.team.keyEmployees.forEach((employee: any) => {
-        let employeeText;
+      // Business basics
+      if (analysis.story) {
+        doc.text(`Founded: ${analysis.story.yearStarted || 'N/A'}`);
+        doc.text(`Structure: ${analysis.story.businessStructure || 'N/A'}`);
         
-        if (typeof employee === 'string') {
-          employeeText = employee;
-        } else if (typeof employee === 'object') {
-          // Extract relevant properties from employee object
-          const parts = [];
-          if (employee.name) parts.push(`Name: ${employee.name}`);
-          if (employee.role) parts.push(`Role: ${employee.role}`);
-          if (employee.background) parts.push(`Background: ${employee.background}`);
-          if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
-          
-          // If no properties were found, provide a fallback format
-          if (parts.length === 0) {
-            employeeText = Object.entries(employee)
-              .map(([key, val]) => `${key}: ${val}`)
-              .join(', ');
-          } else {
-            employeeText = parts.join(', ');
-          }
-        } else {
-          employeeText = String(employee);
+        doc.moveDown(1);
+        if (analysis.story.businessSummary) {
+          doc.text("Business Description:");
+          doc.moveDown(0.5);
+          doc.text(analysis.story.businessSummary);
+        }
+      }
+      
+      doc.moveDown(1);
+      
+      // MARKET SECTION
+      doc.fontSize(16)
+         .text('MARKET POSITION', {
+           underline: true
+         });
+      
+      doc.moveDown(1);
+      doc.fontSize(12);
+      
+      if (analysis.marketAnalysis) {
+        if (analysis.marketAnalysis.customerProfile) {
+          doc.text("Target Market:");
+          doc.moveDown(0.5);
+          doc.text(analysis.marketAnalysis.customerProfile);
+          doc.moveDown(1);
         }
         
-        doc.text(`• ${employeeText}`);
-      });
-    }
-    
-    doc.moveDown(2);
-
-    // FACILITIES SECTION
-    doc.fontSize(18).text('FACILITIES', { 
-      underline: true 
-    });
-    doc.moveDown();
-    
-    doc.fontSize(12);
-    doc.text(`Ownership Status: ${analysis.facility?.ownership || 'N/A'}`);
-    doc.text(`Size: ${analysis.facility?.size || 'N/A'}`);
-    doc.text(`Monthly Cost: ${analysis.facility?.cost || 'N/A'}`);
-    if (analysis.facility?.leaseDetails) {
-      doc.text(`Lease Details: ${analysis.facility.leaseDetails}`);
-    }
-
-    // Footer on each page
-    const totalPages = doc.bufferedPageRange().count;
-    for (let i = 0; i < totalPages; i++) {
-      doc.switchToPage(i);
+        if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length) {
+          doc.text("Competitors:");
+          doc.moveDown(0.5);
+          analysis.marketAnalysis.competitors.forEach((competitor: string) => {
+            doc.text(`• ${competitor}`);
+          });
+          doc.moveDown(1);
+        }
+        
+        if (analysis.marketAnalysis.strengths && analysis.marketAnalysis.strengths.length) {
+          doc.text("Business Strengths:");
+          doc.moveDown(0.5);
+          analysis.marketAnalysis.strengths.forEach((strength: string) => {
+            doc.text(`• ${strength}`);
+          });
+        }
+      }
       
-      // Skip the title page footer
-      if (i === 0) continue;
+      // Add additional pages and sections as needed
+      if (doc.y > 700) {
+        doc.addPage();
+      }
       
-      // Add page number and footer text
-      const footerY = doc.page.height - 50;
-      doc.fontSize(8)
-        .text(
-          `Page ${i} of ${totalPages - 1} | CONFIDENTIAL`,
-          72,
-          footerY,
-          { align: 'center' }
-        );
-    }
-
-    try {
+      // OPERATIONS SECTION
+      doc.fontSize(16)
+         .text('OPERATIONS', {
+           underline: true
+         });
+      
+      doc.moveDown(1);
+      doc.fontSize(12);
+      
+      if (analysis.operations) {
+        // Customer details
+        if (analysis.operations.customers) {
+          doc.text("Customer Relationships:");
+          doc.moveDown(0.5);
+          const customers = analysis.operations.customers;
+          doc.text(`Recurring Revenue: ${customers.recurring || 'N/A'}`);
+          doc.text(`Customer Base: ${customers.relationships || 'N/A'}`);
+          doc.text(`Revenue Concentration: ${customers.concentration || 'N/A'}`);
+          doc.moveDown(1);
+        }
+        
+        // Supplier details
+        if (analysis.operations.suppliers) {
+          doc.text("Supply Chain:");
+          doc.moveDown(0.5);
+          const suppliers = analysis.operations.suppliers;
+          doc.text(`Number of Suppliers: ${suppliers.count || 'N/A'}`);
+          doc.text(`Supplier Terms: ${suppliers.terms || 'N/A'}`);
+        }
+      }
+      
+      // Add page numbers to all pages
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(8)
+           .text(
+             `Page ${i + 1} of ${range.count}`,
+             50,
+             doc.page.height - 50,
+             { align: 'center' }
+           );
+      }
+      
+      console.log("Finalizing PDF document generation...");
       doc.end();
-    } catch (endError) {
-      console.error("Error ending PDF document:", endError);
-      reject(endError);
+      
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      reject(error);
     }
   });
-} catch (error) {
-  console.error("Fatal error in PDF generation:", error);
-  throw new Error(`PDF generation failed: ${error.message}`);
-}
 }
 
 export async function exportToGoogleDocs(analysis: any, title: string): Promise<string> {
