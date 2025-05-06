@@ -1050,22 +1050,38 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
 }
 
 export async function generatePDF(analysis: any): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      margins: {
-        top: 50,
-        bottom: 50,
-        left: 72,
-        right: 72
-      }
-    });
-    const buffers: Buffer[] = [];
+  try {
+    console.log("Starting PDF generation...");
+    return new Promise((resolve, reject) => {
+      // Create a new PDF document with specified margins
+      const doc = new PDFDocument({
+        margins: {
+          top: 50,
+          bottom: 50,
+          left: 72,
+          right: 72
+        },
+        autoFirstPage: true,
+        size: 'letter',
+        info: {
+          Title: 'Confidential Information Memorandum',
+          Author: 'CIM Generator',
+          Subject: 'Business Summary',
+          Keywords: 'CIM, business, confidential',
+        }
+      });
 
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      resolve(Buffer.concat(buffers));
-    });
-    doc.on('error', reject);
+      // Set up buffer collection
+      const buffers: Buffer[] = [];
+      doc.on('data', (chunk) => buffers.push(Buffer.from(chunk)));
+      doc.on('end', () => {
+        console.log(`PDF generation complete, total size: ${buffers.reduce((acc, buf) => acc + buf.length, 0)} bytes`);
+        resolve(Buffer.concat(buffers));
+      });
+      doc.on('error', (err) => {
+        console.error("Error in PDF generation:", err);
+        reject(err);
+      });
 
     // Title Page
     doc.fontSize(24)
@@ -1291,8 +1307,17 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         );
     }
 
-    doc.end();
+    try {
+      doc.end();
+    } catch (endError) {
+      console.error("Error ending PDF document:", endError);
+      reject(endError);
+    }
   });
+} catch (error) {
+  console.error("Fatal error in PDF generation:", error);
+  throw new Error(`PDF generation failed: ${error.message}`);
+}
 }
 
 export async function exportToGoogleDocs(analysis: any, title: string): Promise<string> {
