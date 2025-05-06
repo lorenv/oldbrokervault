@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText, File, Globe, FileType } from "lucide-react";
+import { Copy, Download, FileText, File, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -309,69 +309,6 @@ export function DocumentExport({
       });
     }
   };
-  
-  const copyRichTextToClipboard = async () => {
-    try {
-      console.log("Starting Rich Text export for document ID:", docId);
-      
-      // Create a loading indicator
-      const loadingIndicator = document.createElement('div');
-      loadingIndicator.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
-      loadingIndicator.innerHTML = `
-        <div class="bg-white p-4 rounded-md shadow-lg">
-          <p class="text-lg font-medium">Preparing Rich Text Format...</p>
-          <div class="mt-2 animate-pulse">Processing document</div>
-        </div>
-      `;
-      document.body.appendChild(loadingIndicator);
-      
-      const response = await fetch(`/api/cim/export/richtext/${docId}`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      // Remove loading indicator
-      document.body.removeChild(loadingIndicator);
-      
-      if (!response.ok) {
-        let errorMessage = 'Failed to generate Rich Text content';
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-            if (errorData.details) {
-              errorMessage += `\n${errorData.details}`;
-            }
-          }
-        } catch (e) {
-          // If we can't parse the error JSON, use the status text
-          errorMessage = `Failed to generate Rich Text content (${response.status}: ${response.statusText})`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (!data.rtfContent) {
-        throw new Error('No Rich Text content received from server');
-      }
-      
-      // Copy the RTF content to clipboard
-      copyTextToClipboard(data.rtfContent);
-      
-      toast({
-        title: "Rich Text Copied to Clipboard",
-        description: "Rich Text Format content has been copied to your clipboard with questions formatted in larger bold text. Paste it into Word, Google Docs, or any RTF-compatible editor."
-      });
-    } catch (error) {
-      console.error("Rich Text export error:", error);
-      toast({
-        title: "Copy Failed",
-        description: error instanceof Error ? error.message : "Failed to copy Rich Text Format content",
-        variant: "destructive"
-      });
-    }
-  };
 
   const exportToGoogleDocs = async () => {
     try {
@@ -488,10 +425,6 @@ export function DocumentExport({
             <DropdownMenuItem onClick={copyHtmlToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
               Copy as Formatted HTML
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={copyRichTextToClipboard}>
-              <FileType className="h-4 w-4 mr-2" />
-              Copy as Rich Text Format
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>

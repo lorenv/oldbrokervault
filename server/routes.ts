@@ -12,7 +12,7 @@ import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generateWordDocument, generatePDF, generateHtml, formatTextContent, generateRichText, createGoogleDoc } from "./document-export";
+import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 
@@ -198,10 +198,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the user's session
         const user = await storage.getUser(userId);
         if (req.session && req.user?.id === userId) {
-          // Safely update the passport session data
-          const session = req.session as any; // Type assertion for passport property
-          session.passport = session.passport || {};
-          session.passport.user = user;
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
+          req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
         }
 
@@ -272,10 +271,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         if (req.session && req.user?.id === userId) {
-          // Safely update the passport session data
-          const session = req.session as any; // Type assertion for passport property
-          session.passport = session.passport || {};
-          session.passport.user = user;
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
+          req.session.passport.user = user;
           await new Promise((resolve) => req.session.save(resolve));
           console.log("Updated session for user:", userId);
         }
@@ -396,57 +394,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("PDF export error:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
-    }
-  });
-
-  // Rich Text export endpoint - for formatted documents with questions highlighted
-  app.post("/api/cim/export/richtext/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const docId = parseInt(req.params.id);
-      console.log(`Processing Rich Text export request for document ID: ${docId}, user ID: ${req.user?.id}`);
-      
-      if (isNaN(docId)) {
-        return res.status(400).json({ error: "Invalid document ID format" });
-      }
-      
-      const doc = await storage.getCimDocument(docId);
-      
-      if (!doc) {
-        console.log(`Document with ID ${docId} not found`);
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      if (doc.userId !== req.user!.id) {
-        console.log(`Access denied: Document belongs to user ${doc.userId}, but request is from user ${req.user!.id}`);
-        return res.status(403).json({ error: "You don't have permission to access this document" });
-      }
-      
-      console.log(`Generating Rich Text for document: ${doc.title}, analysis present: ${Boolean(doc.analysis)}`);
-      
-      if (!doc.analysis) {
-        return res.status(400).json({ error: "Document has no analysis data" });
-      }
-      
-      const rtfContent = generateRichText(doc.analysis);
-      
-      if (!rtfContent) {
-        return res.status(500).json({ error: "Failed to generate Rich Text content" });
-      }
-      
-      console.log(`Successfully generated Rich Text content (${rtfContent.length} characters)`);
-      
-      // Changed to return as JSON for clipboard copying
-      res.json({ rtfContent });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error("Rich Text export error:", error);
-      console.error("Error details:", errorMessage);
-      res.status(500).json({ 
-        error: "Failed to generate Rich Text content", 
-        details: errorMessage 
-      });
     }
   });
   

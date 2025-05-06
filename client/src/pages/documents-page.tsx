@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, FileType } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState } from "react";
@@ -28,7 +28,6 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [htmlExportLoading, setHtmlExportLoading] = useState(false);
-  const [richTextExportLoading, setRichTextExportLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -119,117 +118,6 @@ ${analysis.team.ownerResponsibilities}
     }
   };
 
-  // Handle Rich Text Format export 
-  const handleRichTextExport = async (docId: number) => {
-    if (richTextExportLoading) return;
-    
-    try {
-      setRichTextExportLoading(true);
-      
-      // Make the request to get the RTF content as JSON
-      const response = await fetch(`/api/cim/export/richtext/${docId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate Rich Text content');
-      }
-      
-      // Get the RTF content from the JSON response
-      const data = await response.json();
-      
-      if (!data.rtfContent) {
-        throw new Error('No Rich Text content received from server');
-      }
-      
-      // Cross-browser clipboard copy function
-      const copyTextToClipboard = (text: string) => {
-        // Try the modern Clipboard API first
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          return navigator.clipboard.writeText(text)
-            .catch(err => {
-              console.warn("Clipboard API failed, trying fallback method", err);
-              
-              // Fallback method for browsers (especially Safari) that might have issues
-              const textArea = document.createElement("textarea");
-              textArea.value = text;
-              
-              // Make the textarea out of viewport
-              textArea.style.position = "fixed";
-              textArea.style.left = "-999999px";
-              textArea.style.top = "-999999px";
-              document.body.appendChild(textArea);
-              
-              // Select and copy
-              textArea.focus();
-              textArea.select();
-              
-              let successful = false;
-              try {
-                successful = document.execCommand('copy');
-              } catch (err) {
-                console.error("execCommand error", err);
-              }
-              
-              // Clean up
-              document.body.removeChild(textArea);
-              
-              if (!successful) {
-                throw new Error("Could not copy text");
-              }
-            });
-        } else {
-          // If Clipboard API not available, use fallback
-          const textArea = document.createElement("textarea");
-          textArea.value = text;
-          textArea.style.position = "fixed";
-          textArea.style.left = "-999999px";
-          textArea.style.top = "-999999px";
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          
-          let successful = false;
-          try {
-            successful = document.execCommand('copy');
-          } catch (err) {
-            console.error("execCommand error", err);
-          }
-          
-          document.body.removeChild(textArea);
-          
-          if (!successful) {
-            throw new Error("Could not copy text");
-          }
-          
-          return Promise.resolve();
-        }
-      };
-      
-      // Copy RTF content to clipboard
-      await copyTextToClipboard(data.rtfContent);
-      
-      toast({
-        title: "Copied to Clipboard",
-        description: "Rich Text Format content has been copied. Paste it into Word, Google Docs, or any RTF-compatible editor to see formatted text with larger bold questions.",
-      });
-    } catch (error) {
-      console.error("Rich Text export error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to export Rich Text",
-        variant: "destructive",
-      });
-    } finally {
-      setRichTextExportLoading(false);
-    }
-  };
-
   const handleExport = async (format: 'pdf' | 'word') => {
     toast({
       title: "Coming Soon",
@@ -308,14 +196,6 @@ ${analysis.team.ownerResponsibilities}
                         <Code className="mr-2 h-4 w-4" />
                         Copy as HTML
                         {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleRichTextExport(doc.id)}
-                        disabled={richTextExportLoading}
-                      >
-                        <FileType className="mr-2 h-4 w-4" />
-                        Copy as Rich Text Format
-                        {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
@@ -408,14 +288,6 @@ ${analysis.team.ownerResponsibilities}
                       <Code className="mr-2 h-4 w-4" />
                       Copy as HTML
                       {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleRichTextExport(selectedDoc.id)}
-                      disabled={richTextExportLoading}
-                    >
-                      <FileType className="mr-2 h-4 w-4" />
-                      Copy as Rich Text Format
-                      {richTextExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
