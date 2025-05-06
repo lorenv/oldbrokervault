@@ -819,7 +819,7 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     }),
     
     new docx.Paragraph({
-      text: analysis.marketAnalysis?.customerProfile || 'No target market information provided.',
+      text: safeStringify(analysis.marketAnalysis?.customerProfile),
       spacing: { before: 100, after: 200 }
     }),
     
@@ -889,23 +889,27 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
       spacing: { before: 200, after: 100 }
     }),
     
+    ...(analysis.operations?.customers?.recurring && !String(analysis.operations?.customers?.recurring).includes('[NOT MENTIONED]') ? [
+      new docx.Paragraph({
+        text: `Recurring Revenue: ${safeStringify(analysis.operations?.customers?.recurring)}`,
+        spacing: { before: 100 }
+      })
+    ] : []),
+    
     new docx.Paragraph({
-      text: `Recurring Revenue: ${analysis.operations?.customers?.recurring || 'N/A'}`,
+      text: `Customer Base: ${safeStringify(analysis.operations?.customers?.relationships)}`,
       spacing: { before: 100 }
     }),
     
-    new docx.Paragraph({
-      text: `Customer Base: ${analysis.operations?.customers?.relationships || 'N/A'}`,
-      spacing: { before: 100 }
-    }),
+    ...(analysis.operations?.customers?.concentration && !String(analysis.operations?.customers?.concentration).includes('[NOT MENTIONED]') ? [
+      new docx.Paragraph({
+        text: `Revenue Concentration: ${safeStringify(analysis.operations?.customers?.concentration)}`,
+        spacing: { before: 100 }
+      })
+    ] : []),
     
     new docx.Paragraph({
-      text: `Revenue Concentration: ${analysis.operations?.customers?.concentration || 'N/A'}`,
-      spacing: { before: 100 }
-    }),
-    
-    new docx.Paragraph({
-      text: `Contract Terms: ${analysis.operations?.customers?.contracts || 'N/A'}`,
+      text: `Contract Terms: ${safeStringify(analysis.operations?.customers?.contracts)}`,
       spacing: { before: 100, after: 200 }
     }),
     
@@ -916,22 +920,22 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     }),
     
     new docx.Paragraph({
-      text: `Number of Suppliers: ${analysis.operations?.suppliers?.count || 'N/A'}`,
+      text: `Number of Suppliers: ${safeStringify(analysis.operations?.suppliers?.count)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Supplier Terms: ${analysis.operations?.suppliers?.terms || 'N/A'}`,
+      text: `Supplier Terms: ${safeStringify(analysis.operations?.suppliers?.terms)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Concentration: ${analysis.operations?.suppliers?.concentration || 'N/A'}`,
+      text: `Concentration: ${safeStringify(analysis.operations?.suppliers?.concentration)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Transferability: ${analysis.operations?.suppliers?.transferability || 'N/A'}`,
+      text: `Transferability: ${safeStringify(analysis.operations?.suppliers?.transferability)}`,
       spacing: { before: 100, after: 200 }
     }),
     
@@ -943,32 +947,32 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     }),
     
     new docx.Paragraph({
-      text: `Owner Responsibilities: ${analysis.team?.ownerResponsibilities || 'N/A'}`,
+      text: `Owner Responsibilities: ${safeStringify(analysis.team?.ownerResponsibilities)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Required Hours: ${analysis.team?.ownerHours || 'N/A'}`,
+      text: `Required Hours: ${safeStringify(analysis.team?.ownerHours)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Management Structure: ${analysis.team?.management || 'N/A'}`,
+      text: `Management Structure: ${safeStringify(analysis.team?.management)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Team Size: ${analysis.team?.employeeCount || 'N/A'}`,
+      text: `Team Size: ${safeStringify(analysis.team?.employeeCount)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Turnover Rate: ${analysis.team?.turnover || 'N/A'}`,
+      text: `Turnover Rate: ${safeStringify(analysis.team?.turnover)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Retention: ${analysis.team?.retention || 'N/A'}`,
+      text: `Retention: ${safeStringify(analysis.team?.retention)}`,
       spacing: { before: 100, after: 200 }
     })
   );
@@ -1032,17 +1036,17 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     }),
     
     new docx.Paragraph({
-      text: `Ownership Status: ${analysis.facility?.ownership || 'N/A'}`,
+      text: `Ownership Status: ${safeStringify(analysis.facility?.ownership)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Size: ${analysis.facility?.size || 'N/A'}`,
+      text: `Size: ${safeStringify(analysis.facility?.size)}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Monthly Cost: ${analysis.facility?.cost || 'N/A'}`,
+      text: `Monthly Cost: ${safeStringify(analysis.facility?.cost)}`,
       spacing: { before: 100 }
     })
   );
@@ -1076,7 +1080,8 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       // Create a basic PDF document
       const doc = new PDFDocument({
         size: 'letter',
-        margin: 50
+        margin: 50,
+        bufferPages: true
       });
       
       // Collect PDF data in buffers
@@ -1105,7 +1110,7 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       doc.moveDown(2);
       
       // Add business name/title
-      const businessTitle = analysis.story?.businessSummary?.substring(0, 50) || 'Business Information Memorandum';
+      const businessTitle = safeStringify(analysis.story?.businessSummary)?.substring(0, 50) || 'Business Information Memorandum';
       doc.fontSize(16)
          .text(businessTitle, {
            align: 'center'
@@ -1141,14 +1146,14 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       
       // Business basics
       if (analysis.story) {
-        doc.text(`Founded: ${analysis.story.yearStarted || 'N/A'}`);
-        doc.text(`Structure: ${analysis.story.businessStructure || 'N/A'}`);
+        doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
+        doc.text(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
         
         doc.moveDown(1);
         if (analysis.story.businessSummary) {
           doc.text("Business Description:");
           doc.moveDown(0.5);
-          doc.text(analysis.story.businessSummary);
+          doc.text(safeStringify(analysis.story.businessSummary));
         }
       }
       
@@ -1167,7 +1172,7 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         if (analysis.marketAnalysis.customerProfile) {
           doc.text("Target Market:");
           doc.moveDown(0.5);
-          doc.text(analysis.marketAnalysis.customerProfile);
+          doc.text(safeStringify(analysis.marketAnalysis.customerProfile));
           doc.moveDown(1);
         }
         
@@ -1175,7 +1180,7 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Competitors:");
           doc.moveDown(0.5);
           analysis.marketAnalysis.competitors.forEach((competitor: string) => {
-            doc.text(`• ${competitor}`);
+            doc.text(`• ${safeStringify(competitor)}`);
           });
           doc.moveDown(1);
         }
@@ -1184,7 +1189,7 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Business Strengths:");
           doc.moveDown(0.5);
           analysis.marketAnalysis.strengths.forEach((strength: string) => {
-            doc.text(`• ${strength}`);
+            doc.text(`• ${safeStringify(strength)}`);
           });
         }
       }
@@ -1210,12 +1215,12 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.moveDown(0.5);
           const customers = analysis.operations.customers;
           // Only include recurring revenue if it's not [NOT MENTIONED]
-          if (customers.recurring && !customers.recurring.includes('[NOT MENTIONED]')) {
+          if (customers.recurring && !String(customers.recurring).includes('[NOT MENTIONED]')) {
             doc.text(`Recurring Revenue: ${safeStringify(customers.recurring)}`);
           }
           doc.text(`Customer Base: ${safeStringify(customers.relationships)}`);
           // Only include concentration if it's not [NOT MENTIONED]
-          if (customers.concentration && !customers.concentration.includes('[NOT MENTIONED]')) {
+          if (customers.concentration && !String(customers.concentration).includes('[NOT MENTIONED]')) {
             doc.text(`Revenue Concentration: ${safeStringify(customers.concentration)}`);
           }
           doc.moveDown(1);
@@ -1226,8 +1231,50 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Supply Chain:");
           doc.moveDown(0.5);
           const suppliers = analysis.operations.suppliers;
-          doc.text(`Number of Suppliers: ${suppliers.count || 'N/A'}`);
-          doc.text(`Supplier Terms: ${suppliers.terms || 'N/A'}`);
+          doc.text(`Number of Suppliers: ${safeStringify(suppliers.count)}`);
+          doc.text(`Supplier Terms: ${safeStringify(suppliers.terms)}`);
+          doc.text(`Supplier Concentration: ${safeStringify(suppliers.concentration)}`);
+          doc.text(`Supplier Transferability: ${safeStringify(suppliers.transferability)}`);
+        }
+      }
+      
+      // Team Structure Section
+      if (doc.y > 650 || !analysis.operations) {
+        doc.addPage();
+      } else {
+        doc.moveDown(2);
+      }
+      
+      doc.fontSize(16)
+         .text('TEAM STRUCTURE', {
+           underline: true
+         });
+         
+      doc.moveDown(1);
+      doc.fontSize(12);
+      
+      if (analysis.team) {
+        doc.text(`Owner Responsibilities: ${safeStringify(analysis.team.ownerResponsibilities)}`);
+        doc.text(`Owner Hours per Week: ${safeStringify(analysis.team.ownerHours)}`);
+        doc.moveDown(1);
+        doc.text(`Total Employees: ${safeStringify(analysis.team.employeeCount)}`);
+        
+        if (analysis.team.keyEmployees && analysis.team.keyEmployees.length > 0) {
+          doc.moveDown(1);
+          doc.text("Key Team Members:");
+          doc.moveDown(0.5);
+          
+          analysis.team.keyEmployees.forEach((employee: any) => {
+            if (typeof employee === 'string') {
+              doc.text(`• ${employee}`);
+            } else if (typeof employee === 'object' && employee !== null) {
+              const parts = [];
+              if (employee.role) parts.push(`Role: ${employee.role}`);
+              if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+              
+              doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`);
+            }
+          });
         }
       }
       
