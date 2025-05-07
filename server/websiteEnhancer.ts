@@ -30,21 +30,30 @@ export async function enhanceWithWebsiteData(analysis: any, websiteUrl: string):
     console.log("Website analysis completed successfully");
     
     // Create a deep clone of the analysis to avoid mutation issues
-    const enhancedAnalysis = JSON.parse(JSON.stringify(analysis));
-    
-    // Add website data to the enhanced analysis
-    enhancedAnalysis.website = websiteData;
-    
-    // Validate that the resulting object can be properly serialized
+    // First, ensure the analysis can be serialized
     try {
-      JSON.stringify(enhancedAnalysis);
-      console.log("Enhanced analysis successfully validated");
-    } catch (jsonError) {
-      console.error("JSON validation failed for enhanced analysis:", jsonError);
-      throw new Error("Enhanced analysis failed JSON validation");
+      // First attempt to stringify to validate
+      JSON.stringify(analysis);
+      
+      // If successful, create a deep clone
+      const enhancedAnalysis = JSON.parse(JSON.stringify(analysis));
+      
+      // Add website data to the enhanced analysis
+      enhancedAnalysis.website = websiteData;
+      
+      // Validate that the resulting object can be properly serialized
+      try {
+        JSON.stringify(enhancedAnalysis);
+        console.log("Enhanced analysis successfully validated");
+        return enhancedAnalysis;
+      } catch (jsonError) {
+        console.error("JSON validation failed for enhanced analysis:", jsonError);
+        throw new Error("Enhanced analysis failed JSON validation");
+      }
+    } catch (cloneError) {
+      console.error("Error cloning analysis:", cloneError);
+      throw new Error("Failed to serialize the analysis object");
     }
-    
-    return enhancedAnalysis;
   } catch (error) {
     console.error("Website enhancement error:", error instanceof Error ? error.message : String(error));
     // Return the original analysis if enhancement fails

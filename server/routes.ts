@@ -93,16 +93,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        const analysis = await analyzeCimTranscript(data.transcript);
-        
+        let analysis = await analyzeCimTranscript(data.transcript);
+
         // If website URL is provided, enhance with website data safely
         if (data.websiteUrl) {
           try {
             console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-            
+
             // Use the enhancer with better error handling
             const enhancedAnalysis = await enhanceWithWebsiteData(analysis, data.websiteUrl);
-            
+
             // Verify the enhanced analysis is valid JSON
             try {
               const testJson = JSON.stringify(enhancedAnalysis);
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Continue with original analysis
           }
         }
-        
+
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -129,16 +129,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      const analysis = await analyzeCimTranscript(data.transcript);
-      
+      let analysis = await analyzeCimTranscript(data.transcript);
+
       // If website URL is provided, enhance with website data safely
       if (data.websiteUrl) {
         try {
           console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-          
+
           // Use the enhancer with better error handling
           const enhancedAnalysis = await enhanceWithWebsiteData(analysis, data.websiteUrl);
-          
+
           // Verify the enhanced analysis is valid JSON
           try {
             const testJson = JSON.stringify(enhancedAnalysis);
@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with original analysis
         }
       }
-      
+
       // Add validation before database storage
       try {
         console.log("Validating final analysis object...");
@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: validateError instanceof Error ? validateError.message : String(validateError)
         });
       }
-      
+
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
@@ -468,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { priceId } = req.body;
-      
+
       if (!priceId) {
         return res.status(400).json({ error: "Price ID is required" });
       }
@@ -500,7 +500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const signature = req.headers['stripe-signature'];
-      
+
       if (!signature) {
         return res.status(400).send('Webhook signature missing');
       }
@@ -510,10 +510,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         signature,
         process.env.STRIPE_WEBHOOK_SECRET!
       );
-      
+
       // Handle the event
       await handleStripeWebhook(event);
-      
+
       res.status(200).send();
     } catch (error) {
       console.error('Webhook error:', error);
@@ -526,13 +526,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { session_id } = req.query;
-      
+
       if (!session_id || typeof session_id !== 'string') {
         return res.status(400).json({ error: "Session ID is required" });
       }
 
       await verifyCheckoutSession(session_id);
-      
+
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
@@ -542,7 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   app.get("/api/admin/users", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     // Only admin users can access
     if (req.user!.isAdmin !== true) {
       return res.status(403).json({ error: "Unauthorized" });
@@ -558,7 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/reset-usage/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     // Only admin users can access
     if (req.user!.isAdmin !== true) {
       return res.status(403).json({ error: "Unauthorized" });
