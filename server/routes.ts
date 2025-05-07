@@ -15,6 +15,7 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
+import { analyzeWebsite } from "./website-analyzer";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -104,6 +105,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // New document generation
       const analysis = await analyzeCimTranscript(data.transcript);
+      
+      // If website URL is provided, analyze the website and enhance the analysis
+      if (data.websiteUrl) {
+        try {
+          console.log(`Analyzing website: ${data.websiteUrl}`);
+          const websiteData = await analyzeWebsite(data.websiteUrl);
+          console.log("Website analysis completed");
+          
+          // Merge the website data with the analysis
+          analysis.website = websiteData;
+        } catch (websiteError) {
+          console.error("Website analysis error:", websiteError);
+          // Continue without website data if analysis fails
+        }
+      }
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
@@ -132,6 +149,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const analysis = await analyzeCimTranscript(transcript);
+      
+      // If website URL is provided, analyze the website and enhance the analysis
+      if (data.websiteUrl) {
+        try {
+          console.log(`Analyzing website: ${data.websiteUrl}`);
+          const websiteData = await analyzeWebsite(data.websiteUrl);
+          console.log("Website analysis completed");
+          
+          // Merge the website data with the analysis
+          analysis.website = websiteData;
+        } catch (websiteError) {
+          console.error("Website analysis error:", websiteError);
+          // Continue without website data if analysis fails
+        }
+      }
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
