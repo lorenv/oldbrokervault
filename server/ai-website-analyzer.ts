@@ -516,11 +516,33 @@ export async function enhanceCimWithWebsite(analysis: any, websiteUrl: string): 
   }
   
   try {
+    // Add extra debugging for the analysis object
+    console.log("DEBUG: Analysis object type:", typeof analysis);
+    console.log("DEBUG: Analysis object keys:", Object.keys(analysis));
+    
+    try {
+      // Test JSON serialization of input analysis
+      const testJson = JSON.stringify(analysis);
+      console.log("DEBUG: Input analysis is valid JSON, length:", testJson.length);
+    } catch (jsonError) {
+      console.error("DEBUG: Input analysis JSON serialization error:", jsonError);
+      throw new Error("Input analysis cannot be serialized to JSON: " + String(jsonError));
+    }
+    
     // Create deep clone of analysis to avoid mutations
-    const enhancedAnalysis = JSON.parse(JSON.stringify(analysis));
+    let enhancedAnalysis;
+    try {
+      const analysisJson = JSON.stringify(analysis);
+      enhancedAnalysis = JSON.parse(analysisJson);
+      console.log("DEBUG: Successfully cloned analysis object");
+    } catch (cloneError) {
+      console.error("DEBUG: Error cloning analysis:", cloneError);
+      throw new Error("Failed to clone analysis: " + String(cloneError));
+    }
     
     // Run website AI analysis and image extraction in parallel
     // If one fails, the other can still succeed
+    console.log("DEBUG: Starting parallel website analysis tasks");
     const [websiteData, websiteImages] = await Promise.allSettled([
       analyzeWebsiteWithAI(websiteUrl),
       extractWebsiteImages(websiteUrl)
