@@ -203,6 +203,36 @@ Please analyze this website and create a comprehensive CIM by integrating inform
     // Get content as string and parse to JSON
     const content = result.choices[0].message.content;
     
+    // Log a comprehensive debug output
+    console.log("=== RAW PERPLEXITY RESPONSE ===");
+    console.log("Content type:", typeof content);
+    console.log("Content length:", content.length);
+    console.log("First 100 chars:", content.substring(0, 100));
+    console.log("=== END RAW RESPONSE ===");
+    
+    // Check if content starts with HTML-like content (a common issue)
+    if (content.trim().startsWith('<')) {
+      console.error('ERROR: Content appears to start with HTML tags');
+      console.error('Content preview:', content.substring(0, 200));
+      
+      // Try to extract JSON from HTML if it exists
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        console.log('Attempting to extract embedded JSON from response...');
+        try {
+          const extractedJson = jsonMatch[0];
+          const cimData = JSON.parse(extractedJson);
+          console.log('Successfully extracted and parsed JSON from response');
+          return cimData;
+        } catch (extractError) {
+          console.error('Failed to extract JSON:', extractError);
+        }
+      }
+      
+      // If extraction failed, throw a more specific error
+      throw new Error('Perplexity returned HTML instead of JSON. Request failed.');
+    }
+    
     try {
       console.log("Parsing API response as JSON...");
       
@@ -214,7 +244,54 @@ Please analyze this website and create a comprehensive CIM by integrating inform
     } catch (parseError) {
       console.error('Error parsing API response as JSON:', parseError);
       console.error('Raw content preview:', content.substring(0, 500) + '...');
-      throw new Error('Could not parse Perplexity response as JSON. The API returned invalid JSON format.');
+      
+      // Create a fallback response to avoid complete failure
+      console.log('Creating safe fallback response...');
+      return {
+        story: {
+          businessSummary: "Failed to generate CIM using website data. Please try again without a website URL.",
+          yearStarted: "",
+          businessIdea: "",
+          businessModel: "",
+          orderProcess: "",
+          growthHistory: "",
+          businessStructure: "",
+          keyAttractions: [],
+          saleReason: ""
+        },
+        // Include minimal structure to avoid frontend errors
+        executiveSummary: { buyerAttractions: [], growthOpportunities: [] },
+        assets: { digitalAssets: [], location: "", equipmentValue: "", equipmentDetails: "", inventoryDetails: "" },
+        ownership: { owners: [], intellectualProperty: [] },
+        marketAnalysis: { uniqueFeatures: [], customerProfile: "", saleReason: "", competitors: [], strengths: [] },
+        operations: { 
+          suppliers: { count: "", transferability: "", concentration: "", terms: "", replaceability: "" },
+          customers: { recurring: "", relationships: "", concentration: "", contracts: "", replaceability: "" }
+        },
+        inventory: { leadTime: "", sourcing: "", storage: "", value: "", skuCount: "", topProducts: [] },
+        sales: { seasonality: "", averageOrderValue: "", competitivePricing: "", pricingModel: "", paymentMethods: [], contractTerms: "" },
+        marketing: { 
+          strategies: [], 
+          paidAdvertising: { channels: [], effectiveness: "" },
+          emailMarketing: { listSize: "", usage: "" },
+          seoEfforts: "",
+          clientAcquisition: ""
+        },
+        team: {
+          ownerResponsibilities: "",
+          ownerHours: "",
+          employeeSummary: "",
+          employeeCount: "",
+          contractorCount: "",
+          turnover: "",
+          hiring: "",
+          retention: "",
+          organization: "",
+          keyEmployees: [],
+          management: ""
+        },
+        facility: { ownership: "", size: "", cost: "", leaseDetails: "" }
+      };
     }
   } catch (error) {
     console.error('Error generating CIM:', error);
