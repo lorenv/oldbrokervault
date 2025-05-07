@@ -40,13 +40,10 @@ export interface WebsiteData {
  */
 async function captureScreenshot(url: string): Promise<string | null> {
   try {
-    // Use puppeteer or a screenshot service API to take a full page screenshot
-    // For simplicity, we'll use a placeholder implementation
-    const tempFilePath = path.join(process.cwd(), 'temp-screenshot.png');
-    
-    // For a real implementation, you'd use:
-    // await page.goto(url);
-    // await page.screenshot({path: tempFilePath, fullPage: true});
+    // For now, since we can't use headless browsers in this environment,
+    // we'll need to skip the actual capturing part
+    console.log(`Would capture screenshot for ${url} in a production environment`);
+    return null;
     
     // Read the screenshot and convert to base64
     // const screenshotBuffer = await fs.promises.readFile(tempFilePath);

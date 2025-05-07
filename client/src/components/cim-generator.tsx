@@ -39,7 +39,10 @@ export function CimGenerator() {
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
     defaultValues: {
-      directions: DEFAULT_CIM_DIRECTIONS
+      directions: DEFAULT_CIM_DIRECTIONS,
+      title: "",
+      transcript: "",
+      websiteUrl: ""
     }
   });
 
