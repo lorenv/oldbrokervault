@@ -15,8 +15,8 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
-import { analyzeWebsite } from "./website-analyzer";
-import { enhanceWithWebsiteData } from "./websiteEnhancer";
+// Using our new AI-powered analyzer with no HTML parsing:
+import { enhanceCimWithWebsite } from "./ai-website-analyzer";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -100,8 +100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
 
-            // Use the enhancer with better error handling
-            const enhancedAnalysis = await enhanceWithWebsiteData(analysis, data.websiteUrl);
+            // Use our NEW AI-powered website analyzer that doesn't parse HTML
+            const enhancedAnalysis = await enhanceCimWithWebsite(analysis, data.websiteUrl);
 
             // Verify the enhanced analysis is valid JSON
             try {
@@ -136,8 +136,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
 
-          // Use the enhancer with AI-powered analysis
-          const enhancedAnalysis = await enhanceWithWebsiteData(analysis, data.websiteUrl);
+          // Use our NEW AI-powered website analyzer that doesn't parse HTML
+          const enhancedAnalysis = await enhanceCimWithWebsite(analysis, data.websiteUrl);
 
           // Verify the enhanced analysis is valid JSON
           try {
