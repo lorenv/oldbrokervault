@@ -3,9 +3,15 @@
  * 
  * This module uses Perplexity AI to analyze websites and enhance CIM data
  * WITHOUT any HTML parsing to avoid JSON errors.
+ * 
+ * It also includes targeted image extraction for logo and key images
+ * that operates independently from the AI analysis to avoid cascading failures.
  */
 
 import fetch from 'node-fetch';
+import * as cheerio from 'cheerio';
+import * as https from 'https';
+import * as http from 'http';
 
 /**
  * Analyze a website using Perplexity AI
@@ -200,6 +206,296 @@ Please integrate this information to enhance the CIM. For any inconsistencies be
 }
 
 /**
+ * Safely extract image URLs from a website
+ * This function uses isolated try/catch blocks for each operation
+ * so failure in one doesn't affect the others
+ */
+async function extractWebsiteImages(url: string): Promise<{
+  logo: string | null;
+  images: Array<string>;
+}> {
+  console.log(`Extracting images from website: ${url}`);
+  
+  // Initialize result
+  const result: {
+    logo: string | null,
+    images: Array<string>
+  } = {
+    logo: null,
+    images: []
+  };
+  
+  try {
+    // Fetch the website content
+    const websiteContent = await fetchWithTimeout(url, 10000);
+    
+    if (!websiteContent) {
+      console.error("Failed to fetch website content");
+      return result;
+    }
+    
+    // Load into cheerio
+    const $ = cheerio.load(websiteContent);
+    
+    // Try to extract logo (isolated in try/catch)
+    try {
+      console.log("Attempting to extract logo...");
+      // Common logo selectors and patterns
+      const logoSelectors = [
+        'header img[src*="logo"]',
+        'img[src*="logo"]',
+        'a.logo img',
+        'img.logo',
+        '.logo img',
+        '.navbar-brand img',
+        '.site-logo img',
+        'img[alt*="logo"]'
+      ];
+      
+      // Try each selector
+      for (const selector of logoSelectors) {
+        const logo = $(selector).first();
+        if (logo.length) {
+          const logoSrc = $(logo).attr('src');
+          if (logoSrc) {
+            // Convert relative URL to absolute
+            const logoUrl = new URL(logoSrc, url).href;
+            console.log(`Logo found: ${logoUrl}`);
+            
+            // Download and convert to base64
+            try {
+              const logoBase64 = await downloadImageAsBase64(logoUrl);
+              if (logoBase64) {
+                result.logo = logoBase64 as string;
+                break;
+              }
+            } catch (imgError) {
+              console.error("Error downloading logo:", imgError);
+            }
+          }
+        }
+      }
+    } catch (logoError) {
+      console.error("Error extracting logo:", logoError);
+    }
+    
+    // Try to extract key images (isolated in try/catch)
+    try {
+      console.log("Attempting to extract key images...");
+      
+      // Look for significant images (hero images, large images, slider images)
+      const imageSelectors = [
+        // Hero and banner images
+        '.hero img', 
+        '.banner img',
+        '.carousel img',
+        '.slider img',
+        // Main content area images
+        'main img',
+        '.content img',
+        // Large images
+        'img[width][height]',
+        // Fallback to any images
+        'img'
+      ];
+      
+      const downloadedImages = new Set<string>();
+      
+      // Try each selector
+      for (const selector of imageSelectors) {
+        if (result.images.length >= 3) break; // Max 3 images
+        
+        $(selector).each((i, el) => {
+          if (result.images.length >= 3) return false; // Max 3 images
+          
+          const imgSrc = $(el).attr('src');
+          if (!imgSrc) return true;
+          
+          // Skip tiny icons, data URLs, and SVGs
+          if (imgSrc.startsWith('data:') || imgSrc.endsWith('.svg') || imgSrc.includes('icon')) {
+            return true;
+          }
+          
+          try {
+            // Get image dimensions if available
+            const width = parseInt($(el).attr('width') || '0');
+            const height = parseInt($(el).attr('height') || '0');
+            
+            // Skip very small images
+            if (width > 0 && height > 0 && (width < 100 || height < 100)) {
+              return true;
+            }
+            
+            // Convert relative URL to absolute
+            const imgUrl = new URL(imgSrc, url).href;
+            
+            // Skip if we've already processed this URL
+            if (downloadedImages.has(imgUrl)) return true;
+            
+            // Download image (async but we'll collect promises and wait later)
+            downloadedImages.add(imgUrl);
+            
+            // Process the image
+            downloadImageAsBase64(imgUrl)
+              .then(base64 => {
+                if (base64 && result.images.length < 3) {
+                  result.images.push(base64);
+                }
+              })
+              .catch(err => {
+                console.error(`Error downloading image ${imgUrl}:`, err);
+              });
+          } catch (imgError) {
+            // Suppress individual image errors
+          }
+          
+          return true;
+        });
+      }
+      
+      // Wait a moment for image downloads to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log(`Found ${result.images.length} key images`);
+    } catch (imagesError) {
+      console.error("Error extracting images:", imagesError);
+    }
+    
+  } catch (error) {
+    console.error("Error in website image extraction:", error);
+  }
+  
+  return result;
+}
+
+/**
+ * Helper function to fetch with timeout
+ */
+async function fetchWithTimeout(url: string, timeout: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Choose protocol based on URL
+    const httpModule = url.startsWith('https:') ? https : http;
+    
+    const req = httpModule.get(url, { timeout }, (res) => {
+      // Handle redirects
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        const newUrl = res.headers.location;
+        if (!newUrl) {
+          reject(new Error('Redirect without location header'));
+          return;
+        }
+        
+        console.log(`Following redirect to ${newUrl}`);
+        fetchWithTimeout(newUrl, timeout)
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+      
+      // Check for successful response
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP error: ${res.statusCode}`));
+        return;
+      }
+      
+      // Collect response data
+      let data = '';
+      res.setEncoding('utf8');
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        resolve(data);
+      });
+    });
+    
+    req.on('error', (err) => {
+      reject(err);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Request timed out'));
+    });
+    
+    // Ensure request is sent
+    req.end();
+  });
+}
+
+/**
+ * Download an image and convert it to base64
+ */
+async function downloadImageAsBase64(imageUrl: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    // Choose protocol based on URL
+    const httpModule = imageUrl.startsWith('https:') ? https : http;
+    
+    const req = httpModule.get(imageUrl, { timeout: 5000 }, (res) => {
+      // Handle redirects
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        const newUrl = res.headers.location;
+        if (!newUrl) {
+          reject(new Error('Redirect without location header'));
+          return;
+        }
+        
+        downloadImageAsBase64(newUrl)
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+      
+      // Check for successful response
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP error: ${res.statusCode}`));
+        return;
+      }
+      
+      // Check content type
+      const contentType = res.headers['content-type'] || '';
+      if (!contentType.startsWith('image/')) {
+        reject(new Error(`Not an image: ${contentType}`));
+        return;
+      }
+      
+      // Collect image data
+      const chunks: Buffer[] = [];
+      
+      res.on('data', (chunk) => {
+        chunks.push(Buffer.from(chunk));
+      });
+      
+      res.on('end', () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const base64 = buffer.toString('base64');
+          // Include MIME type in data URL
+          const dataUrl = `data:${contentType};base64,${base64}`;
+          resolve(dataUrl);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    
+    req.on('error', (err) => {
+      reject(err);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Request timed out'));
+    });
+    
+    // Ensure request is sent
+    req.end();
+  });
+}
+
+/**
  * Main function to enhance CIM analysis with website data
  * @param analysis The CIM analysis from transcript
  * @param websiteUrl The URL of the website to analyze
@@ -220,24 +516,65 @@ export async function enhanceCimWithWebsite(analysis: any, websiteUrl: string): 
   }
   
   try {
-    // Step 1: Analyze website with AI
-    const websiteData = await analyzeWebsiteWithAI(websiteUrl);
-    console.log("Website analysis complete");
-    
     // Create deep clone of analysis to avoid mutations
     const enhancedAnalysis = JSON.parse(JSON.stringify(analysis));
     
-    // Step 2: Add raw website data to analysis
-    enhancedAnalysis.website = {
-      url: websiteUrl,
-      companyName: websiteData.companyName || "",
-      businessDescription: websiteData.businessDescription || "",
-      teamInfo: websiteData.teamInfo || "",
-      servicesInfo: websiteData.servicesInfo || ""
-    };
+    // Run website AI analysis and image extraction in parallel
+    // If one fails, the other can still succeed
+    const [websiteData, websiteImages] = await Promise.allSettled([
+      analyzeWebsiteWithAI(websiteUrl),
+      extractWebsiteImages(websiteUrl)
+    ]);
+    
+    // Process AI analysis results
+    if (websiteData.status === 'fulfilled') {
+      console.log("Website AI analysis complete");
+      
+      // Step 2: Add raw website data to analysis
+      enhancedAnalysis.website = {
+        url: websiteUrl,
+        companyName: websiteData.value.companyName || "",
+        businessDescription: websiteData.value.businessDescription || "",
+        teamInfo: websiteData.value.teamInfo || "",
+        servicesInfo: websiteData.value.servicesInfo || ""
+      };
+    } else {
+      console.error("Website AI analysis failed:", websiteData.reason);
+      enhancedAnalysis.website = {
+        url: websiteUrl,
+        companyName: "",
+        businessDescription: "",
+        teamInfo: "",
+        servicesInfo: ""
+      };
+    }
+    
+    // Process image extraction results
+    if (websiteImages.status === 'fulfilled') {
+      console.log("Website image extraction complete");
+      
+      // Add images to website data
+      enhancedAnalysis.website.logo = websiteImages.value.logo;
+      enhancedAnalysis.website.images = websiteImages.value.images;
+      
+      console.log(`Added ${websiteImages.value.logo ? '1' : '0'} logo and ${websiteImages.value.images.length} images to analysis`);
+    } else {
+      console.error("Website image extraction failed:", websiteImages.reason);
+      // Set empty image data
+      enhancedAnalysis.website.logo = null;
+      enhancedAnalysis.website.images = [];
+    }
     
     // Step 3: Integrate website data with transcript analysis
-    const integrated = await integrateData(analysis, websiteData);
+    let integrated = null;
+    
+    if (websiteData.status === 'fulfilled') {
+      try {
+        integrated = await integrateData(analysis, websiteData.value);
+      } catch (integrationError) {
+        console.error("Data integration error:", integrationError);
+      }
+    }
     
     if (integrated) {
       console.log("Successfully integrated website and transcript data");
