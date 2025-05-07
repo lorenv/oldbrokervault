@@ -319,27 +319,70 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
     // Clean the URL (remove extra spaces)
     websiteUrl = websiteUrl.trim();
     
-    // Add protocol if missing
-    if (!websiteUrl.match(/^https?:\/\//i)) {
-      websiteUrl = `https://${websiteUrl}`;
+    // First try the URL as provided
+    let urlsToTry = [websiteUrl];
+    
+    // Extract domain without protocol and www
+    let domain = websiteUrl.replace(/^(https?:\/\/)?(www\.)?/i, '');
+    
+    // Create variations to try
+    const variations = [
+      websiteUrl,              // Original input
+      `https://${domain}`,     // https without www
+      `https://www.${domain}`, // https with www
+      `http://${domain}`,      // http without www
+      `http://www.${domain}`   // http with www
+    ];
+    
+    // Filter out duplicates manually
+    urlsToTry = [];
+    for (const url of variations) {
+      if (!urlsToTry.includes(url)) {
+        urlsToTry.push(url);
+      }
     }
     
-    console.log(`Normalized URL: ${websiteUrl}`);
+    console.log(`Will try the following URLs in order: ${urlsToTry.join(', ')}`);
     
-    // Run all extraction processes in parallel
-    const [
-      companyName,
-      logo,
-      screenshot,
-      images,
-      content
-    ] = await Promise.all([
-      extractCompanyName(websiteUrl),
-      extractLogo(websiteUrl),
-      captureScreenshot(websiteUrl),
-      extractImages(websiteUrl),
-      extractContent(websiteUrl)
-    ]);
+    // Start with the first URL format
+    websiteUrl = urlsToTry[0];
+    
+    // Try each URL format until one works
+    let companyName = "";
+    let logo = null;
+    let screenshot = null;
+    let images: string[] = [];
+    let content = "";
+    let success = false;
+    
+    // Try each URL format in order
+    for (const urlToTry of urlsToTry) {
+      try {
+        console.log(`Trying URL: ${urlToTry}`);
+        
+        // Try to extract content with this URL format
+        [companyName, logo, screenshot, images, content] = await Promise.all([
+          extractCompanyName(urlToTry),
+          extractLogo(urlToTry),
+          captureScreenshot(urlToTry),
+          extractImages(urlToTry),
+          extractContent(urlToTry)
+        ]);
+        
+        // If we got here without error, use this URL
+        websiteUrl = urlToTry;
+        success = true;
+        console.log(`Successfully extracted content from ${urlToTry}`);
+        break;
+      } catch (urlError) {
+        console.log(`Failed to extract from ${urlToTry}: ${urlError instanceof Error ? urlError.message : String(urlError)}`);
+        // Continue to the next URL format
+      }
+    }
+    
+    if (!success) {
+      throw new Error("Failed to extract website content from all URL variations");
+    }
     
     // Analyze the extracted content with AI
     const contentAnalysis = await aiAnalyzeWebsiteContent(content);
