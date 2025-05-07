@@ -145,44 +145,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // New document generation
       let analysis = await analyzeCimTranscript(data.transcript);
 
-      // If website URL is provided, enhance with website data safely
+      // If website URL is provided, use the new simplified approach
       if (data.websiteUrl) {
         try {
-          console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-          console.log('ENHANCEMENT DEBUG: Starting website enhancement (new doc)');
+          console.log(`Starting simplified website analysis for URL: ${data.websiteUrl}`);
           
-          // Add extensive error handling and validation
+          // Use the new simplified function that directly creates a CIM from transcript and website
           try {
-            // Make a deep clone of the analysis to avoid mutation issues
-            const analysisCopy = JSON.parse(JSON.stringify(analysis));
-            console.log('ENHANCEMENT DEBUG: Successfully cloned analysis (new doc)');
+            console.log('Using new direct generateEnhancedCIM approach for new document');
             
-            // Use our NEW AI-powered website analyzer that doesn't parse HTML
-            console.log('ENHANCEMENT DEBUG: Calling enhanceCimWithWebsite (new doc)');
-            const enhancedAnalysis = await enhanceCimWithWebsite(analysisCopy, data.websiteUrl);
-            console.log('ENHANCEMENT DEBUG: enhanceCimWithWebsite completed (new doc)');
+            // This new function generates a complete CIM by analyzing both inputs directly
+            const enhancedAnalysis = await generateEnhancedCIM(data.transcript, data.websiteUrl);
+            console.log('Successfully enhanced analysis with website data for new document');
             
             // Verify the enhanced analysis is valid JSON
             try {
-              console.log('ENHANCEMENT DEBUG: Validating enhanced analysis JSON (new doc)');
               const testJson = JSON.stringify(enhancedAnalysis);
-              console.log('ENHANCEMENT DEBUG: Enhanced analysis JSON is valid, length:', testJson.length);
+              console.log('Enhanced analysis is valid JSON, length:', testJson.length);
+              
+              // Replace the original analysis with the new enhanced version
               analysis = enhancedAnalysis;
             } catch (jsonError) {
-              console.error('ENHANCEMENT DEBUG: JSON serialization error (new doc):', jsonError);
+              console.error('JSON serialization error for new document:', jsonError);
               // Keep original analysis
             }
           } catch (enhancementError) {
-            console.error('ENHANCEMENT DEBUG: Top-level enhancement error (new doc):', enhancementError);
-            console.error('ENHANCEMENT DEBUG: Error type (new doc):', typeof enhancementError);
-            console.error('ENHANCEMENT DEBUG: Error message (new doc):', 
+            console.error('Website enhancement error for new document:', enhancementError);
+            console.error('Error type:', typeof enhancementError);
+            console.error('Error message:', 
               enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
-            console.error('ENHANCEMENT DEBUG: Error stack (new doc):', 
-              enhancementError instanceof Error ? enhancementError.stack : 'No stack available');
             // Continue with original analysis
           }
-        } catch (websiteError) {
-          console.error("Website enhancement outer error (new doc):", websiteError);
+        } catch (outerError) {
+          console.error("Outer website enhancement error for new document:", outerError);
           // Continue with original analysis
         }
       }
@@ -528,7 +523,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Test endpoint for isolated website analysis
+  // Test endpoints for website analysis
+  
+  // Test endpoint for integrated website analysis
   app.post('/api/test/website-analysis', async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -539,25 +536,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "URL is required" });
       }
       
-      console.log("TEST ENDPOINT: Starting website analysis test for URL:", url);
-      
-      // Create a minimal analysis object for testing
-      const testAnalysis = {
-        story: {
-          yearStarted: "2020",
-          businessIdea: "Test business idea",
-          businessModel: "Test business model"
-        },
-        marketAnalysis: {
-          competitors: ["Competitor 1", "Competitor 2"],
-          strengths: ["Strength 1", "Strength 2"],
-          customerProfile: "Test customer profile"
-        }
-      };
+      console.log("TEST ENDPOINT: Starting integrated website analysis test for URL:", url);
       
       try {
-        console.log("TEST ENDPOINT: Calling enhanceCimWithWebsite");
-        const enhancedAnalysis = await enhanceCimWithWebsite(testAnalysis, url);
+        console.log("TEST ENDPOINT: Using new simplified website analyzer");
+        const enhancedAnalysis = await generateEnhancedCIM("Test transcript for website analysis.", url);
         console.log("TEST ENDPOINT: Website analysis complete");
         
         // Test if we can serialize the result
@@ -566,11 +549,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.json({ 
           success: true, 
-          message: "Website analysis successful",
-          hasWebsiteData: !!enhancedAnalysis.website,
-          hasLogo: !!enhancedAnalysis.website?.logo,
-          imageCount: enhancedAnalysis.website?.images?.length || 0
+          message: "Website analysis successful with new approach",
+          structure: Object.keys(enhancedAnalysis),
+          storySection: enhancedAnalysis.story ? Object.keys(enhancedAnalysis.story) : [],
+          marketSection: enhancedAnalysis.marketAnalysis ? Object.keys(enhancedAnalysis.marketAnalysis) : []
         });
+        
+      
       } catch (error) {
         console.error("TEST ENDPOINT: Analysis error:", error);
         res.status(500).json({ 
@@ -583,6 +568,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (outerError) {
       console.error("TEST ENDPOINT: Outer error:", outerError);
       res.status(500).json({ error: "Test endpoint error" });
+    }
+  });
+  
+  // Test just the website analyzer part
+  app.post('/api/test/website-content', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      console.log("TEST ANALYZER: Testing just the website analyzer for URL:", url);
+      
+      try {
+        // Import the website analyzer function
+        const { analyzeWebsite } = await import("./simple-website-analyzer");
+        
+        // Call the analyzer
+        const websiteAnalysis = await analyzeWebsite(url);
+        console.log("TEST ANALYZER: Analysis complete");
+        
+        // Return the analysis results
+        res.json({ 
+          success: true, 
+          message: "Website analysis successful", 
+          analysis: websiteAnalysis 
+        });
+      } catch (error) {
+        console.error("TEST ANALYZER: Analysis error:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    } catch (outerError) {
+      console.error("TEST ANALYZER: Outer error:", outerError);
+      res.status(500).json({ error: "Test error" });
     }
   });
 
