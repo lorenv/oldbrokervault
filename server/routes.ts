@@ -99,21 +99,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.websiteUrl) {
           try {
             console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-
-            // Use our NEW AI-powered website analyzer that doesn't parse HTML
-            const enhancedAnalysis = await enhanceCimWithWebsite(analysis, data.websiteUrl);
-
-            // Verify the enhanced analysis is valid JSON
+            console.log('ENHANCEMENT DEBUG: Starting website enhancement');
+            
+            // Add extensive error handling and validation
             try {
-              const testJson = JSON.stringify(enhancedAnalysis);
-              console.log("Enhanced analysis JSON is valid, length:", testJson.length);
-              analysis = enhancedAnalysis;
-            } catch (jsonError) {
-              console.error("JSON serialization error:", jsonError);
-              // Keep original analysis
+              // Make a deep clone of the analysis to avoid mutation issues
+              const analysisCopy = JSON.parse(JSON.stringify(analysis));
+              console.log('ENHANCEMENT DEBUG: Successfully cloned analysis');
+              
+              // Use our NEW AI-powered website analyzer that doesn't parse HTML
+              console.log('ENHANCEMENT DEBUG: Calling enhanceCimWithWebsite');
+              const enhancedAnalysis = await enhanceCimWithWebsite(analysisCopy, data.websiteUrl);
+              console.log('ENHANCEMENT DEBUG: enhanceCimWithWebsite completed');
+              
+              // Verify the enhanced analysis is valid JSON
+              try {
+                console.log('ENHANCEMENT DEBUG: Validating enhanced analysis JSON');
+                const testJson = JSON.stringify(enhancedAnalysis);
+                console.log('ENHANCEMENT DEBUG: Enhanced analysis JSON is valid, length:', testJson.length);
+                analysis = enhancedAnalysis;
+              } catch (jsonError) {
+                console.error('ENHANCEMENT DEBUG: JSON serialization error:', jsonError);
+                // Keep original analysis
+              }
+            } catch (enhancementError) {
+              console.error('ENHANCEMENT DEBUG: Top-level enhancement error:', enhancementError);
+              console.error('ENHANCEMENT DEBUG: Error type:', typeof enhancementError);
+              console.error('ENHANCEMENT DEBUG: Error message:', 
+                enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
+              console.error('ENHANCEMENT DEBUG: Error stack:', 
+                enhancementError instanceof Error ? enhancementError.stack : 'No stack available');
+              // Continue with original analysis
             }
           } catch (websiteError) {
-            console.error("Website enhancement error:", websiteError);
+            console.error("Website enhancement outer error:", websiteError);
             // Continue with original analysis
           }
         }
@@ -135,21 +154,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (data.websiteUrl) {
         try {
           console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-
-          // Use our NEW AI-powered website analyzer that doesn't parse HTML
-          const enhancedAnalysis = await enhanceCimWithWebsite(analysis, data.websiteUrl);
-
-          // Verify the enhanced analysis is valid JSON
+          console.log('ENHANCEMENT DEBUG: Starting website enhancement (new doc)');
+          
+          // Add extensive error handling and validation
           try {
-            const testJson = JSON.stringify(enhancedAnalysis);
-            console.log("Enhanced analysis JSON is valid, length:", testJson.length);
-            analysis = enhancedAnalysis;
-          } catch (jsonError) {
-            console.error("JSON serialization error:", jsonError);
-            // Keep original analysis
+            // Make a deep clone of the analysis to avoid mutation issues
+            const analysisCopy = JSON.parse(JSON.stringify(analysis));
+            console.log('ENHANCEMENT DEBUG: Successfully cloned analysis (new doc)');
+            
+            // Use our NEW AI-powered website analyzer that doesn't parse HTML
+            console.log('ENHANCEMENT DEBUG: Calling enhanceCimWithWebsite (new doc)');
+            const enhancedAnalysis = await enhanceCimWithWebsite(analysisCopy, data.websiteUrl);
+            console.log('ENHANCEMENT DEBUG: enhanceCimWithWebsite completed (new doc)');
+            
+            // Verify the enhanced analysis is valid JSON
+            try {
+              console.log('ENHANCEMENT DEBUG: Validating enhanced analysis JSON (new doc)');
+              const testJson = JSON.stringify(enhancedAnalysis);
+              console.log('ENHANCEMENT DEBUG: Enhanced analysis JSON is valid, length:', testJson.length);
+              analysis = enhancedAnalysis;
+            } catch (jsonError) {
+              console.error('ENHANCEMENT DEBUG: JSON serialization error (new doc):', jsonError);
+              // Keep original analysis
+            }
+          } catch (enhancementError) {
+            console.error('ENHANCEMENT DEBUG: Top-level enhancement error (new doc):', enhancementError);
+            console.error('ENHANCEMENT DEBUG: Error type (new doc):', typeof enhancementError);
+            console.error('ENHANCEMENT DEBUG: Error message (new doc):', 
+              enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
+            console.error('ENHANCEMENT DEBUG: Error stack (new doc):', 
+              enhancementError instanceof Error ? enhancementError.stack : 'No stack available');
+            // Continue with original analysis
           }
         } catch (websiteError) {
-          console.error("Website enhancement error:", websiteError);
+          console.error("Website enhancement outer error (new doc):", websiteError);
           // Continue with original analysis
         }
       }
@@ -492,6 +530,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ url: portalUrl });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  
+  // Test endpoint for isolated website analysis
+  app.post('/api/test/website-analysis', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      console.log("TEST ENDPOINT: Starting website analysis test for URL:", url);
+      
+      // Create a minimal analysis object for testing
+      const testAnalysis = {
+        story: {
+          yearStarted: "2020",
+          businessIdea: "Test business idea",
+          businessModel: "Test business model"
+        },
+        marketAnalysis: {
+          competitors: ["Competitor 1", "Competitor 2"],
+          strengths: ["Strength 1", "Strength 2"],
+          customerProfile: "Test customer profile"
+        }
+      };
+      
+      try {
+        console.log("TEST ENDPOINT: Calling enhanceCimWithWebsite");
+        const enhancedAnalysis = await enhanceCimWithWebsite(testAnalysis, url);
+        console.log("TEST ENDPOINT: Website analysis complete");
+        
+        // Test if we can serialize the result
+        const jsonResult = JSON.stringify(enhancedAnalysis);
+        console.log("TEST ENDPOINT: Result serialization successful, length:", jsonResult.length);
+        
+        res.json({ 
+          success: true, 
+          message: "Website analysis successful",
+          hasWebsiteData: !!enhancedAnalysis.website,
+          hasLogo: !!enhancedAnalysis.website?.logo,
+          imageCount: enhancedAnalysis.website?.images?.length || 0
+        });
+      } catch (error) {
+        console.error("TEST ENDPOINT: Analysis error:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: error instanceof Error ? error.message : String(error),
+          errorType: typeof error,
+          errorStack: error instanceof Error ? error.stack : 'No stack available'
+        });
+      }
+    } catch (outerError) {
+      console.error("TEST ENDPOINT: Outer error:", outerError);
+      res.status(500).json({ error: "Test endpoint error" });
     }
   });
 
