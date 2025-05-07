@@ -15,8 +15,8 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
-// Using our new AI-powered analyzer with no HTML parsing:
-import { enhanceCimWithWebsite } from "./ai-website-analyzer";
+// Using our new simple text-only website analyzer approach:
+import { generateEnhancedCIM } from "./simple-website-analyzer";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -95,44 +95,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Analyze with new directions
         let analysis = await analyzeCimTranscript(data.transcript);
 
-        // If website URL is provided, enhance with website data safely
+        // If website URL is provided, use our new simplified approach
         if (data.websiteUrl) {
           try {
-            console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
-            console.log('ENHANCEMENT DEBUG: Starting website enhancement');
+            console.log(`Starting simplified website analysis for URL: ${data.websiteUrl}`);
             
-            // Add extensive error handling and validation
+            // Use the new simplified function that directly creates a CIM from transcript and website
             try {
-              // Make a deep clone of the analysis to avoid mutation issues
-              const analysisCopy = JSON.parse(JSON.stringify(analysis));
-              console.log('ENHANCEMENT DEBUG: Successfully cloned analysis');
+              console.log('Using new direct generateEnhancedCIM approach');
               
-              // Use our NEW AI-powered website analyzer that doesn't parse HTML
-              console.log('ENHANCEMENT DEBUG: Calling enhanceCimWithWebsite');
-              const enhancedAnalysis = await enhanceCimWithWebsite(analysisCopy, data.websiteUrl);
-              console.log('ENHANCEMENT DEBUG: enhanceCimWithWebsite completed');
+              // This new function generates a complete CIM by analyzing both inputs directly
+              const enhancedAnalysis = await generateEnhancedCIM(data.transcript, data.websiteUrl);
+              console.log('Successfully enhanced analysis with website data');
               
               // Verify the enhanced analysis is valid JSON
               try {
-                console.log('ENHANCEMENT DEBUG: Validating enhanced analysis JSON');
                 const testJson = JSON.stringify(enhancedAnalysis);
-                console.log('ENHANCEMENT DEBUG: Enhanced analysis JSON is valid, length:', testJson.length);
+                console.log('Enhanced analysis is valid JSON, length:', testJson.length);
+                
+                // Replace the original analysis with the new enhanced version
                 analysis = enhancedAnalysis;
               } catch (jsonError) {
-                console.error('ENHANCEMENT DEBUG: JSON serialization error:', jsonError);
+                console.error('JSON serialization error:', jsonError);
                 // Keep original analysis
               }
             } catch (enhancementError) {
-              console.error('ENHANCEMENT DEBUG: Top-level enhancement error:', enhancementError);
-              console.error('ENHANCEMENT DEBUG: Error type:', typeof enhancementError);
-              console.error('ENHANCEMENT DEBUG: Error message:', 
+              console.error('Website enhancement error:', enhancementError);
+              console.error('Error type:', typeof enhancementError);
+              console.error('Error message:', 
                 enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
-              console.error('ENHANCEMENT DEBUG: Error stack:', 
-                enhancementError instanceof Error ? enhancementError.stack : 'No stack available');
               // Continue with original analysis
             }
-          } catch (websiteError) {
-            console.error("Website enhancement outer error:", websiteError);
+          } catch (outerError) {
+            console.error("Outer website enhancement error:", outerError);
             // Continue with original analysis
           }
         }
