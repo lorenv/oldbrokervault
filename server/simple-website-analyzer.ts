@@ -68,7 +68,7 @@ Focus on factual information only. Be concise yet comprehensive.`
       throw new Error(`Perplexity API error: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as any;
     
     if (!result.choices || !result.choices[0] || !result.choices[0].message) {
       console.error('Unexpected Perplexity API response:', result);
@@ -253,7 +253,7 @@ Create a comprehensive CIM by integrating both sources.`
       throw new Error(`Perplexity API error: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as any;
     
     if (!result.choices || !result.choices[0] || !result.choices[0].message) {
       console.error('Unexpected Perplexity API response:', result);
