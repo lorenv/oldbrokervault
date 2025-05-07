@@ -59,9 +59,16 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    return JSON.parse(content) as CimAnalysis;
   } catch (error) {
-    throw new Error(`Failed to analyze transcript: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error analyzing transcript:", errorMessage);
+    throw new Error(`Failed to analyze transcript: ${errorMessage}`);
   }
 }
 
