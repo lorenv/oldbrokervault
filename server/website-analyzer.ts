@@ -295,6 +295,21 @@ async function extractContent(url: string): Promise<string> {
       .replace(/\n\s*\n/g, '\n\n')
       .trim();
     
+    // Check if we're still getting HTML instead of text
+    if (contentText.includes('<!DOCTYPE') || contentText.includes('<html') || 
+        contentText.includes('<head>') || contentText.includes('<body>')) {
+      console.log("Warning: Extracted content contains HTML tags - attempting to clean");
+      
+      // Simple HTML tag removal
+      contentText = contentText
+        .replace(/<\/?[^>]+(>|$)/g, " ") // Remove HTML tags
+        .replace(/\s+/g, ' ')           // Normalize whitespace
+        .trim();
+      
+      console.log("Content after HTML cleanup:", 
+        contentText.length > 100 ? contentText.substring(0, 100) + "..." : contentText);
+    }
+    
     return contentText;
   } catch (error) {
     console.error("Error extracting website content:", error);
@@ -397,21 +412,56 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
       throw new Error("Failed to extract website content from all URL variations");
     }
     
-    // Analyze the extracted content with AI
-    const contentAnalysis = await aiAnalyzeWebsiteContent(content);
+    // Check if content contains HTML DOCTYPE - if so, it's not properly extracted content
+    if (content.includes('<!DOCTYPE') || content.includes('<html')) {
+      console.log("Warning: Content appears to be raw HTML instead of extracted text");
+      // Create a simplified result without running AI analysis on raw HTML
+      return {
+        companyName,
+        logo,
+        screenshot,
+        websiteUrl,
+        images,
+        content: {
+          businessDescription: `Business information for ${companyName}`,
+          teamInfo: "Information about the team not available",
+          servicesInfo: "Information about services not available"
+        }
+      };
+    }
     
-    return {
-      companyName: contentAnalysis.companyName || companyName,
-      logo,
-      screenshot,
-      websiteUrl,
-      images,
-      content: {
-        businessDescription: contentAnalysis.businessDescription,
-        teamInfo: contentAnalysis.teamInfo,
-        servicesInfo: contentAnalysis.servicesInfo,
-      }
-    };
+    // Analyze the extracted content with AI if it's properly extracted text
+    try {
+      const contentAnalysis = await aiAnalyzeWebsiteContent(content);
+      
+      return {
+        companyName: contentAnalysis.companyName || companyName,
+        logo,
+        screenshot,
+        websiteUrl,
+        images,
+        content: {
+          businessDescription: contentAnalysis.businessDescription,
+          teamInfo: contentAnalysis.teamInfo,
+          servicesInfo: contentAnalysis.servicesInfo,
+        }
+      };
+    } catch (aiError) {
+      console.error("Error analyzing website content with AI:", aiError);
+      // Fallback to basic information without AI analysis
+      return {
+        companyName,
+        logo,
+        screenshot,
+        websiteUrl,
+        images,
+        content: {
+          businessDescription: `Information about ${companyName}`,
+          teamInfo: "Team information not available",
+          servicesInfo: "Services information not available"
+        }
+      };
+    }
   } catch (error) {
     console.error("Error analyzing website:", error instanceof Error ? error.message : String(error));
     
