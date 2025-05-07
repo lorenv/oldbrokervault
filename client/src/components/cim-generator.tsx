@@ -163,20 +163,20 @@ ${analysis.team.ownerResponsibilities}
             <div>
               <Input
                 placeholder="Document Title"
-                {...form.register("title")}
+                {...form.register("title" as const)}
               />
             </div>
             <div>
               <Input
                 placeholder="Business Website URL (Optional)"
-                {...form.register("websiteUrl")}
+                {...form.register("websiteUrl" as const)}
               />
             </div>
             <div>
               <Textarea
                 placeholder="Paste your meeting transcript here..."
                 className="min-h-[200px]"
-                {...form.register("transcript")}
+                {...form.register("transcript" as const)}
               />
             </div>
             <div>
@@ -286,7 +286,7 @@ ${analysis.team.ownerResponsibilities}
                       <div>
                         <h4 className="text-lg font-semibold mb-2">Gallery</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {analysis.website.images.map((img, index) => (
+                          {analysis.website.images.map((img: string, index: number) => (
                             <img 
                               key={index}
                               src={`data:image/png;base64,${img}`}

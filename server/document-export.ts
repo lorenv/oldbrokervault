@@ -85,7 +85,7 @@ export function generateHtml(analysis: any): string {
         `<div style="margin-top: 24px;">
           <h4 style="font-size: 16px; font-weight: 600; color: #4b5563; margin-bottom: 12px;">Image Gallery</h4>
           <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
-            ${analysis.website.images.map((img, i) => 
+            ${analysis.website.images.map((img: string, i: number) => 
               `<img src="data:image/png;base64,${img}" alt="Business Image ${i+1}" style="max-width: 32%; height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb;">`
             ).join('')}
           </div>
