@@ -15,8 +15,8 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
-// Using our new simple text-only website analyzer approach:
-import { generateEnhancedCIM } from "./simple-website-analyzer";
+// Using our ultra-simplified direct website analyzer:
+import { generateCIM } from "./very-simple-analyzer";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -95,39 +95,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Analyze with new directions
         let analysis = await analyzeCimTranscript(data.transcript);
 
-        // If website URL is provided, use our new simplified approach
+        // If website URL is provided, use our ultra-simplified approach
         if (data.websiteUrl) {
           try {
-            console.log(`Starting simplified website analysis for URL: ${data.websiteUrl}`);
+            console.log(`Starting direct website+transcript analysis for URL: ${data.websiteUrl}`);
             
-            // Use the new simplified function that directly creates a CIM from transcript and website
+            // Direct approach: we ask Perplexity to analyze the website directly via its URL
+            // and generate a complete CIM using both the transcript and website in one call
             try {
-              console.log('Using new direct generateEnhancedCIM approach');
+              // This new function processes everything in one unified step
+              const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
+              console.log('Successfully generated CIM from transcript and website');
               
-              // This new function generates a complete CIM by analyzing both inputs directly
-              const enhancedAnalysis = await generateEnhancedCIM(data.transcript, data.websiteUrl);
-              console.log('Successfully enhanced analysis with website data');
+              // Verify the result is valid JSON
+              const testJson = JSON.stringify(enhancedAnalysis);
+              console.log('Generated CIM is valid JSON, length:', testJson.length);
               
-              // Verify the enhanced analysis is valid JSON
-              try {
-                const testJson = JSON.stringify(enhancedAnalysis);
-                console.log('Enhanced analysis is valid JSON, length:', testJson.length);
-                
-                // Replace the original analysis with the new enhanced version
-                analysis = enhancedAnalysis;
-              } catch (jsonError) {
-                console.error('JSON serialization error:', jsonError);
-                // Keep original analysis
-              }
-            } catch (enhancementError) {
-              console.error('Website enhancement error:', enhancementError);
-              console.error('Error type:', typeof enhancementError);
-              console.error('Error message:', 
-                enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
-              // Continue with original analysis
+              // Replace the original analysis with the new combined version
+              analysis = enhancedAnalysis;
+            } catch (error) {
+              console.error('Website integration error:', error);
+              console.error('Error details:', error instanceof Error ? error.message : String(error));
+              // Continue with original transcript-only analysis
             }
           } catch (outerError) {
-            console.error("Outer website enhancement error:", outerError);
+            console.error("Outer error in website integration:", outerError);
             // Continue with original analysis
           }
         }
@@ -145,39 +137,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // New document generation
       let analysis = await analyzeCimTranscript(data.transcript);
 
-      // If website URL is provided, use the new simplified approach
+      // If website URL is provided, use our ultra-simplified approach
       if (data.websiteUrl) {
         try {
-          console.log(`Starting simplified website analysis for URL: ${data.websiteUrl}`);
+          console.log(`Starting direct website+transcript analysis for new document. URL: ${data.websiteUrl}`);
           
-          // Use the new simplified function that directly creates a CIM from transcript and website
+          // Direct approach: we ask Perplexity to analyze the website directly via its URL
+          // and generate a complete CIM using both the transcript and website in one call
           try {
-            console.log('Using new direct generateEnhancedCIM approach for new document');
+            // This new function processes everything in one unified step
+            const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
+            console.log('Successfully generated CIM from transcript and website');
             
-            // This new function generates a complete CIM by analyzing both inputs directly
-            const enhancedAnalysis = await generateEnhancedCIM(data.transcript, data.websiteUrl);
-            console.log('Successfully enhanced analysis with website data for new document');
+            // Verify the result is valid JSON
+            const testJson = JSON.stringify(enhancedAnalysis);
+            console.log('Generated CIM is valid JSON, length:', testJson.length);
             
-            // Verify the enhanced analysis is valid JSON
-            try {
-              const testJson = JSON.stringify(enhancedAnalysis);
-              console.log('Enhanced analysis is valid JSON, length:', testJson.length);
-              
-              // Replace the original analysis with the new enhanced version
-              analysis = enhancedAnalysis;
-            } catch (jsonError) {
-              console.error('JSON serialization error for new document:', jsonError);
-              // Keep original analysis
-            }
-          } catch (enhancementError) {
-            console.error('Website enhancement error for new document:', enhancementError);
-            console.error('Error type:', typeof enhancementError);
-            console.error('Error message:', 
-              enhancementError instanceof Error ? enhancementError.message : String(enhancementError));
-            // Continue with original analysis
+            // Replace the original analysis with the new combined version
+            analysis = enhancedAnalysis;
+          } catch (error) {
+            console.error('Website integration error:', error);
+            console.error('Error details:', error instanceof Error ? error.message : String(error));
+            // Continue with original transcript-only analysis
           }
         } catch (outerError) {
-          console.error("Outer website enhancement error for new document:", outerError);
+          console.error("Outer error in website integration:", outerError);
           // Continue with original analysis
         }
       }
@@ -539,8 +523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("TEST ENDPOINT: Starting integrated website analysis test for URL:", url);
       
       try {
-        console.log("TEST ENDPOINT: Using new simplified website analyzer");
-        const enhancedAnalysis = await generateEnhancedCIM("Test transcript for website analysis.", url);
+        console.log("TEST ENDPOINT: Using ultra-simplified website analyzer");
+        const enhancedAnalysis = await generateCIM("Test transcript for website analysis.", url);
         console.log("TEST ENDPOINT: Website analysis complete");
         
         // Test if we can serialize the result
@@ -585,11 +569,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("TEST ANALYZER: Testing just the website analyzer for URL:", url);
       
       try {
-        // Import the website analyzer function
-        const { analyzeWebsite } = await import("./simple-website-analyzer");
-        
-        // Call the analyzer
-        const websiteAnalysis = await analyzeWebsite(url);
+        // Import directly from our ultra-simplified analyzer module
+        // Perplexity has built-in web browsing capability - no need to scrape HTML
+        const websiteAnalysis = await generateCIM("Brief test transcript", url);
         console.log("TEST ANALYZER: Analysis complete");
         
         // Return the analysis results
