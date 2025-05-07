@@ -319,23 +319,39 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
     // Clean the URL (remove extra spaces)
     websiteUrl = websiteUrl.trim();
     
-    // First try the URL as provided
-    let urlsToTry = [websiteUrl];
+    // Use a more robust approach to URL formatting
+    console.log("Raw website URL provided:", websiteUrl);
     
-    // Extract domain without protocol and www
-    let domain = websiteUrl.replace(/^(https?:\/\/)?(www\.)?/i, '');
+    // Handle if URL is just a domain name without protocol
+    if (!websiteUrl.match(/^https?:\/\//i)) {
+      console.log("URL has no protocol, adding https://");
+      websiteUrl = "https://" + websiteUrl;
+    }
     
-    // Create variations to try
+    try {
+      // Verify we can parse the URL
+      new URL(websiteUrl);
+    } catch (e) {
+      console.error("Invalid URL format:", e);
+      throw new Error(`Invalid URL format: ${websiteUrl}`);
+    }
+    
+    // Extract clean domain without protocol and www
+    let urlObj = new URL(websiteUrl);
+    let domain = urlObj.hostname.replace(/^www\./i, '');
+    console.log("Extracted domain:", domain);
+    
+    // Create variations to try in specific order (most likely to succeed first)
     const variations = [
-      websiteUrl,              // Original input
-      `https://${domain}`,     // https without www
-      `https://www.${domain}`, // https with www
-      `http://${domain}`,      // http without www
-      `http://www.${domain}`   // http with www
+      `https://www.${domain}`,  // Most likely to work - https with www
+      `https://${domain}`,      // https without www
+      `http://www.${domain}`,   // http with www
+      `http://${domain}`,       // http without www
+      websiteUrl                // Original URL as fallback
     ];
     
-    // Filter out duplicates manually
-    urlsToTry = [];
+    // Remove duplicates while preserving order
+    const urlsToTry: string[] = [];
     for (const url of variations) {
       if (!urlsToTry.includes(url)) {
         urlsToTry.push(url);
@@ -343,9 +359,6 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
     }
     
     console.log(`Will try the following URLs in order: ${urlsToTry.join(', ')}`);
-    
-    // Start with the first URL format
-    websiteUrl = urlsToTry[0];
     
     // Try each URL format until one works
     let companyName = "";
