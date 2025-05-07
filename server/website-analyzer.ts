@@ -312,9 +312,19 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
   
   try {
     // Validate and normalize URL
-    if (!websiteUrl.startsWith('http')) {
+    if (!websiteUrl) {
+      throw new Error("Website URL is required");
+    }
+    
+    // Clean the URL (remove extra spaces)
+    websiteUrl = websiteUrl.trim();
+    
+    // Add protocol if missing
+    if (!websiteUrl.match(/^https?:\/\//i)) {
       websiteUrl = `https://${websiteUrl}`;
     }
+    
+    console.log(`Normalized URL: ${websiteUrl}`);
     
     // Run all extraction processes in parallel
     const [
@@ -347,19 +357,46 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
       }
     };
   } catch (error) {
-    console.error("Error analyzing website:", error);
+    console.error("Error analyzing website:", error instanceof Error ? error.message : String(error));
+    
     // Return a partially complete object with the URL
-    return {
-      companyName: new URL(websiteUrl).hostname.replace('www.', ''),
-      logo: null,
-      screenshot: null,
-      websiteUrl,
-      images: [],
-      content: {
-        businessDescription: "",
-        teamInfo: "",
-        servicesInfo: ""
+    try {
+      // Try to extract a domain name for the company name
+      let companyName = "Unknown";
+      try {
+        companyName = new URL(websiteUrl).hostname.replace('www.', '');
+      } catch (urlError) {
+        // If URL parsing fails, just use the raw input as the company name
+        companyName = websiteUrl.replace(/^https?:\/\//i, '').replace('www.', '');
       }
-    };
+      
+      return {
+        companyName,
+        logo: null,
+        screenshot: null,
+        websiteUrl,
+        images: [],
+        content: {
+          businessDescription: "Unable to extract content from website.",
+          teamInfo: "",
+          servicesInfo: ""
+        }
+      };
+    } catch (fallbackError) {
+      // If even the fallback fails, return truly minimal data
+      console.error("Failed to create fallback website data:", fallbackError);
+      return {
+        companyName: "Website Analysis Failed",
+        logo: null,
+        screenshot: null,
+        websiteUrl: websiteUrl || "",
+        images: [],
+        content: {
+          businessDescription: "",
+          teamInfo: "",
+          servicesInfo: ""
+        }
+      };
+    }
   }
 }
