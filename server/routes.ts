@@ -107,12 +107,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
               console.log('Successfully generated CIM from transcript and website');
               
-              // Verify the result is valid JSON
-              const testJson = JSON.stringify(enhancedAnalysis);
-              console.log('Generated CIM is valid JSON, length:', testJson.length);
+              // Enhanced validation of the result
+              console.log('Validating enhanced CIM data...');
               
-              // Replace the original analysis with the new combined version
-              analysis = enhancedAnalysis;
+              if (!enhancedAnalysis) {
+                console.error("Enhanced analysis is null or undefined");
+                // Continue with original analysis instead of failing
+                console.log("Using original transcript-only analysis as fallback");
+              } else {
+                // Verify required top-level structure
+                const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
+                                           "marketAnalysis", "operations", "inventory", "sales", 
+                                           "marketing", "team", "facility"];
+                
+                const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
+                if (missingKeys.length > 0) {
+                  console.error("Enhanced analysis missing required top-level keys:", missingKeys);
+                  console.log("Using original transcript-only analysis as fallback");
+                } else {
+                  // Test JSON serialization
+                  const testJson = JSON.stringify(enhancedAnalysis);
+                  console.log('Generated CIM is valid JSON, length:', testJson.length);
+                  console.log('JSON preview:', testJson.substring(0, 200) + '...');
+                  
+                  // Replace the original analysis with the validated enhanced version
+                  analysis = enhancedAnalysis;
+                }
+              }
             } catch (error) {
               console.error('Website integration error:', error);
               console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -149,12 +170,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
             console.log('Successfully generated CIM from transcript and website');
             
-            // Verify the result is valid JSON
-            const testJson = JSON.stringify(enhancedAnalysis);
-            console.log('Generated CIM is valid JSON, length:', testJson.length);
+            // Enhanced validation of the result
+            console.log('Validating enhanced CIM data for new document...');
             
-            // Replace the original analysis with the new combined version
-            analysis = enhancedAnalysis;
+            if (!enhancedAnalysis) {
+              console.error("Enhanced analysis is null or undefined");
+              // Continue with original analysis instead of failing
+              console.log("Using original transcript-only analysis as fallback");
+            } else {
+              // Verify required top-level structure
+              const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
+                                        "marketAnalysis", "operations", "inventory", "sales", 
+                                        "marketing", "team", "facility"];
+              
+              const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
+              if (missingKeys.length > 0) {
+                console.error("Enhanced analysis missing required top-level keys:", missingKeys);
+                console.log("Using original transcript-only analysis as fallback");
+              } else {
+                // Test JSON serialization
+                const testJson = JSON.stringify(enhancedAnalysis);
+                console.log('Generated CIM is valid JSON, length:', testJson.length);
+                console.log('JSON preview:', testJson.substring(0, 200) + '...');
+                
+                // Replace the original analysis with the validated enhanced version
+                analysis = enhancedAnalysis;
+              }
+            }
           } catch (error) {
             console.error('Website integration error:', error);
             console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -166,13 +208,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Add validation before database storage
+      // Enhanced validation before database storage
       try {
         console.log("Validating final analysis object...");
+        
+        if (!analysis) {
+          console.error("Analysis is null or undefined");
+          return res.status(400).json({ 
+            error: "Analysis is empty. Please try again.",
+            details: "Generated CIM data is null or undefined"
+          });
+        }
+        
+        // Verify required top-level structure
+        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
+                                     "marketAnalysis", "operations", "inventory", "sales", 
+                                     "marketing", "team", "facility"];
+        
+        const missingKeys = requiredTopLevelKeys.filter(key => !analysis[key]);
+        if (missingKeys.length > 0) {
+          console.error("Analysis missing required top-level keys:", missingKeys);
+          return res.status(400).json({
+            error: "Incomplete CIM structure",
+            details: `Missing required sections: ${missingKeys.join(', ')}`
+          });
+        }
+        
+        // Test JSON serialization
         const finalJson = JSON.stringify(analysis);
         console.log("Analysis is valid JSON with length:", finalJson.length);
+        
+        // Log first 200 chars of the JSON for debugging
+        console.log("JSON preview:", finalJson.substring(0, 200) + "...");
+        
       } catch (validateError) {
         console.error("Final JSON validation error:", validateError);
+        // Provide more detailed diagnostics
+        console.error("Analysis type:", typeof analysis);
+        if (analysis) {
+          console.error("Analysis keys:", Object.keys(analysis));
+        }
         return res.status(400).json({ 
           error: "Invalid data structure in analysis. Please try again or omit the website URL.",
           details: validateError instanceof Error ? validateError.message : String(validateError)
@@ -527,9 +602,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const enhancedAnalysis = await generateCIM("Test transcript for website analysis.", url);
         console.log("TEST ENDPOINT: Website analysis complete");
         
+        // Enhanced validation for test endpoint
+        if (!enhancedAnalysis) {
+          console.error("TEST ENDPOINT: Analysis is null or undefined");
+          throw new Error("Analysis returned was null or undefined");
+        }
+        
+        // Verify required top-level structure
+        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
+                                     "marketAnalysis", "operations", "inventory", "sales", 
+                                     "marketing", "team", "facility"];
+                                     
+        const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
+        if (missingKeys.length > 0) {
+          console.error("TEST ENDPOINT: Missing required sections:", missingKeys);
+          throw new Error(`Missing required sections: ${missingKeys.join(', ')}`);
+        }
+        
         // Test if we can serialize the result
         const jsonResult = JSON.stringify(enhancedAnalysis);
         console.log("TEST ENDPOINT: Result serialization successful, length:", jsonResult.length);
+        console.log("TEST ENDPOINT: First 200 chars:", jsonResult.substring(0, 200) + "...");
         
         res.json({ 
           success: true, 
@@ -574,10 +667,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const websiteAnalysis = await generateCIM("Brief test transcript", url);
         console.log("TEST ANALYZER: Analysis complete");
         
-        // Return the analysis results
+        // Enhanced validation for direct test endpoint
+        if (!websiteAnalysis) {
+          console.error("TEST ANALYZER: Analysis is null or undefined");
+          throw new Error("Analysis returned was null or undefined");
+        }
+        
+        // Verify required top-level structure
+        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
+                                    "marketAnalysis", "operations", "inventory", "sales", 
+                                    "marketing", "team", "facility"];
+        
+        // Log structure information for debugging
+        console.log("TEST ANALYZER: Analysis type:", typeof websiteAnalysis);
+        console.log("TEST ANALYZER: Top-level keys:", Object.keys(websiteAnalysis));
+        
+        const missingKeys = requiredTopLevelKeys.filter(key => !websiteAnalysis[key]);
+        if (missingKeys.length > 0) {
+          console.error("TEST ANALYZER: Missing required sections:", missingKeys);
+          console.log("TEST ANALYZER: Will still return partial results for debugging");
+        }
+        
+        // Test serialization
+        const jsonResult = JSON.stringify(websiteAnalysis);
+        console.log("TEST ANALYZER: Result serializable, length:", jsonResult.length);
+        console.log("TEST ANALYZER: First 200 chars:", jsonResult.substring(0, 200) + "...");
+        
+        // Return the analysis results with structure info
         res.json({ 
           success: true, 
           message: "Website analysis successful", 
+          structure: Object.keys(websiteAnalysis),
+          missingKeys: missingKeys.length > 0 ? missingKeys : undefined,
           analysis: websiteAnalysis 
         });
       } catch (error) {
