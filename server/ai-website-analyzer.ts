@@ -94,56 +94,96 @@ async function integrateData(analysis: any, websiteData: any) {
   console.log("Integrating website data with CIM analysis");
   
   try {
+    // Add detailed validation of input objects
+    console.log("INTEGRATE DEBUG: Analyzing input objects");
+    console.log("INTEGRATE DEBUG: Analysis type:", typeof analysis);
+    console.log("INTEGRATE DEBUG: WebsiteData type:", typeof websiteData);
+    
+    if (!analysis || typeof analysis !== 'object') {
+      console.error("INTEGRATE DEBUG: Invalid analysis object");
+      return null;
+    }
+    
+    if (!websiteData || typeof websiteData !== 'object') {
+      console.error("INTEGRATE DEBUG: Invalid website data object");
+      return null;
+    }
+    
     // Verify API key is present
     if (!process.env.PERPLEXITY_API_KEY) {
-      console.error("Missing PERPLEXITY_API_KEY");
+      console.error("INTEGRATE DEBUG: Missing PERPLEXITY_API_KEY");
       throw new Error("Perplexity API key is required for data integration");
     }
     
-    // Create context for website data
-    const websiteContext = `
-WEBSITE INFORMATION:
-Company Name: ${websiteData.companyName || "Unknown"}
-Business Description: ${websiteData.businessDescription || ""}
-Team Information: ${websiteData.teamInfo || ""}
-Services Information: ${websiteData.servicesInfo || ""}
-`;
+    // Create context for website data with careful error handling
+    let websiteContext = "WEBSITE INFORMATION:\n";
     
-    // Extract relevant CIM analysis
+    try {
+      websiteContext += `Company Name: ${websiteData.companyName || "Unknown"}\n`;
+      websiteContext += `Business Description: ${websiteData.businessDescription || ""}\n`;
+      websiteContext += `Team Information: ${websiteData.teamInfo || ""}\n`;
+      websiteContext += `Services Information: ${websiteData.servicesInfo || ""}\n`;
+      console.log("INTEGRATE DEBUG: Website context created successfully");
+    } catch (contextError) {
+      console.error("INTEGRATE DEBUG: Error creating website context:", contextError);
+      websiteContext = "WEBSITE INFORMATION: Error processing website data\n";
+    }
+    
+    // Extract relevant CIM analysis with careful error handling
     let analysisContext = "";
     
     try {
+      console.log("INTEGRATE DEBUG: Analysis object keys:", Object.keys(analysis));
+      
       if (analysis.story) {
-        analysisContext += `
-TRANSCRIPT INFORMATION:
-Business Started: ${analysis.story.yearStarted || ""}
-Business Idea: ${analysis.story.businessIdea || ""}
-Business Model: ${analysis.story.businessModel || ""}
-Growth History: ${analysis.story.growthHistory || ""}
-`;
+        console.log("INTEGRATE DEBUG: Found story section");
+        analysisContext += "TRANSCRIPT INFORMATION:\n";
+        
+        // Use optional chaining and nullish coalescing for safety
+        const yearStarted = analysis.story?.yearStarted ?? "";
+        const businessIdea = analysis.story?.businessIdea ?? "";
+        const businessModel = analysis.story?.businessModel ?? "";
+        const growthHistory = analysis.story?.growthHistory ?? "";
+        
+        analysisContext += `Business Started: ${yearStarted}\n`;
+        analysisContext += `Business Idea: ${businessIdea}\n`;
+        analysisContext += `Business Model: ${businessModel}\n`;
+        analysisContext += `Growth History: ${growthHistory}\n`;
       }
       
       if (analysis.marketAnalysis) {
-        analysisContext += `
-Market Information:
-Customer Profile: ${analysis.marketAnalysis.customerProfile || ""}
-Competitors: ${Array.isArray(analysis.marketAnalysis.competitors) ? analysis.marketAnalysis.competitors.join(", ") : ""}
-Strengths: ${Array.isArray(analysis.marketAnalysis.strengths) ? analysis.marketAnalysis.strengths.join(", ") : ""}
-`;
+        console.log("INTEGRATE DEBUG: Found marketAnalysis section");
+        analysisContext += "Market Information:\n";
+        
+        // Use optional chaining with safety checks
+        const customerProfile = analysis.marketAnalysis?.customerProfile ?? "";
+        
+        // Array handling with careful validation
+        let competitors = "";
+        if (Array.isArray(analysis.marketAnalysis?.competitors)) {
+          competitors = analysis.marketAnalysis.competitors.join(", ");
+        }
+        
+        let strengths = "";
+        if (Array.isArray(analysis.marketAnalysis?.strengths)) {
+          strengths = analysis.marketAnalysis.strengths.join(", ");
+        }
+        
+        analysisContext += `Customer Profile: ${customerProfile}\n`;
+        analysisContext += `Competitors: ${competitors}\n`;
+        analysisContext += `Strengths: ${strengths}\n`;
       }
     } catch (error) {
-      console.error("Error preparing analysis context:", error);
-      analysisContext = "Error extracting transcript information";
+      console.error("INTEGRATE DEBUG: Error preparing analysis context:", error);
+      analysisContext = "TRANSCRIPT INFORMATION: Error extracting transcript information\n";
     }
     
-    // Make integration request to Perplexity
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    // Make integration request to Perplexity with careful error handling
+    console.log("INTEGRATE DEBUG: Preparing Perplexity API request");
+    
+    try {
+      console.log("INTEGRATE DEBUG: Creating request payload");
+      const requestBody = {
         model: "llama-3.1-sonar-small-128k-online",
         messages: [
           {
@@ -175,28 +215,81 @@ Please integrate this information to enhance the CIM. For any inconsistencies be
         ],
         response_format: { type: "json_object" },
         temperature: 0.2
-      })
-    });
-    
-    // Parse response
-    const responseData = await response.json() as any;
-    
-    if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
-      console.error("Invalid Perplexity API response for integration:", responseData);
-      throw new Error("Invalid AI integration response format");
-    }
-    
-    // Extract content
-    const aiContent = responseData.choices[0].message.content;
-    
-    try {
-      // Parse JSON response
-      const integratedData = JSON.parse(aiContent);
-      console.log("Successfully parsed AI integration data");
-      return integratedData;
-    } catch (error) {
-      console.error("Failed to parse integration response as JSON:", error);
-      throw new Error("Integration response is not valid JSON");
+      };
+      
+      // Test stringification before sending
+      try {
+        const testStringify = JSON.stringify(requestBody);
+        console.log("INTEGRATE DEBUG: Request payload is valid JSON, length:", testStringify.length);
+      } catch (jsonError) {
+        console.error("INTEGRATE DEBUG: Request body JSON error:", jsonError);
+        return null;
+      }
+      
+      console.log("INTEGRATE DEBUG: Sending request to Perplexity API");
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log("INTEGRATE DEBUG: Received response from Perplexity API, status:", response.status);
+      
+      if (!response.ok) {
+        console.error("INTEGRATE DEBUG: Perplexity API error, status:", response.status);
+        const errorText = await response.text();
+        console.error("INTEGRATE DEBUG: Error text:", errorText);
+        return null;
+      }
+      
+      // Parse response with careful error handling
+      let responseData;
+      try {
+        responseData = await response.json() as any;
+        console.log("INTEGRATE DEBUG: Successfully parsed response as JSON");
+      } catch (jsonError) {
+        console.error("INTEGRATE DEBUG: Response JSON parse error:", jsonError);
+        const responseText = await response.text();
+        console.error("INTEGRATE DEBUG: Raw response text:", responseText.substring(0, 500) + "...");
+        return null;
+      }
+      
+      if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
+        console.error("INTEGRATE DEBUG: Invalid Perplexity API response structure:", 
+          JSON.stringify(responseData).substring(0, 500) + "...");
+        return null;
+      }
+      
+      // Extract content with validation
+      console.log("INTEGRATE DEBUG: Extracting message content");
+      const aiContent = responseData.choices[0].message.content;
+      
+      if (!aiContent || typeof aiContent !== 'string') {
+        console.error("INTEGRATE DEBUG: Invalid message content:", aiContent);
+        return null;
+      }
+      
+      try {
+        // Parse JSON response
+        console.log("INTEGRATE DEBUG: Parsing message content as JSON");
+        const integratedData = JSON.parse(aiContent);
+        console.log("INTEGRATE DEBUG: Successfully parsed AI integration data");
+        
+        // Verify structure of integrated data
+        console.log("INTEGRATE DEBUG: Verifying data structure, keys:", Object.keys(integratedData));
+        
+        return integratedData;
+      } catch (error) {
+        console.error("INTEGRATE DEBUG: Failed to parse integration response as JSON:", error);
+        console.error("INTEGRATE DEBUG: Raw content:", aiContent.substring(0, 500) + "...");
+        return null;
+      }
+    } catch (requestError) {
+      console.error("INTEGRATE DEBUG: Error making API request:", requestError);
+      return null;
     }
     
   } catch (error) {
