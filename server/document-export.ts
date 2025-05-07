@@ -38,6 +38,64 @@ export function generateHtml(analysis: any): string {
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
 `;
 
+  // Website section if available
+  if (analysis.website) {
+    html += `
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Website Information</h2>
+      
+      <div style="display: flex; margin-bottom: 20px; align-items: center;">
+        ${analysis.website.logo ? 
+          `<div style="margin-right: 20px;">
+            <img src="data:image/png;base64,${analysis.website.logo}" alt="${analysis.website.companyName} Logo" style="max-height: 80px; max-width: 120px; object-fit: contain;">
+           </div>` 
+          : ''
+        }
+        <div>
+          <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #111827;">${analysis.website.companyName || 'Company Website'}</h3>
+          <a href="${analysis.website.websiteUrl}" style="color: #4f46e5; text-decoration: none; font-weight: 500;">${analysis.website.websiteUrl}</a>
+        </div>
+      </div>
+      
+      ${analysis.website.screenshot ? 
+        `<div style="margin-bottom: 20px;">
+          <img src="data:image/png;base64,${analysis.website.screenshot}" alt="Website Screenshot" style="width: 100%; max-height: 400px; object-fit: cover; border: 1px solid #e5e7eb; border-radius: 4px;">
+         </div>`
+        : ''
+      }
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-top: 20px; margin-bottom: 12px;">Website Content</h3>
+      
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 16px; font-weight: 600; color: #4b5563; margin-bottom: 8px;">Business Description</h4>
+        <p style="color: #1f2937; background-color: #f9fafb; padding: 12px; border-radius: 4px; margin: 0;">${safeStringify(analysis.website.content?.businessDescription)}</p>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 16px; font-weight: 600; color: #4b5563; margin-bottom: 8px;">Team Information</h4>
+        <p style="color: #1f2937; background-color: #f9fafb; padding: 12px; border-radius: 4px; margin: 0;">${safeStringify(analysis.website.content?.teamInfo)}</p>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 16px; font-weight: 600; color: #4b5563; margin-bottom: 8px;">Services Information</h4>
+        <p style="color: #1f2937; background-color: #f9fafb; padding: 12px; border-radius: 4px; margin: 0;">${safeStringify(analysis.website.content?.servicesInfo)}</p>
+      </div>
+      
+      ${analysis.website.images && analysis.website.images.length > 0 ? 
+        `<div style="margin-top: 24px;">
+          <h4 style="font-size: 16px; font-weight: 600; color: #4b5563; margin-bottom: 12px;">Image Gallery</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+            ${analysis.website.images.map((img, i) => 
+              `<img src="data:image/png;base64,${img}" alt="Business Image ${i+1}" style="max-width: 32%; height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb;">`
+            ).join('')}
+          </div>
+        </div>`
+        : ''
+      }
+    </div>
+    `;
+  }
+
   // Business Overview Section with Q&A style
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">

@@ -72,6 +72,16 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
  */
 export async function analyzeWebsiteContent(websiteContent: string): Promise<WebsiteAnalysis> {
   try {
+    // Handle empty content case
+    if (!websiteContent || websiteContent.trim() === '') {
+      return {
+        businessDescription: "",
+        teamInfo: "",
+        servicesInfo: "",
+        companyName: ""
+      };
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -99,7 +109,12 @@ export async function analyzeWebsiteContent(websiteContent: string): Promise<Web
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+    
+    const result = JSON.parse(content);
     
     // Ensure all expected fields are present
     return {
@@ -109,7 +124,7 @@ export async function analyzeWebsiteContent(websiteContent: string): Promise<Web
       companyName: result.companyName || ""
     };
   } catch (error) {
-    console.error("Error analyzing website content:", error);
+    console.error("Error analyzing website content:", error instanceof Error ? error.message : String(error));
     return {
       businessDescription: "",
       teamInfo: "",
