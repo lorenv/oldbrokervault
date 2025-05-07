@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log(`Starting website enhancement for URL: ${data.websiteUrl}`);
 
-          // Use the enhancer with better error handling
+          // Use the enhancer with AI-powered analysis
           const enhancedAnalysis = await enhanceWithWebsiteData(analysis, data.websiteUrl);
 
           // Verify the enhanced analysis is valid JSON

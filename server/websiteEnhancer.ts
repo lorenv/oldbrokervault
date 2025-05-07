@@ -3,9 +3,14 @@
  * 
  * Uses AI to analyze website content and integrate it with transcript information
  * to create a more comprehensive CIM document
+ * 
+ * IMPORTANT: This module uses ONLY AI (Perplexity) to analyze websites,
+ * avoiding any HTML parsing or scraping that could cause JSON parsing errors.
  */
 
 import fetch from 'node-fetch';
+
+// Remove the import to website-analyzer.ts completely!
 
 /**
  * Analyze website content with Perplexity AI
