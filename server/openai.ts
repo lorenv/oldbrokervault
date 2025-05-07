@@ -64,3 +64,57 @@ export async function analyzeCimTranscript(transcript: string): Promise<CimAnaly
     throw new Error(`Failed to analyze transcript: ${error.message}`);
   }
 }
+
+/**
+ * Analyzes website content to extract business information
+ * @param websiteContent The text content extracted from the website
+ * @returns Structured business information from the website
+ */
+export async function analyzeWebsiteContent(websiteContent: string): Promise<WebsiteAnalysis> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional business analyst extracting key information from business websites. 
+          Analyze the provided website content and extract structured information about the business.
+          Focus on finding factual information only, do not invent or assume details not present in the content.
+          If specific information is not available, provide empty strings.`
+        },
+        {
+          role: "user",
+          content: `Please analyze this business website content and provide the following information in JSON format:
+          
+          1. businessDescription: A comprehensive paragraph describing what the business does, its value proposition, and any unique selling points
+          2. teamInfo: A summary of the team members, their roles, experience, or any team-related information
+          3. servicesInfo: A detailed list of services or products offered by the business
+          4. companyName: The name of the company as it appears on the website
+          
+          Here's the website content:
+          
+          ${websiteContent}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
+    
+    // Ensure all expected fields are present
+    return {
+      businessDescription: result.businessDescription || "",
+      teamInfo: result.teamInfo || "",
+      servicesInfo: result.servicesInfo || "",
+      companyName: result.companyName || ""
+    };
+  } catch (error) {
+    console.error("Error analyzing website content:", error);
+    return {
+      businessDescription: "",
+      teamInfo: "",
+      servicesInfo: "",
+      companyName: ""
+    };
+  }
+}
