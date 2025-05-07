@@ -16,6 +16,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { analyzeWebsiteContent as aiAnalyzeWebsiteContent, WebsiteAnalysis } from './openai';
 
 const execAsync = promisify(exec);
 
@@ -257,7 +258,7 @@ async function extractContent(url: string): Promise<string> {
     
     // Remove script and style elements
     const scripts = document.querySelectorAll('script, style, noscript, iframe');
-    scripts.forEach(el => el.remove());
+    scripts.forEach((el: Element) => el.remove());
     
     // Extract text from main content areas
     const contentSelectors = [
@@ -281,7 +282,7 @@ async function extractContent(url: string): Promise<string> {
     
     for (const selector of contentSelectors) {
       const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
+      elements.forEach((el: Element) => {
         contentText += el.textContent + '\n\n';
       });
     }
@@ -301,36 +302,6 @@ async function extractContent(url: string): Promise<string> {
   } catch (error) {
     console.error("Error extracting website content:", error);
     return '';
-  }
-}
-
-/**
- * Analyzes website content using AI to extract relevant business information
- * @param websiteContent The text content from the website
- * @returns Structured business information
- */
-async function analyzeWebsiteContent(websiteContent: string): Promise<{
-  businessDescription: string;
-  teamInfo: string;
-  servicesInfo: string;
-}> {
-  try {
-    // For a real implementation, you would send this to OpenAI or Perplexity API
-    // with a prompt asking to extract business description, team info, and services
-    
-    // Placeholder implementation - in a real app this would call the AI service
-    return {
-      businessDescription: "Business description extracted from website",
-      teamInfo: "Team information extracted from website",
-      servicesInfo: "Services information extracted from website"
-    };
-  } catch (error) {
-    console.error("Error analyzing website content:", error);
-    return {
-      businessDescription: "",
-      teamInfo: "",
-      servicesInfo: ""
-    };
   }
 }
 
@@ -364,15 +335,19 @@ export async function analyzeWebsite(websiteUrl: string): Promise<WebsiteData> {
     ]);
     
     // Analyze the extracted content with AI
-    const contentAnalysis = await analyzeWebsiteContent(content);
+    const contentAnalysis = await aiAnalyzeWebsiteContent(content);
     
     return {
-      companyName,
+      companyName: contentAnalysis.companyName || companyName,
       logo,
       screenshot,
       websiteUrl,
       images,
-      content: contentAnalysis
+      content: {
+        businessDescription: contentAnalysis.businessDescription,
+        teamInfo: contentAnalysis.teamInfo,
+        servicesInfo: contentAnalysis.servicesInfo,
+      }
     };
   } catch (error) {
     console.error("Error analyzing website:", error);
