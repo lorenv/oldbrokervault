@@ -35,6 +35,13 @@ type CimAnalysis = {
   };
 };
 
+export type WebsiteAnalysis = {
+  businessDescription: string;
+  teamInfo: string;
+  servicesInfo: string;
+  companyName: string;
+};
+
 export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
   try {
     const response = await openai.chat.completions.create({
