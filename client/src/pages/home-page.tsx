@@ -22,7 +22,7 @@ export default function HomePage() {
           <div className="space-y-6">
             <SubscriptionCard 
               status={user?.subscriptionStatus} 
-              endsAt={user?.subscriptionEndsAt} 
+              endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : undefined} 
               monthlyUsage={user?.monthlyUsage}
             />
 
@@ -32,25 +32,33 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {documents?.slice().reverse().slice(0, 3).map((doc) => (
-                    <a 
-                      href={`/documents/${doc.id}`} 
-                      key={doc.id} 
-                      className="block p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
-                    >
-                      <h3 className="font-medium">{doc.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(doc.createdAt).toLocaleDateString()}
-                      </p>
-                    </a>
-                  ))}
-                  {documents?.length > 3 && (
-                    <a 
-                      href="/documents" 
-                      className="block text-sm text-primary hover:underline text-center mt-1"
-                    >
-                      View all documents ({documents.length})
-                    </a>
+                  {documents && documents.length > 0 ? (
+                    <>
+                      {documents.slice().reverse().slice(0, 3).map((doc) => (
+                        <a 
+                          href={`/documents/${doc.id}`} 
+                          key={doc.id} 
+                          className="block p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                        >
+                          <h3 className="font-medium">{doc.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(doc.createdAt).toLocaleDateString()}
+                          </p>
+                        </a>
+                      ))}
+                      {documents.length > 3 && (
+                        <a 
+                          href="/documents" 
+                          className="block text-sm text-primary hover:underline text-center mt-1"
+                        >
+                          View all documents ({documents.length})
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      No documents yet. Create your first CIM!
+                    </p>
                   )}
                 </div>
               </CardContent>
