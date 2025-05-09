@@ -100,6 +100,111 @@ export function normalizeUrl(urlString: string): string {
 }
 
 /**
+ * Extracts a company logo from a website
+ * @param websiteUrl The URL of the website to extract the logo from
+ * @returns Promise resolving to the URL of the logo image, or null if not found
+ */
+export async function extractLogoFromWebsite(websiteUrl: string): Promise<string | null> {
+  try {
+    console.log(`Attempting to extract logo from website: ${websiteUrl}`);
+    const normalizedUrl = normalizeUrl(websiteUrl);
+    
+    // Fetch the website HTML
+    const response = await fetch(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const html = await response.text();
+    
+    // Extract the base URL for resolving relative paths
+    const urlObj = new URL(normalizedUrl);
+    const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+    
+    // Common logo patterns to search for
+    const logoPatterns = [
+      // Common logo class and ID patterns
+      /<img[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*src="([^"]+)"[^>]*>/i,
+      /<img[^>]*src="([^"]+)"[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>/i,
+      // Alt text containing "logo"
+      /<img[^>]*alt="[^"]*(?:logo|brand)[^"]*"[^>]*src="([^"]+)"[^>]*>/i,
+      /<img[^>]*src="([^"]+)"[^>]*alt="[^"]*(?:logo|brand)[^"]*"[^>]*>/i,
+      // Common logo filenames
+      /<img[^>]*src="([^"]*(?:logo|brand|header-logo)[^"]*\.(?:png|jpg|jpeg|svg|webp))"[^>]*>/i,
+      // Logo in header or navigation
+      /<header[^>]*>(?:(?!<\/header>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/header>).)*?<\/header>/is,
+      /<nav[^>]*>(?:(?!<\/nav>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/nav>).)*?<\/nav>/is,
+      // Link with logo class containing an image
+      /<a[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>(?:(?!<\/a>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/a>).)*?<\/a>/is
+    ];
+    
+    // Try each pattern until we find a match
+    for (const pattern of logoPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        let logoUrl = match[1];
+        
+        // Resolve relative URLs
+        if (logoUrl.startsWith('//')) {
+          logoUrl = urlObj.protocol + logoUrl;
+        } else if (logoUrl.startsWith('/')) {
+          logoUrl = baseUrl + logoUrl;
+        } else if (!logoUrl.startsWith('http')) {
+          logoUrl = baseUrl + '/' + logoUrl;
+        }
+        
+        console.log(`Found logo URL: ${logoUrl}`);
+        return logoUrl;
+      }
+    }
+    
+    // If we couldn't find a logo, try one last pattern for favicon
+    const faviconMatch = html.match(/<link[^>]*rel="(?:icon|shortcut icon)"[^>]*href="([^"]+)"[^>]*>/i);
+    if (faviconMatch && faviconMatch[1]) {
+      let faviconUrl = faviconMatch[1];
+      
+      // Resolve relative URLs
+      if (faviconUrl.startsWith('//')) {
+        faviconUrl = urlObj.protocol + faviconUrl;
+      } else if (faviconUrl.startsWith('/')) {
+        faviconUrl = baseUrl + faviconUrl;
+      } else if (!faviconUrl.startsWith('http')) {
+        faviconUrl = baseUrl + '/' + faviconUrl;
+      }
+      
+      console.log(`Found favicon as fallback: ${faviconUrl}`);
+      return faviconUrl;
+    }
+    
+    // Default favicon location as last resort
+    const defaultFavicon = `${baseUrl}/favicon.ico`;
+    
+    // Check if default favicon exists
+    try {
+      const faviconResponse = await fetch(defaultFavicon, { method: 'HEAD' });
+      if (faviconResponse.ok) {
+        console.log(`Using default favicon location: ${defaultFavicon}`);
+        return defaultFavicon;
+      }
+    } catch (error) {
+      console.error(`Error checking default favicon: ${error.message}`);
+    }
+    
+    console.log("No logo found on website");
+    return null;
+  } catch (error) {
+    console.error(`Error extracting logo: ${error.message}`);
+    return null;
+  }
+}
+
+/**
  * Analyzes a website using Perplexity's browsing API
  * This function extracts key information from the website to enhance the CIM
  * @param websiteUrl Normalized website URL
