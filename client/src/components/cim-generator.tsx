@@ -203,6 +203,11 @@ ${analysis.team.ownerResponsibilities}
                 placeholder="Document Title"
                 {...form.register("title")}
               />
+              {form.formState.errors.title && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.title.message as string}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <div className="relative">
@@ -226,6 +231,11 @@ ${analysis.team.ownerResponsibilities}
                 className="min-h-[200px]"
                 {...form.register("transcript")}
               />
+              {form.formState.errors.transcript && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.transcript.message as string}
+                </p>
+              )}
             </div>
             <div>
               <Dialog open={isDirectionsOpen} onOpenChange={setIsDirectionsOpen}>
