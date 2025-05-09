@@ -329,7 +329,7 @@ ${analysis.team.ownerResponsibilities}
             <div className="space-y-2">
               <div className="relative">
                 <Input
-                  placeholder="Business Website URL (optional, e.g., designtoprint.com)"
+                  placeholder="Business Website URL (optional)"
                   {...form.register("websiteUrl")}
                 />
                 {form.formState.errors.websiteUrl && (
