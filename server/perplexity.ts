@@ -1,5 +1,5 @@
 // the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
-const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
+export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 type CimAnalysis = {
   story: {
