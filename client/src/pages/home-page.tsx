@@ -31,14 +31,26 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {documents?.map((doc) => (
-                    <div key={doc.id} className="p-3 bg-muted rounded-lg">
+                  {documents?.slice(0, 3).map((doc) => (
+                    <a 
+                      href={`/documents/${doc.id}`} 
+                      key={doc.id} 
+                      className="block p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                    >
                       <h3 className="font-medium">{doc.title}</h3>
                       <p className="text-sm text-muted-foreground">
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </p>
-                    </div>
+                    </a>
                   ))}
+                  {documents?.length > 3 && (
+                    <a 
+                      href="/documents" 
+                      className="block text-sm text-primary hover:underline text-center mt-1"
+                    >
+                      View all documents ({documents.length})
+                    </a>
+                  )}
                 </div>
               </CardContent>
             </Card>
