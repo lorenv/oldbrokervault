@@ -3,10 +3,11 @@ import { CimGenerator } from "@/components/cim-generator";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
+import { CimDocument } from "@shared/schema";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { data: documents } = useQuery({
+  const { data: documents } = useQuery<CimDocument[]>({
     queryKey: ["/api/cim"],
   });
 
