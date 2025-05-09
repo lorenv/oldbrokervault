@@ -553,7 +553,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Document has no analysis data" });
       }
       
-      const html = generateHtml(doc.analysis);
+      // Include logo URL if available
+      const html = generateHtml(doc.analysis, doc.logoUrl);
       
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });

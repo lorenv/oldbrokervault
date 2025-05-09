@@ -69,10 +69,11 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any): string {
+export function generateHtml(analysis: any, logoUrl?: string | null): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
+  ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px;"></div>` : ''}
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
 `;
 
