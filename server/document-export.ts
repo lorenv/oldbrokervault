@@ -996,22 +996,22 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     }),
     
     new docx.Paragraph({
-      text: `Management Structure: ${safeStringify(analysis.team?.management)}`,
+      text: `Management Structure: ${analysis.team?.management ? safeStringify(analysis.team.management) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Team Size: ${safeStringify(analysis.team?.employeeCount)}`,
+      text: `Team Size: ${analysis.team?.employeeCount ? safeStringify(analysis.team.employeeCount) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Turnover Rate: ${safeStringify(analysis.team?.turnover)}`,
+      text: `Turnover Rate: ${analysis.team?.turnover ? safeStringify(analysis.team.turnover) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     }),
     
     new docx.Paragraph({
-      text: `Retention: ${safeStringify(analysis.team?.retention)}`,
+      text: `Retention: ${analysis.team?.retention ? safeStringify(analysis.team.retention) : "[NOT ANSWERED]"}`,
       spacing: { before: 100, after: 200 }
     })
   );
@@ -1116,11 +1116,18 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
   
   return new Promise((resolve, reject) => {
     try {
+      // Validate analysis object to prevent errors
+      if (!analysis || typeof analysis !== 'object') {
+        console.error("Invalid analysis object provided to PDF generator");
+        throw new Error("Invalid analysis data");
+      }
+      
       // Create a basic PDF document
       const doc = new PDFDocument({
         size: 'letter',
         margin: 50,
-        bufferPages: true
+        bufferPages: true,
+        autoFirstPage: true
       });
       
       // Collect PDF data in buffers
@@ -1355,7 +1362,35 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       
     } catch (error) {
       console.error("PDF generation failed:", error);
-      reject(error);
+      
+      // Create a basic error PDF as fallback
+      try {
+        const errorDoc = new PDFDocument({ autoFirstPage: true });
+        const errorChunks: Buffer[] = [];
+        
+        errorDoc.on('data', (chunk) => {
+          errorChunks.push(Buffer.from(chunk));
+        });
+        
+        errorDoc.on('end', () => {
+          console.log("Generated error fallback PDF");
+          resolve(Buffer.concat(errorChunks));
+        });
+        
+        // Add error information to the PDF
+        errorDoc.fontSize(16)
+               .text('Error Generating PDF', { align: 'center' })
+               .moveDown(1)
+               .fontSize(12)
+               .text('There was an error generating the complete PDF document.', { align: 'center' })
+               .moveDown(1)
+               .text('Please try one of the other export formats instead.', { align: 'center' });
+        
+        errorDoc.end();
+      } catch (fallbackError) {
+        console.error("Even fallback PDF failed:", fallbackError);
+        reject(new Error("PDF generation failed completely. Please try another export format."));
+      }
     }
   });
 }
