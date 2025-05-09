@@ -383,31 +383,37 @@ ${analysis.team.ownerResponsibilities}
                 </DialogContent>
               </Dialog>
             </div>
-            <Button
-              type="submit"
-              disabled={generateMutation.isPending}
-              className="w-full h-10 flex items-center justify-center"
-            >
-              {generateMutation.isPending ? (
-                <LoadingAnimation 
-                  size="sm" 
-                  text={form.getValues('websiteUrl') 
-                    ? "Analyzing transcript and website data..." 
-                    : "Analyzing transcript..."} 
-                  showProgress={!!form.getValues('websiteUrl')?.trim()}
-                  progressSteps={[
-                    "Validating website URL format...",
-                    "Connecting to website...",
-                    "Analyzing website content...",
-                    "Enhancing CIM with website data..."
-                  ]}
-                />
-              ) : currentDocId ? (
-                "Regenerate CIM"
-              ) : (
-                "Generate CIM"
+            <div className="space-y-3">
+              <Button
+                type="submit"
+                disabled={generateMutation.isPending}
+                className="w-full h-10 flex items-center justify-center"
+              >
+                {generateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {generateMutation.isPending ? "Processing..." : currentDocId ? "Regenerate CIM" : "Generate CIM"}
+              </Button>
+              
+              {/* Show loading animation below the button in black text */}
+              {generateMutation.isPending && (
+                <div className="text-foreground text-center">
+                  <LoadingAnimation 
+                    size="sm" 
+                    text={form.getValues('websiteUrl') 
+                      ? "Analyzing transcript and website data..." 
+                      : "Analyzing transcript..."} 
+                    showProgress={!!form.getValues('websiteUrl')?.trim()}
+                    progressSteps={[
+                      "Validating website URL format...",
+                      "Connecting to website...",
+                      "Analyzing website content...",
+                      "Enhancing CIM with website data..."
+                    ]}
+                  />
+                </div>
               )}
-            </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

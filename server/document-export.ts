@@ -1190,9 +1190,29 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         
         doc.moveDown(1);
         if (analysis.story.businessSummary) {
-          doc.text("Business Description:");
+          doc.text("Business Description:", {
+            continued: false
+          });
           doc.moveDown(0.5);
-          doc.text(safeStringify(analysis.story.businessSummary));
+          
+          // Format with explicit width and enable automatic page breaks
+          const text = safeStringify(analysis.story.businessSummary);
+          
+          // Check if text would go beyond page and add a page if needed
+          const textHeight = doc.heightOfString(text, {
+            width: doc.page.width - 100
+          });
+          
+          if (doc.y + textHeight > doc.page.height - 100) {
+            doc.addPage();
+          }
+          
+          doc.text(text, {
+            width: doc.page.width - 100,
+            align: 'left',
+            lineGap: 5,
+            continued: false
+          });
         }
       }
       
