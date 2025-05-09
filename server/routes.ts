@@ -506,8 +506,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      console.log("Generating PDF document...");
-      const buffer = await generatePDF(doc.analysis);
+      console.log("Generating PDF document with logo...");
+      // Pass the logo URL to the PDF generator if it exists
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
