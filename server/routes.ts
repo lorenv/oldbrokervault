@@ -459,8 +459,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      console.log("Generating Word document...");
-      const buffer = await generateWordDocument(doc.analysis);
+      console.log("Generating Word document with logo...");
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");

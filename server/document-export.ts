@@ -753,57 +753,108 @@ export function formatTextContent(analysis: any): string {
   return sections.join('\n\n');
 }
 
-export async function generateWordDocument(analysis: any): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null): Promise<Buffer> {
   // Create paragraphs for the document
-  const paragraphs: docx.Paragraph[] = [
+  const paragraphs: docx.Paragraph[] = [];
+  
+  // Add logo image if available
+  if (logoUrl) {
+    try {
+      // Fetch the logo image
+      const response = await fetch(logoUrl);
+      if (response.ok) {
+        const imageBuffer = await response.arrayBuffer();
+        
+        // Add the logo to the document
+        paragraphs.push(
+          new docx.Paragraph({
+            children: [
+              new docx.ImageRun({
+                data: Buffer.from(imageBuffer),
+                transformation: {
+                  width: 200,
+                  height: 100
+                }
+              })
+            ],
+            alignment: docx.AlignmentType.CENTER,
+            spacing: { after: 200 }
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error adding logo to Word document:", error);
+      // Continue without logo if there's an error
+    }
+  }
+  
+  // Add title
+  paragraphs.push(
     new docx.Paragraph({
       text: "CONFIDENTIAL INFORMATION MEMORANDUM",
       heading: docx.HeadingLevel.HEADING_1,
+      alignment: docx.AlignmentType.CENTER,
       spacing: { after: 400 }
-    }),
-    
-    // BUSINESS OVERVIEW SECTION
+    })
+  );
+  
+  // BUSINESS OVERVIEW SECTION
+  paragraphs.push(
     new docx.Paragraph({
       text: "BUSINESS OVERVIEW",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
-    // Business details in regular paragraphs
+    })
+  );
+  
+  // Business details in regular paragraphs
+  paragraphs.push(
     new docx.Paragraph({
       text: `Founded: ${safeStringify(analysis.story?.yearStarted)}`,
       spacing: { before: 200 }
-    }),
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Structure: ${safeStringify(analysis.story?.businessStructure)}`,
       spacing: { before: 100 }
-    }),
-    
-    // Business summary
+    })
+  );
+  
+  // Business summary
+  paragraphs.push(
     new docx.Paragraph({
       text: "Business Description",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
-    }),
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel),
       spacing: { before: 100, after: 200 }
-    }),
-    
-    // INVESTMENT HIGHLIGHTS
+    })
+  );
+  
+  // INVESTMENT HIGHLIGHTS
+  paragraphs.push(
     new docx.Paragraph({
       text: "INVESTMENT HIGHLIGHTS",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
-    // Key Attractions
+    })
+  );
+  
+  // Key Attractions
+  paragraphs.push(
     new docx.Paragraph({
       text: "Key Attractions",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
     })
-  ];
+  );
   
   // Add bullet points for key attractions
   if (analysis.executiveSummary?.buyerAttractions?.length) {
@@ -850,25 +901,33 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
       text: "MARKET POSITION",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: "Target Market",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: safeStringify(analysis.marketAnalysis?.customerProfile),
       spacing: { before: 100, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: "Competitive Landscape",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: "Competitors",
       heading: docx.HeadingLevel.HEADING_3,
@@ -921,96 +980,130 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
       text: "OPERATIONS",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: "Customer Relationships",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
-    }),
-    
-    ...(analysis.operations?.customers?.recurring && !String(analysis.operations?.customers?.recurring).includes('[NOT MENTIONED]') ? [
+    })
+  );
+  
+  if (analysis.operations?.customers?.recurring && !String(analysis.operations?.customers?.recurring).includes('[NOT MENTIONED]')) {
+    paragraphs.push(
       new docx.Paragraph({
         text: `Recurring Revenue: ${safeStringify(analysis.operations?.customers?.recurring)}`,
         spacing: { before: 100 }
       })
-    ] : []),
-    
+    );
+  }
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Customer Base: ${safeStringify(analysis.operations?.customers?.relationships)}`,
       spacing: { before: 100 }
-    }),
-    
-    ...(analysis.operations?.customers?.concentration && !String(analysis.operations?.customers?.concentration).includes('[NOT MENTIONED]') ? [
+    })
+  );
+  
+  if (analysis.operations?.customers?.concentration && !String(analysis.operations?.customers?.concentration).includes('[NOT MENTIONED]')) {
+    paragraphs.push(
       new docx.Paragraph({
         text: `Revenue Concentration: ${safeStringify(analysis.operations?.customers?.concentration)}`,
         spacing: { before: 100 }
       })
-    ] : []),
-    
+    );
+  }
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Contract Terms: ${safeStringify(analysis.operations?.customers?.contracts)}`,
       spacing: { before: 100, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: "Supply Chain",
       heading: docx.HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Number of Suppliers: ${safeStringify(analysis.operations?.suppliers?.count)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Supplier Terms: ${safeStringify(analysis.operations?.suppliers?.terms)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Concentration: ${safeStringify(analysis.operations?.suppliers?.concentration)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Transferability: ${safeStringify(analysis.operations?.suppliers?.transferability)}`,
       spacing: { before: 100, after: 200 }
-    }),
-    
-    // TEAM STRUCTURE
+    })
+  );
+  
+  // TEAM STRUCTURE
+  paragraphs.push(
     new docx.Paragraph({
       text: "TEAM STRUCTURE",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Owner Responsibilities: ${safeStringify(analysis.team?.ownerResponsibilities)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Required Hours: ${safeStringify(analysis.team?.ownerHours)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Management Structure: ${analysis.team?.management ? safeStringify(analysis.team.management) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Team Size: ${analysis.team?.employeeCount ? safeStringify(analysis.team.employeeCount) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Turnover Rate: ${analysis.team?.turnover ? safeStringify(analysis.team.turnover) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Retention: ${analysis.team?.retention ? safeStringify(analysis.team.retention) : "[NOT ANSWERED]"}`,
       spacing: { before: 100, after: 200 }
