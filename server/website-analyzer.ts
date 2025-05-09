@@ -111,12 +111,29 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
     console.log(`Normalized URL: ${normalizedUrl}`);
     
     // Fetch the website HTML
-    console.log(`Fetching website HTML...`);
+    console.log(`Fetching website HTML from ${normalizedUrl}...`);
+    
+    // Add more robust headers to mimic a real browser
     const response = await fetch(normalizedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate'
+      },
+      redirect: 'follow'  // Follow redirects
+    }).catch(err => {
+      console.error(`Network error fetching website: ${err.message}`);
+      return null;
     });
+    
+    if (!response) {
+      console.error(`Failed to get any response from website`);
+      return null;
+    }
     
     if (!response.ok) {
       console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
@@ -217,13 +234,13 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
         return defaultFavicon;
       }
     } catch (error) {
-      console.error(`Error checking default favicon: ${error.message}`);
+      console.error(`Error checking default favicon: ${error instanceof Error ? error.message : String(error)}`);
     }
     
     console.log("No logo found on website");
     return null;
   } catch (error) {
-    console.error(`Error extracting logo: ${error.message}`);
+    console.error(`Error extracting logo: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   }
 }
