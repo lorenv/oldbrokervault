@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
-import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData } from "./website-analyzer";
+import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -125,10 +125,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let analysis = await analyzeCimTranscript(data.transcript);
       
       // If website URL is provided, enhance the analysis with website data
+      let logoUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
+          
+          // Try to extract logo from the website
+          try {
+            logoUrl = await extractLogoFromWebsite(normalizedUrl);
+            console.log("Extracted logo URL:", logoUrl);
+          } catch (logoError) {
+            console.error("Logo extraction error:", logoError);
+            // Continue without the logo
+          }
           
           // Analyze the website
           const websiteAnalysis = await analyzeWebsite(normalizedUrl);
@@ -143,6 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
+        websiteUrl: data.websiteUrl,
+        logoUrl,
         analysis,
         regenerationCount: 0
       });
@@ -171,10 +183,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let analysis = await analyzeCimTranscript(transcript);
       
       // If website URL is provided, enhance the analysis with website data
+      let logoUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
+          
+          // Try to extract logo from the website
+          try {
+            logoUrl = await extractLogoFromWebsite(normalizedUrl);
+            console.log("Extracted logo URL:", logoUrl);
+          } catch (logoError) {
+            console.error("Logo extraction error:", logoError);
+            // Continue without the logo
+          }
           
           // Analyze the website
           const websiteAnalysis = await analyzeWebsite(normalizedUrl);
@@ -189,6 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
+        websiteUrl: data.websiteUrl,
+        logoUrl,
         analysis,
         regenerationCount: 0
       });

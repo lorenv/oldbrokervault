@@ -1115,8 +1115,8 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any): Promise<Buffer> {
-  console.log("Starting simplified PDF generation...");
+export async function generatePDF(analysis: any, logoUrl?: string | null): Promise<Buffer> {
+  console.log("Starting enhanced PDF generation...");
   
   return new Promise((resolve, reject) => {
     try {
@@ -1126,12 +1126,16 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         throw new Error("Invalid analysis data");
       }
       
-      // Create a basic PDF document
+      // Create a PDF document with expanded options for better handling of content
       const doc = new PDFDocument({
         size: 'letter',
         margin: 50,
         bufferPages: true,
-        autoFirstPage: true
+        autoFirstPage: true,
+        info: {
+          Title: 'Confidential Information Memorandum',
+          Author: 'CIM Generator'
+        }
       });
       
       // Collect PDF data in buffers
@@ -1151,7 +1155,25 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         reject(err);
       });
       
-      // Start creating PDF content - first the title page
+      // TITLE PAGE
+      
+      // Add logo if available
+      if (logoUrl) {
+        try {
+          console.log("Adding logo to PDF:", logoUrl);
+          doc.image(logoUrl, {
+            fit: [200, 100],
+            align: 'center'
+          });
+          doc.moveDown(2);
+        } catch (logoError) {
+          console.error("Failed to add logo to PDF:", logoError);
+          // Continue without the logo
+          doc.moveDown(1);
+        }
+      }
+      
+      // Add main title
       doc.fontSize(22)
          .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
            align: 'center'
@@ -1159,8 +1181,18 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       
       doc.moveDown(2);
       
-      // Add business name/title
-      const businessTitle = safeStringify(analysis.story?.businessSummary)?.substring(0, 50) || 'Business Information Memorandum';
+      // Add business name/title - use full title, not just first 50 chars
+      let businessTitle = safeStringify(analysis.story?.businessSummary) || 'Business Information Memorandum';
+      // If too long, get first sentence
+      if (businessTitle.length > 100) {
+        const firstSentence = businessTitle.split(/\.(\s|$)/)[0];
+        if (firstSentence && firstSentence.length > 20) {
+          businessTitle = firstSentence + '.';
+        } else {
+          businessTitle = businessTitle.substring(0, 100) + '...';
+        }
+      }
+      
       doc.fontSize(16)
          .text(businessTitle, {
            align: 'center'
@@ -1182,10 +1214,68 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
            align: 'center'
          });
       
-      // Add core content on subsequent pages
+      // TABLE OF CONTENTS PAGE
       doc.addPage();
       
+      doc.fontSize(16)
+         .text('TABLE OF CONTENTS', {
+           align: 'center',
+           underline: true
+         });
+      
+      doc.moveDown(2);
+      doc.fontSize(12);
+      
+      // Add table of contents entries
+      const sections = [
+        { title: 'BUSINESS OVERVIEW', page: 3 },
+        { title: 'MARKET POSITION', page: 3 },
+        { title: 'OPERATIONS', page: 4 },
+        { title: 'TEAM STRUCTURE', page: 5 },
+        { title: 'FACILITIES', page: 6 }
+      ];
+      
+      sections.forEach(section => {
+        doc.text(section.title, {
+          continued: true
+        });
+        
+        const xPosition = 450; // Position for page numbers
+        const currentY = doc.y;
+        
+        doc.text(`Page ${section.page}`, {
+          align: 'right',
+          continued: false
+        });
+        
+        // Add dotted line connecting section title to page number
+        const dotsStartX = doc.widthOfString(section.title) + 100;
+        const dotsEndX = xPosition - 20;
+        
+        doc.moveTo(dotsStartX, currentY + 7)
+           .lineTo(dotsEndX, currentY + 7)
+           .stroke();
+           
+        doc.moveDown(1);
+      });
+      
+      // CONTENT PAGES
+      
       // BUSINESS OVERVIEW
+      doc.addPage();
+      
+      // If logo is available, add a small version to the top right corner of each page
+      if (logoUrl) {
+        try {
+          doc.image(logoUrl, doc.page.width - 150, 30, {
+            fit: [100, 50],
+            align: 'right'
+          });
+        } catch (error) {
+          console.error("Failed to add page header logo:", error);
+        }
+      }
+      
       doc.fontSize(16)
          .text('BUSINESS OVERVIEW', {
            underline: true
@@ -1209,27 +1299,36 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           // Format with explicit width and enable automatic page breaks
           const text = safeStringify(analysis.story.businessSummary);
           
-          // Check if text would go beyond page and add a page if needed
-          const textHeight = doc.heightOfString(text, {
-            width: doc.page.width - 100
-          });
-          
-          if (doc.y + textHeight > doc.page.height - 100) {
-            doc.addPage();
-          }
-          
+          // Use continueOnNewPage option
           doc.text(text, {
             width: doc.page.width - 100,
             align: 'left',
             lineGap: 5,
             continued: false
           });
+          
+          // Check if the content was cut off and add it on a new page if needed
+          doc.moveDown(1);
         }
       }
       
-      doc.moveDown(1);
+      // MARKET SECTION - check if we need a new page
+      if (doc.y > doc.page.height - 200) {
+        doc.addPage();
+        if (logoUrl) {
+          try {
+            doc.image(logoUrl, doc.page.width - 150, 30, {
+              fit: [100, 50],
+              align: 'right'
+            });
+          } catch (error) {
+            console.error("Failed to add page header logo:", error);
+          }
+        }
+      } else {
+        doc.moveDown(2);
+      }
       
-      // MARKET SECTION
       doc.fontSize(16)
          .text('MARKET POSITION', {
            underline: true
@@ -1242,7 +1341,9 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         if (analysis.marketAnalysis.customerProfile) {
           doc.text("Target Market:");
           doc.moveDown(0.5);
-          doc.text(safeStringify(analysis.marketAnalysis.customerProfile));
+          doc.text(safeStringify(analysis.marketAnalysis.customerProfile), {
+            width: doc.page.width - 100
+          });
           doc.moveDown(1);
         }
         
@@ -1250,7 +1351,9 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Competitors:");
           doc.moveDown(0.5);
           analysis.marketAnalysis.competitors.forEach((competitor: string) => {
-            doc.text(`• ${safeStringify(competitor)}`);
+            doc.text(`• ${safeStringify(competitor)}`, {
+              width: doc.page.width - 120
+            });
           });
           doc.moveDown(1);
         }
@@ -1259,17 +1362,30 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Business Strengths:");
           doc.moveDown(0.5);
           analysis.marketAnalysis.strengths.forEach((strength: string) => {
-            doc.text(`• ${safeStringify(strength)}`);
+            doc.text(`• ${safeStringify(strength)}`, {
+              width: doc.page.width - 120
+            });
           });
         }
       }
       
-      // Add additional pages and sections as needed
-      if (doc.y > 700) {
+      // OPERATIONS SECTION - check if we need a new page
+      if (doc.y > doc.page.height - 200) {
         doc.addPage();
+        if (logoUrl) {
+          try {
+            doc.image(logoUrl, doc.page.width - 150, 30, {
+              fit: [100, 50],
+              align: 'right'
+            });
+          } catch (error) {
+            console.error("Failed to add page header logo:", error);
+          }
+        }
+      } else {
+        doc.moveDown(2);
       }
       
-      // OPERATIONS SECTION
       doc.fontSize(16)
          .text('OPERATIONS', {
            underline: true
@@ -1286,12 +1402,18 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           const customers = analysis.operations.customers;
           // Only include recurring revenue if it's not [NOT MENTIONED]
           if (customers.recurring && !String(customers.recurring).includes('[NOT MENTIONED]')) {
-            doc.text(`Recurring Revenue: ${safeStringify(customers.recurring)}`);
+            doc.text(`Recurring Revenue: ${safeStringify(customers.recurring)}`, {
+              width: doc.page.width - 100
+            });
           }
-          doc.text(`Customer Base: ${safeStringify(customers.relationships)}`);
+          doc.text(`Customer Base: ${safeStringify(customers.relationships)}`, {
+            width: doc.page.width - 100
+          });
           // Only include concentration if it's not [NOT MENTIONED]
           if (customers.concentration && !String(customers.concentration).includes('[NOT MENTIONED]')) {
-            doc.text(`Revenue Concentration: ${safeStringify(customers.concentration)}`);
+            doc.text(`Revenue Concentration: ${safeStringify(customers.concentration)}`, {
+              width: doc.page.width - 100
+            });
           }
           doc.moveDown(1);
         }
@@ -1301,18 +1423,32 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           doc.text("Supply Chain:");
           doc.moveDown(0.5);
           const suppliers = analysis.operations.suppliers;
-          doc.text(`Number of Suppliers: ${safeStringify(suppliers.count)}`);
-          doc.text(`Supplier Terms: ${safeStringify(suppliers.terms)}`);
-          doc.text(`Supplier Concentration: ${safeStringify(suppliers.concentration)}`);
-          doc.text(`Supplier Transferability: ${safeStringify(suppliers.transferability)}`);
+          doc.text(`Number of Suppliers: ${safeStringify(suppliers.count)}`, {
+            width: doc.page.width - 100
+          });
+          doc.text(`Supplier Terms: ${safeStringify(suppliers.terms)}`, {
+            width: doc.page.width - 100
+          });
+          doc.text(`Supplier Concentration: ${safeStringify(suppliers.concentration)}`, {
+            width: doc.page.width - 100
+          });
+          doc.text(`Supplier Transferability: ${safeStringify(suppliers.transferability)}`, {
+            width: doc.page.width - 100
+          });
         }
       }
       
-      // Team Structure Section
-      if (doc.y > 650 || !analysis.operations) {
-        doc.addPage();
-      } else {
-        doc.moveDown(2);
+      // TEAM STRUCTURE SECTION - always start on a new page
+      doc.addPage();
+      if (logoUrl) {
+        try {
+          doc.image(logoUrl, doc.page.width - 150, 30, {
+            fit: [100, 50],
+            align: 'right'
+          });
+        } catch (error) {
+          console.error("Failed to add page header logo:", error);
+        }
       }
       
       doc.fontSize(16)
@@ -1324,10 +1460,16 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       doc.fontSize(12);
       
       if (analysis.team) {
-        doc.text(`Owner Responsibilities: ${safeStringify(analysis.team.ownerResponsibilities)}`);
-        doc.text(`Owner Hours per Week: ${safeStringify(analysis.team.ownerHours)}`);
+        doc.text(`Owner Responsibilities: ${safeStringify(analysis.team.ownerResponsibilities)}`, {
+          width: doc.page.width - 100
+        });
+        doc.text(`Owner Hours per Week: ${safeStringify(analysis.team.ownerHours)}`, {
+          width: doc.page.width - 100
+        });
         doc.moveDown(1);
-        doc.text(`Total Employees: ${safeStringify(analysis.team.employeeCount)}`);
+        doc.text(`Total Employees: ${safeStringify(analysis.team.employeeCount)}`, {
+          width: doc.page.width - 100
+        });
         
         if (analysis.team.keyEmployees && analysis.team.keyEmployees.length > 0) {
           doc.moveDown(1);
@@ -1336,17 +1478,138 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           
           analysis.team.keyEmployees.forEach((employee: any) => {
             if (typeof employee === 'string') {
-              doc.text(`• ${safeStringify(employee)}`);
+              doc.text(`• ${safeStringify(employee)}`, {
+                width: doc.page.width - 120
+              });
             } else if (typeof employee === 'object' && employee !== null) {
               const parts = [];
               if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
               if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
               
-              doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`);
+              doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`, {
+                width: doc.page.width - 120
+              });
             } else {
-              doc.text(`• ${safeStringify(employee)}`);
+              doc.text(`• ${safeStringify(employee)}`, {
+                width: doc.page.width - 120
+              });
             }
           });
+        }
+      }
+      
+      // FACILITIES SECTION
+      if (doc.y > doc.page.height - 200) {
+        doc.addPage();
+        if (logoUrl) {
+          try {
+            doc.image(logoUrl, doc.page.width - 150, 30, {
+              fit: [100, 50],
+              align: 'right'
+            });
+          } catch (error) {
+            console.error("Failed to add page header logo:", error);
+          }
+        }
+      } else {
+        doc.moveDown(2);
+      }
+      
+      doc.fontSize(16)
+         .text('FACILITIES', {
+           underline: true
+         });
+         
+      doc.moveDown(1);
+      doc.fontSize(12);
+      
+      if (analysis.facility) {
+        doc.text(`Ownership Status: ${safeStringify(analysis.facility.ownership)}`, {
+          width: doc.page.width - 100
+        });
+        doc.text(`Size: ${safeStringify(analysis.facility.size)}`, {
+          width: doc.page.width - 100
+        });
+        doc.text(`Monthly Cost: ${safeStringify(analysis.facility.cost)}`, {
+          width: doc.page.width - 100
+        });
+        
+        if (analysis.facility.leaseDetails) {
+          doc.text(`Lease Details: ${safeStringify(analysis.facility.leaseDetails)}`, {
+            width: doc.page.width - 100
+          });
+        }
+      }
+      
+      // MARKETING SECTION - only add if it exists in the analysis
+      if (analysis.marketing && 
+         (analysis.marketing.strategies?.length > 0 || 
+          analysis.marketing.paidAdvertising?.channels?.length > 0 || 
+          analysis.marketing.emailMarketing?.listSize)) {
+          
+        if (doc.y > doc.page.height - 200) {
+          doc.addPage();
+          if (logoUrl) {
+            try {
+              doc.image(logoUrl, doc.page.width - 150, 30, {
+                fit: [100, 50],
+                align: 'right'
+              });
+            } catch (error) {
+              console.error("Failed to add page header logo:", error);
+            }
+          }
+        } else {
+          doc.moveDown(2);
+        }
+        
+        doc.fontSize(16)
+           .text('MARKETING', {
+             underline: true
+           });
+           
+        doc.moveDown(1);
+        doc.fontSize(12);
+        
+        if (analysis.marketing.strategies?.length > 0) {
+          doc.text('Marketing Strategies:');
+          doc.moveDown(0.5);
+          analysis.marketing.strategies.forEach((strategy: string) => {
+            doc.text(`• ${safeStringify(strategy)}`, {
+              width: doc.page.width - 120
+            });
+          });
+          doc.moveDown(1);
+        }
+        
+        if (analysis.marketing.paidAdvertising?.channels?.length > 0) {
+          doc.text('Paid Advertising Channels:');
+          doc.moveDown(0.5);
+          analysis.marketing.paidAdvertising.channels.forEach((channel: string) => {
+            doc.text(`• ${safeStringify(channel)}`, {
+              width: doc.page.width - 120
+            });
+          });
+          
+          if (analysis.marketing.paidAdvertising.effectiveness) {
+            doc.moveDown(0.5);
+            doc.text(`Effectiveness: ${safeStringify(analysis.marketing.paidAdvertising.effectiveness)}`, {
+              width: doc.page.width - 100
+            });
+          }
+          doc.moveDown(1);
+        }
+        
+        if (analysis.marketing.emailMarketing?.listSize) {
+          doc.text(`Email Marketing: List Size of ${safeStringify(analysis.marketing.emailMarketing.listSize)}`, {
+            width: doc.page.width - 100
+          });
+          
+          if (analysis.marketing.emailMarketing.usage) {
+            doc.text(`Usage: ${safeStringify(analysis.marketing.emailMarketing.usage)}`, {
+              width: doc.page.width - 100
+            });
+          }
         }
       }
       
@@ -1366,8 +1629,8 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
       console.log("Finalizing PDF document generation...");
       doc.end();
       
-    } catch (error) {
-      console.error("PDF generation failed:", error);
+    } catch (error: any) {
+      console.error("PDF generation failed:", error.message || error);
       
       // Create a basic error PDF as fallback
       try {
@@ -1385,12 +1648,15 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
         
         // Add error information to the PDF
         errorDoc.fontSize(16)
-               .text('Error Generating PDF', { align: 'center' })
+               .text('Error Generating Complete PDF', { align: 'center' })
                .moveDown(1)
                .fontSize(12)
                .text('There was an error generating the complete PDF document.', { align: 'center' })
                .moveDown(1)
-               .text('Please try one of the other export formats instead.', { align: 'center' });
+               .text('Please try one of the other export formats instead.', { align: 'center' })
+               .moveDown(2)
+               .fontSize(10)
+               .text(`Error details: ${error.message || 'Unknown error'}`, { align: 'center' });
         
         errorDoc.end();
       } catch (fallbackError) {
