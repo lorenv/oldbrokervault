@@ -15,8 +15,6 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
-// Using our ultra-simplified direct website analyzer:
-import { generateCIM } from "./very-simple-analyzer";
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -93,58 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        let analysis = await analyzeCimTranscript(data.transcript);
-
-        // If website URL is provided, use our ultra-simplified approach
-        if (data.websiteUrl) {
-          try {
-            console.log(`Starting direct website+transcript analysis for URL: ${data.websiteUrl}`);
-            
-            // Direct approach: we ask Perplexity to analyze the website directly via its URL
-            // and generate a complete CIM using both the transcript and website in one call
-            try {
-              // This new function processes everything in one unified step
-              const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
-              console.log('Successfully generated CIM from transcript and website');
-              
-              // Enhanced validation of the result
-              console.log('Validating enhanced CIM data...');
-              
-              if (!enhancedAnalysis) {
-                console.error("Enhanced analysis is null or undefined");
-                // Continue with original analysis instead of failing
-                console.log("Using original transcript-only analysis as fallback");
-              } else {
-                // Verify required top-level structure
-                const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
-                                           "marketAnalysis", "operations", "inventory", "sales", 
-                                           "marketing", "team", "facility"];
-                
-                const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
-                if (missingKeys.length > 0) {
-                  console.error("Enhanced analysis missing required top-level keys:", missingKeys);
-                  console.log("Using original transcript-only analysis as fallback");
-                } else {
-                  // Test JSON serialization
-                  const testJson = JSON.stringify(enhancedAnalysis);
-                  console.log('Generated CIM is valid JSON, length:', testJson.length);
-                  console.log('JSON preview:', testJson.substring(0, 200) + '...');
-                  
-                  // Replace the original analysis with the validated enhanced version
-                  analysis = enhancedAnalysis;
-                }
-              }
-            } catch (error) {
-              console.error('Website integration error:', error);
-              console.error('Error details:', error instanceof Error ? error.message : String(error));
-              // Continue with original transcript-only analysis
-            }
-          } catch (outerError) {
-            console.error("Outer error in website integration:", outerError);
-            // Continue with original analysis
-          }
-        }
-
+        const analysis = await analyzeCimTranscript(data.transcript);
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -156,104 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      let analysis = await analyzeCimTranscript(data.transcript);
-
-      // If website URL is provided, use our ultra-simplified approach
-      if (data.websiteUrl) {
-        try {
-          console.log(`Starting direct website+transcript analysis for new document. URL: ${data.websiteUrl}`);
-          
-          // Direct approach: we ask Perplexity to analyze the website directly via its URL
-          // and generate a complete CIM using both the transcript and website in one call
-          try {
-            // This new function processes everything in one unified step
-            const enhancedAnalysis = await generateCIM(data.transcript, data.websiteUrl);
-            console.log('Successfully generated CIM from transcript and website');
-            
-            // Enhanced validation of the result
-            console.log('Validating enhanced CIM data for new document...');
-            
-            if (!enhancedAnalysis) {
-              console.error("Enhanced analysis is null or undefined");
-              // Continue with original analysis instead of failing
-              console.log("Using original transcript-only analysis as fallback");
-            } else {
-              // Verify required top-level structure
-              const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
-                                        "marketAnalysis", "operations", "inventory", "sales", 
-                                        "marketing", "team", "facility"];
-              
-              const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
-              if (missingKeys.length > 0) {
-                console.error("Enhanced analysis missing required top-level keys:", missingKeys);
-                console.log("Using original transcript-only analysis as fallback");
-              } else {
-                // Test JSON serialization
-                const testJson = JSON.stringify(enhancedAnalysis);
-                console.log('Generated CIM is valid JSON, length:', testJson.length);
-                console.log('JSON preview:', testJson.substring(0, 200) + '...');
-                
-                // Replace the original analysis with the validated enhanced version
-                analysis = enhancedAnalysis;
-              }
-            }
-          } catch (error) {
-            console.error('Website integration error:', error);
-            console.error('Error details:', error instanceof Error ? error.message : String(error));
-            // Continue with original transcript-only analysis
-          }
-        } catch (outerError) {
-          console.error("Outer error in website integration:", outerError);
-          // Continue with original analysis
-        }
-      }
-
-      // Enhanced validation before database storage
-      try {
-        console.log("Validating final analysis object...");
-        
-        if (!analysis) {
-          console.error("Analysis is null or undefined");
-          return res.status(400).json({ 
-            error: "Analysis is empty. Please try again.",
-            details: "Generated CIM data is null or undefined"
-          });
-        }
-        
-        // Verify required top-level structure
-        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
-                                     "marketAnalysis", "operations", "inventory", "sales", 
-                                     "marketing", "team", "facility"];
-        
-        const missingKeys = requiredTopLevelKeys.filter(key => !analysis[key]);
-        if (missingKeys.length > 0) {
-          console.error("Analysis missing required top-level keys:", missingKeys);
-          return res.status(400).json({
-            error: "Incomplete CIM structure",
-            details: `Missing required sections: ${missingKeys.join(', ')}`
-          });
-        }
-        
-        // Test JSON serialization
-        const finalJson = JSON.stringify(analysis);
-        console.log("Analysis is valid JSON with length:", finalJson.length);
-        
-        // Log first 200 chars of the JSON for debugging
-        console.log("JSON preview:", finalJson.substring(0, 200) + "...");
-        
-      } catch (validateError) {
-        console.error("Final JSON validation error:", validateError);
-        // Provide more detailed diagnostics
-        console.error("Analysis type:", typeof analysis);
-        if (analysis) {
-          console.error("Analysis keys:", Object.keys(analysis));
-        }
-        return res.status(400).json({ 
-          error: "Invalid data structure in analysis. Please try again or omit the website URL.",
-          details: validateError instanceof Error ? validateError.message : String(validateError)
-        });
-      }
-
+      const analysis = await analyzeCimTranscript(data.transcript);
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
@@ -262,537 +112,615 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(doc);
     } catch (error) {
-      console.error("CIM creation error:", error);
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // File upload endpoint for large text
+  app.post("/api/cim/upload", upload.single('transcript'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const transcript = req.file.buffer.toString('utf-8');
+      const data = insertCimDocumentSchema.parse({
+        ...req.body,
+        transcript
+      });
+
+      const analysis = await analyzeCimTranscript(transcript);
+      const doc = await storage.createCimDocument(req.user!.id, {
+        ...data,
+        analysis,
+        regenerationCount: 0
+      });
+
+      res.json(doc);
+    } catch (error) {
+      console.error("File upload error:", error);
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   app.get("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const documents = await storage.getCimDocuments(req.user!.id);
-      res.json(documents);
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
+    const docs = await storage.getCimDocuments(req.user!.id);
+    res.json(docs);
   });
-
-  app.get("/api/cim/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== req.user!.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      res.json(document);
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
+  
+  // Delete a CIM document
   app.delete("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-
+    
     try {
       const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== req.user!.id) {
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+      
+      // Check if document exists and belongs to user
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
+      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "You don't have permission to delete this document" });
+      }
+      
       await storage.deleteCimDocument(docId);
-      res.sendStatus(204);
+      res.json({ success: true });
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  // Document export routes
-  app.get("/api/cim/:id/word", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const user = req.user!;
-    if (user.subscriptionStatus === "free") {
-      return res.status(403).json({ error: "Word export requires a paid subscription" });
-    }
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== user.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(user.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(user.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const buffer = await generateWordDocument(document.analysis);
-      const filename = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
-
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-      res.setHeader('Content-Length', buffer.length);
-      res.send(buffer);
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.get("/api/cim/:id/pdf", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const user = req.user!;
-    if (user.subscriptionStatus === "free") {
-      return res.status(403).json({ error: "PDF export requires a paid subscription" });
-    }
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== user.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(user.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(user.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const buffer = await generatePDF(document.analysis);
-      const filename = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-      res.setHeader('Content-Length', buffer.length);
-      res.send(buffer);
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.get("/api/cim/:id/html", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== req.user!.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(req.user!.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(req.user!.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const html = generateHtml(document.analysis);
-      res.json({ html });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.get("/api/cim/:id/text", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== req.user!.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(req.user!.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(req.user!.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const text = formatTextContent(document.analysis);
-      res.json({ text });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  app.post("/api/cim/:id/google-doc", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const user = req.user!;
-    if (user.subscriptionStatus !== "premium" && user.subscriptionStatus !== "admin") {
-      return res.status(403).json({ error: "Google Docs export requires a premium subscription" });
-    }
-
-    if (!user.googleAccessToken) {
-      return res.status(403).json({ error: "Google account not connected" });
-    }
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== user.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(user.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(user.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const docUrl = await createGoogleDoc(user.id, document.title, document.analysis);
-      res.json({ url: docUrl });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  // WordPress export
-  app.post("/api/cim/:id/wordpress", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const user = req.user!;
-    if (user.subscriptionStatus === "free") {
-      return res.status(403).json({ error: "WordPress export requires a paid subscription" });
-    }
-
-    try {
-      const docId = parseInt(req.params.id);
-      const document = await storage.getCimDocument(docId);
-
-      if (!document || document.userId !== user.id) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Track usage
-      await storage.updateUserUsage(user.id);
-
-      // Check if user has reached their limit
-      const limitReached = await storage.checkUserLimit(user.id);
-      if (limitReached) {
-        return res.status(403).json({ error: "Monthly usage limit reached" });
-      }
-
-      const { wpUrl, username, password, postId, status, postType, useToolsetFields, customFields } = req.body;
-
-      // Validate required fields
-      if (!wpUrl || !username || !password) {
-        return res.status(400).json({ error: "WordPress URL, username, and password are required" });
-      }
-
-      const result = await exportToWordPress({
-        wpUrl,
-        username,
-        password,
-        postId: postId || undefined,
-        title: document.title,
-        content: useToolsetFields ? '' : formatWordPressContent(document.analysis),
-        status: status || 'draft',
-        postType: postType || 'listing',
-        useToolsetFields: Boolean(useToolsetFields),
-        customFields: customFields || {}
-      });
-
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
-    }
-  });
-
-  // Endpoint to fetch Beaver Builder templates
-  app.post("/api/wordpress/templates", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const { wpUrl, username, password } = req.body;
-
-      // Validate required fields
-      if (!wpUrl || !username || !password) {
-        return res.status(400).json({ error: "WordPress URL, username, and password are required" });
-      }
-
-      const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
-      res.json({ templates });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      console.error("Document deletion error:", error);
+      res.status(500).json({ error: "Failed to delete document" });
     }
   });
 
   // Subscription Routes
-  app.post("/api/create-checkout-session", async (req, res) => {
+  app.get("/api/subscription/verify-session", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
+    const { session_id } = req.query;
+    if (!session_id) return res.status(400).json({ error: "No session ID provided" });
+
     try {
-      const { priceId } = req.body;
+      console.log("Verifying session:", session_id);
+      const result = await verifyCheckoutSession(session_id as string);
+      if (result) {
+        const { userId, status, endsAt } = result;
+        console.log("Session verified, updating subscription:", { userId, status, endsAt });
 
-      if (!priceId) {
-        return res.status(400).json({ error: "Price ID is required" });
+        await storage.updateSubscription(userId, status, endsAt);
+
+        // Update the user's session
+        const user = await storage.getUser(userId);
+        if (req.session && req.user?.id === userId) {
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
+          req.session.passport.user = user;
+          await new Promise((resolve) => req.session.save(resolve));
+        }
+
+        res.json({ success: true, status });
+      } else {
+        console.log("Invalid or expired session");
+        res.status(400).json({ error: "Invalid or expired session" });
       }
+    } catch (error) {
+      console.error('Session verification error:', error);
+      res.status(500).json({ error: "Failed to verify session" });
+    }
+  });
 
-      const sessionUrl = await createSubscriptionSession(
-        priceId as keyof typeof subscriptionPlans,
+  app.post("/api/subscription/create-checkout", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { plan } = req.body;
+    if (!subscriptionPlans[plan as keyof typeof subscriptionPlans]) {
+      return res.status(400).json({ error: "Invalid plan selected" });
+    }
+
+    try {
+      const session = await createSubscriptionSession(
+        plan as keyof typeof subscriptionPlans,
         req.user!.id
       );
-
-      res.json({ url: sessionUrl });
+      res.json({ url: session.url });
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      console.error('Stripe session creation error:', error);
+      res.status(400).json({ error: "Failed to create checkout session" });
     }
   });
 
-  app.post("/api/create-portal-session", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const portalUrl = await createCustomerPortalSession(req.user!.id);
-      res.json({ url: portalUrl });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+  // Stripe webhook endpoint
+  app.post("/api/webhook/stripe", async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    if (!sig) {
+      console.log("No Stripe signature found");
+      return res.sendStatus(400);
     }
-  });
-  
-  // Test endpoints for website analysis
-  
-  // Test endpoint for integrated website analysis
-  app.post('/api/test/website-analysis', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const { url } = req.body;
-      
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-      
-      console.log("TEST ENDPOINT: Starting integrated website analysis test for URL:", url);
-      
-      try {
-        console.log("TEST ENDPOINT: Using ultra-simplified website analyzer");
-        const enhancedAnalysis = await generateCIM("Test transcript for website analysis.", url);
-        console.log("TEST ENDPOINT: Website analysis complete");
-        
-        // Enhanced validation for test endpoint
-        if (!enhancedAnalysis) {
-          console.error("TEST ENDPOINT: Analysis is null or undefined");
-          throw new Error("Analysis returned was null or undefined");
-        }
-        
-        // Verify required top-level structure
-        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
-                                     "marketAnalysis", "operations", "inventory", "sales", 
-                                     "marketing", "team", "facility"];
-                                     
-        const missingKeys = requiredTopLevelKeys.filter(key => !enhancedAnalysis[key]);
-        if (missingKeys.length > 0) {
-          console.error("TEST ENDPOINT: Missing required sections:", missingKeys);
-          throw new Error(`Missing required sections: ${missingKeys.join(', ')}`);
-        }
-        
-        // Test if we can serialize the result
-        const jsonResult = JSON.stringify(enhancedAnalysis);
-        console.log("TEST ENDPOINT: Result serialization successful, length:", jsonResult.length);
-        console.log("TEST ENDPOINT: First 200 chars:", jsonResult.substring(0, 200) + "...");
-        
-        res.json({ 
-          success: true, 
-          message: "Website analysis successful with new approach",
-          structure: Object.keys(enhancedAnalysis),
-          storySection: enhancedAnalysis.story ? Object.keys(enhancedAnalysis.story) : [],
-          marketSection: enhancedAnalysis.marketAnalysis ? Object.keys(enhancedAnalysis.marketAnalysis) : []
-        });
-        
-      
-      } catch (error) {
-        console.error("TEST ENDPOINT: Analysis error:", error);
-        res.status(500).json({ 
-          success: false, 
-          error: error instanceof Error ? error.message : String(error),
-          errorType: typeof error,
-          errorStack: error instanceof Error ? error.stack : 'No stack available'
-        });
-      }
-    } catch (outerError) {
-      console.error("TEST ENDPOINT: Outer error:", outerError);
-      res.status(500).json({ error: "Test endpoint error" });
-    }
-  });
-  
-  // Test just the website analyzer part
-  app.post('/api/test/website-content', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const { url } = req.body;
-      
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-      
-      console.log("TEST ANALYZER: Testing just the website analyzer for URL:", url);
-      
-      try {
-        // Import directly from our ultra-simplified analyzer module
-        // Perplexity has built-in web browsing capability - no need to scrape HTML
-        const websiteAnalysis = await generateCIM("Brief test transcript", url);
-        console.log("TEST ANALYZER: Analysis complete");
-        
-        // Enhanced validation for direct test endpoint
-        if (!websiteAnalysis) {
-          console.error("TEST ANALYZER: Analysis is null or undefined");
-          throw new Error("Analysis returned was null or undefined");
-        }
-        
-        // Verify required top-level structure
-        const requiredTopLevelKeys = ["story", "executiveSummary", "assets", "ownership", 
-                                    "marketAnalysis", "operations", "inventory", "sales", 
-                                    "marketing", "team", "facility"];
-        
-        // Log structure information for debugging
-        console.log("TEST ANALYZER: Analysis type:", typeof websiteAnalysis);
-        console.log("TEST ANALYZER: Top-level keys:", Object.keys(websiteAnalysis));
-        
-        const missingKeys = requiredTopLevelKeys.filter(key => !websiteAnalysis[key]);
-        if (missingKeys.length > 0) {
-          console.error("TEST ANALYZER: Missing required sections:", missingKeys);
-          console.log("TEST ANALYZER: Will still return partial results for debugging");
-        }
-        
-        // Test serialization
-        const jsonResult = JSON.stringify(websiteAnalysis);
-        console.log("TEST ANALYZER: Result serializable, length:", jsonResult.length);
-        console.log("TEST ANALYZER: First 200 chars:", jsonResult.substring(0, 200) + "...");
-        
-        // Return the analysis results with structure info
-        res.json({ 
-          success: true, 
-          message: "Website analysis successful", 
-          structure: Object.keys(websiteAnalysis),
-          missingKeys: missingKeys.length > 0 ? missingKeys : undefined,
-          analysis: websiteAnalysis 
-        });
-      } catch (error) {
-        console.error("TEST ANALYZER: Analysis error:", error);
-        res.status(500).json({ 
-          success: false, 
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    } catch (outerError) {
-      console.error("TEST ANALYZER: Outer error:", outerError);
-      res.status(500).json({ error: "Test error" });
-    }
-  });
-
-  app.post("/api/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-    let event;
 
     try {
-      const signature = req.headers['stripe-signature'];
-
-      if (!signature) {
-        return res.status(400).send('Webhook signature missing');
-      }
-
-      event = stripe.webhooks.constructEvent(
+      console.log("Received Stripe webhook event");
+      const event = stripe.webhooks.constructEvent(
         req.body,
-        signature,
+        sig,
         process.env.STRIPE_WEBHOOK_SECRET!
       );
 
-      // Handle the event
-      await handleStripeWebhook(event);
+      console.log("Webhook event type:", event.type);
+      const result = await handleStripeWebhook(event);
 
-      res.status(200).send();
-    } catch (error) {
-      console.error('Webhook error:', error);
-      return res.status(400).send(`Webhook Error: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  });
+      if (result) {
+        const { userId, status, endsAt } = result;
+        console.log("Updating subscription:", { userId, status, endsAt });
 
-  app.get("/api/verify-session", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+        await storage.updateSubscription(userId, status, endsAt);
+        console.log(`Successfully updated subscription for user ${userId} to ${status}`);
 
-    try {
-      const { session_id } = req.query;
+        // Force refresh the user's session if they're currently logged in
+        const user = await storage.getUser(userId);
+        console.log("Retrieved updated user:", {
+          id: user?.id,
+          subscriptionStatus: user?.subscriptionStatus,
+          subscriptionEndsAt: user?.subscriptionEndsAt,
+          stripeCustomerId: user?.stripeCustomerId
+        });
 
-      if (!session_id || typeof session_id !== 'string') {
-        return res.status(400).json({ error: "Session ID is required" });
+        if (req.session && req.user?.id === userId) {
+          req.session.passport = req.session.passport || {};
+          // @ts-ignore - we know the passport property exists now
+          req.session.passport.user = user;
+          await new Promise((resolve) => req.session.save(resolve));
+          console.log("Updated session for user:", userId);
+        }
+      } else {
+        console.log("No subscription update required for event:", event.type);
       }
 
-      await verifyCheckoutSession(session_id);
-
-      res.status(200).json({ success: true });
+      res.json({ received: true });
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      console.error('Stripe webhook error:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      return res.status(400).json({ error: "Webhook handling failed" });
     }
   });
 
-  // Admin routes
+  // New route for creating Stripe Customer Portal session
+  app.post("/api/subscription/create-portal-session", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const session = await createCustomerPortalSession(req.user!.id);
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error('Error creating portal session:', error);
+      const message = error instanceof Error ? error.message : "Failed to create portal session";
+      res.status(500).json({
+        error: message === "No Stripe customer ID found"
+          ? "Please subscribe to a plan first before managing your subscription"
+          : "Failed to access subscription management"
+      });
+    }
+  });
+
+
+  // Admin Routes
   app.get("/api/admin/users", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.sendStatus(401);
+    }
+    const users = await storage.getAllUsers();
+    res.json(users);
+  });
 
-    // Only admin users can access
-    if (req.user!.isAdmin !== true) {
-      return res.status(403).json({ error: "Unauthorized" });
+  app.post("/api/admin/subscription", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.sendStatus(401);
+    }
+
+    const { userId, status, months } = req.body;
+    const endsAt = new Date();
+    endsAt.setMonth(endsAt.getMonth() + months);
+
+    await storage.updateSubscription(userId, status, endsAt);
+    res.sendStatus(200);
+  });
+
+  app.post("/api/admin/grant-admin", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.sendStatus(401);
+    }
+
+    const { email } = req.body;
+    const user = await storage.getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Update user in the database to make them an admin
+    await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+    res.sendStatus(200);
+  });
+
+  app.post("/api/cim/export/word/:id", async (req, res) => {
+    console.log("Word export request received for document ID:", req.params.id);
+    
+    if (!req.isAuthenticated()) {
+      console.log("Word export authentication error - User not authenticated");
+      return res.sendStatus(401);
     }
 
     try {
-      const allUsers = await storage.getAllUsers();
-      res.json(allUsers);
+      console.log("User authenticated, retrieving document");
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
+      
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        console.log("Permission error: User does not have premium/admin access");
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      console.log("Generating Word document...");
+      const buffer = await generateWordDocument(doc.analysis);
+      console.log(`Word document generated, size: ${buffer.length} bytes`);
+      
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.docx`);
+      
+      console.log("Sending Word document to client");
+      res.send(buffer);
+      console.log("Word document sent successfully");
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      console.error("Word export error:", error);
+      res.status(500).json({ error: "Failed to generate Word document" });
     }
   });
 
-  app.post("/api/admin/reset-usage/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    // Only admin users can access
-    if (req.user!.isAdmin !== true) {
-      return res.status(403).json({ error: "Unauthorized" });
+  app.post("/api/cim/export/pdf/:id", async (req, res) => {
+    console.log("PDF export request received for document ID:", req.params.id);
+    
+    if (!req.isAuthenticated()) {
+      console.log("PDF export authentication error - User not authenticated");
+      return res.sendStatus(401);
     }
 
     try {
-      const userId = parseInt(req.params.id);
-      await storage.resetMonthlyUsage(userId);
-      res.json({ success: true });
+      console.log("User authenticated, retrieving document");
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
+      
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        console.log("Permission error: User does not have premium/admin access");
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      console.log("Generating PDF document...");
+      const buffer = await generatePDF(doc.analysis);
+      console.log(`PDF document generated, size: ${buffer.length} bytes`);
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.pdf`);
+      
+      console.log("Sending PDF document to client");
+      res.send(buffer);
+      console.log("PDF document sent successfully");
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      console.error("PDF export error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+  
+  // HTML export endpoint for clipboard export with formatting
+  app.post("/api/cim/export/html/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Authentication required" });
+
+    try {
+      const docId = parseInt(req.params.id);
+      console.log(`Processing HTML export request for document ID: ${docId}, user ID: ${req.user?.id}`);
+      
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID format" });
+      }
+      
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        console.log(`Document with ID ${docId} not found`);
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log(`Access denied: Document belongs to user ${doc.userId}, but request is from user ${req.user!.id}`);
+        return res.status(403).json({ error: "You don't have permission to access this document" });
+      }
+      
+      console.log(`Generating HTML for document: ${doc.title}, analysis present: ${Boolean(doc.analysis)}`);
+      
+      if (!doc.analysis) {
+        return res.status(400).json({ error: "Document has no analysis data" });
+      }
+      
+      const html = generateHtml(doc.analysis);
+      
+      if (!html) {
+        return res.status(500).json({ error: "Failed to generate HTML content" });
+      }
+      
+      console.log(`Successfully generated HTML content (${html.length} characters)`);
+      res.json({ html });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("HTML export error:", error);
+      console.error("Error details:", errorMessage);
+      res.status(500).json({ 
+        error: "Failed to generate HTML content", 
+        details: errorMessage 
+      });
+    }
+  });
+
+  // Modify the existing Google Docs export endpoint to handle OAuth
+  app.post("/api/cim/export/gdocs/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      if (!user.googleAccessToken) {
+        return res.status(403).json({ 
+          error: "Google account not connected",
+          needsAuth: true 
+        });
+      }
+
+      const url = await createGoogleDoc(user.id, doc.title, doc.analysis);
+      res.json({ url });
+    } catch (error) {
+      console.error("Google Docs export error:", error);
+      res.status(500).json({ error: "Failed to export to Google Docs" });
+    }
+  });
+  
+  // Add endpoint to fetch Beaver Builder templates
+  app.post("/api/wordpress/fetch-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { wpUrl, username, password } = req.body;
+      
+      if (!wpUrl || !username || !password) {
+        return res.status(400).json({ 
+          error: "Missing WordPress credentials",
+          requiredFields: ["wpUrl", "username", "password"] 
+        });
+      }
+
+      // Basic URL validation
+      if (!wpUrl.startsWith('http://') && !wpUrl.startsWith('https://')) {
+        return res.status(400).json({
+          error: "WordPress URL must start with http:// or https://"
+        });
+      }
+      
+      try {
+        const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
+        res.json({ templates });
+      } catch (error) {
+        // Handle specific WordPress API errors
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch templates";
+        
+        if (errorMessage.includes('HTML instead of JSON')) {
+          return res.status(400).json({
+            error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
+            details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
+          });
+        }
+        
+        if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+          return res.status(404).json({
+            error: "Beaver Builder templates not found on this WordPress site.",
+            details: "Please ensure Beaver Builder is installed and activated on your WordPress site."
+          });
+        }
+        
+        res.status(500).json({ error: errorMessage });
+      }
+    } catch (error) {
+      console.error("Error in template fetch route:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to process template request"
+      });
+    }
+  });
+
+  // Add WordPress export endpoint
+  app.post("/api/cim/export/wordpress/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const doc = await storage.getCimDocument(parseInt(req.params.id));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      const { 
+        wpUrl, 
+        username, 
+        password, 
+        postId, 
+        status, 
+        template, 
+        useCustomField,
+        useToolsetFields = false, 
+        postType = 'listing' 
+      } = req.body;
+      
+      if (!wpUrl || !username || !password) {
+        return res.status(400).json({ 
+          error: "Missing WordPress credentials",
+          requiredFields: ["wpUrl", "username", "password"] 
+        });
+      }
+      
+      // Basic URL validation
+      if (!wpUrl.startsWith('http://') && !wpUrl.startsWith('https://')) {
+        return res.status(400).json({
+          error: "WordPress URL must start with http:// or https://"
+        });
+      }
+
+      // Format the CIM data for WordPress - both as rich content and plain text
+      const wpContent = formatWordPressContent(doc.analysis);
+      const plainTextContent = formatTextContent(doc.analysis);
+      
+      // Set up custom fields
+      const customFields: Record<string, string | number> = {
+        cim_generated: "true", // Convert to string as WordPress custom fields usually expect string values
+        cim_generator_id: doc.id,
+        cim_date: new Date().toISOString()
+      };
+      
+      // Always store the raw text in wpcf-text-dump custom field for backward compatibility
+      customFields['wpcf-text-dump'] = plainTextContent;
+      
+      // If template is a Beaver Builder template (numeric ID)
+      if (template && !isNaN(parseInt(template))) {
+        const templateId = parseInt(template);
+        // Set the Beaver Builder template ID in _fl_builder_template_id custom field
+        customFields['_fl_builder_template_id'] = templateId;
+        // Also set a flag to enable Beaver Builder for this post
+        customFields['_fl_builder_enabled'] = '1';
+      } 
+      // If it's a regular WordPress page template
+      else if (template && template !== 'default') {
+        customFields['_wp_page_template'] = `template-${template}.php`;
+      }
+      
+      // Create minimal content for the main post content if using custom field or Toolset fields
+      const content = (useCustomField || useToolsetFields) ? 
+        `<!-- wp:paragraph -->
+        <p>This is a business listing created by CIM Generator. The full content is available in the custom fields.</p>
+        <!-- /wp:paragraph -->` : 
+        wpContent;
+      
+      try {
+        // Export to WordPress
+        // Ensure content is properly formatted based on whether we're using Toolset fields
+        const formattedAnalysis = doc.analysis ? 
+          (typeof doc.analysis === 'string' ? JSON.parse(doc.analysis) : doc.analysis) : 
+          {};
+        
+        console.log("Preparing WordPress export. Analysis data:", 
+          Object.keys(formattedAnalysis).join(', '));
+          
+        const result = await exportToWordPress({
+          wpUrl,
+          username,
+          password,
+          postId: postId ? parseInt(postId) : undefined,
+          title: doc.title,
+          content: useToolsetFields ? formattedAnalysis : content,
+          status: status || 'draft',
+          excerpt: `CIM Document for ${doc.title}`,
+          customFields,
+          useToolsetFields,
+          postType
+        });
+  
+        if (result.success) {
+          res.json({ 
+            success: true,
+            postId: result.postId,
+            url: result.url,
+            fieldsUpdated: result.fieldsUpdated || 0
+          });
+        } else {
+          throw new Error(result.error || "Failed to export to WordPress");
+        }
+      } catch (error) {
+        // Handle specific WordPress API errors
+        const errorMessage = error instanceof Error ? error.message : "Failed to export to WordPress";
+        
+        if (errorMessage.includes('HTML instead of JSON')) {
+          return res.status(400).json({
+            error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
+            details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
+          });
+        }
+        
+        if (errorMessage.includes('listing') && errorMessage.includes('not available')) {
+          return res.status(404).json({
+            error: "The 'listing' post type is not available on this WordPress site.",
+            details: "Please ensure your WordPress site has the 'listing' custom post type registered and available via the REST API."
+          });
+        }
+        
+        if (errorMessage.includes('not allowed to create')) {
+          return res.status(403).json({
+            error: "You don't have permission to create posts with this WordPress user.",
+            details: "Please use an administrator account or a user with Editor role that has permissions to create 'listing' posts."
+          });
+        }
+        
+        res.status(500).json({ 
+          error: errorMessage,
+          details: "There was a problem connecting to WordPress or creating the listing."
+        });
+      }
+    } catch (error) {
+      console.error("WordPress export error:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to export to WordPress"
+      });
     }
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }

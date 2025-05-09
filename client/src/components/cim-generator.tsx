@@ -39,10 +39,7 @@ export function CimGenerator() {
   const form = useForm({
     resolver: zodResolver(insertCimDocumentSchema),
     defaultValues: {
-      directions: DEFAULT_CIM_DIRECTIONS,
-      title: "",
-      transcript: "",
-      websiteUrl: ""
+      directions: DEFAULT_CIM_DIRECTIONS
     }
   });
 
@@ -166,20 +163,14 @@ ${analysis.team.ownerResponsibilities}
             <div>
               <Input
                 placeholder="Document Title"
-                {...form.register("title" as const)}
-              />
-            </div>
-            <div>
-              <Input
-                placeholder="Business Website URL (Optional)"
-                {...form.register("websiteUrl" as const)}
+                {...form.register("title")}
               />
             </div>
             <div>
               <Textarea
                 placeholder="Paste your meeting transcript here..."
                 className="min-h-[200px]"
-                {...form.register("transcript" as const)}
+                {...form.register("transcript")}
               />
             </div>
             <div>
@@ -235,75 +226,6 @@ ${analysis.team.ownerResponsibilities}
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
-              {analysis.website && (
-                <section>
-                  <h2 className="text-2xl font-bold border-b pb-2 mb-4">Website Overview</h2>
-                  <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                      {analysis.website.logo && (
-                        <div className="mr-4">
-                          <img 
-                            src={`data:image/png;base64,${analysis.website.logo}`} 
-                            alt={`${analysis.website.companyName} logo`}
-                            className="max-h-16 max-w-32 object-contain"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="text-xl font-bold">{analysis.website.companyName}</h3>
-                        <a href={analysis.website.websiteUrl} target="_blank" rel="noopener noreferrer" 
-                           className="text-primary hover:underline">
-                          {analysis.website.websiteUrl}
-                        </a>
-                      </div>
-                    </div>
-                    
-                    {analysis.website.screenshot && (
-                      <div className="mb-4">
-                        <img 
-                          src={`data:image/png;base64,${analysis.website.screenshot}`}
-                          alt="Website screenshot" 
-                          className="w-full max-h-80 object-cover rounded-md shadow-md"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-lg font-semibold mb-2">Business Description</h4>
-                        <p className="text-muted-foreground">{renderValue(analysis.website.content.businessDescription)}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-lg font-semibold mb-2">Team</h4>
-                        <p className="text-muted-foreground">{renderValue(analysis.website.content.teamInfo)}</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-lg font-semibold mb-2">Services</h4>
-                        <p className="text-muted-foreground">{renderValue(analysis.website.content.servicesInfo)}</p>
-                      </div>
-                    </div>
-                    
-                    {analysis.website.images && analysis.website.images.length > 0 && (
-                      <div>
-                        <h4 className="text-lg font-semibold mb-2">Gallery</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {analysis.website.images.map((img: string, index: number) => (
-                            <img 
-                              key={index}
-                              src={`data:image/png;base64,${img}`}
-                              alt={`Business image ${index+1}`}
-                              className="w-full h-40 object-cover rounded-md shadow-sm"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-              
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                 <div className="space-y-4">
