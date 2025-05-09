@@ -51,12 +51,16 @@ export function CimGenerator() {
             // Allow URLs without protocol for user convenience
             const url = val.startsWith('http') ? val : `https://${val}`;
             new URL(url);
-            return true;
+            
+            // Validate domain is reasonable (has at least one dot and no spaces)
+            return url.includes('.') && !url.includes(' ');
           } catch (error) {
             return false;
           }
         },
-        { message: "Please enter a valid URL" }
+        { 
+          message: "Please enter a valid website URL (e.g., example.com or https://example.com)" 
+        }
       )
   });
 
@@ -117,13 +121,39 @@ export function CimGenerator() {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      
+      // Show success message with website enhancement information if applicable
+      const websiteUrl = form.getValues('websiteUrl');
+      if (websiteUrl) {
+        toast({
+          title: "CIM Generated Successfully",
+          description: "Your CIM has been enhanced with data from " + websiteUrl,
+          duration: 5000
+        });
+      }
     },
     onError: (error: any) => {
+      // Check if the error message contains a website-related error
+      const isWebsiteError = error.message && (
+        error.message.includes('website') || 
+        error.message.includes('URL') || 
+        error.message.includes('Perplexity')
+      );
+      
       toast({
-        title: "Error",
+        title: isWebsiteError ? "Website Analysis Error" : "Error",
         description: error.message || "Failed to generate CIM",
         variant: "destructive"
       });
+      
+      // If it's a website error but we still have a transcript, suggest trying without the website
+      if (isWebsiteError && form.getValues('transcript')) {
+        toast({
+          title: "Suggestion",
+          description: "You can try generating the CIM without the website URL",
+          duration: 5000
+        });
+      }
     }
   });
 
@@ -272,7 +302,12 @@ ${analysis.team.ownerResponsibilities}
               className="w-full h-10 flex items-center justify-center"
             >
               {generateMutation.isPending ? (
-                <LoadingAnimation size="sm" text="Analyzing transcript..." />
+                <LoadingAnimation 
+                  size="sm" 
+                  text={form.getValues('websiteUrl') 
+                    ? "Analyzing transcript and website data..." 
+                    : "Analyzing transcript..."} 
+                />
               ) : currentDocId ? (
                 "Regenerate CIM"
               ) : (
