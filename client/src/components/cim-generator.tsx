@@ -525,18 +525,26 @@ ${analysis.team.ownerResponsibilities}
                     <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
                     <div className="bg-muted rounded-lg p-4">
                       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <dt className="font-medium">Recurring Revenue</dt>
-                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.recurring)}</dd>
-                        </div>
+                        {/* Only show recurring revenue if it exists and isn't "not mentioned" */}
+                        {analysis.operations.customers.recurring && 
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not mentioned') && (
+                          <div>
+                            <dt className="font-medium">Recurring Revenue</dt>
+                            <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.recurring)}</dd>
+                          </div>
+                        )}
                         <div>
                           <dt className="font-medium">Customer Base</dt>
                           <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.relationships)}</dd>
                         </div>
-                        <div>
-                          <dt className="font-medium">Revenue Concentration</dt>
-                          <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.concentration)}</dd>
-                        </div>
+                        {/* Only show concentration if it exists and isn't "not mentioned" */}
+                        {analysis.operations.customers.concentration && 
+                         !String(analysis.operations.customers.concentration).toLowerCase().includes('not mentioned') && (
+                          <div>
+                            <dt className="font-medium">Revenue Concentration</dt>
+                            <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.concentration)}</dd>
+                          </div>
+                        )}
                         <div>
                           <dt className="font-medium">Contract Terms</dt>
                           <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.contracts)}</dd>
