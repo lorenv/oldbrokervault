@@ -1183,8 +1183,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
     })
-  );```text
-  );
+  );`);
 
   paragraphs.push(
     new docx.Paragraph({
