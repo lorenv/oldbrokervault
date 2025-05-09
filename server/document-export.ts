@@ -774,7 +774,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 transformation: {
                   width: 200,
                   height: 100
-                }
+                },
+                type: "png"
               })
             ],
             alignment: docx.AlignmentType.CENTER,
