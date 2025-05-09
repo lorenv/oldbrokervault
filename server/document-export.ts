@@ -774,6 +774,10 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 transformation: {
                   width: 200,
                   height: 100
+                },
+                type: 'image/png',
+                fallback: {
+                  name: "Business Logo"
                 }
               })
             ],
@@ -1170,18 +1174,24 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       text: "FACILITIES",
       heading: docx.HeadingLevel.HEADING_1,
       spacing: { before: 400, after: 200 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Ownership Status: ${safeStringify(analysis.facility?.ownership)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Size: ${safeStringify(analysis.facility?.size)}`,
       spacing: { before: 100 }
-    }),
-    
+    })
+  );
+  
+  paragraphs.push(
     new docx.Paragraph({
       text: `Monthly Cost: ${safeStringify(analysis.facility?.cost)}`,
       spacing: { before: 100 }
