@@ -877,10 +877,10 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
   
   // Add bullet points for competitors
   if (analysis.marketAnalysis?.competitors?.length) {
-    analysis.marketAnalysis.competitors.forEach((item: string) => {
+    analysis.marketAnalysis.competitors.forEach((item: any) => {
       paragraphs.push(
         new docx.Paragraph({
-          text: item,
+          text: safeStringify(item),
           bullet: {
             level: 0
           },
@@ -901,10 +901,10 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
   
   // Add bullet points for strengths
   if (analysis.marketAnalysis?.strengths?.length) {
-    analysis.marketAnalysis.strengths.forEach((item: string) => {
+    analysis.marketAnalysis.strengths.forEach((item: any) => {
       paragraphs.push(
         new docx.Paragraph({
-          text: item,
+          text: safeStringify(item),
           bullet: {
             level: 0
           },
@@ -1032,25 +1032,29 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
       let employeeText;
       
       if (typeof employee === 'string') {
-        employeeText = employee;
-      } else if (typeof employee === 'object') {
+        employeeText = safeStringify(employee);
+      } else if (typeof employee === 'object' && employee !== null) {
         // Extract relevant properties from employee object
         const parts = [];
-        if (employee.name) parts.push(`Name: ${employee.name}`);
-        if (employee.role) parts.push(`Role: ${employee.role}`);
-        if (employee.background) parts.push(`Background: ${employee.background}`);
-        if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+        if (employee.name) parts.push(`Name: ${safeStringify(employee.name)}`);
+        if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
+        if (employee.background) parts.push(`Background: ${safeStringify(employee.background)}`);
+        if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
         
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
-          employeeText = Object.entries(employee)
-            .map(([key, val]) => `${key}: ${val}`)
-            .join(', ');
+          try {
+            employeeText = Object.entries(employee)
+              .map(([key, val]) => `${key}: ${safeStringify(val)}`)
+              .join(', ');
+          } catch (error) {
+            employeeText = "[Employee Information]";
+          }
         } else {
           employeeText = parts.join(', ');
         }
       } else {
-        employeeText = String(employee);
+        employeeText = safeStringify(employee);
       }
       
       paragraphs.push(
@@ -1332,13 +1336,15 @@ export async function generatePDF(analysis: any): Promise<Buffer> {
           
           analysis.team.keyEmployees.forEach((employee: any) => {
             if (typeof employee === 'string') {
-              doc.text(`• ${employee}`);
+              doc.text(`• ${safeStringify(employee)}`);
             } else if (typeof employee === 'object' && employee !== null) {
               const parts = [];
-              if (employee.role) parts.push(`Role: ${employee.role}`);
-              if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
+              if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
+              if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
               
               doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`);
+            } else {
+              doc.text(`• ${safeStringify(employee)}`);
             }
           });
         }
