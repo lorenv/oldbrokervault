@@ -143,10 +143,10 @@ export default function DocumentsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Filter documents based on search query and sort by created date (newest first)
-  const filteredDocuments = documents
-    ?.filter(doc => doc.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    ?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Filter documents based on search query
+  const filteredDocuments = documents?.filter(doc => 
+    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
   // Delete document mutation
   const deleteMutation = useMutation({

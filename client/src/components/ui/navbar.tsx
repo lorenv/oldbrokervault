@@ -21,16 +21,16 @@ export function Navbar() {
     <nav className="border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/" className="font-semibold text-lg hover:text-primary">
-            CIM Generator
+          <Link href="/">
+            <a className="font-semibold text-lg">CIM Generator</a>
           </Link>
         </div>
 
         {user && (
           <div className="flex items-center space-x-4">
             {user.isAdmin && (
-              <Link href="/admin" className="text-sm font-medium hover:text-primary">
-                Admin Dashboard
+              <Link href="/admin">
+                <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
               </Link>
             )}
             <DropdownMenu>
@@ -43,35 +43,32 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Account Settings</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href="/account">
-                  <DropdownMenuItem>
-                    <div className="flex items-center w-full">
+                <DropdownMenuItem>
+                  <Link href="/account">
+                    <a className="flex items-center">
                       <User className="h-4 w-4 mr-2" />
                       My Account
-                    </div>
-                  </DropdownMenuItem>
-                </Link>
+                    </a>
+                  </Link>
+                </DropdownMenuItem>
                 {user.subscriptionStatus !== "free" && (
                   <DropdownMenuItem>
-                    <a 
-                      href="https://billing.stripe.com/p/login/test" 
-                      className="flex items-center w-full" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Manage Subscription
-                    </a>
+                    <Link href="https://billing.stripe.com/p/login/test">
+                      <a className="flex items-center">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Manage Subscription
+                      </a>
+                    </Link>
                   </DropdownMenuItem>
                 )}
-                <Link href="/documents">
-                  <DropdownMenuItem>
-                    <div className="flex items-center w-full">
+                <DropdownMenuItem>
+                  <Link href="/documents">
+                    <a className="flex items-center">
                       <FileText className="h-4 w-4 mr-2" />
                       My CIMs
-                    </div>
-                  </DropdownMenuItem>
-                </Link>
+                    </a>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Support
