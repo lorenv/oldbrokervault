@@ -27,17 +27,30 @@ interface PerplexityResponse {
 }
 
 /**
- * Normalizes and validates a URL
- * @param urlString Raw URL string input
- * @returns Normalized URL with protocol and www if needed
- * @throws Error if URL is invalid
+ * Normalizes and validates a URL for website analysis
+ * Performs thorough validation to ensure the URL is legitimate and properly formatted
+ * @param urlString Raw URL string input from user
+ * @returns Normalized URL with protocol
+ * @throws Error with descriptive message if URL is invalid
  */
 export function normalizeUrl(urlString: string): string {
-  if (!urlString) {
-    throw new Error('URL is required');
+  // Basic existence check
+  if (!urlString || urlString.trim() === '') {
+    throw new Error('URL is required for website analysis');
   }
 
-  // Add protocol if missing
+  // Remove leading/trailing whitespace
+  urlString = urlString.trim();
+  
+  // Remove any markdown-style formatting that might have been copied
+  urlString = urlString.replace(/[[\]()]/g, '');
+  
+  // Handle common URL entry mistakes
+  if (urlString.includes(' ')) {
+    throw new Error('Website URL cannot contain spaces');
+  }
+  
+  // Add protocol if missing (default to https)
   if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
     urlString = 'https://' + urlString;
   }
@@ -45,15 +58,44 @@ export function normalizeUrl(urlString: string): string {
   try {
     const url = new URL(urlString);
     
-    // Ensure hostname part exists
-    if (!url.hostname || url.hostname.length < 3) {
-      throw new Error('Invalid URL hostname');
+    // Ensure hostname part exists and is reasonable
+    if (!url.hostname) {
+      throw new Error('Missing hostname in URL');
+    }
+    
+    // Validate domain has at least one dot (e.g., example.com)
+    if (!url.hostname.includes('.')) {
+      throw new Error('Invalid domain format - missing top-level domain (e.g., .com)');
+    }
+    
+    // Check for reasonable domain length
+    if (url.hostname.length < 3) {
+      throw new Error('Domain name is too short');
+    }
+    
+    // Check for excessively long domains (potential error)
+    if (url.hostname.length > 100) {
+      throw new Error('Domain name is unusually long - please check for errors');
     }
     
     // Return normalized URL
     return url.toString();
   } catch (error) {
-    throw new Error('Invalid URL format');
+    // Provide more specific error messages based on the error
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid URL')) {
+        throw new Error('Invalid website URL format. Please use format: example.com');
+      }
+      // Pass through our custom validation errors
+      if (error.message.includes('domain') || 
+          error.message.includes('hostname') || 
+          error.message.includes('spaces')) {
+        throw error;
+      }
+    }
+    
+    // Generic fallback error
+    throw new Error('Invalid website URL format. Please check the URL and try again.');
   }
 }
 
@@ -66,6 +108,11 @@ export function normalizeUrl(urlString: string): string {
 export async function analyzeWebsite(websiteUrl: string): Promise<any> {
   if (!process.env.PERPLEXITY_API_KEY) {
     throw new Error('PERPLEXITY_API_KEY is required for website analysis');
+  }
+  
+  // Validate URL before proceeding
+  if (!websiteUrl || websiteUrl.trim() === '') {
+    throw new Error('A valid website URL is required for website analysis');
   }
 
   try {
@@ -150,7 +197,29 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
     return websiteData;
   } catch (error) {
     console.error('Website analysis error:', error);
-    throw error;
+    
+    // Provide more specific error messages to improve user experience
+    if (error instanceof Error) {
+      // Check for specific error types to provide better feedback
+      if (error.message.includes('fetch')) {
+        throw new Error('Unable to connect to the website. Please check the URL and try again.');
+      } else if (error.message.includes('ENOTFOUND') || error.message.includes('could not be resolved')) {
+        throw new Error('Website could not be found. Please check the URL and try again.');
+      } else if (error.message.includes('timed out')) {
+        throw new Error('Website analysis timed out. The website may be too slow to respond.');
+      } else if (error.message.includes('PERPLEXITY_API_KEY')) {
+        throw new Error('Website analysis requires API configuration. Please contact support.');
+      } else if (error.message.includes('Invalid URL')) {
+        throw new Error('The website URL format is invalid. Please enter a valid website address (e.g., example.com).');
+      } else if (error.message.includes('status: 429')) {
+        throw new Error('Website analysis service is currently busy. Please try again in a few minutes.');
+      } else if (error.message.includes('content') || error.message.includes('parse')) {
+        throw new Error('Unable to analyze website content. The website may not be compatible with our analyzer.');
+      }
+    }
+    
+    // Generic fallback message for other errors
+    throw new Error('An error occurred during website analysis. Please try again or use only the transcript.');
   }
 }
 
@@ -162,217 +231,235 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
  * @returns Enhanced CIM analysis
  */
 export function enhanceCimWithWebsiteData(transcriptAnalysis: any, websiteAnalysis: any): any {
-  // Create a deep copy of the transcript analysis to avoid mutations
-  const enhancedAnalysis = JSON.parse(JSON.stringify(transcriptAnalysis));
+  // Validate inputs
+  if (!transcriptAnalysis) {
+    throw new Error('Transcript analysis is required');
+  }
   
-  // Ensure all required objects exist
-  if (!enhancedAnalysis.story) enhancedAnalysis.story = {};
-  if (!enhancedAnalysis.marketAnalysis) enhancedAnalysis.marketAnalysis = {};
-  if (!enhancedAnalysis.executiveSummary) enhancedAnalysis.executiveSummary = {};
-  if (!enhancedAnalysis.assets) enhancedAnalysis.assets = {};
-  if (!enhancedAnalysis.marketing) enhancedAnalysis.marketing = {};
-  if (!enhancedAnalysis.team) enhancedAnalysis.team = {};
+  if (!websiteAnalysis) {
+    // If website analysis failed but we have transcript analysis, just return transcript analysis
+    console.warn('Website analysis data missing, returning transcript analysis only');
+    return transcriptAnalysis;
+  }
   
-  // Helper function to merge data, prioritizing transcript data
-  const mergeData = (target: any, source: any, field: string, isArray = false) => {
-    if (!source || !source[field]) return;
+  try {
+    // Create a deep copy of the transcript analysis to avoid mutations
+    const enhancedAnalysis = JSON.parse(JSON.stringify(transcriptAnalysis));
     
-    if (!target[field] || target[field] === "N/A" || target[field] === "Not provided") {
-      if (isArray) {
-        target[field] = Array.isArray(source[field]) ? source[field] : [source[field]];
-      } else {
-        target[field] = source[field];
-      }
-    } else if (isArray && Array.isArray(target[field]) && Array.isArray(source[field])) {
-      // For arrays, add unique items from source that don't exist in target
-      const existingItems = new Set(target[field].map((item: any) => 
-        typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
-      ));
+    // Ensure all required objects exist
+    if (!enhancedAnalysis.story) enhancedAnalysis.story = {};
+    if (!enhancedAnalysis.marketAnalysis) enhancedAnalysis.marketAnalysis = {};
+    if (!enhancedAnalysis.executiveSummary) enhancedAnalysis.executiveSummary = {};
+    if (!enhancedAnalysis.assets) enhancedAnalysis.assets = {};
+    if (!enhancedAnalysis.marketing) enhancedAnalysis.marketing = {};
+    if (!enhancedAnalysis.team) enhancedAnalysis.team = {};
+    
+    // Helper function to merge data, prioritizing transcript data
+    const mergeData = (target: any, source: any, field: string, isArray = false) => {
+      if (!source || !source[field]) return;
       
-      source[field].forEach((item: any) => {
-        const normalizedItem = typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item);
-        if (!existingItems.has(normalizedItem)) {
-          target[field].push(item);
+      if (!target[field] || target[field] === "N/A" || target[field] === "Not provided") {
+        if (isArray) {
+          target[field] = Array.isArray(source[field]) ? source[field] : [source[field]];
+        } else {
+          target[field] = source[field];
+        }
+      } else if (isArray && Array.isArray(target[field]) && Array.isArray(source[field])) {
+        // For arrays, add unique items from source that don't exist in target
+        const existingItems = new Set(target[field].map((item: any) => 
+          typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
+        ));
+        
+        source[field].forEach((item: any) => {
+          const normalizedItem = typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item);
+          if (!existingItems.has(normalizedItem)) {
+            target[field].push(item);
+          }
+        });
+      }
+    };
+    
+    // Business Story & Background
+    if (websiteAnalysis.companyOverview) {
+      if (!enhancedAnalysis.story.businessSummary || enhancedAnalysis.story.businessSummary === "N/A") {
+        enhancedAnalysis.story.businessSummary = websiteAnalysis.companyOverview.summary || websiteAnalysis.companyOverview.description;
+      }
+      
+      if (!enhancedAnalysis.story.yearStarted || enhancedAnalysis.story.yearStarted === "N/A") {
+        enhancedAnalysis.story.yearStarted = websiteAnalysis.companyOverview.foundedYear || websiteAnalysis.companyOverview.yearEstablished;
+      }
+      
+      if (websiteAnalysis.companyOverview.history && (!enhancedAnalysis.story.growthHistory || enhancedAnalysis.story.growthHistory === "N/A")) {
+        enhancedAnalysis.story.growthHistory = websiteAnalysis.companyOverview.history;
+      }
+    }
+    
+    // Market Analysis & Positioning
+    if (websiteAnalysis.marketPosition) {
+      mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'customerProfile');
+      mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'uniqueFeatures', true);
+      mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'strengths', true);
+      
+      // Add any unique selling points to key attractions
+      if (websiteAnalysis.marketPosition.uniqueSellingPoints && Array.isArray(websiteAnalysis.marketPosition.uniqueSellingPoints)) {
+        if (!enhancedAnalysis.story.keyAttractions) {
+          enhancedAnalysis.story.keyAttractions = [];
+        }
+        
+        const existingAttractions = new Set(enhancedAnalysis.story.keyAttractions.map((item: string) => item.toLowerCase()));
+        
+        websiteAnalysis.marketPosition.uniqueSellingPoints.forEach((point: string) => {
+          if (!existingAttractions.has(point.toLowerCase())) {
+            enhancedAnalysis.story.keyAttractions.push(point);
+          }
+        });
+      }
+    }
+    
+    // Products & Services
+    if (websiteAnalysis.productsServices) {
+      // Add product information to business summary if needed
+      if ((!enhancedAnalysis.story.businessModel || enhancedAnalysis.story.businessModel === "N/A") && 
+          websiteAnalysis.productsServices.description) {
+        enhancedAnalysis.story.businessModel = websiteAnalysis.productsServices.description;
+      }
+      
+      // Add products to inventory if available
+      if (websiteAnalysis.productsServices.items && Array.isArray(websiteAnalysis.productsServices.items)) {
+        if (!enhancedAnalysis.inventory) enhancedAnalysis.inventory = {};
+        if (!enhancedAnalysis.inventory.topProducts || 
+            !Array.isArray(enhancedAnalysis.inventory.topProducts) || 
+            enhancedAnalysis.inventory.topProducts.length === 0) {
+          enhancedAnalysis.inventory.topProducts = websiteAnalysis.productsServices.items
+            .map((item: any) => item.name || item)
+            .filter(Boolean)
+            .slice(0, 5); // Limit to top 5
+        }
+      }
+    }
+    
+    // Team & Leadership
+    if (websiteAnalysis.team) {
+      // Enhance team summary if needed
+      if ((!enhancedAnalysis.team.employeeSummary || enhancedAnalysis.team.employeeSummary === "N/A") &&
+          websiteAnalysis.team.summary) {
+        enhancedAnalysis.team.employeeSummary = websiteAnalysis.team.summary;
+      }
+      
+      // Add key employees if available
+      if (websiteAnalysis.team.leadership && Array.isArray(websiteAnalysis.team.leadership)) {
+        if (!enhancedAnalysis.team.keyEmployees || !Array.isArray(enhancedAnalysis.team.keyEmployees)) {
+          enhancedAnalysis.team.keyEmployees = [];
+        }
+        
+        const existingEmployees = new Set(enhancedAnalysis.team.keyEmployees.map((item: string) => 
+          typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
+        ));
+        
+        websiteAnalysis.team.leadership.forEach((member: any) => {
+          const leaderText = typeof member === 'string' ? member : `${member.name || ''} - ${member.role || ''}`.trim();
+          if (leaderText && !existingEmployees.has(leaderText.toLowerCase())) {
+            enhancedAnalysis.team.keyEmployees.push(leaderText);
+          }
+        });
+      }
+    }
+    
+    // Assets & Facilities
+    if (websiteAnalysis.assets || websiteAnalysis.locations) {
+      const assetSource = websiteAnalysis.assets || {};
+      const locationSource = websiteAnalysis.locations || {};
+      
+      // Enhance digital assets
+      if (assetSource.digital && Array.isArray(assetSource.digital)) {
+        if (!enhancedAnalysis.assets.digitalAssets) {
+          enhancedAnalysis.assets.digitalAssets = [];
+        }
+        
+        const existingAssets = new Set(enhancedAnalysis.assets.digitalAssets.map((item: string) => item.toLowerCase()));
+        
+        assetSource.digital.forEach((asset: string) => {
+          if (!existingAssets.has(asset.toLowerCase())) {
+            enhancedAnalysis.assets.digitalAssets.push(asset);
+          }
+        });
+      }
+      
+      // Add location information
+      if (locationSource.description && (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A")) {
+        enhancedAnalysis.assets.location = locationSource.description;
+      } else if (locationSource.addresses && Array.isArray(locationSource.addresses) && locationSource.addresses.length > 0) {
+        if (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A") {
+          enhancedAnalysis.assets.location = locationSource.addresses.join("; ");
+        }
+      }
+      
+      // Add facility information
+      if (locationSource.facilities && (!enhancedAnalysis.facility || !enhancedAnalysis.facility.size)) {
+        if (!enhancedAnalysis.facility) enhancedAnalysis.facility = {};
+        if (!enhancedAnalysis.facility.size || enhancedAnalysis.facility.size === "N/A") {
+          enhancedAnalysis.facility.size = locationSource.facilities;
+        }
+      }
+    }
+    
+    // Marketing & Sales
+    if (websiteAnalysis.marketing) {
+      if (!enhancedAnalysis.marketing.strategies) enhancedAnalysis.marketing.strategies = [];
+      if (websiteAnalysis.marketing.strategies && Array.isArray(websiteAnalysis.marketing.strategies)) {
+        const existingStrategies = new Set(enhancedAnalysis.marketing.strategies.map((item: string) => item.toLowerCase()));
+        
+        websiteAnalysis.marketing.strategies.forEach((strategy: string) => {
+          if (!existingStrategies.has(strategy.toLowerCase())) {
+            enhancedAnalysis.marketing.strategies.push(strategy);
+          }
+        });
+      }
+      
+      // Add channels to sales data
+      if (websiteAnalysis.marketing.channels && Array.isArray(websiteAnalysis.marketing.channels)) {
+        if (!enhancedAnalysis.sales) enhancedAnalysis.sales = {};
+        if (!enhancedAnalysis.sales.channels) enhancedAnalysis.sales.channels = {};
+        
+        websiteAnalysis.marketing.channels.forEach((channel: string) => {
+          if (!enhancedAnalysis.sales.channels[channel]) {
+            enhancedAnalysis.sales.channels[channel] = "Website mentioned";
+          }
+        });
+      }
+    }
+    
+    // Growth Opportunities
+    if (websiteAnalysis.growthOpportunities && Array.isArray(websiteAnalysis.growthOpportunities)) {
+      if (!enhancedAnalysis.executiveSummary.growthOpportunities) {
+        enhancedAnalysis.executiveSummary.growthOpportunities = [];
+      }
+      
+      const existingOpportunities = new Set(enhancedAnalysis.executiveSummary.growthOpportunities.map((item: string) => item.toLowerCase()));
+      
+      websiteAnalysis.growthOpportunities.forEach((opportunity: string) => {
+        if (!existingOpportunities.has(opportunity.toLowerCase())) {
+          enhancedAnalysis.executiveSummary.growthOpportunities.push(opportunity);
         }
       });
     }
-  };
-  
-  // Business Story & Background
-  if (websiteAnalysis.companyOverview) {
-    if (!enhancedAnalysis.story.businessSummary || enhancedAnalysis.story.businessSummary === "N/A") {
-      enhancedAnalysis.story.businessSummary = websiteAnalysis.companyOverview.summary || websiteAnalysis.companyOverview.description;
-    }
     
-    if (!enhancedAnalysis.story.yearStarted || enhancedAnalysis.story.yearStarted === "N/A") {
-      enhancedAnalysis.story.yearStarted = websiteAnalysis.companyOverview.foundedYear || websiteAnalysis.companyOverview.yearEstablished;
-    }
-    
-    if (websiteAnalysis.companyOverview.history && (!enhancedAnalysis.story.growthHistory || enhancedAnalysis.story.growthHistory === "N/A")) {
-      enhancedAnalysis.story.growthHistory = websiteAnalysis.companyOverview.history;
-    }
-  }
-  
-  // Market Analysis & Positioning
-  if (websiteAnalysis.marketPosition) {
-    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'customerProfile');
-    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'uniqueFeatures', true);
-    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'strengths', true);
-    
-    // Add any unique selling points to key attractions
-    if (websiteAnalysis.marketPosition.uniqueSellingPoints && Array.isArray(websiteAnalysis.marketPosition.uniqueSellingPoints)) {
-      if (!enhancedAnalysis.story.keyAttractions) {
-        enhancedAnalysis.story.keyAttractions = [];
+    // Enhance buyer attractions with testimonials if available
+    if (websiteAnalysis.testimonials && Array.isArray(websiteAnalysis.testimonials) && websiteAnalysis.testimonials.length > 0) {
+      if (!enhancedAnalysis.executiveSummary.buyerAttractions) {
+        enhancedAnalysis.executiveSummary.buyerAttractions = [];
       }
       
-      const existingAttractions = new Set(enhancedAnalysis.story.keyAttractions.map((item: string) => item.toLowerCase()));
-      
-      websiteAnalysis.marketPosition.uniqueSellingPoints.forEach((point: string) => {
-        if (!existingAttractions.has(point.toLowerCase())) {
-          enhancedAnalysis.story.keyAttractions.push(point);
-        }
-      });
-    }
-  }
-  
-  // Products & Services
-  if (websiteAnalysis.productsServices) {
-    // Add product information to business summary if needed
-    if ((!enhancedAnalysis.story.businessModel || enhancedAnalysis.story.businessModel === "N/A") && 
-        websiteAnalysis.productsServices.description) {
-      enhancedAnalysis.story.businessModel = websiteAnalysis.productsServices.description;
-    }
-    
-    // Add products to inventory if available
-    if (websiteAnalysis.productsServices.items && Array.isArray(websiteAnalysis.productsServices.items)) {
-      if (!enhancedAnalysis.inventory) enhancedAnalysis.inventory = {};
-      if (!enhancedAnalysis.inventory.topProducts || 
-          !Array.isArray(enhancedAnalysis.inventory.topProducts) || 
-          enhancedAnalysis.inventory.topProducts.length === 0) {
-        enhancedAnalysis.inventory.topProducts = websiteAnalysis.productsServices.items
-          .map((item: any) => item.name || item)
-          .filter(Boolean)
-          .slice(0, 5); // Limit to top 5
-      }
-    }
-  }
-  
-  // Team & Leadership
-  if (websiteAnalysis.team) {
-    // Enhance team summary if needed
-    if ((!enhancedAnalysis.team.employeeSummary || enhancedAnalysis.team.employeeSummary === "N/A") &&
-        websiteAnalysis.team.summary) {
-      enhancedAnalysis.team.employeeSummary = websiteAnalysis.team.summary;
-    }
-    
-    // Add key employees if available
-    if (websiteAnalysis.team.leadership && Array.isArray(websiteAnalysis.team.leadership)) {
-      if (!enhancedAnalysis.team.keyEmployees || !Array.isArray(enhancedAnalysis.team.keyEmployees)) {
-        enhancedAnalysis.team.keyEmployees = [];
-      }
-      
-      const existingEmployees = new Set(enhancedAnalysis.team.keyEmployees.map((item: string) => 
-        typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
-      ));
-      
-      websiteAnalysis.team.leadership.forEach((member: any) => {
-        const leaderText = typeof member === 'string' ? member : `${member.name || ''} - ${member.role || ''}`.trim();
-        if (leaderText && !existingEmployees.has(leaderText.toLowerCase())) {
-          enhancedAnalysis.team.keyEmployees.push(leaderText);
-        }
-      });
-    }
-  }
-  
-  // Assets & Facilities
-  if (websiteAnalysis.assets || websiteAnalysis.locations) {
-    const assetSource = websiteAnalysis.assets || {};
-    const locationSource = websiteAnalysis.locations || {};
-    
-    // Enhance digital assets
-    if (assetSource.digital && Array.isArray(assetSource.digital)) {
-      if (!enhancedAnalysis.assets.digitalAssets) {
-        enhancedAnalysis.assets.digitalAssets = [];
-      }
-      
-      const existingAssets = new Set(enhancedAnalysis.assets.digitalAssets.map((item: string) => item.toLowerCase()));
-      
-      assetSource.digital.forEach((asset: string) => {
-        if (!existingAssets.has(asset.toLowerCase())) {
-          enhancedAnalysis.assets.digitalAssets.push(asset);
-        }
-      });
-    }
-    
-    // Add location information
-    if (locationSource.description && (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A")) {
-      enhancedAnalysis.assets.location = locationSource.description;
-    } else if (locationSource.addresses && Array.isArray(locationSource.addresses) && locationSource.addresses.length > 0) {
-      if (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A") {
-        enhancedAnalysis.assets.location = locationSource.addresses.join("; ");
+      if (enhancedAnalysis.executiveSummary.buyerAttractions.length === 0) {
+        enhancedAnalysis.executiveSummary.buyerAttractions.push("Strong customer testimonials on website");
       }
     }
     
-    // Add facility information
-    if (locationSource.facilities && (!enhancedAnalysis.facility || !enhancedAnalysis.facility.size)) {
-      if (!enhancedAnalysis.facility) enhancedAnalysis.facility = {};
-      if (!enhancedAnalysis.facility.size || enhancedAnalysis.facility.size === "N/A") {
-        enhancedAnalysis.facility.size = locationSource.facilities;
-      }
-    }
-  }
-  
-  // Marketing & Sales
-  if (websiteAnalysis.marketing) {
-    if (!enhancedAnalysis.marketing.strategies) enhancedAnalysis.marketing.strategies = [];
-    if (websiteAnalysis.marketing.strategies && Array.isArray(websiteAnalysis.marketing.strategies)) {
-      const existingStrategies = new Set(enhancedAnalysis.marketing.strategies.map((item: string) => item.toLowerCase()));
-      
-      websiteAnalysis.marketing.strategies.forEach((strategy: string) => {
-        if (!existingStrategies.has(strategy.toLowerCase())) {
-          enhancedAnalysis.marketing.strategies.push(strategy);
-        }
-      });
-    }
+    return enhancedAnalysis;
     
-    // Add channels to sales data
-    if (websiteAnalysis.marketing.channels && Array.isArray(websiteAnalysis.marketing.channels)) {
-      if (!enhancedAnalysis.sales) enhancedAnalysis.sales = {};
-      if (!enhancedAnalysis.sales.channels) enhancedAnalysis.sales.channels = {};
-      
-      websiteAnalysis.marketing.channels.forEach((channel: string) => {
-        if (!enhancedAnalysis.sales.channels[channel]) {
-          enhancedAnalysis.sales.channels[channel] = "Website mentioned";
-        }
-      });
-    }
+  } catch (error) {
+    console.error('Error enhancing CIM with website data:', error);
+    // If we encounter any error during enhancement, fall back to the original transcript analysis
+    return transcriptAnalysis;
   }
-  
-  // Growth Opportunities
-  if (websiteAnalysis.growthOpportunities && Array.isArray(websiteAnalysis.growthOpportunities)) {
-    if (!enhancedAnalysis.executiveSummary.growthOpportunities) {
-      enhancedAnalysis.executiveSummary.growthOpportunities = [];
-    }
-    
-    const existingOpportunities = new Set(enhancedAnalysis.executiveSummary.growthOpportunities.map((item: string) => item.toLowerCase()));
-    
-    websiteAnalysis.growthOpportunities.forEach((opportunity: string) => {
-      if (!existingOpportunities.has(opportunity.toLowerCase())) {
-        enhancedAnalysis.executiveSummary.growthOpportunities.push(opportunity);
-      }
-    });
-  }
-  
-  // Enhance buyer attractions with testimonials if available
-  if (websiteAnalysis.testimonials && Array.isArray(websiteAnalysis.testimonials) && websiteAnalysis.testimonials.length > 0) {
-    if (!enhancedAnalysis.executiveSummary.buyerAttractions) {
-      enhancedAnalysis.executiveSummary.buyerAttractions = [];
-    }
-    
-    if (enhancedAnalysis.executiveSummary.buyerAttractions.length === 0) {
-      enhancedAnalysis.executiveSummary.buyerAttractions.push("Strong customer testimonials on website");
-    }
-  }
-  
-  return enhancedAnalysis;
 }
