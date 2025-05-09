@@ -60,22 +60,35 @@ export function CimGenerator() {
       )
   });
 
-  const form = useForm({
+  // Define the form values type
+  type FormValues = {
+    title: string;
+    transcript: string;
+    directions: string;
+    websiteUrl?: string;
+  };
+  
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      title: "",
+      transcript: "",
       directions: DEFAULT_CIM_DIRECTIONS,
       websiteUrl: ""
     }
   });
 
   const generateMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: FormValues) => {
       if (data.transcript.length > 4000) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
+        if (data.websiteUrl) {
+          formData.append('websiteUrl', data.websiteUrl);
+        }
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
@@ -114,7 +127,7 @@ export function CimGenerator() {
     }
   });
 
-  const handleGenerate = (data: any) => {
+  const handleGenerate = (data: FormValues) => {
     if (currentDocId) {
       const plan = subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans];
       if (analysis?.regenerationCount >= plan.regenerationLimit) {

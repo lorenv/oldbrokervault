@@ -6,6 +6,26 @@
 import { PERPLEXITY_API_URL } from './perplexity';
 import fetch from 'node-fetch';
 
+// Define the Perplexity API response type
+interface PerplexityResponse {
+  id?: string;
+  model?: string;
+  choices: Array<{
+    message: {
+      role: string;
+      content: string;
+    };
+    index: number;
+    finish_reason: string;
+  }>;
+  citations?: string[];
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
 /**
  * Normalizes and validates a URL
  * @param urlString Raw URL string input
@@ -104,14 +124,7 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
       throw new Error(`Website analysis failed with status: ${response.status}`);
     }
 
-    const result = await response.json() as {
-      choices?: Array<{
-        message?: {
-          content: string;
-        };
-      }>;
-      citations?: string[];
-    };
+    const result = await response.json() as PerplexityResponse;
     
     if (!result.choices || !result.choices[0] || !result.choices[0].message) {
       throw new Error('Invalid response format from Perplexity API');
@@ -124,7 +137,7 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
     // Parse the content from the API response
     let websiteData;
     try {
-      const content = result.choices[0].message?.content;
+      const content = result.choices[0].message.content;
       if (!content) {
         throw new Error('No content in API response');
       }
