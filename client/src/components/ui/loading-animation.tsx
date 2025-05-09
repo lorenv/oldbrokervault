@@ -44,7 +44,7 @@ export function LoadingAnimation({
     return (
       <div className="flex items-center justify-center space-x-2">
         <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
-        <span className="text-sm">{text}</span>
+        <span className="text-sm text-foreground">{text}</span>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export function LoadingAnimation({
     <div className="flex flex-col items-center w-full">
       <div className="flex items-center justify-center space-x-2 mb-2">
         <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
-        <span className="text-sm font-medium">{text}</span>
+        <span className="text-sm font-medium text-foreground">{text}</span>
       </div>
       
       <div className="w-full space-y-1 mt-1">
@@ -71,7 +71,7 @@ export function LoadingAnimation({
             ) : (
               <div className="h-3 w-3 rounded-full border border-muted-foreground/30 mr-1" />
             )}
-            <span className={index === currentStepIndex ? "font-medium" : ""}>
+            <span className={`${index === currentStepIndex ? "font-medium" : ""} text-foreground`}>
               {step}
             </span>
           </div>
