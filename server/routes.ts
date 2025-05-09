@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
+import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -91,7 +92,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        const analysis = await analyzeCimTranscript(data.transcript);
+        let analysis = await analyzeCimTranscript(data.transcript);
+        
+        // If website URL is provided, enhance the analysis with website data
+        if (data.websiteUrl) {
+          try {
+            // Normalize and validate the URL
+            const normalizedUrl = normalizeUrl(data.websiteUrl);
+            
+            // Analyze the website
+            const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+            
+            // Enhance the CIM with website data
+            analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+          } catch (error) {
+            console.error("Website analysis error:", error);
+            // Continue with just the transcript analysis, but log the error
+          }
+        }
+        
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -103,7 +122,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      const analysis = await analyzeCimTranscript(data.transcript);
+      let analysis = await analyzeCimTranscript(data.transcript);
+      
+      // If website URL is provided, enhance the analysis with website data
+      if (data.websiteUrl) {
+        try {
+          // Normalize and validate the URL
+          const normalizedUrl = normalizeUrl(data.websiteUrl);
+          
+          // Analyze the website
+          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+          
+          // Enhance the CIM with website data
+          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+        } catch (error) {
+          console.error("Website analysis error:", error);
+          // Continue with just the transcript analysis, but log the error
+        }
+      }
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,
