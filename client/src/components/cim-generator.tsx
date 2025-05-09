@@ -36,6 +36,7 @@ export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
+  const [websiteAnalysisStage, setWebsiteAnalysisStage] = useState<string | null>(null);
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -84,43 +85,91 @@ export function CimGenerator() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      // Set up website analysis tracking
+      const hasWebsiteUrl = !!data.websiteUrl?.trim();
+      if (hasWebsiteUrl) {
+        setWebsiteAnalysisStage('validating');
+        // Artificial delay to show validation step
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       if (data.transcript.length > 4000) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
-        if (data.websiteUrl) {
-          formData.append('websiteUrl', data.websiteUrl);
+        
+        if (hasWebsiteUrl) {
+          formData.append('websiteUrl', data.websiteUrl!);
+          setWebsiteAnalysisStage('connecting');
+          // Artificial delay to show connection step
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
+        
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
 
-        const res = await fetch('/api/cim/upload', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
+        try {
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('analyzing');
+          }
+          
+          const res = await fetch('/api/cim/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
 
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Failed to generate CIM");
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to generate CIM");
+          }
+          
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('enhancing');
+          }
+          
+          return res.json();
+        } catch (error) {
+          // Reset website analysis stage on error
+          setWebsiteAnalysisStage(null);
+          throw error;
         }
-
-        return res.json();
       } else {
-        const res = await apiRequest("POST", "/api/cim", {
-          ...data,
-          docId: currentDocId
-        });
-        return res.json();
+        try {
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('connecting');
+            // Small delay to show the connection step
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setWebsiteAnalysisStage('analyzing');
+          }
+          
+          const res = await apiRequest("POST", "/api/cim", {
+            ...data,
+            docId: currentDocId
+          });
+          
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('enhancing');
+          }
+          
+          return res.json();
+        } catch (error) {
+          // Reset website analysis stage on error
+          setWebsiteAnalysisStage(null);
+          throw error;
+        }
       }
     },
     onSuccess: (data) => {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      
+      // Reset website analysis stage
+      setWebsiteAnalysisStage(null);
       
       // Show success message with website enhancement information if applicable
       const websiteUrl = form.getValues('websiteUrl');
@@ -133,11 +182,15 @@ export function CimGenerator() {
       }
     },
     onError: (error: any) => {
+      // Reset website analysis stage
+      setWebsiteAnalysisStage(null);
+      
       // Check if the error message contains a website-related error
       const isWebsiteError = error.message && (
         error.message.includes('website') || 
         error.message.includes('URL') || 
-        error.message.includes('Perplexity')
+        error.message.includes('Perplexity') ||
+        error.message.includes('fetch')
       );
       
       toast({
@@ -307,6 +360,13 @@ ${analysis.team.ownerResponsibilities}
                   text={form.getValues('websiteUrl') 
                     ? "Analyzing transcript and website data..." 
                     : "Analyzing transcript..."} 
+                  showProgress={!!form.getValues('websiteUrl')?.trim()}
+                  progressSteps={[
+                    "Validating website URL format...",
+                    "Connecting to website...",
+                    "Analyzing website content...",
+                    "Enhancing CIM with website data..."
+                  ]}
                 />
               ) : currentDocId ? (
                 "Regenerate CIM"
