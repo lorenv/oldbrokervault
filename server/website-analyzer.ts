@@ -158,11 +158,11 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
       /<img[^>]*src="([^"]+)"[^>]*alt="[^"]*(?:logo|brand)[^"]*"[^>]*>/i,
       // Common logo filenames
       /<img[^>]*src="([^"]*(?:logo|brand|header-logo)[^"]*\.(?:png|jpg|jpeg|svg|webp))"[^>]*>/i,
-      // Logo in header or navigation
-      /<header[^>]*>(?:(?!<\/header>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/header>).)*?<\/header>/is,
-      /<nav[^>]*>(?:(?!<\/nav>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/nav>).)*?<\/nav>/is,
-      // Link with logo class containing an image
-      /<a[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>(?:(?!<\/a>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/a>).)*?<\/a>/is
+      // Logo in header or navigation - using basic pattern without 's' flag
+      /<header[^>]*>.*?<img[^>]*src="([^"]+)"[^>]*>.*?<\/header>/i,
+      /<nav[^>]*>.*?<img[^>]*src="([^"]+)"[^>]*>.*?<\/nav>/i,
+      // Link with logo class containing an image - using basic pattern without 's' flag
+      /<a[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>.*?<img[^>]*src="([^"]+)"[^>]*>.*?<\/a>/i
     ];
     
     console.log(`Searching for logo using ${logoPatterns.length} different patterns...`);
