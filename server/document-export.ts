@@ -579,13 +579,13 @@ export function formatTextContent(analysis: any): string {
     
     sections.push('## Business History');
     const storyDetails = [
-      analysis.story.yearStarted && `Year Started: ${analysis.story.yearStarted}`,
-      analysis.story.businessIdea && `Business Idea: ${analysis.story.businessIdea}`,
-      analysis.story.businessModel && `Business Model: ${analysis.story.businessModel}`,
-      analysis.story.orderProcess && `Order Process: ${analysis.story.orderProcess}`,
-      analysis.story.growthHistory && `Growth History: ${analysis.story.growthHistory}`,
-      analysis.story.businessStructure && `Business Structure: ${analysis.story.businessStructure}`
-    ].filter(Boolean).join('\n\n');
+      analysis.story.yearStarted ? `Year Started: ${analysis.story.yearStarted}` : `Year Started: [NOT ANSWERED]`,
+      analysis.story.businessIdea ? `Business Idea: ${analysis.story.businessIdea}` : `Business Idea: [NOT ANSWERED]`,
+      analysis.story.businessModel ? `Business Model: ${analysis.story.businessModel}` : `Business Model: [NOT ANSWERED]`,
+      analysis.story.orderProcess ? `Order Process: ${analysis.story.orderProcess}` : `Order Process: [NOT ANSWERED]`,
+      analysis.story.growthHistory ? `Growth History: ${analysis.story.growthHistory}` : `Growth History: [NOT ANSWERED]`,
+      analysis.story.businessStructure ? `Business Structure: ${analysis.story.businessStructure}` : `Business Structure: [NOT ANSWERED]`
+    ].join('\n\n');
     sections.push(storyDetails);
     
     if (analysis.story.keyAttractions && analysis.story.keyAttractions.length) {
@@ -619,11 +619,11 @@ export function formatTextContent(analysis: any): string {
     sections.push('# ASSETS');
     
     const assetDetails = [
-      analysis.assets.location && `Location: ${analysis.assets.location}`,
-      analysis.assets.equipmentValue && `Equipment Value: ${analysis.assets.equipmentValue}`,
-      analysis.assets.equipmentDetails && `Equipment Details: ${analysis.assets.equipmentDetails}`,
-      analysis.assets.inventoryDetails && `Inventory Details: ${analysis.assets.inventoryDetails}`
-    ].filter(Boolean).join('\n\n');
+      analysis.assets.location ? `Location: ${analysis.assets.location}` : `Location: [NOT ANSWERED]`,
+      analysis.assets.equipmentValue ? `Equipment Value: ${analysis.assets.equipmentValue}` : `Equipment Value: [NOT ANSWERED]`,
+      analysis.assets.equipmentDetails ? `Equipment Details: ${analysis.assets.equipmentDetails}` : `Equipment Details: [NOT ANSWERED]`,
+      analysis.assets.inventoryDetails ? `Inventory Details: ${analysis.assets.inventoryDetails}` : `Inventory Details: [NOT ANSWERED]`
+    ].join('\n\n');
     sections.push(assetDetails);
     
     if (analysis.assets.digitalAssets && analysis.assets.digitalAssets.length) {
@@ -664,24 +664,24 @@ export function formatTextContent(analysis: any): string {
     if (analysis.operations.suppliers) {
       sections.push('## Suppliers');
       const suppliersDetails = [
-        analysis.operations.suppliers.count && `Count: ${analysis.operations.suppliers.count}`,
-        analysis.operations.suppliers.transferability && `Transferability: ${analysis.operations.suppliers.transferability}`,
-        analysis.operations.suppliers.concentration && `Concentration: ${analysis.operations.suppliers.concentration}`,
-        analysis.operations.suppliers.terms && `Terms: ${analysis.operations.suppliers.terms}`,
-        analysis.operations.suppliers.replaceability && `Replaceability: ${analysis.operations.suppliers.replaceability}`
-      ].filter(Boolean).join('\n');
+        analysis.operations.suppliers.count ? `Count: ${analysis.operations.suppliers.count}` : `Count: [NOT ANSWERED]`,
+        analysis.operations.suppliers.transferability ? `Transferability: ${analysis.operations.suppliers.transferability}` : `Transferability: [NOT ANSWERED]`,
+        analysis.operations.suppliers.concentration ? `Concentration: ${analysis.operations.suppliers.concentration}` : `Concentration: [NOT ANSWERED]`,
+        analysis.operations.suppliers.terms ? `Terms: ${analysis.operations.suppliers.terms}` : `Terms: [NOT ANSWERED]`,
+        analysis.operations.suppliers.replaceability ? `Replaceability: ${analysis.operations.suppliers.replaceability}` : `Replaceability: [NOT ANSWERED]`
+      ].join('\n');
       sections.push(suppliersDetails);
     }
     
     if (analysis.operations.customers) {
       sections.push('## Customers');
       const customersDetails = [
-        analysis.operations.customers.recurring && `Recurring: ${analysis.operations.customers.recurring}`,
-        analysis.operations.customers.relationships && `Relationships: ${analysis.operations.customers.relationships}`,
-        analysis.operations.customers.concentration && `Concentration: ${analysis.operations.customers.concentration}`,
-        analysis.operations.customers.contracts && `Contracts: ${analysis.operations.customers.contracts}`,
-        analysis.operations.customers.replaceability && `Replaceability: ${analysis.operations.customers.replaceability}`
-      ].filter(Boolean).join('\n');
+        analysis.operations.customers.recurring ? `Recurring: ${analysis.operations.customers.recurring}` : `Recurring: [NOT ANSWERED]`,
+        analysis.operations.customers.relationships ? `Relationships: ${analysis.operations.customers.relationships}` : `Relationships: [NOT ANSWERED]`,
+        analysis.operations.customers.concentration ? `Concentration: ${analysis.operations.customers.concentration}` : `Concentration: [NOT ANSWERED]`,
+        analysis.operations.customers.contracts ? `Contracts: ${analysis.operations.customers.contracts}` : `Contracts: [NOT ANSWERED]`,
+        analysis.operations.customers.replaceability ? `Replaceability: ${analysis.operations.customers.replaceability}` : `Replaceability: [NOT ANSWERED]`
+      ].join('\n');
       sections.push(customersDetails);
     }
   }
@@ -691,17 +691,17 @@ export function formatTextContent(analysis: any): string {
     sections.push('# TEAM');
     
     const teamDetails = [
-      analysis.team.ownerResponsibilities && `Owner Responsibilities: ${analysis.team.ownerResponsibilities}`,
-      analysis.team.ownerHours && `Owner Hours: ${analysis.team.ownerHours}`,
-      analysis.team.employeeSummary && `Employee Summary: ${analysis.team.employeeSummary}`,
-      analysis.team.employeeCount && `Employee Count: ${analysis.team.employeeCount}`,
-      analysis.team.contractorCount && `Contractor Count: ${analysis.team.contractorCount}`,
-      analysis.team.turnover && `Turnover: ${analysis.team.turnover}`,
-      analysis.team.hiring && `Hiring: ${analysis.team.hiring}`,
-      analysis.team.retention && `Retention: ${analysis.team.retention}`,
-      analysis.team.organization && `Organization: ${analysis.team.organization}`,
-      analysis.team.management && `Management: ${analysis.team.management}`
-    ].filter(Boolean).join('\n\n');
+      analysis.team.ownerResponsibilities ? `Owner Responsibilities: ${analysis.team.ownerResponsibilities}` : `Owner Responsibilities: [NOT ANSWERED]`,
+      analysis.team.ownerHours ? `Owner Hours: ${analysis.team.ownerHours}` : `Owner Hours: [NOT ANSWERED]`,
+      analysis.team.employeeSummary ? `Employee Summary: ${analysis.team.employeeSummary}` : `Employee Summary: [NOT ANSWERED]`,
+      analysis.team.employeeCount ? `Employee Count: ${analysis.team.employeeCount}` : `Employee Count: [NOT ANSWERED]`,
+      analysis.team.contractorCount ? `Contractor Count: ${analysis.team.contractorCount}` : `Contractor Count: [NOT ANSWERED]`,
+      analysis.team.turnover ? `Turnover: ${analysis.team.turnover}` : `Turnover: [NOT ANSWERED]`,
+      analysis.team.hiring ? `Hiring: ${analysis.team.hiring}` : `Hiring: [NOT ANSWERED]`,
+      analysis.team.retention ? `Retention: ${analysis.team.retention}` : `Retention: [NOT ANSWERED]`,
+      analysis.team.organization ? `Organization: ${analysis.team.organization}` : `Organization: [NOT ANSWERED]`,
+      analysis.team.management ? `Management: ${analysis.team.management}` : `Management: [NOT ANSWERED]`
+    ].join('\n\n');
     sections.push(teamDetails);
     
     if (analysis.team.keyEmployees && analysis.team.keyEmployees.length) {
@@ -740,11 +740,11 @@ export function formatTextContent(analysis: any): string {
     sections.push('# FACILITY');
     
     const facilityDetails = [
-      analysis.facility.ownership && `Ownership: ${analysis.facility.ownership}`,
-      analysis.facility.size && `Size: ${analysis.facility.size}`,
-      analysis.facility.cost && `Cost: ${analysis.facility.cost}`,
-      analysis.facility.leaseDetails && `Lease Details: ${analysis.facility.leaseDetails}`
-    ].filter(Boolean).join('\n');
+      analysis.facility.ownership ? `Ownership: ${analysis.facility.ownership}` : `Ownership: [NOT ANSWERED]`,
+      analysis.facility.size ? `Size: ${analysis.facility.size}` : `Size: [NOT ANSWERED]`,
+      analysis.facility.cost ? `Cost: ${analysis.facility.cost}` : `Cost: [NOT ANSWERED]`,
+      analysis.facility.leaseDetails ? `Lease Details: ${analysis.facility.leaseDetails}` : `Lease Details: [NOT ANSWERED]`
+    ].join('\n');
     sections.push(facilityDetails);
   }
 
@@ -769,11 +769,11 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
     
     // Business details in regular paragraphs
     new docx.Paragraph({
-      text: `Founded: ${analysis.story?.yearStarted || 'N/A'}`,
+      text: `Founded: ${safeStringify(analysis.story?.yearStarted)}`,
       spacing: { before: 200 }
     }),
     new docx.Paragraph({
-      text: `Structure: ${analysis.story?.businessStructure || 'N/A'}`,
+      text: `Structure: ${safeStringify(analysis.story?.businessStructure)}`,
       spacing: { before: 100 }
     }),
     
@@ -784,7 +784,7 @@ export async function generateWordDocument(analysis: any): Promise<Buffer> {
       spacing: { before: 200, after: 100 }
     }),
     new docx.Paragraph({
-      text: analysis.story?.businessSummary || analysis.story?.businessModel || 'No business description provided.',
+      text: safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel),
       spacing: { before: 100, after: 200 }
     }),
     
