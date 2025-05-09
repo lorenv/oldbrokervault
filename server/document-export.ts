@@ -14,21 +14,59 @@ export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './googl
  */
 // Helper function to safely convert any value to string
 function safeStringify(value: any): string {
+  // Handle null or undefined
   if (value === undefined || value === null) {
-    return 'Information not provided';
+    return '[NOT ANSWERED]';
   }
   
+  // Handle arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return '[NOT ANSWERED]';
+    }
+    return value.map(item => safeStringify(item)).join(', ');
+  }
+  
+  // Handle objects
   if (typeof value === 'object') {
+    // Empty object
     if (Object.keys(value).length === 0) {
-      return '[ANSWER WAS NOT MENTIONED]';
+      return '[NOT ANSWERED]';
     }
-    if (Array.isArray(value)) {
-      return value.map(item => safeStringify(item)).join(', ');
+    
+    try {
+      // Try to extract meaningful content from the object
+      const entries = Object.entries(value);
+      if (entries.length === 0) {
+        return '[NOT ANSWERED]';
+      }
+      
+      return entries
+        .map(([key, val]) => `${key}: ${safeStringify(val)}`)
+        .join(', ');
+    } catch (error) {
+      // Fallback if something goes wrong
+      return '[NOT ANSWERED]';
     }
-    return '[ANSWER WAS NOT MENTIONED]';
   }
   
-  return String(value);
+  // Handle empty strings
+  if (typeof value === 'string' && value.trim() === '') {
+    return '[NOT ANSWERED]';
+  }
+  
+  // Default for any other type
+  const stringValue = String(value);
+  
+  // Check for common placeholder values
+  if (stringValue === 'N/A' || 
+      stringValue === 'undefined' || 
+      stringValue === 'null' ||
+      stringValue === 'Information not provided') {
+    return '[NOT ANSWERED]';
+  }
+  
+  return stringValue;
 }
 
 export function generateHtml(analysis: any): string {
@@ -46,23 +84,23 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">When was the business founded?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.yearStarted || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.yearStarted)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the business structure?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.businessStructure || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.businessStructure)}</td>
         </tr>
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the business model?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.businessModel || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.businessModel)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What process do customers follow to place orders?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.orderProcess || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.orderProcess)}</td>
         </tr>
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How has the business grown over time?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.story?.growthHistory || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.growthHistory)}</td>
         </tr>
       </table>
       
@@ -195,23 +233,23 @@ export function generateHtml(analysis: any): string {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the average order value?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.averageOrderValue || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.sales?.averageOrderValue)}</td>
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How does pricing compare to competitors?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.competitivePricing || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.sales?.competitivePricing)}</td>
           </tr>
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What pricing model is used?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.pricingModel || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.sales?.pricingModel)}</td>
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is there seasonality in sales?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.seasonality || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.sales?.seasonality)}</td>
           </tr>
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the contract terms with customers?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.sales?.contractTerms || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.sales?.contractTerms)}</td>
           </tr>
         </table>
     `;

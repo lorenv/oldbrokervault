@@ -262,15 +262,49 @@ ${analysis.team.ownerResponsibilities}
   };
 
   const renderValue = (value: any): string => {
+    // Handle null or undefined
+    if (value === null || value === undefined) {
+      return "[NOT ANSWERED]";
+    }
+    
+    // Handle arrays
     if (Array.isArray(value)) {
-      return value.join(", ");
+      if (value.length === 0) {
+        return "[NOT ANSWERED]";
+      }
+      return value.map(item => renderValue(item)).join(", ");
     }
-    if (typeof value === "object" && value !== null) {
-      return Object.entries(value)
-        .map(([key, val]) => `${key}: ${renderValue(val)}`)
-        .join(", ");
+    
+    // Handle objects
+    if (typeof value === "object") {
+      if (Object.keys(value).length === 0) {
+        return "[NOT ANSWERED]";
+      }
+      
+      try {
+        // Try to extract meaningful content from the object
+        const entries = Object.entries(value);
+        if (entries.length === 0) {
+          return "[NOT ANSWERED]";
+        }
+        
+        return entries
+          .map(([key, val]) => `${key}: ${renderValue(val)}`)
+          .join(", ");
+      } catch (error) {
+        // Fallback if something goes wrong
+        return "[NOT ANSWERED]";
+      }
     }
-    return String(value || "N/A");
+    
+    // Handle empty strings
+    if (typeof value === "string" && value.trim() === "") {
+      return "[NOT ANSWERED]";
+    }
+    
+    // Default case: convert to string
+    const stringValue = String(value);
+    return stringValue === "N/A" ? "[NOT ANSWERED]" : stringValue;
   };
 
   return (
