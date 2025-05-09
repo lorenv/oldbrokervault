@@ -108,8 +108,10 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
   try {
     console.log(`Attempting to extract logo from website: ${websiteUrl}`);
     const normalizedUrl = normalizeUrl(websiteUrl);
+    console.log(`Normalized URL: ${normalizedUrl}`);
     
     // Fetch the website HTML
+    console.log(`Fetching website HTML...`);
     const response = await fetch(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -122,10 +124,12 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
     }
     
     const html = await response.text();
+    console.log(`Fetched HTML content, length: ${html.length} bytes`);
     
     // Extract the base URL for resolving relative paths
     const urlObj = new URL(normalizedUrl);
     const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+    console.log(`Base URL: ${baseUrl}`);
     
     // Common logo patterns to search for
     const logoPatterns = [
@@ -144,23 +148,43 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
       /<a[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>(?:(?!<\/a>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/a>).)*?<\/a>/is
     ];
     
+    console.log(`Searching for logo using ${logoPatterns.length} different patterns...`);
+    
     // Try each pattern until we find a match
-    for (const pattern of logoPatterns) {
+    for (let i = 0; i < logoPatterns.length; i++) {
+      console.log(`Trying pattern ${i+1}...`);
+      const pattern = logoPatterns[i];
       const match = html.match(pattern);
       if (match && match[1]) {
         let logoUrl = match[1];
+        console.log(`Pattern ${i+1} matched! Raw logo URL: ${logoUrl}`);
         
         // Resolve relative URLs
         if (logoUrl.startsWith('//')) {
           logoUrl = urlObj.protocol + logoUrl;
+          console.log(`Converted protocol-relative URL to: ${logoUrl}`);
         } else if (logoUrl.startsWith('/')) {
           logoUrl = baseUrl + logoUrl;
+          console.log(`Converted root-relative URL to: ${logoUrl}`);
         } else if (!logoUrl.startsWith('http')) {
           logoUrl = baseUrl + '/' + logoUrl;
+          console.log(`Converted relative URL to: ${logoUrl}`);
         }
         
-        console.log(`Found logo URL: ${logoUrl}`);
-        return logoUrl;
+        // Verify the logo URL is accessible
+        try {
+          console.log(`Checking if logo URL is accessible: ${logoUrl}`);
+          const logoResponse = await fetch(logoUrl, { method: 'HEAD' });
+          if (!logoResponse.ok) {
+            console.log(`Logo URL returned status ${logoResponse.status}: ${logoResponse.statusText}`);
+            continue; // Try next pattern
+          }
+          console.log(`Logo URL is accessible`);
+          return logoUrl;
+        } catch (logoError) {
+          console.error(`Error checking logo URL: ${logoError}`);
+          continue; // Try next pattern
+        }
       }
     }
     
