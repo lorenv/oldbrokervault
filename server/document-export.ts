@@ -774,10 +774,6 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 transformation: {
                   width: 200,
                   height: 100
-                },
-                type: 'image/png',
-                fallback: {
-                  name: "Business Logo"
                 }
               })
             ],
