@@ -3,9 +3,8 @@
  * This module provides functions to analyze a business website and extract relevant information
  * using Perplexity's browsing API to enhance the CIM with website content
  */
-
-import { PERPLEXITY_API_URL } from "./perplexity";
-import { URL } from "url";
+import { PERPLEXITY_API_URL } from './perplexity';
+import fetch from 'node-fetch';
 
 /**
  * Normalizes and validates a URL
@@ -14,30 +13,27 @@ import { URL } from "url";
  * @throws Error if URL is invalid
  */
 export function normalizeUrl(urlString: string): string {
-  let processedUrl = urlString.trim();
-  
-  // Add protocol if missing
-  if (!processedUrl.startsWith('http://') && !processedUrl.startsWith('https://')) {
-    processedUrl = 'https://' + processedUrl;
+  if (!urlString) {
+    throw new Error('URL is required');
   }
-  
+
+  // Add protocol if missing
+  if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+    urlString = 'https://' + urlString;
+  }
+
   try {
-    const urlObj = new URL(processedUrl);
+    const url = new URL(urlString);
     
-    // Ensure hostname is valid
-    if (!urlObj.hostname || urlObj.hostname.length < 3) {
-      throw new Error("Invalid hostname");
+    // Ensure hostname part exists
+    if (!url.hostname || url.hostname.length < 3) {
+      throw new Error('Invalid URL hostname');
     }
     
-    // Add www. if it's not a subdomain and doesn't already have www
-    if (!urlObj.hostname.startsWith('www.') && 
-        urlObj.hostname.split('.').length === 2) {
-      urlObj.hostname = 'www.' + urlObj.hostname;
-    }
-    
-    return urlObj.toString();
+    // Return normalized URL
+    return url.toString();
   } catch (error) {
-    throw new Error(`Invalid URL: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error('Invalid URL format');
   }
 }
 
@@ -49,112 +45,99 @@ export function normalizeUrl(urlString: string): string {
  */
 export async function analyzeWebsite(websiteUrl: string): Promise<any> {
   if (!process.env.PERPLEXITY_API_KEY) {
-    throw new Error("PERPLEXITY_API_KEY environment variable is not set");
+    throw new Error('PERPLEXITY_API_KEY is required for website analysis');
   }
 
   try {
-    console.log(`Analyzing website: ${websiteUrl}`);
-    
-    // Define the key pages to analyze (limit to 3-5 pages)
-    const pagesToAnalyze = [
-      websiteUrl, // Homepage
-      `${websiteUrl.replace(/\/$/, '')}/about`, // About page
-      `${websiteUrl.replace(/\/$/, '')}/services` // Services page
-    ];
-    
-    // Format as a browsing request for Perplexity
-    const messages = [
-      {
-        role: "system",
-        content: `You are a professional business analyst. Analyze the given business website and extract key information that would be valuable for a Confidential Information Memorandum (CIM). Focus on:
-1. Business overview and value proposition
-2. Products and services offered
-3. Unique selling points and competitive advantages
-4. Target market and customer profiles
-5. Company history and milestones
-6. Team structure and key team members
-7. Business model and revenue streams
-8. Industry positioning and market differentiators
+    // Analyze with Perplexity's browsing API
+    const systemMessage = `
+      You are an expert business analyst extracting information from a company website.
+      Your task is to gather key business information that would be relevant for a Confidential Information Memorandum (CIM).
+      Focus on:
+      1. Company overview and history
+      2. Products/services offered with descriptions
+      3. Team information and company structure
+      4. Customer testimonials and case studies
+      5. Market positioning and unique selling points
+      6. Any information about distribution channels or sales strategies
+      7. Technology or proprietary assets mentioned
+      8. Company culture and values
+      9. Awards, certifications, or other credibility indicators
+      10. Locations, facilities, and operational footprint
+      
+      Organize this information into structured data without making assumptions.
+      If certain information is not available, mark those fields as "Not available on website".
+      Provide factual, verifiable information only - do not invent details.
+    `;
 
-Provide this information in a structured JSON format. Only include factual information that is explicitly present on the website.`
-      },
-      {
-        role: "user",
-        content: `Analyze this business website: ${websiteUrl}
-
-Focus on the homepage, about page, services/products pages, and any other key pages that provide insights into the business. Limit your analysis to 3-5 main pages.
-
-Respond with ONLY a JSON object with the following structure:
-
-{
-  "businessOverview": "Comprehensive description of what the business does, its value proposition, and core offerings",
-  "valueProposition": "The main value proposition and unique selling points",
-  "productsServices": ["Detailed list of products/services offered"],
-  "targetMarket": "Description of the target customer segments",
-  "companyHistory": "Overview of company history and key milestones",
-  "teamStructure": "Information about the team structure and key team members",
-  "businessModel": "Insights into the business model and revenue streams",
-  "marketDifferentiators": ["List of competitive advantages and market differentiators"],
-  "customerTestimonials": ["Notable customer testimonials or success stories"],
-  "contactInformation": "Business contact details, location, service area",
-  "technologiesUsed": ["Technologies, platforms, or methodologies used by the business"]
-}`
-      }
-    ];
-
-    // Make the request to Perplexity API
     const response = await fetch(PERPLEXITY_API_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-        "Content-Type": "application/json"
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`
       },
       body: JSON.stringify({
         model: "llama-3.1-sonar-small-128k-online",
-        messages,
+        messages: [
+          {
+            role: "system",
+            content: systemMessage
+          },
+          {
+            role: "user",
+            content: `Analyze this business website: ${websiteUrl}. Extract all relevant information for a CIM (Confidential Information Memorandum) and structure it in JSON format.`
+          }
+        ],
         temperature: 0.2,
-        search_domain_filter: [websiteUrl],
-        search_recency_filter: "month",
-        return_images: false
+        top_p: 0.9,
+        max_tokens: 4000,
+        search_domain_filter: [],
+        return_images: false,
+        return_related_questions: false,
+        stream: false,
+        frequency_penalty: 0,
+        response_format: { type: "json_object" }
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Perplexity API error:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
-      throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
+      throw new Error(`Website analysis failed with status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const result = await response.json() as {
+      choices?: Array<{
+        message?: {
+          content: string;
+        };
+      }>;
+      citations?: string[];
+    };
     
-    try {
-      // Extract the content and parse it as JSON
-      const contentStr = data.choices[0].message.content;
-      const matches = contentStr.match(/\{[\s\S]*\}/);
-      if (!matches) {
-        throw new Error("No JSON object found in response");
-      }
-
-      const websiteAnalysis = JSON.parse(matches[0]);
-      
-      // Validate the response has the required fields
-      if (!websiteAnalysis.businessOverview || !websiteAnalysis.valueProposition) {
-        throw new Error("Invalid response format from Perplexity API");
-      }
-
-      console.log("Successfully analyzed website");
-      return websiteAnalysis;
-    } catch (error) {
-      console.error("Failed to parse Perplexity website analysis response:", data.choices[0].message.content);
-      throw new Error("Failed to parse website analysis response");
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+      throw new Error('Invalid response format from Perplexity API');
     }
+    
+    if (result.citations) {
+      console.log('Website analysis citations:', result.citations);
+    }
+    
+    // Parse the content from the API response
+    let websiteData;
+    try {
+      const content = result.choices[0].message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+      websiteData = JSON.parse(content);
+    } catch (error) {
+      console.error('Error parsing website analysis JSON:', error);
+      throw new Error('Failed to parse website analysis results');
+    }
+    
+    return websiteData;
   } catch (error) {
-    console.error("Website analysis error:", error);
-    throw new Error(`Failed to analyze website: ${error instanceof Error ? error.message : String(error)}`);
+    console.error('Website analysis error:', error);
+    throw error;
   }
 }
 
@@ -166,92 +149,215 @@ Respond with ONLY a JSON object with the following structure:
  * @returns Enhanced CIM analysis
  */
 export function enhanceCimWithWebsiteData(transcriptAnalysis: any, websiteAnalysis: any): any {
-  // Create a deep copy of transcript analysis to avoid modifying the original
+  // Create a deep copy of the transcript analysis to avoid mutations
   const enhancedAnalysis = JSON.parse(JSON.stringify(transcriptAnalysis));
   
-  // Business Summary Enhancement
-  if (enhancedAnalysis.story && websiteAnalysis.businessOverview) {
-    // If business summary is empty or minimal, use website data
-    if (!enhancedAnalysis.story.businessSummary || 
-        enhancedAnalysis.story.businessSummary.length < 50) {
-      enhancedAnalysis.story.businessSummary = websiteAnalysis.businessOverview;
-    } 
-    // Otherwise, enhance it with additional details if available
-    else {
-      // Look for gaps in the transcript analysis that website data could fill
-      if (!enhancedAnalysis.story.businessSummary.includes(websiteAnalysis.valueProposition)) {
-        enhancedAnalysis.story.businessSummary += `\n\nAdditional information from website: ${websiteAnalysis.valueProposition}`;
+  // Ensure all required objects exist
+  if (!enhancedAnalysis.story) enhancedAnalysis.story = {};
+  if (!enhancedAnalysis.marketAnalysis) enhancedAnalysis.marketAnalysis = {};
+  if (!enhancedAnalysis.executiveSummary) enhancedAnalysis.executiveSummary = {};
+  if (!enhancedAnalysis.assets) enhancedAnalysis.assets = {};
+  if (!enhancedAnalysis.marketing) enhancedAnalysis.marketing = {};
+  if (!enhancedAnalysis.team) enhancedAnalysis.team = {};
+  
+  // Helper function to merge data, prioritizing transcript data
+  const mergeData = (target: any, source: any, field: string, isArray = false) => {
+    if (!source || !source[field]) return;
+    
+    if (!target[field] || target[field] === "N/A" || target[field] === "Not provided") {
+      if (isArray) {
+        target[field] = Array.isArray(source[field]) ? source[field] : [source[field]];
+      } else {
+        target[field] = source[field];
+      }
+    } else if (isArray && Array.isArray(target[field]) && Array.isArray(source[field])) {
+      // For arrays, add unique items from source that don't exist in target
+      const existingItems = new Set(target[field].map((item: any) => 
+        typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
+      ));
+      
+      source[field].forEach((item: any) => {
+        const normalizedItem = typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item);
+        if (!existingItems.has(normalizedItem)) {
+          target[field].push(item);
+        }
+      });
+    }
+  };
+  
+  // Business Story & Background
+  if (websiteAnalysis.companyOverview) {
+    if (!enhancedAnalysis.story.businessSummary || enhancedAnalysis.story.businessSummary === "N/A") {
+      enhancedAnalysis.story.businessSummary = websiteAnalysis.companyOverview.summary || websiteAnalysis.companyOverview.description;
+    }
+    
+    if (!enhancedAnalysis.story.yearStarted || enhancedAnalysis.story.yearStarted === "N/A") {
+      enhancedAnalysis.story.yearStarted = websiteAnalysis.companyOverview.foundedYear || websiteAnalysis.companyOverview.yearEstablished;
+    }
+    
+    if (websiteAnalysis.companyOverview.history && (!enhancedAnalysis.story.growthHistory || enhancedAnalysis.story.growthHistory === "N/A")) {
+      enhancedAnalysis.story.growthHistory = websiteAnalysis.companyOverview.history;
+    }
+  }
+  
+  // Market Analysis & Positioning
+  if (websiteAnalysis.marketPosition) {
+    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'customerProfile');
+    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'uniqueFeatures', true);
+    mergeData(enhancedAnalysis.marketAnalysis, websiteAnalysis.marketPosition, 'strengths', true);
+    
+    // Add any unique selling points to key attractions
+    if (websiteAnalysis.marketPosition.uniqueSellingPoints && Array.isArray(websiteAnalysis.marketPosition.uniqueSellingPoints)) {
+      if (!enhancedAnalysis.story.keyAttractions) {
+        enhancedAnalysis.story.keyAttractions = [];
+      }
+      
+      const existingAttractions = new Set(enhancedAnalysis.story.keyAttractions.map((item: string) => item.toLowerCase()));
+      
+      websiteAnalysis.marketPosition.uniqueSellingPoints.forEach((point: string) => {
+        if (!existingAttractions.has(point.toLowerCase())) {
+          enhancedAnalysis.story.keyAttractions.push(point);
+        }
+      });
+    }
+  }
+  
+  // Products & Services
+  if (websiteAnalysis.productsServices) {
+    // Add product information to business summary if needed
+    if ((!enhancedAnalysis.story.businessModel || enhancedAnalysis.story.businessModel === "N/A") && 
+        websiteAnalysis.productsServices.description) {
+      enhancedAnalysis.story.businessModel = websiteAnalysis.productsServices.description;
+    }
+    
+    // Add products to inventory if available
+    if (websiteAnalysis.productsServices.items && Array.isArray(websiteAnalysis.productsServices.items)) {
+      if (!enhancedAnalysis.inventory) enhancedAnalysis.inventory = {};
+      if (!enhancedAnalysis.inventory.topProducts || 
+          !Array.isArray(enhancedAnalysis.inventory.topProducts) || 
+          enhancedAnalysis.inventory.topProducts.length === 0) {
+        enhancedAnalysis.inventory.topProducts = websiteAnalysis.productsServices.items
+          .map((item: any) => item.name || item)
+          .filter(Boolean)
+          .slice(0, 5); // Limit to top 5
       }
     }
   }
   
-  // Products/Services Enhancement
-  if (enhancedAnalysis.story && websiteAnalysis.productsServices) {
-    if (!enhancedAnalysis.story.businessModel || 
-        enhancedAnalysis.story.businessModel.length < 50) {
-      enhancedAnalysis.story.businessModel = `The business offers the following products/services: ${websiteAnalysis.productsServices.join(", ")}`;
+  // Team & Leadership
+  if (websiteAnalysis.team) {
+    // Enhance team summary if needed
+    if ((!enhancedAnalysis.team.employeeSummary || enhancedAnalysis.team.employeeSummary === "N/A") &&
+        websiteAnalysis.team.summary) {
+      enhancedAnalysis.team.employeeSummary = websiteAnalysis.team.summary;
     }
-  }
-  
-  // Market Analysis Enhancement
-  if (enhancedAnalysis.marketAnalysis && websiteAnalysis.targetMarket) {
-    if (!enhancedAnalysis.marketAnalysis.customerProfile || 
-        enhancedAnalysis.marketAnalysis.customerProfile.length < 50) {
-      enhancedAnalysis.marketAnalysis.customerProfile = websiteAnalysis.targetMarket;
-    }
-  }
-  
-  // Business Strengths Enhancement
-  if (enhancedAnalysis.marketAnalysis && websiteAnalysis.marketDifferentiators) {
-    if (!enhancedAnalysis.marketAnalysis.strengths || 
-        enhancedAnalysis.marketAnalysis.strengths.length === 0) {
-      enhancedAnalysis.marketAnalysis.strengths = websiteAnalysis.marketDifferentiators;
-    } 
-    else {
-      // Add unique differentiators not already included
-      websiteAnalysis.marketDifferentiators.forEach((differentiator: string) => {
-        if (!enhancedAnalysis.marketAnalysis.strengths.some((s: string) => 
-            s.toLowerCase().includes(differentiator.toLowerCase()))) {
-          enhancedAnalysis.marketAnalysis.strengths.push(differentiator);
+    
+    // Add key employees if available
+    if (websiteAnalysis.team.leadership && Array.isArray(websiteAnalysis.team.leadership)) {
+      if (!enhancedAnalysis.team.keyEmployees || !Array.isArray(enhancedAnalysis.team.keyEmployees)) {
+        enhancedAnalysis.team.keyEmployees = [];
+      }
+      
+      const existingEmployees = new Set(enhancedAnalysis.team.keyEmployees.map((item: string) => 
+        typeof item === 'string' ? item.toLowerCase() : JSON.stringify(item)
+      ));
+      
+      websiteAnalysis.team.leadership.forEach((member: any) => {
+        const leaderText = typeof member === 'string' ? member : `${member.name || ''} - ${member.role || ''}`.trim();
+        if (leaderText && !existingEmployees.has(leaderText.toLowerCase())) {
+          enhancedAnalysis.team.keyEmployees.push(leaderText);
         }
       });
     }
   }
   
-  // Team Structure Enhancement
-  if (enhancedAnalysis.team && websiteAnalysis.teamStructure) {
-    if (!enhancedAnalysis.team.employeeSummary || 
-        enhancedAnalysis.team.employeeSummary.length < 50) {
-      enhancedAnalysis.team.employeeSummary = websiteAnalysis.teamStructure;
-    }
-  }
-  
-  // Company History Enhancement
-  if (enhancedAnalysis.story && websiteAnalysis.companyHistory) {
-    if (!enhancedAnalysis.story.growthHistory || 
-        enhancedAnalysis.story.growthHistory.length < 50) {
-      enhancedAnalysis.story.growthHistory = websiteAnalysis.companyHistory;
-    }
-  }
-  
-  // Technologies Used (Add to assets or unique features)
-  if (websiteAnalysis.technologiesUsed && websiteAnalysis.technologiesUsed.length > 0) {
-    if (enhancedAnalysis.marketAnalysis && enhancedAnalysis.marketAnalysis.uniqueFeatures) {
-      websiteAnalysis.technologiesUsed.forEach((tech: string) => {
-        if (!enhancedAnalysis.marketAnalysis.uniqueFeatures.some((f: string) => 
-            f.toLowerCase().includes(tech.toLowerCase()))) {
-          enhancedAnalysis.marketAnalysis.uniqueFeatures.push(`Uses advanced technology: ${tech}`);
+  // Assets & Facilities
+  if (websiteAnalysis.assets || websiteAnalysis.locations) {
+    const assetSource = websiteAnalysis.assets || {};
+    const locationSource = websiteAnalysis.locations || {};
+    
+    // Enhance digital assets
+    if (assetSource.digital && Array.isArray(assetSource.digital)) {
+      if (!enhancedAnalysis.assets.digitalAssets) {
+        enhancedAnalysis.assets.digitalAssets = [];
+      }
+      
+      const existingAssets = new Set(enhancedAnalysis.assets.digitalAssets.map((item: string) => item.toLowerCase()));
+      
+      assetSource.digital.forEach((asset: string) => {
+        if (!existingAssets.has(asset.toLowerCase())) {
+          enhancedAnalysis.assets.digitalAssets.push(asset);
         }
       });
     }
     
-    if (enhancedAnalysis.assets && enhancedAnalysis.assets.digitalAssets) {
-      websiteAnalysis.technologiesUsed.forEach((tech: string) => {
-        if (!enhancedAnalysis.assets.digitalAssets.some((a: string) => 
-            a.toLowerCase().includes(tech.toLowerCase()))) {
-          enhancedAnalysis.assets.digitalAssets.push(tech);
+    // Add location information
+    if (locationSource.description && (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A")) {
+      enhancedAnalysis.assets.location = locationSource.description;
+    } else if (locationSource.addresses && Array.isArray(locationSource.addresses) && locationSource.addresses.length > 0) {
+      if (!enhancedAnalysis.assets.location || enhancedAnalysis.assets.location === "N/A") {
+        enhancedAnalysis.assets.location = locationSource.addresses.join("; ");
+      }
+    }
+    
+    // Add facility information
+    if (locationSource.facilities && (!enhancedAnalysis.facility || !enhancedAnalysis.facility.size)) {
+      if (!enhancedAnalysis.facility) enhancedAnalysis.facility = {};
+      if (!enhancedAnalysis.facility.size || enhancedAnalysis.facility.size === "N/A") {
+        enhancedAnalysis.facility.size = locationSource.facilities;
+      }
+    }
+  }
+  
+  // Marketing & Sales
+  if (websiteAnalysis.marketing) {
+    if (!enhancedAnalysis.marketing.strategies) enhancedAnalysis.marketing.strategies = [];
+    if (websiteAnalysis.marketing.strategies && Array.isArray(websiteAnalysis.marketing.strategies)) {
+      const existingStrategies = new Set(enhancedAnalysis.marketing.strategies.map((item: string) => item.toLowerCase()));
+      
+      websiteAnalysis.marketing.strategies.forEach((strategy: string) => {
+        if (!existingStrategies.has(strategy.toLowerCase())) {
+          enhancedAnalysis.marketing.strategies.push(strategy);
         }
       });
+    }
+    
+    // Add channels to sales data
+    if (websiteAnalysis.marketing.channels && Array.isArray(websiteAnalysis.marketing.channels)) {
+      if (!enhancedAnalysis.sales) enhancedAnalysis.sales = {};
+      if (!enhancedAnalysis.sales.channels) enhancedAnalysis.sales.channels = {};
+      
+      websiteAnalysis.marketing.channels.forEach((channel: string) => {
+        if (!enhancedAnalysis.sales.channels[channel]) {
+          enhancedAnalysis.sales.channels[channel] = "Website mentioned";
+        }
+      });
+    }
+  }
+  
+  // Growth Opportunities
+  if (websiteAnalysis.growthOpportunities && Array.isArray(websiteAnalysis.growthOpportunities)) {
+    if (!enhancedAnalysis.executiveSummary.growthOpportunities) {
+      enhancedAnalysis.executiveSummary.growthOpportunities = [];
+    }
+    
+    const existingOpportunities = new Set(enhancedAnalysis.executiveSummary.growthOpportunities.map((item: string) => item.toLowerCase()));
+    
+    websiteAnalysis.growthOpportunities.forEach((opportunity: string) => {
+      if (!existingOpportunities.has(opportunity.toLowerCase())) {
+        enhancedAnalysis.executiveSummary.growthOpportunities.push(opportunity);
+      }
+    });
+  }
+  
+  // Enhance buyer attractions with testimonials if available
+  if (websiteAnalysis.testimonials && Array.isArray(websiteAnalysis.testimonials) && websiteAnalysis.testimonials.length > 0) {
+    if (!enhancedAnalysis.executiveSummary.buyerAttractions) {
+      enhancedAnalysis.executiveSummary.buyerAttractions = [];
+    }
+    
+    if (enhancedAnalysis.executiveSummary.buyerAttractions.length === 0) {
+      enhancedAnalysis.executiveSummary.buyerAttractions.push("Strong customer testimonials on website");
     }
   }
   
