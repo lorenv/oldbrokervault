@@ -313,7 +313,7 @@ export function generateHtml(analysis: any): string {
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the typical contract terms?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.customers?.contracts || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.customers?.contracts)}</td>
         </tr>
       </table>
       
@@ -321,19 +321,19 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How many suppliers does the business work with?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.count || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.suppliers?.count)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the supplier payment terms?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.terms || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.suppliers?.terms)}</td>
         </tr>
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Is there concentration among certain suppliers?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.concentration || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.suppliers?.concentration)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How easily can supplier relationships be transferred?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.operations?.suppliers?.transferability || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.suppliers?.transferability)}</td>
         </tr>
       </table>
     </div>
@@ -351,11 +351,11 @@ export function generateHtml(analysis: any): string {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the approximate value of equipment?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.assets?.equipmentValue || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.assets?.equipmentValue)}</td>
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Where is the business located?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.assets?.location || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.assets?.location)}</td>
           </tr>
         </table>
       `;
@@ -396,23 +396,23 @@ export function generateHtml(analysis: any): string {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the typical lead time for inventory?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.leadTime || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.leadTime)}</td>
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">Where is inventory sourced from?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.sourcing || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.sourcing)}</td>
           </tr>
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How and where is inventory stored?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.storage || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.storage)}</td>
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the approximate value of inventory?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.value || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.value)}</td>
           </tr>
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many SKUs does the business maintain?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.inventory.skuCount || 'Information not provided'}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.skuCount)}</td>
           </tr>
         </table>
       `;
@@ -441,11 +441,11 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What are the owner's current responsibilities?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.ownerResponsibilities || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.ownerResponsibilities)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many hours per week does the owner work?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.ownerHours || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.ownerHours)}</td>
         </tr>
       </table>
       
@@ -453,20 +453,20 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">How many employees does the business have?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.employeeCount || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.employeeCount)}</td>
         </tr>
         ${analysis.team?.contractorCount ? `
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many contractors does the business use?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team.contractorCount}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team.contractorCount)}</td>
         </tr>` : ''}
         <tr style="background-color: ${analysis.team?.contractorCount ? '#f9fafb' : '#ffffff'};">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the management structure?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.management || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.management)}</td>
         </tr>
         <tr style="background-color: ${analysis.team?.contractorCount ? '#ffffff' : '#f9fafb'};">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the employee turnover rate?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.team?.turnover || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.turnover)}</td>
         </tr>
       </table>
 `;
@@ -538,20 +538,20 @@ export function generateHtml(analysis: any): string {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the ownership status of the facility?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.ownership || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.facility?.ownership)}</td>
         </tr>
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the size of the facility?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.size || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.facility?.size)}</td>
         </tr>
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the monthly cost of the facility?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility?.cost || 'Information not provided'}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.facility?.cost)}</td>
         </tr>
         ${analysis.facility?.leaseDetails ? `
         <tr style="background-color: #ffffff;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What are the lease details?</td>
-          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${analysis.facility.leaseDetails}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.facility.leaseDetails)}</td>
         </tr>` : ''}
       </table>
     </div>
