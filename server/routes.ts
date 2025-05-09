@@ -168,7 +168,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transcript
       });
 
-      const analysis = await analyzeCimTranscript(transcript);
+      let analysis = await analyzeCimTranscript(transcript);
+      
+      // If website URL is provided, enhance the analysis with website data
+      if (data.websiteUrl) {
+        try {
+          // Normalize and validate the URL
+          const normalizedUrl = normalizeUrl(data.websiteUrl);
+          
+          // Analyze the website
+          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+          
+          // Enhance the CIM with website data
+          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+        } catch (error) {
+          console.error("Website analysis error:", error);
+          // Continue with just the transcript analysis, but log the error
+        }
+      }
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         analysis,

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, subscriptionPlans } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
+import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,10 +37,34 @@ export function CimGenerator() {
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
 
+  // Extend the schema with URL validation
+  const formSchema = insertCimDocumentSchema.extend({
+    websiteUrl: z
+      .string()
+      .trim()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val) return true; // Optional field
+          try {
+            // Basic URL validation
+            // Allow URLs without protocol for user convenience
+            const url = val.startsWith('http') ? val : `https://${val}`;
+            new URL(url);
+            return true;
+          } catch (error) {
+            return false;
+          }
+        },
+        { message: "Please enter a valid URL" }
+      )
+  });
+
   const form = useForm({
-    resolver: zodResolver(insertCimDocumentSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      directions: DEFAULT_CIM_DIRECTIONS
+      directions: DEFAULT_CIM_DIRECTIONS,
+      websiteUrl: ""
     }
   });
 
@@ -165,6 +190,22 @@ ${analysis.team.ownerResponsibilities}
                 placeholder="Document Title"
                 {...form.register("title")}
               />
+            </div>
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  placeholder="Business Website URL (optional, e.g., designtoprint.com)"
+                  {...form.register("websiteUrl")}
+                />
+                {form.formState.errors.websiteUrl && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.websiteUrl.message as string}
+                  </p>
+                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  Add a business website URL to enhance the CIM with website content
+                </div>
+              </div>
             </div>
             <div>
               <Textarea
