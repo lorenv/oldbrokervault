@@ -288,9 +288,28 @@ ${analysis.team.ownerResponsibilities}
           return "[NOT ANSWERED]";
         }
         
+        // Format object entries into a more readable structure
+        // Remove camelCase artifacts and add proper spacing
         return entries
-          .map(([key, val]) => `${key}: ${renderValue(val)}`)
-          .join(", ");
+          .map(([key, val]) => {
+            // Skip keys that just represent types or metadata
+            if (key === 'type' || key === 'value' || key === 'metric') {
+              return renderValue(val);
+            }
+            
+            // Format the key for better readability
+            const formattedKey = key
+              // Add spaces between camelCase words
+              .replace(/([A-Z])/g, ' $1')
+              // Capitalize first letter
+              .replace(/^./, str => str.toUpperCase())
+              // Clean up any excess spaces
+              .trim();
+              
+            return `${formattedKey}: ${renderValue(val)}`;
+          })
+          .filter(item => item.trim() !== '')
+          .join(". ");
       } catch (error) {
         // Fallback if something goes wrong
         return "[NOT ANSWERED]";
@@ -300,6 +319,12 @@ ${analysis.team.ownerResponsibilities}
     // Handle empty strings
     if (typeof value === "string" && value.trim() === "") {
       return "[NOT ANSWERED]";
+    }
+    
+    // Handle long strings that might contain JSON or object notation
+    if (typeof value === "string" && value.includes(':') && !value.includes(' ')) {
+      // Add spaces after colons if they don't have spaces
+      return value.replace(/:/g, ': ');
     }
     
     // Default case: convert to string
