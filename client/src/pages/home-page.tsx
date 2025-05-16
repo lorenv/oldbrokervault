@@ -31,7 +31,10 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {documents?.slice(0, 3).map((doc) => (
+                  {documents?.slice()
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .slice(0, 3)
+                    .map((doc) => (
                     <a 
                       href={`/documents/${doc.id}`} 
                       key={doc.id} 
