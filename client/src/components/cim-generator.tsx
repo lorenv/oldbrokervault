@@ -550,9 +550,15 @@ ${analysis.team.ownerResponsibilities}
                     <h3 className="text-lg font-semibold mb-3">Customer Relationships</h3>
                     <div className="bg-muted rounded-lg p-4">
                       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Only show recurring revenue if it exists and isn't "not mentioned" */}
+                        {/* Only show recurring revenue if it's explicitly mentioned and has meaningful content */}
                         {analysis.operations.customers.recurring && 
-                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not mentioned') && (
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not mentioned') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('unknown') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('n/a') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not applicable') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not provided') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not specified') &&
+                         !String(analysis.operations.customers.recurring).toLowerCase().includes('not answered') && (
                           <div>
                             <dt className="font-medium">Recurring Revenue</dt>
                             <dd className="text-muted-foreground">{renderValue(analysis.operations.customers.recurring)}</dd>
