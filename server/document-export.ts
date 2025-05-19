@@ -1284,6 +1284,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       // Add business name/title - use document title if provided, otherwise extract from analysis
       let businessTitle = docTitle || safeStringify(analysis.story?.businessSummary) || 'Business Information Memorandum';
+      console.log("Using title for PDF:", businessTitle);
       // If too long, get first sentence
       if (businessTitle.length > 100) {
         const firstSentence = businessTitle.split(/\.(\s|$)/)[0];
@@ -1728,8 +1729,8 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       console.log("Finalizing PDF document generation...");
-      // End the document without adding additional blank pages
-      doc.flushPages();
+      // Fix for blank pages: Ensure all content is properly rendered before ending the document
+      // End the document without adding any blank pages at the end
       doc.end();
       
     } catch (error: any) {
@@ -1912,8 +1913,12 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   };
 
   try {
+    // Create the file with better formatting for Google Docs
     const file = await drive.files.create({
-      requestBody: fileMetadata,
+      requestBody: {
+        name: title || 'Confidential Information Memorandum',
+        mimeType: 'application/vnd.google-apps.document'
+      },
       media: {
         mimeType: 'text/plain',
         body: Readable.from([formattedContent])

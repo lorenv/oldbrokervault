@@ -512,7 +512,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.pdf`);
+      // Use the document title in the filename for better user experience
+      const safeTitle = doc.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${safeTitle}.pdf`);
       
       console.log("Sending PDF document to client");
       res.send(buffer);
