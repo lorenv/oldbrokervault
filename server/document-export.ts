@@ -1234,7 +1234,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         bufferPages: true,
         autoFirstPage: true,
         info: {
-          Title: 'Confidential Information Memorandum',
+          Title: docTitle || 'Confidential Information Memorandum',
           Author: 'CIM Generator'
         }
       });
@@ -1282,8 +1282,8 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       doc.moveDown(2);
       
-      // Add business name/title - use full title, not just first 50 chars
-      let businessTitle = safeStringify(analysis.story?.businessSummary) || 'Business Information Memorandum';
+      // Add business name/title - use document title if provided, otherwise extract from analysis
+      let businessTitle = docTitle || safeStringify(analysis.story?.businessSummary) || 'Business Information Memorandum';
       // If too long, get first sentence
       if (businessTitle.length > 100) {
         const firstSentence = businessTitle.split(/\.(\s|$)/)[0];
@@ -1728,6 +1728,8 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       console.log("Finalizing PDF document generation...");
+      // End the document without adding additional blank pages
+      doc.flushPages();
       doc.end();
       
     } catch (error: any) {
