@@ -453,6 +453,33 @@ ${analysis.team.ownerResponsibilities}
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                 <div className="space-y-4">
+                  {/* Website URL and Screenshot Display */}
+                  {websiteUrl && (
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold mb-2">Business Website</h3>
+                      <a 
+                        href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {websiteUrl}
+                      </a>
+                      
+                      {/* Display website screenshot if available */}
+                      {websiteScreenshotUrl && (
+                        <div className="mt-3 mb-3">
+                          <img 
+                            src={websiteScreenshotUrl} 
+                            alt="Website Screenshot" 
+                            className="border rounded-md shadow-sm max-w-full"
+                            style={{ maxHeight: "300px", objectFit: "contain" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Background</h3>
                     <div className="grid grid-cols-2 gap-4">
