@@ -143,7 +143,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     // Launch puppeteer browser
     console.log('Launching headless browser...');
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -172,7 +172,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       });
       
       // Wait a moment for any animations or lazyloaded content
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Take screenshot
       console.log(`Taking screenshot and saving to: ${screenshotPath}`);

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
-import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite } from "./website-analyzer";
+import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite, captureWebsiteScreenshot } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -100,11 +100,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Normalize and validate the URL
             const normalizedUrl = normalizeUrl(data.websiteUrl);
             
+            // First, capture a screenshot of the website
+            let websiteScreenshotUrl = null;
+            try {
+              console.log("Capturing website screenshot...");
+              websiteScreenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
+              console.log("Website screenshot captured:", websiteScreenshotUrl);
+            } catch (screenshotError) {
+              console.error("Website screenshot error:", screenshotError);
+              // Continue even if screenshot fails
+            }
+            
             // Analyze the website
             const websiteAnalysis = await analyzeWebsite(normalizedUrl);
             
             // Enhance the CIM with website data
             analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+            
+            // Add website screenshot URL to be saved with the document
+            existingDoc.websiteScreenshotUrl = websiteScreenshotUrl;
           } catch (error) {
             console.error("Website analysis error:", error);
             // Continue with just the transcript analysis, but log the error
