@@ -1748,8 +1748,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       console.log("Finalizing PDF document generation...");
-      // Fix for blank pages: Ensure all content is properly rendered before ending the document
-      // End the document without adding any blank pages at the end
+      
+      // Create a buffer to capture the PDF data
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => {
+        chunks.push(Buffer.from(chunk));
+      });
+      
+      doc.on('end', () => {
+        console.log(`PDF generated successfully with ${range.count} pages`);
+        resolve(Buffer.concat(chunks));
+      });
+      
+      // End the document without adding any blank pages
       doc.end();
       
     } catch (error: any) {
@@ -1810,7 +1821,13 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   // Business Overview Section
   formattedContent += `BUSINESS OVERVIEW\n==================\n`;
   formattedContent += `Founded: ${safeStringify(analysis.story?.yearStarted)}\n`;
-  formattedContent += `Structure: ${safeStringify(analysis.story?.businessStructure)}\n\n`;
+  formattedContent += `Structure: ${safeStringify(analysis.story?.businessStructure)}\n`;
+  
+  // Add website URL if available
+  if (analysis.websiteUrl) {
+    formattedContent += `Website: ${analysis.websiteUrl}\n`;
+  }
+  formattedContent += `\n`;
   
   // Business Summary
   formattedContent += `${safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel)}\n\n`;
