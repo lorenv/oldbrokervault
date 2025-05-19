@@ -63,6 +63,8 @@ export async function createGoogleDoc(userId: number, title: string, content: an
   try {
     // Format the content as a structured document for a CIM
     let formattedContent = `CONFIDENTIAL INFORMATION MEMORANDUM\n\n`;
+    // Add document title at the top
+    formattedContent += `${title}\n\n`;
     
     // Business Overview Section
     formattedContent += `BUSINESS OVERVIEW\n==================\n`;
