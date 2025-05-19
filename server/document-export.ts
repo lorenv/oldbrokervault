@@ -1216,7 +1216,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise((resolve, reject) => {
