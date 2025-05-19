@@ -5,6 +5,10 @@
  */
 import { PERPLEXITY_API_URL } from './perplexity';
 import fetch from 'node-fetch';
+import puppeteer from 'puppeteer';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
 
 // Define the Perplexity API response type
 interface PerplexityResponse {
@@ -106,6 +110,88 @@ export function normalizeUrl(urlString: string): string {
     
     // Generic fallback error
     throw new Error('Invalid website URL format. Please check the URL and try again.');
+  }
+}
+
+/**
+ * Captures a screenshot of the website
+ * @param websiteUrl The URL of the website to capture
+ * @returns Promise resolving to the local path of the saved screenshot, or null if failed
+ */
+export async function captureWebsiteScreenshot(websiteUrl: string): Promise<string | null> {
+  console.log(`Starting website screenshot capture for: ${websiteUrl}`);
+  
+  try {
+    // Normalize and validate URL
+    const normalizedUrl = normalizeUrl(websiteUrl);
+    console.log(`Taking screenshot of normalized URL: ${normalizedUrl}`);
+    
+    // Generate a unique filename based on the URL
+    const urlHash = crypto.createHash('md5').update(normalizedUrl).digest('hex');
+    const screenshotFilename = `website-screenshot-${urlHash}.png`;
+    
+    // Create screenshots directory if it doesn't exist
+    const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      console.log(`Creating screenshots directory: ${screenshotsDir}`);
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+    
+    const screenshotPath = path.join(screenshotsDir, screenshotFilename);
+    const publicPath = `/screenshots/${screenshotFilename}`;
+    
+    // Launch puppeteer browser
+    console.log('Launching headless browser...');
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ]
+    });
+    
+    try {
+      // Open a new page
+      const page = await browser.newPage();
+      
+      // Set viewport size
+      await page.setViewport({
+        width: 1280,
+        height: 800,
+        deviceScaleFactor: 1
+      });
+      
+      // Navigate to URL with timeout
+      console.log(`Navigating to: ${normalizedUrl}`);
+      await page.goto(normalizedUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 30000
+      });
+      
+      // Wait a moment for any animations or lazyloaded content
+      await page.waitForTimeout(2000);
+      
+      // Take screenshot
+      console.log(`Taking screenshot and saving to: ${screenshotPath}`);
+      await page.screenshot({
+        path: screenshotPath,
+        fullPage: false,
+        type: 'png'
+      });
+      
+      console.log('Screenshot captured successfully');
+      return publicPath;
+    } finally {
+      // Always close the browser
+      await browser.close();
+      console.log('Browser closed');
+    }
+  } catch (error) {
+    console.error('Failed to capture website screenshot:', error);
+    return null;
   }
 }
 
