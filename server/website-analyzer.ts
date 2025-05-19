@@ -39,8 +39,8 @@ export function normalizeUrl(urlString: string): string {
     throw new Error('URL is required for website analysis');
   }
 
-  // Remove leading/trailing whitespace
-  urlString = urlString.trim();
+  // Remove leading/trailing whitespace and convert to lowercase
+  urlString = urlString.trim().toLowerCase();
   
   // Remove any markdown-style formatting that might have been copied
   urlString = urlString.replace(/[[\]()]/g, '');
@@ -49,11 +49,21 @@ export function normalizeUrl(urlString: string): string {
   if (urlString.includes(' ')) {
     throw new Error('Website URL cannot contain spaces');
   }
+
+  // Remove multiple forward slashes except after protocol
+  urlString = urlString.replace(/([^:])\/+/g, '$1/');
   
-  // Add protocol if missing (default to https)
-  if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
-    urlString = 'https://' + urlString;
-  }
+  // Remove any 'mailto:' or other protocols that might be prefixed
+  urlString = urlString.replace(/^(mailto:|tel:|ftp:)*/i, '');
+
+  // Strip existing protocol to normalize
+  urlString = urlString.replace(/^(https?:\/\/)/i, '');
+  
+  // Remove www. if present since we'll normalize with it
+  urlString = urlString.replace(/^www\./i, '');
+  
+  // Construct final URL with https and www
+  urlString = `https://www.${urlString}`;
 
   try {
     const url = new URL(urlString);
