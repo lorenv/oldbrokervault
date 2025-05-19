@@ -376,6 +376,12 @@ export function enhanceCimWithWebsiteData(transcriptAnalysis: any, websiteAnalys
   if (!websiteAnalysis) {
     // If website analysis failed but we have transcript analysis, just return transcript analysis
     console.warn('Website analysis data missing, returning transcript analysis only');
+    
+    // Add a note to the analysis about the website issue
+    if (transcriptAnalysis && transcriptAnalysis.story) {
+      transcriptAnalysis.story.websiteAnalysisNote = "Website analysis could not be completed. The CIM is based on transcript data only.";
+    }
+    
     return transcriptAnalysis;
   }
   
