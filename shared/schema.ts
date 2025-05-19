@@ -54,6 +54,7 @@ export const cimDocuments = pgTable("cim_documents", {
   analysis: jsonb("analysis").notNull(),
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
+  websiteScreenshotUrl: text("website_screenshot_url"),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
