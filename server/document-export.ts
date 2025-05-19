@@ -1785,6 +1785,7 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
 
   // Format the content as a structured document for a CIM
   let formattedContent = `CONFIDENTIAL INFORMATION MEMORANDUM\n\n`;
+  formattedContent += `${title}\n\n`;
   
   // Business Overview Section
   formattedContent += `BUSINESS OVERVIEW\n==================\n`;
