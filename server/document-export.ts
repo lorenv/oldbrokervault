@@ -1403,6 +1403,13 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
         doc.text(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
         
+        // Add website URL if available
+        if (analysis.websiteUrl) {
+          doc.moveDown(0.5);
+          doc.font('Helvetica-Bold').text('Business Website:', { continued: false });
+          doc.font('Helvetica').text(analysis.websiteUrl, { underline: true });
+        }
+        
         doc.moveDown(1);
         if (analysis.story.businessSummary) {
           doc.text("Business Description:", {
