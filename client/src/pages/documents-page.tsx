@@ -286,21 +286,47 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
 
   const renderValue = (value: any): string => {
     if (value === null || value === undefined) return "N/A";
+    
+    // Handle arrays by joining elements with commas
     if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(", ") : "N/A";
+      if (value.length === 0) return "N/A";
+      
+      // If array contains objects, handle each object individually
+      return value.map(item => {
+        if (typeof item === 'object' && item !== null) {
+          return renderValue(item);
+        }
+        return String(item);
+      }).join(", ");
     }
-    if (typeof value === "object") {
+    
+    // Handle objects
+    if (typeof value === "object" && value !== null) {
       try {
+        // Special cases for known object structures
         if ('recurring' in value && value.recurring) return String(value.recurring);
         if ('terms' in value && value.terms) return String(value.terms);
         if ('count' in value && value.count) return String(value.count);
         if ('usage' in value && value.usage) return String(value.usage);
         
+        // For key team members or similar objects with name/title properties
+        if ('name' in value && typeof value.name === 'string') {
+          const parts = [];
+          if (value.name) parts.push(value.name);
+          if (value.title) parts.push(value.title);
+          if (value.tenure) parts.push(`${value.tenure}`);
+          if (value.responsibilities) parts.push(String(value.responsibilities));
+          if (value.contributions) parts.push(String(value.contributions));
+          return parts.join(", ");
+        }
+        
+        // General object handling - filter out null/undefined values
         const entries = Object.entries(value)
           .filter(([_, val]) => val !== null && val !== undefined);
         
         if (entries.length === 0) return "N/A";
         
+        // Format as "key: value, key2: value2"
         return entries
           .map(([key, val]) => `${key}: ${renderValue(val)}`)
           .join(", ");
@@ -309,6 +335,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         return "N/A";
       }
     }
+    
+    // Handle primitive values
     return String(value);
   };
 
