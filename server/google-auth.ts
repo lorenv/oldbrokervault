@@ -142,7 +142,7 @@ export async function createGoogleDoc(userId: number, title: string, content: an
 
     // Create new Google Doc
     const fileMetadata = {
-      name: `CIM - ${title}`,
+      name: title ? `CIM - ${title}` : 'Confidential Information Memorandum',
       mimeType: 'application/vnd.google-apps.document'
     };
 

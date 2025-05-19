@@ -464,7 +464,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-      res.setHeader("Content-Disposition", `attachment; filename=cim-${doc.id}.docx`);
+      // Use the document title in the filename for better user experience
+      const safeTitle = doc.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      res.setHeader("Content-Disposition", `attachment; filename=cim-${safeTitle}.docx`);
       
       console.log("Sending Word document to client");
       res.send(buffer);
