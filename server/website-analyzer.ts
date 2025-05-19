@@ -297,7 +297,15 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
     });
 
     if (!response.ok) {
-      throw new Error(`Website analysis failed with status: ${response.status}`);
+      // Try to get more detailed error information
+      try {
+        const errorData = await response.json();
+        console.error('Perplexity API error details:', errorData);
+        throw new Error(`Website analysis failed with status: ${response.status} - ${errorData.error || 'Unknown error'}`);
+      } catch (e) {
+        // If we can't parse the error JSON, use the status text
+        throw new Error(`Website analysis failed with status: ${response.status} - ${response.statusText}`);
+      }
     }
 
     const result = await response.json() as PerplexityResponse;
