@@ -527,6 +527,24 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 <section>
                   <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                   <div className="space-y-4">
+                    {selectedDoc.websiteUrl && (
+                      <div className="mb-4">
+                        <h3 className="text-lg font-semibold mb-2">Business Website</h3>
+                        <a 
+                          href={selectedDoc.websiteUrl.startsWith('http') ? selectedDoc.websiteUrl : `https://${selectedDoc.websiteUrl}`} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {selectedDoc.websiteUrl}
+                        </a>
+                        {selectedDoc.analysis.story.websiteAnalysisNote && (
+                          <p className="text-sm text-amber-600 mt-2 italic">
+                            {selectedDoc.analysis.story.websiteAnalysisNote}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Background</h3>
                       <div className="grid grid-cols-2 gap-4">
