@@ -20,6 +20,7 @@ function Router() {
       <Switch>
         <ProtectedRoute path="/" component={HomePage} />
         <ProtectedRoute path="/documents" component={DocumentsPage} />
+        <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
         <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />

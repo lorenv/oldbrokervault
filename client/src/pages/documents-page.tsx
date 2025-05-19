@@ -3,9 +3,9 @@ import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentExport } from "@/components/document-export";
@@ -142,6 +142,20 @@ export default function DocumentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get the document ID from URL if present
+  const [matched, params] = useRoute('/documents/:id');
+  
+  // Effect to set the selected document based on URL parameter
+  useEffect(() => {
+    if (matched && params?.id && documents) {
+      const docId = parseInt(params.id);
+      const doc = documents.find(d => d.id === docId);
+      if (doc) {
+        setSelectedDoc(doc);
+      }
+    }
+  }, [matched, params, documents]);
   
   // Filter documents based on search query and sort by creation date (newest first)
   const filteredDocuments = documents?.filter(doc => 
