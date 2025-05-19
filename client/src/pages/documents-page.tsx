@@ -538,6 +538,19 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         >
                           {selectedDoc.websiteUrl}
                         </a>
+                        
+                        {/* Display website screenshot if available */}
+                        {selectedDoc.websiteScreenshotUrl && (
+                          <div className="mt-3 mb-3">
+                            <img 
+                              src={selectedDoc.websiteScreenshotUrl} 
+                              alt="Website Screenshot" 
+                              className="border rounded-md shadow-sm max-w-full"
+                              style={{ maxHeight: "300px", objectFit: "contain" }}
+                            />
+                          </div>
+                        )}
+                        
                         {selectedDoc.analysis.story.websiteAnalysisNote && (
                           <p className="text-sm text-amber-600 mt-2 italic">
                             {selectedDoc.analysis.story.websiteAnalysisNote}
