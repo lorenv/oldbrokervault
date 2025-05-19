@@ -83,6 +83,12 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Business Overview</h2>
       
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        ${analysis.websiteUrl ? `
+        <tr style="background-color: #f9fafb;">
+          <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">Business Website</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;"><a href="${analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`}" target="_blank">${analysis.websiteUrl}</a></td>
+        </tr>
+        ` : ''}
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">When was the business founded?</td>
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.yearStarted)}</td>
@@ -577,6 +583,12 @@ export function formatTextContent(analysis: any): string {
     
     if (analysis.story.businessSummary) {
       sections.push(analysis.story.businessSummary);
+    }
+    
+    // Add website URL if available
+    if (analysis.websiteUrl) {
+      sections.push('## Business Website');
+      sections.push(`Website: ${analysis.websiteUrl}`);
     }
     
     sections.push('## Business History');
