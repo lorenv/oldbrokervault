@@ -842,8 +842,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 transformation: {
                   width: 500,
                   height: 281  // 16:9 aspect ratio
-                },
-                type: websiteScreenshotUrl.endsWith('.svg') ? "svg" : "png"
+                }
               })
             ],
             alignment: docx.AlignmentType.CENTER,
