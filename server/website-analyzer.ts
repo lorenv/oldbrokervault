@@ -157,10 +157,10 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       // Open a new page
       const page = await browser.newPage();
       
-      // Set viewport size
+      // Set viewport size - wider aspect ratio for a nice rectangular shape
       await page.setViewport({
         width: 1280,
-        height: 800,
+        height: 720, // 16:9 aspect ratio for a standard rectangular shape
         deviceScaleFactor: 1
       });
       
@@ -172,14 +172,20 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       });
       
       // Wait a moment for any animations or lazyloaded content
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Take screenshot
+      // Take screenshot - ensuring we get the top portion in a rectangular format
       console.log(`Taking screenshot and saving to: ${screenshotPath}`);
       await page.screenshot({
         path: screenshotPath,
-        fullPage: false,
-        type: 'png'
+        fullPage: false, // Only capture the viewport
+        type: 'png',
+        clip: {
+          x: 0,
+          y: 0,
+          width: 1280,
+          height: 720
+        }
       });
       
       console.log('Screenshot captured successfully');

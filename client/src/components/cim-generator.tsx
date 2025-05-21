@@ -467,7 +467,7 @@ ${analysis.team.ownerResponsibilities}
                     </div>
                   </div>
                   
-                  {/* Website URL Display - After Background section */}
+                  {/* Website URL and Screenshot Display - After Background section */}
                   {form.getValues('websiteUrl') && (
                     <div className="mb-4">
                       <h3 className="text-lg font-semibold mb-2">Business Website</h3>
@@ -475,12 +475,26 @@ ${analysis.team.ownerResponsibilities}
                         href={form.getValues('websiteUrl').startsWith('http') ? form.getValues('websiteUrl') : `https://${form.getValues('websiteUrl')}`} 
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline"
+                        className="text-primary hover:underline mb-2 inline-block"
                       >
                         {form.getValues('websiteUrl')}
                       </a>
                       
-                      {/* We'll implement screenshots in next phase */}
+                      {/* Display website screenshot if available */}
+                      {analysis.websiteScreenshotUrl && (
+                        <div className="mt-3 mb-3">
+                          <img 
+                            src={analysis.websiteScreenshotUrl} 
+                            alt="Website Screenshot" 
+                            className="border rounded-md shadow-sm w-full max-w-3xl mt-2"
+                            style={{ 
+                              aspectRatio: '16/9',
+                              objectFit: 'cover',
+                              objectPosition: 'top center'
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
