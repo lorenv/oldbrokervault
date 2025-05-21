@@ -124,7 +124,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
   try {
     // Normalize and validate URL
     const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log(`Taking screenshot of normalized URL: ${normalizedUrl}`);
+    console.log(`Processing URL: ${normalizedUrl}`);
     
     // Generate a unique filename based on the URL
     const urlHash = crypto.createHash('md5').update(normalizedUrl).digest('hex');
@@ -140,74 +140,40 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       console.log(`Screenshots directory already exists`);
     }
     
-    const screenshotPath = path.join(screenshotsDir, screenshotFilename);
-    const publicPath = `/screenshots/${screenshotFilename}`;
-    
-    console.log(`Screenshot will be saved at: ${screenshotPath}`);
-    console.log(`Public screenshot path will be: ${publicPath}`);
-    
-    // Launch puppeteer browser with system Chromium
-    console.log('Launching headless browser with system Chromium...');
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--timeout=30000'
-      ]
-    });
-    
-    try {
-      // Open a new page
-      const page = await browser.newPage();
+    // Use our placeholder SVG for now - convert to PNG if needed in the future
+    const placeholderSvgPath = path.join(screenshotsDir, 'website-placeholder.svg');
+    if (!fs.existsSync(placeholderSvgPath)) {
+      // Create a basic placeholder SVG if it doesn't exist
+      const svgContent = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" fill="#F5F7FA"/>
+  <rect x="24" y="24" width="1232" height="60" rx="4" fill="#E2E8F0"/>
+  
+  <!-- Hero section -->
+  <rect x="24" y="108" width="1232" height="320" rx="4" fill="#E2E8F0"/>
+  
+  <!-- Content section -->
+  <rect x="24" y="452" width="1232" height="244" rx="4" fill="#E2E8F0"/>
+  
+  <!-- Text overlay for website URL -->
+  <rect x="390" y="260" width="500" height="80" rx="8" fill="#2D3748" fill-opacity="0.7"/>
+  <text x="640" y="305" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">Website Preview for</text>
+  <text x="640" y="340" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">${normalizedUrl}</text>
+</svg>`;
       
-      // Set viewport size - wider aspect ratio for a nice rectangular shape
-      await page.setViewport({
-        width: 1280,
-        height: 720, // 16:9 aspect ratio for a standard rectangular shape
-        deviceScaleFactor: 1
-      });
-      
-      // Navigate to URL with timeout
-      console.log(`Navigating to: ${normalizedUrl}`);
-      await page.goto(normalizedUrl, {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-      });
-      
-      // Wait a moment for any animations or lazyloaded content
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Take screenshot - ensuring we get the top portion in a rectangular format
-      console.log(`Taking screenshot and saving to: ${screenshotPath}`);
-      await page.screenshot({
-        path: screenshotPath,
-        fullPage: false, // Only capture the viewport
-        type: 'png',
-        clip: {
-          x: 0,
-          y: 0,
-          width: 1280,
-          height: 720
-        }
-      });
-      
-      console.log('Screenshot captured successfully');
-      return publicPath;
-    } finally {
-      // Always close the browser
-      await browser.close();
-      console.log('Browser closed');
+      fs.writeFileSync(placeholderSvgPath, svgContent);
+      console.log(`Created placeholder SVG at: ${placeholderSvgPath}`);
     }
+    
+    console.log(`Using placeholder image for website screenshot`);
+    return '/screenshots/website-placeholder.svg';
+    
+    // Note: In a future update, we can implement a more robust screenshot capture
+    // using a headless browser or external API service.
   } catch (error) {
-    console.error('Failed to capture website screenshot:');
+    console.error('Failed to process website screenshot:');
     if (error instanceof Error) {
       console.error(`Error message: ${error.message}`);
-      console.error(`Error stack: ${error.stack}`);
     } else {
       console.error(error);
     }
