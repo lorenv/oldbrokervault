@@ -69,7 +69,7 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null): string {
+export function generateHtml(analysis: any, logoUrl?: string | null, websiteScreenshotUrl?: string | null): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
@@ -104,6 +104,20 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.growthHistory)}</td>
         </tr>
       </table>
+      
+      ${analysis.websiteUrl ? `
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
+      <div style="margin-bottom: 15px;">
+        <a href="${analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`}" style="color: #3b82f6; text-decoration: underline;" target="_blank">
+          ${analysis.websiteUrl}
+        </a>
+        ${websiteScreenshotUrl ? `
+        <div style="margin-top: 12px; margin-bottom: 20px;">
+          <img src="${websiteScreenshotUrl}" alt="Website Screenshot" style="width: 100%; max-width: 700px; border: 1px solid #e5e7eb; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
       
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Summary</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
