@@ -837,6 +837,60 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     })
   );
   
+  // Add website URL and screenshot if available
+  if (analysis.websiteUrl) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Business Website",
+        heading: docx.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      })
+    );
+    
+    paragraphs.push(
+      new docx.Paragraph({
+        children: [
+          new docx.ExternalHyperlink({
+            children: [
+              new docx.TextRun({
+                text: analysis.websiteUrl,
+                style: "Hyperlink",
+                color: "#3b82f6"
+              })
+            ],
+            link: analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`
+          })
+        ],
+        spacing: { before: 100, after: 200 }
+      })
+    );
+    
+    // Add website screenshot if available
+    if (websiteScreenshotUrl) {
+      try {
+        const fs = require('fs');
+        console.log("Adding website screenshot to Word document");
+        const fullPath = websiteScreenshotUrl.startsWith('/') 
+          ? websiteScreenshotUrl.substring(1) 
+          : websiteScreenshotUrl;
+          
+        // Skip adding screenshot dynamically for now - let's use a placeholder paragraph
+        console.log("Screenshot path:", fullPath, "- will be added in a future update");
+        
+        paragraphs.push(
+          new docx.Paragraph({
+            text: "[Website Screenshot Available in PDF Export]",
+            spacing: { before: 200, after: 200 },
+            alignment: docx.AlignmentType.CENTER,
+            style: "Emphasis"
+          })
+        );
+      } catch (error) {
+        console.error("Error preparing website screenshot for Word document:", error);
+      }
+    }
+  }
+  
   // Business summary
   paragraphs.push(
     new docx.Paragraph({
@@ -1404,6 +1458,47 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       if (analysis.story) {
         doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
         doc.text(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
+        
+        // Add website URL and screenshot if available
+        if (analysis.websiteUrl) {
+          doc.moveDown(1);
+          doc.fontSize(14)
+             .text('Business Website', {
+               underline: true
+             });
+          doc.moveDown(0.5);
+          doc.fontSize(12)
+             .fillColor('#3b82f6')
+             .text(analysis.websiteUrl, {
+               link: analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`,
+               underline: true
+             })
+             .fillColor('#000000');
+             
+          // Add website screenshot if available
+          if (websiteScreenshotUrl) {
+            try {
+              doc.moveDown(1);
+              // Add screenshot with rectangular dimensions (16:9 aspect ratio)
+              const fullPath = websiteScreenshotUrl.startsWith('/') 
+                ? websiteScreenshotUrl.substring(1) 
+                : websiteScreenshotUrl;
+                
+              console.log(`Adding website screenshot to PDF from path: ${fullPath}`);
+              const screenshotWidth = 450; // Width in PDF
+              const screenshotHeight = 253; // Height with 16:9 aspect ratio
+              
+              doc.image(fullPath, {
+                fit: [screenshotWidth, screenshotHeight],
+                align: 'center'
+              });
+              
+              doc.moveDown(1);
+            } catch (error) {
+              console.error("Error adding website screenshot to PDF:", error);
+            }
+          }
+        }
         
         doc.moveDown(1);
         if (analysis.story.businessSummary) {
