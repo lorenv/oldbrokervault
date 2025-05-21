@@ -75,6 +75,13 @@ export function generateHtml(analysis: any, logoUrl?: string | null, websiteScre
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
   ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px;"></div>` : ''}
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
+  
+  ${websiteScreenshotUrl ? `
+  <div style="margin-bottom: 30px; text-align: center;">
+    <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Website Preview</h3>
+    <img src="${websiteScreenshotUrl}" alt="Website Screenshot" style="max-width: 100%; height: auto; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+  </div>
+  ` : ''}
 `;
 
   // Business Overview Section with Q&A style
@@ -800,6 +807,59 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     } catch (error) {
       console.error("Error adding logo to Word document:", error);
       // Continue without logo if there's an error
+    }
+  }
+  
+  // Add website screenshot if available
+  if (websiteScreenshotUrl) {
+    try {
+      console.log("Adding website screenshot to Word document:", websiteScreenshotUrl);
+      
+      // Add heading for website preview
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Website Preview",
+          heading: docx.HeadingLevel.HEADING_3,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: {
+            before: 400,
+            after: 200
+          }
+        })
+      );
+      
+      // Fetch the screenshot image
+      const response = await fetch(websiteScreenshotUrl);
+      if (response.ok) {
+        const imageBuffer = await response.arrayBuffer();
+        
+        // Add the screenshot to the document with 16:9 aspect ratio
+        paragraphs.push(
+          new docx.Paragraph({
+            children: [
+              new docx.ImageRun({
+                data: Buffer.from(imageBuffer),
+                transformation: {
+                  width: 500,
+                  height: 281  // 16:9 aspect ratio
+                },
+                type: websiteScreenshotUrl.endsWith('.svg') ? "svg" : "png"
+              })
+            ],
+            alignment: docx.AlignmentType.CENTER,
+            spacing: {
+              after: 400
+            }
+          })
+        );
+        
+        console.log("Website screenshot added successfully to Word document");
+      } else {
+        console.error("Failed to fetch website screenshot:", response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error("Error adding website screenshot to Word document:", error);
+      // Continue without screenshot if there's an error
     }
   }
   
