@@ -1402,6 +1402,32 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
       
+      // Add website screenshot if available
+      if (websiteScreenshotUrl) {
+        try {
+          console.log("Adding website screenshot to PDF:", websiteScreenshotUrl);
+          
+          // Add a heading for the website screenshot
+          doc.font('Helvetica-Bold')
+             .fontSize(16)
+             .text('Website Preview', { align: 'center' });
+          doc.moveDown(1);
+          
+          // Add the screenshot with 16:9 aspect ratio
+          doc.image(websiteScreenshotUrl, {
+            fit: [500, 281], // 16:9 aspect ratio
+            align: 'center'
+          });
+          doc.moveDown(2);
+          
+          console.log("Website screenshot added successfully to PDF");
+        } catch (screenshotError) {
+          console.error("Failed to add website screenshot to PDF:", screenshotError);
+          // Continue without the screenshot
+          doc.moveDown(1);
+        }
+      }
+      
       // Add main title
       doc.fontSize(22)
          .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
