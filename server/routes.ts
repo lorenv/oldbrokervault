@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Generating PDF document with title and logo...");
       // Pass the title and logo URL to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl);
+      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteScreenshotUrl);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
