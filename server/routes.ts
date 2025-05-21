@@ -474,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Generating Word document with logo...");
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl);
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteScreenshotUrl);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");

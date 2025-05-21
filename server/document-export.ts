@@ -767,7 +767,7 @@ export function formatTextContent(analysis: any): string {
   return sections.join('\n\n');
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteScreenshotUrl?: string | null): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
   
@@ -1230,7 +1230,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteScreenshotUrl?: string | null): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise((resolve, reject) => {
