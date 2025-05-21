@@ -124,7 +124,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
   try {
     // Normalize and validate URL
     const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log(`Processing URL: ${normalizedUrl}`);
+    console.log(`Taking screenshot of normalized URL: ${normalizedUrl}`);
     
     // Generate a unique filename based on the URL
     const urlHash = crypto.createHash('md5').update(normalizedUrl).digest('hex');
@@ -132,51 +132,114 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     
     // Create screenshots directory if it doesn't exist
     const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
-    console.log(`Checking if screenshots directory exists: ${screenshotsDir}`);
+    console.log(`Ensuring screenshots directory exists: ${screenshotsDir}`);
     if (!fs.existsSync(screenshotsDir)) {
       console.log(`Creating screenshots directory: ${screenshotsDir}`);
       fs.mkdirSync(screenshotsDir, { recursive: true });
-    } else {
-      console.log(`Screenshots directory already exists`);
     }
     
-    // Use our placeholder SVG for now - convert to PNG if needed in the future
-    const placeholderSvgPath = path.join(screenshotsDir, 'website-placeholder.svg');
-    if (!fs.existsSync(placeholderSvgPath)) {
-      // Create a basic placeholder SVG if it doesn't exist
-      const svgContent = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1280" height="720" fill="#F5F7FA"/>
-  <rect x="24" y="24" width="1232" height="60" rx="4" fill="#E2E8F0"/>
-  
-  <!-- Hero section -->
-  <rect x="24" y="108" width="1232" height="320" rx="4" fill="#E2E8F0"/>
-  
-  <!-- Content section -->
-  <rect x="24" y="452" width="1232" height="244" rx="4" fill="#E2E8F0"/>
-  
-  <!-- Text overlay for website URL -->
-  <rect x="390" y="260" width="500" height="80" rx="8" fill="#2D3748" fill-opacity="0.7"/>
-  <text x="640" y="305" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">Website Preview for</text>
-  <text x="640" y="340" font-family="Arial, sans-serif" font-size="20" fill="white" text-anchor="middle">${normalizedUrl}</text>
-</svg>`;
+    const screenshotPath = path.join(screenshotsDir, screenshotFilename);
+    const publicPath = `/screenshots/${screenshotFilename}`;
+    
+    console.log(`Screenshot will be saved at: ${screenshotPath}`);
+    
+    // Check if screenshot already exists - if so, return the path
+    if (fs.existsSync(screenshotPath)) {
+      console.log(`Screenshot already exists, reusing: ${screenshotPath}`);
+      return publicPath;
+    }
+    
+    // Launch puppeteer with explicit options for production environment
+    console.log('Launching headless browser...');
+    const launchOptions = {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--single-process'
+      ],
+      // Only use executablePath in environments where Chrome might be in a non-standard location
+      // In most production environments, Puppeteer will find Chrome automatically
+      executablePath: process.env.CHROME_PATH || undefined
+    };
+    
+    console.log('Browser launch options:', JSON.stringify(launchOptions, null, 2));
+    const browser = await puppeteer.launch(launchOptions);
+    
+    try {
+      // Open a new page with timeout
+      console.log('Opening browser page...');
+      const page = await browser.newPage();
       
-      fs.writeFileSync(placeholderSvgPath, svgContent);
-      console.log(`Created placeholder SVG at: ${placeholderSvgPath}`);
+      // Set viewport size - wider aspect ratio for a nice rectangular shape
+      await page.setViewport({
+        width: 1280,
+        height: 720, // 16:9 aspect ratio for a standard rectangular shape
+        deviceScaleFactor: 1
+      });
+      
+      // Set a reasonable timeout for navigation
+      console.log(`Navigating to URL: ${normalizedUrl}`);
+      await page.goto(normalizedUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 45000 // 45 second timeout
+      });
+      
+      // Wait for content to load and render
+      console.log('Waiting for page to render completely...');
+      await page.waitForTimeout(3000);
+      
+      // Take screenshot with rectangular dimensions
+      console.log(`Taking screenshot and saving to: ${screenshotPath}`);
+      await page.screenshot({
+        path: screenshotPath,
+        fullPage: false,
+        type: 'png',
+        clip: {
+          x: 0,
+          y: 0,
+          width: 1280,
+          height: 720
+        }
+      });
+      
+      // Verify the screenshot was created
+      if (fs.existsSync(screenshotPath)) {
+        const stats = fs.statSync(screenshotPath);
+        console.log(`Screenshot created successfully. File size: ${stats.size} bytes`);
+        
+        if (stats.size === 0) {
+          console.error('Screenshot file exists but is empty, something went wrong');
+          return null;
+        }
+      } else {
+        console.error('Screenshot file was not created');
+        return null;
+      }
+      
+      console.log('Screenshot captured successfully');
+      return publicPath;
+    } finally {
+      // Always close the browser
+      await browser.close();
+      console.log('Browser closed');
     }
-    
-    console.log(`Using placeholder image for website screenshot`);
-    return '/screenshots/website-placeholder.svg';
-    
-    // Note: In a future update, we can implement a more robust screenshot capture
-    // using a headless browser or external API service.
   } catch (error) {
-    console.error('Failed to process website screenshot:');
+    console.error('Failed to capture website screenshot:');
     if (error instanceof Error) {
+      console.error(`Error type: ${error.name}`);
       console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
     } else {
-      console.error(error);
+      console.error('Unknown error type:', error);
     }
+    
+    // Return null on failure
     return null;
   }
 }
