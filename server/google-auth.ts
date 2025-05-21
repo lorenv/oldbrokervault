@@ -45,7 +45,7 @@ export async function handleGoogleCallback(code: string, userId: number) {
   }
 }
 
-export async function createGoogleDoc(userId: number, title: string, content: any) {
+export async function createGoogleDoc(userId: number, title: string, content: any, logoUrl?: string | null, websiteScreenshotUrl?: string | null) {
   const user = await storage.getUser(userId);
   if (!user?.googleAccessToken) {
     throw new Error('User not connected to Google');
@@ -65,6 +65,13 @@ export async function createGoogleDoc(userId: number, title: string, content: an
     let formattedContent = `CONFIDENTIAL INFORMATION MEMORANDUM\n\n`;
     // Add document title at the top
     formattedContent += `${title}\n\n`;
+    
+    // Include website screenshot note if available
+    if (websiteScreenshotUrl) {
+      formattedContent += `WEBSITE PREVIEW\n==============\n`;
+      formattedContent += `Note: A screenshot of the business website is available in the HTML, PDF, and Word versions of this document.\n`;
+      formattedContent += `Screenshot URL: ${websiteScreenshotUrl}\n\n`;
+    }
     
     // Business Overview Section
     formattedContent += `BUSINESS OVERVIEW\n==================\n`;

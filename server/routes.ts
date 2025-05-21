@@ -613,7 +613,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const url = await createGoogleDoc(user.id, doc.title, doc.analysis);
+      console.log("Exporting to Google Docs with logo and screenshot...");
+      // Pass logo and screenshot URLs to Google Docs export
+      const url = await createGoogleDoc(user.id, doc.title, doc.analysis, doc.logoUrl, doc.websiteScreenshotUrl);
+      console.log("Google Docs export successful, URL:", url);
       res.json({ url });
     } catch (error) {
       console.error("Google Docs export error:", error);
