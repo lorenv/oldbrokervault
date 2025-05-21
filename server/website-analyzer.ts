@@ -132,13 +132,19 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     
     // Create screenshots directory if it doesn't exist
     const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
+    console.log(`Checking if screenshots directory exists: ${screenshotsDir}`);
     if (!fs.existsSync(screenshotsDir)) {
       console.log(`Creating screenshots directory: ${screenshotsDir}`);
       fs.mkdirSync(screenshotsDir, { recursive: true });
+    } else {
+      console.log(`Screenshots directory already exists`);
     }
     
     const screenshotPath = path.join(screenshotsDir, screenshotFilename);
     const publicPath = `/screenshots/${screenshotFilename}`;
+    
+    console.log(`Screenshot will be saved at: ${screenshotPath}`);
+    console.log(`Public screenshot path will be: ${publicPath}`);
     
     // Launch puppeteer browser
     console.log('Launching headless browser...');
@@ -196,7 +202,13 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       console.log('Browser closed');
     }
   } catch (error) {
-    console.error('Failed to capture website screenshot:', error);
+    console.error('Failed to capture website screenshot:');
+    if (error instanceof Error) {
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
+    } else {
+      console.error(error);
+    }
     return null;
   }
 }
