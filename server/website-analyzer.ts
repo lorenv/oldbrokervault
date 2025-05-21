@@ -146,16 +146,18 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     console.log(`Screenshot will be saved at: ${screenshotPath}`);
     console.log(`Public screenshot path will be: ${publicPath}`);
     
-    // Launch puppeteer browser
-    console.log('Launching headless browser...');
+    // Launch puppeteer browser with system Chromium
+    console.log('Launching headless browser with system Chromium...');
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--timeout=30000'
       ]
     });
     
