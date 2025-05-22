@@ -149,6 +149,9 @@ export function CimGenerator() {
         
         if (hasWebsiteUrl) {
           formData.append('websiteUrl', data.websiteUrl!);
+          if (selectedImages.length > 0) {
+            formData.append('selectedImages', JSON.stringify(selectedImages));
+          }
           setWebsiteAnalysisStage('connecting');
           // Artificial delay to show connection step
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -195,7 +198,8 @@ export function CimGenerator() {
           
           const res = await apiRequest("POST", "/api/cim", {
             ...data,
-            docId: currentDocId
+            docId: currentDocId,
+            selectedImages: selectedImages.length > 0 ? selectedImages : undefined
           });
           
           if (hasWebsiteUrl) {
@@ -413,6 +417,79 @@ ${analysis.team.ownerResponsibilities}
                   Add a business website URL to enhance the CIM with website content
                 </div>
               </div>
+              
+              {/* Image extraction and selection section */}
+              {form.watch("websiteUrl") && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium">Website Images</h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = form.getValues("websiteUrl");
+                        if (url) extractImages(url);
+                      }}
+                      disabled={isExtractingImages}
+                    >
+                      {isExtractingImages ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      {isExtractingImages ? "Extracting..." : "Extract Images"}
+                    </Button>
+                  </div>
+                  
+                  {extractedImages.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Select images to include in your CIM document (click to select/deselect):
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {extractedImages.map((imageUrl, index) => (
+                          <div
+                            key={index}
+                            className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
+                              selectedImages.includes(imageUrl)
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => toggleImageSelection(imageUrl)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Website image ${index + 1}`}
+                              className="w-full h-24 object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {selectedImages.includes(imageUrl) && (
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                  ✓
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {selectedImages.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {extractedImages.length === 0 && !isExtractingImages && (
+                    <div className="text-xs text-muted-foreground">
+                      Click "Extract Images" to find images from the website
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <Textarea
