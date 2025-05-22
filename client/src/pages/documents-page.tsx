@@ -531,17 +531,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       src={selectedDoc.logoUrl} 
                       alt="Company Logo"
                       className="h-16 mx-auto"
-                      crossOrigin="anonymous"
                       onError={(e) => {
-                        console.error("Logo failed to load:", selectedDoc.logoUrl);
-                        // Try loading without CORS first, then hide if still fails
-                        if (!e.currentTarget.dataset.retried) {
-                          e.currentTarget.dataset.retried = "true";
-                          e.currentTarget.crossOrigin = "";
-                          e.currentTarget.src = selectedDoc.logoUrl;
-                        } else {
-                          e.currentTarget.style.display = 'none';
-                        }
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
