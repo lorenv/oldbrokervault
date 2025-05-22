@@ -116,9 +116,14 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "llama-3.1-sonar-small-128k-online",
+      model: "llama-3.1-sonar-large-128k-online", // Use larger model for better handling
       messages,
-      temperature: 0.2
+      max_tokens: 6000, // Increase token limit for longer responses
+      temperature: 0.1, // Lower temperature for more consistent JSON
+      top_p: 0.9,
+      return_images: false,
+      return_related_questions: false,
+      stream: false
     })
   });
 
