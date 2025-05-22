@@ -797,7 +797,6 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 data: logoBuffer,
                 transformation: {
                   width: 200,
-                  height: 100,
                 },
                 type: "png"
               })
@@ -1358,7 +1357,15 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       // TITLE PAGE
       
-      // Add logo if available
+      // Add main title
+      doc.fontSize(22)
+         .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
+           align: 'center'
+         });
+      
+      doc.moveDown(2);
+      
+      // Add logo in its own section below the title
       if (logoUrl) {
         try {
           console.log("Adding logo to PDF:", logoUrl);
@@ -1375,7 +1382,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               fit: [200, 100],
               align: 'center'
             });
-            doc.moveDown(2);
+            doc.moveDown(3);
           } else {
             console.log("Logo file not found:", logoPath);
             doc.moveDown(1);
@@ -1386,12 +1393,6 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.moveDown(1);
         }
       }
-      
-      // Add main title
-      doc.fontSize(22)
-         .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
-           align: 'center'
-         });
       
       doc.moveDown(2);
       
@@ -1486,54 +1487,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
 
-      // TABLE OF CONTENTS PAGE
-      doc.addPage();
-      
-      doc.fontSize(16)
-         .text('TABLE OF CONTENTS', {
-           align: 'center',
-           underline: true
-         });
-      
-      doc.moveDown(2);
-      doc.fontSize(12);
-      
-      // Add table of contents entries
-      const sections = [
-        { title: 'BUSINESS OVERVIEW', page: 3 },
-        { title: 'MARKET POSITION', page: 3 },
-        { title: 'OPERATIONS', page: 4 },
-        { title: 'TEAM STRUCTURE', page: 5 },
-        { title: 'FACILITIES', page: 6 }
-      ];
-      
-      sections.forEach(section => {
-        doc.text(section.title, {
-          continued: true
-        });
-        
-        const xPosition = 450; // Position for page numbers
-        const currentY = doc.y;
-        
-        doc.text(`Page ${section.page}`, {
-          align: 'right',
-          continued: false
-        });
-        
-        // Add dotted line connecting section title to page number
-        const dotsStartX = doc.widthOfString(section.title) + 100;
-        const dotsEndX = xPosition - 20;
-        
-        doc.moveTo(dotsStartX, currentY + 7)
-           .lineTo(dotsEndX, currentY + 7)
-           .stroke();
-           
-        doc.moveDown(1);
-      });
-      
-      // CONTENT PAGES
-      
-      // BUSINESS OVERVIEW
+      // CONTENT PAGES - Start directly with business overview (no table of contents)
       doc.addPage();
       
       // If logo is available, add a small version to the top right corner of each page
