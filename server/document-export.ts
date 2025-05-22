@@ -909,8 +909,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 new docx.ImageRun({
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
-                    width: 400,
-                    height: 300,
+                    width: 450,
+                    height: 250,
                   },
                   type: 'jpg',
                 }),
@@ -1539,16 +1539,33 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for the image
-              if (doc.y > doc.page.height - 250) {
+              // Check if we need a new page for the image (more generous spacing)
+              if (doc.y > doc.page.height - 350) {
                 doc.addPage();
+                // Add logo to new page if we have one
+                if (logoUrl && logoUrl.startsWith('/')) {
+                  try {
+                    const logoPath = path.resolve(process.cwd(), `public${logoUrl}`);
+                    if (fs.existsSync(logoPath)) {
+                      doc.image(logoPath, doc.page.width - 150, 30, {
+                        fit: [100, 50],
+                        align: 'right'
+                      });
+                    }
+                  } catch (logoError) {
+                    // Continue without logo on new page
+                  }
+                }
               }
               
+              // Add image with better aspect ratio handling
               doc.image(fullImagePath, {
-                fit: [400, 300],
+                fit: [450, 250], // Wider but shorter to prevent overlap
                 align: 'center'
               });
-              doc.moveDown(1);
+              
+              // Add more spacing between images
+              doc.moveDown(2);
             }
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
