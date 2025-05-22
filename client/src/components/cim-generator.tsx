@@ -189,13 +189,6 @@ export function CimGenerator() {
         }
       } else {
         try {
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('connecting');
-            // Small delay to show the connection step
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setWebsiteAnalysisStage('analyzing');
-          }
-          
           const res = await apiRequest("POST", "/api/cim", {
             ...data,
             docId: currentDocId,
@@ -204,14 +197,8 @@ export function CimGenerator() {
           
           console.log("Sending selected images to backend:", selectedImages);
           
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('enhancing');
-          }
-          
           return res.json();
         } catch (error) {
-          // Reset website analysis stage on error
-          setWebsiteAnalysisStage(null);
           throw error;
         }
       }
