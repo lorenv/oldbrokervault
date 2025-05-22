@@ -75,7 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      console.log("Received CIM request body:", JSON.stringify(req.body, null, 2));
       const data = insertCimDocumentSchema.parse(req.body);
+      console.log("Parsed CIM data:", JSON.stringify(data, null, 2));
       const docId = req.body.docId; // For regeneration
 
       // Check if this is a regeneration request
