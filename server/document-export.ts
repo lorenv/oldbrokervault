@@ -73,7 +73,9 @@ export function generateHtml(analysis: any, logoUrl?: string | null, websiteScre
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
-  ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px;"></div>` : ''}
+  ${logoUrl ? `<div style="text-align: center; margin-bottom: 25px; padding: 15px;">
+    <img src="${logoUrl}" alt="Business Logo" style="max-width: 250px; max-height: 120px; object-fit: contain;">
+  </div>` : ''}
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
   
   ${websiteScreenshotUrl ? `
@@ -793,8 +795,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               new docx.ImageRun({
                 data: Buffer.from(imageBuffer),
                 transformation: {
-                  width: 200,
-                  height: 100
+                  width: 250,
+                  height: 120
                 },
                 type: "png"
               })
@@ -1390,7 +1392,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         try {
           console.log("Adding logo to PDF:", logoUrl);
           doc.image(logoUrl, {
-            fit: [200, 100],
+            fit: [250, 120],
             align: 'center'
           });
           doc.moveDown(2);

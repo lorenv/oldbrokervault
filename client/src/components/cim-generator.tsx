@@ -470,6 +470,20 @@ ${analysis.team.ownerResponsibilities}
                   {/* Website URL and Screenshot Display - After Background section */}
                   {form.getValues('websiteUrl') && (
                     <div className="mb-4">
+                      {/* Display logo if available */}
+                      {analysis.logoUrl && (
+                        <div className="mb-4 flex justify-center">
+                          <img 
+                            src={analysis.logoUrl} 
+                            alt="Business Logo" 
+                            className="max-h-28 object-contain mb-2"
+                            style={{
+                              maxWidth: '250px'
+                            }}
+                          />
+                        </div>
+                      )}
+                    
                       <h3 className="text-lg font-semibold mb-2">Business Website</h3>
                       <a 
                         href={form.getValues('websiteUrl').startsWith('http') ? form.getValues('websiteUrl') : `https://${form.getValues('websiteUrl')}`} 
