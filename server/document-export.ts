@@ -1468,6 +1468,24 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.moveDown(1);
         }
       }
+
+      // Business Website section
+      if (websiteUrl) {
+        doc.moveDown(1);
+        doc.fontSize(14).text("Business Website:", { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(websiteUrl);
+        doc.moveDown(1);
+      }
+
+      // Selected Images section  
+      if (selectedImages && selectedImages.length > 0) {
+        doc.moveDown(1);
+        doc.fontSize(14).text("Business Images:", { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(`This document includes ${selectedImages.length} selected business images from the company website.`);
+        doc.moveDown(1);
+      }
       
       // MARKET SECTION - check if we need a new page
       if (doc.y > doc.page.height - 200) {
