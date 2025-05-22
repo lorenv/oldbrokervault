@@ -1437,8 +1437,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.fontSize(16).text("BUSINESS IMAGES", { align: 'center', underline: true });
         doc.moveDown(2);
         
-        // Add each image to the PDF
-        for (const imagePath of selectedImages) {
+        // Add each image to the PDF with proper spacing
+        for (let i = 0; i < selectedImages.length; i++) {
+          const imagePath = selectedImages[i];
           try {
             const fs = await import('fs');
             const path = await import('path');
@@ -1453,21 +1454,31 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for this image
-              if (doc.y > doc.page.height - 300) {
+              // Check if we need a new page for this image (be conservative)
+              if (doc.y > doc.page.height - 400) {
                 doc.addPage();
               }
               
+              // Add some space before each image (except the first one)
+              if (i > 0) {
+                doc.moveDown(1);
+              }
+              
               // Add image with proper sizing and centering
-              const maxWidth = 400;
+              const maxWidth = 350; // Slightly smaller to ensure no overlap
               
               doc.image(fullImagePath, {
                 width: maxWidth,
                 align: 'center'
               });
               
-              // Add spacing after each image
-              doc.moveDown(2);
+              // Add generous spacing after each image to prevent overlap
+              doc.moveDown(3);
+              
+              // Force a position check after each image
+              if (doc.y > doc.page.height - 200) {
+                doc.addPage();
+              }
             }
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
