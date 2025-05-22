@@ -513,12 +513,17 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
       Provide factual, verifiable information only - do not invent details.
     `;
 
+    // Add timeout protection to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const response = await fetch(PERPLEXITY_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`
       },
+      signal: controller.signal,
       body: JSON.stringify({
         model: "llama-3.1-sonar-small-128k-online",
         messages: [
@@ -538,10 +543,11 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
         return_images: false,
         return_related_questions: false,
         stream: false,
-        frequency_penalty: 0,
-        response_format: { type: "json_object" }
+        frequency_penalty: 0
       })
     });
+
+    clearTimeout(timeoutId); // Clear timeout once request completes
 
     if (!response.ok) {
       // Try to get more detailed error information
