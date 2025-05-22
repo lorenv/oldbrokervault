@@ -1517,11 +1517,18 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(1);
       }
 
-      // Selected Images section  
+      // Move to end of document for images section
+      
+      // Add all other content sections first, then images at the very end
+      
+      // BUSINESS IMAGES SECTION - At the end of document
       if (selectedImages && selectedImages.length > 0) {
-        doc.moveDown(1);
-        doc.fontSize(14).text("Business Images:", { underline: true });
-        doc.moveDown(0.5);
+        // Start on a fresh page for images
+        doc.addPage();
+        
+        // Add section title
+        doc.fontSize(18).text("BUSINESS IMAGES", { align: 'center', underline: true });
+        doc.moveDown(2);
         
         // Add each image to the PDF
         for (const imagePath of selectedImages) {
@@ -1540,35 +1547,24 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Start each image on a new line with proper spacing
-              doc.moveDown(1);
-              
-              // Check if we need a new page (be very conservative)
-              if (doc.y > doc.page.height - 350) {
+              // Check if we need a new page for this image
+              if (doc.y > doc.page.height - 300) {
                 doc.addPage();
               }
               
-              // Add image with width-only constraint to maintain aspect ratio
-              const maxWidth = 350; // Fixed max width, height will scale proportionally
+              // Add image with proper sizing and centering
+              const maxWidth = 400;
               
               doc.image(fullImagePath, {
-                width: maxWidth, // Only set width, height will maintain aspect ratio
+                width: maxWidth,
                 align: 'center'
               });
               
-              // Add generous spacing after each image
+              // Add spacing after each image
               doc.moveDown(2);
-              
-              // Always check if we're too close to bottom after adding image
-              if (doc.y > doc.page.height - 200) {
-                doc.addPage();
-              }
             }
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
-            // Add a fallback text for this image
-            doc.fontSize(12).text(`[Image: ${imagePath}]`);
-            doc.moveDown(0.5);
           }
         }
       }
