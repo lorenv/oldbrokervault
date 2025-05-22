@@ -56,7 +56,8 @@ export default function AccountPage() {
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         if (url) {
-          window.location.href = url;
+          // Use window.open for external URLs
+          window.open(url, '_blank');
         } else {
           throw new Error("Failed to get portal URL");
         }
