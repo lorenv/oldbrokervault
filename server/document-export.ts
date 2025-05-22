@@ -903,19 +903,20 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         const fullImagePath = path.resolve(process.cwd(), relativePath);
         
         if (fs.existsSync(fullImagePath)) {
+          // Get image dimensions and maintain aspect ratio
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
-                    width: 450,
-                    height: 250,
+                    width: 400, // Fixed width, let height adjust to maintain ratio
                   },
                   type: 'jpg',
                 }),
               ],
-              spacing: { before: 100, after: 100 }
+              alignment: docx.AlignmentType.CENTER,
+              spacing: { before: 150, after: 150 }
             })
           );
         }
@@ -1539,40 +1540,27 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for the image (much more generous spacing)
-              if (doc.y > doc.page.height - 400) {
+              // Start each image on a new line with proper spacing
+              doc.moveDown(1);
+              
+              // Check if we need a new page (be very conservative)
+              if (doc.y > doc.page.height - 350) {
                 doc.addPage();
-                // Add logo to new page if we have one
-                if (logoUrl && logoUrl.startsWith('/')) {
-                  try {
-                    const logoPath = path.resolve(process.cwd(), `public${logoUrl}`);
-                    if (fs.existsSync(logoPath)) {
-                      doc.image(logoPath, doc.page.width - 150, 30, {
-                        fit: [100, 50],
-                        align: 'right'
-                      });
-                    }
-                  } catch (logoError) {
-                    // Continue without logo on new page
-                  }
-                }
               }
               
-              // Add image with proper aspect ratio handling and controlled size
-              const pageWidth = doc.page.width - 100; // Leave margin
-              const maxWidth = Math.min(350, pageWidth); // Smaller max width
-              const maxHeight = 200; // Set maximum height to prevent overlap
+              // Add image with width-only constraint to maintain aspect ratio
+              const maxWidth = 350; // Fixed max width, height will scale proportionally
               
               doc.image(fullImagePath, {
-                fit: [maxWidth, maxHeight], // Use fit with both width and height limits
+                width: maxWidth, // Only set width, height will maintain aspect ratio
                 align: 'center'
               });
               
-              // Add much more spacing between images
-              doc.moveDown(3);
+              // Add generous spacing after each image
+              doc.moveDown(2);
               
-              // Force check Y position after each image and add page if needed
-              if (doc.y > doc.page.height - 300) {
+              // Always check if we're too close to bottom after adding image
+              if (doc.y > doc.page.height - 200) {
                 doc.addPage();
               }
             }
