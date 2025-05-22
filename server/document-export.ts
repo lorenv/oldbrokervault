@@ -886,12 +886,43 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
     
-    paragraphs.push(
-      new docx.Paragraph({
-        text: `This document includes ${selectedImages.length} selected business images from the company website.`,
-        spacing: { before: 100, after: 200 }
-      })
-    );
+    // Add each image to the document
+    for (const imagePath of selectedImages) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        // Convert relative path to absolute path from project root
+        const fullImagePath = path.resolve(process.cwd(), imagePath.startsWith('/') ? imagePath.substring(1) : imagePath);
+        
+        if (fs.existsSync(fullImagePath)) {
+          paragraphs.push(
+            new docx.Paragraph({
+              children: [
+                new docx.ImageRun({
+                  data: fs.readFileSync(fullImagePath),
+                  transformation: {
+                    width: 400,
+                    height: 300,
+                  },
+                  type: 'jpg',
+                }),
+              ],
+              spacing: { before: 100, after: 100 }
+            })
+          );
+        }
+      } catch (imageError) {
+        console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
+        // Add a fallback text for this image
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `[Image: ${imagePath}]`,
+            spacing: { before: 100, after: 100 }
+          })
+        );
+      }
+    }
   }
   
   // INVESTMENT HIGHLIGHTS
@@ -1483,8 +1514,35 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(1);
         doc.fontSize(14).text("Business Images:", { underline: true });
         doc.moveDown(0.5);
-        doc.fontSize(12).text(`This document includes ${selectedImages.length} selected business images from the company website.`);
-        doc.moveDown(1);
+        
+        // Add each image to the PDF
+        for (const imagePath of selectedImages) {
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            
+            // Convert relative path to absolute path from project root
+            const fullImagePath = path.resolve(process.cwd(), imagePath.startsWith('/') ? imagePath.substring(1) : imagePath);
+            
+            if (fs.existsSync(fullImagePath)) {
+              // Check if we need a new page for the image
+              if (doc.y > doc.page.height - 250) {
+                doc.addPage();
+              }
+              
+              doc.image(fullImagePath, {
+                fit: [400, 300],
+                align: 'center'
+              });
+              doc.moveDown(1);
+            }
+          } catch (imageError) {
+            console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
+            // Add a fallback text for this image
+            doc.fontSize(12).text(`[Image: ${imagePath}]`);
+            doc.moveDown(0.5);
+          }
+        }
       }
       
       // MARKET SECTION - check if we need a new page
