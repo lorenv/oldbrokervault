@@ -202,6 +202,8 @@ export function CimGenerator() {
             selectedImages: selectedImages.length > 0 ? selectedImages : undefined
           });
           
+          console.log("Sending selected images to backend:", selectedImages);
+          
           if (hasWebsiteUrl) {
             setWebsiteAnalysisStage('enhancing');
           }

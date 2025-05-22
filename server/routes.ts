@@ -77,6 +77,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
+      
+      // Debug: Check if selectedImages are present in regular route
+      console.log("Selected images in regular route:", req.body.selectedImages);
 
       // Check if this is a regeneration request
       if (docId) {
@@ -137,6 +140,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // New document generation
       let analysis = await analyzeCimTranscript(data.transcript);
+      
+      // Handle selected images early in the process for regular route
+      let savedImagePaths: string[] = [];
+      if (data.websiteUrl && req.body.selectedImages) {
+        try {
+          const selectedImages = req.body.selectedImages;
+          if (Array.isArray(selectedImages) && selectedImages.length > 0) {
+            const normalizedUrl = normalizeUrl(data.websiteUrl);
+            console.log(`Processing ${selectedImages.length} selected images in regular route...`);
+            savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
+            console.log(`Successfully downloaded ${savedImagePaths.length} selected images in regular route`);
+            
+            // Add selected images to the analysis object so they show in the CIM
+            analysis.selectedImages = savedImagePaths;
+          }
+        } catch (imageError) {
+          console.error("Selected images processing error in regular route:", imageError);
+        }
+      }
       
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
