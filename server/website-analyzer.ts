@@ -535,8 +535,7 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
         return_images: false,
         return_related_questions: false,
         stream: false,
-        frequency_penalty: 0,
-        response_format: { type: "json_object" }
+        frequency_penalty: 0
       })
     });
 
