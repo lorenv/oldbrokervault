@@ -779,20 +779,24 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   // Add logo image if available
   if (logoUrl) {
     try {
-      // Fetch the logo image
-      const response = await fetch(logoUrl);
-      if (response.ok) {
-        const imageBuffer = await response.arrayBuffer();
+      // Fix logo path - read from file system instead of fetching as URL
+      let logoPath = logoUrl;
+      if (logoUrl.startsWith('/logos/')) {
+        logoPath = `public${logoUrl}`;
+      }
+      
+      const fs = await import('fs');
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath);
         
         // Add the logo to the document
         paragraphs.push(
           new docx.Paragraph({
             children: [
               new docx.ImageRun({
-                data: Buffer.from(imageBuffer),
+                data: logoBuffer,
                 transformation: {
                   width: 200,
-                  height: 100
                 },
                 type: "png"
               })
