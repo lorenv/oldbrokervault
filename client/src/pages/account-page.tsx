@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -224,28 +225,11 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription</CardTitle>
-            <CardDescription>Manage your subscription and billing</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium">Current Plan</h3>
-                <p className="text-muted-foreground capitalize">{user?.subscriptionStatus || "Free"}</p>
-              </div>
-
-              <Button 
-                variant="default"
-                onClick={handleSubscriptionAction}
-                className="w-full md:w-auto"
-              >
-                {user?.subscriptionStatus === "free" ? "Upgrade Plan" : "Manage Subscription"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SubscriptionCard 
+          status={user?.subscriptionStatus}
+          endsAt={user?.subscriptionEndsAt}
+          monthlyUsage={user?.monthlyUsage}
+        />
       </div>
     </div>
   );
