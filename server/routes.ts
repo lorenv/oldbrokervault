@@ -140,6 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
+      let screenshotUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
@@ -152,6 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (logoError) {
             console.error("Logo extraction error:", logoError);
             // Continue without the logo
+          }
+
+          // Try to capture website screenshot
+          try {
+            screenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
+            console.log("Captured screenshot URL:", screenshotUrl);
+          } catch (screenshotError) {
+            console.error("Screenshot capture error:", screenshotError);
+            // Continue without the screenshot
           }
           
           // Analyze the website
@@ -169,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...data,
         websiteUrl: data.websiteUrl,
         logoUrl,
+        websiteScreenshotUrl: screenshotUrl,
         analysis,
         regenerationCount: 0
       });
