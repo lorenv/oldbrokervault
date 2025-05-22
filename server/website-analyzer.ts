@@ -9,7 +9,6 @@ import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import fetch from 'node-fetch';
 
 // Define the Perplexity API response type
 interface PerplexityResponse {
@@ -162,7 +161,7 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
             const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
             return src;
           })
-          .filter(src => {
+          .filter((src): src is string => {
             if (!src) return false;
             // Filter out common non-content images
             const lowercaseSrc = src.toLowerCase();
@@ -191,6 +190,65 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     console.error('Failed to extract website images:', error);
     return [];
   }
+}
+
+/**
+ * Downloads and saves selected images to the project directory
+ * @param imageUrls Array of image URLs to download
+ * @param websiteUrl The website URL (used for naming)
+ * @returns Promise resolving to an array of local file paths
+ */
+export async function downloadSelectedImages(imageUrls: string[], websiteUrl: string): Promise<string[]> {
+  console.log(`Downloading ${imageUrls.length} selected images...`);
+  
+  const savedPaths: string[] = [];
+  
+  // Create images directory if it doesn't exist
+  const imagesDir = path.join(process.cwd(), 'public', 'images');
+  if (!fs.existsSync(imagesDir)) {
+    console.log(`Creating images directory: ${imagesDir}`);
+    fs.mkdirSync(imagesDir, { recursive: true });
+  }
+  
+  // Generate a hash for the website to organize images
+  const websiteHash = crypto.createHash('md5').update(websiteUrl).digest('hex').substring(0, 8);
+  
+  for (let i = 0; i < imageUrls.length; i++) {
+    try {
+      const imageUrl = imageUrls[i];
+      console.log(`Downloading image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
+      
+      // Get file extension from URL
+      const urlParts = imageUrl.split('.');
+      const extension = urlParts[urlParts.length - 1].split('?')[0] || 'jpg';
+      
+      // Generate filename
+      const filename = `${websiteHash}_image_${i + 1}.${extension}`;
+      const filepath = path.join(imagesDir, filename);
+      const publicPath = `/images/${filename}`;
+      
+      // Download the image
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        console.error(`Failed to download image: ${response.statusText}`);
+        continue;
+      }
+      
+      // Save the image
+      const buffer = await response.buffer();
+      fs.writeFileSync(filepath, buffer);
+      
+      savedPaths.push(publicPath);
+      console.log(`Saved image: ${publicPath}`);
+      
+    } catch (error) {
+      console.error(`Error downloading image ${i + 1}:`, error);
+      // Continue with next image
+    }
+  }
+  
+  console.log(`Successfully downloaded ${savedPaths.length} images`);
+  return savedPaths;
 }
 
 /**

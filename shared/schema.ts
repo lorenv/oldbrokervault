@@ -55,6 +55,7 @@ export const cimDocuments = pgTable("cim_documents", {
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
   websiteScreenshotUrl: text("website_screenshot_url"),
+  selectedImages: text("selected_images").array(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
