@@ -9,6 +9,7 @@ import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import fetch from 'node-fetch';
 
 // Define the Perplexity API response type
 interface PerplexityResponse {
@@ -110,6 +111,85 @@ export function normalizeUrl(urlString: string): string {
     
     // Generic fallback error
     throw new Error('Invalid website URL format. Please check the URL and try again.');
+  }
+}
+
+/**
+ * Extracts the first 10 images from a website
+ * @param websiteUrl The URL of the website to extract images from
+ * @returns Promise resolving to an array of image URLs
+ */
+export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
+  console.log(`Starting image extraction for: ${websiteUrl}`);
+  
+  try {
+    // Normalize and validate URL
+    const normalizedUrl = normalizeUrl(websiteUrl);
+    console.log(`Extracting images from normalized URL: ${normalizedUrl}`);
+    
+    // Launch puppeteer browser
+    console.log('Launching headless browser for image extraction...');
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ]
+    });
+    
+    try {
+      // Open a new page
+      const page = await browser.newPage();
+      
+      // Navigate to URL with timeout
+      console.log(`Navigating to: ${normalizedUrl}`);
+      await page.goto(normalizedUrl, {
+        waitUntil: 'networkidle2',
+        timeout: 30000
+      });
+      
+      // Wait a moment for any lazy-loaded images
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Extract image URLs from the page
+      const imageUrls = await page.evaluate(() => {
+        const images = Array.from(document.querySelectorAll('img'));
+        return images
+          .map(img => {
+            const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+            return src;
+          })
+          .filter(src => {
+            if (!src) return false;
+            // Filter out common non-content images
+            const lowercaseSrc = src.toLowerCase();
+            return !lowercaseSrc.includes('spacer') &&
+                   !lowercaseSrc.includes('pixel') &&
+                   !lowercaseSrc.includes('blank') &&
+                   !lowercaseSrc.includes('loading') &&
+                   !lowercaseSrc.includes('spinner') &&
+                   !lowercaseSrc.includes('icon') &&
+                   !lowercaseSrc.includes('logo') &&
+                   !lowercaseSrc.endsWith('.svg') &&
+                   src.length > 20; // Exclude very short URLs (likely not content images)
+          })
+          .slice(0, 10); // Get first 10 images
+      });
+      
+      console.log(`Extracted ${imageUrls.length} images from website`);
+      return imageUrls;
+      
+    } finally {
+      // Always close the browser
+      await browser.close();
+      console.log('Browser closed after image extraction');
+    }
+  } catch (error) {
+    console.error('Failed to extract website images:', error);
+    return [];
   }
 }
 
