@@ -344,9 +344,54 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
 }
 
 /**
+ * Downloads and saves a remote logo as a local file
+ * @param logoUrl The URL of the logo to download
+ * @param websiteUrl The website URL (used for naming)
+ * @returns Promise resolving to the local path of the saved logo, or null if failed
+ */
+async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise<string | null> {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const crypto = await import('crypto');
+    
+    // Create logos directory if it doesn't exist
+    const logosDir = path.join(process.cwd(), 'public', 'logos');
+    if (!fs.existsSync(logosDir)) {
+      fs.mkdirSync(logosDir, { recursive: true });
+    }
+    
+    // Generate filename based on website
+    const websiteHash = crypto.createHash('md5').update(websiteUrl).digest('hex').substring(0, 8);
+    const extension = logoUrl.includes('.svg') ? 'svg' : 'png';
+    const filename = `logo_${websiteHash}.${extension}`;
+    const filepath = path.join(logosDir, filename);
+    const publicPath = `/logos/${filename}`;
+    
+    // Download the logo
+    const response = await fetch(logoUrl);
+    if (!response.ok) {
+      console.error(`Failed to download logo: ${response.statusText}`);
+      return null;
+    }
+    
+    // Save the logo
+    const buffer = await response.buffer();
+    fs.writeFileSync(filepath, buffer);
+    
+    console.log(`Downloaded and saved logo: ${publicPath}`);
+    return publicPath;
+    
+  } catch (error) {
+    console.error('Error downloading logo:', error);
+    return null;
+  }
+}
+
+/**
  * Extracts a company logo from a website
  * @param websiteUrl The URL of the website to extract the logo from
- * @returns Promise resolving to the URL of the logo image, or null if not found
+ * @returns Promise resolving to the local path of the downloaded logo, or null if not found
  */
 export async function extractLogoFromWebsite(websiteUrl: string): Promise<string | null> {
   try {
@@ -424,7 +469,9 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
             continue; // Try next pattern
           }
           console.log(`Logo URL is accessible`);
-          return logoUrl;
+          // Download and save the logo locally
+          const localLogoPath = await downloadAndSaveLogo(logoUrl, websiteUrl);
+          return localLogoPath || logoUrl; // Fallback to remote URL if download fails
         } catch (logoError) {
           console.error(`Error checking logo URL: ${logoError}`);
           continue; // Try next pattern
