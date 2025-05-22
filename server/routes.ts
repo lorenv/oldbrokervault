@@ -75,9 +75,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      // Debug: Check raw request body first
-      console.log("Raw request body keys:", Object.keys(req.body));
-      console.log("Raw selectedImages:", req.body.selectedImages);
+      // Debug: Check EVERYTHING in the request
+      console.log("=== CIM REQUEST DEBUG START ===");
+      console.log("Request body keys:", Object.keys(req.body));
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
+      console.log("SelectedImages specifically:", req.body.selectedImages);
+      console.log("=== CIM REQUEST DEBUG END ===");
       
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
