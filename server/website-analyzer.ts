@@ -314,8 +314,8 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
         timeout: 30000 // 30 second timeout
       });
       
-      // Wait for content to load
-      await page.waitForTimeout(2000);
+      // Wait for content to load - use setTimeout instead of waitForTimeout
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       console.log('Searching for logo elements on the page...');
       
