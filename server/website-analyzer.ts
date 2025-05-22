@@ -284,12 +284,17 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise
       fs.mkdirSync(logosDir, { recursive: true });
     }
     
-    // Generate filename based on website
+    // Generate filename based on website - always use PNG for better compatibility
     const websiteHash = crypto.createHash('md5').update(websiteUrl).digest('hex').substring(0, 8);
-    const extension = logoUrl.includes('.svg') ? 'svg' : 'png';
-    const filename = `logo_${websiteHash}.${extension}`;
+    const filename = `logo_${websiteHash}.png`;
     const filepath = path.join(logosDir, filename);
     const publicPath = `/logos/${filename}`;
+    
+    // Check if converted logo already exists
+    if (fs.existsSync(filepath)) {
+      console.log(`Converted logo already exists: ${publicPath}`);
+      return publicPath;
+    }
     
     // Download the logo
     const response = await fetch(logoUrl);
@@ -298,12 +303,57 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise
       return null;
     }
     
-    // Save the logo
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    fs.writeFileSync(filepath, buffer);
     
-    console.log(`Downloaded and saved logo: ${publicPath}`);
+    // If it's an SVG, convert to PNG for better document compatibility
+    if (logoUrl.includes('.svg') || logoUrl.includes('svg')) {
+      try {
+        console.log('Converting SVG logo to PNG for document compatibility...');
+        const puppeteer = await import('puppeteer');
+        
+        const browser = await puppeteer.launch({
+          headless: true,
+          executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        });
+        
+        const page = await browser.newPage();
+        await page.setViewport({ width: 400, height: 400 });
+        
+        // Create SVG data URL
+        const svgContent = buffer.toString('utf8');
+        const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`;
+        
+        await page.goto(dataUrl);
+        
+        // Take screenshot as PNG with transparent background
+        const pngBuffer = await page.screenshot({
+          type: 'png',
+          omitBackground: true,
+          clip: { x: 0, y: 0, width: 400, height: 400 }
+        });
+        
+        await browser.close();
+        
+        // Save the converted PNG
+        fs.writeFileSync(filepath, pngBuffer);
+        console.log(`Successfully converted SVG to PNG: ${publicPath}`);
+        
+      } catch (conversionError) {
+        console.error('SVG conversion failed:', conversionError);
+        // Fallback: save as original file with different name
+        const fallbackFilename = `logo_${websiteHash}.svg`;
+        const fallbackPath = path.join(logosDir, fallbackFilename);
+        fs.writeFileSync(fallbackPath, buffer);
+        return `/logos/${fallbackFilename}`;
+      }
+    } else {
+      // Save non-SVG logos directly
+      fs.writeFileSync(filepath, buffer);
+      console.log(`Downloaded and saved logo: ${publicPath}`);
+    }
+    
     return publicPath;
     
   } catch (error) {
