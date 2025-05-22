@@ -167,10 +167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Analyze the website
-          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+// DISABLED:           const websiteAnalysis = await analyzeWebsite(normalizedUrl);
           
           // Enhance the CIM with website data
-          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+// DISABLED:           analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
         } catch (error) {
           console.error("Website analysis error:", error);
           // Continue with just the transcript analysis, but log the error
