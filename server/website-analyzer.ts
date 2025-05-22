@@ -130,12 +130,17 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     console.log('Launching headless browser for image extraction...');
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: '/usr/bin/chromium',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ]
     });
     
