@@ -772,7 +772,7 @@ export function formatTextContent(analysis: any): string {
   return sections.join('\n\n');
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
   
@@ -857,6 +857,42 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 100, after: 200 }
     })
   );
+
+  // Business Website section
+  if (websiteUrl) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Business Website",
+        heading: docx.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      })
+    );
+    
+    paragraphs.push(
+      new docx.Paragraph({
+        text: websiteUrl,
+        spacing: { before: 100, after: 200 }
+      })
+    );
+  }
+
+  // Selected Images section
+  if (selectedImages && selectedImages.length > 0) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Business Images",
+        heading: docx.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      })
+    );
+    
+    paragraphs.push(
+      new docx.Paragraph({
+        text: `This document includes ${selectedImages.length} selected business images from the company website.`,
+        spacing: { before: 100, after: 200 }
+      })
+    );
+  }
   
   // INVESTMENT HIGHLIGHTS
   paragraphs.push(
@@ -1235,7 +1271,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise((resolve, reject) => {
