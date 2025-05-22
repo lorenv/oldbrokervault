@@ -134,11 +134,6 @@ export function CimGenerator() {
     mutationFn: async (data: FormValues) => {
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
-      if (hasWebsiteUrl) {
-        setWebsiteAnalysisStage('validating');
-        // Artificial delay to show validation step
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
       
       if (data.transcript.length > 4000) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
@@ -152,9 +147,6 @@ export function CimGenerator() {
           if (selectedImages.length > 0) {
             formData.append('selectedImages', JSON.stringify(selectedImages));
           }
-          setWebsiteAnalysisStage('connecting');
-          // Artificial delay to show connection step
-          await new Promise(resolve => setTimeout(resolve, 1500));
         }
         
         if (currentDocId) {
