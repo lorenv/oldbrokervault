@@ -75,11 +75,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // Debug: Check raw request body first
+      console.log("Raw request body keys:", Object.keys(req.body));
+      console.log("Raw selectedImages:", req.body.selectedImages);
+      
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
       
       // Debug: Check if selectedImages are present in regular route
       console.log("Selected images in regular route:", req.body.selectedImages);
+      console.log("Selected images type:", typeof req.body.selectedImages);
 
       // Check if this is a regeneration request
       if (docId) {
