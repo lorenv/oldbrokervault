@@ -201,13 +201,13 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 }
 
-export async function analyzeCimTranscript(transcript: string): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string, directions?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
     const result = await makePerplexityRequest([
       {
         role: "system",
-        content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business in a clear Q&A style format. Focus especially on:
+        content: directions || `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business in a clear Q&A style format. Focus especially on:
 
 1. Creating a robust business summary that:
    - Spans at least 4-6 sentences with specific details and metrics (revenues, growth rates, etc.)
