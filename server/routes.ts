@@ -75,9 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      console.log("Received CIM request body:", JSON.stringify(req.body, null, 2));
       const data = insertCimDocumentSchema.parse(req.body);
-      console.log("Parsed CIM data:", JSON.stringify(data, null, 2));
       const docId = req.body.docId; // For regeneration
 
       // Check if this is a regeneration request
@@ -142,7 +140,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
-      let screenshotUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
@@ -156,21 +153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Logo extraction error:", logoError);
             // Continue without the logo
           }
-
-          // Try to capture website screenshot
-          try {
-// DISABLED:             screenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
-// DISABLED:             console.log("Captured screenshot URL:", screenshotUrl);
-          } catch (screenshotError) {
-            console.error("Screenshot capture error:", screenshotError);
-            // Continue without the screenshot
-          }
           
           // Analyze the website
-// DISABLED:           const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
           
           // Enhance the CIM with website data
-// DISABLED:           analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
         } catch (error) {
           console.error("Website analysis error:", error);
           // Continue with just the transcript analysis, but log the error
@@ -181,7 +169,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...data,
         websiteUrl: data.websiteUrl,
         logoUrl,
-        websiteScreenshotUrl: screenshotUrl,
         analysis,
         regenerationCount: 0
       });
@@ -211,7 +198,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
-      let screenshotUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
@@ -224,15 +210,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } catch (logoError) {
             console.error("Logo extraction error:", logoError);
             // Continue without the logo
-          }
-
-          // Try to capture website screenshot
-          try {
-            screenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
-            console.log("Captured screenshot URL:", screenshotUrl);
-          } catch (screenshotError) {
-            console.error("Screenshot capture error:", screenshotError);
-            // Continue without the screenshot
           }
           
           // Analyze the website
@@ -250,7 +227,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...data,
         websiteUrl: data.websiteUrl,
         logoUrl,
-        websiteScreenshotUrl: screenshotUrl,
         analysis,
         regenerationCount: 0
       });
@@ -498,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Generating Word document with logo...");
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteScreenshotUrl);
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -548,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Generating PDF document with title and logo...");
       // Pass the title and logo URL to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteScreenshotUrl);
+      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
@@ -637,10 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log("Exporting to Google Docs with logo and screenshot...");
-      // Pass logo and screenshot URLs to Google Docs export
-      const url = await createGoogleDoc(user.id, doc.title, doc.analysis, doc.logoUrl, doc.websiteScreenshotUrl);
-      console.log("Google Docs export successful, URL:", url);
+      const url = await createGoogleDoc(user.id, doc.title, doc.analysis);
       res.json({ url });
     } catch (error) {
       console.error("Google Docs export error:", error);

@@ -131,9 +131,6 @@ export class DatabaseStorage implements IStorage {
         directions: doc.directions,
         regenerationCount: doc.regenerationCount,
         analysis: doc.analysis,
-        websiteUrl: doc.websiteUrl,
-        logoUrl: doc.logoUrl,
-        websiteScreenshotUrl: doc.websiteScreenshotUrl,
       })
       .returning();
 
