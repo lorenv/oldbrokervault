@@ -37,6 +37,9 @@ export function CimGenerator() {
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
   const [websiteAnalysisStage, setWebsiteAnalysisStage] = useState<string | null>(null);
+  const [extractedImages, setExtractedImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isExtractingImages, setIsExtractingImages] = useState(false);
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -82,6 +85,50 @@ export function CimGenerator() {
       websiteUrl: ""
     }
   });
+
+  // Function to extract images from website
+  const extractImages = async (websiteUrl: string) => {
+    if (!websiteUrl.trim()) return;
+    
+    setIsExtractingImages(true);
+    try {
+      const encodedUrl = encodeURIComponent(websiteUrl);
+      const response = await apiRequest("GET", `/api/website-images/${encodedUrl}`);
+      const data = await response.json();
+      
+      if (data.images && data.images.length > 0) {
+        setExtractedImages(data.images);
+        toast({
+          title: "Images Found!",
+          description: `Found ${data.images.length} images from the website`,
+        });
+      } else {
+        toast({
+          title: "No Images Found",
+          description: "No suitable images were found on this website",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error extracting images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to extract images from website",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingImages(false);
+    }
+  };
+
+  // Toggle image selection
+  const toggleImageSelection = (imageUrl: string) => {
+    setSelectedImages(prev => 
+      prev.includes(imageUrl)
+        ? prev.filter(url => url !== imageUrl)
+        : [...prev, imageUrl]
+    );
+  };
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
