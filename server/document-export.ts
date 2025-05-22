@@ -1850,18 +1850,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
       
-      // Add page numbers to all pages
-      const range = doc.bufferedPageRange();
-      for (let i = 0; i < range.count; i++) {
-        doc.switchToPage(i);
-        doc.fontSize(8)
-           .text(
-             `Page ${i + 1} of ${range.count}`,
-             50,
-             doc.page.height - 50,
-             { align: 'center' }
-           );
-      }
+      // Page numbering removed to simplify PDF and prevent duplicate blank pages
       
       console.log("Finalizing PDF document generation...");
       // Fix for blank pages: Ensure all content is properly rendered before ending the document
