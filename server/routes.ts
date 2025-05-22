@@ -159,8 +159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Try to capture website screenshot
           try {
-            screenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
-            console.log("Captured screenshot URL:", screenshotUrl);
+// DISABLED:             screenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
+// DISABLED:             console.log("Captured screenshot URL:", screenshotUrl);
           } catch (screenshotError) {
             console.error("Screenshot capture error:", screenshotError);
             // Continue without the screenshot
