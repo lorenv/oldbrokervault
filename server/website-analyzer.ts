@@ -132,7 +132,6 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     
     // Create screenshots directory if it doesn't exist
     const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
-    console.log(`Ensuring screenshots directory exists: ${screenshotsDir}`);
     if (!fs.existsSync(screenshotsDir)) {
       console.log(`Creating screenshots directory: ${screenshotsDir}`);
       fs.mkdirSync(screenshotsDir, { recursive: true });
@@ -141,85 +140,47 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     const screenshotPath = path.join(screenshotsDir, screenshotFilename);
     const publicPath = `/screenshots/${screenshotFilename}`;
     
-    console.log(`Screenshot will be saved at: ${screenshotPath}`);
-    
-    // Check if screenshot already exists - if so, return the path
-    if (fs.existsSync(screenshotPath)) {
-      console.log(`Screenshot already exists, reusing: ${screenshotPath}`);
-      return publicPath;
-    }
-    
-    // Launch puppeteer with explicit options for production environment
+    // Launch puppeteer browser
     console.log('Launching headless browser...');
-    const launchOptions = {
+    const browser = await puppeteer.launch({
       headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--single-process'
-      ],
-      // Use Chromium in Replit environment
-      executablePath: process.env.CHROME_PATH || '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium'
-    };
-    
-    console.log('Browser launch options:', JSON.stringify(launchOptions, null, 2));
-    const browser = await puppeteer.launch(launchOptions);
+        '--disable-gpu'
+      ]
+    });
     
     try {
-      // Open a new page with timeout
-      console.log('Opening browser page...');
+      // Open a new page
       const page = await browser.newPage();
       
-      // Set viewport size - wider aspect ratio for a nice rectangular shape
+      // Set viewport size
       await page.setViewport({
         width: 1280,
-        height: 720, // 16:9 aspect ratio for a standard rectangular shape
+        height: 800,
         deviceScaleFactor: 1
       });
       
-      // Set a reasonable timeout for navigation
-      console.log(`Navigating to URL: ${normalizedUrl}`);
+      // Navigate to URL with timeout
+      console.log(`Navigating to: ${normalizedUrl}`);
       await page.goto(normalizedUrl, {
         waitUntil: 'networkidle2',
-        timeout: 45000 // 45 second timeout
+        timeout: 30000
       });
       
-      // Wait for content to load and render
-      console.log('Waiting for page to render completely...');
-      await page.waitForTimeout(3000);
+      // Wait a moment for any animations or lazyloaded content
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Take screenshot with rectangular dimensions
+      // Take screenshot
       console.log(`Taking screenshot and saving to: ${screenshotPath}`);
       await page.screenshot({
         path: screenshotPath,
         fullPage: false,
-        type: 'png',
-        clip: {
-          x: 0,
-          y: 0,
-          width: 1280,
-          height: 720
-        }
+        type: 'png'
       });
-      
-      // Verify the screenshot was created
-      if (fs.existsSync(screenshotPath)) {
-        const stats = fs.statSync(screenshotPath);
-        console.log(`Screenshot created successfully. File size: ${stats.size} bytes`);
-        
-        if (stats.size === 0) {
-          console.error('Screenshot file exists but is empty, something went wrong');
-          return null;
-        }
-      } else {
-        console.error('Screenshot file was not created');
-        return null;
-      }
       
       console.log('Screenshot captured successfully');
       return publicPath;
@@ -229,16 +190,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
       console.log('Browser closed');
     }
   } catch (error) {
-    console.error('Failed to capture website screenshot:');
-    if (error instanceof Error) {
-      console.error(`Error type: ${error.name}`);
-      console.error(`Error message: ${error.message}`);
-      console.error(`Error stack: ${error.stack}`);
-    } else {
-      console.error('Unknown error type:', error);
-    }
-    
-    // Return null on failure
+    console.error('Failed to capture website screenshot:', error);
     return null;
   }
 }
@@ -249,228 +201,125 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
  * @returns Promise resolving to the URL of the logo image, or null if not found
  */
 export async function extractLogoFromWebsite(websiteUrl: string): Promise<string | null> {
-  console.log(`Starting enhanced logo extraction for website: ${websiteUrl}`);
-  
   try {
-    // Normalize and validate URL
+    console.log(`Attempting to extract logo from website: ${websiteUrl}`);
     const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log(`Using normalized URL: ${normalizedUrl}`);
+    console.log(`Normalized URL: ${normalizedUrl}`);
+    
+    // Fetch the website HTML
+    console.log(`Fetching website HTML...`);
+    const response = await fetch(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const html = await response.text();
+    console.log(`Fetched HTML content, length: ${html.length} bytes`);
     
     // Extract the base URL for resolving relative paths
     const urlObj = new URL(normalizedUrl);
     const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
     console.log(`Base URL: ${baseUrl}`);
     
-    // Generate a unique filename for the logo
-    const urlHash = crypto.createHash('md5').update(normalizedUrl).digest('hex');
-    const logoFilename = `logo-${urlHash}.png`;
+    // Common logo patterns to search for
+    const logoPatterns = [
+      // Common logo class and ID patterns
+      /<img[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*src="([^"]+)"[^>]*>/i,
+      /<img[^>]*src="([^"]+)"[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>/i,
+      // Alt text containing "logo"
+      /<img[^>]*alt="[^"]*(?:logo|brand)[^"]*"[^>]*src="([^"]+)"[^>]*>/i,
+      /<img[^>]*src="([^"]+)"[^>]*alt="[^"]*(?:logo|brand)[^"]*"[^>]*>/i,
+      // Common logo filenames
+      /<img[^>]*src="([^"]*(?:logo|brand|header-logo)[^"]*\.(?:png|jpg|jpeg|svg|webp))"[^>]*>/i,
+      // Logo in header or navigation
+      /<header[^>]*>(?:(?!<\/header>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/header>).)*?<\/header>/is,
+      /<nav[^>]*>(?:(?!<\/nav>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/nav>).)*?<\/nav>/is,
+      // Link with logo class containing an image
+      /<a[^>]*(?:class|id)="[^"]*(?:logo|brand)[^"]*"[^>]*>(?:(?!<\/a>).)*?<img[^>]*src="([^"]+)"[^>]*>(?:(?!<\/a>).)*?<\/a>/is
+    ];
     
-    // Create logos directory if it doesn't exist
-    const logosDir = path.join(process.cwd(), 'public', 'logos');
-    if (!fs.existsSync(logosDir)) {
-      console.log(`Creating logos directory: ${logosDir}`);
-      fs.mkdirSync(logosDir, { recursive: true });
-    }
+    console.log(`Searching for logo using ${logoPatterns.length} different patterns...`);
     
-    const logoPath = path.join(logosDir, logoFilename);
-    const publicPath = `/logos/${logoFilename}`;
-    
-    // Check if we've already extracted this logo
-    if (fs.existsSync(logoPath)) {
-      console.log(`Logo already extracted, reusing: ${logoPath}`);
-      return publicPath;
-    }
-    
-    // Launch puppeteer to extract the logo
-    console.log('Launching headless browser for logo extraction...');
-    const launchOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--single-process'
-      ],
-      executablePath: process.env.CHROME_PATH || undefined
-    };
-    
-    console.log('Browser launch options:', JSON.stringify(launchOptions, null, 2));
-    const browser = await puppeteer.launch(launchOptions);
-    
-    try {
-      // Open a new page
-      console.log('Opening browser page...');
-      const page = await browser.newPage();
-      
-      // Set a reasonable timeout for navigation
-      console.log(`Navigating to website: ${normalizedUrl}`);
-      await page.goto(normalizedUrl, {
-        waitUntil: 'networkidle2',
-        timeout: 30000 // 30 second timeout
-      });
-      
-      // Wait for content to load - use setTimeout instead of waitForTimeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Searching for logo elements on the page...');
-      
-      // Extract logo using DOM selectors - a more robust approach than regex
-      const logoUrl = await page.evaluate(({ baseUrl }) => {
-        // Function to convert relative URLs to absolute
-        const resolveUrl = (url) => {
-          if (url.startsWith('//')) return window.location.protocol + url;
-          if (url.startsWith('/')) return baseUrl + url;
-          if (!url.startsWith('http')) return baseUrl + '/' + url;
-          return url;
-        };
+    // Try each pattern until we find a match
+    for (let i = 0; i < logoPatterns.length; i++) {
+      console.log(`Trying pattern ${i+1}...`);
+      const pattern = logoPatterns[i];
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        let logoUrl = match[1];
+        console.log(`Pattern ${i+1} matched! Raw logo URL: ${logoUrl}`);
         
-        // Array of logo selectors in order of preference
-        const logoSelectors = [
-          // Common logo classes and IDs
-          'img.logo', '.logo img', '#logo', '.logo', 'img.brand-logo', '.brand-logo',
-          // Header and navigation logos
-          'header .logo img', 'header img.logo', 'nav .logo img', '.navbar-brand img',
-          // Logo in link
-          'a.logo img', 'a.brand img',
-          // Alt text containing "logo"
-          'img[alt*="logo" i]', 'img[alt*="brand" i]',
-          // Common parent containers
-          '.site-logo img', '.header-logo img', '.main-header img'
-        ];
-        
-        // Try each selector
-        for (const selector of logoSelectors) {
-          const logoElement = document.querySelector(selector);
-          if (logoElement && logoElement.src) {
-            return resolveUrl(logoElement.src);
-          }
+        // Resolve relative URLs
+        if (logoUrl.startsWith('//')) {
+          logoUrl = urlObj.protocol + logoUrl;
+          console.log(`Converted protocol-relative URL to: ${logoUrl}`);
+        } else if (logoUrl.startsWith('/')) {
+          logoUrl = baseUrl + logoUrl;
+          console.log(`Converted root-relative URL to: ${logoUrl}`);
+        } else if (!logoUrl.startsWith('http')) {
+          logoUrl = baseUrl + '/' + logoUrl;
+          console.log(`Converted relative URL to: ${logoUrl}`);
         }
         
-        // If no dedicated logo class/id, try to find logos by filename patterns
-        const allImages = Array.from(document.querySelectorAll('img'));
-        for (const img of allImages) {
-          if (img.src) {
-            const src = img.src.toLowerCase();
-            if (src.includes('logo') || src.includes('brand') || (img.alt && img.alt.toLowerCase().includes('logo'))) {
-              // Found a potential logo by filename or alt text
-              return resolveUrl(img.src);
-            }
-          }
-        }
-        
-        // Try SVG logos directly in the HTML
-        const svgLogo = document.querySelector('svg.logo, .logo svg, svg[id*="logo"]');
-        if (svgLogo) {
-          // For SVG logos, we need to return a marker so we know to take a screenshot of this element
-          // We can't directly access the SVG source easily
-          return 'SVG_LOGO_FOUND';
-        }
-        
-        // If no logo found in standard elements, try favicon
-        const favicon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
-        if (favicon && favicon.href) {
-          return resolveUrl(favicon.href);
-        }
-        
-        // As a last resort, check for default favicon
-        return baseUrl + '/favicon.ico';
-      }, { baseUrl });
-      
-      console.log('Logo URL or marker found:', logoUrl);
-      
-      // Handle special case for inline SVG logos
-      if (logoUrl === 'SVG_LOGO_FOUND') {
-        console.log('Inline SVG logo detected, taking screenshot of logo element...');
-        
-        // Try to find and screenshot the logo SVG
-        const logoElement = await page.$('svg.logo, .logo svg, svg[id*="logo"], .logo, #logo, header .logo');
-        if (logoElement) {
-          await logoElement.screenshot({
-            path: logoPath,
-            omitBackground: true
-          });
-          
-          console.log(`Captured SVG logo screenshot to: ${logoPath}`);
-          return publicPath;
-        } else {
-          console.log('Failed to find SVG logo element for screenshot');
-        }
-      } else if (logoUrl) {
-        // For image-based logos, download the image
+        // Verify the logo URL is accessible
         try {
-          console.log(`Attempting to download logo from: ${logoUrl}`);
-          
-          // Use page context to fetch the image to handle cookies & sessions properly
-          const imageBuffer = await page.goto(logoUrl, { timeout: 10000 })
-            .then(response => {
-              if (!response.ok()) throw new Error(`Failed to fetch logo: ${response.status()}`);
-              return response.buffer();
-            });
-          
-          // Save the image
-          fs.writeFileSync(logoPath, imageBuffer);
-          console.log(`Successfully saved logo to: ${logoPath}`);
-          
-          return publicPath;
-        } catch (imgError) {
-          console.error('Error downloading logo image:', imgError);
-          
-          // If fetching directly fails, take screenshot of logo element as fallback
-          console.log('Attempting to screenshot logo element as fallback...');
-          const logoImgElement = await page.$('img.logo, .logo img, #logo img, header .logo img, .navbar-brand img');
-          if (logoImgElement) {
-            await logoImgElement.screenshot({
-              path: logoPath,
-              omitBackground: true
-            });
-            console.log(`Captured logo element screenshot to: ${logoPath}`);
-            return publicPath;
+          console.log(`Checking if logo URL is accessible: ${logoUrl}`);
+          const logoResponse = await fetch(logoUrl, { method: 'HEAD' });
+          if (!logoResponse.ok) {
+            console.log(`Logo URL returned status ${logoResponse.status}: ${logoResponse.statusText}`);
+            continue; // Try next pattern
           }
+          console.log(`Logo URL is accessible`);
+          return logoUrl;
+        } catch (logoError) {
+          console.error(`Error checking logo URL: ${logoError}`);
+          continue; // Try next pattern
         }
       }
-      
-      // If we get here, try getting the favicon as a last resort
-      try {
-        console.log('Attempting to get favicon as fallback...');
-        const faviconUrl = await page.evaluate(() => {
-          const favicon = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
-          return favicon ? favicon.href : window.location.origin + '/favicon.ico';
-        });
-        
-        if (faviconUrl) {
-          console.log(`Downloading favicon from: ${faviconUrl}`);
-          const faviconBuffer = await page.goto(faviconUrl, { timeout: 5000 })
-            .then(response => response.ok() ? response.buffer() : null);
-          
-          if (faviconBuffer) {
-            fs.writeFileSync(logoPath, faviconBuffer);
-            console.log(`Saved favicon as logo: ${logoPath}`);
-            return publicPath;
-          }
-        }
-      } catch (faviconError) {
-        console.error('Error getting favicon:', faviconError);
-      }
-      
-      console.log('No logo could be found or extracted');
-      return null;
-    } finally {
-      // Always close the browser
-      await browser.close();
-      console.log('Browser closed after logo extraction');
     }
+    
+    // If we couldn't find a logo, try one last pattern for favicon
+    const faviconMatch = html.match(/<link[^>]*rel="(?:icon|shortcut icon)"[^>]*href="([^"]+)"[^>]*>/i);
+    if (faviconMatch && faviconMatch[1]) {
+      let faviconUrl = faviconMatch[1];
+      
+      // Resolve relative URLs
+      if (faviconUrl.startsWith('//')) {
+        faviconUrl = urlObj.protocol + faviconUrl;
+      } else if (faviconUrl.startsWith('/')) {
+        faviconUrl = baseUrl + faviconUrl;
+      } else if (!faviconUrl.startsWith('http')) {
+        faviconUrl = baseUrl + '/' + faviconUrl;
+      }
+      
+      console.log(`Found favicon as fallback: ${faviconUrl}`);
+      return faviconUrl;
+    }
+    
+    // Default favicon location as last resort
+    const defaultFavicon = `${baseUrl}/favicon.ico`;
+    
+    // Check if default favicon exists
+    try {
+      const faviconResponse = await fetch(defaultFavicon, { method: 'HEAD' });
+      if (faviconResponse.ok) {
+        console.log(`Using default favicon location: ${defaultFavicon}`);
+        return defaultFavicon;
+      }
+    } catch (error) {
+      console.error(`Error checking default favicon: ${error.message}`);
+    }
+    
+    console.log("No logo found on website");
+    return null;
   } catch (error) {
-    console.error('Error during logo extraction:');
-    if (error instanceof Error) {
-      console.error(`${error.name}: ${error.message}`);
-      console.error(`Stack: ${error.stack}`);
-    } else {
-      console.error('Unknown error:', error);
-    }
+    console.error(`Error extracting logo: ${error.message}`);
     return null;
   }
 }
@@ -513,17 +362,12 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
       Provide factual, verifiable information only - do not invent details.
     `;
 
-    // Add timeout protection to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
     const response = await fetch(PERPLEXITY_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`
       },
-      signal: controller.signal,
       body: JSON.stringify({
         model: "llama-3.1-sonar-small-128k-online",
         messages: [
@@ -543,11 +387,10 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
         return_images: false,
         return_related_questions: false,
         stream: false,
-        frequency_penalty: 0
+        frequency_penalty: 0,
+        response_format: { type: "json_object" }
       })
     });
-
-    clearTimeout(timeoutId); // Clear timeout once request completes
 
     if (!response.ok) {
       // Try to get more detailed error information

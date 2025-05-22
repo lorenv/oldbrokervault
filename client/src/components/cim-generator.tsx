@@ -467,48 +467,20 @@ ${analysis.team.ownerResponsibilities}
                     </div>
                   </div>
                   
-                  {/* Website URL and Screenshot Display - After Background section */}
+                  {/* Website URL Display - After Background section */}
                   {form.getValues('websiteUrl') && (
                     <div className="mb-4">
-                      {/* Display logo if available */}
-                      {analysis.logoUrl && (
-                        <div className="mb-4 flex justify-center">
-                          <img 
-                            src={analysis.logoUrl} 
-                            alt="Business Logo" 
-                            className="max-h-28 object-contain mb-2"
-                            style={{
-                              maxWidth: '250px'
-                            }}
-                          />
-                        </div>
-                      )}
-                    
                       <h3 className="text-lg font-semibold mb-2">Business Website</h3>
                       <a 
                         href={form.getValues('websiteUrl').startsWith('http') ? form.getValues('websiteUrl') : `https://${form.getValues('websiteUrl')}`} 
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:underline mb-2 inline-block"
+                        className="text-primary hover:underline"
                       >
                         {form.getValues('websiteUrl')}
                       </a>
                       
-                      {/* Display website screenshot if available */}
-                      {analysis.websiteScreenshotUrl && (
-                        <div className="mt-3 mb-3">
-                          <img 
-                            src={analysis.websiteScreenshotUrl} 
-                            alt="Website Screenshot" 
-                            className="border rounded-md shadow-sm w-full max-w-3xl mt-2"
-                            style={{ 
-                              aspectRatio: '16/9',
-                              objectFit: 'cover',
-                              objectPosition: 'top center'
-                            }}
-                          />
-                        </div>
-                      )}
+                      {/* We'll implement screenshots in next phase */}
                     </div>
                   )}
 

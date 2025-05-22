@@ -69,21 +69,12 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null, websiteScreenshotUrl?: string | null): string {
+export function generateHtml(analysis: any, logoUrl?: string | null): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
-  ${logoUrl ? `<div style="text-align: center; margin-bottom: 25px; padding: 15px;">
-    <img src="${logoUrl}" alt="Business Logo" style="max-width: 250px; max-height: 120px; object-fit: contain;">
-  </div>` : ''}
+  ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px;"></div>` : ''}
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
-  
-  ${websiteScreenshotUrl ? `
-  <div style="margin-bottom: 30px; text-align: center;">
-    <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Website Preview</h3>
-    <img src="${websiteScreenshotUrl}" alt="Website Screenshot" style="max-width: 100%; height: auto; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-  </div>
-  ` : ''}
 `;
 
   // Business Overview Section with Q&A style
@@ -113,20 +104,6 @@ export function generateHtml(analysis: any, logoUrl?: string | null, websiteScre
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.growthHistory)}</td>
         </tr>
       </table>
-      
-      ${analysis.websiteUrl ? `
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
-      <div style="margin-bottom: 15px;">
-        <a href="${analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`}" style="color: #3b82f6; text-decoration: underline;" target="_blank">
-          ${analysis.websiteUrl}
-        </a>
-        ${websiteScreenshotUrl ? `
-        <div style="margin-top: 12px; margin-bottom: 20px;">
-          <img src="${websiteScreenshotUrl}" alt="Website Screenshot" style="width: 100%; max-width: 700px; border: 1px solid #e5e7eb; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        </div>
-        ` : ''}
-      </div>
-      ` : ''}
       
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Summary</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
@@ -776,7 +753,7 @@ export function formatTextContent(analysis: any): string {
   return sections.join('\n\n');
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteScreenshotUrl?: string | null): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
   
@@ -795,8 +772,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               new docx.ImageRun({
                 data: Buffer.from(imageBuffer),
                 transformation: {
-                  width: 250,
-                  height: 120
+                  width: 200,
+                  height: 100
                 },
                 type: "png"
               })
@@ -809,58 +786,6 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     } catch (error) {
       console.error("Error adding logo to Word document:", error);
       // Continue without logo if there's an error
-    }
-  }
-  
-  // Add website screenshot if available
-  if (websiteScreenshotUrl) {
-    try {
-      console.log("Adding website screenshot to Word document:", websiteScreenshotUrl);
-      
-      // Add heading for website preview
-      paragraphs.push(
-        new docx.Paragraph({
-          text: "Website Preview",
-          heading: docx.HeadingLevel.HEADING_3,
-          alignment: docx.AlignmentType.CENTER,
-          spacing: {
-            before: 400,
-            after: 200
-          }
-        })
-      );
-      
-      // Fetch the screenshot image
-      const response = await fetch(websiteScreenshotUrl);
-      if (response.ok) {
-        const imageBuffer = await response.arrayBuffer();
-        
-        // Add the screenshot to the document with 16:9 aspect ratio
-        paragraphs.push(
-          new docx.Paragraph({
-            children: [
-              new docx.ImageRun({
-                data: Buffer.from(imageBuffer),
-                transformation: {
-                  width: 500,
-                  height: 281  // 16:9 aspect ratio
-                }
-              })
-            ],
-            alignment: docx.AlignmentType.CENTER,
-            spacing: {
-              after: 400
-            }
-          })
-        );
-        
-        console.log("Website screenshot added successfully to Word document");
-      } else {
-        console.error("Failed to fetch website screenshot:", response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error("Error adding website screenshot to Word document:", error);
-      // Continue without screenshot if there's an error
     }
   }
   
@@ -897,60 +822,6 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 100 }
     })
   );
-  
-  // Add website URL and screenshot if available
-  if (analysis.websiteUrl) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: "Business Website",
-        heading: docx.HeadingLevel.HEADING_2,
-        spacing: { before: 200, after: 100 }
-      })
-    );
-    
-    paragraphs.push(
-      new docx.Paragraph({
-        children: [
-          new docx.ExternalHyperlink({
-            children: [
-              new docx.TextRun({
-                text: analysis.websiteUrl,
-                style: "Hyperlink",
-                color: "#3b82f6"
-              })
-            ],
-            link: analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`
-          })
-        ],
-        spacing: { before: 100, after: 200 }
-      })
-    );
-    
-    // Add website screenshot if available
-    if (websiteScreenshotUrl) {
-      try {
-        const fs = require('fs');
-        console.log("Adding website screenshot to Word document");
-        const fullPath = websiteScreenshotUrl.startsWith('/') 
-          ? websiteScreenshotUrl.substring(1) 
-          : websiteScreenshotUrl;
-          
-        // Skip adding screenshot dynamically for now - let's use a placeholder paragraph
-        console.log("Screenshot path:", fullPath, "- will be added in a future update");
-        
-        paragraphs.push(
-          new docx.Paragraph({
-            text: "[Website Screenshot Available in PDF Export]",
-            spacing: { before: 200, after: 200 },
-            alignment: docx.AlignmentType.CENTER,
-            style: "Emphasis"
-          })
-        );
-      } catch (error) {
-        console.error("Error preparing website screenshot for Word document:", error);
-      }
-    }
-  }
   
   // Business summary
   paragraphs.push(
@@ -1345,7 +1216,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteScreenshotUrl?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise((resolve, reject) => {
@@ -1392,39 +1263,13 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         try {
           console.log("Adding logo to PDF:", logoUrl);
           doc.image(logoUrl, {
-            fit: [250, 120],
+            fit: [200, 100],
             align: 'center'
           });
           doc.moveDown(2);
         } catch (logoError) {
           console.error("Failed to add logo to PDF:", logoError);
           // Continue without the logo
-          doc.moveDown(1);
-        }
-      }
-      
-      // Add website screenshot if available
-      if (websiteScreenshotUrl) {
-        try {
-          console.log("Adding website screenshot to PDF:", websiteScreenshotUrl);
-          
-          // Add a heading for the website screenshot
-          doc.font('Helvetica-Bold')
-             .fontSize(16)
-             .text('Website Preview', { align: 'center' });
-          doc.moveDown(1);
-          
-          // Add the screenshot with 16:9 aspect ratio
-          doc.image(websiteScreenshotUrl, {
-            fit: [500, 281], // 16:9 aspect ratio
-            align: 'center'
-          });
-          doc.moveDown(2);
-          
-          console.log("Website screenshot added successfully to PDF");
-        } catch (screenshotError) {
-          console.error("Failed to add website screenshot to PDF:", screenshotError);
-          // Continue without the screenshot
           doc.moveDown(1);
         }
       }
@@ -1545,47 +1390,6 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       if (analysis.story) {
         doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
         doc.text(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
-        
-        // Add website URL and screenshot if available
-        if (analysis.websiteUrl) {
-          doc.moveDown(1);
-          doc.fontSize(14)
-             .text('Business Website', {
-               underline: true
-             });
-          doc.moveDown(0.5);
-          doc.fontSize(12)
-             .fillColor('#3b82f6')
-             .text(analysis.websiteUrl, {
-               link: analysis.websiteUrl.startsWith('http') ? analysis.websiteUrl : `https://${analysis.websiteUrl}`,
-               underline: true
-             })
-             .fillColor('#000000');
-             
-          // Add website screenshot if available
-          if (websiteScreenshotUrl) {
-            try {
-              doc.moveDown(1);
-              // Add screenshot with rectangular dimensions (16:9 aspect ratio)
-              const fullPath = websiteScreenshotUrl.startsWith('/') 
-                ? websiteScreenshotUrl.substring(1) 
-                : websiteScreenshotUrl;
-                
-              console.log(`Adding website screenshot to PDF from path: ${fullPath}`);
-              const screenshotWidth = 450; // Width in PDF
-              const screenshotHeight = 253; // Height with 16:9 aspect ratio
-              
-              doc.image(fullPath, {
-                fit: [screenshotWidth, screenshotHeight],
-                align: 'center'
-              });
-              
-              doc.moveDown(1);
-            } catch (error) {
-              console.error("Error adding website screenshot to PDF:", error);
-            }
-          }
-        }
         
         doc.moveDown(1);
         if (analysis.story.businessSummary) {

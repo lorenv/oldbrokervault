@@ -71,7 +71,6 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   title: true,
   transcript: true,
   directions: true,
-  websiteUrl: true,
 }).extend({
   websiteUrl: z.string().optional(),
   logoUrl: z.string().nullable().optional(),
