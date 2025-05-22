@@ -797,6 +797,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 data: logoBuffer,
                 transformation: {
                   width: 200,
+                  height: 100,
                 },
                 type: "png"
               })
@@ -914,7 +915,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 new docx.ImageRun({
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
-                    width: 400, // Fixed width, let height adjust to maintain ratio
+                    width: 400,
+                    height: 300,
                   },
                   type: 'jpg',
                 }),
@@ -1365,11 +1367,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (logoUrl.startsWith('/logos/')) {
             logoPath = `public${logoUrl}`;
           }
-          doc.image(logoPath, {
-            fit: [200, 100],
-            align: 'center'
-          });
-          doc.moveDown(2);
+          
+          // Check if file exists before trying to add it
+          const fs = await import('fs');
+          if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, {
+              fit: [200, 100],
+              align: 'center'
+            });
+            doc.moveDown(2);
+          } else {
+            console.log("Logo file not found:", logoPath);
+            doc.moveDown(1);
+          }
         } catch (logoError) {
           console.error("Failed to add logo to PDF:", logoError);
           // Continue without the logo
