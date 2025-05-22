@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
-import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
+import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
