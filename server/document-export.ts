@@ -117,6 +117,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
         </div>
       ` : ''}
       
+      <!-- Business Website Section -->
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
+      <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+        <p style="color: #1f2937; margin: 0; line-height: 1.6;">
+          <a href="${analysis.websiteUrl || '#'}" target="_blank" style="color: #6366f1; text-decoration: none;">${analysis.websiteUrl || 'Website information not available'}</a>
+        </p>
+      </div>
+      
       ${analysis.selectedImages && analysis.selectedImages.length > 0 ? `
         <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Images</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
