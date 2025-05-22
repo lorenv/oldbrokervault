@@ -163,23 +163,32 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
         const images = Array.from(document.querySelectorAll('img'));
         return images
           .map(img => {
-            const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-            return src;
+            const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('srcset')?.split(',')[0]?.trim();
+            const width = img.width || parseInt(img.getAttribute('width') || '0');
+            const height = img.height || parseInt(img.getAttribute('height') || '0');
+            return { src, width, height };
           })
-          .filter((src): src is string => {
-            if (!src) return false;
-            // Filter out common non-content images
-            const lowercaseSrc = src.toLowerCase();
-            return !lowercaseSrc.includes('spacer') &&
-                   !lowercaseSrc.includes('pixel') &&
-                   !lowercaseSrc.includes('blank') &&
-                   !lowercaseSrc.includes('loading') &&
-                   !lowercaseSrc.includes('spinner') &&
-                   !lowercaseSrc.includes('icon') &&
-                   !lowercaseSrc.includes('logo') &&
-                   !lowercaseSrc.endsWith('.svg') &&
-                   src.length > 20; // Exclude very short URLs (likely not content images)
+          .filter((item): item is { src: string; width: number; height: number } => {
+            if (!item.src) return false;
+            const lowercaseSrc = item.src.toLowerCase();
+            
+            // Be more inclusive - only filter out obvious utility images
+            const isUtilityImage = lowercaseSrc.includes('spacer') ||
+                                 lowercaseSrc.includes('pixel') ||
+                                 lowercaseSrc.includes('blank.') ||
+                                 lowercaseSrc.includes('loading') ||
+                                 lowercaseSrc.includes('spinner') ||
+                                 lowercaseSrc.includes('1x1') ||
+                                 item.src.length < 15;
+            
+            // Prefer larger images (likely to be content images)
+            const isReasonableSize = (item.width >= 100 && item.height >= 100) || 
+                                   (item.width === 0 && item.height === 0); // Unknown size, include it
+            
+            return !isUtilityImage && isReasonableSize;
           })
+          .sort((a, b) => (b.width * b.height) - (a.width * a.height)) // Sort by size, largest first
+          .map(item => item.src)
           .slice(0, 10); // Get first 10 images
       });
       
