@@ -163,9 +163,8 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
         '--disable-gpu',
         '--single-process'
       ],
-      // Only use executablePath in environments where Chrome might be in a non-standard location
-      // In most production environments, Puppeteer will find Chrome automatically
-      executablePath: process.env.CHROME_PATH || undefined
+      // Use Chromium in Replit environment
+      executablePath: process.env.CHROME_PATH || '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium'
     };
     
     console.log('Browser launch options:', JSON.stringify(launchOptions, null, 2));
