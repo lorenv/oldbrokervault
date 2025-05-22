@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
-import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite, captureWebsiteScreenshot } from "./website-analyzer";
+import { analyzeWebsite, normalizeUrl, enhanceCimWithWebsiteData, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -269,6 +269,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Document deletion error:", error);
       res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
+  // Website images extraction endpoint
+  app.get("/api/website-images/:websiteUrl", async (req, res) => {
+    try {
+      const websiteUrl = decodeURIComponent(req.params.websiteUrl);
+      console.log(`Image extraction request for: ${websiteUrl}`);
+      
+      const imageUrls = await extractWebsiteImages(websiteUrl);
+      
+      res.json({ images: imageUrls });
+    } catch (error) {
+      console.error("Error extracting website images:", error);
+      res.status(500).json({ error: "Failed to extract website images" });
+    }
+  });
+
+  // Download selected images endpoint
+  app.post("/api/download-images", async (req, res) => {
+    try {
+      const { imageUrls, websiteUrl } = req.body;
+      
+      if (!imageUrls || !Array.isArray(imageUrls) || !websiteUrl) {
+        return res.status(400).json({ error: "imageUrls array and websiteUrl are required" });
+      }
+      
+      console.log(`Downloading ${imageUrls.length} images for: ${websiteUrl}`);
+      
+      const savedPaths = await downloadSelectedImages(imageUrls, websiteUrl);
+      
+      res.json({ savedPaths });
+    } catch (error) {
+      console.error("Error downloading images:", error);
+      res.status(500).json({ error: "Failed to download selected images" });
     }
   });
 
