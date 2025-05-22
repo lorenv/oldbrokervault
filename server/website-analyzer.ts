@@ -376,7 +376,8 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise
     }
     
     // Save the logo
-    const buffer = await response.buffer();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     fs.writeFileSync(filepath, buffer);
     
     console.log(`Downloaded and saved logo: ${publicPath}`);

@@ -1558,9 +1558,13 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
                 }
               }
               
-              // Add image with better aspect ratio handling
+              // Add image with proper aspect ratio handling
+              // Get page dimensions for better sizing
+              const pageWidth = doc.page.width - 100; // Leave margin
+              const maxWidth = Math.min(400, pageWidth);
+              
               doc.image(fullImagePath, {
-                fit: [450, 250], // Wider but shorter to prevent overlap
+                width: maxWidth,
                 align: 'center'
               });
               
