@@ -1305,7 +1305,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       // Validate analysis object to prevent errors
       if (!analysis || typeof analysis !== 'object') {
