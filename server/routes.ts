@@ -198,6 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,
+        selectedImages: savedImagePaths,
         regenerationCount: 0
       });
 
@@ -278,6 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,
+        selectedImages: savedImagePaths,
         regenerationCount: 0
       });
 
