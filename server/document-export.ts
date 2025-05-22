@@ -893,7 +893,14 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         const path = await import('path');
         
         // Convert relative path to absolute path from project root
-        const fullImagePath = path.resolve(process.cwd(), imagePath.startsWith('/') ? imagePath.substring(1) : imagePath);
+        // Handle both old format (/images/...) and new format (public/images/...)
+        let relativePath = imagePath;
+        if (imagePath.startsWith('/images/')) {
+          relativePath = `public${imagePath}`;
+        } else if (imagePath.startsWith('/')) {
+          relativePath = imagePath.substring(1);
+        }
+        const fullImagePath = path.resolve(process.cwd(), relativePath);
         
         if (fs.existsSync(fullImagePath)) {
           paragraphs.push(
@@ -1522,7 +1529,14 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const path = await import('path');
             
             // Convert relative path to absolute path from project root
-            const fullImagePath = path.resolve(process.cwd(), imagePath.startsWith('/') ? imagePath.substring(1) : imagePath);
+            // Handle both old format (/images/...) and new format (public/images/...)
+            let relativePath = imagePath;
+            if (imagePath.startsWith('/images/')) {
+              relativePath = `public${imagePath}`;
+            } else if (imagePath.startsWith('/')) {
+              relativePath = imagePath.substring(1);
+            }
+            const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
               // Check if we need a new page for the image
