@@ -576,6 +576,20 @@ ${analysis.team.ownerResponsibilities}
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
+              {/* Company Logo Section - Display at the very top */}
+              {analysis.logoUrl && (
+                <div className="text-center py-6 border-b">
+                  <img 
+                    src={analysis.logoUrl} 
+                    alt="Company Logo"
+                    className="h-16 mx-auto"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                 <div className="space-y-4">
