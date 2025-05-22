@@ -159,7 +159,30 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       }
     }
 
-    const analysis = JSON.parse(jsonStr.trim());
+    // Clean up the JSON string before parsing
+    let cleanJsonStr = jsonStr.trim();
+    
+    // Handle incomplete JSON responses by finding the last complete object
+    let openBraces = 0;
+    let lastValidIndex = -1;
+    
+    for (let i = 0; i < cleanJsonStr.length; i++) {
+      if (cleanJsonStr[i] === '{') {
+        openBraces++;
+      } else if (cleanJsonStr[i] === '}') {
+        openBraces--;
+        if (openBraces === 0) {
+          lastValidIndex = i;
+        }
+      }
+    }
+    
+    // If we found a complete JSON object, use only that part
+    if (lastValidIndex > -1) {
+      cleanJsonStr = cleanJsonStr.substring(0, lastValidIndex + 1);
+    }
+    
+    const analysis = JSON.parse(cleanJsonStr);
 
     // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
