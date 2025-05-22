@@ -130,7 +130,7 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     console.log('Launching headless browser for image extraction...');
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/usr/bin/chromium',
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -287,12 +287,17 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
     console.log('Launching headless browser...');
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ]
     });
     
