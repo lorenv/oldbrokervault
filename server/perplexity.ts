@@ -136,12 +136,30 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   try {
     // Extract the content and parse it as JSON
     const contentStr = data.choices[0].message.content;
-    const matches = contentStr.match(/\{[\s\S]*\}/);
-    if (!matches) {
-      throw new Error("No JSON object found in response");
+    
+    // Handle different response formats from Perplexity
+    let jsonStr = contentStr;
+    
+    // If response is wrapped in markdown code blocks, extract the JSON
+    if (contentStr.includes('```json')) {
+      const jsonMatch = contentStr.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+    } else if (contentStr.includes('```')) {
+      const jsonMatch = contentStr.match(/```\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+    } else {
+      // Try to find JSON object in the response
+      const matches = contentStr.match(/\{[\s\S]*\}/);
+      if (matches) {
+        jsonStr = matches[0];
+      }
     }
 
-    const analysis = JSON.parse(matches[0]);
+    const analysis = JSON.parse(jsonStr.trim());
 
     // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
