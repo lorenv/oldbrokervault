@@ -199,6 +199,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let analysis = await analyzeCimTranscript(transcript);
       
+      // Handle selected images early in the process
+      let savedImagePaths: string[] = [];
+      if (data.websiteUrl && req.body.selectedImages) {
+        try {
+          const selectedImages = JSON.parse(req.body.selectedImages);
+          if (Array.isArray(selectedImages) && selectedImages.length > 0) {
+            const normalizedUrl = normalizeUrl(data.websiteUrl);
+            console.log(`Processing ${selectedImages.length} selected images...`);
+            savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
+            console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
+            
+            // Add selected images to the analysis object so they show in the CIM
+            analysis.selectedImages = savedImagePaths;
+          }
+        } catch (imageError) {
+          console.error("Selected images processing error:", imageError);
+        }
+      }
+      
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
       if (data.websiteUrl) {
