@@ -1517,57 +1517,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(1);
       }
 
-      // Move to end of document for images section
-      
-      // Add all other content sections first, then images at the very end
-      
-      // BUSINESS IMAGES SECTION - At the end of document
-      if (selectedImages && selectedImages.length > 0) {
-        // Start on a fresh page for images
-        doc.addPage();
-        
-        // Add section title
-        doc.fontSize(18).text("BUSINESS IMAGES", { align: 'center', underline: true });
-        doc.moveDown(2);
-        
-        // Add each image to the PDF
-        for (const imagePath of selectedImages) {
-          try {
-            const fs = await import('fs');
-            const path = await import('path');
-            
-            // Convert relative path to absolute path from project root
-            // Handle both old format (/images/...) and new format (public/images/...)
-            let relativePath = imagePath;
-            if (imagePath.startsWith('/images/')) {
-              relativePath = `public${imagePath}`;
-            } else if (imagePath.startsWith('/')) {
-              relativePath = imagePath.substring(1);
-            }
-            const fullImagePath = path.resolve(process.cwd(), relativePath);
-            
-            if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for this image
-              if (doc.y > doc.page.height - 300) {
-                doc.addPage();
-              }
-              
-              // Add image with proper sizing and centering
-              const maxWidth = 400;
-              
-              doc.image(fullImagePath, {
-                width: maxWidth,
-                align: 'center'
-              });
-              
-              // Add spacing after each image
-              doc.moveDown(2);
-            }
-          } catch (imageError) {
-            console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
-          }
-        }
-      }
+
       
       // MARKET SECTION - check if we need a new page
       if (doc.y > doc.page.height - 200) {
