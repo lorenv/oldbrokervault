@@ -608,6 +608,28 @@ ${analysis.team.ownerResponsibilities}
                     </div>
                   )}
 
+                  {/* Selected Images Section */}
+                  {analysis.selectedImages && analysis.selectedImages.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Business Images</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {analysis.selectedImages.map((imagePath: string, index: number) => (
+                          <div key={index} className="border rounded-lg overflow-hidden">
+                            <img
+                              src={imagePath}
+                              alt={`Business image ${index + 1}`}
+                              className="w-full h-32 object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Business Summary</h3>
                     <p className="text-muted-foreground">{renderValue(analysis.story.businessSummary)}</p>

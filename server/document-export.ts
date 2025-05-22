@@ -116,6 +116,17 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.story.saleReason}</p>
         </div>
       ` : ''}
+      
+      ${analysis.selectedImages && analysis.selectedImages.length > 0 ? `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Images</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+          ${analysis.selectedImages.map((imagePath: string, index: number) => `
+            <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background-color: #fff;">
+              <img src="${imagePath}" alt="Business image ${index + 1}" style="width: 100%; height: 150px; object-fit: cover; display: block;" />
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     </div>
 `;
 

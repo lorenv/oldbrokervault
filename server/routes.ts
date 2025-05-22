@@ -194,6 +194,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transcript
       });
 
+      // Debug: Check if selectedImages are present
+      console.log("Selected images in request:", req.body.selectedImages);
+
       let analysis = await analyzeCimTranscript(transcript);
       
       // If website URL is provided, enhance the analysis with website data
