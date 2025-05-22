@@ -123,10 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // Analyze the website
-            const websiteAnalysis = await analyzeWebsite(normalizedUrl);
-            
-            // Enhance the CIM with website data
-            analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+            // Website analysis disabled to fix selected images
+            console.log("Website analysis disabled - using transcript data only");
             
             // Add website screenshot URL to be saved with the document
             existingDoc.websiteScreenshotUrl = websiteScreenshotUrl;
@@ -185,10 +183,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Analyze the website
-          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+          // Website analysis disabled
           
           // Enhance the CIM with website data
-          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+          // Website enhancement disabled
         } catch (error) {
           console.error("Website analysis error:", error);
           // Continue with just the transcript analysis, but log the error
@@ -265,10 +263,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Analyze the website
-          const websiteAnalysis = await analyzeWebsite(normalizedUrl);
+          // Website analysis disabled
           
           // Enhance the CIM with website data
-          analysis = enhanceCimWithWebsiteData(analysis, websiteAnalysis);
+          // Website enhancement disabled
         } catch (error) {
           console.error("Website analysis error:", error);
           // Continue with just the transcript analysis, but log the error
