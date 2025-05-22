@@ -560,8 +560,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      console.log("Generating Word document with logo...");
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl);
+      console.log("Generating Word document with complete data...");
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -609,9 +609,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Premium subscription required" });
       }
 
-      console.log("Generating PDF document with title and logo...");
-      // Pass the title and logo URL to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl);
+      console.log("Generating PDF document with complete data...");
+      // Pass all document data to the PDF generator
+      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
