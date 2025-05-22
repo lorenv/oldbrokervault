@@ -1356,7 +1356,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       if (logoUrl) {
         try {
           console.log("Adding logo to PDF:", logoUrl);
-          doc.image(logoUrl, {
+          // Fix logo path - add public prefix if needed
+          let logoPath = logoUrl;
+          if (logoUrl.startsWith('/logos/')) {
+            logoPath = `public${logoUrl}`;
+          }
+          doc.image(logoPath, {
             fit: [200, 100],
             align: 'center'
           });
@@ -1410,6 +1415,52 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
            align: 'center'
          });
       
+      // BUSINESS IMAGES PAGE - At the beginning after title page
+      if (selectedImages && selectedImages.length > 0) {
+        doc.addPage();
+        
+        // Add section title
+        doc.fontSize(16).text("BUSINESS IMAGES", { align: 'center', underline: true });
+        doc.moveDown(2);
+        
+        // Add each image to the PDF
+        for (const imagePath of selectedImages) {
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            
+            // Convert relative path to absolute path from project root
+            let relativePath = imagePath;
+            if (imagePath.startsWith('/images/')) {
+              relativePath = `public${imagePath}`;
+            } else if (imagePath.startsWith('/')) {
+              relativePath = imagePath.substring(1);
+            }
+            const fullImagePath = path.resolve(process.cwd(), relativePath);
+            
+            if (fs.existsSync(fullImagePath)) {
+              // Check if we need a new page for this image
+              if (doc.y > doc.page.height - 300) {
+                doc.addPage();
+              }
+              
+              // Add image with proper sizing and centering
+              const maxWidth = 400;
+              
+              doc.image(fullImagePath, {
+                width: maxWidth,
+                align: 'center'
+              });
+              
+              // Add spacing after each image
+              doc.moveDown(2);
+            }
+          } catch (imageError) {
+            console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
+          }
+        }
+      }
+
       // TABLE OF CONTENTS PAGE
       doc.addPage();
       
