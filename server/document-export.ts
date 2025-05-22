@@ -1539,8 +1539,8 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for the image (more generous spacing)
-              if (doc.y > doc.page.height - 350) {
+              // Check if we need a new page for the image (much more generous spacing)
+              if (doc.y > doc.page.height - 400) {
                 doc.addPage();
                 // Add logo to new page if we have one
                 if (logoUrl && logoUrl.startsWith('/')) {
@@ -1558,18 +1558,23 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
                 }
               }
               
-              // Add image with proper aspect ratio handling
-              // Get page dimensions for better sizing
+              // Add image with proper aspect ratio handling and controlled size
               const pageWidth = doc.page.width - 100; // Leave margin
-              const maxWidth = Math.min(400, pageWidth);
+              const maxWidth = Math.min(350, pageWidth); // Smaller max width
+              const maxHeight = 200; // Set maximum height to prevent overlap
               
               doc.image(fullImagePath, {
-                width: maxWidth,
+                fit: [maxWidth, maxHeight], // Use fit with both width and height limits
                 align: 'center'
               });
               
-              // Add more spacing between images
-              doc.moveDown(2);
+              // Add much more spacing between images
+              doc.moveDown(3);
+              
+              // Force check Y position after each image and add page if needed
+              if (doc.y > doc.page.height - 300) {
+                doc.addPage();
+              }
             }
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
