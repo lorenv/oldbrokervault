@@ -611,11 +611,11 @@ ${analysis.team.ownerResponsibilities}
                   )}
 
                   {/* Selected Images Section */}
-                  {analysis.selectedImages && analysis.selectedImages.length > 0 && (
+                  {selectedImages && selectedImages.length > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Business Images</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {analysis.selectedImages.map((imagePath: string, index: number) => (
+                        {selectedImages.map((imagePath: string, index: number) => (
                           <div key={index} className="border rounded-lg overflow-hidden">
                             <img
                               src={imagePath}
