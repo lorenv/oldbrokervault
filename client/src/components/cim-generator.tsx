@@ -1,3 +1,9 @@
+from urllib.parse import quote
+
+print("The code has been modified to include a close handler that navigates to the '/documents' page.")
+```
+
+```
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +35,7 @@ import {
 import { Download, Copy, File, FileText } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { DocumentExport } from './document-export';  // Fixed import path
+import { useRouter } from 'next/navigation';
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -40,6 +47,7 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
+  const navigate = useRouter();
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -55,7 +63,7 @@ export function CimGenerator() {
             // Allow URLs without protocol for user convenience
             const url = val.startsWith('http') ? val : `https://${val}`;
             new URL(url);
-            
+
             // Validate domain is reasonable (has at least one dot and no spaces)
             return url.includes('.') && !url.includes(' ');
           } catch (error) {
@@ -75,7 +83,7 @@ export function CimGenerator() {
     directions: string;
     websiteUrl?: string;
   };
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -89,13 +97,13 @@ export function CimGenerator() {
   // Function to extract images from website
   const extractImages = async (websiteUrl: string) => {
     if (!websiteUrl.trim()) return;
-    
+
     setIsExtractingImages(true);
     try {
       const encodedUrl = encodeURIComponent(websiteUrl);
       const response = await apiRequest("GET", `/api/website-images/${encodedUrl}`);
       const data = await response.json();
-      
+
       if (data.images && data.images.length > 0) {
         setExtractedImages(data.images);
         toast({
@@ -134,21 +142,21 @@ export function CimGenerator() {
     mutationFn: async (data: FormValues) => {
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
-      
+
       if (data.transcript.length > 4000) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
-        
+
         if (hasWebsiteUrl) {
           formData.append('websiteUrl', data.websiteUrl!);
           if (selectedImages.length > 0) {
             formData.append('selectedImages', JSON.stringify(selectedImages));
           }
         }
-        
+
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
@@ -157,7 +165,7 @@ export function CimGenerator() {
           if (hasWebsiteUrl) {
             setWebsiteAnalysisStage('analyzing');
           }
-          
+
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
             body: formData,
@@ -168,11 +176,11 @@ export function CimGenerator() {
             const error = await res.json();
             throw new Error(error.error || "Failed to generate CIM");
           }
-          
+
           if (hasWebsiteUrl) {
             setWebsiteAnalysisStage('enhancing');
           }
-          
+
           return res.json();
         } catch (error) {
           // Reset website analysis stage on error
@@ -186,9 +194,9 @@ export function CimGenerator() {
             docId: currentDocId,
             selectedImages: selectedImages.length > 0 ? selectedImages : undefined
           });
-          
+
           console.log("Sending selected images to backend:", selectedImages);
-          
+
           return res.json();
         } catch (error) {
           throw error;
@@ -199,10 +207,10 @@ export function CimGenerator() {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
-      
+
       // Reset website analysis stage
       setWebsiteAnalysisStage(null);
-      
+
       // Show success message with website enhancement information if applicable
       const websiteUrl = form.getValues('websiteUrl');
       if (websiteUrl) {
@@ -216,7 +224,7 @@ export function CimGenerator() {
     onError: (error: any) => {
       // Reset website analysis stage
       setWebsiteAnalysisStage(null);
-      
+
       // Check if the error message contains a website-related error
       const isWebsiteError = error.message && (
         error.message.includes('website') || 
@@ -224,13 +232,13 @@ export function CimGenerator() {
         error.message.includes('Perplexity') ||
         error.message.includes('fetch')
       );
-      
+
       toast({
         title: isWebsiteError ? "Website Analysis Error" : "Error",
         description: error.message || "Failed to generate CIM",
         variant: "destructive"
       });
-      
+
       // If it's a website error but we still have a transcript, suggest trying without the website
       if (isWebsiteError && form.getValues('transcript')) {
         toast({
@@ -293,12 +301,19 @@ ${analysis.team.ownerResponsibilities}
     });
   };
 
+  function handleClose() {
+    setAnalysis(null);
+    setCurrentDocId(null);
+    form.reset();
+    navigate('/documents');
+  }
+
   const renderValue = (value: any): string => {
     // Handle null or undefined
     if (value === null || value === undefined) {
       return "[NOT ANSWERED]";
     }
-    
+
     // Handle arrays
     if (Array.isArray(value)) {
       if (value.length === 0) {
@@ -306,20 +321,20 @@ ${analysis.team.ownerResponsibilities}
       }
       return value.map(item => renderValue(item)).join(", ");
     }
-    
+
     // Handle objects
     if (typeof value === "object") {
       if (Object.keys(value).length === 0) {
         return "[NOT ANSWERED]";
       }
-      
+
       try {
         // Try to extract meaningful content from the object
         const entries = Object.entries(value);
         if (entries.length === 0) {
           return "[NOT ANSWERED]";
         }
-        
+
         // Format object entries into a more readable structure
         // Remove camelCase artifacts and add proper spacing
         return entries
@@ -328,7 +343,7 @@ ${analysis.team.ownerResponsibilities}
             if (key === 'type' || key === 'value' || key === 'metric') {
               return renderValue(val);
             }
-            
+
             // Format the key for better readability
             const formattedKey = key
               // Add spaces between camelCase words
@@ -337,7 +352,7 @@ ${analysis.team.ownerResponsibilities}
               .replace(/^./, str => str.toUpperCase())
               // Clean up any excess spaces
               .trim();
-              
+
             return `${formattedKey}: ${renderValue(val)}`;
           })
           .filter(item => item.trim() !== '')
@@ -347,18 +362,18 @@ ${analysis.team.ownerResponsibilities}
         return "[NOT ANSWERED]";
       }
     }
-    
+
     // Handle empty strings
     if (typeof value === "string" && value.trim() === "") {
       return "[NOT ANSWERED]";
     }
-    
+
     // Handle long strings that might contain JSON or object notation
     if (typeof value === "string" && value.includes(':') && !value.includes(' ')) {
       // Add spaces after colons if they don't have spaces
       return value.replace(/:/g, ': ');
     }
-    
+
     // Default case: convert to string
     const stringValue = String(value);
     return stringValue === "N/A" ? "[NOT ANSWERED]" : stringValue;
@@ -398,7 +413,7 @@ ${analysis.team.ownerResponsibilities}
                   Add a business website URL to enhance the CIM with website content
                 </div>
               </div>
-              
+
               {/* Image extraction and selection section */}
               {form.watch("websiteUrl") && (
                 <div className="mt-4 p-4 border rounded-lg bg-muted/50">
@@ -420,7 +435,7 @@ ${analysis.team.ownerResponsibilities}
                       {isExtractingImages ? "Extracting..." : "Extract Images"}
                     </Button>
                   </div>
-                  
+
                   {extractedImages.length > 0 && (
                     <div className="space-y-3">
                       <div className="text-xs text-muted-foreground">
@@ -463,7 +478,7 @@ ${analysis.team.ownerResponsibilities}
                       )}
                     </div>
                   )}
-                  
+
                   {extractedImages.length === 0 && !isExtractingImages && (
                     <div className="text-xs text-muted-foreground">
                       Click "Extract Images" to find images from the website
@@ -524,7 +539,7 @@ ${analysis.team.ownerResponsibilities}
                 ) : null}
                 {generateMutation.isPending ? "Processing..." : currentDocId ? "Regenerate CIM" : "Generate CIM"}
               </Button>
-              
+
               {/* Show loading animation below the button in black text */}
               {generateMutation.isPending && (
                 <div className="text-foreground text-center">
@@ -552,6 +567,10 @@ ${analysis.team.ownerResponsibilities}
         <Card>
           <CardHeader>
             <CardTitle>Generated CIM</CardTitle>
+            {/* Add close button to navigate to documents page */}
+            <Button variant="ghost" size="sm" onClick={handleClose}>
+              Close
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-8 max-w-4xl mx-auto">
@@ -568,7 +587,7 @@ ${analysis.team.ownerResponsibilities}
                   />
                 </div>
               )}
-              
+
               <section>
                 <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
                 <div className="space-y-4">
@@ -585,7 +604,7 @@ ${analysis.team.ownerResponsibilities}
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Website URL Display - After Background section */}
                   {form.getValues('websiteUrl') && (
                     <div className="mb-4">
@@ -598,7 +617,7 @@ ${analysis.team.ownerResponsibilities}
                       >
                         {form.getValues('websiteUrl')}
                       </a>
-                      
+
                       {/* We'll implement screenshots in next phase */}
                     </div>
                   )}
@@ -870,13 +889,4 @@ ${analysis.team.ownerResponsibilities}
 
               {analysis && (
                 <div className="pt-4">
-                  <DocumentExport analysis={analysis} docId={currentDocId!} user={user} />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
+                  <DocumentExport analysis
