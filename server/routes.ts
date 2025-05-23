@@ -404,10 +404,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      const hostHeader = req.get('host');
+      console.log("Creating Stripe session with host:", hostHeader);
       const session = await createSubscriptionSession(
         plan as keyof typeof subscriptionPlans,
         req.user!.id,
-        req.get('host')
+        hostHeader
       );
       res.json({ url: session.url });
     } catch (error) {
