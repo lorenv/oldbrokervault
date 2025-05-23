@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubscriptionCard } from "@/components/ui/subscription-card";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -18,6 +19,11 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-6">
+            <SubscriptionCard 
+              status={user?.subscriptionStatus} 
+              endsAt={user?.subscriptionEndsAt} 
+              monthlyUsage={user?.monthlyUsage}
+            />
 
             <Card>
               <CardHeader>
