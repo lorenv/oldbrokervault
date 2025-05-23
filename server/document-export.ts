@@ -910,22 +910,56 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         if (fs.existsSync(fullImagePath)) {
           const imageBuffer = fs.readFileSync(fullImagePath);
           
-          // Use a much simpler approach - let Word handle the sizing more naturally
-          paragraphs.push(
-            new docx.Paragraph({
-              children: [
-                new docx.ImageRun({
-                  data: imageBuffer,
-                  transformation: {
-                    width: 450, // Slightly larger but should maintain ratios better
-                    height: 300,
-                  },
-                }),
-              ],
-              alignment: docx.AlignmentType.CENTER,
-              spacing: { before: 200, after: 200 }
-            })
-          );
+          // Calculate actual image dimensions to maintain proper aspect ratio
+          try {
+            const sharp = require('sharp');
+            const metadata = await sharp(imageBuffer).metadata();
+            const originalWidth = metadata.width || 800;
+            const originalHeight = metadata.height || 600;
+            
+            // Calculate proportional height for a fixed width of 400
+            const targetWidth = 400;
+            const aspectRatio = originalHeight / originalWidth;
+            const targetHeight = Math.round(targetWidth * aspectRatio);
+            
+            console.log(`Image ${imagePath}: original ${originalWidth}x${originalHeight}, target ${targetWidth}x${targetHeight}`);
+            
+            paragraphs.push(
+              new docx.Paragraph({
+                children: [
+                  new docx.ImageRun({
+                    data: imageBuffer,
+                    transformation: {
+                      width: targetWidth,
+                      height: targetHeight, // Use calculated height to maintain aspect ratio
+                    },
+                    type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
+                  }),
+                ],
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { before: 200, after: 200 }
+              })
+            );
+          } catch (error) {
+            console.log('Failed to get image dimensions, using default proportions');
+            // Fallback with standard 4:3 ratio
+            paragraphs.push(
+              new docx.Paragraph({
+                children: [
+                  new docx.ImageRun({
+                    data: imageBuffer,
+                    transformation: {
+                      width: 400,
+                      height: 300,
+                    },
+                    type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
+                  }),
+                ],
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { before: 200, after: 200 }
+              })
+            );
+          }
         }
       } catch (imageError) {
         console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
