@@ -797,6 +797,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 data: logoBuffer,
                 transformation: {
                   width: 200,
+                  height: 100,
                 },
                 type: "png"
               })
@@ -880,7 +881,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     );
   }
 
-  // Business Images section - temporarily disabled to isolate corruption source
+  // Selected Images section
   if (selectedImages && selectedImages.length > 0) {
     paragraphs.push(
       new docx.Paragraph({
@@ -890,12 +891,52 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
     
-    paragraphs.push(
-      new docx.Paragraph({
-        text: `This CIM includes ${selectedImages.length} business images. Images are available in the PDF export version while we resolve Word document compatibility.`,
-        spacing: { before: 100, after: 200 }
-      })
-    );
+    // Add each image to the document
+    for (const imagePath of selectedImages) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        
+        // Convert relative path to absolute path from project root
+        // Handle both old format (/images/...) and new format (public/images/...)
+        let relativePath = imagePath;
+        if (imagePath.startsWith('/images/')) {
+          relativePath = `public${imagePath}`;
+        } else if (imagePath.startsWith('/')) {
+          relativePath = imagePath.substring(1);
+        }
+        const fullImagePath = path.resolve(process.cwd(), relativePath);
+        
+        if (fs.existsSync(fullImagePath)) {
+          // Get image dimensions and maintain aspect ratio
+          paragraphs.push(
+            new docx.Paragraph({
+              children: [
+                new docx.ImageRun({
+                  data: fs.readFileSync(fullImagePath),
+                  transformation: {
+                    width: 400,
+                    height: 300,
+                  },
+                  type: 'jpg',
+                }),
+              ],
+              alignment: docx.AlignmentType.CENTER,
+              spacing: { before: 150, after: 150 }
+            })
+          );
+        }
+      } catch (imageError) {
+        console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
+        // Add a fallback text for this image
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `[Image: ${imagePath}]`,
+            spacing: { before: 100, after: 100 }
+          })
+        );
+      }
+    }
   }
   
   // INVESTMENT HIGHLIGHTS
@@ -1317,15 +1358,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       // TITLE PAGE
       
-      // Add main title
-      doc.fontSize(22)
-         .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
-           align: 'center'
-         });
-      
-      doc.moveDown(2);
-      
-      // Add logo in its own section below the title
+      // Add logo if available
       if (logoUrl) {
         try {
           console.log("Adding logo to PDF:", logoUrl);
@@ -1342,7 +1375,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               fit: [200, 100],
               align: 'center'
             });
-            doc.moveDown(3);
+            doc.moveDown(2);
           } else {
             console.log("Logo file not found:", logoPath);
             doc.moveDown(1);
@@ -1353,6 +1386,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.moveDown(1);
         }
       }
+      
+      // Add main title
+      doc.fontSize(22)
+         .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
+           align: 'center'
+         });
       
       doc.moveDown(2);
       
@@ -1447,7 +1486,54 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
 
-      // CONTENT PAGES - Start directly with business overview (no table of contents)
+      // TABLE OF CONTENTS PAGE
+      doc.addPage();
+      
+      doc.fontSize(16)
+         .text('TABLE OF CONTENTS', {
+           align: 'center',
+           underline: true
+         });
+      
+      doc.moveDown(2);
+      doc.fontSize(12);
+      
+      // Add table of contents entries
+      const sections = [
+        { title: 'BUSINESS OVERVIEW', page: 3 },
+        { title: 'MARKET POSITION', page: 3 },
+        { title: 'OPERATIONS', page: 4 },
+        { title: 'TEAM STRUCTURE', page: 5 },
+        { title: 'FACILITIES', page: 6 }
+      ];
+      
+      sections.forEach(section => {
+        doc.text(section.title, {
+          continued: true
+        });
+        
+        const xPosition = 450; // Position for page numbers
+        const currentY = doc.y;
+        
+        doc.text(`Page ${section.page}`, {
+          align: 'right',
+          continued: false
+        });
+        
+        // Add dotted line connecting section title to page number
+        const dotsStartX = doc.widthOfString(section.title) + 100;
+        const dotsEndX = xPosition - 20;
+        
+        doc.moveTo(dotsStartX, currentY + 7)
+           .lineTo(dotsEndX, currentY + 7)
+           .stroke();
+           
+        doc.moveDown(1);
+      });
+      
+      // CONTENT PAGES
+      
+      // BUSINESS OVERVIEW
       doc.addPage();
       
       // If logo is available, add a small version to the top right corner of each page
@@ -1810,7 +1896,18 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
       
-      // Page numbering removed to simplify PDF and prevent duplicate blank pages
+      // Add page numbers to all pages
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(8)
+           .text(
+             `Page ${i + 1} of ${range.count}`,
+             50,
+             doc.page.height - 50,
+             { align: 'center' }
+           );
+      }
       
       console.log("Finalizing PDF document generation...");
       // Fix for blank pages: Ensure all content is properly rendered before ending the document
