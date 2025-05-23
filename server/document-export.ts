@@ -797,6 +797,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 data: logoBuffer,
                 transformation: {
                   width: 200,
+                  height: 100,
                 },
                 type: "png"
               })
@@ -1401,10 +1402,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
            align: 'center'
          });
       
-      // COMPANY LOGO SECTION
+      // Add logo under the document title on first page
       if (logoUrl) {
         try {
-          console.log("Adding logo section to PDF:", logoUrl);
+          console.log("Adding logo to PDF title page:", logoUrl);
           // Fix logo path - add public prefix if needed
           let logoPath = logoUrl;
           if (logoUrl.startsWith('/logos/')) {
@@ -1414,21 +1415,18 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           // Check if file exists before trying to add it
           const fs = await import('fs');
           if (fs.existsSync(logoPath)) {
-            doc.addPage();
-            
-            // Add logo section title
-            doc.fontSize(16).text("COMPANY LOGO", { align: 'center', underline: true });
+            // Add some space after the title
             doc.moveDown(2);
             
-            // Add logo centered
+            // Add logo centered under the title
             doc.image(logoPath, {
-              fit: [250, 150],
+              fit: [200, 120],
               align: 'center'
             });
-            doc.moveDown(3);
+            doc.moveDown(2);
           }
         } catch (logoError) {
-          console.error("Failed to add logo section to PDF:", logoError);
+          console.error("Failed to add logo to PDF title page:", logoError);
         }
       }
 
