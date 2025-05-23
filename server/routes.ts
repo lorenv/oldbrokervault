@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        let analysis = await analyzeCimTranscript(data.transcript, data.customDirections);
+        let analysis = await analyzeCimTranscript(data.transcript, data.directions);
         
         // If website URL is provided, enhance the analysis with website data
         if (data.websiteUrl) {
@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug: Check if selectedImages are present
       console.log("Selected images in request:", req.body.selectedImages);
 
-      let analysis = await analyzeCimTranscript(transcript);
+      let analysis = await analyzeCimTranscript(transcript, data.directions);
       
       // Handle selected images early in the process
       let savedImagePaths: string[] = [];
