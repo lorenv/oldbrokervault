@@ -909,16 +909,17 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         
         if (fs.existsSync(fullImagePath)) {
           // Get image dimensions and maintain aspect ratio
+          const imageBuffer = fs.readFileSync(fullImagePath);
+          
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
-                  data: fs.readFileSync(fullImagePath),
+                  data: imageBuffer,
                   transformation: {
-                    width: 350,
-                    height: 250,
+                    width: 400,
                   },
-                  type: 'jpg',
+                  type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
@@ -1411,6 +1412,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (logoUrl.startsWith('/logos/')) {
             logoPath = `public${logoUrl}`;
           }
+          
+          const path = await import('path');
+          logoPath = path.resolve(process.cwd(), logoPath);
           
           // Check if file exists before trying to add it
           const fs = await import('fs');
