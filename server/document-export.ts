@@ -18,7 +18,7 @@ function safeStringify(value: any): string {
   if (value === undefined || value === null) {
     return '[NOT ANSWERED]';
   }
-
+  
   // Handle arrays
   if (Array.isArray(value)) {
     if (value.length === 0) {
@@ -26,21 +26,21 @@ function safeStringify(value: any): string {
     }
     return value.map(item => safeStringify(item)).join(', ');
   }
-
+  
   // Handle objects
   if (typeof value === 'object') {
     // Empty object
     if (Object.keys(value).length === 0) {
       return '[NOT ANSWERED]';
     }
-
+    
     try {
       // Try to extract meaningful content from the object
       const entries = Object.entries(value);
       if (entries.length === 0) {
         return '[NOT ANSWERED]';
       }
-
+      
       return entries
         .map(([key, val]) => `${key}: ${safeStringify(val)}`)
         .join(', ');
@@ -49,15 +49,15 @@ function safeStringify(value: any): string {
       return '[NOT ANSWERED]';
     }
   }
-
+  
   // Handle empty strings
   if (typeof value === 'string' && value.trim() === '') {
     return '[NOT ANSWERED]';
   }
-
+  
   // Default for any other type
   const stringValue = String(value);
-
+  
   // Check for common placeholder values
   if (stringValue === 'N/A' || 
       stringValue === 'undefined' || 
@@ -65,7 +65,7 @@ function safeStringify(value: any): string {
       stringValue === 'Information not provided') {
     return '[NOT ANSWERED]';
   }
-
+  
   return stringValue;
 }
 
@@ -81,7 +81,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Business Overview</h2>
-
+      
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
           <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">When was the business founded?</td>
@@ -104,19 +104,19 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.story?.growthHistory)}</td>
         </tr>
       </table>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Summary</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
         <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.story?.businessSummary || 'No detailed business summary provided.'}</p>
       </div>
-
+      
       ${analysis.story?.saleReason ? `
         <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Reason For Sale</h3>
         <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
           <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.story.saleReason}</p>
         </div>
       ` : ''}
-
+      
       <!-- Business Website Section -->
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
@@ -124,7 +124,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <a href="${analysis.websiteUrl || '#'}" target="_blank" style="color: #6366f1; text-decoration: none;">${analysis.websiteUrl || 'Website information not available'}</a>
         </p>
       </div>
-
+      
       ${analysis.selectedImages && analysis.selectedImages.length > 0 ? `
         <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Images</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
@@ -142,7 +142,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Investment Highlights</h2>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business attractive to buyers?</h3>
 `;
 
@@ -181,12 +181,12 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Market Analysis</h2>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Who is the target customer?</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
         <p style="color: #1f2937; margin: 0; line-height: 1.6;">${analysis.marketAnalysis?.customerProfile || 'No customer profile information provided.'}</p>
       </div>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business unique in the market?</h3>
 `;
 
@@ -249,7 +249,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
     html += `
       <div style="margin-bottom: 30px; padding-bottom: 20px;">
         <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Sales & Revenue</h2>
-
+        
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563; width: 40%;">What is the average order value?</td>
@@ -316,7 +316,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Business Operations</h2>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Customer Relationships</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
@@ -336,7 +336,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.operations?.customers?.contracts)}</td>
         </tr>
       </table>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Supply Chain</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
@@ -428,7 +428,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           </tr>
           <tr style="background-color: #ffffff;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">What is the approximate value of inventory?</td>
-            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937:${safeStringify(analysis.inventory.value)}</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.inventory.value)}</td>
           </tr>
           <tr style="background-color: #f9fafb;">
             <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #4b5563;">How many SKUs does the business maintain?</td>
@@ -456,7 +456,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Team Structure</h2>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">Ownership & Management</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
@@ -472,7 +472,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">${safeStringify(analysis.team?.management)}</td>
         </tr>
       </table>
-
+      
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Employee Overview</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e5e7eb;">
         <tr style="background-color: #f9fafb;">
@@ -508,14 +508,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
           <th style="padding: 12px; border: 1px solid #e5e7eb; text-align: left; font-weight: 600; color: #374151;">Role/Position</th>
         </tr>
     `;
-
+    
     // Format each key employee
     analysis.team.keyEmployees.forEach((employee: any, index: number) => {
       html += `
         <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
           <td style="padding: 12px; border: 1px solid #e5e7eb; color: #1f2937;">
       `;
-
+      
       if (typeof employee === 'string') {
         html += employee;
       } else if (typeof employee === 'object') {
@@ -525,7 +525,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
         if (employee.name) parts.push(`<strong>Name:</strong> ${employee.name}`);
         if (employee.tenure) parts.push(`<strong>Tenure:</strong> ${employee.tenure}`);
         if (employee.background) parts.push(`<strong>Background:</strong> ${employee.background}`);
-
+        
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
           html += Object.entries(employee)
@@ -537,13 +537,13 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
       } else {
         html += String(employee);
       }
-
+      
       html += `
           </td>
         </tr>
       `;
     });
-
+    
     html += `</table>`;
   }
 
@@ -553,23 +553,23 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   html += `
     <div style="margin-bottom: 30px; padding-bottom: 20px;">
       <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Facilities</h2>
-
+      
       <div class="facility-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
         <div style="padding: 15px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
           <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px; font-weight: 600; color: #4b5563;">Ownership Status</h3>
           <p style="margin: 0; color: #1f2937;">${safeStringify(analysis.facility?.ownership)}</p>
         </div>
-
+        
         <div style="padding: 15px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
           <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px; font-weight: 600; color: #4b5563;">Size</h3>
           <p style="margin: 0; color: #1f2937;">${safeStringify(analysis.facility?.size)}</p>
         </div>
-
+        
         <div style="padding: 15px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
           <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px; font-weight: 600; color: #4b5563;">Monthly Cost</h3>
           <p style="margin: 0; color: #1f2937;">${safeStringify(analysis.facility?.cost)}</p>
         </div>
-
+        
         <div style="padding: 15px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
           <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px; font-weight: 600; color: #4b5563;">Lease Details</h3>
           <p style="margin: 0; color: #1f2937;">${safeStringify(analysis.facility?.leaseDetails)}</p>
@@ -593,11 +593,11 @@ export function formatTextContent(analysis: any): string {
   // Business Story
   if (analysis.story) {
     sections.push('# BUSINESS OVERVIEW');
-
+    
     if (analysis.story.businessSummary) {
       sections.push(analysis.story.businessSummary);
     }
-
+    
     sections.push('## Business History');
     const storyDetails = [
       analysis.story.yearStarted ? `Year Started: ${analysis.story.yearStarted}` : `Year Started: [NOT ANSWERED]`,
@@ -608,12 +608,12 @@ export function formatTextContent(analysis: any): string {
       analysis.story.businessStructure ? `Business Structure: ${analysis.story.businessStructure}` : `Business Structure: [NOT ANSWERED]`
     ].join('\n\n');
     sections.push(storyDetails);
-
+    
     if (analysis.story.keyAttractions && analysis.story.keyAttractions.length) {
       sections.push('## Key Business Attractions');
       sections.push(analysis.story.keyAttractions.map((item: string) => `- ${item}`).join('\n'));
     }
-
+    
     if (analysis.story.saleReason) {
       sections.push('## Reason For Sale');
       sections.push(analysis.story.saleReason);
@@ -623,12 +623,12 @@ export function formatTextContent(analysis: any): string {
   // Executive Summary
   if (analysis.executiveSummary) {
     sections.push('# EXECUTIVE SUMMARY');
-
+    
     if (analysis.executiveSummary.buyerAttractions && analysis.executiveSummary.buyerAttractions.length) {
       sections.push('## Buyer Attractions');
       sections.push(analysis.executiveSummary.buyerAttractions.map((item: string) => `- ${item}`).join('\n'));
     }
-
+    
     if (analysis.executiveSummary.growthOpportunities && analysis.executiveSummary.growthOpportunities.length) {
       sections.push('## Growth Opportunities');
       sections.push(analysis.executiveSummary.growthOpportunities.map((item: string) => `- ${item}`).join('\n'));
@@ -638,7 +638,7 @@ export function formatTextContent(analysis: any): string {
   // Assets
   if (analysis.assets) {
     sections.push('# ASSETS');
-
+    
     const assetDetails = [
       analysis.assets.location ? `Location: ${analysis.assets.location}` : `Location: [NOT ANSWERED]`,
       analysis.assets.equipmentValue ? `Equipment Value: ${analysis.assets.equipmentValue}` : `Equipment Value: [NOT ANSWERED]`,
@@ -646,7 +646,7 @@ export function formatTextContent(analysis: any): string {
       analysis.assets.inventoryDetails ? `Inventory Details: ${analysis.assets.inventoryDetails}` : `Inventory Details: [NOT ANSWERED]`
     ].join('\n\n');
     sections.push(assetDetails);
-
+    
     if (analysis.assets.digitalAssets && analysis.assets.digitalAssets.length) {
       sections.push('## Digital Assets');
       sections.push(analysis.assets.digitalAssets.map((item: string) => `- ${item}`).join('\n'));
@@ -656,22 +656,22 @@ export function formatTextContent(analysis: any): string {
   // Market Analysis
   if (analysis.marketAnalysis) {
     sections.push('# MARKET ANALYSIS');
-
+    
     if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length) {
       sections.push('## Unique Features');
       sections.push(analysis.marketAnalysis.uniqueFeatures.map((item: string) => `- ${item}`).join('\n'));
     }
-
+    
     if (analysis.marketAnalysis.customerProfile) {
       sections.push('## Customer Profile');
       sections.push(analysis.marketAnalysis.customerProfile);
     }
-
+    
     if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length) {
       sections.push('## Competitors');
       sections.push(analysis.marketAnalysis.competitors.map((item: string) => `- ${item}`).join('\n'));
     }
-
+    
     if (analysis.marketAnalysis.strengths && analysis.marketAnalysis.strengths.length) {
       sections.push('## Business Strengths');
       sections.push(analysis.marketAnalysis.strengths.map((item: string) => `- ${item}`).join('\n'));
@@ -681,7 +681,7 @@ export function formatTextContent(analysis: any): string {
   // Operations
   if (analysis.operations) {
     sections.push('# OPERATIONS');
-
+    
     if (analysis.operations.suppliers) {
       sections.push('## Suppliers');
       const suppliersDetails = [
@@ -693,7 +693,7 @@ export function formatTextContent(analysis: any): string {
       ].join('\n');
       sections.push(suppliersDetails);
     }
-
+    
     if (analysis.operations.customers) {
       sections.push('## Customers');
       const customersDetails = [
@@ -710,7 +710,7 @@ export function formatTextContent(analysis: any): string {
   // Team
   if (analysis.team) {
     sections.push('# TEAM');
-
+    
     const teamDetails = [
       analysis.team.ownerResponsibilities ? `Owner Responsibilities: ${analysis.team.ownerResponsibilities}` : `Owner Responsibilities: [NOT ANSWERED]`,
       analysis.team.ownerHours ? `Owner Hours: ${analysis.team.ownerHours}` : `Owner Hours: [NOT ANSWERED]`,
@@ -724,10 +724,10 @@ export function formatTextContent(analysis: any): string {
       analysis.team.management ? `Management: ${analysis.team.management}` : `Management: [NOT ANSWERED]`
     ].join('\n\n');
     sections.push(teamDetails);
-
+    
     if (analysis.team.keyEmployees && analysis.team.keyEmployees.length) {
       sections.push('## Key Employees');
-
+      
       // Format each employee entry, handling both string and object formats
       const formattedEmployees = analysis.team.keyEmployees.map((employee: any) => {
         if (typeof employee === 'string') {
@@ -739,19 +739,19 @@ export function formatTextContent(analysis: any): string {
           if (employee.role) parts.push(`Role: ${employee.role}`);
           if (employee.background) parts.push(`Background: ${employee.background}`);
           if (employee.tenure) parts.push(`Tenure: ${employee.tenure}`);
-
+          
           // If no properties were found, provide a fallback format
           if (parts.length === 0) {
             return `- ${Object.entries(employee)
               .map(([key, val]) => `${key}: ${val}`)
               .join(', ')}`;
           }
-
+          
           return `- ${parts.join(', ')}`;
         }
         return `- ${String(employee)}`;
       });
-
+      
       sections.push(formattedEmployees.join('\n'));
     }
   }
@@ -759,7 +759,7 @@ export function formatTextContent(analysis: any): string {
   // Facility
   if (analysis.facility) {
     sections.push('# FACILITY');
-
+    
     const facilityDetails = [
       analysis.facility.ownership ? `Ownership: ${analysis.facility.ownership}` : `Ownership: [NOT ANSWERED]`,
       analysis.facility.size ? `Size: ${analysis.facility.size}` : `Size: [NOT ANSWERED]`,
@@ -775,7 +775,7 @@ export function formatTextContent(analysis: any): string {
 export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
-
+  
   // Add logo image if available
   if (logoUrl) {
     try {
@@ -784,11 +784,11 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       if (logoUrl.startsWith('/logos/')) {
         logoPath = `public${logoUrl}`;
       }
-
+      
       const fs = await import('fs');
       if (fs.existsSync(logoPath)) {
         const logoBuffer = fs.readFileSync(logoPath);
-
+        
         // Add the logo to the document
         paragraphs.push(
           new docx.Paragraph({
@@ -812,7 +812,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       // Continue without logo if there's an error
     }
   }
-
+  
   // Add title
   paragraphs.push(
     new docx.Paragraph({
@@ -822,7 +822,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { after: 400 }
     })
   );
-
+  
   // BUSINESS OVERVIEW SECTION
   paragraphs.push(
     new docx.Paragraph({
@@ -831,7 +831,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   // Business details in regular paragraphs
   paragraphs.push(
     new docx.Paragraph({
@@ -839,14 +839,14 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Structure: ${safeStringify(analysis.story?.businessStructure)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   // Business summary
   paragraphs.push(
     new docx.Paragraph({
@@ -855,7 +855,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel),
@@ -872,7 +872,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         spacing: { before: 200, after: 100 }
       })
     );
-
+    
     paragraphs.push(
       new docx.Paragraph({
         text: websiteUrl,
@@ -890,13 +890,13 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         spacing: { before: 200, after: 100 }
       })
     );
-
+    
     // Add each image to the document
     for (const imagePath of selectedImages) {
       try {
         const fs = await import('fs');
         const path = await import('path');
-
+        
         // Convert relative path to absolute path from project root
         // Handle both old format (/images/...) and new format (public/images/...)
         let relativePath = imagePath;
@@ -906,7 +906,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
           relativePath = imagePath.substring(1);
         }
         const fullImagePath = path.resolve(process.cwd(), relativePath);
-
+        
         if (fs.existsSync(fullImagePath)) {
           // Get image dimensions and maintain aspect ratio
           paragraphs.push(
@@ -916,7 +916,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
                     width: 400,
-                    // Remove height to maintain aspect ratio
+                    height: 300,
                   },
                   type: 'jpg',
                 }),
@@ -938,7 +938,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       }
     }
   }
-
+  
   // INVESTMENT HIGHLIGHTS
   paragraphs.push(
     new docx.Paragraph({
@@ -947,7 +947,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   // Key Attractions
   paragraphs.push(
     new docx.Paragraph({
@@ -956,7 +956,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   // Add bullet points for key attractions
   if (analysis.executiveSummary?.buyerAttractions?.length) {
     analysis.executiveSummary.buyerAttractions.forEach((item: string) => {
@@ -971,7 +971,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       );
     });
   }
-
+  
   // Growth Opportunities
   paragraphs.push(
     new docx.Paragraph({
@@ -980,7 +980,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   // Add bullet points for growth opportunities
   if (analysis.executiveSummary?.growthOpportunities?.length) {
     analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
@@ -995,7 +995,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       );
     });
   }
-
+  
   // MARKET POSITION
   paragraphs.push(
     new docx.Paragraph({
@@ -1004,7 +1004,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: "Target Market",
@@ -1012,14 +1012,14 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: safeStringify(analysis.marketAnalysis?.customerProfile),
       spacing: { before: 100, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: "Competitive Landscape",
@@ -1027,7 +1027,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: "Competitors",
@@ -1035,7 +1035,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 100, after: 100 }
     })
   );
-
+  
   // Add bullet points for competitors
   if (analysis.marketAnalysis?.competitors?.length) {
     analysis.marketAnalysis.competitors.forEach((item: any) => {
@@ -1050,7 +1050,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       );
     });
   }
-
+  
   // Business Strengths
   paragraphs.push(
     new docx.Paragraph({
@@ -1059,7 +1059,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   // Add bullet points for strengths
   if (analysis.marketAnalysis?.strengths?.length) {
     analysis.marketAnalysis.strengths.forEach((item: any) => {
@@ -1074,7 +1074,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       );
     });
   }
-
+  
   // OPERATIONS
   paragraphs.push(
     new docx.Paragraph({
@@ -1083,7 +1083,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: "Customer Relationships",
@@ -1091,7 +1091,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   if (analysis.operations?.customers?.recurring && !String(analysis.operations?.customers?.recurring).includes('[NOT MENTIONED]')) {
     paragraphs.push(
       new docx.Paragraph({
@@ -1100,14 +1100,14 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
   }
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Customer Base: ${safeStringify(analysis.operations?.customers?.relationships)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   if (analysis.operations?.customers?.concentration && !String(analysis.operations?.customers?.concentration).includes('[NOT MENTIONED]')) {
     paragraphs.push(
       new docx.Paragraph({
@@ -1116,14 +1116,14 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
   }
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Contract Terms: ${safeStringify(analysis.operations?.customers?.contracts)}`,
       spacing: { before: 100, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: "Supply Chain",
@@ -1131,35 +1131,35 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 200, after: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Number of Suppliers: ${safeStringify(analysis.operations?.suppliers?.count)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Supplier Terms: ${safeStringify(analysis.operations?.suppliers?.terms)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Concentration: ${safeStringify(analysis.operations?.suppliers?.concentration)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Transferability: ${safeStringify(analysis.operations?.suppliers?.transferability)}`,
       spacing: { before: 100, after: 200 }
     })
   );
-
+  
   // TEAM STRUCTURE
   paragraphs.push(
     new docx.Paragraph({
@@ -1168,49 +1168,49 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Owner Responsibilities: ${safeStringify(analysis.team?.ownerResponsibilities)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Required Hours: ${safeStringify(analysis.team?.ownerHours)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Management Structure: ${analysis.team?.management ? safeStringify(analysis.team.management) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Team Size: ${analysis.team?.employeeCount ? safeStringify(analysis.team.employeeCount) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Turnover Rate: ${analysis.team?.turnover ? safeStringify(analysis.team.turnover) : "[NOT ANSWERED]"}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Retention: ${analysis.team?.retention ? safeStringify(analysis.team.retention) : "[NOT ANSWERED]"}`,
       spacing: { before: 100, after: 200 }
     })
   );
-
+  
   // Add Key Team Members section if available
   if (analysis.team?.keyEmployees?.length > 0) {
     // Add section heading
@@ -1221,11 +1221,11 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         spacing: { before: 200, after: 100 }
       })
     );
-
+    
     // Add each team member as a bullet point
     analysis.team.keyEmployees.forEach((employee: any) => {
       let employeeText;
-
+      
       if (typeof employee === 'string') {
         employeeText = safeStringify(employee);
       } else if (typeof employee === 'object' && employee !== null) {
@@ -1235,7 +1235,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
         if (employee.background) parts.push(`Background: ${safeStringify(employee.background)}`);
         if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
-
+        
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
           try {
@@ -1251,7 +1251,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       } else {
         employeeText = safeStringify(employee);
       }
-
+      
       paragraphs.push(
         new docx.Paragraph({
           text: employeeText,
@@ -1263,7 +1263,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       );
     });
   }
-
+  
   // Continue with FACILITIES section
   paragraphs.push(
     // FACILITIES
@@ -1273,28 +1273,28 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 400, after: 200 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Ownership Status: ${safeStringify(analysis.facility?.ownership)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Size: ${safeStringify(analysis.facility?.size)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   paragraphs.push(
     new docx.Paragraph({
       text: `Monthly Cost: ${safeStringify(analysis.facility?.cost)}`,
       spacing: { before: 100 }
     })
   );
-
+  
   // Add lease details if available
   if (analysis.facility?.leaseDetails) {
     paragraphs.push(
@@ -1304,7 +1304,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
   }
-
+  
   // Create the document with all paragraphs
   const doc = new docx.Document({
     sections: [{
@@ -1318,7 +1318,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 
 export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
-
+  
   return new Promise(async (resolve, reject) => {
     try {
       // Validate analysis object to prevent errors
@@ -1326,16 +1326,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         console.error("Invalid analysis object provided to PDF generator");
         throw new Error("Invalid analysis data");
       }
-
-      // Define a color palette for a modern look
-      const colors = {
-        primary: '#2C3E50',   // Dark blue-gray
-        secondary: '#777777', // Medium gray
-        background: '#F2F3F4',  // Light gray
-        accent: '#3498DB',    // Bright blue
-        border: '#D3D3D3'     // Light gray border
-      };
-
+      
       // Create a PDF document with expanded options for better handling of content
       const doc = new PDFDocument({
         size: 'letter',
@@ -1347,38 +1338,36 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           Author: 'CIM Generator'
         }
       });
-
+      
       // Collect PDF data in buffers
       const chunks: Buffer[] = [];
-
+      
       doc.on('data', (chunk) => {
         chunks.push(Buffer.from(chunk));
       });
-
+      
       doc.on('end', () => {
         console.log("PDF document finalized successfully");
         resolve(Buffer.concat(chunks));
       });
-
+      
       doc.on('error', (err) => {
         console.error("Error in PDF document generation:", err);
         reject(err);
       });
-
+      
       // TITLE PAGE
-
+      
       // Skip logo on title page - will be in dedicated section
-
+      
       // Add main title
       doc.fontSize(22)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
          .text('CONFIDENTIAL INFORMATION MEMORANDUM', {
            align: 'center'
          });
-
+      
       doc.moveDown(2);
-
+      
       // Add business name/title - use document title if provided, otherwise extract from analysis
       let businessTitle = docTitle || safeStringify(analysis.story?.businessSummary) || 'Business Information Memorandum';
       console.log("Using title for PDF:", businessTitle);
@@ -1391,26 +1380,20 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           businessTitle = businessTitle.substring(0, 100) + '...';
         }
       }
-
+      
       doc.fontSize(16)
-         .fillColor(colors.secondary)
-         .font('Helvetica')
          .text(businessTitle, {
            align: 'center'
          });
-
+      
       // Add a separator line
       doc.moveDown(2);
       doc.moveTo(50, doc.y)
          .lineTo(doc.page.width - 50, doc.y)
-         .strokeColor(colors.border)
-         .lineWidth(1)
          .stroke();
-
+      
       doc.moveDown(2);
       doc.fontSize(10)
-         .fillColor(colors.secondary)
-         .font('Helvetica')
          .text('CONFIDENTIAL', {
            align: 'center'
          })
@@ -1418,7 +1401,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
          .text('This document contains confidential information.', {
            align: 'center'
          });
-
+      
       // COMPANY LOGO SECTION
       if (logoUrl) {
         try {
@@ -1428,22 +1411,22 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (logoUrl.startsWith('/logos/')) {
             logoPath = `public${logoUrl}`;
           }
-
+          
           // Check if file exists before trying to add it
           const fs = await import('fs');
-          const path = await import('path');
-          const fullLogoPath = path.resolve(process.cwd(), logoPath);
-          
-          if (fs.existsSync(fullLogoPath)) {
+          if (fs.existsSync(logoPath)) {
             doc.addPage();
-            doc.moveDown(3);
-
-            // Add logo centered without title
-            doc.image(fullLogoPath, {
+            
+            // Add logo section title
+            doc.fontSize(16).text("COMPANY LOGO", { align: 'center', underline: true });
+            doc.moveDown(2);
+            
+            // Add logo centered
+            doc.image(logoPath, {
               fit: [250, 150],
               align: 'center'
             });
-            doc.moveDown(4);
+            doc.moveDown(3);
           }
         } catch (logoError) {
           console.error("Failed to add logo section to PDF:", logoError);
@@ -1453,23 +1436,20 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       // BUSINESS IMAGES PAGE - At the beginning after title page
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
-
+        
         // Add section title
-        doc.fontSize(16)
-           .fillColor(colors.primary)
-           .font('Helvetica-Bold')
-           .text("BUSINESS IMAGES", { align: 'center', underline: true });
+        doc.fontSize(16).text("BUSINESS IMAGES", { align: 'center', underline: true });
         doc.moveDown(2);
-
+        
         // Add each image to the PDF with explicit positioning to prevent overlap
         let currentY = doc.y;
-
+        
         for (let i = 0; i < selectedImages.length; i++) {
           const imagePath = selectedImages[i];
           try {
             const fs = await import('fs');
             const path = await import('path');
-
+            
             // Convert relative path to absolute path from project root
             let relativePath = imagePath;
             if (imagePath.startsWith('/images/')) {
@@ -1478,31 +1458,31 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               relativePath = imagePath.substring(1);
             }
             const fullImagePath = path.resolve(process.cwd(), relativePath);
-
+            
             if (fs.existsSync(fullImagePath)) {
               // Calculate image height and check if we need a new page
               const imageHeight = 200; // Fixed height for consistent spacing
               const spacingAfter = 40; // Space after each image
-
+              
               // Check if image will fit on current page
               if (currentY + imageHeight + spacingAfter > doc.page.height - 100) {
                 doc.addPage();
                 currentY = 50; // Reset to top of new page with margin
               }
-
+              
               // Position image explicitly with fixed coordinates
               const pageWidth = doc.page.width;
               const imageWidth = 350;
               const xPosition = (pageWidth - imageWidth) / 2; // Center horizontally
-
+              
               doc.image(fullImagePath, xPosition, currentY, {
                 width: imageWidth,
                 height: imageHeight
               });
-
+              
               // Update current Y position for next image
               currentY += imageHeight + spacingAfter;
-
+              
               // Move doc position to match our tracking
               doc.y = currentY;
             }
@@ -1513,12 +1493,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
 
       // Skip table of contents section
-
+      
       // CONTENT PAGES
-
+      
       // BUSINESS OVERVIEW
       doc.addPage();
-
+      
       // If logo is available, add a small version to the top right corner of each page
       if (logoUrl) {
         try {
@@ -1530,35 +1510,30 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           console.error("Failed to add page header logo:", error);
         }
       }
-
-      // Section title styling
-      doc.fontSize(18)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
+      
+      doc.fontSize(16)
          .text('BUSINESS OVERVIEW', {
-           underline: false
+           underline: true
          });
-
+      
       doc.moveDown(1);
-      doc.fontSize(12)
-         .fillColor(colors.secondary)
-         .font('Helvetica');
-
+      doc.fontSize(12);
+      
       // Business basics
       if (analysis.story) {
         doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
         doc.text(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
-
+        
         doc.moveDown(1);
         if (analysis.story.businessSummary) {
           doc.text("Business Description:", {
             continued: false
           });
           doc.moveDown(0.5);
-
+          
           // Format with explicit width and enable automatic page breaks
           const text = safeStringify(analysis.story.businessSummary);
-
+          
           // Use continueOnNewPage option
           doc.text(text, {
             width: doc.page.width - 100,
@@ -1566,7 +1541,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             lineGap: 5,
             continued: false
           });
-
+          
           // Check if the content was cut off and add it on a new page if needed
           doc.moveDown(1);
         }
@@ -1577,19 +1552,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(1);
         doc.fontSize(14).text("Business Website:", { underline: true });
         doc.moveDown(0.5);
-        
-        // Make URL clickable in PDF
-        const fullUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
-        doc.fontSize(12)
-           .fillColor('#0066cc')
-           .text(websiteUrl, {
-             link: fullUrl,
-             underline: true
-           })
-           .fillColor('#000000'); // Reset color to black
+        doc.fontSize(12).text(websiteUrl);
         doc.moveDown(1);
       }
 
+
+      
       // MARKET SECTION - check if we need a new page
       if (doc.y > doc.page.height - 200) {
         doc.addPage();
@@ -1606,20 +1574,15 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       } else {
         doc.moveDown(2);
       }
-
-      // Section title styling
-      doc.fontSize(18)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
+      
+      doc.fontSize(16)
          .text('MARKET POSITION', {
-           underline: false
+           underline: true
          });
-
+      
       doc.moveDown(1);
-      doc.fontSize(12)
-         .fillColor(colors.secondary)
-         .font('Helvetica');
-
+      doc.fontSize(12);
+      
       if (analysis.marketAnalysis) {
         if (analysis.marketAnalysis.customerProfile) {
           doc.text("Target Market:");
@@ -1629,7 +1592,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
           doc.moveDown(1);
         }
-
+        
         if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length) {
           doc.text("Competitors:");
           doc.moveDown(0.5);
@@ -1640,7 +1603,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
           doc.moveDown(1);
         }
-
+        
         if (analysis.marketAnalysis.strengths && analysis.marketAnalysis.strengths.length) {
           doc.text("Business Strengths:");
           doc.moveDown(0.5);
@@ -1651,7 +1614,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
         }
       }
-
+      
       // OPERATIONS SECTION - check if we need a new page
       if (doc.y > doc.page.height - 200) {
         doc.addPage();
@@ -1668,20 +1631,15 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       } else {
         doc.moveDown(2);
       }
-
-      // Section title styling
-      doc.fontSize(18)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
+      
+      doc.fontSize(16)
          .text('OPERATIONS', {
-           underline: false
+           underline: true
          });
-
+      
       doc.moveDown(1);
-      doc.fontSize(12)
-         .fillColor(colors.secondary)
-         .font('Helvetica');
-
+      doc.fontSize(12);
+      
       if (analysis.operations) {
         // Customer details
         if (analysis.operations.customers) {
@@ -1705,7 +1663,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           }
           doc.moveDown(1);
         }
-
+        
         // Supplier details
         if (analysis.operations.suppliers) {
           doc.text("Supply Chain:");
@@ -1725,7 +1683,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
         }
       }
-
+      
       // TEAM STRUCTURE SECTION - always start on a new page
       doc.addPage();
       if (logoUrl) {
@@ -1738,36 +1696,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           console.error("Failed to add page header logo:", error);
         }
       }
-
-      // Section title styling
-      doc.fontSize(18)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
+      
+      doc.fontSize(16)
          .text('TEAM STRUCTURE', {
-           underline: false
+           underline: true
          });
-
+         
       doc.moveDown(1);
-      doc.fontSize(12)
-         .fillColor(colors.secondary)
-         .font('Helvetica');
-
+      doc.fontSize(12);
+      
       if (analysis.team) {
-        // Use consistent section styling instead of isolated card
-        doc.fontSize(14)
-           .fillColor(colors.primary)
-           .font('Helvetica-Bold')
-           .text('Owner Responsibilities:', { underline: true });
-        
-        doc.moveDown(0.5);
-        doc.fontSize(12)
-           .fillColor(colors.secondary)
-           .font('Helvetica')
-           .text(safeStringify(analysis.team?.ownerResponsibilities), {
-             width: doc.page.width - 100
-           });
-
-        doc.moveDown(1);
+        doc.text(`Owner Responsibilities: ${safeStringify(analysis.team.ownerResponsibilities)}`, {
+          width: doc.page.width - 100
+        });
         doc.text(`Owner Hours per Week: ${safeStringify(analysis.team.ownerHours)}`, {
           width: doc.page.width - 100
         });
@@ -1775,12 +1716,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.text(`Total Employees: ${safeStringify(analysis.team.employeeCount)}`, {
           width: doc.page.width - 100
         });
-
+        
         if (analysis.team.keyEmployees && analysis.team.keyEmployees.length > 0) {
           doc.moveDown(1);
           doc.text("Key Team Members:");
           doc.moveDown(0.5);
-
+          
           analysis.team.keyEmployees.forEach((employee: any) => {
             if (typeof employee === 'string') {
               doc.text(`• ${safeStringify(employee)}`, {
@@ -1790,7 +1731,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               const parts = [];
               if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
               if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
-
+              
               doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`, {
                 width: doc.page.width - 120
               });
@@ -1802,7 +1743,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
         }
       }
-
+      
       // FACILITIES SECTION
       if (doc.y > doc.page.height - 200) {
         doc.addPage();
@@ -1819,20 +1760,15 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       } else {
         doc.moveDown(2);
       }
-
-      // Section title styling
-      doc.fontSize(18)
-         .fillColor(colors.primary)
-         .font('Helvetica-Bold')
+      
+      doc.fontSize(16)
          .text('FACILITIES', {
-           underline: false
+           underline: true
          });
-
+         
       doc.moveDown(1);
-      doc.fontSize(12)
-         .fillColor(colors.secondary)
-         .font('Helvetica');
-
+      doc.fontSize(12);
+      
       if (analysis.facility) {
         doc.text(`Ownership Status: ${safeStringify(analysis.facility.ownership)}`, {
           width: doc.page.width - 100
@@ -1843,20 +1779,20 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.text(`Monthly Cost: ${safeStringify(analysis.facility.cost)}`, {
           width: doc.page.width - 100
         });
-
+        
         if (analysis.facility.leaseDetails) {
           doc.text(`Lease Details: ${safeStringify(analysis.facility.leaseDetails)}`, {
             width: doc.page.width - 100
           });
         }
       }
-
+      
       // MARKETING SECTION - only add if it exists in the analysis
       if (analysis.marketing && 
          (analysis.marketing.strategies?.length > 0 || 
           analysis.marketing.paidAdvertising?.channels?.length > 0 || 
           analysis.marketing.emailMarketing?.listSize)) {
-
+          
         if (doc.y > doc.page.height - 200) {
           doc.addPage();
           if (logoUrl) {
@@ -1872,15 +1808,15 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         } else {
           doc.moveDown(2);
         }
-
+        
         doc.fontSize(16)
            .text('MARKETING', {
              underline: true
            });
-
+           
         doc.moveDown(1);
         doc.fontSize(12);
-
+        
         if (analysis.marketing.strategies?.length > 0) {
           doc.text('Marketing Strategies:');
           doc.moveDown(0.5);
@@ -1891,7 +1827,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           });
           doc.moveDown(1);
         }
-
+        
         if (analysis.marketing.paidAdvertising?.channels?.length > 0) {
           doc.text('Paid Advertising Channels:');
           doc.moveDown(0.5);
@@ -1900,7 +1836,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               width: doc.page.width - 120
             });
           });
-
+          
           if (analysis.marketing.paidAdvertising.effectiveness) {
             doc.moveDown(0.5);
             doc.text(`Effectiveness: ${safeStringify(analysis.marketing.paidAdvertising.effectiveness)}`, {
@@ -1909,12 +1845,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           }
           doc.moveDown(1);
         }
-
+        
         if (analysis.marketing.emailMarketing?.listSize) {
           doc.text(`Email Marketing: List Size of ${safeStringify(analysis.marketing.emailMarketing.listSize)}`, {
             width: doc.page.width - 100
           });
-
+          
           if (analysis.marketing.emailMarketing.usage) {
             doc.text(`Usage: ${safeStringify(analysis.marketing.emailMarketing.usage)}`, {
               width: doc.page.width - 100
@@ -1922,31 +1858,31 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           }
         }
       }
-
+      
       // Skip page numbering
-
+      
       console.log("Finalizing PDF document generation...");
       // Fix for blank pages: Ensure all content is properly rendered before ending the document
       // End the document without adding any blank pages at the end
       doc.end();
-
+      
     } catch (error: any) {
       console.error("PDF generation failed:", error.message || error);
-
+      
       // Create a basic error PDF as fallback
       try {
         const errorDoc = new PDFDocument({ autoFirstPage: true });
         const errorChunks: Buffer[] = [];
-
+        
         errorDoc.on('data', (chunk) => {
           errorChunks.push(Buffer.from(chunk));
         });
-
+        
         errorDoc.on('end', () => {
           console.log("Generated error fallback PDF");
           resolve(Buffer.concat(errorChunks));
         });
-
+        
         // Add error information to the PDF
         errorDoc.fontSize(16)
                .text('Error Generating Complete PDF', { align: 'center' })
@@ -1958,7 +1894,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
                .moveDown(2)
                .fontSize(10)
                .text(`Error details: ${error.message || 'Unknown error'}`, { align: 'center' });
-
+        
         errorDoc.end();
       } catch (fallbackError) {
         console.error("Even fallback PDF failed:", fallbackError);
@@ -1984,15 +1920,15 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   // Format the content as a structured document for a CIM
   let formattedContent = `CONFIDENTIAL INFORMATION MEMORANDUM\n\n`;
   formattedContent += `${title}\n\n`;
-
+  
   // Business Overview Section
   formattedContent += `BUSINESS OVERVIEW\n==================\n`;
   formattedContent += `Founded: ${safeStringify(analysis.story?.yearStarted)}\n`;
   formattedContent += `Structure: ${safeStringify(analysis.story?.businessStructure)}\n\n`;
-
+  
   // Business Summary
   formattedContent += `${safeStringify(analysis.story?.businessSummary || analysis.story?.businessModel)}\n\n`;
-
+  
   // Executive Summary Section
   formattedContent += `INVESTMENT HIGHLIGHTS\n===================\n`;
   formattedContent += `Key Attractions:\n`;
@@ -2001,32 +1937,32 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
       formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
-
+  
   formattedContent += `\nGrowth Opportunities:\n`;
   if (analysis.executiveSummary?.growthOpportunities?.length) {
     analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
       formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
-
+  
   // Market Position
   formattedContent += `\nMARKET POSITION\n=============\n`;
   formattedContent += `Target Market: ${safeStringify(analysis.marketAnalysis?.customerProfile)}\n\n`;
-
+  
   formattedContent += `Competitors:\n`;
   if (analysis.marketAnalysis?.competitors?.length) {
     analysis.marketAnalysis.competitors.forEach((item: string) => {
       formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
-
+  
   formattedContent += `\nBusiness Strengths:\n`;
   if (analysis.marketAnalysis?.strengths?.length) {
     analysis.marketAnalysis.strengths.forEach((item: string) => {
       formattedContent += `• ${safeStringify(item)}\n`;
     });
   }
-
+  
   // Operations Section
   formattedContent += `\nOPERATIONS\n=========\n`;
   formattedContent += `Customer Relationships:\n`;
@@ -2042,13 +1978,13 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
     formattedContent += `• Revenue Concentration: ${safeStringify(analysis.operations?.customers?.concentration)}\n`;
   }
   formattedContent += `• Contract Terms: ${safeStringify(analysis.operations?.customers?.contracts)}\n\n`;
-
+  
   formattedContent += `Supply Chain:\n`;
   formattedContent += `• Number of Suppliers: ${safeStringify(analysis.operations?.suppliers?.count)}\n`;
   formattedContent += `• Supplier Terms: ${safeStringify(analysis.operations?.suppliers?.terms)}\n`;
   formattedContent += `• Concentration: ${safeStringify(analysis.operations?.suppliers?.concentration)}\n`;
   formattedContent += `• Transferability: ${safeStringify(analysis.operations?.suppliers?.transferability)}\n\n`;
-
+  
   // Team Structure
   formattedContent += `TEAM STRUCTURE\n=============\n`;
   formattedContent += `• Owner Responsibilities: ${safeStringify(analysis.team?.ownerResponsibilities)}\n`;
@@ -2057,14 +1993,15 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
   formattedContent += `• Team Size: ${safeStringify(analysis.team?.employeeCount)}\n`;
   formattedContent += `• Turnover Rate: ${safeStringify(analysis.team?.turnover)}\n`;
   formattedContent += `• Retention: ${safeStringify(analysis.team?.retention)}\n`;
-
+  
   // Add Key Team Members if available
   if (analysis.team?.keyEmployees?.length > 0) {
     formattedContent += `\nKey Team Members:\n`;
-
+    
     // Format each employee based on its type
     analysis.team.keyEmployees.forEach((employee: any) => {
-      if (typeof employee === 'string') {        formattedContent += `• ${safeStringify(employee)}\n`;
+      if (typeof employee === 'string') {
+        formattedContent += `• ${safeStringify(employee)}\n`;
       } else if (typeof employee === 'object' && employee !== null) {
         // Extract relevant properties from employee object
         const parts = [];
@@ -2072,7 +2009,7 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
         if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
         if (employee.background) parts.push(`Background: ${safeStringify(employee.background)}`);
         if (employee.tenure) parts.push(`Tenure: ${safeStringify(employee.tenure)}`);
-
+        
         // If no properties were found, provide a fallback format
         if (parts.length === 0) {
           try {
@@ -2090,9 +2027,9 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
       }
     });
   }
-
+  
   formattedContent += `\n`;
-
+  
   // Facilities
   formattedContent += `FACILITIES\n=========\n`;
   formattedContent += `• Ownership Status: ${safeStringify(analysis.facility?.ownership)}\n`;
