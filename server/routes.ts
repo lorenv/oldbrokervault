@@ -561,6 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Generating Word document with complete data...");
+      console.log("Logo URL being passed to Word generation:", doc.logoUrl);
       const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
