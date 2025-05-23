@@ -916,7 +916,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
                     width: 400,
-                    height: 300,
+                    // Remove height to maintain aspect ratio
                   },
                   type: 'jpg',
                 }),
@@ -1431,22 +1431,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
 
           // Check if file exists before trying to add it
           const fs = await import('fs');
-          if (fs.existsSync(logoPath)) {
+          const path = await import('path');
+          const fullLogoPath = path.resolve(process.cwd(), logoPath);
+          
+          if (fs.existsSync(fullLogoPath)) {
             doc.addPage();
+            doc.moveDown(3);
 
-            // Add logo section title
-            doc.fontSize(16)
-               .fillColor(colors.primary)
-               .font('Helvetica-Bold')
-               .text("COMPANY LOGO", { align: 'center', underline: true });
-            doc.moveDown(2);
-
-            // Add logo centered
-            doc.image(logoPath, {
+            // Add logo centered without title
+            doc.image(fullLogoPath, {
               fit: [250, 150],
               align: 'center'
             });
-            doc.moveDown(3);
+            doc.moveDown(4);
           }
         } catch (logoError) {
           console.error("Failed to add logo section to PDF:", logoError);
