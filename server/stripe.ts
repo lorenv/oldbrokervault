@@ -19,10 +19,8 @@ async function getOrCreateCustomer(userId: number, email: string) {
     }
   });
 
-  // Update user with Stripe customer ID
-  await storage.updateUser(userId, {
-    stripeCustomerId: customer.id
-  });
+  // Note: Customer ID is stored in Stripe and linked via email
+  console.log("Customer created successfully:", customer.id);
 
   return customer.id;
 }
