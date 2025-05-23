@@ -837,6 +837,39 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       if (fs.existsSync(logoPath)) {
         const logoBuffer = fs.readFileSync(logoPath);
         
+        // Get actual logo dimensions using the same approach as business images
+        let logoWidth = 200;  // fallback
+        let logoHeight = 100; // fallback
+        
+        try {
+          // Try to read dimensions from the logo buffer
+          if (logoPath.toLowerCase().endsWith('.jpg') || logoPath.toLowerCase().endsWith('.jpeg')) {
+            const jpegSize = getJpegDimensions(logoBuffer);
+            if (jpegSize) {
+              logoWidth = jpegSize.width;
+              logoHeight = jpegSize.height;
+            }
+          } else if (logoPath.toLowerCase().endsWith('.png')) {
+            const pngSize = getPngDimensions(logoBuffer);
+            if (pngSize) {
+              logoWidth = pngSize.width;
+              logoHeight = pngSize.height;
+            }
+          }
+          
+          // Scale down logo if too large while maintaining aspect ratio
+          const maxLogoWidth = 200;
+          if (logoWidth > maxLogoWidth) {
+            const ratio = maxLogoWidth / logoWidth;
+            logoWidth = maxLogoWidth;
+            logoHeight = Math.round(logoHeight * ratio);
+          }
+          
+          console.log(`Adding logo with actual dimensions: ${logoPath} (${logoWidth}x${logoHeight})`);
+        } catch (e) {
+          console.log(`Using fallback dimensions for logo: ${logoWidth}x${logoHeight}`);
+        }
+        
         // Add the logo to the document
         paragraphs.push(
           new docx.Paragraph({
@@ -844,8 +877,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               new docx.ImageRun({
                 data: logoBuffer,
                 transformation: {
-                  width: 200,
-                  height: 100,
+                  width: logoWidth,
+                  height: logoHeight,
                 },
                 type: "png"
               })
