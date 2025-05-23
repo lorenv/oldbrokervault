@@ -1441,7 +1441,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.fontSize(16).text("BUSINESS IMAGES", { align: 'center', underline: true });
         doc.moveDown(2);
         
-        // Add each image to the PDF with proper spacing
+        // Add each image to the PDF with explicit positioning to prevent overlap
+        let currentY = doc.y;
+        
         for (let i = 0; i < selectedImages.length; i++) {
           const imagePath = selectedImages[i];
           try {
@@ -1458,31 +1460,31 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
-              // Check if we need a new page for this image (be conservative)
-              if (doc.y > doc.page.height - 400) {
+              // Calculate image height and check if we need a new page
+              const imageHeight = 200; // Fixed height for consistent spacing
+              const spacingAfter = 40; // Space after each image
+              
+              // Check if image will fit on current page
+              if (currentY + imageHeight + spacingAfter > doc.page.height - 100) {
                 doc.addPage();
+                currentY = 50; // Reset to top of new page with margin
               }
               
-              // Add some space before each image (except the first one)
-              if (i > 0) {
-                doc.moveDown(1);
-              }
+              // Position image explicitly with fixed coordinates
+              const pageWidth = doc.page.width;
+              const imageWidth = 350;
+              const xPosition = (pageWidth - imageWidth) / 2; // Center horizontally
               
-              // Add image with proper sizing and centering
-              const maxWidth = 350; // Slightly smaller to ensure no overlap
-              
-              doc.image(fullImagePath, {
-                width: maxWidth,
-                align: 'center'
+              doc.image(fullImagePath, xPosition, currentY, {
+                width: imageWidth,
+                height: imageHeight
               });
               
-              // Add generous spacing after each image to prevent overlap
-              doc.moveDown(3);
+              // Update current Y position for next image
+              currentY += imageHeight + spacingAfter;
               
-              // Force a position check after each image
-              if (doc.y > doc.page.height - 200) {
-                doc.addPage();
-              }
+              // Move doc position to match our tracking
+              doc.y = currentY;
             }
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
@@ -1490,50 +1492,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
 
-      // TABLE OF CONTENTS PAGE
-      doc.addPage();
-      
-      doc.fontSize(16)
-         .text('TABLE OF CONTENTS', {
-           align: 'center',
-           underline: true
-         });
-      
-      doc.moveDown(2);
-      doc.fontSize(12);
-      
-      // Add table of contents entries
-      const sections = [
-        { title: 'BUSINESS OVERVIEW', page: 3 },
-        { title: 'MARKET POSITION', page: 3 },
-        { title: 'OPERATIONS', page: 4 },
-        { title: 'TEAM STRUCTURE', page: 5 },
-        { title: 'FACILITIES', page: 6 }
-      ];
-      
-      sections.forEach(section => {
-        doc.text(section.title, {
-          continued: true
-        });
-        
-        const xPosition = 450; // Position for page numbers
-        const currentY = doc.y;
-        
-        doc.text(`Page ${section.page}`, {
-          align: 'right',
-          continued: false
-        });
-        
-        // Add dotted line connecting section title to page number
-        const dotsStartX = doc.widthOfString(section.title) + 100;
-        const dotsEndX = xPosition - 20;
-        
-        doc.moveTo(dotsStartX, currentY + 7)
-           .lineTo(dotsEndX, currentY + 7)
-           .stroke();
-           
-        doc.moveDown(1);
-      });
+      // Skip table of contents section
       
       // CONTENT PAGES
       
@@ -1900,18 +1859,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
       
-      // Add page numbers to all pages
-      const range = doc.bufferedPageRange();
-      for (let i = 0; i < range.count; i++) {
-        doc.switchToPage(i);
-        doc.fontSize(8)
-           .text(
-             `Page ${i + 1} of ${range.count}`,
-             50,
-             doc.page.height - 50,
-             { align: 'center' }
-           );
-      }
+      // Skip page numbering
       
       console.log("Finalizing PDF document generation...");
       // Fix for blank pages: Ensure all content is properly rendered before ending the document
