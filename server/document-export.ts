@@ -825,6 +825,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   const paragraphs: docx.Paragraph[] = [];
   
   // Add logo image if available
+  console.log("Logo processing - logoUrl received:", logoUrl);
   if (logoUrl) {
     try {
       // Fix logo path - read from file system instead of fetching as URL
