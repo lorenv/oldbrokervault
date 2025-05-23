@@ -1577,7 +1577,16 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(1);
         doc.fontSize(14).text("Business Website:", { underline: true });
         doc.moveDown(0.5);
-        doc.fontSize(12).text(websiteUrl);
+        
+        // Make URL clickable in PDF
+        const fullUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
+        doc.fontSize(12)
+           .fillColor('#0066cc')
+           .text(websiteUrl, {
+             link: fullUrl,
+             underline: true
+           })
+           .fillColor('#000000'); // Reset color to black
         doc.moveDown(1);
       }
 
@@ -1744,25 +1753,21 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
          .font('Helvetica');
 
       if (analysis.team) {
-        // Info card styling
-        const cardY = doc.y;
-        doc.fillColor(colors.background)
-           .roundedRect(50, cardY, doc.page.width - 100, 80, 5)
-           .fill();
-
-        doc.fillColor(colors.primary)
+        // Use consistent section styling instead of isolated card
+        doc.fontSize(14)
+           .fillColor(colors.primary)
            .font('Helvetica-Bold')
-           .fontSize(12)
-           .text('Owner Responsibilities:', 60, cardY + 15);
-
-        doc.font('Helvetica')
+           .text('Owner Responsibilities:', { underline: true });
+        
+        doc.moveDown(0.5);
+        doc.fontSize(12)
            .fillColor(colors.secondary)
-           .fontSize(11)
-           .text(safeStringify(analysis.team?.ownerResponsibilities), 60, cardY + 35, {
-             width: doc.page.width - 120
+           .font('Helvetica')
+           .text(safeStringify(analysis.team?.ownerResponsibilities), {
+             width: doc.page.width - 100
            });
 
-        doc.moveDown(5);
+        doc.moveDown(1);
         doc.text(`Owner Hours per Week: ${safeStringify(analysis.team.ownerHours)}`, {
           width: doc.page.width - 100
         });
