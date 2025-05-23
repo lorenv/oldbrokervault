@@ -979,7 +979,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
           }
           
           // Scale down if too large while maintaining aspect ratio
-          const maxWidth = 500;
+          const maxWidth = 350; // Smaller size for business images
           if (actualWidth > maxWidth) {
             const ratio = maxWidth / actualWidth;
             actualWidth = maxWidth;
