@@ -32,7 +32,10 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     ? process.env.STRIPE_PRICE_ID_PREMIUM
     : process.env.STRIPE_PRICE_ID_STANDARD;
 
+  console.log("=== STRIPE SESSION CREATION START ===");
   console.log("Creating subscription session for user:", userId, "plan:", planId);
+  console.log("Price ID being used:", priceId);
+  console.log("Request host:", requestHost);
 
   const user = await storage.getUser(userId);
   const customerId = await getOrCreateCustomer(userId, user.email);
