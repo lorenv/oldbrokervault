@@ -26,10 +26,25 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
     }
   };
 
-  const handleUpgrade = (checkoutUrl: string) => {
+  const handleUpgrade = async (plan: string) => {
     setIsLoading(true);
-    // Simple redirect to the provided checkout URL
-    window.location.href = checkoutUrl;
+    try {
+      console.log("Creating checkout session for plan:", plan);
+      const response = await fetch("/api/subscription/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to create checkout session");
+      
+      const { url } = await response.json();
+      console.log("Redirecting to checkout:", url);
+      window.location.href = url;
+    } catch (error) {
+      console.error("Checkout error:", error);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -84,7 +99,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               {status === "free" && (
                 <Button
                   className="w-full"
-                  onClick={() => handleUpgrade("https://buy.stripe.com/eVa9DA8cO86ugqA3ce")}
+                  onClick={() => handleUpgrade("standard")}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -96,7 +111,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               )}
               <Button
                 className="w-full"
-                onClick={() => handleUpgrade("https://buy.stripe.com/aEUg1YfFg1I65LW9AB")}
+                onClick={() => handleUpgrade("premium")}
                 disabled={isLoading}
               >
                 {isLoading ? (
