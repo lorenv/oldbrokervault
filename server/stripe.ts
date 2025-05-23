@@ -44,28 +44,43 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const baseUrl = requestHost ? `https://${requestHost}` : `https://${process.env.REPL_SLUG}.replit.dev`;
   console.log("Using base URL for redirects:", baseUrl);
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/pricing?canceled=true`,
-    client_reference_id: userId.toString(),
-    subscription_data: {
-      metadata: {
-        userId: userId.toString(),
-      },
-    },
-  });
+  try {
+    console.log("Creating Stripe checkout session with config:", {
+      mode: 'subscription',
+      customer: customerId,
+      priceId,
+      success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      userId
+    });
 
-  console.log("Created subscription session:", session.id);
-  return session;
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      client_reference_id: userId.toString(),
+      subscription_data: {
+        metadata: {
+          userId: userId.toString(),
+        },
+      },
+    });
+
+    console.log("Successfully created subscription session:", session.id);
+    console.log("Session URL:", session.url);
+    return session;
+  } catch (error) {
+    console.error("Error creating Stripe checkout session:", error);
+    throw error;
+  }
 }
 
 export async function createCustomerPortalSession(userId: number) {
