@@ -911,15 +911,16 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
           // Get image dimensions and maintain aspect ratio
           const imageBuffer = fs.readFileSync(fullImagePath);
           
+          // Use a more standard approach with fixed width but natural height scaling
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
                   data: imageBuffer,
                   transformation: {
-                    width: 400,
+                    width: 380,
+                    height: 285, // 4:3 ratio which is more standard
                   },
-                  type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
