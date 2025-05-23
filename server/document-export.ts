@@ -797,7 +797,6 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 data: logoBuffer,
                 transformation: {
                   width: 200,
-                  height: 100,
                 },
                 type: "png"
               })
@@ -1476,8 +1475,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               const xPosition = (pageWidth - imageWidth) / 2; // Center horizontally
               
               doc.image(fullImagePath, xPosition, currentY, {
-                width: imageWidth,
-                height: imageHeight
+                fit: [imageWidth, imageHeight]
               });
               
               // Update current Y position for next image
