@@ -83,9 +83,13 @@ export default function AccountPage() {
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
-      console.log("Verifying session:", sessionId);
+      console.log("=== STRIPE SESSION VERIFICATION START ===");
+      console.log("Session ID from URL:", sessionId);
+      console.log("Making request to verify session...");
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
+      console.log("Response status:", response.status);
       const data = await response.json();
+      console.log("Response data:", data);
 
       if (data.success) {
         // Invalidate the user query to refresh the subscription status
