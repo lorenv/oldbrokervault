@@ -907,17 +907,41 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         const fullImagePath = path.resolve(process.cwd(), relativePath);
         
         if (fs.existsSync(fullImagePath)) {
-          // Get image dimensions and maintain aspect ratio
+          // Check if image is SVG and convert to PNG for Word compatibility
+          let imageBuffer;
+          let imageType = 'jpg';
+          
+          if (fullImagePath.toLowerCase().endsWith('.svg')) {
+            try {
+              // Convert SVG to PNG for Word document compatibility
+              const sharp = await import('sharp');
+              const svgBuffer = fs.readFileSync(fullImagePath);
+              imageBuffer = await sharp.default(svgBuffer)
+                .png()
+                .resize({ width: 400 })
+                .toBuffer();
+              imageType = 'png';
+            } catch (svgError) {
+              console.error('Failed to convert SVG to PNG:', svgError);
+              // Fallback to original file
+              imageBuffer = fs.readFileSync(fullImagePath);
+            }
+          } else {
+            imageBuffer = fs.readFileSync(fullImagePath);
+            if (fullImagePath.toLowerCase().endsWith('.png')) {
+              imageType = 'png';
+            }
+          }
+          
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
-                  data: fs.readFileSync(fullImagePath),
+                  data: imageBuffer,
                   transformation: {
                     width: 400,
-                    height: 300,
                   },
-                  type: 'jpg',
+                  type: imageType,
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
