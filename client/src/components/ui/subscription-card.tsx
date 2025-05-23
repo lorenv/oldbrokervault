@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SubscriptionCardProps {
   status?: string;
@@ -30,14 +31,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
     setIsLoading(true);
     try {
       console.log("Creating checkout session for plan:", plan);
-      const response = await fetch("/api/subscription/create-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      
-      if (!response.ok) throw new Error("Failed to create checkout session");
-      
+      const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan });
       const { url } = await response.json();
       console.log("Redirecting to checkout:", url);
       window.location.href = url;
