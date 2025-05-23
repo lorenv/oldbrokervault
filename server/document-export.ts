@@ -910,53 +910,69 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         if (fs.existsSync(fullImagePath)) {
           const imageBuffer = fs.readFileSync(fullImagePath);
           
-          // Use a different library to read image dimensions since Sharp is failing
+          // Try reading image dimensions directly from the buffer
           try {
             const sizeOf = require('image-size');
-            const dimensions = sizeOf(fullImagePath);
+            const dimensions = sizeOf(imageBuffer);
             const originalWidth = dimensions.width;
             const originalHeight = dimensions.height;
             
-            // Calculate dimensions to fit within reasonable bounds while maintaining aspect ratio
-            let targetWidth = originalWidth;
-            let targetHeight = originalHeight;
-            
-            // If image is too large, scale it down proportionally
-            const maxWidth = 500;
-            if (originalWidth > maxWidth) {
-              targetWidth = maxWidth;
-              targetHeight = Math.round((originalHeight / originalWidth) * maxWidth);
+            if (originalWidth && originalHeight) {
+              // Calculate dimensions to fit within reasonable bounds while maintaining aspect ratio
+              let targetWidth = originalWidth;
+              let targetHeight = originalHeight;
+              
+              // If image is too large, scale it down proportionally
+              const maxWidth = 500;
+              if (originalWidth > maxWidth) {
+                targetWidth = maxWidth;
+                targetHeight = Math.round((originalHeight / originalWidth) * maxWidth);
+              }
+              
+              console.log(`Image ${imagePath}: original ${originalWidth}x${originalHeight}, using ${targetWidth}x${targetHeight}`);
+              
+              paragraphs.push(
+                new docx.Paragraph({
+                  children: [
+                    new docx.ImageRun({
+                      data: imageBuffer,
+                      transformation: {
+                        width: targetWidth,
+                        height: targetHeight,
+                      },
+                      type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
+                    }),
+                  ],
+                  alignment: docx.AlignmentType.CENTER,
+                  spacing: { before: 200, after: 200 }
+                })
+              );
+            } else {
+              throw new Error('No dimensions found');
             }
-            
-            console.log(`Image ${imagePath}: original ${originalWidth}x${originalHeight}, using ${targetWidth}x${targetHeight}`);
-            
-            paragraphs.push(
-              new docx.Paragraph({
-                children: [
-                  new docx.ImageRun({
-                    data: imageBuffer,
-                    transformation: {
-                      width: targetWidth,
-                      height: targetHeight,
-                    },
-                    type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
-                  }),
-                ],
-                alignment: docx.AlignmentType.CENTER,
-                spacing: { before: 200, after: 200 }
-              })
-            );
           } catch (error) {
-            console.log(`Failed to get dimensions for ${imagePath}, using default size`);
-            // Fallback with reasonable dimensions
+            console.log(`Failed to get dimensions for ${imagePath}, error:`, error.message);
+            // Use different aspect ratios for different images to avoid uniform stretching
+            const imageIndex = selectedImages.indexOf(imagePath);
+            const aspectRatios = [
+              { width: 500, height: 300 },  // 5:3 landscape
+              { width: 400, height: 400 },  // 1:1 square
+              { width: 350, height: 500 },  // 7:10 portrait
+              { width: 450, height: 300 },  // 3:2 landscape
+              { width: 400, height: 300 },  // 4:3 landscape
+            ];
+            const ratio = aspectRatios[imageIndex % aspectRatios.length];
+            
+            console.log(`Using fallback dimensions for image ${imageIndex}: ${ratio.width}x${ratio.height}`);
+            
             paragraphs.push(
               new docx.Paragraph({
                 children: [
                   new docx.ImageRun({
                     data: imageBuffer,
                     transformation: {
-                      width: 400,
-                      height: 300,
+                      width: ratio.width,
+                      height: ratio.height,
                     },
                     type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
                   }),
