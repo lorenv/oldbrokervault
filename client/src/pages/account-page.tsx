@@ -23,6 +23,7 @@ import {
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { SubscriptionCard } from "@/components/ui/subscription-card";
 
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -224,28 +225,11 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription</CardTitle>
-            <CardDescription>Manage your subscription and billing</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium">Current Plan</h3>
-                <p className="text-muted-foreground capitalize">{user?.subscriptionStatus || "Free"}</p>
-              </div>
-
-              <Button 
-                variant="default"
-                onClick={handleSubscriptionAction}
-                className="w-full md:w-auto"
-              >
-                {user?.subscriptionStatus === "free" ? "Upgrade Plan" : "Manage Subscription"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SubscriptionCard 
+          status={user?.subscriptionStatus} 
+          endsAt={user?.subscriptionEndsAt} 
+          monthlyUsage={user?.monthlyUsage}
+        />
       </div>
     </div>
   );
