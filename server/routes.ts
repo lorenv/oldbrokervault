@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        let analysis = await analyzeCimTranscript(data.transcript);
+        let analysis = await analyzeCimTranscript(data.transcript, data.customDirections);
         
         // If website URL is provided, enhance the analysis with website data
         if (data.websiteUrl) {
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      let analysis = await analyzeCimTranscript(data.transcript);
+      let analysis = await analyzeCimTranscript(data.transcript, data.directions);
       
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
