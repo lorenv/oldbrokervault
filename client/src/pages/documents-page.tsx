@@ -540,6 +540,21 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 
                 <section>
                   <h2 className="text-2xl font-bold border-b pb-2 mb-4">Business Overview</h2>
+                  
+                  {/* Company Logo in Business Overview */}
+                  {selectedDoc.logoUrl && (
+                    <div className="flex justify-center mb-6">
+                      <img 
+                        src={selectedDoc.logoUrl} 
+                        alt="Company Logo"
+                        className="h-20 max-w-xs object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  
                   <div className="space-y-4">
                     {selectedDoc.websiteUrl && (
                       <div className="mb-4">

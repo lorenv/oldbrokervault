@@ -1358,34 +1358,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       // TITLE PAGE
       
-      // Add logo if available
-      if (logoUrl) {
-        try {
-          console.log("Adding logo to PDF:", logoUrl);
-          // Fix logo path - add public prefix if needed
-          let logoPath = logoUrl;
-          if (logoUrl.startsWith('/logos/')) {
-            logoPath = `public${logoUrl}`;
-          }
-          
-          // Check if file exists before trying to add it
-          const fs = await import('fs');
-          if (fs.existsSync(logoPath)) {
-            doc.image(logoPath, {
-              fit: [200, 100],
-              align: 'center'
-            });
-            doc.moveDown(2);
-          } else {
-            console.log("Logo file not found:", logoPath);
-            doc.moveDown(1);
-          }
-        } catch (logoError) {
-          console.error("Failed to add logo to PDF:", logoError);
-          // Continue without the logo
-          doc.moveDown(1);
-        }
-      }
+      // Skip logo on title page - will be in dedicated section
       
       // Add main title
       doc.fontSize(22)
@@ -1429,6 +1402,37 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
            align: 'center'
          });
       
+      // COMPANY LOGO SECTION
+      if (logoUrl) {
+        try {
+          console.log("Adding logo section to PDF:", logoUrl);
+          // Fix logo path - add public prefix if needed
+          let logoPath = logoUrl;
+          if (logoUrl.startsWith('/logos/')) {
+            logoPath = `public${logoUrl}`;
+          }
+          
+          // Check if file exists before trying to add it
+          const fs = await import('fs');
+          if (fs.existsSync(logoPath)) {
+            doc.addPage();
+            
+            // Add logo section title
+            doc.fontSize(16).text("COMPANY LOGO", { align: 'center', underline: true });
+            doc.moveDown(2);
+            
+            // Add logo centered
+            doc.image(logoPath, {
+              fit: [250, 150],
+              align: 'center'
+            });
+            doc.moveDown(3);
+          }
+        } catch (logoError) {
+          console.error("Failed to add logo section to PDF:", logoError);
+        }
+      }
+
       // BUSINESS IMAGES PAGE - At the beginning after title page
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
