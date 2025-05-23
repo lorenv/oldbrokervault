@@ -510,6 +510,25 @@ ${analysis.team.ownerResponsibilities}
                       </>
                     )}
                   </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button 
+                      type="button"
+                      onClick={() => setIsDirectionsOpen(false)}
+                      className="flex-1"
+                    >
+                      Save Directions
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        form.setValue("directions", DEFAULT_CIM_DIRECTIONS);
+                      }}
+                      className="flex-1"
+                    >
+                      Reset to Default
+                    </Button>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>

@@ -915,8 +915,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                 new docx.ImageRun({
                   data: fs.readFileSync(fullImagePath),
                   transformation: {
-                    width: 400,
-                    height: 300,
+                    width: 350,
+                    height: 250,
                   },
                   type: 'jpg',
                 }),
@@ -1419,9 +1419,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             doc.moveDown(2);
             
             // Add logo centered under the title
-            doc.image(logoPath, {
-              fit: [200, 120],
-              align: 'center'
+            const pageWidth = doc.page.width;
+            const logoWidth = 200;
+            const xPosition = (pageWidth - logoWidth) / 2;
+            
+            doc.image(logoPath, xPosition, doc.y, {
+              fit: [logoWidth, 120]
             });
             doc.moveDown(2);
           }
