@@ -7,6 +7,54 @@ import { Readable } from "stream";
 
 export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
 
+// Simple helper functions to read image dimensions from file headers
+function getJpegDimensions(buffer: Buffer): { width: number; height: number } | null {
+  try {
+    // JPEG files start with FF D8
+    if (buffer[0] !== 0xFF || buffer[1] !== 0xD8) return null;
+    
+    let offset = 2;
+    while (offset < buffer.length) {
+      // Look for SOF markers (Start of Frame)
+      if (buffer[offset] === 0xFF && (buffer[offset + 1] === 0xC0 || buffer[offset + 1] === 0xC2)) {
+        // SOF found, dimensions are at offset + 5 (height) and offset + 7 (width)
+        const height = buffer.readUInt16BE(offset + 5);
+        const width = buffer.readUInt16BE(offset + 7);
+        return { width, height };
+      }
+      
+      // Skip to next marker
+      if (buffer[offset] === 0xFF) {
+        const segmentLength = buffer.readUInt16BE(offset + 2);
+        offset += segmentLength + 2;
+      } else {
+        offset++;
+      }
+    }
+  } catch (e) {
+    // Return null if parsing fails
+  }
+  return null;
+}
+
+function getPngDimensions(buffer: Buffer): { width: number; height: number } | null {
+  try {
+    // PNG files start with specific signature
+    const pngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    for (let i = 0; i < pngSignature.length; i++) {
+      if (buffer[i] !== pngSignature[i]) return null;
+    }
+    
+    // Width and height are at bytes 16-23 (after signature + IHDR chunk header)
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+    return { width, height };
+  } catch (e) {
+    // Return null if parsing fails
+  }
+  return null;
+}
+
 /**
  * Generates HTML with inline styling for the CIM data
  * This function creates a formatted HTML representation suitable for copying to clipboard
@@ -907,7 +955,41 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       
       if (fs.existsSync(fullImagePath)) {
         const imageBuffer = fs.readFileSync(fullImagePath);
-        console.log(`Adding image (no transformations): ${imagePath}`);
+        
+        // Get actual image dimensions using a simple approach
+        let actualWidth = 400;  // fallback
+        let actualHeight = 300; // fallback
+        
+        try {
+          // Try to read dimensions from the buffer using basic file header parsing
+          if (fullImagePath.toLowerCase().endsWith('.jpg') || fullImagePath.toLowerCase().endsWith('.jpeg')) {
+            // Simple JPEG dimension reading
+            const jpegSize = getJpegDimensions(imageBuffer);
+            if (jpegSize) {
+              actualWidth = jpegSize.width;
+              actualHeight = jpegSize.height;
+            }
+          } else if (fullImagePath.toLowerCase().endsWith('.png')) {
+            // Simple PNG dimension reading
+            const pngSize = getPngDimensions(imageBuffer);
+            if (pngSize) {
+              actualWidth = pngSize.width;
+              actualHeight = pngSize.height;
+            }
+          }
+          
+          // Scale down if too large while maintaining aspect ratio
+          const maxWidth = 500;
+          if (actualWidth > maxWidth) {
+            const ratio = maxWidth / actualWidth;
+            actualWidth = maxWidth;
+            actualHeight = Math.round(actualHeight * ratio);
+          }
+          
+          console.log(`Adding image with actual dimensions: ${imagePath} (${actualWidth}x${actualHeight})`);
+        } catch (e) {
+          console.log(`Using fallback dimensions for ${imagePath}: ${actualWidth}x${actualHeight}`);
+        }
         
         // Determine image type from file extension
         const imageType = fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
@@ -918,8 +1000,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               new docx.ImageRun({
                 data: imageBuffer,
                 transformation: {
-                  width: 400,
-                  height: 300, // Set reasonable height to prevent undefined errors
+                  width: actualWidth,
+                  height: actualHeight,
                 },
                 type: imageType
               }),
