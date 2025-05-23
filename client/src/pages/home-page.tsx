@@ -19,6 +19,12 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-6">
+            <SubscriptionCard 
+              status={user?.subscriptionStatus} 
+              endsAt={user?.subscriptionEndsAt} 
+              monthlyUsage={user?.monthlyUsage}
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle>Recent Documents</CardTitle>
