@@ -834,12 +834,15 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       }
       
       const fs = await import('fs');
+      console.log("Checking logo path:", logoPath);
       if (fs.existsSync(logoPath)) {
+        console.log("Logo file exists, reading buffer...");
         const logoBuffer = fs.readFileSync(logoPath);
         
         // Get actual logo dimensions using the same approach as business images
         let logoWidth = 200;  // fallback
         let logoHeight = 100; // fallback
+        console.log("Starting logo dimension reading...");
         
         try {
           // Try to read dimensions from the logo buffer
