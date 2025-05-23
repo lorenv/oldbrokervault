@@ -27,7 +27,7 @@ async function getOrCreateCustomer(userId: number, email: string) {
   return customer.id;
 }
 
-export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number) {
+export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string) {
   const priceId = planId === 'premium' 
     ? process.env.STRIPE_PRICE_ID_PREMIUM
     : process.env.STRIPE_PRICE_ID_STANDARD;
@@ -37,8 +37,9 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const user = await storage.getUser(userId);
   const customerId = await getOrCreateCustomer(userId, user.email);
 
-  // Construct absolute URLs for success and cancel
-  const baseUrl = `https://${process.env.REPL_SLUG}.replit.dev`;
+  // Use the actual request host if provided, otherwise fallback
+  const baseUrl = requestHost ? `https://${requestHost}` : `https://${process.env.REPL_SLUG}.replit.dev`;
+  console.log("Using base URL for redirects:", baseUrl);
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
