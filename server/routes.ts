@@ -81,10 +81,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Request body:", JSON.stringify(req.body, null, 2));
       console.log("SelectedImages specifically:", req.body.selectedImages);
       console.log("=== CIM REQUEST DEBUG END ===");
-
+      
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
-
+      
       // Debug: Check if selectedImages are present in regular route
       console.log("Selected images in regular route:", req.body.selectedImages);
       console.log("Selected images type:", typeof req.body.selectedImages);
@@ -103,14 +103,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Analyze with new directions
-        let analysis = await analyzeCimTranscript(data.transcript, data.directions);
-
+        let analysis = await analyzeCimTranscript(data.transcript);
+        
         // If website URL is provided, enhance the analysis with website data
         if (data.websiteUrl) {
           try {
             // Normalize and validate the URL
             const normalizedUrl = normalizeUrl(data.websiteUrl);
-
+            
             // First, capture a screenshot of the website
             let websiteScreenshotUrl = null;
             try {
@@ -121,11 +121,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error("Website screenshot error:", screenshotError);
               // Continue even if screenshot fails
             }
-
+            
             // Analyze the website
             // Website analysis disabled to fix selected images
             console.log("Website analysis disabled - using transcript data only");
-
+            
             // Add website screenshot URL to be saved with the document
             existingDoc.websiteScreenshotUrl = websiteScreenshotUrl;
           } catch (error) {
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Continue with just the transcript analysis, but log the error
           }
         }
-
+        
         const updatedDoc = await storage.updateCimDocument(docId, {
           ...existingDoc,
           directions: data.directions,
@@ -145,8 +145,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      let analysis = await analyzeCimTranscript(data.transcript, data.directions);
-
+      let analysis = await analyzeCimTranscript(data.transcript);
+      
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
       if (data.websiteUrl && req.body.selectedImages) {
@@ -157,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Processing ${selectedImages.length} selected images in regular route...`);
             savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
             console.log(`Successfully downloaded ${savedImagePaths.length} selected images in regular route`);
-
+            
             // Add selected images to the analysis object so they show in the CIM
             analysis.selectedImages = savedImagePaths;
           }
@@ -165,14 +165,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Selected images processing error in regular route:", imageError);
         }
       }
-
+      
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
-
+          
           // Try to extract logo from the website
           try {
             logoUrl = await extractLogoFromWebsite(normalizedUrl);
@@ -181,10 +181,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Logo extraction error:", logoError);
             // Continue without the logo
           }
-
+          
           // Analyze the website
           // Website analysis disabled
-
+          
           // Enhance the CIM with website data
           // Website enhancement disabled
         } catch (error) {
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with just the transcript analysis, but log the error
         }
       }
-
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         websiteUrl: data.websiteUrl,
@@ -226,8 +226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug: Check if selectedImages are present
       console.log("Selected images in request:", req.body.selectedImages);
 
-      let analysis = await analyzeCimTranscript(transcript, data.directions);
-
+      let analysis = await analyzeCimTranscript(transcript);
+      
       // Handle selected images early in the process
       let savedImagePaths: string[] = [];
       if (data.websiteUrl && req.body.selectedImages) {
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Processing ${selectedImages.length} selected images...`);
             savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
             console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
-
+            
             // Add selected images to the analysis object so they show in the CIM
             analysis.selectedImages = savedImagePaths;
           }
@@ -246,14 +246,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Selected images processing error:", imageError);
         }
       }
-
+      
       // If website URL is provided, enhance the analysis with website data
       let logoUrl = null;
       if (data.websiteUrl) {
         try {
           // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
-
+          
           // Try to extract logo from the website
           try {
             logoUrl = await extractLogoFromWebsite(normalizedUrl);
@@ -262,10 +262,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Logo extraction error:", logoError);
             // Continue without the logo
           }
-
+          
           // Analyze the website
           // Website analysis disabled
-
+          
           // Enhance the CIM with website data
           // Website enhancement disabled
         } catch (error) {
@@ -273,7 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with just the transcript analysis, but log the error
         }
       }
-
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         websiteUrl: data.websiteUrl,
@@ -295,27 +295,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const docs = await storage.getCimDocuments(req.user!.id);
     res.json(docs);
   });
-
+  
   // Delete a CIM document
   app.delete("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-
+    
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid document ID" });
       }
-
+      
       // Check if document exists and belongs to user
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
       if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
         return res.status(403).json({ error: "You don't have permission to delete this document" });
       }
-
+      
       await storage.deleteCimDocument(docId);
       res.json({ success: true });
     } catch (error) {
@@ -329,9 +329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const websiteUrl = decodeURIComponent(req.params.websiteUrl);
       console.log(`Image extraction request for: ${websiteUrl}`);
-
+      
       const imageUrls = await extractWebsiteImages(websiteUrl);
-
+      
       res.json({ images: imageUrls });
     } catch (error) {
       console.error("Error extracting website images:", error);
@@ -343,15 +343,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/download-images", async (req, res) => {
     try {
       const { imageUrls, websiteUrl } = req.body;
-
+      
       if (!imageUrls || !Array.isArray(imageUrls) || !websiteUrl) {
         return res.status(400).json({ error: "imageUrls array and websiteUrl are required" });
       }
-
+      
       console.log(`Downloading ${imageUrls.length} images for: ${websiteUrl}`);
-
+      
       const savedPaths = await downloadSelectedImages(imageUrls, websiteUrl);
-
+      
       res.json({ savedPaths });
     } catch (error) {
       console.error("Error downloading images:", error);
@@ -531,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/cim/export/word/:id", async (req, res) => {
     console.log("Word export request received for document ID:", req.params.id);
-
+    
     if (!req.isAuthenticated()) {
       console.log("Word export authentication error - User not authenticated");
       return res.sendStatus(401);
@@ -541,12 +541,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User authenticated, retrieving document");
       const docId = parseInt(req.params.id);
       const doc = await storage.getCimDocument(docId);
-
+      
       if (!doc) {
         console.log(`Document with ID ${docId} not found`);
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
       if (doc.userId !== req.user!.id) {
         console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
         return res.status(404).json({ error: "Document not found" });
@@ -554,7 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUser(req.user!.id);
       console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
-
+      
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
@@ -563,12 +563,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Generating Word document with complete data...");
       const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
-
+      
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       // Use the document title in the filename for better user experience
       const safeTitle = doc.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       res.setHeader("Content-Disposition", `attachment; filename=cim-${safeTitle}.docx`);
-
+      
       console.log("Sending Word document to client");
       res.send(buffer);
       console.log("Word document sent successfully");
@@ -580,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/cim/export/pdf/:id", async (req, res) => {
     console.log("PDF export request received for document ID:", req.params.id);
-
+    
     if (!req.isAuthenticated()) {
       console.log("PDF export authentication error - User not authenticated");
       return res.sendStatus(401);
@@ -590,12 +590,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User authenticated, retrieving document");
       const docId = parseInt(req.params.id);
       const doc = await storage.getCimDocument(docId);
-
+      
       if (!doc) {
         console.log(`Document with ID ${docId} not found`);
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
       if (doc.userId !== req.user!.id) {
         console.log(`Access error: Document belongs to user ${doc.userId}, request from user ${req.user!.id}`);
         return res.status(404).json({ error: "Document not found" });
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUser(req.user!.id);
       console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
-
+      
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
@@ -613,12 +613,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Pass all document data to the PDF generator
       const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
-
+      
       res.setHeader("Content-Type", "application/pdf");
       // Use the document title in the filename for better user experience
       const safeTitle = doc.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       res.setHeader("Content-Disposition", `attachment; filename=cim-${safeTitle}.pdf`);
-
+      
       console.log("Sending PDF document to client");
       res.send(buffer);
       console.log("PDF document sent successfully");
@@ -627,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to generate PDF" });
     }
   });
-
+  
   // HTML export endpoint for clipboard export with formatting
   app.post("/api/cim/export/html/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Authentication required" });
@@ -635,36 +635,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const docId = parseInt(req.params.id);
       console.log(`Processing HTML export request for document ID: ${docId}, user ID: ${req.user?.id}`);
-
+      
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid document ID format" });
       }
-
+      
       const doc = await storage.getCimDocument(docId);
-
+      
       if (!doc) {
         console.log(`Document with ID ${docId} not found`);
         return res.status(404).json({ error: "Document not found" });
       }
-
+      
       if (doc.userId !== req.user!.id) {
         console.log(`Access denied: Document belongs to user ${doc.userId}, but request is from user ${req.user!.id}`);
         return res.status(403).json({ error: "You don't have permission to access this document" });
       }
-
+      
       console.log(`Generating HTML for document: ${doc.title}, analysis present: ${Boolean(doc.analysis)}`);
-
+      
       if (!doc.analysis) {
         return res.status(400).json({ error: "Document has no analysis data" });
       }
-
+      
       // Include logo URL if available
       const html = generateHtml(doc.analysis, doc.logoUrl);
-
+      
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });
       }
-
+      
       console.log(`Successfully generated HTML content (${html.length} characters)`);
       res.json({ html });
     } catch (error) {
@@ -707,14 +707,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to export to Google Docs" });
     }
   });
-
+  
   // Add endpoint to fetch Beaver Builder templates
   app.post("/api/wordpress/fetch-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
       const { wpUrl, username, password } = req.body;
-
+      
       if (!wpUrl || !username || !password) {
         return res.status(400).json({ 
           error: "Missing WordPress credentials",
@@ -728,28 +728,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "WordPress URL must start with http:// or https://"
         });
       }
-
+      
       try {
         const templates = await fetchBeaverBuilderTemplates(wpUrl, username, password);
         res.json({ templates });
       } catch (error) {
         // Handle specific WordPress API errors
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch templates";
-
+        
         if (errorMessage.includes('HTML instead of JSON')) {
           return res.status(400).json({
             error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
             details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
           });
         }
-
+        
         if (errorMessage.includes('not found') || errorMessage.includes('404')) {
           return res.status(404).json({
             error: "Beaver Builder templates not found on this WordPress site.",
             details: "Please ensure Beaver Builder is installed and activated on your WordPress site."
           });
         }
-
+        
         res.status(500).json({ error: errorMessage });
       }
     } catch (error) {
@@ -786,14 +786,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         useToolsetFields = false, 
         postType = 'listing' 
       } = req.body;
-
+      
       if (!wpUrl || !username || !password) {
         return res.status(400).json({ 
           error: "Missing WordPress credentials",
           requiredFields: ["wpUrl", "username", "password"] 
         });
       }
-
+      
       // Basic URL validation
       if (!wpUrl.startsWith('http://') && !wpUrl.startsWith('https://')) {
         return res.status(400).json({
@@ -804,17 +804,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the CIM data for WordPress - both as rich content and plain text
       const wpContent = formatWordPressContent(doc.analysis);
       const plainTextContent = formatTextContent(doc.analysis);
-
+      
       // Set up custom fields
       const customFields: Record<string, string | number> = {
         cim_generated: "true", // Convert to string as WordPress custom fields usually expect string values
         cim_generator_id: doc.id,
         cim_date: new Date().toISOString()
       };
-
+      
       // Always store the raw text in wpcf-text-dump custom field for backward compatibility
       customFields['wpcf-text-dump'] = plainTextContent;
-
+      
       // If template is a Beaver Builder template (numeric ID)
       if (template && !isNaN(parseInt(template))) {
         const templateId = parseInt(template);
@@ -827,24 +827,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else if (template && template !== 'default') {
         customFields['_wp_page_template'] = `template-${template}.php`;
       }
-
+      
       // Create minimal content for the main post content if using custom field or Toolset fields
       const content = (useCustomField || useToolsetFields) ? 
         `<!-- wp:paragraph -->
         <p>This is a business listing created by CIM Generator. The full content is available in the custom fields.</p>
         <!-- /wp:paragraph -->` : 
         wpContent;
-
+      
       try {
         // Export to WordPress
         // Ensure content is properly formatted based on whether we're using Toolset fields
         const formattedAnalysis = doc.analysis ? 
           (typeof doc.analysis === 'string' ? JSON.parse(doc.analysis) : doc.analysis) : 
           {};
-
+        
         console.log("Preparing WordPress export. Analysis data:", 
           Object.keys(formattedAnalysis).join(', '));
-
+          
         const result = await exportToWordPress({
           wpUrl,
           username,
@@ -858,7 +858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           useToolsetFields,
           postType
         });
-
+  
         if (result.success) {
           res.json({ 
             success: true,
@@ -872,28 +872,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         // Handle specific WordPress API errors
         const errorMessage = error instanceof Error ? error.message : "Failed to export to WordPress";
-
+        
         if (errorMessage.includes('HTML instead of JSON')) {
           return res.status(400).json({
             error: "The WordPress site returned HTML instead of JSON. Please check that the REST API is enabled and the site URL is correct.",
             details: "This typically happens when a WordPress site has REST API disabled or is using a security plugin that blocks API access."
           });
         }
-
+        
         if (errorMessage.includes('listing') && errorMessage.includes('not available')) {
           return res.status(404).json({
             error: "The 'listing' post type is not available on this WordPress site.",
             details: "Please ensure your WordPress site has the 'listing' custom post type registered and available via the REST API."
           });
         }
-
+        
         if (errorMessage.includes('not allowed to create')) {
           return res.status(403).json({
             error: "You don't have permission to create posts with this WordPress user.",
             details: "Please use an administrator account or a user with Editor role that has permissions to create 'listing' posts."
           });
         }
-
+        
         res.status(500).json({ 
           error: errorMessage,
           details: "There was a problem connecting to WordPress or creating the listing."
