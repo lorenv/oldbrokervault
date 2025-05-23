@@ -908,23 +908,22 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         const fullImagePath = path.resolve(process.cwd(), relativePath);
         
         if (fs.existsSync(fullImagePath)) {
-          // Get image dimensions and maintain aspect ratio
           const imageBuffer = fs.readFileSync(fullImagePath);
           
-          // Use a more standard approach with fixed width but natural height scaling
+          // Use a much simpler approach - let Word handle the sizing more naturally
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
                   data: imageBuffer,
                   transformation: {
-                    width: 380,
-                    height: 285, // 4:3 ratio which is more standard
+                    width: 450, // Slightly larger but should maintain ratios better
+                    height: 300,
                   },
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
-              spacing: { before: 150, after: 150 }
+              spacing: { before: 200, after: 200 }
             })
           );
         }
