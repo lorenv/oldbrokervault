@@ -917,6 +917,10 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
             children: [
               new docx.ImageRun({
                 data: imageBuffer,
+                transformation: {
+                  width: 400,
+                  height: 300, // Set reasonable height to prevent undefined errors
+                },
                 type: imageType
               }),
             ],
