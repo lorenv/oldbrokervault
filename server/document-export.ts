@@ -910,17 +910,15 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         if (fs.existsSync(fullImagePath)) {
           const imageBuffer = fs.readFileSync(fullImagePath);
           
-          // Simple approach: Use the image at a reasonable max width, let docx handle the rest
-          console.log(`Adding image: ${imagePath}`);
+          // Simplest approach: Let Word use the image's natural size (may be large but won't stretch)
+          console.log(`Adding image with natural dimensions: ${imagePath}`);
           
           paragraphs.push(
             new docx.Paragraph({
               children: [
                 new docx.ImageRun({
                   data: imageBuffer,
-                  transformation: {
-                    width: 400, // Fixed reasonable width
-                  },
+                  // No transformation - use natural image size
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
