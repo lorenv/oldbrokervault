@@ -910,60 +910,22 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         if (fs.existsSync(fullImagePath)) {
           const imageBuffer = fs.readFileSync(fullImagePath);
           
-          // Try to get image dimensions using Sharp, but if it fails, use original image without transformation
-          try {
-            const sharp = require('sharp');
-            const metadata = await sharp(imageBuffer).metadata();
-            const originalWidth = metadata.width;
-            const originalHeight = metadata.height;
-            
-            if (originalWidth && originalHeight) {
-              // Only scale down if image is too large (over 500px width)
-              let targetWidth = originalWidth;
-              let targetHeight = originalHeight;
-              
-              if (originalWidth > 500) {
-                targetWidth = 500;
-                const aspectRatio = originalHeight / originalWidth;
-                targetHeight = Math.round(targetWidth * aspectRatio);
-              }
-              
-              console.log(`Image ${imagePath}: original ${originalWidth}x${originalHeight}, target ${targetWidth}x${targetHeight}`);
-              
-              paragraphs.push(
-                new docx.Paragraph({
-                  children: [
-                    new docx.ImageRun({
-                      data: imageBuffer,
-                      transformation: {
-                        width: targetWidth,
-                        height: targetHeight,
-                      },
-                      type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
-                    }),
-                  ],
-                  alignment: docx.AlignmentType.CENTER,
-                  spacing: { before: 200, after: 200 }
-                })
-              );
-            } else {
-              throw new Error('Could not read image dimensions');
-            }
-          } catch (error) {
-            console.log('Using original image without transformation due to Sharp failure');
-            // Use the image as-is without any transformation
-            paragraphs.push(
-              new docx.Paragraph({
-                children: [
-                  new docx.ImageRun({
-                    data: imageBuffer,
-                  }),
-                ],
-                alignment: docx.AlignmentType.CENTER,
-                spacing: { before: 200, after: 200 }
-              })
-            );
-          }
+          // Try a completely different approach - don't specify any transformation
+          // This should let Word use the image's natural dimensions
+          console.log(`Adding image without transformation: ${imagePath}`);
+          
+          paragraphs.push(
+            new docx.Paragraph({
+              children: [
+                new docx.ImageRun({
+                  data: imageBuffer,
+                  type: fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
+                }),
+              ],
+              alignment: docx.AlignmentType.CENTER,
+              spacing: { before: 200, after: 200 }
+            })
+          );
         }
       } catch (imageError) {
         console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
