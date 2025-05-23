@@ -891,48 +891,37 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
     
-    // Add each image to the document
+    // Add each image to the document - ULTRA SIMPLE VERSION
     for (const imagePath of selectedImages) {
-      try {
-        const fs = await import('fs');
-        const path = await import('path');
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Convert relative path to absolute path from project root
+      let relativePath = imagePath;
+      if (imagePath.startsWith('/images/')) {
+        relativePath = `public${imagePath}`;
+      } else if (imagePath.startsWith('/')) {
+        relativePath = imagePath.substring(1);
+      }
+      const fullImagePath = path.resolve(process.cwd(), relativePath);
+      
+      if (fs.existsSync(fullImagePath)) {
+        const imageBuffer = fs.readFileSync(fullImagePath);
+        console.log(`Adding image (no transformations): ${imagePath}`);
         
-        // Convert relative path to absolute path from project root
-        // Handle both old format (/images/...) and new format (public/images/...)
-        let relativePath = imagePath;
-        if (imagePath.startsWith('/images/')) {
-          relativePath = `public${imagePath}`;
-        } else if (imagePath.startsWith('/')) {
-          relativePath = imagePath.substring(1);
-        }
-        const fullImagePath = path.resolve(process.cwd(), relativePath);
+        // Determine image type from file extension
+        const imageType = fullImagePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
         
-        if (fs.existsSync(fullImagePath)) {
-          const imageBuffer = fs.readFileSync(fullImagePath);
-          
-          // Simplest approach: Let Word use the image's natural size (may be large but won't stretch)
-          console.log(`Adding image with natural dimensions: ${imagePath}`);
-          
-          paragraphs.push(
-            new docx.Paragraph({
-              children: [
-                new docx.ImageRun({
-                  data: imageBuffer,
-                  // No transformation - use natural image size
-                }),
-              ],
-              alignment: docx.AlignmentType.CENTER,
-              spacing: { before: 200, after: 200 }
-            })
-          );
-        }
-      } catch (imageError) {
-        console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
-        // Add a fallback text for this image
         paragraphs.push(
           new docx.Paragraph({
-            text: `[Image: ${imagePath}]`,
-            spacing: { before: 100, after: 100 }
+            children: [
+              new docx.ImageRun({
+                data: imageBuffer,
+                type: imageType
+              }),
+            ],
+            alignment: docx.AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 }
           })
         );
       }
