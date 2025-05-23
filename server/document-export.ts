@@ -880,7 +880,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     );
   }
 
-  // Business Images section
+  // Business Images section - temporarily disabled to isolate corruption source
   if (selectedImages && selectedImages.length > 0) {
     paragraphs.push(
       new docx.Paragraph({
@@ -890,68 +890,12 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
     
-    // Add each image to the document with proper format detection
-    for (const imagePath of selectedImages) {
-      try {
-        const fs = await import('fs');
-        const path = await import('path');
-        
-        // Convert relative path to absolute path from project root
-        let relativePath = imagePath;
-        if (imagePath.startsWith('/images/')) {
-          relativePath = `public${imagePath}`;
-        } else if (imagePath.startsWith('/')) {
-          relativePath = imagePath.substring(1);
-        }
-        const fullImagePath = path.resolve(process.cwd(), relativePath);
-        
-        if (fs.existsSync(fullImagePath)) {
-          // Read the file and detect actual format by checking file headers
-          const imageBuffer = fs.readFileSync(fullImagePath);
-          
-          // Detect actual image format from file headers (magic bytes)
-          let actualFormat = 'jpg'; // default
-          
-          // Check PNG signature (89 50 4E 47)
-          if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47) {
-            actualFormat = 'png';
-          }
-          // Check JPEG signature (FF D8 FF)
-          else if (imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8 && imageBuffer[2] === 0xFF) {
-            actualFormat = 'jpg';
-          }
-          // Check GIF signature (47 49 46)
-          else if (imageBuffer[0] === 0x47 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x46) {
-            actualFormat = 'gif';
-          }
-          
-          paragraphs.push(
-            new docx.Paragraph({
-              children: [
-                new docx.ImageRun({
-                  data: imageBuffer,
-                  transformation: {
-                    width: 400,
-                  },
-                  type: actualFormat,
-                }),
-              ],
-              alignment: docx.AlignmentType.CENTER,
-              spacing: { before: 150, after: 150 }
-            })
-          );
-        }
-      } catch (imageError) {
-        console.error(`Failed to add image ${imagePath} to Word document:`, imageError);
-        // Add a fallback text for this image
-        paragraphs.push(
-          new docx.Paragraph({
-            text: `[Image could not be loaded: ${imagePath}]`,
-            spacing: { before: 100, after: 100 }
-          })
-        );
-      }
-    }
+    paragraphs.push(
+      new docx.Paragraph({
+        text: `This CIM includes ${selectedImages.length} business images. Images are available in the PDF export version while we resolve Word document compatibility.`,
+        spacing: { before: 100, after: 200 }
+      })
+    );
   }
   
   // INVESTMENT HIGHLIGHTS
