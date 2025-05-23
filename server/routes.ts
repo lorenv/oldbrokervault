@@ -406,7 +406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const session = await createSubscriptionSession(
         plan as keyof typeof subscriptionPlans,
-        req.user!.id
+        req.user!.id,
+        req.get('host')
       );
       res.json({ url: session.url });
     } catch (error) {
