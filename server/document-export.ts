@@ -880,7 +880,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     );
   }
 
-  // Selected Images section
+  // Business Images section
   if (selectedImages && selectedImages.length > 0) {
     paragraphs.push(
       new docx.Paragraph({
@@ -890,14 +890,13 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
     
-    // Add each image to the document
+    // Add each image to the document with proper format detection
     for (const imagePath of selectedImages) {
       try {
         const fs = await import('fs');
         const path = await import('path');
         
         // Convert relative path to absolute path from project root
-        // Handle both old format (/images/...) and new format (public/images/...)
         let relativePath = imagePath;
         if (imagePath.startsWith('/images/')) {
           relativePath = `public${imagePath}`;
@@ -907,30 +906,23 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         const fullImagePath = path.resolve(process.cwd(), relativePath);
         
         if (fs.existsSync(fullImagePath)) {
-          // Check if image is SVG and convert to PNG for Word compatibility
-          let imageBuffer;
-          let imageType = 'jpg';
+          // Read the file and detect actual format by checking file headers
+          const imageBuffer = fs.readFileSync(fullImagePath);
           
-          if (fullImagePath.toLowerCase().endsWith('.svg')) {
-            try {
-              // Convert SVG to PNG for Word document compatibility
-              const sharp = await import('sharp');
-              const svgBuffer = fs.readFileSync(fullImagePath);
-              imageBuffer = await sharp.default(svgBuffer)
-                .png()
-                .resize({ width: 400 })
-                .toBuffer();
-              imageType = 'png';
-            } catch (svgError) {
-              console.error('Failed to convert SVG to PNG:', svgError);
-              // Fallback to original file
-              imageBuffer = fs.readFileSync(fullImagePath);
-            }
-          } else {
-            imageBuffer = fs.readFileSync(fullImagePath);
-            if (fullImagePath.toLowerCase().endsWith('.png')) {
-              imageType = 'png';
-            }
+          // Detect actual image format from file headers (magic bytes)
+          let actualFormat = 'jpg'; // default
+          
+          // Check PNG signature (89 50 4E 47)
+          if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47) {
+            actualFormat = 'png';
+          }
+          // Check JPEG signature (FF D8 FF)
+          else if (imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8 && imageBuffer[2] === 0xFF) {
+            actualFormat = 'jpg';
+          }
+          // Check GIF signature (47 49 46)
+          else if (imageBuffer[0] === 0x47 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x46) {
+            actualFormat = 'gif';
           }
           
           paragraphs.push(
@@ -941,7 +933,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                   transformation: {
                     width: 400,
                   },
-                  type: imageType,
+                  type: actualFormat,
                 }),
               ],
               alignment: docx.AlignmentType.CENTER,
@@ -954,7 +946,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         // Add a fallback text for this image
         paragraphs.push(
           new docx.Paragraph({
-            text: `[Image: ${imagePath}]`,
+            text: `[Image could not be loaded: ${imagePath}]`,
             spacing: { before: 100, after: 100 }
           })
         );
