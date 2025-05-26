@@ -260,7 +260,7 @@ Focus especially on:
    - Specify average order values with exact figures and comparison to industry standards
    - Describe seasonality patterns with specific peak/low periods and percentage fluctuations
    - Explain payment terms, contracts, and collection processes in detail
-   - Highlight any recurring revenue streams or subscription models with retention metrics
+   - ONLY mention recurring revenue streams or subscription models if they are explicitly discussed in the transcript
    - Note gross margin information by product/service line when available
    - Include information about sales strategies and customer acquisition costs
 
@@ -312,9 +312,9 @@ The JSON must follow this exact structure, with full, detailed responses for eac
       "replaceability": "Detailed assessment of supplier replaceability with alternative sources identified"
     },
     "customers": {
-      "recurring": "If mentioned in transcript: Detailed explanation of recurring revenue patterns with retention rates, or '[NOT MENTIONED]' if not applicable",
+      "recurring": "Only include if explicitly mentioned in transcript, otherwise omit this field entirely",
       "relationships": "Detailed analysis of customer relationships, history, and transferability",
-      "concentration": "If mentioned in transcript: Details about revenue concentration by customer segment with percentages, or '[NOT MENTIONED]' if not applicable",
+      "concentration": "Only include if explicitly mentioned in transcript, otherwise omit this field entirely",
       "contracts": "Specific contract terms with customers including duration and renewal history",
       "replaceability": "Detailed assessment of customer replaceability and specific acquisition strategies"
     }
