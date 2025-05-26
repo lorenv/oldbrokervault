@@ -21,6 +21,43 @@ import sharp from 'sharp';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Function to add rounded corners to images using Sharp
+async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
+  try {
+    // Get image metadata
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
+    
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not determine image dimensions');
+    }
+
+    // Create rounded rectangle mask
+    const roundedCorners = Buffer.from(
+      `<svg width="${metadata.width}" height="${metadata.height}">
+        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
+      </svg>`
+    );
+
+    // Apply the mask to create rounded corners with transparent background
+    const processedImage = await sharp(imageBuffer)
+      .png() // Convert to PNG to support transparency
+      .composite([
+        {
+          input: roundedCorners,
+          blend: 'dest-in'
+        }
+      ])
+      .toBuffer();
+
+    return processedImage;
+  } catch (error) {
+    console.error('Error adding rounded corners:', error);
+    // Return original buffer if processing fails
+    return imageBuffer;
+  }
+}
+
 // Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
