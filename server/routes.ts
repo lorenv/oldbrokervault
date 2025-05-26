@@ -592,7 +592,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Generating Word document with complete data...");
       console.log("Document object logoUrl field:", doc.logoUrl);
       console.log("Document object keys:", Object.keys(doc));
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
+      const userProfile = {
+        name: user?.name,
+        title: user?.title,
+        phoneNumber: user?.phoneNumber,
+        email: user?.email,
+        businessName: user?.businessName,
+        businessLogo: user?.businessLogo,
+        profilePhoto: user?.profilePhoto
+      };
+      
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -641,8 +651,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Generating PDF document with complete data...");
+      
+      // Get user profile for contact footer (reuse the user object from above)
+      const userProfile = {
+        name: user?.name,
+        title: user?.title,
+        phoneNumber: user?.phoneNumber,
+        email: user?.email,
+        businessName: user?.businessName,
+        businessLogo: user?.businessLogo,
+        profilePhoto: user?.profilePhoto
+      };
+      
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages);
+      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
@@ -689,8 +711,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Document has no analysis data" });
       }
       
-      // Include logo URL if available
-      const html = generateHtml(doc.analysis, doc.logoUrl);
+      // Get user profile for contact footer
+      const profileUser = await storage.getUser(req.user!.id);
+      const userProfile = {
+        name: user?.name,
+        title: user?.title,
+        phoneNumber: user?.phoneNumber,
+        email: user?.email,
+        businessName: user?.businessName,
+        businessLogo: user?.businessLogo,
+        profilePhoto: user?.profilePhoto
+      };
+      
+      // Include logo URL and user profile
+      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile);
       
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });

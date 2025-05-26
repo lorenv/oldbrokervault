@@ -181,15 +181,57 @@ export default function ProfilePage() {
                   Business Logo
                 </Label>
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Upload your business logo (max 350px width)
-                  </p>
-                  <Button type="button" variant="outline" size="sm">
-                    Choose File
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Coming soon - file upload functionality
+                  {profileForm.businessLogo ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={profileForm.businessLogo} 
+                        alt="Business Logo" 
+                        className="max-h-20 mx-auto object-contain"
+                      />
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => document.getElementById('businessLogo')?.click()}
+                        >
+                          Change Logo
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleInputChange("businessLogo", "")}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Upload your business logo (max 350px width)
+                      </p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('businessLogo')?.click()}
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  )}
+                  <input
+                    id="businessLogo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e, "businessLogo")}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    PNG, JPG, or GIF up to 5MB
                   </p>
                 </div>
               </div>
