@@ -397,3 +397,118 @@ function RegisterForm({ mutation }: { mutation: any }) {
     </Form>
   );
 }
+
+function ForgotPasswordForm({ mutation }: { mutation: any }) {
+  const form = useForm<ForgotPasswordData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email address</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="name@example.com"
+                  type="email"
+                  autoComplete="email"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending reset email...
+            </>
+          ) : (
+            "Send Reset Email"
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+function ResetPasswordForm({ mutation, token }: { mutation: any; token: string }) {
+  const form = useForm<ResetPasswordData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate({ ...data, token }))} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>New Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Enter new password (min. 8 characters)"
+                  autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm New Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Confirm your new password"
+                  autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Resetting password...
+            </>
+          ) : (
+            "Reset Password"
+          )}
+        </Button>
+      </form>
+    </Form>
+  );
+}
