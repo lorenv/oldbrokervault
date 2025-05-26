@@ -1493,13 +1493,28 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
 
-    // Add horizontal line
+    // Add horizontal line before contact info
+    paragraphs.push(
+      new docx.Paragraph({
+        children: [
+          new docx.TextRun({
+            text: "________________________________________________________________________________________________",
+            size: 16,
+            color: "666666"
+          })
+        ],
+        alignment: docx.AlignmentType.CENTER,
+        spacing: { before: 200, after: 100 }
+      })
+    );
+
+    // Add contact information header
     paragraphs.push(
       new docx.Paragraph({
         text: "Contact Information",
         heading: docx.HeadingLevel.HEADING_2,
         alignment: docx.AlignmentType.CENTER,
-        spacing: { before: 200, after: 200 }
+        spacing: { before: 100, after: 200 }
       })
     );
 
@@ -1799,6 +1814,17 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           // Check if the content was cut off and add it on a new page if needed
           doc.moveDown(1);
         }
+      }
+
+      // Reason for Sale section
+      if (analysis.story?.saleReason) {
+        doc.moveDown(1);
+        doc.fontSize(14).text("Reason for Sale:", { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(safeStringify(analysis.story.saleReason), {
+          width: doc.page.width - 100
+        });
+        doc.moveDown(1);
       }
 
       // Business Website section
