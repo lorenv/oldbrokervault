@@ -25,6 +25,18 @@ export interface IStorage {
     refreshToken?: string | null;
     expiryDate: Date | null;
   }): Promise<void>;
+  updateUserProfile(userId: number, profile: {
+    name?: string;
+    title?: string;
+    phoneNumber?: string;
+    businessName?: string;
+    businessLogo?: string;
+    profilePhoto?: string;
+  }): Promise<User>;
+  updateUserPassword(userId: number, hashedPassword: string): Promise<void>;
+  createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  clearPasswordResetToken(userId: number): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -192,6 +204,60 @@ export class DatabaseStorage implements IStorage {
     
     // Delete the document
     await db.delete(cimDocuments).where(eq(cimDocuments.id, id));
+  }
+
+  async updateUserProfile(userId: number, profile: {
+    name?: string;
+    title?: string;
+    phoneNumber?: string;
+    businessName?: string;
+    businessLogo?: string;
+    profilePhoto?: string;
+  }): Promise<User> {
+    const [user] = await db.update(users)
+      .set(profile)
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
+    await db.update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, userId));
+  }
+
+  async createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    if (!user) return false;
+
+    await db.update(users)
+      .set({
+        resetToken: token,
+        resetTokenExpiry: expiry
+      })
+      .where(eq(users.email, email));
+    return true;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users)
+      .where(eq(users.resetToken, token));
+    
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      return undefined;
+    }
+    
+    return user;
+  }
+
+  async clearPasswordResetToken(userId: number): Promise<void> {
+    await db.update(users)
+      .set({
+        resetToken: null,
+        resetTokenExpiry: null
+      })
+      .where(eq(users.id, userId));
   }
 }
 
