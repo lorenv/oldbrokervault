@@ -31,6 +31,32 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // API endpoint to fetch dynamic pricing from Stripe
+  app.get("/api/pricing", async (req, res) => {
+    try {
+      const [standardPrice, premiumPrice] = await Promise.all([
+        stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!),
+        stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!)
+      ]);
+
+      res.json({
+        standard: {
+          amount: standardPrice.unit_amount! / 100, // Convert from cents
+          currency: standardPrice.currency,
+          priceId: standardPrice.id
+        },
+        premium: {
+          amount: premiumPrice.unit_amount! / 100, // Convert from cents
+          currency: premiumPrice.currency,
+          priceId: premiumPrice.id
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching Stripe prices:", error);
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
   // Google OAuth routes
   app.get("/api/auth/google", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

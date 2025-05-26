@@ -11,10 +11,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Fetch dynamic pricing from Stripe
+  const { data: pricing, isLoading: pricingLoading } = useQuery({
+    queryKey: ["/api/pricing"],
+  });
 
   const handleSubscriptionAction = async (checkoutLink?: string) => {
     try {
