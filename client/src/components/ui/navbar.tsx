@@ -51,6 +51,14 @@ export function Navbar() {
                     </a>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/profile">
+                    <a className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Profile Information
+                    </a>
+                  </Link>
+                </DropdownMenuItem>
                 {user.subscriptionStatus !== "free" && (
                   <DropdownMenuItem>
                     <Link href="https://billing.stripe.com/p/login/test">

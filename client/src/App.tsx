@@ -23,6 +23,7 @@ function Router() {
         <ProtectedRoute path="/documents" component={DocumentsPage} />
         <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
+        <ProtectedRoute path="/profile" component={ProfilePage} />
         <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
