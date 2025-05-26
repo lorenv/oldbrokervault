@@ -252,6 +252,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug: Check if selectedImages are present
       console.log("Selected images in request:", req.body.selectedImages);
 
+      console.log("Custom directions provided:", data.directions ? "Yes" : "No");
+      if (data.directions) {
+        console.log("Custom directions content:", data.directions);
+      }
       let analysis = await analyzeCimTranscript(transcript, data.directions);
       
       // Handle selected images early in the process
