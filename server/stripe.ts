@@ -54,6 +54,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   console.log("=== STRIPE SESSION CREATION START ===");
   console.log("Creating subscription session for user:", userId, "plan:", planId);
   console.log("Price ID being used:", priceId);
+  console.log("Dynamic pricing data:", pricing);
   console.log("Request host:", requestHost);
 
   const user = await storage.getUser(userId);
