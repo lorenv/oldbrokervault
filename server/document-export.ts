@@ -1670,13 +1670,16 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             // Add some space after the title
             doc.moveDown(2);
             
-            // Add logo centered under the title
+            // Add logo centered under the title with proper centering
             const pageWidth = doc.page.width;
+            const margins = 72; // Standard PDF margins
+            const availableWidth = pageWidth - (margins * 2);
             const logoWidth = 200;
-            const xPosition = (pageWidth - logoWidth) / 2;
+            const xPosition = margins + (availableWidth - logoWidth) / 2;
             
             doc.image(logoPath, xPosition, doc.y, {
-              fit: [logoWidth, 120]
+              fit: [logoWidth, 120],
+              align: 'center'
             });
             doc.moveDown(2);
           }

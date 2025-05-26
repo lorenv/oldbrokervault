@@ -260,7 +260,7 @@ Focus especially on:
    - Specify average order values with exact figures and comparison to industry standards
    - Describe seasonality patterns with specific peak/low periods and percentage fluctuations
    - Explain payment terms, contracts, and collection processes in detail
-   - ONLY mention recurring revenue streams or subscription models if they are explicitly discussed in the transcript
+   - NEVER include recurring revenue or revenue concentration sections unless explicitly mentioned in the transcript
    - Note gross margin information by product/service line when available
    - Include information about sales strategies and customer acquisition costs
 
