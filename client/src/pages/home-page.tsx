@@ -51,6 +51,13 @@ export default function HomePage() {
                 </div>
               </CardContent>
             </Card>
+
+            <SubscriptionCard 
+              status={user?.subscriptionStatus} 
+              endsAt={user?.subscriptionEndsAt} 
+              monthlyUsage={user?.monthlyUsage}
+              subtle={true}
+            />
           </div>
         </div>
       </main>

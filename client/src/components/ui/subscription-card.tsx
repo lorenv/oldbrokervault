@@ -9,9 +9,10 @@ interface SubscriptionCardProps {
   status?: string;
   endsAt?: string | null;
   monthlyUsage?: number;
+  subtle?: boolean;
 }
 
-export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: SubscriptionCardProps) {
+export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = false }: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
   const isStandard = status === "standard";
@@ -93,11 +94,15 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               {status === "free" && (
                 <Button
                   className="w-full"
+                  variant={subtle ? "outline" : "default"}
+                  size={subtle ? "sm" : "default"}
                   onClick={() => handleUpgrade("standard")}
                   disabled={isLoading}
                 >
                   {isLoading ? (
                     "Processing..."
+                  ) : subtle ? (
+                    "Upgrade to Standard"
                   ) : (
                     "Upgrade to Standard - $500/month"
                   )}
@@ -105,11 +110,15 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0 }: Subscript
               )}
               <Button
                 className="w-full"
+                variant={subtle ? "outline" : "default"}
+                size={subtle ? "sm" : "default"}
                 onClick={() => handleUpgrade("premium")}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   "Processing..."
+                ) : subtle ? (
+                  "Upgrade to Premium"
                 ) : (
                   "Upgrade to Premium - $4,000/month"
                 )}
