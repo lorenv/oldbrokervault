@@ -6,12 +6,18 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   throw new Error('Missing required Google OAuth credentials');
 }
 
-const oauth2Client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  // Make sure the callback URL matches EXACTLY what's registered in Google Cloud Console
-  'https://business-exits-cim-generator.replit.app/api/auth/google/callback'
-);
+// Create OAuth2Client with dynamic redirect URI
+function createOAuth2Client(redirectUri?: string) {
+  const defaultRedirectUri = process.env.NODE_ENV === 'production' 
+    ? 'https://business-exits-cim-generator.replit.app/api/auth/google/callback'
+    : 'http://localhost:5000/api/auth/google/callback';
+    
+  return new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri || defaultRedirectUri
+  );
+}
 
 // Scopes needed for Google Drive and Docs
 const SCOPES = [
@@ -19,7 +25,10 @@ const SCOPES = [
   'https://www.googleapis.com/auth/docs'
 ];
 
-export function getGoogleAuthUrl() {
+export function getGoogleAuthUrl(host?: string) {
+  const redirectUri = host ? `https://${host}/api/auth/google/callback` : undefined;
+  const oauth2Client = createOAuth2Client(redirectUri);
+  
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -27,8 +36,10 @@ export function getGoogleAuthUrl() {
   });
 }
 
-export async function handleGoogleCallback(code: string, userId: number) {
+export async function handleGoogleCallback(code: string, userId: number, host?: string) {
   try {
+    const redirectUri = host ? `https://${host}/api/auth/google/callback` : undefined;
+    const oauth2Client = createOAuth2Client(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
 
     // Store tokens in database
