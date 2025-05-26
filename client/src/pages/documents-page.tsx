@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -394,6 +394,39 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Copy as HTML
                         {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
                       </DropdownMenuItem>
+                      {user?.subscriptionStatus !== "free" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleExport(doc.id, 'word')}
+                          >
+                            <File className="mr-2 h-4 w-4 text-blue-600" />
+                            Export to Word
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleExport(doc.id, 'pdf')}
+                          >
+                            <FileDown className="mr-2 h-4 w-4 text-red-600" />
+                            Export to PDF
+                          </DropdownMenuItem>
+                          {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
+                            <DropdownMenuItem 
+                              onClick={() => handleGoogleDocsExport(doc.id)}
+                            >
+                              <Globe className="mr-2 h-4 w-4 text-blue-500" />
+                              Export to Google Docs
+                            </DropdownMenuItem>
+                          )}
+                          {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
+                            <DropdownMenuItem 
+                              onClick={() => setIsWordPressDialogOpen(true)}
+                            >
+                              <Globe className="mr-2 h-4 w-4" />
+                              Export to WordPress
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         onClick={() => setConfirmDelete(doc.id)} 
@@ -488,21 +521,29 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
-                      onClick={() => user?.subscriptionStatus !== "free" ? handleExport('word') : null}
+                      onClick={() => user?.subscriptionStatus !== "free" ? handleExport(selectedDoc.id, 'word') : null}
                       className={user?.subscriptionStatus === "free" ? "opacity-50" : ""}
                     >
-                      <FileText className="mr-2 h-4 w-4" />
+                      <File className="mr-2 h-4 w-4 text-blue-600" />
                       Export to Word
                       {user?.subscriptionStatus === "free" && <Lock className="ml-2 h-4 w-4" />}
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => user?.subscriptionStatus !== "free" ? handleExport('pdf') : null}
+                      onClick={() => user?.subscriptionStatus !== "free" ? handleExport(selectedDoc.id, 'pdf') : null}
                       className={user?.subscriptionStatus === "free" ? "opacity-50" : ""}
                     >
-                      <FileText className="mr-2 h-4 w-4" />
+                      <FileDown className="mr-2 h-4 w-4 text-red-600" />
                       Export to PDF
                       {user?.subscriptionStatus === "free" && <Lock className="ml-2 h-4 w-4" />}
                     </DropdownMenuItem>
+                    {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
+                      <DropdownMenuItem 
+                        onClick={() => handleGoogleDocsExport(selectedDoc.id)}
+                      >
+                        <Globe className="mr-2 h-4 w-4 text-blue-500" />
+                        Export to Google Docs
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => (user?.subscriptionStatus === "premium" || user?.isAdmin) ? setIsWordPressDialogOpen(true) : null}
