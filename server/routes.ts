@@ -485,10 +485,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/subscription/create-checkout", async (req, res) => {
+    console.log("=== CHECKOUT REQUEST RECEIVED ===");
+    console.log("Request body:", req.body);
+    console.log("User authenticated:", req.isAuthenticated());
+    console.log("User ID:", req.user?.id);
+    
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const { plan } = req.body;
+    console.log("Plan requested:", plan);
+    
     if (!subscriptionPlans[plan as keyof typeof subscriptionPlans]) {
+      console.log("Invalid plan:", plan);
       return res.status(400).json({ error: "Invalid plan selected" });
     }
 
