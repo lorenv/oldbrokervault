@@ -10,6 +10,7 @@ import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
 import PricingPage from "@/pages/pricing-page";
+import ProfilePage from "@/pages/profile-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
