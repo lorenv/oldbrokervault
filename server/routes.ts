@@ -72,12 +72,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to fetch dynamic pricing from Stripe
   app.get("/api/pricing", async (req, res) => {
     try {
+      console.log("=== PRICING DEBUG ===");
+      console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
+      console.log("Premium Price ID:", process.env.STRIPE_PRICE_ID_PREMIUM);
+      
       const [standardPrice, premiumPrice] = await Promise.all([
         stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!),
         stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!)
       ]);
 
-      res.json({
+      console.log("Standard Price from Stripe:", {
+        id: standardPrice.id,
+        unit_amount: standardPrice.unit_amount,
+        currency: standardPrice.currency,
+        amount_display: standardPrice.unit_amount! / 100
+      });
+      
+      console.log("Premium Price from Stripe:", {
+        id: premiumPrice.id,
+        unit_amount: premiumPrice.unit_amount,
+        currency: premiumPrice.currency,
+        amount_display: premiumPrice.unit_amount! / 100
+      });
+
+      const response = {
         standard: {
           amount: standardPrice.unit_amount! / 100, // Convert from cents
           currency: standardPrice.currency,
@@ -88,7 +106,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency: premiumPrice.currency,
           priceId: premiumPrice.id
         }
-      });
+      };
+      
+      console.log("Response being sent:", response);
+      res.json(response);
     } catch (error) {
       console.error("Error fetching Stripe prices:", error);
       res.status(500).json({ error: "Failed to fetch pricing" });
