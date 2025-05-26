@@ -66,7 +66,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: "$4,000",
+      price: "$1",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
