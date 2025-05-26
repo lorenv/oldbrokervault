@@ -244,10 +244,48 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
     }
   };
 
-  const handleExport = async (format: 'pdf' | 'word') => {
-    if (!selectedDoc) return;
-    
-    console.log(`Starting ${format} export for document ID ${selectedDoc.id}`);
+  const handleGoogleDocsExport = async (docId: number) => {
+    try {
+      toast({
+        title: "Export Starting",
+        description: "Creating your Google Doc...",
+      });
+
+      const response = await fetch(`/api/cim/export/gdocs/${docId}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.needsAuth) {
+          // Redirect to Google OAuth flow
+          const authResponse = await fetch('/api/auth/google');
+          const { url } = await authResponse.json();
+          window.location.href = url;
+          return;
+        }
+        throw new Error(error.error || 'Failed to export to Google Docs');
+      }
+
+      const { url } = await response.json();
+      window.open(url, '_blank');
+      
+      toast({
+        title: "Export Successful",
+        description: "Your Google Doc has been created and opened in a new tab",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export to Google Docs",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExport = async (docId: number, format: 'pdf' | 'word') => {
+    console.log(`Starting ${format} export for document ID ${docId}`);
     
     try {
       // Show export started toast
@@ -260,7 +298,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       // Create a temporary form to submit a POST request
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = `/api/cim/export/${format}/${selectedDoc.id}`;
+      form.action = `/api/cim/export/${format}/${docId}`;
       form.target = '_blank'; // Open in new tab or trigger download
       document.body.appendChild(form);
       
