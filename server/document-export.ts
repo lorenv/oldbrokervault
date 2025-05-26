@@ -903,17 +903,53 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         console.log("Logo file exists, reading buffer...");
         const logoBuffer = fs.readFileSync(logoPath);
         
-        console.log(`Adding logo as-is without dimension calculations: ${logoPath}`);
+        // Get actual logo dimensions to maintain aspect ratio
+        let logoWidth = 200;  // max width
+        let logoHeight = 100; // fallback height
         
-        // Add the logo to the document without any dimension manipulation
+        try {
+          if (logoPath.toLowerCase().endsWith('.png')) {
+            const pngSize = getPngDimensions(logoBuffer);
+            if (pngSize) {
+              // Calculate proportional height to maintain aspect ratio
+              const aspectRatio = pngSize.height / pngSize.width;
+              logoHeight = Math.round(logoWidth * aspectRatio);
+              
+              // Cap maximum height to prevent overly tall logos
+              if (logoHeight > 120) {
+                logoHeight = 120;
+                logoWidth = Math.round(logoHeight / aspectRatio);
+              }
+            }
+          } else {
+            const jpegSize = getJpegDimensions(logoBuffer);
+            if (jpegSize) {
+              // Calculate proportional height to maintain aspect ratio
+              const aspectRatio = jpegSize.height / jpegSize.width;
+              logoHeight = Math.round(logoWidth * aspectRatio);
+              
+              // Cap maximum height to prevent overly tall logos
+              if (logoHeight > 120) {
+                logoHeight = 120;
+                logoWidth = Math.round(logoHeight / aspectRatio);
+              }
+            }
+          }
+        } catch (error) {
+          console.log("Using fallback logo dimensions due to error:", error.message);
+        }
+        
+        console.log(`Adding logo with proper aspect ratio: ${logoWidth}x${logoHeight}`);
+        
+        // Add the logo to the document with proper aspect ratio
         paragraphs.push(
           new docx.Paragraph({
             children: [
               new docx.ImageRun({
                 data: logoBuffer,
                 transformation: {
-                  width: 200,
-                  height: 100,
+                  width: logoWidth,
+                  height: logoHeight,
                 },
                 type: logoPath.toLowerCase().endsWith('.png') ? "png" : "jpg"
               })
