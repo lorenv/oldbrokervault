@@ -1034,12 +1034,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const { name, title, phoneNumber, businessName } = req.body;
+      const { name, title, phoneNumber, businessName, businessLogo, profilePhoto } = req.body;
+      
+      // Process images with rounded corners if they're provided as base64 data URLs
+      let processedBusinessLogo = businessLogo;
+      let processedProfilePhoto = profilePhoto;
+      
+      // Process business logo if it's a new upload (starts with data:)
+      if (businessLogo && businessLogo.startsWith('data:image/')) {
+        try {
+          const base64Data = businessLogo.split(',')[1];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
+          processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          console.log('Applied rounded corners to business logo');
+        } catch (error) {
+          console.error('Error processing business logo:', error);
+          // Keep original if processing fails
+        }
+      }
+      
+      // Process profile photo if it's a new upload (starts with data:)
+      if (profilePhoto && profilePhoto.startsWith('data:image/')) {
+        try {
+          const base64Data = profilePhoto.split(',')[1];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
+          processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          console.log('Applied rounded corners to profile photo');
+        } catch (error) {
+          console.error('Error processing profile photo:', error);
+          // Keep original if processing fails
+        }
+      }
+      
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
         name,
         title,
         phoneNumber,
-        businessName
+        businessName,
+        businessLogo: processedBusinessLogo,
+        profilePhoto: processedProfilePhoto
       });
       
       res.json({
@@ -1052,6 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: updatedUser.email
       });
     } catch (error) {
+      console.error('Profile update error:', error);
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
