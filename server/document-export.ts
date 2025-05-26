@@ -117,7 +117,7 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null): string {
+export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
@@ -627,6 +627,20 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
   </div>
 `;
 
+  // Add contact footer if user profile is provided
+  if (userProfile) {
+    html += `
+    <div style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #e5e7eb; text-align: center;">
+      ${userProfile.profilePhoto ? `<div style="margin-bottom: 20px;"><img src="${userProfile.profilePhoto}" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;"></div>` : ''}
+      ${userProfile.name ? `<h3 style="margin: 10px 0; font-size: 18px; font-weight: 600; color: #1f2937;">${userProfile.name}</h3>` : ''}
+      ${userProfile.title ? `<p style="margin: 5px 0; font-size: 14px; color: #6b7280;">${userProfile.title}</p>` : ''}
+      ${userProfile.phoneNumber ? `<p style="margin: 5px 0; font-size: 14px; color: #1f2937;">Phone: ${userProfile.phoneNumber}</p>` : ''}
+      ${userProfile.email ? `<p style="margin: 5px 0; font-size: 14px; color: #1f2937;">Email: ${userProfile.email}</p>` : ''}
+      ${userProfile.businessName ? `<p style="margin: 15px 0 10px 0; font-size: 16px; font-weight: 600; color: #1f2937;">${userProfile.businessName}</p>` : ''}
+      ${userProfile.businessLogo ? `<div style="margin-top: 15px;"><img src="${userProfile.businessLogo}" alt="Business Logo" style="max-width: 150px; max-height: 60px; object-fit: contain;"></div>` : ''}
+    </div>`;
+  }
+
   return html;
 }
 
@@ -635,7 +649,7 @@ export function generateHtml(analysis: any, logoUrl?: string | null): string {
  * This function creates a formatted text representation of the CIM data
  * suitable for storing in a custom field or text dump
  */
-export function formatTextContent(analysis: any): string {
+export function formatTextContent(analysis: any, userProfile?: any): string {
   const sections: string[] = [];
 
   // Business Story
@@ -817,10 +831,59 @@ export function formatTextContent(analysis: any): string {
     sections.push(facilityDetails);
   }
 
+  // Add contact footer if user profile is provided
+  if (userProfile) {
+    const contactFooter = generateContactFooter(userProfile);
+    if (contactFooter) {
+      sections.push(contactFooter);
+    }
+  }
+
   return sections.join('\n\n');
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
+function generateContactFooter(userProfile: any): string {
+  if (!userProfile) return '';
+  
+  const parts = [];
+  
+  // Add horizontal line
+  parts.push('---');
+  parts.push('');
+  
+  // Add profile information centered
+  if (userProfile.profilePhoto) {
+    parts.push(`![Profile Photo](${userProfile.profilePhoto})`);
+  }
+  
+  if (userProfile.name) {
+    parts.push(`**${userProfile.name}**`);
+  }
+  
+  if (userProfile.title) {
+    parts.push(userProfile.title);
+  }
+  
+  if (userProfile.phoneNumber) {
+    parts.push(`Phone: ${userProfile.phoneNumber}`);
+  }
+  
+  if (userProfile.email) {
+    parts.push(`Email: ${userProfile.email}`);
+  }
+  
+  if (userProfile.businessName) {
+    parts.push(`**${userProfile.businessName}**`);
+  }
+  
+  if (userProfile.businessLogo) {
+    parts.push(`![Business Logo](${userProfile.businessLogo})`);
+  }
+  
+  return parts.join('\n');
+}
+
+export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
   
