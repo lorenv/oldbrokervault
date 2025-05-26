@@ -1447,6 +1447,76 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
   }
+
+  // Add contact footer if user profile is provided
+  if (userProfile) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "",
+        spacing: { before: 400 }
+      })
+    );
+
+    // Add horizontal line
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Contact Information",
+        heading: docx.HeadingLevel.HEADING_2,
+        alignment: docx.AlignmentType.CENTER,
+        spacing: { before: 200, after: 200 }
+      })
+    );
+
+    if (userProfile.name) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: userProfile.name,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { before: 100 }
+        })
+      );
+    }
+
+    if (userProfile.title) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: userProfile.title,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { before: 50 }
+        })
+      );
+    }
+
+    if (userProfile.phoneNumber) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Phone: ${userProfile.phoneNumber}`,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { before: 50 }
+        })
+      );
+    }
+
+    if (userProfile.email) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Email: ${userProfile.email}`,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { before: 50 }
+        })
+      );
+    }
+
+    if (userProfile.businessName) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: userProfile.businessName,
+          alignment: docx.AlignmentType.CENTER,
+          spacing: { before: 100 }
+        })
+      );
+    }
+  }
   
   // Create the document with all paragraphs
   const doc = new docx.Document({
@@ -1459,7 +1529,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[]): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise(async (resolve, reject) => {
@@ -2001,6 +2071,50 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               width: doc.page.width - 100
             });
           }
+        }
+      }
+
+      // Add contact footer if user profile is provided
+      if (userProfile) {
+        doc.moveDown(3);
+        
+        // Add a horizontal line
+        doc.moveTo(50, doc.y)
+           .lineTo(doc.page.width - 50, doc.y)
+           .stroke();
+        
+        doc.moveDown(1);
+        
+        // Contact Information header
+        doc.fontSize(14)
+           .text('Contact Information', { align: 'center' });
+        
+        doc.moveDown(1);
+        
+        if (userProfile.name) {
+          doc.fontSize(12)
+             .text(userProfile.name, { align: 'center' });
+        }
+        
+        if (userProfile.title) {
+          doc.fontSize(10)
+             .text(userProfile.title, { align: 'center' });
+        }
+        
+        if (userProfile.phoneNumber) {
+          doc.fontSize(10)
+             .text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
+        }
+        
+        if (userProfile.email) {
+          doc.fontSize(10)
+             .text(`Email: ${userProfile.email}`, { align: 'center' });
+        }
+        
+        if (userProfile.businessName) {
+          doc.moveDown(0.5);
+          doc.fontSize(11)
+             .text(userProfile.businessName, { align: 'center' });
         }
       }
       
