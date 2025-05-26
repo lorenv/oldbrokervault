@@ -63,6 +63,7 @@ export async function createGoogleDoc(userId: number, title: string, content: an
   }
 
   // Set up OAuth2 client with user's tokens
+  const oauth2Client = createOAuth2Client();
   oauth2Client.setCredentials({
     access_token: user.googleAccessToken,
     refresh_token: user.googleRefreshToken
