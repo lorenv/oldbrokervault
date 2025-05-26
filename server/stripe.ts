@@ -4,6 +4,25 @@ import { storage } from "./storage";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Function to get dynamic pricing from Stripe
+async function getPricing() {
+  const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
+  const premiumPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!);
+  
+  return {
+    standard: {
+      amount: standardPrice.unit_amount! / 100,
+      currency: standardPrice.currency,
+      priceId: standardPrice.id
+    },
+    premium: {
+      amount: premiumPrice.unit_amount! / 100,
+      currency: premiumPrice.currency,
+      priceId: premiumPrice.id
+    }
+  };
+}
+
 async function getOrCreateCustomer(userId: number, email: string) {
   const user = await storage.getUser(userId);
 
@@ -26,9 +45,11 @@ async function getOrCreateCustomer(userId: number, email: string) {
 }
 
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string) {
+  // Get the dynamic pricing data to use the correct price ID
+  const pricing = await getPricing();
   const priceId = planId === 'premium' 
-    ? process.env.STRIPE_PRICE_ID_PREMIUM
-    : process.env.STRIPE_PRICE_ID_STANDARD;
+    ? pricing.premium.priceId
+    : pricing.standard.priceId;
 
   console.log("=== STRIPE SESSION CREATION START ===");
   console.log("Creating subscription session for user:", userId, "plan:", planId);
