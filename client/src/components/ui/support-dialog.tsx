@@ -26,17 +26,30 @@ export function SupportDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [email, setEmail] = useState(user?.email || "");
+  const [file, setFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await apiRequest("POST", "/api/support", {
-        subject,
-        message,
-        email: user?.email,
+      const formData = new FormData();
+      formData.append("subject", subject);
+      formData.append("message", message);
+      formData.append("email", email);
+      if (file) {
+        formData.append("attachment", file);
+      }
+
+      const response = await fetch("/api/support", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to send message");
+      }
 
       toast({
         title: "Message sent",
@@ -46,6 +59,8 @@ export function SupportDialog({
       onOpenChange(false);
       setSubject("");
       setMessage("");
+      setEmail(user?.email || "");
+      setFile(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -69,6 +84,15 @@ export function SupportDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Input
+              type="email"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Input
               placeholder="Subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -83,6 +107,16 @@ export function SupportDialog({
               className="min-h-[200px]"
               required
             />
+          </div>
+          <div>
+            <Input
+              type="file"
+              accept="image/*,video/*,.pdf,.doc,.docx"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional: Attach screenshots, videos, or documents (max 10MB)
+            </p>
           </div>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
