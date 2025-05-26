@@ -16,6 +16,7 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
+import sharp from 'sharp';
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
