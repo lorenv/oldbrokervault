@@ -9,6 +9,44 @@ import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import sharp from 'sharp';
+
+// Function to add rounded corners to images using Sharp
+async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
+  try {
+    // Get image metadata
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
+    
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not determine image dimensions');
+    }
+
+    // Create rounded rectangle mask
+    const roundedCorners = Buffer.from(
+      `<svg width="${metadata.width}" height="${metadata.height}">
+        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
+      </svg>`
+    );
+
+    // Apply the mask to create rounded corners with transparent background
+    const processedImage = await sharp(imageBuffer)
+      .png() // Convert to PNG to support transparency
+      .composite([
+        {
+          input: roundedCorners,
+          blend: 'dest-in'
+        }
+      ])
+      .toBuffer();
+
+    return processedImage;
+  } catch (error) {
+    console.error('Error adding rounded corners:', error);
+    // Return original buffer if processing fails
+    return imageBuffer;
+  }
+}
 
 // Define the Perplexity API response type
 interface PerplexityResponse {
@@ -239,12 +277,28 @@ export async function downloadSelectedImages(imageUrls: string[], websiteUrl: st
         continue;
       }
       
-      // Save the image
+      // Get the image buffer and apply rounded corners
       const buffer = await response.buffer();
-      fs.writeFileSync(filepath, buffer);
       
-      savedPaths.push(publicPath);
-      console.log(`Saved image: ${publicPath}`);
+      try {
+        // Apply 30px rounded corners with transparent background
+        const roundedBuffer = await addRoundedCorners(buffer, 30);
+        
+        // Save the processed image as PNG (to preserve transparency)
+        const processedFilename = `${websiteHash}_image_${i + 1}.png`;
+        const processedFilepath = path.join(imagesDir, processedFilename);
+        const processedPublicPath = `/images/${processedFilename}`;
+        
+        fs.writeFileSync(processedFilepath, roundedBuffer);
+        savedPaths.push(processedPublicPath);
+        console.log(`Saved image with rounded corners: ${processedPublicPath}`);
+      } catch (error) {
+        console.error(`Error applying rounded corners to image ${i + 1}:`, error);
+        // Fallback: save original image
+        fs.writeFileSync(filepath, buffer);
+        savedPaths.push(publicPath);
+        console.log(`Saved original image (rounded corners failed): ${publicPath}`);
+      }
       
     } catch (error) {
       console.error(`Error downloading image ${i + 1}:`, error);
