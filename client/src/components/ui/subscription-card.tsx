@@ -120,7 +120,7 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = fa
                 ) : subtle ? (
                   "Upgrade to Premium"
                 ) : (
-                  "Upgrade to Premium - $4,000/month"
+                  "Upgrade to Premium"
                 )}
               </Button>
             </div>
