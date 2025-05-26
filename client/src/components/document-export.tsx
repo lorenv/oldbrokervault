@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText, File, Globe } from "lucide-react";
+import { Copy, Download, FileText, File, Globe, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -429,15 +429,15 @@ export function DocumentExport({
             {canAccessPremiumFeatures && (
               <>
                 <DropdownMenuItem onClick={downloadWord}>
-                  <File className="h-4 w-4 mr-2" />
+                  <File className="h-4 w-4 mr-2 text-blue-600" />
                   Export to Word
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadPdf}>
-                  <FileText className="h-4 w-4 mr-2" />
+                  <FileDown className="h-4 w-4 mr-2 text-red-600" />
                   Export to PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={exportToGoogleDocs}>
-                  <Download className="h-4 w-4 mr-2" />
+                  <Globe className="h-4 w-4 mr-2 text-blue-500" />
                   Export to Google Docs
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsWordPressDialogOpen(true)}>
