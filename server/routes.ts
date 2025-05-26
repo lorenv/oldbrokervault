@@ -938,6 +938,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile management routes
+  app.get("/api/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const user = await storage.getUser(req.user!.id);
+    res.json({
+      name: user?.name,
+      title: user?.title,
+      phoneNumber: user?.phoneNumber,
+      businessName: user?.businessName,
+      businessLogo: user?.businessLogo,
+      profilePhoto: user?.profilePhoto,
+      email: user?.email
+    });
+  });
+
+  app.put("/api/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { name, title, phoneNumber, businessName } = req.body;
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+        name,
+        title,
+        phoneNumber,
+        businessName
+      });
+      
+      res.json({
+        name: updatedUser.name,
+        title: updatedUser.title,
+        phoneNumber: updatedUser.phoneNumber,
+        businessName: updatedUser.businessName,
+        businessLogo: updatedUser.businessLogo,
+        profilePhoto: updatedUser.profilePhoto,
+        email: updatedUser.email
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Password reset routes
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+      
+      const success = await storage.createPasswordResetToken(email, resetToken, expiry);
+      
+      if (success) {
+        // In a real app, you'd send an email here
+        console.log(`Password reset token for ${email}: ${resetToken}`);
+        res.json({ message: "If an account with that email exists, a reset link has been sent." });
+      } else {
+        // Don't reveal if email exists or not for security
+        res.json({ message: "If an account with that email exists, a reset link has been sent." });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+      
+      const { hashPassword } = await import("./auth");
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUserPassword(user.id, hashedPassword);
+      await storage.clearPasswordResetToken(user.id);
+      
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
