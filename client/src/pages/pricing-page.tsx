@@ -22,16 +22,18 @@ export default function PricingPage() {
     queryKey: ["/api/pricing"],
   });
 
-  const handleSubscriptionAction = async (checkoutLink?: string) => {
+  const handleSubscriptionAction = async (planId?: string) => {
     try {
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         window.location.href = url;
-      } else if (checkoutLink) {
-        // For new subscriptions, go directly to Stripe checkout
-        window.location.href = checkoutLink;
+      } else if (planId) {
+        // For new subscriptions, create a checkout session with the plan
+        const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan: planId });
+        const { url } = await response.json();
+        window.location.href = url;
       }
     } catch (error) {
       console.error("Subscription action error:", error);
@@ -58,7 +60,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard",
-      price: "$500",
+      price: pricing?.standard ? `$${pricing.standard.amount}` : "$500",
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -68,11 +70,11 @@ export default function PricingPage() {
         "Unlimited regenerations",
       ],
       current: user?.subscriptionStatus === "standard",
-      checkoutLink: "https://buy.stripe.com/eVa9DA8cO86ugqA3ce"
+      planId: "standard"
     },
     {
       name: "Premium",
-      price: "$1",
+      price: pricing?.premium ? `$${pricing.premium.amount}` : "$4,000",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
@@ -83,7 +85,7 @@ export default function PricingPage() {
         "Team collaboration",
       ],
       current: user?.subscriptionStatus === "premium",
-      checkoutLink: "https://buy.stripe.com/aEUg1YfFg1I65LW9AB"
+      planId: "premium"
     },
   ];
 
@@ -120,7 +122,7 @@ export default function PricingPage() {
               ) : (
                 <Button 
                   className="w-full" 
-                  onClick={() => handleSubscriptionAction(plan.checkoutLink)}
+                  onClick={() => handleSubscriptionAction(plan.planId)}
                 >
                   {user?.subscriptionStatus !== "free" ? "Change Plan" : "Upgrade"}
                 </Button>
