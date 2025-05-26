@@ -59,8 +59,8 @@ export default function PricingPage() {
       current: user?.subscriptionStatus === "free",
     },
     {
-      name: "Standard",
-      price: pricing?.standard ? `$${pricing.standard.amount}` : "$500",
+      name: "Standard", 
+      price: pricing?.standard ? `$${pricing.standard.amount}` : "$1",
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -74,7 +74,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: pricing?.premium ? `$${pricing.premium.amount}` : "$4,000",
+      price: pricing?.premium ? `$${pricing.premium.amount}` : "$1",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
