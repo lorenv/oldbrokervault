@@ -204,6 +204,10 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 export async function analyzeCimTranscript(transcript: string, customDirections?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
+    console.log("Custom directions in Perplexity function:", customDirections ? "Present" : "Not provided");
+    if (customDirections) {
+      console.log("Custom directions length:", customDirections.length, "characters");
+    }
     const result = await makePerplexityRequest([
       {
         role: "system",
