@@ -45,6 +45,10 @@ async function getOrCreateCustomer(userId: number, email: string) {
 }
 
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string) {
+  console.log("=== ENVIRONMENT PRICE IDS ===");
+  console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
+  console.log("STRIPE_PRICE_ID_PREMIUM:", process.env.STRIPE_PRICE_ID_PREMIUM);
+  
   // Get the dynamic pricing data to use the correct price ID
   const pricing = await getPricing();
   const priceId = planId === 'premium' 
