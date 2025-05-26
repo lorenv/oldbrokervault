@@ -848,6 +848,10 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
             children: [
               new docx.ImageRun({
                 data: logoBuffer,
+                transformation: {
+                  width: 200,
+                  height: 100,
+                },
                 type: logoPath.toLowerCase().endsWith('.png') ? "png" : "jpg"
               })
             ],
