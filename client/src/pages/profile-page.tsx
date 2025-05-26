@@ -23,6 +23,8 @@ export default function ProfilePage() {
     title: "",
     phoneNumber: "",
     businessName: "",
+    businessLogo: "",
+    profilePhoto: "",
   });
 
   // Fetch profile data
@@ -34,6 +36,8 @@ export default function ProfilePage() {
         title: data.title || "",
         phoneNumber: data.phoneNumber || "",
         businessName: data.businessName || "",
+        businessLogo: data.businessLogo || "",
+        profilePhoto: data.profilePhoto || "",
       });
     },
   });
@@ -67,6 +71,47 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: keyof typeof profileForm, value: string) => {
     setProfileForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "businessLogo" | "profilePhoto") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please choose a file smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please choose an image file (PNG, JPG, or GIF).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Convert file to base64 data URL for preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        handleInputChange(field, dataUrl);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to process the image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -243,15 +288,57 @@ export default function ProfilePage() {
                   Profile Photo
                 </Label>
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Upload your profile photo (max 350px width)
-                  </p>
-                  <Button type="button" variant="outline" size="sm">
-                    Choose File
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Coming soon - file upload functionality
+                  {profileForm.profilePhoto ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={profileForm.profilePhoto} 
+                        alt="Profile Photo" 
+                        className="w-20 h-20 mx-auto rounded-full object-cover"
+                      />
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => document.getElementById('profilePhoto')?.click()}
+                        >
+                          Change Photo
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleInputChange("profilePhoto", "")}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Upload your profile photo (max 350px width)
+                      </p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('profilePhoto')?.click()}
+                      >
+                        Choose File
+                      </Button>
+                    </div>
+                  )}
+                  <input
+                    id="profilePhoto"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e, "profilePhoto")}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    PNG, JPG, or GIF up to 5MB
                   </p>
                 </div>
               </div>
