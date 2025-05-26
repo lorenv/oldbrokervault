@@ -42,6 +42,16 @@ export const users = pgTable("users", {
   googleAccessToken: text("google_access_token"),
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),
+  // Profile information fields
+  name: text("name"),
+  title: text("title"),
+  phoneNumber: text("phone_number"),
+  businessName: text("business_name"),
+  businessLogo: text("business_logo"), // File path for business logo
+  profilePhoto: text("profile_photo"), // File path for profile photo
+  // Password reset fields
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 });
 
 export const cimDocuments = pgTable("cim_documents", {
