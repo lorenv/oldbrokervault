@@ -28,18 +28,8 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = fa
     }
   };
 
-  const handleUpgrade = async (plan: string) => {
-    setIsLoading(true);
-    try {
-      console.log("Creating checkout session for plan:", plan);
-      const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan });
-      const { url } = await response.json();
-      console.log("Redirecting to checkout:", url);
-      window.location.href = url;
-    } catch (error) {
-      console.error("Checkout error:", error);
-      setIsLoading(false);
-    }
+  const handleUpgrade = () => {
+    window.location.href = "/pricing";
   };
 
   return (
