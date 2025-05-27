@@ -1860,7 +1860,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         
         // Add section title
-        doc.fontSize(16).text("BUSINESS IMAGES", { align: 'center', underline: true });
+        doc.fontSize(16)
+           .fillColor('#2563eb')  // Blue color
+           .text("BUSINESS IMAGES", { align: 'center' })
+           .fillColor('#000000');  // Reset to black
         doc.moveDown(2);
         
         // Add each image to the PDF with explicit positioning to prevent overlap
@@ -1973,7 +1976,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       // Reason for Sale section
       if (analysis.story?.saleReason) {
         doc.moveDown(1);
-        doc.fontSize(14).text("Reason for Sale:", { underline: true });
+        doc.fontSize(14)
+           .fillColor('#2563eb')  // Blue color
+           .text("Reason for Sale:")
+           .fillColor('#000000');  // Reset to black
         doc.moveDown(0.5);
         doc.fontSize(12).text(safeStringify(analysis.story.saleReason), {
           width: doc.page.width - 100
@@ -1984,7 +1990,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       // Business Website section
       if (websiteUrl) {
         doc.moveDown(1);
-        doc.fontSize(14).text("Business Website:", { underline: true });
+        doc.fontSize(14)
+           .fillColor('#2563eb')  // Blue color
+           .text("Business Website:")
+           .fillColor('#000000');  // Reset to black
         doc.moveDown(0.5);
         doc.fontSize(12).text(websiteUrl);
         doc.moveDown(1);
@@ -2011,9 +2020,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       doc.fontSize(18)
          .font('Helvetica-Bold')
-         .text('MARKET POSITION', {
-           underline: true
-         })
+         .fillColor('#2563eb')  // Blue color
+         .text('MARKET POSITION')
+         .fillColor('#000000')  // Reset to black
          .font('Helvetica');
       
       doc.moveDown(1);
@@ -2069,9 +2078,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       doc.fontSize(16)
-         .text('OPERATIONS', {
-           underline: true
-         });
+         .fillColor('#2563eb')  // Blue color
+         .text('OPERATIONS')
+         .fillColor('#000000');  // Reset to black
       
       doc.moveDown(1);
       doc.fontSize(12);
@@ -2134,9 +2143,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       doc.fontSize(16)
-         .text('TEAM STRUCTURE', {
-           underline: true
-         });
+         .fillColor('#2563eb')  // Blue color
+         .text('TEAM STRUCTURE')
+         .fillColor('#000000');  // Reset to black
          
       doc.moveDown(1);
       doc.fontSize(12);
