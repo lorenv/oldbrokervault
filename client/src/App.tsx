@@ -10,7 +10,6 @@ import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
 import PricingPage from "@/pages/pricing-page";
-import ProfilePage from "@/pages/profile-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -23,7 +22,6 @@ function Router() {
         <ProtectedRoute path="/documents" component={DocumentsPage} />
         <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
-        <ProtectedRoute path="/profile" component={ProfilePage} />
         <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
