@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -24,6 +25,8 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
+import { User, Phone, Building, Upload, Camera } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -45,6 +48,83 @@ export default function AccountPage() {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [, navigate] = useLocation();
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    title: "",
+    phoneNumber: "",
+    businessName: "",
+    businessLogo: "",
+    profilePhoto: "",
+  });
+
+  // Fetch profile data
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["/api/profile"],
+    onSuccess: (data) => {
+      setProfileForm({
+        name: data.name || "",
+        title: data.title || "",
+        phoneNumber: data.phoneNumber || "",
+        businessName: data.businessName || "",
+        businessLogo: data.businessLogo || "",
+        profilePhoto: data.profilePhoto || "",
+      });
+    },
+  });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (profileData: typeof profileForm) => {
+      const response = await apiRequest("PUT", "/api/profile", profileData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInputChange = (field: keyof typeof profileForm, value: string) => {
+    setProfileForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, field: 'businessLogo' | 'profilePhoto') => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', field);
+
+    try {
+      const response = await apiRequest("POST", "/api/upload", formData);
+      const data = await response.json();
+      
+      if (data.url) {
+        handleInputChange(field, data.url);
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProfileSave = async () => {
+    await updateProfileMutation.mutateAsync(profileForm);
+  };
 
   const handleSubscriptionAction = async () => {
     try {
