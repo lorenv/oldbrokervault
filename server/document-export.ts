@@ -1443,6 +1443,158 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     });
   }
   
+  // MARKETING section
+  if (analysis.marketing && 
+     (analysis.marketing.strategies?.length > 0 || 
+      analysis.marketing.paidAdvertising?.channels?.length > 0 || 
+      analysis.marketing.emailMarketing?.listSize)) {
+        
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "MARKETING",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+    
+    // Marketing Strategies
+    if (analysis.marketing.strategies?.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Marketing Strategies",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+      
+      analysis.marketing.strategies.forEach((strategy: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: safeStringify(strategy),
+            bullet: {
+              level: 0
+            },
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+    
+    // Paid Advertising
+    if (analysis.marketing.paidAdvertising?.channels?.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Paid Advertising Channels",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+      
+      analysis.marketing.paidAdvertising.channels.forEach((channel: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: safeStringify(channel),
+            bullet: {
+              level: 0
+            },
+            spacing: { before: 50 }
+          })
+        );
+      });
+      
+      if (analysis.marketing.paidAdvertising.effectiveness) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Effectiveness: ${safeStringify(analysis.marketing.paidAdvertising.effectiveness)}`,
+            spacing: { before: 100 }
+          })
+        );
+      }
+    }
+    
+    // Email Marketing
+    if (analysis.marketing.emailMarketing?.listSize) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Email Marketing",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+      
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `List Size: ${safeStringify(analysis.marketing.emailMarketing.listSize)}`,
+          spacing: { before: 100 }
+        })
+      );
+      
+      if (analysis.marketing.emailMarketing.usage) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Usage: ${safeStringify(analysis.marketing.emailMarketing.usage)}`,
+            spacing: { before: 100 }
+          })
+        );
+      }
+    }
+    
+    // SEO Efforts
+    if (analysis.marketing.seoEfforts) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "SEO Efforts",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+      
+      paragraphs.push(
+        new docx.Paragraph({
+          text: safeStringify(analysis.marketing.seoEfforts),
+          spacing: { before: 100 }
+        })
+      );
+    }
+    
+    // Client Acquisition
+    if (analysis.marketing.clientAcquisition) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Client Acquisition",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+      
+      paragraphs.push(
+        new docx.Paragraph({
+          text: safeStringify(analysis.marketing.clientAcquisition),
+          spacing: { before: 100 }
+        })
+      );
+    }
+  }
+
+  // REASON FOR SALE section
+  if (analysis.story?.saleReason || analysis.marketAnalysis?.saleReason) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "REASON FOR SALE",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+    
+    const saleReason = analysis.story?.saleReason || analysis.marketAnalysis?.saleReason;
+    paragraphs.push(
+      new docx.Paragraph({
+        text: safeStringify(saleReason),
+        spacing: { before: 100, after: 200 }
+      })
+    );
+  }
+
   // Continue with FACILITIES section
   paragraphs.push(
     // FACILITIES
@@ -1782,9 +1934,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       
       doc.fontSize(18)
          .font('Helvetica-Bold')
-         .text('BUSINESS OVERVIEW', {
-           underline: true
-         })
+         .fillColor('#2563eb')  // Blue color
+         .text('BUSINESS OVERVIEW')
+         .fillColor('#000000')  // Reset to black
          .font('Helvetica');
       
       doc.moveDown(1);
