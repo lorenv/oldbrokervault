@@ -80,40 +80,14 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = fa
           </div>
 
           {!isPremium && (
-            <div className="space-y-3">
-              {status === "free" && (
-                <Button
-                  className="w-full"
-                  variant={subtle ? "outline" : "default"}
-                  size={subtle ? "sm" : "default"}
-                  onClick={() => handleUpgrade("standard")}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    "Processing..."
-                  ) : subtle ? (
-                    "Upgrade to Standard"
-                  ) : (
-                    "Upgrade to Standard - $1/month"
-                  )}
-                </Button>
-              )}
-              <Button
-                className="w-full"
-                variant={subtle ? "outline" : "default"}
-                size={subtle ? "sm" : "default"}
-                onClick={() => handleUpgrade("premium")}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  "Processing..."
-                ) : subtle ? (
-                  "Upgrade to Premium"
-                ) : (
-                  "Upgrade to Premium"
-                )}
-              </Button>
-            </div>
+            <Button
+              className="w-full"
+              variant={subtle ? "outline" : "default"}
+              size={subtle ? "sm" : "default"}
+              onClick={handleUpgrade}
+            >
+              {subtle ? "Upgrade Plan" : "Upgrade Subscription"}
+            </Button>
           )}
 
           <ul className="space-y-2 text-sm">
