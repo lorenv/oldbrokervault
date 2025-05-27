@@ -2207,9 +2207,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       }
       
       doc.fontSize(16)
-         .text('FACILITIES', {
-           underline: true
-         });
+         .fillColor('#2563eb')  // Blue color
+         .text('FACILITIES')
+         .fillColor('#000000');  // Reset to black
          
       doc.moveDown(1);
       doc.fontSize(12);
@@ -2256,9 +2256,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         
         doc.fontSize(18)
            .font('Helvetica-Bold')
-           .text('MARKETING', {
-             underline: true
-           })
+           .fillColor('#2563eb')  // Blue color
+           .text('MARKETING')
+           .fillColor('#000000')  // Reset to black
            .font('Helvetica');
            
         doc.moveDown(1);
