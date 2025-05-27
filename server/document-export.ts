@@ -1780,10 +1780,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         }
       }
       
-      doc.fontSize(16)
+      doc.fontSize(18)
+         .font('Helvetica-Bold')
          .text('BUSINESS OVERVIEW', {
            underline: true
-         });
+         })
+         .font('Helvetica');
       
       doc.moveDown(1);
       doc.fontSize(12);
@@ -1855,10 +1857,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.moveDown(2);
       }
       
-      doc.fontSize(16)
+      doc.fontSize(18)
+         .font('Helvetica-Bold')
          .text('MARKET POSITION', {
            underline: true
-         });
+         })
+         .font('Helvetica');
       
       doc.moveDown(1);
       doc.fontSize(12);
@@ -2089,10 +2093,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.moveDown(2);
         }
         
-        doc.fontSize(16)
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
            .text('MARKETING', {
              underline: true
-           });
+           })
+           .font('Helvetica');
            
         doc.moveDown(1);
         doc.fontSize(12);
