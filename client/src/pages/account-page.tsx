@@ -60,17 +60,21 @@ export default function AccountPage() {
   // Fetch profile data
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/profile"],
-    onSuccess: (data) => {
-      setProfileForm({
-        name: data.name || "",
-        title: data.title || "",
-        phoneNumber: data.phoneNumber || "",
-        businessName: data.businessName || "",
-        businessLogo: data.businessLogo || "",
-        profilePhoto: data.profilePhoto || "",
-      });
-    },
   });
+
+  // Update form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        name: (profile as any).name || "",
+        title: (profile as any).title || "",
+        phoneNumber: (profile as any).phoneNumber || "",
+        businessName: (profile as any).businessName || "",
+        businessLogo: (profile as any).businessLogo || "",
+        profilePhoto: (profile as any).profilePhoto || "",
+      });
+    }
+  }, [profile]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
@@ -309,9 +313,212 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
+        {/* Personal Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>
+              Your contact details that appear in exported CIM documents.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={profileForm.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">Title/Position</Label>
+                <Input
+                  id="title"
+                  value={profileForm.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  placeholder="e.g., Business Broker, Owner"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone Number
+              </Label>
+              <Input
+                id="phoneNumber"
+                value={profileForm.phoneNumber}
+                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                placeholder="Enter your phone number"
+              />
+            </div>
+            
+            {/* Profile Photo Upload */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Profile Photo
+              </Label>
+              <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+                {profileForm.profilePhoto ? (
+                  <div className="space-y-3">
+                    <img 
+                      src={profileForm.profilePhoto} 
+                      alt="Profile Photo" 
+                      className="w-20 h-20 mx-auto rounded-full object-cover"
+                    />
+                    <div className="flex gap-2 justify-center">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('profilePhoto')?.click()}
+                      >
+                        Change Photo
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleInputChange("profilePhoto", "")}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Upload your profile photo (max 350px width)
+                    </p>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('profilePhoto')?.click()}
+                    >
+                      Choose File
+                    </Button>
+                  </div>
+                )}
+                <input
+                  id="profilePhoto"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, "profilePhoto")}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  PNG, JPG, or GIF up to 5MB
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Business Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Business Information
+            </CardTitle>
+            <CardDescription>
+              Your business details for professional CIM branding.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="businessName">Business Name</Label>
+              <Input
+                id="businessName"
+                value={profileForm.businessName}
+                onChange={(e) => handleInputChange("businessName", e.target.value)}
+                placeholder="Enter your business name"
+              />
+            </div>
+            
+            {/* Business Logo Upload */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Business Logo
+              </Label>
+              <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+                {profileForm.businessLogo ? (
+                  <div className="space-y-3">
+                    <img 
+                      src={profileForm.businessLogo} 
+                      alt="Business Logo" 
+                      className="max-h-20 mx-auto object-contain"
+                    />
+                    <div className="flex gap-2 justify-center">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('businessLogo')?.click()}
+                      >
+                        Change Logo
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleInputChange("businessLogo", "")}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Upload your business logo (max 400px width)
+                    </p>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => document.getElementById('businessLogo')?.click()}
+                    >
+                      Choose File
+                    </Button>
+                  </div>
+                )}
+                <input
+                  id="businessLogo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, "businessLogo")}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  PNG, JPG, or GIF up to 5MB
+                </p>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleProfileSave} 
+              disabled={updateProfileMutation.isPending}
+              className="w-full"
+            >
+              {updateProfileMutation.isPending ? "Saving..." : "Save Profile Information"}
+            </Button>
+          </CardContent>
+        </Card>
+
         <SubscriptionCard 
           status={user?.subscriptionStatus} 
-          endsAt={user?.subscriptionEndsAt} 
+          endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
           monthlyUsage={user?.monthlyUsage}
         />
       </div>
