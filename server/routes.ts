@@ -111,8 +111,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Response being sent:", response);
       res.json(response);
     } catch (error) {
+      console.error("=== DETAILED STRIPE ERROR ===");
       console.error("Error fetching Stripe prices:", error);
-      res.status(500).json({ error: "Failed to fetch pricing" });
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Environment variables check:");
+      console.error("STRIPE_SECRET_KEY exists:", !!process.env.STRIPE_SECRET_KEY);
+      console.error("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
+      console.error("STRIPE_PRICE_ID_PREMIUM:", process.env.STRIPE_PRICE_ID_PREMIUM);
+      res.status(500).json({ error: "Failed to fetch pricing", details: error.message });
     }
   });
 
