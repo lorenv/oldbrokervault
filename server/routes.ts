@@ -634,6 +634,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // Custom sections routes
+  app.get("/api/cim/:id/custom-sections", async (req, res) => {
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim) {
+        return res.sendStatus(404);
+      }
+
+      // Check if user owns the document or it's publicly shared
+      if (!req.isAuthenticated() || (cim.userId !== req.user.id && !cim.shareEnabled)) {
+        return res.sendStatus(403);
+      }
+
+      const sections = await storage.getCustomSections(cimId);
+      res.json(sections);
+    } catch (error) {
+      console.error("Error getting custom sections:", error);
+      res.status(500).json({ message: "Failed to get custom sections" });
+    }
+  });
+
+  app.post("/api/cim/:id/custom-section/text", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const { content, afterSection } = req.body;
+      
+      const section = await storage.createCustomSection({
+        cimDocumentId: cimId,
+        type: 'text',
+        content: content || '<p>Click to edit text...</p>',
+        insertAfterSection: afterSection
+      });
+
+      res.json(section);
+    } catch (error) {
+      console.error("Error creating text section:", error);
+      res.status(500).json({ message: "Failed to create text section" });
+    }
+  });
+
+  app.post("/api/cim/:id/custom-section/image", upload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const { afterSection } = req.body;
+      
+      // Process and save the image
+      const filename = `custom-section-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const imagePath = path.join(uploadsDir, filename);
+      
+      await sharp(req.file.buffer)
+        .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toFile(imagePath);
+
+      const imageUrl = `/uploads/${filename}`;
+      
+      const section = await storage.createCustomSection({
+        cimDocumentId: cimId,
+        type: 'image',
+        imageUrl,
+        insertAfterSection: afterSection
+      });
+
+      res.json(section);
+    } catch (error) {
+      console.error("Error creating image section:", error);
+      res.status(500).json({ message: "Failed to create image section" });
+    }
+  });
+
+  app.put("/api/custom-section/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const sectionId = parseInt(req.params.id);
+      const { content } = req.body;
+      
+      await storage.updateCustomSection(sectionId, content);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating custom section:", error);
+      res.status(500).json({ message: "Failed to update custom section" });
+    }
+  });
+
+  app.delete("/api/custom-section/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const sectionId = parseInt(req.params.id);
+      await storage.deleteCustomSection(sectionId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting custom section:", error);
+      res.status(500).json({ message: "Failed to delete custom section" });
+    }
+  });
+
+  app.put("/api/cim/:id/custom-sections/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const { sections } = req.body;
+      await storage.reorderCustomSections(sections);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering custom sections:", error);
+      res.status(500).json({ message: "Failed to reorder custom sections" });
+    }
+  });
+
   // Admin Routes
   app.get("/api/admin/users", async (req, res) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
