@@ -37,11 +37,32 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  const handleAddText = () => {
-    setShowDialog(true);
+  const handleAddText = async () => {
+    setShowDialog(false);
+    try {
+      const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/text`, {
+        content: '<p>Click to edit text...</p>',
+        afterSection: afterSection
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Text section added",
+          description: "Your new text section has been added to the CIM",
+        });
+        onSectionAdded();
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add text section",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddImage = () => {
+    setShowDialog(false);
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';

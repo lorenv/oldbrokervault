@@ -370,7 +370,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(customSections)
       .where(eq(customSections.cimDocumentId, cimDocumentId))
-      .orderBy(customSections.position);
+      .orderBy(asc(customSections.position));
   }
 
   async updateCustomSection(id: number, content: string): Promise<void> {

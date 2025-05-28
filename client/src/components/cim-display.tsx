@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InlineEditor } from "./inline-editor";
+import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Save, Download } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,6 +24,38 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Fetch custom sections
+  const { data: customSections = [], refetch: refetchSections } = useQuery({
+    queryKey: [`/api/cim/${docId}/custom-sections`],
+    enabled: !!docId,
+  });
+
+  // Custom section handlers
+  const handleSectionAdded = () => {
+    refetchSections();
+  };
+
+  const handleSectionDelete = (sectionId: number) => {
+    refetchSections();
+  };
+
+  const handleSectionUpdate = async (sectionId: number, content: string) => {
+    try {
+      await apiRequest('PUT', `/api/custom-section/${sectionId}`, { content });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Helper function to get custom sections for a specific location
+  const getCustomSectionsAfter = (sectionName: string) => {
+    return customSections.filter((section: any) => section.insertAfterSection === sectionName);
+  };
 
   // Deep merge function to combine original analysis with edited content
   const getMergedContent = () => {
