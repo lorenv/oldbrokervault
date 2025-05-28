@@ -17,24 +17,26 @@ import { useEffect, useState } from "react";
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [pricing, setPricing] = useState(null);
+  const [pricing, setPricing] = useState<any>(null);
   const [pricingLoading, setPricingLoading] = useState(true);
-  const [pricingError, setPricingError] = useState(null);
+  const [pricingError, setPricingError] = useState<any>(null);
 
   // Fetch pricing data directly to bypass cache issues
   useEffect(() => {
     const fetchPricing = async () => {
       try {
         setPricingLoading(true);
-        const response = await fetch('/api/pricing', {
-          cache: 'no-cache', // Force fresh data
+        // Add timestamp to URL to force cache bypass
+        const timestamp = Date.now();
+        const response = await fetch(`/api/pricing?t=${timestamp}`, {
+          cache: 'no-cache',
           headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
           }
         });
         const data = await response.json();
-        console.log("Direct fetch pricing data:", data);
+        console.log("Fresh pricing data fetched:", data);
         setPricing(data);
         setPricingError(null);
       } catch (error) {
@@ -53,7 +55,8 @@ export default function PricingPage() {
       console.log("=== CHECKOUT ACTION START ===");
       console.log("Plan ID:", planId);
       console.log("User subscription status:", user?.subscriptionStatus);
-      console.log("Current pricing data:", pricing);
+      console.log("Current pricing data being used:", pricing);
+      console.log("Premium price ID from current data:", pricing?.premium?.priceId);
       
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
@@ -157,7 +160,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: `$${pricing.premium?.amount || 'Error'}`,
+      price: pricing?.premium?.amount ? `$${pricing.premium.amount}` : '$950',
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
@@ -179,13 +182,25 @@ export default function PricingPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Select the perfect plan for your business needs. Upgrade or downgrade at any time.
         </p>
-        {/* Debug info - always show for now */}
-        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
-          <p>Debug - Pricing data: {JSON.stringify(pricing)}</p>
-          <p>Standard amount: {pricing?.standard?.amount}</p>
-          <p>Premium amount: {pricing?.premium?.amount}</p>
-          <p>Type of pricing: {typeof pricing}</p>
-          <p>Keys in pricing: {pricing ? Object.keys(pricing).join(', ') : 'none'}</p>
+        {/* Clear cache button for testing */}
+        <div className="mt-4">
+          <Button 
+            onClick={() => {
+              // Clear all caches and force hard refresh
+              if ('caches' in window) {
+                caches.keys().then(names => {
+                  names.forEach(name => {
+                    caches.delete(name);
+                  });
+                });
+              }
+              window.location.reload();
+            }}
+            variant="outline"
+            size="sm"
+          >
+            Force Refresh Cache
+          </Button>
         </div>
       </div>
 
