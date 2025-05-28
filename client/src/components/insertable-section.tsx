@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Plus, Image, Type, Trash2, GripVertical } from "lucide-react";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -180,6 +182,15 @@ export function CustomSection({ id, type, content, imageUrl, onDelete, onUpdate 
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: content || '',
@@ -210,13 +221,25 @@ export function CustomSection({ id, type, content, imageUrl, onDelete, onUpdate 
     }
   };
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <div className="group relative border border-gray-200 rounded-lg p-4 my-4 bg-gray-50">
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`group relative border border-gray-200 rounded-lg p-4 my-4 bg-gray-50 ${isDragging ? 'shadow-lg' : ''}`}
+    >
       <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+          className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
         >
           <GripVertical className="h-4 w-4" />
         </Button>

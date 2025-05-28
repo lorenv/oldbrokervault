@@ -9,6 +9,20 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Save, Download } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 interface CimDisplayProps {
   analysis: any;
@@ -31,6 +45,14 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     enabled: !!docId,
   });
 
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Custom section handlers
   const handleSectionAdded = () => {
     refetchSections();
@@ -52,6 +74,38 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     }
   };
 
+  // Handle drag end for reordering sections
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const oldIndex = customSections.findIndex((item: any) => item.id === active.id);
+      const newIndex = customSections.findIndex((item: any) => item.id === over.id);
+      
+      const reorderedSections = arrayMove(customSections, oldIndex, newIndex);
+      
+      // Update positions in database
+      try {
+        const sectionsWithNewPositions = reorderedSections.map((section: any, index: number) => ({
+          id: section.id,
+          position: index + 1
+        }));
+        
+        await apiRequest('PUT', `/api/cim/${docId}/custom-sections/reorder`, {
+          sections: sectionsWithNewPositions
+        });
+        
+        refetchSections();
+      } catch (error) {
+        toast({
+          title: "Reorder failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   // Helper function to get custom sections for a specific location
   const getCustomSectionsAfter = (sectionName: string) => {
     return customSections.filter((section: any) => section.insertAfterSection === sectionName);
@@ -66,17 +120,30 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         {sectionContent}
         
         {/* Show custom sections that come after this section */}
-        {sectionsAfter.map((section: any) => (
-          <CustomSection
-            key={section.id}
-            id={section.id}
-            type={section.type}
-            content={section.content}
-            imageUrl={section.imageUrl}
-            onDelete={handleSectionDelete}
-            onUpdate={handleSectionUpdate}
-          />
-        ))}
+        {sectionsAfter.length > 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={sectionsAfter.map((section: any) => section.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {sectionsAfter.map((section: any) => (
+                <CustomSection
+                  key={section.id}
+                  id={section.id}
+                  type={section.type}
+                  content={section.content}
+                  imageUrl={section.imageUrl}
+                  onDelete={handleSectionDelete}
+                  onUpdate={handleSectionUpdate}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
         
         {/* Show insertable zone if user is authenticated */}
         {user && (
