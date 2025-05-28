@@ -10,18 +10,22 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch dynamic pricing from Stripe with proper error handling - force fresh data
+  // Clear pricing cache on mount to fix stale data issue
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/pricing"] });
+  }, []);
+
+  // Fetch dynamic pricing from Stripe with proper error handling
   const { data: pricing, isLoading: pricingLoading, error: pricingError } = useQuery({
-    queryKey: ["/api/pricing", Date.now()], // Force unique query key to bypass cache
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache the result
+    queryKey: ["/api/pricing"],
   });
 
   const handleSubscriptionAction = async (planId?: string) => {
