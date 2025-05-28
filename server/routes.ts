@@ -517,8 +517,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json({ url: session.url });
     } catch (error) {
-      console.error('Stripe session creation error:', error);
-      res.status(400).json({ error: "Failed to create checkout session" });
+      console.error('=== STRIPE SESSION CREATION ERROR ===');
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Full error:', error);
+      console.error('Plan requested:', plan);
+      console.error('User ID:', req.user?.id);
+      console.error('Price IDs available:', {
+        standard: process.env.STRIPE_PRICE_ID_STANDARD,
+        premium: process.env.STRIPE_PRICE_ID_PREMIUM
+      });
+      
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      res.status(400).json({ error: `Failed to create checkout session: ${errorMessage}` });
     }
   });
 
