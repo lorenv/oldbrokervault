@@ -38,6 +38,15 @@ export interface IStorage {
   createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: number): Promise<void>;
+  // Sharing functionality
+  updateCimShareSettings(id: number, settings: {
+    shareEnabled: boolean;
+    shareSlug?: string;
+    sharePassword?: string | null;
+    shareExpiresAt?: Date | null;
+  }): Promise<CimDocument>;
+  getCimByShareSlug(slug: string): Promise<CimDocument | undefined>;
+  incrementShareViewCount(id: number): Promise<void>;
   sessionStore: session.Store;
 }
 
