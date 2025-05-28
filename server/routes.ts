@@ -939,6 +939,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Share settings endpoint
+  app.post("/api/cim/:id/share", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const { shareEnabled, shareSlug, sharePassword, shareExpiresAt } = req.body;
+
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const updatedDoc = await storage.updateCimShareSettings(docId, {
+        shareEnabled,
+        shareSlug,
+        sharePassword,
+        shareExpiresAt
+      });
+
+      res.json({
+        shareEnabled: updatedDoc.shareEnabled,
+        shareSlug: updatedDoc.shareSlug,
+        viewCount: updatedDoc.shareViewCount
+      });
+    } catch (error) {
+      console.error("Error updating share settings:", error);
+      res.status(500).json({ error: "Failed to update share settings" });
+    }
+  });
+
+  // Public share endpoint - serves shared CIMs
+  app.get("/cims/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const doc = await storage.getCimByShareSlug(slug);
+      
+      if (!doc || !doc.shareEnabled) {
+        return res.status(404).send("CIM not found or sharing is disabled");
+      }
+
+      // Check expiration
+      if (doc.shareExpiresAt && new Date() > doc.shareExpiresAt) {
+        return res.status(410).send("This shared link has expired");
+      }
+
+      // Increment view count
+      await storage.incrementShareViewCount(doc.id);
+
+      // Get user profile for branding
+      const user = await storage.getUser(doc.userId);
+      
+      // Check if password protection is required
+      const password = req.query.password as string;
+      if (doc.sharePassword && password !== doc.sharePassword) {
+        // Return password form HTML
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Protected CIM - ${doc.title}</title>
+            <meta name="robots" content="noindex, nofollow">
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px 20px; background: #f8fafc; }
+              .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+              h1 { margin: 0 0 20px 0; color: #1f2937; }
+              input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; margin: 10px 0; }
+              button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
+              button:hover { background: #2563eb; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Password Required</h1>
+              <p>This CIM is password protected. Please enter the password to continue.</p>
+              <form method="get">
+                <input type="password" name="password" placeholder="Enter password" required>
+                <button type="submit">Access CIM</button>
+              </form>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      // Generate the shared CIM page
+      const analysis = doc.editedContent || doc.analysis;
+      const businessName = analysis.story?.businessSummary || doc.title;
+      
+      const sharedCimHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${businessName} - Confidential Information Memorandum</title>
+          <meta name="robots" content="noindex, nofollow">
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; margin: 0; padding: 0; background: #ffffff; }
+            .header { background: #1f2937; color: white; padding: 20px 0; margin-bottom: 40px; }
+            .header-content { max-width: 800px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 20px; }
+            .logo { width: 60px; height: 60px; border-radius: 30px; object-fit: cover; }
+            .header-text h1 { margin: 0; font-size: 28px; }
+            .header-text p { margin: 5px 0 0 0; opacity: 0.8; }
+            .container { max-width: 800px; margin: 0 auto; padding: 0 20px 40px 20px; }
+            .section { margin-bottom: 40px; }
+            .section h2 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
+            .section h3 { color: #374151; margin-top: 25px; margin-bottom: 15px; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            .card { background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+            .highlight { background: #dbeafe; padding: 15px; border-radius: 6px; margin: 15px 0; }
+            ul { padding-left: 20px; }
+            li { margin-bottom: 8px; }
+            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="header-content">
+              ${user?.businessLogo ? `<img src="${user.businessLogo}" alt="${businessName}" class="logo">` : ''}
+              <div class="header-text">
+                <h1>${businessName}</h1>
+                <p>Confidential Information Memorandum</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="container">
+            ${generateHtml(analysis)}
+          </div>
+          
+          <div class="footer">
+            <p>This document contains confidential and proprietary information.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      res.send(sharedCimHtml);
+    } catch (error) {
+      console.error("Error serving shared CIM:", error);
+      res.status(500).send("Error loading CIM");
+    }
+  });
+
   // Add WordPress export endpoint
   app.post("/api/cim/export/wordpress/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

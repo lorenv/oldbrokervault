@@ -710,6 +710,105 @@ export function DocumentExport({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Your CIM</DialogTitle>
+            <DialogDescription>
+              Create a shareable link for your CIM document
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="share-enabled">Enable Sharing</Label>
+              <Switch
+                id="share-enabled"
+                checked={shareSettings.shareEnabled}
+                onCheckedChange={(checked) => 
+                  setShareSettings(prev => ({ ...prev, shareEnabled: checked }))
+                }
+              />
+            </div>
+            
+            {shareSettings.shareEnabled && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-slug">Custom URL (optional)</Label>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">cimgod.com/cims/</span>
+                    <Input
+                      id="custom-slug"
+                      placeholder="my-business-name"
+                      value={shareSettings.customSlug}
+                      onChange={(e) => 
+                        setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="share-password">Password Protection (optional)</Label>
+                  <Input
+                    id="share-password"
+                    type="password"
+                    placeholder="Enter password"
+                    value={shareSettings.sharePassword}
+                    onChange={(e) => 
+                      setShareSettings(prev => ({ ...prev, sharePassword: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="share-expires">Expiration Date (optional)</Label>
+                  <Input
+                    id="share-expires"
+                    type="date"
+                    value={shareSettings.shareExpiresAt}
+                    onChange={(e) => 
+                      setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
+                    }
+                  />
+                </div>
+
+                {shareUrl && (
+                  <div className="space-y-2">
+                    <Label>Share Link</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={shareUrl}
+                        readOnly
+                        className="bg-gray-50"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={copyShareUrl}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={updateShareSettings}
+              disabled={isUpdatingShare}
+            >
+              {isUpdatingShare ? "Updating..." : "Update Settings"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
