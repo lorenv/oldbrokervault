@@ -77,16 +77,19 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
   console.log("STRIPE_PRICE_ID_PREMIUM:", process.env.STRIPE_PRICE_ID_PREMIUM);
   
-  // Get the dynamic pricing data to use the correct price ID
-  const pricing = await getPricing();
-  const priceId = planId === 'premium' 
-    ? pricing.premium.priceId
-    : pricing.standard.priceId;
+  // Use fresh price ID if provided, otherwise get dynamic pricing data
+  let priceId = freshPriceId;
+  if (!priceId) {
+    const pricing = await getPricing();
+    priceId = planId === 'premium' 
+      ? pricing.premium.priceId
+      : pricing.standard.priceId;
+  }
 
   console.log("=== STRIPE SESSION CREATION START ===");
   console.log("Creating subscription session for user:", userId, "plan:", planId);
-  console.log("Price ID being used:", priceId);
-  console.log("Dynamic pricing data:", pricing);
+  console.log("Fresh price ID from frontend:", freshPriceId);
+  console.log("Final price ID being used:", priceId);
   console.log("Request host:", requestHost);
 
   const user = await storage.getUser(userId);
