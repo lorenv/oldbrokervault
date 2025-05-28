@@ -45,6 +45,18 @@ export default function PricingPage() {
     }
   };
 
+  // Show loading state while fetching pricing
+  if (pricingLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Loading Pricing...</h1>
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
   const plans = [
     {
       name: "Free",
@@ -60,7 +72,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard", 
-      price: pricing?.standard ? `$${pricing.standard.amount}` : "$1",
+      price: pricing?.standard ? `$${(pricing.standard.amount / 100).toFixed(2)}` : "Loading...",
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -74,7 +86,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: pricing?.premium ? `$${pricing.premium.amount}` : "$1",
+      price: pricing?.premium ? `$${(pricing.premium.amount / 100).toFixed(2)}` : "Loading...",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
