@@ -48,6 +48,8 @@ export function DocumentExport({
   const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
   const [isWordPressExporting, setIsWordPressExporting] = useState(false);
   const [isFetchingTemplates, setIsFetchingTemplates] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isWordLoading, setIsWordLoading] = useState(false);
   const [beaverBuilderTemplates, setBeaverBuilderTemplates] = useState<Array<{id: number, title: string, type: string}>>([]);
   
   // Share dialog state

@@ -254,6 +254,29 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
+      {/* Business Images */}
+      {selectedImages && selectedImages.length > 0 && renderSectionWithInsertables("business-images",
+        <Card>
+          <CardHeader>
+            <CardTitle>Business Images</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {selectedImages.map((imageUrl, index) => (
+                <div key={index} className="flex justify-center">
+                  <img 
+                    src={imageUrl} 
+                    alt={`Business image ${index + 1}`} 
+                    className="max-w-full h-auto shadow-md"
+                    style={{ borderRadius: '30px' }}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Business Story */}
       {renderSectionWithInsertables("business-story",
         <Card>

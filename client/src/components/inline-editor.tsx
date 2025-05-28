@@ -97,13 +97,19 @@ export function InlineEditor({
 
   return (
     <div className="group relative">
-      <div className="min-h-[40px] p-2 rounded border border-transparent group-hover:border-gray-200 group-hover:bg-gray-50">
+      <div 
+        className="min-h-[40px] p-2 rounded border border-transparent group-hover:border-gray-200 group-hover:bg-gray-50 cursor-pointer"
+        onClick={() => onEdit(fieldPath)}
+      >
         {displayValue || <span className="text-muted-foreground italic">Click to add content...</span>}
       </div>
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => onEdit(fieldPath)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(fieldPath);
+        }}
         className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
       >
         <Edit className="h-3 w-3" />
