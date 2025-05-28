@@ -569,24 +569,13 @@ ${analysis.team.ownerResponsibilities}
       </Card>
 
       {analysis && currentDocId && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Generated CIM - Click any field to edit</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                You can now edit any field below. Your changes will be saved and included in all future exports.
-              </p>
-            </CardHeader>
-          </Card>
-          
-          <CimDisplay
-            analysis={analysis}
-            docId={currentDocId}
-            websiteUrl={form.getValues("websiteUrl")}
-            logoUrl={analysis.logoUrl}
-            selectedImages={selectedImages}
-          />
-        </div>
+        <CimDisplay
+          analysis={analysis}
+          docId={currentDocId}
+          websiteUrl={form.getValues("websiteUrl")}
+          logoUrl={analysis.logoUrl}
+          selectedImages={selectedImages}
+        />
       )}
 
       {analysis && !currentDocId && (
