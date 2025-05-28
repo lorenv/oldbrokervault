@@ -6,6 +6,34 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Function to get dynamic pricing from Stripe
 async function getPricing() {
+  console.log("=== RETRIEVING PRICES FROM STRIPE ===");
+  console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
+  console.log("Premium Price ID:", process.env.STRIPE_PRICE_ID_PREMIUM);
+  
+  try {
+    const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
+    console.log("Standard price retrieved successfully:", {
+      id: standardPrice.id,
+      active: standardPrice.active,
+      unit_amount: standardPrice.unit_amount
+    });
+  } catch (error) {
+    console.error("Failed to retrieve standard price:", error);
+    throw error;
+  }
+  
+  try {
+    const premiumPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!);
+    console.log("Premium price retrieved successfully:", {
+      id: premiumPrice.id,
+      active: premiumPrice.active,
+      unit_amount: premiumPrice.unit_amount
+    });
+  } catch (error) {
+    console.error("Failed to retrieve premium price:", error);
+    throw error;
+  }
+  
   const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
   const premiumPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!);
   
