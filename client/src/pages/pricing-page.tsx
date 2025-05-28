@@ -12,21 +12,41 @@ import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [pricing, setPricing] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(true);
+  const [pricingError, setPricingError] = useState(null);
 
-  // Clear pricing cache on mount to fix stale data issue
+  // Fetch pricing data directly to bypass cache issues
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/pricing"] });
-  }, []);
+    const fetchPricing = async () => {
+      try {
+        setPricingLoading(true);
+        const response = await fetch('/api/pricing', {
+          cache: 'no-cache', // Force fresh data
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        const data = await response.json();
+        console.log("Direct fetch pricing data:", data);
+        setPricing(data);
+        setPricingError(null);
+      } catch (error) {
+        console.error("Direct fetch error:", error);
+        setPricingError(error);
+      } finally {
+        setPricingLoading(false);
+      }
+    };
 
-  // Fetch dynamic pricing from Stripe with proper error handling
-  const { data: pricing, isLoading: pricingLoading, error: pricingError } = useQuery({
-    queryKey: ["/api/pricing"],
-  });
+    fetchPricing();
+  }, []);
 
   const handleSubscriptionAction = async (planId?: string) => {
     try {
