@@ -2,7 +2,7 @@ import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, us
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -282,6 +282,45 @@ export class DatabaseStorage implements IStorage {
         resetTokenExpiry: null
       })
       .where(eq(users.id, userId));
+  }
+
+  async updateCimShareSettings(id: number, settings: {
+    shareEnabled: boolean;
+    shareSlug?: string;
+    sharePassword?: string | null;
+    shareExpiresAt?: Date | null;
+  }): Promise<CimDocument> {
+    const [doc] = await db.update(cimDocuments)
+      .set({
+        shareEnabled: settings.shareEnabled,
+        shareSlug: settings.shareSlug,
+        sharePassword: settings.sharePassword,
+        shareExpiresAt: settings.shareExpiresAt,
+      })
+      .where(eq(cimDocuments.id, id))
+      .returning();
+    return doc;
+  }
+
+  async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
+    const [doc] = await db.select()
+      .from(cimDocuments)
+      .where(eq(cimDocuments.shareSlug, slug));
+    return doc || undefined;
+  }
+
+  async incrementShareViewCount(id: number): Promise<void> {
+    // First get the current count, then increment it
+    const [current] = await db.select({ count: cimDocuments.shareViewCount })
+      .from(cimDocuments)
+      .where(eq(cimDocuments.id, id));
+    
+    await db.update(cimDocuments)
+      .set({ 
+        shareViewCount: (current?.count || 0) + 1,
+        shareLastViewed: new Date()
+      })
+      .where(eq(cimDocuments.id, id));
   }
 }
 
