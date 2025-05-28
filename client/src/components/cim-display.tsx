@@ -7,6 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { Save, Download } from "lucide-react";
 import { DocumentExport } from "./document-export";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CimDisplayProps {
   analysis: any;
@@ -18,6 +19,7 @@ interface CimDisplayProps {
 
 export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages }: CimDisplayProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -169,6 +171,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         websiteUrl={websiteUrl}
         logoUrl={logoUrl}
         selectedImages={selectedImages}
+        user={user}
       />
 
       {/* Business Summary */}

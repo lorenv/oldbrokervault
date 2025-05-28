@@ -28,13 +28,19 @@ import { Switch } from "@/components/ui/switch";
 export function DocumentExport({ 
   analysis, 
   docId, 
+  websiteUrl,
+  logoUrl,
+  selectedImages,
   user,
   isWordPressDialogOpen: externalIsWordPressDialogOpen,
   setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen
 }: { 
   analysis: any; 
   docId: number; 
-  user: any;
+  websiteUrl?: string;
+  logoUrl?: string;
+  selectedImages?: string[];
+  user?: any;
   isWordPressDialogOpen?: boolean;
   setIsWordPressDialogOpen?: (isOpen: boolean) => void;
 }) {
