@@ -29,6 +29,7 @@ import {
 import { Download, Copy, File, FileText } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { DocumentExport } from './document-export';  // Fixed import path
+import { CimDisplay } from './cim-display';
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -567,7 +568,28 @@ ${analysis.team.ownerResponsibilities}
         </CardContent>
       </Card>
 
-      {analysis && (
+      {analysis && currentDocId && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Generated CIM - Click any field to edit</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                You can now edit any field below. Your changes will be saved and included in all future exports.
+              </p>
+            </CardHeader>
+          </Card>
+          
+          <CimDisplay
+            analysis={analysis}
+            docId={currentDocId}
+            websiteUrl={form.getValues("websiteUrl")}
+            logoUrl={analysis.logoUrl}
+            selectedImages={selectedImages}
+          />
+        </div>
+      )}
+
+      {analysis && !currentDocId && (
         <Card>
           <CardHeader>
             <CardTitle>Generated CIM</CardTitle>
