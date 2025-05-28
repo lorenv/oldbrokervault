@@ -1202,6 +1202,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current Stripe pricing
+  app.get("/api/pricing", async (req, res) => {
+    try {
+      const pricing = await getPricing();
+      res.json(pricing);
+    } catch (error: any) {
+      console.error("Error fetching pricing:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch pricing",
+        details: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
