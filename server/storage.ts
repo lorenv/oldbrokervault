@@ -1,8 +1,9 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
 import { eq, sql } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -47,6 +48,18 @@ export interface IStorage {
   }): Promise<CimDocument>;
   getCimByShareSlug(slug: string): Promise<CimDocument | undefined>;
   incrementShareViewCount(id: number): Promise<void>;
+  // Custom sections
+  createCustomSection(section: {
+    cimDocumentId: number;
+    type: 'text' | 'image';
+    content?: string;
+    imageUrl?: string;
+    insertAfterSection: string;
+  }): Promise<any>;
+  getCustomSections(cimDocumentId: number): Promise<any[]>;
+  updateCustomSection(id: number, content: string): Promise<void>;
+  deleteCustomSection(id: number): Promise<void>;
+  reorderCustomSections(sections: Array<{id: number, position: number}>): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -321,6 +334,62 @@ export class DatabaseStorage implements IStorage {
         shareLastViewed: new Date()
       })
       .where(eq(cimDocuments.id, id));
+  }
+
+  async createCustomSection(section: {
+    cimDocumentId: number;
+    type: 'text' | 'image';
+    content?: string;
+    imageUrl?: string;
+    insertAfterSection: string;
+  }): Promise<any> {
+    // Get current max position for this section
+    const existingSections = await db.select()
+      .from(customSections)
+      .where(eq(customSections.cimDocumentId, section.cimDocumentId));
+    
+    const maxPosition = existingSections.length > 0 
+      ? Math.max(...existingSections.map(s => s.position)) 
+      : 0;
+
+    const [newSection] = await db.insert(customSections)
+      .values({
+        cimDocumentId: section.cimDocumentId,
+        type: section.type,
+        content: section.content,
+        imageUrl: section.imageUrl,
+        insertAfterSection: section.insertAfterSection,
+        position: maxPosition + 1
+      })
+      .returning();
+    
+    return newSection;
+  }
+
+  async getCustomSections(cimDocumentId: number): Promise<any[]> {
+    return await db.select()
+      .from(customSections)
+      .where(eq(customSections.cimDocumentId, cimDocumentId))
+      .orderBy(customSections.position);
+  }
+
+  async updateCustomSection(id: number, content: string): Promise<void> {
+    await db.update(customSections)
+      .set({ content })
+      .where(eq(customSections.id, id));
+  }
+
+  async deleteCustomSection(id: number): Promise<void> {
+    await db.delete(customSections)
+      .where(eq(customSections.id, id));
+  }
+
+  async reorderCustomSections(sections: Array<{id: number, position: number}>): Promise<void> {
+    for (const section of sections) {
+      await db.update(customSections)
+        .set({ position: section.position })
+        .where(eq(customSections.id, section.id));
+    }
   }
 }
 
