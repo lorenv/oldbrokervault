@@ -226,13 +226,14 @@ Focus especially on:
    - Emphasizes stability, profitability, and transferability aspects
 
 2. Full, detailed answers in a clear question-answer style:
-   - Format responses as if answering direct questions from an interested buyer
-   - Each field should contain COMPLETE answers with comprehensive details (minimum 3-4 sentences)
-   - Include specifics, numbers, percentages, dollar amounts, and concrete examples
-   - When listing items, provide 3-5 bullet points with explanations of 1-3 sentences each
-   - Use full sentences, professional business language, and industry-specific terminology
-   - For fields asking about processes (like ordering), provide detailed step-by-step explanations
-   - Include actual customer/client examples (anonymized) where helpful
+   - Format responses as if answering direct questions from an interested buyer with sophisticated business knowledge
+   - Each field should contain COMPREHENSIVE answers with extensive details (minimum 4-6 sentences per response)
+   - Include specific metrics, numbers, percentages, dollar amounts, timeframes, and concrete examples
+   - When listing items, provide 4-6 detailed bullet points with thorough explanations of 2-3 sentences each
+   - Use sophisticated business language, professional terminology, and industry-specific jargon appropriate for M&A transactions
+   - For operational processes, provide comprehensive step-by-step explanations with timing and dependencies
+   - Include detailed customer profiles, supplier relationships, and market positioning with supporting evidence
+   - Provide thorough financial context including revenue streams, cost structures, and profitability drivers
 
 3. Employee and contractor information should be comprehensive:
    - Provide a clear, detailed summary of all employees and contractors (at least 3-4 sentences)
