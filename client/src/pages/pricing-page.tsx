@@ -72,6 +72,12 @@ export default function PricingPage() {
           <p className="text-sm text-muted-foreground mt-2">
             Pricing data received: {JSON.stringify(pricing)}
           </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-4"
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -128,21 +134,37 @@ export default function PricingPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Select the perfect plan for your business needs. Upgrade or downgrade at any time.
         </p>
+        {/* Debug info for development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
+            <p>Debug - Pricing data: {JSON.stringify(pricing)}</p>
+          </div>
+        )}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {plans.map((plan) => (
-          <Card key={plan.name} className={`flex flex-col ${plan.current ? 'border-primary' : ''}`}>
-            <CardHeader>
-              <CardTitle>{plan.name}</CardTitle>
+          <Card key={plan.name} className={`relative ${plan.current ? 'ring-2 ring-primary' : ''}`}>
+            {plan.current && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                  Current Plan
+                </span>
+              </div>
+            )}
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">{plan.name}</CardTitle>
               <CardDescription>{plan.description}</CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">{plan.price}</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="text-3xl font-bold mb-6">{plan.price}<span className="text-sm text-muted-foreground">/month</span></div>
-              <ul className="space-y-2">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+            <CardContent>
+              <ul className="space-y-3">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
                     <span className="text-sm">{feature}</span>
                   </li>
                 ))}
@@ -150,13 +172,19 @@ export default function PricingPage() {
             </CardContent>
             <CardFooter>
               {plan.current ? (
-                <Button className="w-full" disabled>Current Plan</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => handleSubscriptionAction()}
+                >
+                  Current Plan
+                </Button>
               ) : (
                 <Button 
-                  className="w-full" 
+                  className="w-full"
                   onClick={() => handleSubscriptionAction(plan.planId)}
                 >
-                  {user?.subscriptionStatus !== "free" ? "Change Plan" : "Upgrade"}
+                  Upgrade
                 </Button>
               )}
             </CardFooter>
