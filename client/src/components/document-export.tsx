@@ -106,7 +106,7 @@ export function DocumentExport({
       if (response.ok) {
         const result = await response.json();
         if (result.shareSlug) {
-          setShareUrl(`https://cimgod.com/cims/${result.shareSlug}`);
+          setShareUrl(`${window.location.origin}/cims/${result.shareSlug}`);
         }
         toast({
           title: "Share settings updated",
