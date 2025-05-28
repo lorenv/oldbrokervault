@@ -77,6 +77,17 @@ export const cimDocuments = pgTable("cim_documents", {
   shareLastViewed: timestamp("share_last_viewed")
 });
 
+export const customSections = pgTable("custom_sections", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  type: text("type").notNull(), // 'text' or 'image'
+  content: text("content"), // Rich text content for text sections
+  imageUrl: text("image_url"), // Image URL for image sections
+  position: integer("position").notNull(), // Order position in the document
+  insertAfterSection: text("insert_after_section").notNull(), // Which section this appears after
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
