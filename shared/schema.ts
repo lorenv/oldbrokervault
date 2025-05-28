@@ -67,7 +67,14 @@ export const cimDocuments = pgTable("cim_documents", {
   websiteUrl: text("website_url"),
   websiteScreenshotUrl: text("website_screenshot_url"),
   selectedImages: text("selected_images").array(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Sharing functionality
+  shareEnabled: boolean("share_enabled").default(false).notNull(),
+  shareSlug: text("share_slug").unique(),
+  sharePassword: text("share_password"),
+  shareExpiresAt: timestamp("share_expires_at"),
+  shareViewCount: integer("share_view_count").default(0).notNull(),
+  shareLastViewed: timestamp("share_last_viewed")
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
