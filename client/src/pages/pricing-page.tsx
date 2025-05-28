@@ -17,11 +17,11 @@ export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch dynamic pricing from Stripe with proper error handling
+  // Fetch dynamic pricing from Stripe with proper error handling - force fresh data
   const { data: pricing, isLoading: pricingLoading, error: pricingError } = useQuery({
-    queryKey: ["/api/pricing"],
+    queryKey: ["/api/pricing", Date.now()], // Force unique query key to bypass cache
     staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache the result (updated syntax for TanStack Query v5)
+    gcTime: 0, // Don't cache the result
   });
 
   const handleSubscriptionAction = async (planId?: string) => {
