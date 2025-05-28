@@ -50,6 +50,18 @@ export function DocumentExport({
   const [isFetchingTemplates, setIsFetchingTemplates] = useState(false);
   const [beaverBuilderTemplates, setBeaverBuilderTemplates] = useState<Array<{id: number, title: string, type: string}>>([]);
   
+  // Share dialog state
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareSettings, setShareSettings] = useState({
+    shareEnabled: false,
+    shareSlug: '',
+    sharePassword: '',
+    shareExpiresAt: '',
+    customSlug: ''
+  });
+  const [shareUrl, setShareUrl] = useState('');
+  const [isUpdatingShare, setIsUpdatingShare] = useState(false);
+  
   // Use external dialog state if provided, otherwise use internal state
   const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
   const setIsWordPressDialogOpen = externalSetIsWordPressDialogOpen || internalSetIsWordPressDialogOpen;
@@ -64,6 +76,58 @@ export function DocumentExport({
 
   const handleWordPressFormChange = (field: string, value: string | boolean) => {
     setWordpressForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Share functionality handlers
+  const generateShareSlug = () => {
+    if (shareSettings.customSlug) {
+      return shareSettings.customSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    }
+    return `cim-${Date.now()}`;
+  };
+
+  const updateShareSettings = async () => {
+    if (!docId) return;
+    
+    setIsUpdatingShare(true);
+    try {
+      const slug = shareSettings.shareEnabled ? generateShareSlug() : null;
+      const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
+      
+      const response = await apiRequest('POST', `/api/cim/${docId}/share`, {
+        shareEnabled: shareSettings.shareEnabled,
+        shareSlug: slug,
+        sharePassword: shareSettings.sharePassword || null,
+        shareExpiresAt: expiresAt
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.shareSlug) {
+          setShareUrl(`https://cimgod.com/cims/${result.shareSlug}`);
+        }
+        toast({
+          title: "Share settings updated",
+          description: shareSettings.shareEnabled ? "Your CIM is now shareable!" : "Sharing has been disabled",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error updating share settings",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingShare(false);
+    }
+  };
+
+  const copyShareUrl = () => {
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Share link copied!",
+      description: "The link has been copied to your clipboard",
+    });
   };
   
   // Fetch Beaver Builder templates when credentials are available
@@ -419,11 +483,15 @@ export function DocumentExport({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
-              <FileText className="h-4 w-4 mr-2" />
-              Export
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+              <Link className="h-4 w-4 mr-2" />
+              Share Link
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={copyToClipboard}>
               <Copy className="h-4 w-4 mr-2" />
               Copy Plain Text
