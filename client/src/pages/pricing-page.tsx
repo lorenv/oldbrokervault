@@ -17,8 +17,8 @@ export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch dynamic pricing from Stripe
-  const { data: pricing, isLoading: pricingLoading } = useQuery({
+  // Fetch dynamic pricing from Stripe with proper error handling
+  const { data: pricing, isLoading: pricingLoading, error: pricingError } = useQuery({
     queryKey: ["/api/pricing"],
   });
 
@@ -57,6 +57,26 @@ export default function PricingPage() {
     );
   }
 
+  // Show error state if pricing fetch failed
+  if (pricingError || !pricing) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Pricing Unavailable</h1>
+          <p className="text-red-500 mb-4">
+            Unable to load current pricing from Stripe.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Error: {pricingError?.message || "Failed to fetch pricing data"}
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Pricing data received: {JSON.stringify(pricing)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const plans = [
     {
       name: "Free",
@@ -72,7 +92,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard", 
-      price: pricing?.standard ? `$${pricing.standard.amount}` : "Loading...",
+      price: `$${pricing.standard?.amount || 'Error'}`,
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -86,7 +106,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: pricing?.premium ? `$${pricing.premium.amount}` : "Loading...",
+      price: `$${pricing.premium?.amount || 'Error'}`,
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
