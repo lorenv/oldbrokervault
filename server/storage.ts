@@ -181,6 +181,20 @@ export class DatabaseStorage implements IStorage {
     return updatedDoc;
   }
 
+  async updateCimDocumentContent(id: number, editedContent: any): Promise<CimDocument> {
+    const [updated] = await db
+      .update(cimDocuments)
+      .set({ editedContent })
+      .where(eq(cimDocuments.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Document not found");
+    }
+    
+    return updated;
+  }
+
   async updateGoogleTokens(userId: number, tokens: { 
     accessToken: string;
     refreshToken?: string | null;

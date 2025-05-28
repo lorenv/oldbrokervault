@@ -420,6 +420,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update CIM document content (for inline editing)
+  app.put("/api/cim/:id/content", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const docId = parseInt(req.params.id);
+    const { editedContent } = req.body;
+    
+    const doc = await storage.getCimDocument(docId);
+    if (!doc || doc.userId !== req.user!.id) {
+      return res.sendStatus(404);
+    }
+
+    try {
+      const updatedDoc = await storage.updateCimDocumentContent(docId, editedContent);
+      res.json(updatedDoc);
+    } catch (error) {
+      console.error("Error updating CIM content:", error);
+      res.status(500).json({ error: "Failed to update content" });
+    }
+  });
+
   // Website images extraction endpoint
   app.get("/api/website-images/:websiteUrl", async (req, res) => {
     try {
