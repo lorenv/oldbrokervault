@@ -102,7 +102,20 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
     console.log("Session URL:", session.url);
     return session;
   } catch (error) {
-    console.error("Error creating Stripe checkout session:", error);
+    console.error("=== STRIPE CHECKOUT SESSION ERROR ===");
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error code:", (error as any)?.code);
+    console.error("Error type from Stripe:", (error as any)?.type);
+    console.error("Error param:", (error as any)?.param);
+    console.error("Full error object:", error);
+    console.error("Configuration used:", {
+      mode: 'subscription',
+      customer: customerId,
+      priceId,
+      baseUrl,
+      userId
+    });
     throw error;
   }
 }
