@@ -19,6 +19,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
+  updateCimDocumentContent(id: number, editedContent: any): Promise<CimDocument>;
   deleteCimDocument(id: number): Promise<void>;
   updateGoogleTokens(userId: number, tokens: { 
     accessToken: string;
