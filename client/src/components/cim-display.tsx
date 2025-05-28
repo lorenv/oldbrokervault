@@ -57,6 +57,39 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     return customSections.filter((section: any) => section.insertAfterSection === sectionName);
   };
 
+  // Helper function to render a section with insertable zones
+  const renderSectionWithInsertables = (sectionName: string, sectionContent: JSX.Element) => {
+    const sectionsAfter = getCustomSectionsAfter(sectionName);
+    
+    return (
+      <>
+        {sectionContent}
+        
+        {/* Show custom sections that come after this section */}
+        {sectionsAfter.map((section: any) => (
+          <CustomSection
+            key={section.id}
+            id={section.id}
+            type={section.type}
+            content={section.content}
+            imageUrl={section.imageUrl}
+            onDelete={handleSectionDelete}
+            onUpdate={handleSectionUpdate}
+          />
+        ))}
+        
+        {/* Show insertable zone if user is authenticated */}
+        {user && (
+          <InsertableSection
+            afterSection={sectionName}
+            docId={docId}
+            onSectionAdded={handleSectionAdded}
+          />
+        )}
+      </>
+    );
+  };
+
   // Deep merge function to combine original analysis with edited content
   const getMergedContent = () => {
     const mergeDeep = (target: any, source: any): any => {
@@ -208,44 +241,50 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       />
 
       {/* Business Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Business Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {renderField("Business Summary", "story.businessSummary", true, false, "Comprehensive business overview...")}
-          {renderField("Key Attractions", "story.keyAttractions", false, true, "What makes this business attractive to buyers")}
-          {renderField("Reason for Sale", "story.saleReason", true, false, "Why is the business being sold?")}
-        </CardContent>
-      </Card>
+      {renderSectionWithInsertables("business-summary", 
+        <Card>
+          <CardHeader>
+            <CardTitle>Business Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {renderField("Business Summary", "story.businessSummary", true, false, "Comprehensive business overview...")}
+            {renderField("Key Attractions", "story.keyAttractions", false, true, "What makes this business attractive to buyers")}
+            {renderField("Reason for Sale", "story.saleReason", true, false, "Why is the business being sold?")}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Business Story */}
-      <Card>
-        <CardHeader>
-          <CardTitle>The Business Story</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {renderField("Year Started", "story.yearStarted", false, false, "When was the business founded?")}
-          {renderField("Business Idea", "story.businessIdea", true, false, "How did the business idea come about?")}
-          {renderField("Business Model", "story.businessModel", true, false, "How does the business operate and make money?")}
-          {renderField("Order Process", "story.orderProcess", true, false, "Step-by-step process from order to completion")}
-          {renderField("Growth History", "story.growthHistory", true, false, "How has the business grown over time?")}
-          {renderField("Business Structure", "story.businessStructure", true, false, "Legal structure and organization")}
-        </CardContent>
-      </Card>
+      {renderSectionWithInsertables("business-story",
+        <Card>
+          <CardHeader>
+            <CardTitle>The Business Story</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {renderField("Year Started", "story.yearStarted", false, false, "When was the business founded?")}
+            {renderField("Business Idea", "story.businessIdea", true, false, "How did the business idea come about?")}
+            {renderField("Business Model", "story.businessModel", true, false, "How does the business operate and make money?")}
+            {renderField("Order Process", "story.orderProcess", true, false, "Step-by-step process from order to completion")}
+            {renderField("Growth History", "story.growthHistory", true, false, "How has the business grown over time?")}
+            {renderField("Business Structure", "story.businessStructure", true, false, "Legal structure and organization")}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Market Analysis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Market Position</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {renderField("Unique Features", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
-          {renderField("Customer Profile", "marketAnalysis.customerProfile", true, false, "Describe the typical customer")}
-          {renderField("Competitors", "marketAnalysis.competitors", false, true, "Key competitors in the market")}
-          {renderField("Competitive Strengths", "marketAnalysis.strengths", false, true, "Advantages over competitors")}
-        </CardContent>
-      </Card>
+      {renderSectionWithInsertables("market-analysis",
+        <Card>
+          <CardHeader>
+            <CardTitle>Market Position</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {renderField("Unique Features", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
+            {renderField("Customer Profile", "marketAnalysis.customerProfile", true, false, "Describe the typical customer")}
+            {renderField("Competitors", "marketAnalysis.competitors", false, true, "Key competitors in the market")}
+            {renderField("Competitive Strengths", "marketAnalysis.strengths", false, true, "Advantages over competitors")}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Operations */}
       <Card>
