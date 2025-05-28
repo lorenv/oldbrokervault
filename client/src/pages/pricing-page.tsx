@@ -67,7 +67,14 @@ export default function PricingPage() {
       } else if (planId) {
         // For new subscriptions, create a checkout session with the plan
         console.log("Creating checkout session for plan:", planId);
-        const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan: planId });
+        // Use the fresh pricing data we fetched to ensure correct price ID
+        const checkoutPayload = { 
+          plan: planId,
+          priceId: planId === 'premium' ? pricing?.premium?.priceId : pricing?.standard?.priceId
+        };
+        console.log("Sending checkout payload with fresh price ID:", checkoutPayload);
+        
+        const response = await apiRequest("POST", "/api/subscription/create-checkout", checkoutPayload);
         
         if (!response.ok) {
           const errorData = await response.json();

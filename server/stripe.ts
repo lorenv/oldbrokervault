@@ -72,7 +72,7 @@ async function getOrCreateCustomer(userId: number, email: string) {
   return customer.id;
 }
 
-export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string) {
+export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string, freshPriceId?: string) {
   console.log("=== ENVIRONMENT PRICE IDS ===");
   console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
   console.log("STRIPE_PRICE_ID_PREMIUM:", process.env.STRIPE_PRICE_ID_PREMIUM);
