@@ -134,12 +134,14 @@ export default function PricingPage() {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Select the perfect plan for your business needs. Upgrade or downgrade at any time.
         </p>
-        {/* Debug info for development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
-            <p>Debug - Pricing data: {JSON.stringify(pricing)}</p>
-          </div>
-        )}
+        {/* Debug info - always show for now */}
+        <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
+          <p>Debug - Pricing data: {JSON.stringify(pricing)}</p>
+          <p>Standard amount: {pricing?.standard?.amount}</p>
+          <p>Premium amount: {pricing?.premium?.amount}</p>
+          <p>Type of pricing: {typeof pricing}</p>
+          <p>Keys in pricing: {pricing ? Object.keys(pricing).join(', ') : 'none'}</p>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
