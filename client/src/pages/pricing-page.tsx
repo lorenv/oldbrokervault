@@ -20,26 +20,47 @@ export default function PricingPage() {
   // Fetch dynamic pricing from Stripe with proper error handling
   const { data: pricing, isLoading: pricingLoading, error: pricingError } = useQuery({
     queryKey: ["/api/pricing"],
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache the result (updated syntax for TanStack Query v5)
   });
 
   const handleSubscriptionAction = async (planId?: string) => {
     try {
+      console.log("=== CHECKOUT ACTION START ===");
+      console.log("Plan ID:", planId);
+      console.log("User subscription status:", user?.subscriptionStatus);
+      console.log("Current pricing data:", pricing);
+      
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
+        console.log("Creating portal session for existing subscriber");
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         window.location.href = url;
       } else if (planId) {
         // For new subscriptions, create a checkout session with the plan
+        console.log("Creating checkout session for plan:", planId);
         const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan: planId });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("=== CHECKOUT ERROR DETAILS ===");
+          console.error("Status:", response.status);
+          console.error("Error data:", errorData);
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        
         const { url } = await response.json();
+        console.log("Checkout session created successfully, redirecting to:", url);
         window.location.href = url;
       }
     } catch (error) {
-      console.error("Subscription action error:", error);
+      console.error("=== SUBSCRIPTION ACTION ERROR ===");
+      console.error("Full error:", error);
+      console.error("Error message:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to process subscription request. Please try again.",
+        title: "Checkout Error",
+        description: error.message || "Failed to process subscription request. Please try again.",
         variant: "destructive",
       });
     }
