@@ -7,7 +7,7 @@ import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extract
 import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession } from "./stripe";
+import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';

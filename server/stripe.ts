@@ -5,7 +5,7 @@ import { storage } from "./storage";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Function to get dynamic pricing from Stripe
-async function getPricing() {
+export async function getPricing() {
   console.log("=== RETRIEVING PRICES FROM STRIPE ===");
   console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
   console.log("Premium Price ID:", process.env.STRIPE_PRICE_ID_PREMIUM);
