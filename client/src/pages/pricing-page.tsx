@@ -72,7 +72,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard", 
-      price: pricing?.standard ? `$${(pricing.standard.amount / 100).toFixed(2)}` : "Loading...",
+      price: pricing?.standard ? `$${pricing.standard.amount}` : "Loading...",
       description: "Professional CIM creation",
       features: [
         "Generate up to 10 CIMs per month",
@@ -86,7 +86,7 @@ export default function PricingPage() {
     },
     {
       name: "Premium",
-      price: pricing?.premium ? `$${(pricing.premium.amount / 100).toFixed(2)}` : "Loading...",
+      price: pricing?.premium ? `$${pricing.premium.amount}` : "Loading...",
       description: "Enterprise-grade solution",
       features: [
         "Unlimited CIM generation",
