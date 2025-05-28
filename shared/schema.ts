@@ -62,6 +62,7 @@ export const cimDocuments = pgTable("cim_documents", {
   directions: text("directions").notNull(),
   regenerationCount: integer("regeneration_count").default(0).notNull(),
   analysis: jsonb("analysis").notNull(),
+  editedContent: jsonb("edited_content"),
   logoUrl: text("logo_url"),
   websiteUrl: text("website_url"),
   websiteScreenshotUrl: text("website_screenshot_url"),
