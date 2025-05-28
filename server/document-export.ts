@@ -1845,7 +1845,6 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             const xPosition = margins + (availableWidth - logoWidth) / 2;
             
             doc.image(logoPath, xPosition, doc.y, {
-              fit: [logoWidth, 120],
               align: 'center'
             });
             doc.moveDown(2);

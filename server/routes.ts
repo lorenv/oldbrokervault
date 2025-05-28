@@ -18,6 +18,10 @@ import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates 
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 import sharp from 'sharp';
 
+// Setup upload directory
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 

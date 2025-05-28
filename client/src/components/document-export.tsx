@@ -325,6 +325,7 @@ export function DocumentExport({
   };
 
   const downloadWord = async () => {
+    setIsWordLoading(true);
     try {
       const response = await fetch(`/api/cim/export/word/${docId}`, {
         method: 'POST',
@@ -344,16 +345,24 @@ export function DocumentExport({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Word Document Downloaded",
+        description: "Your CIM has been exported as a Word document",
+      });
     } catch (error) {
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to export to Word",
         variant: "destructive"
       });
+    } finally {
+      setIsWordLoading(false);
     }
   };
 
   const downloadPdf = async () => {
+    setIsPdfLoading(true);
     try {
       const response = await fetch(`/api/cim/export/pdf/${docId}`, {
         method: 'POST',
@@ -373,12 +382,19 @@ export function DocumentExport({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Your CIM has been exported as a PDF",
+      });
     } catch (error) {
       toast({
         title: "Export Failed",
         description: error instanceof Error ? error.message : "Failed to export to PDF",
         variant: "destructive"
       });
+    } finally {
+      setIsPdfLoading(false);
     }
   };
 
@@ -504,13 +520,21 @@ export function DocumentExport({
             </DropdownMenuItem>
             {canAccessPremiumFeatures && (
               <>
-                <DropdownMenuItem onClick={downloadWord}>
-                  <File className="h-4 w-4 mr-2 text-blue-600" />
-                  Export to Word
+                <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
+                  {isWordLoading ? (
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                  ) : (
+                    <File className="h-4 w-4 mr-2 text-blue-600" />
+                  )}
+                  {isWordLoading ? "Generating Word..." : "Export to Word"}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={downloadPdf}>
-                  <FileDown className="h-4 w-4 mr-2 text-red-600" />
-                  Export to PDF
+                <DropdownMenuItem onClick={downloadPdf} disabled={isPdfLoading}>
+                  {isPdfLoading ? (
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                  ) : (
+                    <FileDown className="h-4 w-4 mr-2 text-red-600" />
+                  )}
+                  {isPdfLoading ? "Generating PDF..." : "Export to PDF"}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={exportToGoogleDocs}>
                   <Globe className="h-4 w-4 mr-2 text-blue-500" />
