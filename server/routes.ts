@@ -1245,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
           
           <div class="container">
-            ${generateHtml(analysis, docOwner?.businessLogo, null, null, docOwner)}
+            ${generateHtml(analysis, docOwner?.businessLogo, docOwner)}
             
             ${docOwner ? `
             <div class="contact-footer">
