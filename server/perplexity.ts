@@ -138,36 +138,34 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 
   const data = await response.json();
-  
-  // Extract the content and parse it as JSON
-  const contentStr = data.choices[0].message.content;
-  
-  // Handle different response formats from Perplexity
-  let jsonStr = contentStr;
-  
-  // If response is wrapped in markdown code blocks, extract the JSON
-  if (contentStr.includes('```json')) {
-    const jsonMatch = contentStr.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
-    }
-  } else if (contentStr.includes('```')) {
-    const jsonMatch = contentStr.match(/```\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
-    }
-  } else {
-    // Try to find JSON object in the response
-    const matches = contentStr.match(/\{[\s\S]*\}/);
-    if (matches) {
-      jsonStr = matches[0];
-    }
-  }
-
-  // Clean up the JSON string before parsing
-  let cleanJsonStr = jsonStr.trim();
-  
   try {
+    // Extract the content and parse it as JSON
+    const contentStr = data.choices[0].message.content;
+    
+    // Handle different response formats from Perplexity
+    let jsonStr = contentStr;
+    
+    // If response is wrapped in markdown code blocks, extract the JSON
+    if (contentStr.includes('```json')) {
+      const jsonMatch = contentStr.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+    } else if (contentStr.includes('```')) {
+      const jsonMatch = contentStr.match(/```\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+    } else {
+      // Try to find JSON object in the response
+      const matches = contentStr.match(/\{[\s\S]*\}/);
+      if (matches) {
+        jsonStr = matches[0];
+      }
+    }
+
+    // Clean up the JSON string before parsing
+    let cleanJsonStr = jsonStr.trim();
     
     // Handle incomplete JSON responses by finding the last complete object
     let openBraces = 0;
@@ -189,36 +187,17 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       cleanJsonStr = cleanJsonStr.substring(0, lastValidIndex + 1);
     }
     
-    // Add additional cleaning for common issues
-    cleanJsonStr = cleanJsonStr
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&');
-
-    console.log("Attempting to parse JSON (first 200 chars):", cleanJsonStr.substring(0, 200));
-    
     const analysis = JSON.parse(cleanJsonStr);
 
     // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
-      console.error("Missing required fields. Available fields:", Object.keys(analysis));
-      throw new Error("Invalid response format from Perplexity API - missing required sections");
+      throw new Error("Invalid response format from Perplexity API");
     }
 
     return analysis;
-  } catch (error: any) {
-    console.error("JSON parsing failed. Error:", error.message);
-    console.error("Raw response content:", contentStr.substring(0, 500));
-    console.error("Cleaned JSON string:", cleanJsonStr.substring(0, 500));
-    
-    // If JSON parsing fails, provide a more helpful error message
-    if (error.message.includes("Unexpected token")) {
-      throw new Error("The AI response contains invalid JSON format. Please try generating again.");
-    } else {
-      throw new Error(`Failed to parse analysis response: ${error.message}`);
-    }
+  } catch (error) {
+    console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
+    throw new Error("Failed to parse CIM analysis response");
   }
 }
 
