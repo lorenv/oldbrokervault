@@ -1085,15 +1085,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Share settings endpoint
   app.post("/api/cim/:id/share", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log("Share endpoint: User not authenticated");
+      return res.sendStatus(401);
+    }
 
     try {
       const docId = parseInt(req.params.id);
       const { shareEnabled, shareSlug, sharePassword, shareExpiresAt } = req.body;
+      
+      console.log("Share settings update:", { docId, shareEnabled, shareSlug, userId: req.user!.id });
 
       const doc = await storage.getCimDocument(docId);
-      if (!doc || doc.userId !== req.user!.id) {
+      if (!doc) {
+        console.log("Document not found:", docId);
         return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id) {
+        console.log("Document access denied:", { docUserId: doc.userId, requestUserId: req.user!.id });
+        return res.status(403).json({ error: "Access denied" });
       }
 
       const updatedDoc = await storage.updateCimShareSettings(docId, {
@@ -1103,14 +1114,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareExpiresAt
       });
 
+      console.log("Share settings updated successfully:", updatedDoc.shareSlug);
+
       res.json({
         shareEnabled: updatedDoc.shareEnabled,
         shareSlug: updatedDoc.shareSlug,
         viewCount: updatedDoc.shareViewCount
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating share settings:", error);
-      res.status(500).json({ error: "Failed to update share settings" });
+      res.status(500).json({ error: `Failed to update share settings: ${error.message}` });
     }
   });
 
@@ -1118,14 +1131,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/cims/:slug", async (req, res) => {
     try {
       const slug = req.params.slug;
-      const doc = await storage.getCimByShareSlug(slug);
+      console.log("Public share request for slug:", slug);
       
-      if (!doc || !doc.shareEnabled) {
-        return res.status(404).send("CIM not found or sharing is disabled");
+      const doc = await storage.getCimByShareSlug(slug);
+      console.log("Document found:", !!doc, doc?.shareEnabled);
+      
+      if (!doc) {
+        console.log("No document found for slug:", slug);
+        return res.status(404).send("CIM not found");
+      }
+      
+      if (!doc.shareEnabled) {
+        console.log("Sharing disabled for document:", doc.id);
+        return res.status(404).send("Sharing is disabled for this CIM");
       }
 
       // Check expiration
       if (doc.shareExpiresAt && new Date() > doc.shareExpiresAt) {
+        console.log("Document expired:", doc.shareExpiresAt);
         return res.status(410).send("This shared link has expired");
       }
 
