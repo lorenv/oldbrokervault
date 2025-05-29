@@ -1193,6 +1193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
       }
 
+      // Get the document owner's info
+      const docOwner = await storage.getUser(doc.userId);
+      
       // Generate the shared CIM page
       const analysis = doc.editedContent || doc.analysis;
       const businessName = analysis.story?.businessSummary || doc.title;
@@ -1221,13 +1224,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .highlight { background: #dbeafe; padding: 15px; border-radius: 6px; margin: 15px 0; }
             ul { padding-left: 20px; }
             li { margin-bottom: 8px; }
-            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; }
+            .contact-footer { margin-top: 60px; padding-top: 20px; border-top: 2px solid #e5e7eb; }
+            .contact-info { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+            .contact-photo { width: 60px; height: 60px; border-radius: 30px; object-fit: cover; }
+            .contact-details h3 { margin: 0; font-size: 18px; color: #1f2937; }
+            .contact-details p { margin: 2px 0; color: #6b7280; font-size: 14px; }
+            .business-logo { width: 60px; height: 60px; border-radius: 30px; object-fit: contain; margin-left: auto; }
+            .footer { margin-top: 20px; text-align: center; color: #6b7280; font-size: 12px; }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="header-content">
-              ${user?.businessLogo ? `<img src="${user.businessLogo}" alt="${businessName}" class="logo">` : ''}
+              ${docOwner?.businessLogo ? `<img src="${docOwner.businessLogo}" alt="${businessName}" class="logo">` : ''}
               <div class="header-text">
                 <h1>${businessName}</h1>
                 <p>Confidential Information Memorandum</p>
@@ -1236,7 +1245,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
           
           <div class="container">
-            ${generateHtml(analysis)}
+            ${generateHtml(analysis, docOwner?.businessLogo, null, null, docOwner)}
+            
+            ${docOwner ? `
+            <div class="contact-footer">
+              <div class="contact-info">
+                ${docOwner.profilePhoto ? `<img src="${docOwner.profilePhoto}" alt="Profile" class="contact-photo">` : ''}
+                <div class="contact-details">
+                  <h3>${docOwner.name || docOwner.email}</h3>
+                  ${docOwner.title ? `<p>${docOwner.title}</p>` : ''}
+                  ${docOwner.businessName ? `<p><strong>${docOwner.businessName}</strong></p>` : ''}
+                  ${docOwner.phoneNumber ? `<p>${docOwner.phoneNumber}</p>` : ''}
+                  <p>${docOwner.email}</p>
+                </div>
+                ${docOwner.businessLogo ? `<img src="${docOwner.businessLogo}" alt="Business Logo" class="business-logo">` : ''}
+              </div>
+            </div>
+            ` : ''}
           </div>
           
           <div class="footer">

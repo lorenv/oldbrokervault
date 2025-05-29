@@ -503,6 +503,38 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </CardContent>
       </Card>
 
+      {/* Contact Information Footer */}
+      {user && (
+        <Card className="mt-8 border-t-2">
+          <CardContent className="pt-6">
+            <hr className="mb-6 border-gray-300" />
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {user.profilePhoto && (
+                <img 
+                  src={user.profilePhoto} 
+                  alt="Profile" 
+                  className="w-16 h-16 object-cover rounded-[30px]"
+                />
+              )}
+              <div className="text-center md:text-left">
+                <h3 className="text-lg font-semibold">{user.name || user.email}</h3>
+                {user.title && <p className="text-sm text-gray-600">{user.title}</p>}
+                {user.businessName && <p className="text-sm font-medium">{user.businessName}</p>}
+                {user.phoneNumber && <p className="text-sm text-gray-600">{user.phoneNumber}</p>}
+                <p className="text-sm text-gray-600">{user.email}</p>
+              </div>
+              {user.businessLogo && (
+                <img 
+                  src={user.businessLogo} 
+                  alt="Business Logo" 
+                  className="w-16 h-16 object-contain rounded-[30px] ml-auto"
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Image Modal */}
       <Dialog open={!!selectedImageModal} onOpenChange={() => setSelectedImageModal(null)}>
         <DialogContent className="max-w-4xl">
