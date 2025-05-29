@@ -972,13 +972,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user profile for contact footer
       const profileUser = await storage.getUser(req.user!.id);
       const userProfile = {
-        name: user?.name,
-        title: user?.title,
-        phoneNumber: user?.phoneNumber,
-        email: user?.email,
-        businessName: user?.businessName,
-        businessLogo: user?.businessLogo,
-        profilePhoto: user?.profilePhoto
+        name: profileUser?.name,
+        title: profileUser?.title,
+        phoneNumber: profileUser?.phoneNumber,
+        email: profileUser?.email,
+        businessName: profileUser?.businessName,
+        businessLogo: profileUser?.businessLogo,
+        profilePhoto: profileUser?.profilePhoto
       };
       
       // Include logo URL and user profile
