@@ -59,7 +59,16 @@ export function InlineEditor({
   };
 
   const displayValue = isArray && Array.isArray(value) 
-    ? value.join(', ') 
+    ? value.map(item => {
+        if (typeof item === 'object' && item !== null) {
+          // Handle key employees or other object arrays properly
+          if (item.role && item.name) return `${item.name} (${item.role})`;
+          if (item.role) return item.role;
+          if (item.name) return item.name;
+          return Object.values(item).filter(v => v).join(' - ');
+        }
+        return String(item);
+      }).join(', ')
     : typeof value === 'string' ? value : String(value);
 
   if (isEditing) {

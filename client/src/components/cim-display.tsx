@@ -310,7 +310,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 />
               )}
               <div>
-                <CardTitle className="text-2xl">{mergedAnalysis.title || "Confidential Information Memorandum"}</CardTitle>
+                <CardTitle className="text-2xl text-blue-600">
+                  {mergedAnalysis.story?.businessSummary?.split('.')[0] || mergedAnalysis.title || "Business Overview"}
+                </CardTitle>
+                <p className="text-gray-600 mt-1">Confidential Information Memorandum</p>
               </div>
             </div>
             {user && (
