@@ -1132,6 +1132,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment view count
       await storage.incrementShareViewCount(doc.id);
 
+      // Return the shared CIM data
+      res.json({
+        analysis: doc.analysis,
+        title: doc.title,
+        logoUrl: doc.logoUrl,
+        selectedImages: doc.selectedImages,
+        isShared: true
+      });
+    } catch (error) {
+      console.error("Error serving shared CIM:", error);
+      res.status(500).send("Error loading shared CIM");
+    }
+  });
+
       // Get user profile for branding
       const user = await storage.getUser(doc.userId);
       

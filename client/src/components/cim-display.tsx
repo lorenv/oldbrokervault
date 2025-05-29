@@ -297,15 +297,35 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Export Options */}
-      <DocumentExport 
-        analysis={mergedAnalysis}
-        docId={docId}
-        websiteUrl={websiteUrl}
-        logoUrl={logoUrl}
-        selectedImages={selectedImages}
-        user={user}
-      />
+      {/* Header with Title and Logo */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {logoUrl && (
+                <img 
+                  src={logoUrl} 
+                  alt="Company Logo" 
+                  className="h-16 w-16 object-contain rounded-[30px]"
+                />
+              )}
+              <div>
+                <CardTitle className="text-2xl">{mergedAnalysis.title || "Confidential Information Memorandum"}</CardTitle>
+              </div>
+            </div>
+            {user && (
+              <DocumentExport 
+                analysis={mergedAnalysis}
+                docId={docId}
+                websiteUrl={websiteUrl}
+                logoUrl={logoUrl}
+                selectedImages={selectedImages}
+                user={user}
+              />
+            )}
+          </div>
+        </CardHeader>
+      </Card>
 
       {/* Business Summary */}
       {renderSectionWithInsertables("business-summary", 
