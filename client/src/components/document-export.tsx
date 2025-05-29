@@ -85,7 +85,9 @@ export function DocumentExport({
     if (shareSettings.customSlug) {
       return shareSettings.customSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     }
-    return `cim-${Date.now()}`;
+    // Generate random slug immediately
+    const randomId = Math.random().toString(36).substring(2, 8);
+    return `cim-${randomId}`;
   };
 
   const updateShareSettings = async () => {
