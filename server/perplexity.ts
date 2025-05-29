@@ -138,34 +138,36 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 
   const data = await response.json();
-  try {
-    // Extract the content and parse it as JSON
-    const contentStr = data.choices[0].message.content;
-    
-    // Handle different response formats from Perplexity
-    let jsonStr = contentStr;
-    
-    // If response is wrapped in markdown code blocks, extract the JSON
-    if (contentStr.includes('```json')) {
-      const jsonMatch = contentStr.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1];
-      }
-    } else if (contentStr.includes('```')) {
-      const jsonMatch = contentStr.match(/```\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1];
-      }
-    } else {
-      // Try to find JSON object in the response
-      const matches = contentStr.match(/\{[\s\S]*\}/);
-      if (matches) {
-        jsonStr = matches[0];
-      }
+  
+  // Extract the content and parse it as JSON
+  const contentStr = data.choices[0].message.content;
+  
+  // Handle different response formats from Perplexity
+  let jsonStr = contentStr;
+  
+  // If response is wrapped in markdown code blocks, extract the JSON
+  if (contentStr.includes('```json')) {
+    const jsonMatch = contentStr.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
     }
+  } else if (contentStr.includes('```')) {
+    const jsonMatch = contentStr.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+  } else {
+    // Try to find JSON object in the response
+    const matches = contentStr.match(/\{[\s\S]*\}/);
+    if (matches) {
+      jsonStr = matches[0];
+    }
+  }
 
-    // Clean up the JSON string before parsing
-    let cleanJsonStr = jsonStr.trim();
+  // Clean up the JSON string before parsing
+  let cleanJsonStr = jsonStr.trim();
+  
+  try {
     
     // Handle incomplete JSON responses by finding the last complete object
     let openBraces = 0;
@@ -206,9 +208,9 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     }
 
     return analysis;
-  } catch (error) {
+  } catch (error: any) {
     console.error("JSON parsing failed. Error:", error.message);
-    console.error("Raw response content:", data.choices[0].message.content.substring(0, 500));
+    console.error("Raw response content:", contentStr.substring(0, 500));
     console.error("Cleaned JSON string:", cleanJsonStr.substring(0, 500));
     
     // If JSON parsing fails, provide a more helpful error message
