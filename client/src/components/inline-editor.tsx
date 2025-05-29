@@ -33,16 +33,7 @@ export function InlineEditor({
   useEffect(() => {
     if (isEditing) {
       if (isArray && Array.isArray(value)) {
-        const arrayValues = value.map(item => {
-          if (typeof item === 'object' && item !== null) {
-            // Handle key employees or other object arrays properly
-            if (item.role) return item.role;
-            if (item.name) return item.name;
-            return Object.values(item).filter(v => v).join(' - ');
-          }
-          return String(item);
-        });
-        setEditValue(arrayValues.join('\n'));
+        setEditValue(value.join('\n'));
       } else {
         setEditValue(typeof value === 'string' ? value : String(value));
       }
@@ -59,16 +50,7 @@ export function InlineEditor({
   };
 
   const displayValue = isArray && Array.isArray(value) 
-    ? value.map(item => {
-        if (typeof item === 'object' && item !== null) {
-          // Handle key employees or other object arrays properly
-          if (item.role && item.name) return `${item.name} (${item.role})`;
-          if (item.role) return item.role;
-          if (item.name) return item.name;
-          return Object.values(item).filter(v => v).join(' - ');
-        }
-        return String(item);
-      }).join(', ')
+    ? value.join(', ') 
     : typeof value === 'string' ? value : String(value);
 
   if (isEditing) {
