@@ -187,17 +187,36 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       cleanJsonStr = cleanJsonStr.substring(0, lastValidIndex + 1);
     }
     
+    // Add additional cleaning for common issues
+    cleanJsonStr = cleanJsonStr
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+
+    console.log("Attempting to parse JSON (first 200 chars):", cleanJsonStr.substring(0, 200));
+    
     const analysis = JSON.parse(cleanJsonStr);
 
     // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
-      throw new Error("Invalid response format from Perplexity API");
+      console.error("Missing required fields. Available fields:", Object.keys(analysis));
+      throw new Error("Invalid response format from Perplexity API - missing required sections");
     }
 
     return analysis;
   } catch (error) {
-    console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
-    throw new Error("Failed to parse CIM analysis response");
+    console.error("JSON parsing failed. Error:", error.message);
+    console.error("Raw response content:", data.choices[0].message.content.substring(0, 500));
+    console.error("Cleaned JSON string:", cleanJsonStr.substring(0, 500));
+    
+    // If JSON parsing fails, provide a more helpful error message
+    if (error.message.includes("Unexpected token")) {
+      throw new Error("The AI response contains invalid JSON format. Please try generating again.");
+    } else {
+      throw new Error(`Failed to parse analysis response: ${error.message}`);
+    }
   }
 }
 
