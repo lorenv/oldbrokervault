@@ -95,7 +95,7 @@ export function DocumentExport({
     
     setIsUpdatingShare(true);
     try {
-      const slug = shareSettings.shareEnabled ? generateShareSlug() : null;
+      const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
       const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
       
       const response = await apiRequest('POST', `/api/cim/${docId}/share`, {
@@ -755,14 +755,14 @@ export function DocumentExport({
                 id="share-enabled"
                 checked={shareSettings.shareEnabled}
                 onCheckedChange={(checked) => {
-                  const newSettings = { ...shareSettings, shareEnabled: checked };
+                  setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
                   if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
                     // Generate random slug immediately when enabling share
                     const randomId = Math.random().toString(36).substring(2, 8);
-                    newSettings.shareSlug = `cim-${randomId}`;
-                    setShareUrl(`${window.location.origin}/cims/cim-${randomId}`);
+                    const newSlug = `cim-${randomId}`;
+                    setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
+                    setShareUrl(`${window.location.origin}/cims/${newSlug}`);
                   }
-                  setShareSettings(newSettings);
                 }}
               />
             </div>
