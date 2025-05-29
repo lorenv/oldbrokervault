@@ -355,14 +355,17 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardTitle>Business Images</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {selectedImages.map((imageUrl, index) => (
-                <div key={index} className="flex justify-center">
+                <div 
+                  key={index} 
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setSelectedImageModal(imageUrl)}
+                >
                   <img 
                     src={imageUrl} 
                     alt={`Business image ${index + 1}`} 
-                    className="max-w-full h-auto shadow-md"
-                    style={{ borderRadius: '30px' }}
+                    className="w-full h-32 object-cover rounded-[30px] shadow-md"
                   />
                 </div>
               ))}
@@ -499,6 +502,32 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           {renderField("Intellectual Property", "ownership.intellectualProperty", false, true, "Trademarks, patents, copyrights")}
         </CardContent>
       </Card>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImageModal} onOpenChange={() => setSelectedImageModal(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Business Image</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-4 top-4"
+              onClick={() => setSelectedImageModal(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+          {selectedImageModal && (
+            <div className="flex justify-center">
+              <img 
+                src={selectedImageModal} 
+                alt="Business image enlarged"
+                className="max-w-full max-h-[70vh] object-contain rounded-[30px]"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
