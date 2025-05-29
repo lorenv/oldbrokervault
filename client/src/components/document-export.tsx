@@ -754,9 +754,16 @@ export function DocumentExport({
               <Switch
                 id="share-enabled"
                 checked={shareSettings.shareEnabled}
-                onCheckedChange={(checked) => 
-                  setShareSettings(prev => ({ ...prev, shareEnabled: checked }))
-                }
+                onCheckedChange={(checked) => {
+                  const newSettings = { ...shareSettings, shareEnabled: checked };
+                  if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
+                    // Generate random slug immediately when enabling share
+                    const randomId = Math.random().toString(36).substring(2, 8);
+                    newSettings.shareSlug = `cim-${randomId}`;
+                    setShareUrl(`${window.location.origin}/cims/cim-${randomId}`);
+                  }
+                  setShareSettings(newSettings);
+                }}
               />
             </div>
             
