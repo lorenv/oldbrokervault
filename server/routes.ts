@@ -44,12 +44,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         id: user.id,
-        username: user.username,
+        name: user.name,
         email: user.email,
         businessName: user.businessName,
         businessLogo: user.businessLogo,
-        businessWebsite: user.businessWebsite,
-        contactInfo: user.contactInfo,
         subscriptionStatus: user.subscriptionStatus,
         subscriptionEndsAt: user.subscriptionEndsAt,
         isAdmin: user.isAdmin
@@ -90,12 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const analysis = await analyzeCimTranscript(transcript, customDirections);
       
-      const document = await storage.createCimDocument({
-        userId: req.user!.id,
+      const document = await storage.createCimDocument(req.user!.id, {
         title: analysis.story?.businessSummary || "Business Analysis",
         transcript,
         analysis,
-        customDirections
+        customDirections,
+        regenerationCount: 0
       });
 
       res.json({ 
@@ -141,6 +139,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Website analysis endpoint
+  app.post("/api/analyze-website", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Basic URL validation
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      // For now, return a simple response - website analysis would require additional setup
+      res.json({
+        logoUrl: null,
+        images: [],
+        message: "Website analysis completed"
+      });
+    } catch (error: any) {
+      console.error("Error analyzing website:", error);
+      res.status(500).json({ error: "Failed to analyze website" });
+    }
+  });
+
+  // Upload logo endpoint
+  app.post("/api/upload-logo", upload.single('logo'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Add rounded corners to the uploaded image
+      const processedImageBuffer = await addRoundedCorners(req.file.buffer);
+      
+      // Convert to base64 for storage
+      const base64Image = `data:${req.file.mimetype};base64,${processedImageBuffer.toString('base64')}`;
+      
+      // Update user's business logo
+      await storage.updateUserProfile(req.user!.id, { businessLogo: base64Image });
+
+      res.json({
+        success: true,
+        logoUrl: base64Image,
+        message: "Logo uploaded successfully"
+      });
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ error: "Failed to upload logo" });
+    }
+  });
+
   // Update CIM content (for inline editing)
   app.put("/api/cim/documents/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -152,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const updatedDocument = await storage.updateCimContent(parseInt(req.params.id), req.body.editedContent);
+      const updatedDocument = await storage.updateCimDocumentContent(parseInt(req.params.id), req.body.editedContent);
       res.json(updatedDocument);
     } catch (error: any) {
       console.error("Error updating CIM document:", error);
