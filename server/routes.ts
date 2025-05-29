@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get user profile for branding
       const user = await storage.getUser(doc.userId);
-      const analysis = doc.editedContent || doc.analysis;
+      const analysis: any = doc.editedContent || doc.analysis;
       const businessName = analysis.story?.businessSummary || doc.title;
       
       const sharedCimHtml = `
