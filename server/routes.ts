@@ -1161,79 +1161,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to reorder sections" });
     }
   });
-              <p>This CIM is password protected. Please enter the password to continue.</p>
-              <form method="get">
-                <input type="password" name="password" placeholder="Enter password" required>
-                <button type="submit">Access CIM</button>
-              </form>
-            </div>
-          </body>
-          </html>
-        `);
-      }
 
-      // Generate the shared CIM page
-      const analysis = doc.editedContent || doc.analysis;
-      const businessName = analysis.story?.businessSummary || doc.title;
-      
-      const sharedCimHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${businessName} - Confidential Information Memorandum</title>
-          <meta name="robots" content="noindex, nofollow">
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; margin: 0; padding: 0; background: #ffffff; }
-            .header { background: #1f2937; color: white; padding: 20px 0; margin-bottom: 40px; }
-            .header-content { max-width: 800px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 20px; }
-            .logo { width: 60px; height: 60px; border-radius: 30px; object-fit: cover; }
-            .header-text h1 { margin: 0; font-size: 28px; }
-            .header-text p { margin: 5px 0 0 0; opacity: 0.8; }
-            .container { max-width: 800px; margin: 0 auto; padding: 0 20px 40px 20px; }
-            .section { margin-bottom: 40px; }
-            .section h2 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-bottom: 20px; }
-            .section h3 { color: #374151; margin-top: 25px; margin-bottom: 15px; }
-            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-            .card { background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; }
-            .highlight { background: #dbeafe; padding: 15px; border-radius: 6px; margin: 15px 0; }
-            ul { padding-left: 20px; }
-            li { margin-bottom: 8px; }
-            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="header-content">
-              ${user?.businessLogo ? `<img src="${user.businessLogo}" alt="${businessName}" class="logo">` : ''}
-              <div class="header-text">
-                <h1>${businessName}</h1>
-                <p>Confidential Information Memorandum</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="container">
-            ${generateHtml(analysis)}
-          </div>
-          
-          <div class="footer">
-            <p>This document contains confidential and proprietary information.</p>
-          </div>
-        </body>
-        </html>
-      `;
-
-      res.send(sharedCimHtml);
-    } catch (error) {
-      console.error("Error serving shared CIM:", error);
-      res.status(500).send("Error loading CIM");
-    }
-  });
-
-  // Add WordPress export endpoint
-  app.post("/api/cim/export/wordpress/:id", async (req, res) => {
+  const httpServer = createServer(app);
+  return httpServer;
+}
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
