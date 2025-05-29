@@ -1146,33 +1146,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-      // Get user profile for branding
-      const user = await storage.getUser(doc.userId);
-      
-      // Check if password protection is required
-      const password = req.query.password as string;
-      if (doc.sharePassword && password !== doc.sharePassword) {
-        // Return password form HTML
-        return res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Protected CIM - ${doc.title}</title>
-            <meta name="robots" content="noindex, nofollow">
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px 20px; background: #f8fafc; }
-              .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-              h1 { margin: 0 0 20px 0; color: #1f2937; }
-              input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; margin: 10px 0; }
-              button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
-              button:hover { background: #2563eb; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>Password Required</h1>
+  // Custom sections reorder endpoint
+  app.put("/api/cim/:id/custom-sections/reorder", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const { sections } = req.body;
+
+      await storage.reorderCustomSections(sections);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering sections:", error);
+      res.status(500).json({ error: "Failed to reorder sections" });
+    }
+  });
               <p>This CIM is password protected. Please enter the password to continue.</p>
               <form method="get">
                 <input type="password" name="password" placeholder="Enter password" required>
