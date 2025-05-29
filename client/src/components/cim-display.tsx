@@ -6,9 +6,15 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Save, Download } from "lucide-react";
+import { Save, Download, X } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DndContext,
   closestCenter,
@@ -38,6 +44,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
 
   // Fetch custom sections
   const { data: customSections = [], refetch: refetchSections } = useQuery({
@@ -297,15 +304,35 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Export Options */}
-      <DocumentExport 
-        analysis={mergedAnalysis}
-        docId={docId}
-        websiteUrl={websiteUrl}
-        logoUrl={logoUrl}
-        selectedImages={selectedImages}
-        user={user}
-      />
+      {/* Title and Logo Header */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {logoUrl && (
+                <img 
+                  src={logoUrl} 
+                  alt="Company Logo" 
+                  className="h-16 w-16 object-contain rounded-[30px]"
+                />
+              )}
+              <div>
+                <CardTitle className="text-2xl">{analysis.title || "Confidential Information Memorandum"}</CardTitle>
+              </div>
+            </div>
+            {user && (
+              <DocumentExport 
+                analysis={mergedAnalysis}
+                docId={docId}
+                websiteUrl={websiteUrl}
+                logoUrl={logoUrl}
+                selectedImages={selectedImages}
+                user={user}
+              />
+            )}
+          </div>
+        </CardHeader>
+      </Card>
 
       {/* Business Summary */}
       {renderSectionWithInsertables("business-summary", 
