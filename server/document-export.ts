@@ -490,9 +490,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
           <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What are the top-selling products?</h3>
           <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
         `;
-        analysis.inventory.topProducts.forEach((product: string) => {
-          html += `<li style="margin-bottom: 6px; color: #1f2937;">${product}</li>\n`;
-        });
+        if (Array.isArray(analysis.inventory.topProducts)) {
+          analysis.inventory.topProducts.forEach((product: string) => {
+            html += `<li style="margin-bottom: 6px; color: #1f2937;">${product}</li>\n`;
+          });
+        } else if (analysis.inventory.topProducts) {
+          // Handle case where topProducts is a string
+          html += `<li style="margin-bottom: 6px; color: #1f2937;">${analysis.inventory.topProducts}</li>\n`;
+        }
         html += `</ul>`;
       }
     }
