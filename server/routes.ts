@@ -1496,78 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Share link routes - removed duplicate endpoint
-
-  app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
-    try {
-      const { shareSlug } = req.params;
-      const { signerName, signerEmail } = req.body;
-
-      if (!signerName || !signerEmail) {
-        return res.status(400).json({ error: "Signer name and email are required" });
-      }
-
-      const shareLink = await storage.getShareLink(shareSlug);
-      if (!shareLink) {
-        return res.status(400).json({ error: "Invalid share link" });
-      }
-
-      const cim = await storage.getCim(shareLink.cimDocumentId);
-      if (!cim) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      const ndaTemplate = cim.ndaTemplateId ? 
-        await storage.getNdaTemplate(cim.ndaTemplateId) : null;
-
-      // Create NDA signature record
-      const signature = await storage.createNdaSignature({
-        cimDocumentId: cim.id,
-        shareSlug,
-        signerName,
-        signerEmail,
-        signerIpAddress: req.ip || req.connection.remoteAddress || 'unknown',
-        signedNdaContent: 'Signed electronically'
-      });
-
-      // Send email with signed NDA and share link
-      if (ndaTemplate?.fileContent) {
-        const { sendNdaSignedEmail } = await import("./email");
-        
-        await sendNdaSignedEmail(
-          signerEmail,
-          signerName,
-          cim.title,
-          shareSlug,
-          ndaTemplate.fileContent,
-          ndaTemplate.name
-        );
-
-        // Also send notification to document owner
-        const owner = await storage.getUser(cim.userId);
-        if (owner?.email) {
-          await sendNdaSignedEmail(
-            owner.email,
-            owner.email, // Owner name
-            cim.title,
-            shareSlug,
-            ndaTemplate.fileData,
-            ndaTemplate.name,
-            signature.signedAt,
-            true // isOwnerNotification
-          );
-        }
-      }
-
-      res.json({ 
-        message: "NDA signed successfully. You can now access the document.",
-        signatureId: signature.id
-      });
-    } catch (error) {
-      console.error("Error signing NDA:", error);
-      res.status(500).json({ error: "Failed to sign NDA" });
-    }
-  });
+  // Share link routes - duplicate endpoint removed to prevent conflicts
 
   // NDA Template routes
   app.get("/api/nda-templates", async (req, res) => {
