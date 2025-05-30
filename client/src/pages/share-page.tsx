@@ -20,13 +20,30 @@ export function SharePage() {
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
     queryFn: async () => {
-      const response = await fetch(`/api/share/${shareSlug}`);
+      console.log('Fetching share data for slug:', shareSlug);
+      const response = await fetch(`/api/share/${shareSlug}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      console.log('Share API response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Share API error:', errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
-      return response.json();
+      
+      const data = await response.json();
+      console.log('Share API response data:', data);
+      return data;
     },
-    enabled: !!shareSlug
+    enabled: !!shareSlug,
+    staleTime: 0,
+    gcTime: 0
   }) as { data: any, isLoading: boolean, error: any };
 
   useEffect(() => {

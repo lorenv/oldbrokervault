@@ -10,6 +10,10 @@ app.use('/api/webhook/stripe', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Serve static files for logos and images
+app.use('/logos', express.static('public/logos'));
+app.use('/images', express.static('public/images'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
