@@ -241,22 +241,33 @@ export async function analyzeCimTranscript(transcript: string, customDirections?
       console.log("Custom directions length:", customDirections.length, "characters");
     }
     
-    // Use default professional tone and balanced verbosity
-    const toneInstructions = 'Use formal, professional business language with industry-specific terminology. Maintain a serious, authoritative tone throughout.';
-    const verbosityInstructions = 'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
-    const audienceInstructions = 'Target business executives and sophisticated investors who need comprehensive information for decision-making.';
+    // Use custom directions if provided, otherwise fall back to defaults
+    const toneInstructions = customDirections ? 
+      `Follow these custom style directions: ${customDirections}` : 
+      'Use formal, professional business language with industry-specific terminology. Maintain a serious, authoritative tone throughout.';
+    const verbosityInstructions = customDirections ?
+      'Adjust detail level and writing style according to the custom directions provided above.' :
+      'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
+    const audienceInstructions = customDirections ?
+      'Tailor the content and language to match the custom directions while maintaining CIM standards.' :
+      'Target business executives and sophisticated investors who need comprehensive information for decision-making.';
     
     const result = await makePerplexityRequest([
       {
         role: "system",
         content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business in a clear Q&A style format.
 
+${customDirections ? `
+PRIORITY WRITING STYLE REQUIREMENTS:
+${customDirections}
+
+IMPORTANT: The above custom directions take precedence over all default instructions below. Adjust your writing style, tone, detail level, and approach to fully comply with these specific requirements while maintaining the JSON structure.
+` : `
 WRITING STYLE CUSTOMIZATIONS:
 - Tone: ${toneInstructions}
 - Detail Level: ${verbosityInstructions}
 - Target Audience: ${audienceInstructions}
-
-${customDirections ? `IMPORTANT: Pay special attention to these custom analysis directions from the user: "${customDirections}". Incorporate these specific requirements throughout your analysis while maintaining the overall CIM structure.` : ''}
+`}
 
 Focus especially on:
 
