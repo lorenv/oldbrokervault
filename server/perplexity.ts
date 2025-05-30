@@ -118,9 +118,9 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     body: JSON.stringify({
       model: "llama-3.1-sonar-large-128k-online", // Use larger model for better handling
       messages,
-      max_tokens: 6000, // Increase token limit for longer responses
-      temperature: 0.1, // Lower temperature for more consistent JSON
-      top_p: 0.9,
+      max_tokens: 4500, // Reduce token limit to prevent truncation
+      temperature: 0.05, // Even lower temperature for more consistent JSON
+      top_p: 0.8,
       return_images: false,
       return_related_questions: false,
       stream: false
@@ -167,6 +167,13 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     // Clean up the JSON string before parsing
     let cleanJsonStr = jsonStr.trim();
     
+    // Remove any trailing content after the JSON object
+    // This handles cases where the AI adds extra text after the JSON
+    const firstBrace = cleanJsonStr.indexOf('{');
+    if (firstBrace > 0) {
+      cleanJsonStr = cleanJsonStr.substring(firstBrace);
+    }
+    
     // Handle incomplete JSON responses by finding the last complete object
     let openBraces = 0;
     let lastValidIndex = -1;
@@ -187,6 +194,13 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       cleanJsonStr = cleanJsonStr.substring(0, lastValidIndex + 1);
     }
     
+    // Additional cleaning to fix common JSON formatting issues
+    cleanJsonStr = cleanJsonStr
+      .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+      .replace(/([^"\\])\n/g, '$1') // Remove unescaped newlines
+      .replace(/\t/g, ' ') // Replace tabs with spaces
+      .replace(/\r/g, '') // Remove carriage returns
+    
     const analysis = JSON.parse(cleanJsonStr);
 
     // Validate the response has the required fields
@@ -197,9 +211,23 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
     return analysis;
   } catch (error) {
     console.error("=== PERPLEXITY PARSING ERROR ===");
-    console.error("Raw response:", data.choices[0].message.content);
+    console.error("Raw response length:", data.choices[0].message.content?.length || 0);
+    console.error("Raw response (first 1000 chars):", data.choices[0].message.content?.substring(0, 1000));
+    console.error("Raw response (last 500 chars):", data.choices[0].message.content?.substring(-500));
     console.error("Parse error:", error);
-    // Don't reference variables that may not be in scope
+    
+    // Try to identify where the JSON breaks
+    if (error instanceof SyntaxError) {
+      const match = error.message.match(/position (\d+)/);
+      if (match) {
+        const position = parseInt(match[1]);
+        const start = Math.max(0, position - 50);
+        const end = Math.min(data.choices[0].message.content.length, position + 50);
+        console.error(`Content around error position ${position}:`, 
+          data.choices[0].message.content.substring(start, end));
+      }
+    }
+    
     console.error("=== END PARSING ERROR ===");
     throw new Error(`Failed to parse CIM analysis response: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -408,7 +436,7 @@ The JSON must follow this exact structure, with full, detailed responses for eac
       },
       {
         role: "user",
-        content: `Analyze this transcript and respond with ONLY the JSON object specified, no other text:\n\n${transcript}`
+        content: `Analyze this transcript and respond with ONLY valid JSON in the exact format specified above. Do not include any other text, explanations, or markdown formatting. Ensure all JSON strings are properly escaped and the response ends with a complete closing brace.\n\nTranscript:\n${transcript}`
       }
     ]);
 
