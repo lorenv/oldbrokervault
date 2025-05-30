@@ -392,6 +392,22 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   const mergedAnalysis = getMergedContent();
 
+  // Helper function to check if inventory section should be shown
+  const shouldShowInventorySection = () => {
+    const content = getMergedContent();
+    const inventory = content?.inventory || {};
+    
+    // Check if any inventory fields have meaningful content
+    const hasContent = inventory.leadTime !== "not applicable" ||
+                      inventory.sourcing !== "not applicable" ||
+                      inventory.value !== "not applicable" ||
+                      inventory.skuCount !== "not applicable" ||
+                      (inventory.topProducts && inventory.topProducts.length > 0 && 
+                       !inventory.topProducts.every((item: string) => item === "not applicable"));
+    
+    return hasContent;
+  };
+
   // Function to render a section with conditional drag handle
   const renderSectionWithDragHandle = (sectionId: string, content: React.ReactNode) => {
     if (isSharedView) {
@@ -564,7 +580,16 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         );
 
       case 'inventory':
-        return shouldShowInventorySection() ? (
+        const content = getMergedContent();
+        const inventory = content?.inventory || {};
+        const hasInventoryContent = inventory.leadTime !== "not applicable" ||
+                                  inventory.sourcing !== "not applicable" ||
+                                  inventory.value !== "not applicable" ||
+                                  inventory.skuCount !== "not applicable" ||
+                                  (inventory.topProducts && inventory.topProducts.length > 0 && 
+                                   !inventory.topProducts.every((item: string) => item === "not applicable"));
+        
+        return hasInventoryContent ? (
           <Card>
             <CardHeader>
               <CardTitle>Products & Inventory Management</CardTitle>
