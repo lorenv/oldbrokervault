@@ -685,6 +685,20 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   return (
     <div className="space-y-6">
+      {/* Company Logo - Display at the top */}
+      {logoUrl && (
+        <div className="text-center py-6 border-b">
+          <img 
+            src={logoUrl} 
+            alt="Company Logo"
+            className="h-16 mx-auto"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
         <Card className="border-blue-200 bg-blue-50">

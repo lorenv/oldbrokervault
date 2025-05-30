@@ -79,7 +79,16 @@ export function InlineEditor({
     : typeof value === 'string' ? value 
     : typeof value === 'object' && value !== null ? 
         (Object.keys(value).length === 0 ? '' : 
-         Object.entries(value).map(([key, val]) => `${key}: ${String(val)}`).join(', '))
+         Object.entries(value)
+           .map(([key, val]) => {
+             // Make field names more readable
+             const readableKey = key
+               .replace(/([A-Z])/g, ' $1')
+               .replace(/^./, str => str.toUpperCase())
+               .replace(/Time/g, '-Time');
+             return `${readableKey}: ${String(val)}`;
+           })
+           .join(', '))
     : String(value || '');
 
   if (isEditing) {
