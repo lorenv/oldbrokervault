@@ -52,7 +52,26 @@ export function InlineEditor({
   };
 
   const displayValue = isArray && Array.isArray(value) 
-    ? value.join(', ') 
+    ? value.map(item => {
+        if (typeof item === 'object' && item !== null) {
+          // Handle objects in arrays (like Key Personnel)
+          const parts = [];
+          if (item.role) parts.push(`Role: ${item.role}`);
+          if (item.name) parts.push(`Name: ${item.name}`);
+          if (item.tenure) parts.push(`Tenure: ${item.tenure}`);
+          if (item.background) parts.push(`Background: ${item.background}`);
+          
+          if (parts.length === 0) {
+            // Fallback for objects without expected properties
+            return Object.entries(item)
+              .map(([key, val]) => `${key}: ${val}`)
+              .join(', ');
+          }
+          
+          return parts.join(', ');
+        }
+        return String(item);
+      }).join(' | ')
     : typeof value === 'string' ? value : String(value);
 
   if (isEditing) {
