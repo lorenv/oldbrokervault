@@ -1561,45 +1561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Share link routes
-  app.get("/api/share/:shareSlug", async (req, res) => {
-    try {
-      const { shareSlug } = req.params;
-      const shareLink = await storage.getShareLink(shareSlug);
-      
-      if (!shareLink) {
-        return res.status(404).json({ error: "Share link not found" });
-      }
-
-      // Check if share link is expired
-      if (shareLink.expiresAt && new Date() > shareLink.expiresAt) {
-        return res.status(410).json({ error: "Share link has expired" });
-      }
-
-      const cim = await storage.getCim(shareLink.cimId);
-      if (!cim) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      // Get NDA template if required
-      let ndaUrl = null;
-      if (shareLink.ndaProtected && shareLink.ndaTemplateId) {
-        const ndaTemplate = await storage.getNdaTemplate(shareLink.ndaTemplateId);
-        if (ndaTemplate?.fileData) {
-          ndaUrl = `/api/nda-templates/${shareLink.ndaTemplateId}/download`;
-        }
-      }
-
-      res.json({
-        cim,
-        requiresNda: shareLink.ndaProtected,
-        ndaUrl
-      });
-    } catch (error) {
-      console.error("Error fetching share link:", error);
-      res.status(500).json({ error: "Failed to fetch share link" });
-    }
-  });
+  // Share link routes - removed duplicate endpoint
 
   app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
     try {
