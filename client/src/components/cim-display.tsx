@@ -298,8 +298,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 disabled={saveAllChangesMutation.isPending}
                 className="flex items-center gap-2"
               >
-                <Save className="h-4 w-4" />
-                Save All Changes
+                {saveAllChangesMutation.isPending ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saveAllChangesMutation.isPending ? "Saving..." : "Save All Changes"}
               </Button>
             </div>
           </CardContent>
