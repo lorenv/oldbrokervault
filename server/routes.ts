@@ -1561,6 +1561,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NDA Template routes
+  app.get("/api/nda-templates", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const templates = await storage.getNdaTemplates(req.user.id);
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch NDA templates" });
+    }
+  });
+
+  app.post("/api/nda-templates", upload.single('ndaFile'), async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { name, isDefault } = req.body;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      if (file.mimetype !== 'application/pdf') {
+        return res.status(400).json({ error: "Only PDF files are allowed" });
+      }
+
+      const fileContent = file.buffer.toString('base64');
+      
+      const templateData = insertNdaTemplateSchema.parse({
+        name,
+        fileContent,
+        isDefault: isDefault === 'true'
+      });
+
+      const template = await storage.createNdaTemplate(req.user.id, templateData);
+      res.json(template);
+    } catch (error) {
+      console.error('NDA template creation error:', error);
+      res.status(500).json({ error: "Failed to create NDA template" });
+    }
+  });
+
+  app.put("/api/nda-templates/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const templateId = parseInt(req.params.id);
+      const { name, isDefault } = req.body;
+
+      const updatedTemplate = await storage.updateNdaTemplate(templateId, {
+        name,
+        isDefault
+      });
+
+      res.json(updatedTemplate);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update NDA template" });
+    }
+  });
+
+  app.delete("/api/nda-templates/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const templateId = parseInt(req.params.id);
+      await storage.deleteNdaTemplate(templateId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete NDA template" });
+    }
+  });
+
+  // NDA Signature routes
+  app.get("/api/cim/:id/nda-signatures", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const signatures = await storage.getNdaSignatures(cimId);
+      res.json(signatures);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch NDA signatures" });
+    }
+  });
+
+  app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const { signerName, signerEmail } = req.body;
+      const signerIpAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+      // Get CIM document by share slug
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      if (!cimDoc) {
+        return res.status(404).json({ error: "CIM document not found" });
+      }
+
+      // Check if NDA is required
+      if (!cimDoc.ndaProtected || !cimDoc.ndaTemplateId) {
+        return res.status(400).json({ error: "This CIM does not require NDA signing" });
+      }
+
+      // Check if user already signed
+      const existingSignature = await storage.checkNdaSignature(cimDoc.id, signerEmail);
+      if (existingSignature) {
+        return res.json({ 
+          success: true, 
+          message: "NDA already signed",
+          signature: existingSignature 
+        });
+      }
+
+      // Get NDA template
+      const templates = await storage.getNdaTemplates(cimDoc.userId);
+      const ndaTemplate = templates.find(t => t.id === cimDoc.ndaTemplateId);
+      
+      if (!ndaTemplate) {
+        return res.status(400).json({ error: "NDA template not found" });
+      }
+
+      // Create signed NDA
+      const signedAt = new Date();
+      const signedNdaContent = await addSignatureToNda(
+        ndaTemplate.fileContent,
+        signerName,
+        signedAt
+      );
+
+      // Save signature record
+      const signatureData = insertNdaSignatureSchema.parse({
+        cimDocumentId: cimDoc.id,
+        signerName,
+        signerEmail,
+        signerIpAddress,
+        signedNdaContent
+      });
+
+      const signature = await storage.createNdaSignature(signatureData);
+
+      // Get owner information for email
+      const owner = await storage.getUser(cimDoc.userId);
+      if (!owner) {
+        return res.status(500).json({ error: "Document owner not found" });
+      }
+
+      // Send emails to both signer and owner
+      const shareLink = `${req.protocol}://${req.get('host')}/share/${shareSlug}`;
+      const emailSent = await sendNdaSignedEmail(
+        signerEmail,
+        owner.email,
+        owner.name || owner.email,
+        cimDoc.title,
+        shareLink,
+        signedNdaContent
+      );
+
+      if (!emailSent) {
+        console.error('Failed to send NDA confirmation emails');
+      }
+
+      res.json({ 
+        success: true, 
+        signature,
+        message: "NDA signed successfully. Check your email for confirmation and CIM access."
+      });
+
+    } catch (error) {
+      console.error('NDA signing error:', error);
+      res.status(500).json({ error: "Failed to process NDA signature" });
+    }
+  });
+
+  // Check NDA signature status
+  app.get("/api/cim/:shareSlug/nda-status", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const { email } = req.query;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      if (!cimDoc) {
+        return res.status(404).json({ error: "CIM document not found" });
+      }
+
+      const signature = await storage.checkNdaSignature(cimDoc.id, email as string);
+      
+      res.json({ 
+        ndaRequired: cimDoc.ndaProtected,
+        hasSignature: !!signature,
+        signature: signature || null
+      });
+
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check NDA status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
