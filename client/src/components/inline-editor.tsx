@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Edit, Save, X } from "lucide-react";
+import { Edit, Save, X, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface InlineEditorProps {
@@ -12,6 +12,7 @@ interface InlineEditorProps {
   onEdit: (fieldPath: string) => void;
   onSave: (fieldPath: string, value: string | string[]) => void;
   onCancel: () => void;
+  onDelete?: (fieldPath: string) => void;
   multiline?: boolean;
   isArray?: boolean;
   placeholder?: string;
@@ -25,6 +26,7 @@ export function InlineEditor({
   onEdit,
   onSave,
   onCancel,
+  onDelete,
   multiline = false,
   isArray = false,
   placeholder = "",
@@ -62,9 +64,11 @@ export function InlineEditor({
           if (item.background) parts.push(`Background: ${item.background}`);
           
           if (parts.length === 0) {
-            // Fallback for objects without expected properties
-            return Object.entries(item)
-              .map(([key, val]) => `${key}: ${val}`)
+            // Fallback for objects without expected properties - convert to string
+            const entries = Object.entries(item);
+            if (entries.length === 0) return '';
+            return entries
+              .map(([key, val]) => `${key}: ${String(val)}`)
               .join(', ');
           }
           
@@ -72,7 +76,9 @@ export function InlineEditor({
         }
         return String(item);
       }).join(' | ')
-    : typeof value === 'string' ? value : String(value);
+    : typeof value === 'string' ? value 
+    : typeof value === 'object' && value !== null ? JSON.stringify(value).replace(/[{}]/g, '').replace(/"/g, '')
+    : String(value || '');
 
   if (isEditing) {
     return (
