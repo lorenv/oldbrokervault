@@ -1612,30 +1612,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const shareLink = await storage.getShareLink(shareSlug);
-      if (!shareLink || !shareLink.ndaProtected) {
-        return res.status(400).json({ error: "Invalid share link or NDA not required" });
+      if (!shareLink) {
+        return res.status(400).json({ error: "Invalid share link" });
       }
 
-      const cim = await storage.getCim(shareLink.cimId);
+      const cim = await storage.getCim(shareLink.cimDocumentId);
       if (!cim) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const ndaTemplate = shareLink.ndaTemplateId ? 
-        await storage.getNdaTemplate(shareLink.ndaTemplateId) : null;
+      const ndaTemplate = cim.ndaTemplateId ? 
+        await storage.getNdaTemplate(cim.ndaTemplateId) : null;
 
       // Create NDA signature record
       const signature = await storage.createNdaSignature({
+        cimDocumentId: cim.id,
         shareSlug,
         signerName,
         signerEmail,
-        signerIp: req.ip || req.connection.remoteAddress || 'unknown',
-        signedAt: new Date(),
-        ndaTemplateId: shareLink.ndaTemplateId
+        signerIpAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        signedNdaContent: 'Signed electronically'
       });
 
       // Send email with signed NDA and share link
-      if (ndaTemplate?.fileData) {
+      if (ndaTemplate?.fileContent) {
         const { sendNdaSignedEmail } = await import("./email");
         
         await sendNdaSignedEmail(
@@ -1643,9 +1643,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           signerName,
           cim.title,
           shareSlug,
-          ndaTemplate.fileData,
-          ndaTemplate.name,
-          signature.signedAt
+          ndaTemplate.fileContent,
+          ndaTemplate.name
         );
 
         // Also send notification to document owner
