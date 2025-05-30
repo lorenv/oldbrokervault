@@ -1169,9 +1169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const docId = parseInt(req.params.id);
-      const { shareEnabled, shareSlug, sharePassword, shareExpiresAt } = req.body;
+      const { shareEnabled, shareSlug, sharePassword, shareExpiresAt, ndaProtected, ndaTemplateId } = req.body;
       
-      console.log("Share settings update:", { docId, shareEnabled, shareSlug, userId: req.user!.id });
+      console.log("Share settings update:", { docId, shareEnabled, shareSlug, ndaProtected, ndaTemplateId, userId: req.user!.id });
 
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
@@ -1188,7 +1188,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareEnabled,
         shareSlug,
         sharePassword,
-        shareExpiresAt
+        shareExpiresAt,
+        ndaProtected,
+        ndaTemplateId
       });
 
       console.log("Share settings updated successfully:", updatedDoc.shareSlug);
