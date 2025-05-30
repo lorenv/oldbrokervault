@@ -17,7 +17,7 @@ export function SharePage() {
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
     enabled: !!shareSlug
-  });
+  }) as { data: any, isLoading: boolean, error: any };
 
   useEffect(() => {
     if (shareData?.requiresNda && !hasSignedNda) {
