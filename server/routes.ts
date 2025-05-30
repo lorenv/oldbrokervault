@@ -744,6 +744,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create custom section
+  app.post("/api/cim/:id/custom-sections", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const { title, content, insertAfterSection } = req.body;
+      
+      const section = await storage.createCustomSection({
+        cimDocumentId: cimId,
+        type: 'text',
+        content: content,
+        insertAfterSection: insertAfterSection,
+        title: title
+      });
+
+      res.json(section);
+    } catch (error) {
+      console.error("Error creating custom section:", error);
+      res.status(500).json({ message: "Failed to create custom section" });
+    }
+  });
+
   app.post("/api/cim/:id/custom-section/text", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     

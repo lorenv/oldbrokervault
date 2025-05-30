@@ -359,6 +359,7 @@ export class DatabaseStorage implements IStorage {
   async createCustomSection(section: {
     cimDocumentId: number;
     type: 'text' | 'image';
+    title?: string;
     content?: string;
     imageUrl?: string;
     insertAfterSection: string;
@@ -376,6 +377,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         cimDocumentId: section.cimDocumentId,
         type: section.type,
+        title: section.title,
         content: section.content,
         imageUrl: section.imageUrl,
         insertAfterSection: section.insertAfterSection,

@@ -709,7 +709,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.businessLogo || userProfile?.businessLogo} 
                 alt="Business Logo" 
-                className={isSharedView ? "w-36 h-36 object-contain rounded-[30px] ml-auto" : "w-24 h-24 object-contain rounded-[30px] ml-auto"}
+                className={isSharedView ? "w-48 h-48 object-contain rounded-[30px] ml-auto" : "w-32 h-32 object-contain rounded-[30px] ml-auto"}
               />
             )}
           </div>
