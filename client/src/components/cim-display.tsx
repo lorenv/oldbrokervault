@@ -624,8 +624,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           <CardContent className="pt-6">
             <hr className="mb-6 border-gray-300" />
             <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
-            {/* Debug: Add console log to check data */}
-            {console.log('Contact Info Debug - user:', user, 'userProfile:', userProfile, 'isSharedView:', isSharedView)}
+            {/* Debug: Check data in console */}
+            {(() => {
+              console.log('Contact Info Debug - user:', user, 'userProfile:', userProfile, 'isSharedView:', isSharedView);
+              return null;
+            })()}
             <div className="flex flex-col md:flex-row items-center gap-6">
               {(user?.profilePhoto || userProfile?.profilePhoto) && (
                 <img 
