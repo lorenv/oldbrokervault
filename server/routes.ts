@@ -1850,36 +1850,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/share/:shareSlug", async (req, res) => {
     try {
       const { shareSlug } = req.params;
+      console.log("Fetching share data for slug:", shareSlug);
       
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      console.log("Found document:", !!cimDoc, cimDoc?.id);
+      
       if (!cimDoc) {
         return res.status(404).json({ error: "Document not found" });
       }
       
       if (!cimDoc.shareEnabled) {
+        console.log("Sharing disabled for document:", cimDoc.id);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
       // Check expiration
       if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        console.log("Document expired:", cimDoc.shareExpiresAt);
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
       // Increment view count
+      console.log("Incrementing view count for document:", cimDoc.id);
       await storage.incrementShareViewCount(cimDoc.id);
 
       // Get NDA template if required
       let ndaUrl = null;
       if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
+        console.log("Getting NDA template:", cimDoc.ndaTemplateId);
         const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
         if (ndaTemplate?.fileContent) {
           ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
         }
       }
 
+      console.log("Sending share data successfully");
       res.json({
         cim: cimDoc,
-        requiresNda: cimDoc.ndaProtected,
+        requiresNda: cimDoc.ndaProtected || false,
         ndaUrl
       });
     } catch (error) {
