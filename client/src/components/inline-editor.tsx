@@ -77,7 +77,9 @@ export function InlineEditor({
         return String(item);
       }).join(' | ')
     : typeof value === 'string' ? value 
-    : typeof value === 'object' && value !== null ? JSON.stringify(value).replace(/[{}]/g, '').replace(/"/g, '')
+    : typeof value === 'object' && value !== null ? 
+        (Object.keys(value).length === 0 ? '' : 
+         Object.entries(value).map(([key, val]) => `${key}: ${String(val)}`).join(', '))
     : String(value || '');
 
   if (isEditing) {
