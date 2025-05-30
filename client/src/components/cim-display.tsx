@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Save, Download, X } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
+import { AddCustomSection } from "./add-custom-section";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -56,6 +57,15 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     enabled: !!docId,
   });
 
+  // Type guard for custom sections
+  const typedCustomSections = Array.isArray(customSections) ? customSections as Array<{
+    id: number;
+    title: string;
+    content: string;
+    insertAfterSection: string;
+    position: number;
+  }> : [];
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -90,10 +100,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     const { active, over } = event;
 
     if (active.id !== over.id) {
-      const oldIndex = customSections.findIndex((item: any) => item.id === active.id);
-      const newIndex = customSections.findIndex((item: any) => item.id === over.id);
+      const oldIndex = typedCustomSections.findIndex((item) => item.id === active.id);
+      const newIndex = typedCustomSections.findIndex((item) => item.id === over.id);
       
-      const reorderedSections = arrayMove(customSections, oldIndex, newIndex);
+      const reorderedSections = arrayMove(typedCustomSections, oldIndex, newIndex);
       
       // Update positions in database
       try {
@@ -581,31 +591,43 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Products & Inventory */}
-      {renderSectionWithInsertables("products-inventory",
-        <Card>
-          <CardHeader>
-            <CardTitle>Products & Inventory Management</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-md mb-3 text-indigo-700">Product Portfolio</h4>
-                {renderField("Best-Selling Products", "inventory.topProducts", false, true, "Top products or services")}
-                {renderField("Product Range", "inventory.skuCount", false, false, "Number of different products/SKUs")}
+      {/* Products & Inventory - Only show if has meaningful content */}
+      {(() => {
+        const inventory = mergedAnalysis.inventory;
+        const hasInventoryContent = inventory && (
+          (inventory.topProducts && inventory.topProducts.length > 0 && inventory.topProducts.some((item: any) => item && item.trim() !== '' && item.toLowerCase() !== 'not applicable' && item.toLowerCase() !== 'n/a')) ||
+          (inventory.skuCount && inventory.skuCount.trim() !== '' && inventory.skuCount.toLowerCase() !== 'not applicable' && inventory.skuCount.toLowerCase() !== 'n/a') ||
+          (inventory.value && inventory.value.trim() !== '' && inventory.value.toLowerCase() !== 'not applicable' && inventory.value.toLowerCase() !== 'n/a') ||
+          (inventory.leadTime && inventory.leadTime.trim() !== '' && inventory.leadTime.toLowerCase() !== 'not applicable' && inventory.leadTime.toLowerCase() !== 'n/a') ||
+          (inventory.sourcing && inventory.sourcing.trim() !== '' && inventory.sourcing.toLowerCase() !== 'not applicable' && inventory.sourcing.toLowerCase() !== 'n/a') ||
+          (inventory.storage && inventory.storage.trim() !== '' && inventory.storage.toLowerCase() !== 'not applicable' && inventory.storage.toLowerCase() !== 'n/a')
+        );
+        
+        return hasInventoryContent ? renderSectionWithInsertables("products-inventory",
+          <Card>
+            <CardHeader>
+              <CardTitle>Products & Inventory Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-md mb-3">Product Portfolio</h4>
+                  {renderField("Best-Selling Products", "inventory.topProducts", false, true, "Top products or services")}
+                  {renderField("Product Range", "inventory.skuCount", false, false, "Number of different products/SKUs")}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-md mb-3">Inventory Operations</h4>
+                  {renderField("Current Inventory Value", "inventory.value", false, false, "Total value of current inventory")}
+                  {renderField("Restocking Lead Time", "inventory.leadTime", false, false, "How long to restock inventory?")}
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-md mb-3 text-teal-700">Inventory Operations</h4>
-                {renderField("Current Inventory Value", "inventory.value", false, false, "Total value of current inventory")}
-                {renderField("Restocking Lead Time", "inventory.leadTime", false, false, "How long to restock inventory?")}
-              </div>
-            </div>
-            
-            {renderField("Sourcing Strategy", "inventory.sourcing", true, false, "Where and how is inventory sourced?")}
-            {renderField("Storage & Logistics", "inventory.storage", true, false, "How and where is inventory stored and managed?")}
-          </CardContent>
-        </Card>
-      )}
+              
+              {renderField("Sourcing Strategy", "inventory.sourcing", true, false, "Where and how is inventory sourced?")}
+              {renderField("Storage & Logistics", "inventory.storage", true, false, "How and where is inventory stored and managed?")}
+            </CardContent>
+          </Card>
+        ) : null;
+      })()}
 
       {/* Assets & Infrastructure */}
       {renderSectionWithInsertables("assets-infrastructure",
@@ -616,7 +638,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3 text-gray-700">Facilities</h4>
+                <h4 className="font-semibold text-md mb-3">Facilities</h4>
                 {renderField("Property Status", "facility.ownership", false, false, "Owned or leased?")}
                 {renderField("Facility Size", "facility.size", false, false, "Square footage or size description")}
                 {renderField("Occupancy Cost", "facility.cost", false, false, "Monthly rent or ownership costs")}
@@ -624,7 +646,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               </div>
               
               <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3 text-gray-700">Equipment & Digital Assets</h4>
+                <h4 className="font-semibold text-md mb-3">Equipment & Digital Assets</h4>
                 {renderField("Equipment Value", "assets.equipmentValue", false, false, "Value of equipment and machinery")}
                 {renderField("Digital Properties", "assets.digitalAssets", false, true, "Websites, social media, digital assets")}
               </div>
@@ -645,6 +667,14 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           {renderField("Intellectual Property", "ownership.intellectualProperty", false, true, "Trademarks, patents, copyrights")}
         </CardContent>
       </Card>
+
+      {/* Add Custom Section - Only shown in edit mode */}
+      {!isSharedView && (
+        <AddCustomSection 
+          docId={docId}
+          onSectionAdded={handleSectionAdded}
+        />
+      )}
 
       {/* Ask the Broker Form - Only shown in shared view */}
       {isSharedView && (
