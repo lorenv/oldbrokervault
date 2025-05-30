@@ -155,8 +155,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           </DndContext>
         )}
         
-        {/* Show insertable zone if user is authenticated */}
-        {user && (
+        {/* Show insertable zone if user is authenticated and not in shared view */}
+        {user && !isSharedView && (
           <InsertableSection
             afterSection={sectionName}
             docId={docId}
@@ -328,14 +328,15 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 <CardTitle className="text-2xl">{title || "Confidential Information Memorandum"}</CardTitle>
               </div>
             </div>
-            {user && (
+            {(user || isSharedView) && (
               <DocumentExport 
                 analysis={mergedAnalysis}
                 docId={docId}
                 websiteUrl={websiteUrl}
                 logoUrl={logoUrl}
                 selectedImages={selectedImages}
-                user={user}
+                user={user || userProfile}
+                isSharedView={isSharedView}
               />
             )}
           </div>
