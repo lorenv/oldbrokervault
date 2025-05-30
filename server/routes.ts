@@ -119,7 +119,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user profile for contact information
       const userProfile = await storage.getUser(cimDoc.userId);
       
-      console.log("Sending share data successfully");
+      console.log("Sending share data successfully:", {
+        websiteUrl: cimDoc.websiteUrl,
+        selectedImages: cimDoc.selectedImages,
+        logoUrl: cimDoc.logoUrl,
+        hasUserProfile: !!userProfile
+      });
+      
       res.json({
         cim: {
           ...cimDoc,
