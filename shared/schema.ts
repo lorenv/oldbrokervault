@@ -84,6 +84,7 @@ export const customSections = pgTable("custom_sections", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
   type: text("type").notNull(), // 'text' or 'image'
+  title: text("title"), // Section title
   content: text("content"), // Rich text content for text sections
   imageUrl: text("image_url"), // Image URL for image sections
   position: integer("position").notNull(), // Order position in the document
