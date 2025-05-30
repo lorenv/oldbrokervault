@@ -196,8 +196,12 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
 
     return analysis;
   } catch (error) {
-    console.error("Failed to parse Perplexity response:", data.choices[0].message.content);
-    throw new Error("Failed to parse CIM analysis response");
+    console.error("=== PERPLEXITY PARSING ERROR ===");
+    console.error("Raw response:", data.choices[0].message.content);
+    console.error("Parse error:", error);
+    // Don't reference variables that may not be in scope
+    console.error("=== END PARSING ERROR ===");
+    throw new Error(`Failed to parse CIM analysis response: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
