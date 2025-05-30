@@ -1693,20 +1693,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { signerName, signerEmail } = req.body;
       const signerIpAddress = req.ip || req.connection.remoteAddress || 'unknown';
 
+      console.log("=== NDA SIGNING DEBUG ===");
+      console.log("Share slug:", shareSlug);
+      console.log("Signer name:", signerName);
+      console.log("Signer email:", signerEmail);
+      console.log("IP address:", signerIpAddress);
+
       // Get CIM document by share slug
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      console.log("Found CIM doc:", !!cimDoc, cimDoc?.id);
+      
       if (!cimDoc) {
+        console.log("ERROR: CIM document not found");
         return res.status(404).json({ error: "CIM document not found" });
       }
 
       // Check if NDA is required
+      console.log("NDA protected:", cimDoc.ndaProtected);
+      console.log("NDA template ID:", cimDoc.ndaTemplateId);
+      
       if (!cimDoc.ndaProtected || !cimDoc.ndaTemplateId) {
+        console.log("ERROR: This CIM does not require NDA signing");
         return res.status(400).json({ error: "This CIM does not require NDA signing" });
       }
 
       // Check if user already signed
+      console.log("Checking existing signature for CIM:", cimDoc.id, "Email:", signerEmail);
       const existingSignature = await storage.checkNdaSignature(cimDoc.id, signerEmail);
+      console.log("Existing signature found:", !!existingSignature);
+      
       if (existingSignature) {
+        console.log("User already signed, returning existing signature");
         return res.json({ 
           success: true, 
           message: "NDA already signed",
@@ -1715,61 +1732,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get NDA template
+      console.log("Getting NDA templates for user:", cimDoc.userId);
       const templates = await storage.getNdaTemplates(cimDoc.userId);
+      console.log("Found templates:", templates.length);
+      
       const ndaTemplate = templates.find(t => t.id === cimDoc.ndaTemplateId);
+      console.log("Found matching template:", !!ndaTemplate, ndaTemplate?.name);
       
       if (!ndaTemplate) {
+        console.log("ERROR: NDA template not found");
         return res.status(400).json({ error: "NDA template not found" });
       }
 
       // Create signed NDA
+      console.log("Creating signed NDA content...");
       const signedAt = new Date();
-      const signedNdaContent = await addSignatureToNda(
-        ndaTemplate.fileContent,
-        signerName,
-        signedAt
-      );
+      
+      try {
+        const signedNdaContent = await addSignatureToNda(
+          ndaTemplate.fileContent,
+          signerName,
+          signedAt
+        );
+        console.log("Signed NDA content created successfully");
 
-      // Save signature record
-      const signatureData = insertNdaSignatureSchema.parse({
-        cimDocumentId: cimDoc.id,
-        signerName,
-        signerEmail,
-        signerIpAddress,
-        signedNdaContent
-      });
+        // Save signature record
+        console.log("Preparing signature data...");
+        const signatureData = insertNdaSignatureSchema.parse({
+          cimDocumentId: cimDoc.id,
+          signerName,
+          signerEmail,
+          signerIpAddress,
+          signedNdaContent
+        });
+        console.log("Signature data validated");
 
-      const signature = await storage.createNdaSignature(signatureData);
+        console.log("Creating signature record...");
+        const signature = await storage.createNdaSignature(signatureData);
+        console.log("Signature created with ID:", signature.id);
 
-      // Get owner information for email
-      const owner = await storage.getUser(cimDoc.userId);
-      if (!owner) {
-        return res.status(500).json({ error: "Document owner not found" });
+        // Get owner information for email
+        console.log("Getting document owner information...");
+        const owner = await storage.getUser(cimDoc.userId);
+        if (!owner) {
+          console.log("ERROR: Document owner not found");
+          return res.status(500).json({ error: "Document owner not found" });
+        }
+        console.log("Owner found:", owner.email);
+
+        // Send emails to both signer and owner
+        console.log("Sending confirmation emails...");
+        const shareLink = `${req.protocol}://${req.get('host')}/cims/${shareSlug}`;
+        const emailSent = await sendNdaSignedEmail(
+          signerEmail,
+          owner.email,
+          owner.name || owner.email,
+          cimDoc.title,
+          shareLink,
+          signedNdaContent
+        );
+
+        if (!emailSent) {
+          console.error('Failed to send NDA confirmation emails');
+        }
+
+        console.log("NDA signing completed successfully");
+        res.json({ 
+          success: true, 
+          signature,
+          message: "NDA signed successfully. Check your email for confirmation and CIM access."
+        });
+
+      } catch (innerError) {
+        console.error('Inner NDA signing error:', innerError);
+        throw innerError;
       }
-
-      // Send emails to both signer and owner
-      const shareLink = `${req.protocol}://${req.get('host')}/share/${shareSlug}`;
-      const emailSent = await sendNdaSignedEmail(
-        signerEmail,
-        owner.email,
-        owner.name || owner.email,
-        cimDoc.title,
-        shareLink,
-        signedNdaContent
-      );
-
-      if (!emailSent) {
-        console.error('Failed to send NDA confirmation emails');
-      }
-
-      res.json({ 
-        success: true, 
-        signature,
-        message: "NDA signed successfully. Check your email for confirmation and CIM access."
-      });
 
     } catch (error) {
       console.error('NDA signing error:', error);
+      console.log("=== END NDA SIGNING DEBUG ===");
       res.status(500).json({ error: "Failed to process NDA signature" });
     }
   });
