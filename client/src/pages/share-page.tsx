@@ -142,6 +142,7 @@ export function SharePage() {
           selectedImages={shareData.cim.selectedImages}
           title={shareData.cim.title}
           isSharedView={true}
+          userProfile={shareData.cim.userProfile}
         />
       )}
     </div>

@@ -38,9 +38,10 @@ interface CimDisplayProps {
   selectedImages?: string[];
   title?: string;
   isSharedView?: boolean;
+  userProfile?: any;
 }
 
-export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView }: CimDisplayProps) {
+export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile }: CimDisplayProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -369,6 +370,27 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
+      {/* Business Website */}
+      {websiteUrl && renderSectionWithInsertables("business-website",
+        <Card>
+          <CardHeader>
+            <CardTitle>Business Website</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+              <a 
+                href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                {websiteUrl}
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Business Images */}
       {selectedImages && selectedImages.length > 0 && renderSectionWithInsertables("business-images",
         <Card>
@@ -603,24 +625,24 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <hr className="mb-6 border-gray-300" />
             <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
             <div className="flex flex-col md:flex-row items-center gap-6">
-              {user?.profilePhoto && (
+              {(user?.profilePhoto || userProfile?.profilePhoto) && (
                 <img 
-                  src={user.profilePhoto} 
+                  src={user?.profilePhoto || userProfile?.profilePhoto} 
                   alt="Profile" 
                   className="w-16 h-16 object-cover rounded-[30px]"
                 />
               )}
               <div className="text-center md:text-left">
-                <h3 className="text-lg font-semibold">{user?.name || user?.email || 'Contact Information'}</h3>
-                {user?.title && <p className="text-sm text-gray-600">{user.title}</p>}
-                {user?.businessName && <p className="text-sm font-medium">{user.businessName}</p>}
-                {user?.phoneNumber && <p className="text-sm text-gray-600">{user.phoneNumber}</p>}
-                {user?.email && <p className="text-sm text-gray-600">{user.email}</p>}
-                {!user?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
+                <h3 className="text-lg font-semibold">{user?.name || userProfile?.name || user?.email || userProfile?.email || 'Contact Information'}</h3>
+                {(user?.title || userProfile?.title) && <p className="text-sm text-gray-600">{user?.title || userProfile?.title}</p>}
+                {(user?.businessName || userProfile?.businessName) && <p className="text-sm font-medium">{user?.businessName || userProfile?.businessName}</p>}
+                {(user?.phoneNumber || userProfile?.phoneNumber) && <p className="text-sm text-gray-600">{user?.phoneNumber || userProfile?.phoneNumber}</p>}
+                {(user?.email || userProfile?.email) && <p className="text-sm text-gray-600">{user?.email || userProfile?.email}</p>}
+                {!user?.email && !userProfile?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
               </div>
-              {user?.businessLogo && (
+              {(user?.businessLogo || userProfile?.businessLogo) && (
                 <img 
-                  src={user.businessLogo} 
+                  src={user?.businessLogo || userProfile?.businessLogo} 
                   alt="Business Logo" 
                   className="w-16 h-16 object-contain rounded-[30px] ml-auto"
                 />

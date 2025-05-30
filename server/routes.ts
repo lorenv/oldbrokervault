@@ -116,9 +116,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Get user profile for contact information
+      const userProfile = await storage.getUser(cimDoc.userId);
+      
       console.log("Sending share data successfully");
       res.json({
-        cim: cimDoc,
+        cim: {
+          ...cimDoc,
+          userProfile: userProfile ? {
+            name: userProfile.name,
+            title: userProfile.title,
+            email: userProfile.email,
+            phoneNumber: userProfile.phoneNumber,
+            businessName: userProfile.businessName,
+            businessLogo: userProfile.businessLogo,
+            profilePhoto: userProfile.profilePhoto
+          } : null
+        },
         requiresNda: cimDoc.ndaProtected || false,
         ndaUrl
       });
