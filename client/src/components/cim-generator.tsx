@@ -211,6 +211,12 @@ export function CimGenerator() {
     onSuccess: (data) => {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
+      
+      // Store the logoUrl in the analysis for display
+      if (data.logoUrl) {
+        setAnalysis((prev: any) => ({ ...prev, logoUrl: data.logoUrl }));
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
       
       // Reset website analysis stage
