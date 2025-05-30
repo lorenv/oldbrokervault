@@ -129,7 +129,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   // Helper function to get custom sections for a specific location
   const getCustomSectionsAfter = (sectionName: string) => {
-    return customSections.filter((section: any) => section.insertAfterSection === sectionName);
+    return typedCustomSections.filter((section) => section.insertAfterSection === sectionName);
   };
 
   // Helper function to render a section with insertable zones
