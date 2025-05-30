@@ -318,11 +318,22 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {logoUrl && (
-                <img 
-                  src={logoUrl} 
-                  alt="Company Logo" 
-                  className="h-16 w-16 object-contain rounded-[30px]"
-                />
+                <>
+                  {(() => {
+                    console.log('Logo Debug:', { logoUrl, isSharedView });
+                    return null;
+                  })()}
+                  <img 
+                    src={logoUrl} 
+                    alt="Company Logo" 
+                    className={isSharedView ? "h-24 w-24 object-contain rounded-[30px]" : "h-16 w-16 object-contain rounded-[30px]"}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', logoUrl);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </>
               )}
               <div>
                 <CardTitle className="text-2xl">{title || "Confidential Information Memorandum"}</CardTitle>
@@ -394,6 +405,15 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       )}
 
       {/* Business Images */}
+      {(() => {
+        console.log('Business Images Debug:', {
+          selectedImages,
+          hasImages: selectedImages && selectedImages.length > 0,
+          isSharedView,
+          imageCount: selectedImages?.length
+        });
+        return null;
+      })()}
       {selectedImages && selectedImages.length > 0 && renderSectionWithInsertables("business-images",
         <Card>
           <CardHeader>
@@ -410,7 +430,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   <img 
                     src={imageUrl} 
                     alt={`Business image ${index + 1}`} 
-                    className="w-full h-48 object-cover rounded-[30px] shadow-md"
+                    className={isSharedView ? "w-full h-64 object-cover rounded-[30px] shadow-md" : "w-full h-48 object-cover rounded-[30px] shadow-md"}
+                    onError={(e) => {
+                      console.error('Image failed to load:', imageUrl);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
                   />
                 </div>
               ))}
@@ -645,7 +670,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.businessLogo || userProfile?.businessLogo} 
                 alt="Business Logo" 
-                className="w-24 h-24 object-contain rounded-[30px] ml-auto"
+                className={isSharedView ? "w-36 h-36 object-contain rounded-[30px] ml-auto" : "w-24 h-24 object-contain rounded-[30px] ml-auto"}
               />
             )}
           </div>
