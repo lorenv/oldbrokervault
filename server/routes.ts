@@ -1198,7 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate the shared CIM page
       const analysis = doc.editedContent || doc.analysis;
-      const businessName = analysis.story?.businessSummary || doc.title;
+      const businessName = doc.title || analysis?.story?.businessSummary || "Business Overview";
       
       const sharedCimHtml = `
         <!DOCTYPE html>
@@ -1236,7 +1236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <body>
           <div class="header">
             <div class="header-content">
-              ${docOwner?.businessLogo ? `<img src="${docOwner.businessLogo}" alt="${businessName}" class="logo">` : ''}
+              ${doc.logoUrl ? `<img src="${doc.logoUrl}" alt="${businessName}" class="logo">` : (docOwner?.businessLogo ? `<img src="${docOwner.businessLogo}" alt="${businessName}" class="logo">` : '')}
               <div class="header-text">
                 <h1>${businessName}</h1>
                 <p>Confidential Information Memorandum</p>
