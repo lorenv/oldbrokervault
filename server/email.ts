@@ -13,6 +13,7 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  replyTo?: string;
   attachments?: Array<{
     content: string;
     filename: string;
@@ -28,6 +29,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       from: params.from,
       subject: params.subject,
       text: params.text,
+      replyTo: params.replyTo,
       html: params.html,
       attachments: params.attachments,
     });

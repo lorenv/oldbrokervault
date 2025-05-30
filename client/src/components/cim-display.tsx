@@ -8,6 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Save, Download, X } from "lucide-react";
 import { DocumentExport } from "./document-export";
+import { BrokerContactForm } from "./broker-contact-form";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -644,6 +645,14 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           {renderField("Intellectual Property", "ownership.intellectualProperty", false, true, "Trademarks, patents, copyrights")}
         </CardContent>
       </Card>
+
+      {/* Ask the Broker Form - Only shown in shared view */}
+      {isSharedView && (
+        <BrokerContactForm 
+          shareSlug={window.location.pathname.split('/').pop() || ''}
+          cimTitle={title || "Confidential Information Memorandum"}
+        />
+      )}
 
       {/* Contact Information Footer */}
       <Card className="mt-8 border-t-2">

@@ -1113,6 +1113,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to export to Google Docs" });
     }
   });
+
+  // Rate limiting storage for broker contact emails
+  const contactRateLimit = new Map<string, number[]>();
+
+  // Broker contact endpoint with rate limiting
+  app.post("/api/share/:shareSlug/contact", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const { viewerName, viewerEmail, viewerPhone, question } = req.body;
+
+      // Input validation
+      if (!viewerName?.trim() || !viewerEmail?.trim() || !question?.trim()) {
+        return res.status(400).json({ 
+          error: "Name, email, and question are required fields" 
+        });
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(viewerEmail)) {
+        return res.status(400).json({ 
+          error: "Please provide a valid email address" 
+        });
+      }
+
+      // Rate limiting: 2 questions per email per hour
+      const now = Date.now();
+      const oneHourAgo = now - (60 * 60 * 1000);
+      const userRequests = contactRateLimit.get(viewerEmail) || [];
+      
+      // Clean old requests
+      const recentRequests = userRequests.filter(timestamp => timestamp > oneHourAgo);
+      
+      if (recentRequests.length >= 2) {
+        return res.status(429).json({ 
+          error: "You can only send 2 questions per hour. Please try again later." 
+        });
+      }
+
+      // Get the shared CIM document
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Shared document not found" });
+      }
+
+      // Get the document owner's profile
+      const ownerProfile = await storage.getUser(cimDoc.userId);
+      if (!ownerProfile?.email) {
+        return res.status(500).json({ error: "Unable to contact document owner" });
+      }
+
+      // Send email to the document owner
+      const emailSubject = `Question about "${cimDoc.title}" from ${viewerName}`;
+      const emailBody = `
+You have received a question about your CIM document "${cimDoc.title}".
+
+From: ${viewerName}
+Email: ${viewerEmail}
+${viewerPhone ? `Phone: ${viewerPhone}` : ''}
+
+Question:
+${question}
+
+---
+This message was sent through your shared CIM link. You can reply directly to this email to respond to ${viewerName}.
+
+View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
+      `.trim();
+
+      const emailSent = await sendEmail({
+        to: ownerProfile.email,
+        from: 'noreply@cimgod.com',
+        replyTo: viewerEmail,
+        subject: emailSubject,
+        text: emailBody
+      });
+
+      if (!emailSent) {
+        return res.status(500).json({ error: "Failed to send email. Please try again." });
+      }
+
+      // Update rate limiting
+      recentRequests.push(now);
+      contactRateLimit.set(viewerEmail, recentRequests);
+
+      // Clean up old rate limit entries periodically
+      if (Math.random() < 0.1) { // 10% chance to clean up
+        for (const [email, timestamps] of contactRateLimit.entries()) {
+          const validTimestamps = timestamps.filter(ts => ts > oneHourAgo);
+          if (validTimestamps.length === 0) {
+            contactRateLimit.delete(email);
+          } else {
+            contactRateLimit.set(email, validTimestamps);
+          }
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Your question has been sent to the broker" 
+      });
+
+    } catch (error) {
+      console.error("Error sending broker contact email:", error);
+      res.status(500).json({ error: "Failed to send message. Please try again later." });
+    }
+  });
   
   // Add endpoint to fetch Beaver Builder templates
   app.post("/api/wordpress/fetch-templates", async (req, res) => {
