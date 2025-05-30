@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
-import { insertCimDocumentSchema, subscriptionPlans, users } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
@@ -17,6 +17,8 @@ import { generateWordDocument, generatePDF, generateHtml, formatTextContent, cre
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 import sharp from 'sharp';
+import { sendNdaSignedEmail } from "./email";
+import { addSignatureToNda } from "./pdf-utils";
 
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
