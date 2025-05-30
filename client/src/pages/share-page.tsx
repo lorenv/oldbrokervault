@@ -11,6 +11,9 @@ import { Shield, FileText, AlertCircle } from "lucide-react";
 export function SharePage() {
   const [, params] = useRoute("/cims/:shareSlug");
   const shareSlug = params?.shareSlug;
+  
+  console.log("Route params:", params);
+  console.log("Share slug extracted:", shareSlug);
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
 
