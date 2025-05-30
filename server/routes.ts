@@ -1884,6 +1884,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint for share page to fetch CIM data
+  app.get("/api/share/:shareSlug", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (!cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Sharing is disabled for this document" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Increment view count
+      await storage.incrementShareViewCount(cimDoc.id);
+
+      // Get NDA template if required
+      let ndaUrl = null;
+      if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
+        const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
+        if (ndaTemplate?.fileContent) {
+          ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
+        }
+      }
+
+      res.json({
+        cim: cimDoc,
+        requiresNda: cimDoc.ndaProtected,
+        ndaUrl
+      });
+    } catch (error) {
+      console.error("Error fetching share data:", error);
+      res.status(500).json({ error: "Failed to fetch shared document" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -26,7 +26,7 @@ function Router() {
         <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
-        <Route path="/share/:shareSlug" component={SharePage} />
+        <Route path="/cims/:shareSlug" component={SharePage} />
         <Route component={NotFound} />
       </Switch>
     </>
