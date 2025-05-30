@@ -201,6 +201,10 @@ export class DatabaseStorage implements IStorage {
     return doc;
   }
 
+  async getCim(id: number): Promise<CimDocument | undefined> {
+    return this.getCimDocument(id);
+  }
+
   async updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument> {
     const [updatedDoc] = await db
       .update(cimDocuments)
@@ -490,6 +494,34 @@ export class DatabaseStorage implements IStorage {
         sql`${ndaSignatures.cimDocumentId} = ${cimDocumentId} AND ${ndaSignatures.signerEmail} = ${email}`
       );
     return signature || undefined;
+  }
+
+  // Share Links
+  async createShareLink(userId: number, shareLink: InsertShareLink): Promise<ShareLink> {
+    const [newShareLink] = await db.insert(shareLinks)
+      .values({
+        userId,
+        ...shareLink
+      })
+      .returning();
+    return newShareLink;
+  }
+
+  async getShareLink(shareSlug: string): Promise<ShareLink | undefined> {
+    const [shareLink] = await db.select().from(shareLinks).where(eq(shareLinks.shareSlug, shareSlug));
+    return shareLink;
+  }
+
+  async getNdaTemplate(id: number): Promise<NdaTemplate | undefined> {
+    const [template] = await db.select().from(ndaTemplates).where(eq(ndaTemplates.id, id));
+    return template;
+  }
+
+  async getNdaSignaturesByShareSlug(shareSlug: string): Promise<NdaSignature[]> {
+    return await db.select()
+      .from(ndaSignatures)
+      .where(eq(ndaSignatures.shareSlug, shareSlug))
+      .orderBy(desc(ndaSignatures.signedAt));
   }
 }
 
