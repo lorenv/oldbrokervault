@@ -15,6 +15,7 @@ interface InlineEditorProps {
   multiline?: boolean;
   isArray?: boolean;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 export function InlineEditor({
@@ -26,7 +27,8 @@ export function InlineEditor({
   onCancel,
   multiline = false,
   isArray = false,
-  placeholder = ""
+  placeholder = "",
+  readOnly = false
 }: InlineEditorProps) {
   const [editValue, setEditValue] = useState<string>("");
 
@@ -92,6 +94,15 @@ export function InlineEditor({
           </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Read-only mode for shared views
+  if (readOnly) {
+    return (
+      <div className="min-h-[40px] p-2">
+        {displayValue || <span className="text-muted-foreground italic">No content available</span>}
+      </div>
     );
   }
 

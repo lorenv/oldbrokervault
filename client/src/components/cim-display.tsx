@@ -270,13 +270,14 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       <InlineEditor
         value={getCurrentValue(path)}
         fieldPath={path}
-        isEditing={editingField === path}
-        onEdit={handleEdit}
+        isEditing={!isSharedView && editingField === path}
+        onEdit={isSharedView ? () => {} : handleEdit}
         onSave={handleSave}
         onCancel={handleCancel}
         multiline={multiline}
         isArray={isArray}
         placeholder={placeholder}
+        readOnly={isSharedView}
       />
     </div>
   );
@@ -285,8 +286,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   return (
     <div className="space-y-6">
-      {/* Save Changes Bar */}
-      {hasUnsavedChanges && (
+      {/* Save Changes Bar - Hidden in shared view */}
+      {!isSharedView && hasUnsavedChanges && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
