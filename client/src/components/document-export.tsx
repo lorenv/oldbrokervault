@@ -754,7 +754,7 @@ export function DocumentExport({
               <Switch
                 id="share-enabled"
                 checked={shareSettings.shareEnabled}
-                onCheckedChange={(checked) => {
+                onCheckedChange={async (checked) => {
                   setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
                   if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
                     // Generate random slug immediately when enabling share
@@ -762,6 +762,20 @@ export function DocumentExport({
                     const newSlug = `cim-${randomId}`;
                     setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
                     setShareUrl(`${window.location.origin}/cims/${newSlug}`);
+                    
+                    // Immediately save to database
+                    if (docId) {
+                      try {
+                        await apiRequest('POST', `/api/cim/${docId}/share`, {
+                          shareEnabled: true,
+                          shareSlug: newSlug,
+                          sharePassword: null,
+                          shareExpiresAt: null
+                        });
+                      } catch (error) {
+                        console.error('Failed to save share settings immediately:', error);
+                      }
+                    }
                   }
                 }}
               />
