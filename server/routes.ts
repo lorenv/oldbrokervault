@@ -1212,8 +1212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public share endpoint - serves shared CIMs
-  app.get("/cims/:slug", async (req, res) => {
+  // DISABLED: Public share endpoint - serves shared CIMs
+  // This route bypasses React app's NDA protection, so we disable it
+  // app.get("/cims/:slug", async (req, res) => {
     try {
       const slug = req.params.slug;
       console.log("Public share request for slug:", slug);
