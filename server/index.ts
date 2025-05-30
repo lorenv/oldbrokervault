@@ -7,8 +7,8 @@ const app = express();
 // Important: Raw body parser for Stripe webhooks must come before JSON parser
 app.use('/api/webhook/stripe', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();

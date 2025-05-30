@@ -627,14 +627,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Business Image</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-4 top-4"
-              onClick={() => setSelectedImageModal(null)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogHeader>
           {selectedImageModal && (
             <div className="flex justify-center">
