@@ -20,6 +20,9 @@ export function SharePage() {
   }) as { data: any, isLoading: boolean, error: any };
 
   useEffect(() => {
+    console.log("Share data loaded:", shareData);
+    console.log("Requires NDA:", shareData?.requiresNda);
+    console.log("Has signed NDA:", hasSignedNda);
     if (shareData?.requiresNda && !hasSignedNda) {
       setShowNdaDialog(true);
     }
