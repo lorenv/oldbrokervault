@@ -619,43 +619,36 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       </Card>
 
       {/* Contact Information Footer */}
-      {(user || isSharedView) && (
-        <Card className="mt-8 border-t-2">
-          <CardContent className="pt-6">
-            <hr className="mb-6 border-gray-300" />
-            <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
-            {/* Debug: Check data in console */}
-            {(() => {
-              console.log('Contact Info Debug - user:', user, 'userProfile:', userProfile, 'isSharedView:', isSharedView);
-              return null;
-            })()}
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              {(user?.profilePhoto || userProfile?.profilePhoto) && (
-                <img 
-                  src={user?.profilePhoto || userProfile?.profilePhoto} 
-                  alt="Profile" 
-                  className="w-16 h-16 object-cover rounded-[30px]"
-                />
-              )}
-              <div className="text-center md:text-left">
-                <h3 className="text-lg font-semibold">{user?.name || userProfile?.name || user?.email || userProfile?.email || 'Contact Information'}</h3>
-                {(user?.title || userProfile?.title) && <p className="text-sm text-gray-600">{user?.title || userProfile?.title}</p>}
-                {(user?.businessName || userProfile?.businessName) && <p className="text-sm font-medium">{user?.businessName || userProfile?.businessName}</p>}
-                {(user?.phoneNumber || userProfile?.phoneNumber) && <p className="text-sm text-gray-600">{user?.phoneNumber || userProfile?.phoneNumber}</p>}
-                {(user?.email || userProfile?.email) && <p className="text-sm text-gray-600">{user?.email || userProfile?.email}</p>}
-                {!user?.email && !userProfile?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
-              </div>
-              {(user?.businessLogo || userProfile?.businessLogo) && (
-                <img 
-                  src={user?.businessLogo || userProfile?.businessLogo} 
-                  alt="Business Logo" 
-                  className="w-16 h-16 object-contain rounded-[30px] ml-auto"
-                />
-              )}
+      <Card className="mt-8 border-t-2">
+        <CardContent className="pt-6">
+          <hr className="mb-6 border-gray-300" />
+          <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            {(user?.profilePhoto || userProfile?.profilePhoto) && (
+              <img 
+                src={user?.profilePhoto || userProfile?.profilePhoto} 
+                alt="Profile" 
+                className="w-16 h-16 object-cover rounded-[30px]"
+              />
+            )}
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-semibold">{user?.name || userProfile?.name || user?.email || userProfile?.email || 'Contact Information'}</h3>
+              {(user?.title || userProfile?.title) && <p className="text-sm text-gray-600">{user?.title || userProfile?.title}</p>}
+              {(user?.businessName || userProfile?.businessName) && <p className="text-sm font-medium">{user?.businessName || userProfile?.businessName}</p>}
+              {(user?.phoneNumber || userProfile?.phoneNumber) && <p className="text-sm text-gray-600">{user?.phoneNumber || userProfile?.phoneNumber}</p>}
+              {(user?.email || userProfile?.email) && <p className="text-sm text-gray-600">{user?.email || userProfile?.email}</p>}
+              {!user?.email && !userProfile?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            {(user?.businessLogo || userProfile?.businessLogo) && (
+              <img 
+                src={user?.businessLogo || userProfile?.businessLogo} 
+                alt="Business Logo" 
+                className="w-16 h-16 object-contain rounded-[30px] ml-auto"
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Image Modal */}
       <Dialog open={!!selectedImageModal} onOpenChange={() => setSelectedImageModal(null)}>

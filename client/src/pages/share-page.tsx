@@ -148,16 +148,29 @@ export function SharePage() {
       </div>
 
       {shareData.cim && (
-        <CimDisplay 
-          analysis={shareData.cim.analysis}
-          docId={shareData.cim.id}
-          websiteUrl={shareData.cim.websiteUrl}
-          logoUrl={shareData.cim.logoUrl}
-          selectedImages={shareData.cim.selectedImages}
-          title={shareData.cim.title}
-          isSharedView={true}
-          userProfile={shareData.cim.userProfile}
-        />
+        <>
+          {/* Debug: Log the data being passed */}
+          {(() => {
+            console.log('Share page debug - CIM data:', {
+              websiteUrl: shareData.cim.websiteUrl,
+              selectedImages: shareData.cim.selectedImages,
+              logoUrl: shareData.cim.logoUrl,
+              userProfile: shareData.cim.userProfile,
+              fullCimData: shareData.cim
+            });
+            return null;
+          })()}
+          <CimDisplay 
+            analysis={shareData.cim.analysis}
+            docId={shareData.cim.id}
+            websiteUrl={shareData.cim.websiteUrl}
+            logoUrl={shareData.cim.logoUrl}
+            selectedImages={shareData.cim.selectedImages}
+            title={shareData.cim.title}
+            isSharedView={true}
+            userProfile={shareData.cim.userProfile}
+          />
+        </>
       )}
     </div>
   );
