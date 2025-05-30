@@ -233,29 +233,13 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 }
 
-export async function analyzeCimTranscript(transcript: string, customDirections?: string, customizations?: any): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string, customDirections?: string): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
     console.log("Custom directions in Perplexity function:", customDirections ? "Present" : "Not provided");
-    console.log("Customizations received:", customizations);
     if (customDirections) {
       console.log("Custom directions length:", customDirections.length, "characters");
     }
-    
-    // Build dynamic prompt based on customizations
-    const tone = customizations?.tone || 'Professional';
-    const verbosity = customizations?.verbosity || 'Balanced';
-    const audienceType = customizations?.audienceType || 'Executives';
-    
-    // Build tone-specific instructions
-    const toneInstructions = tone === 'Professional' 
-      ? 'Use formal, professional business language with industry-specific terminology. Maintain a serious, authoritative tone throughout.'
-      : 'Use approachable, conversational language while maintaining business credibility. Make the content engaging and accessible.';
-    
-    // Build verbosity-specific instructions
-    const verbosityInstructions = verbosity === 'Brief' 
-      ? 'Provide concise, bullet-point style responses. Focus on key highlights and essential information only.'
-      : verbosity === 'Robust'
       ? 'Provide comprehensive, detailed responses with extensive explanations, specific metrics, and thorough analysis. Each section should be thoroughly developed with supporting details.'
       : 'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
     
