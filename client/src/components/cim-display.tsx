@@ -498,19 +498,19 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-semibold text-md mb-3 text-purple-700">Revenue Metrics</h4>
+                <h4 className="font-semibold text-md mb-3">Revenue Metrics</h4>
                 {renderField("Average Order Value", "sales.averageOrderValue", false, false, "Typical transaction size")}
                 {renderField("Revenue Seasonality", "sales.seasonality", true, false, "How do sales vary throughout the year?")}
               </div>
               <div>
-                <h4 className="font-semibold text-md mb-3 text-orange-700">Sales Process</h4>
+                <h4 className="font-semibold text-md mb-3">Sales Process</h4>
                 {renderField("Pricing Strategy", "sales.pricingModel", true, false, "How are products/services priced?")}
                 {renderField("Payment Methods", "sales.paymentMethods", false, true, "How do customers pay?")}
               </div>
             </div>
             
             <div className="border-t pt-4">
-              <h4 className="font-semibold text-md mb-3 text-blue-700">Customer Acquisition</h4>
+              <h4 className="font-semibold text-md mb-3">Customer Acquisition</h4>
               {renderField("Marketing Strategies", "marketing.strategies", false, true, "Current marketing approaches")}
               {renderField("Client Acquisition Process", "marketing.clientAcquisition", true, false, "How are new customers found and converted?")}
             </div>
@@ -526,16 +526,16 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3 text-green-700">Customer Base</h4>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold text-md mb-3">Customer Base</h4>
                 {renderField("Customer Retention", "operations.customers.recurring", true, false, "Percentage of repeat customers and retention rate")}
                 {renderField("Customer Relationships", "operations.customers.relationships", true, false, "How are customer relationships maintained?")}
                 {renderField("Customer Concentration", "operations.customers.concentration", true, false, "Revenue dependency on key customers")}
                 {renderField("Contract Structure", "operations.customers.contracts", true, false, "Types of customer contracts and terms")}
               </div>
               
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3 text-blue-700">Supply Chain</h4>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold text-md mb-3">Supply Chain</h4>
                 {renderField("Supplier Network", "operations.suppliers.count", false, false, "Number and types of suppliers")}
                 {renderField("Supplier Relationships", "operations.suppliers.transferability", true, false, "How easily can suppliers transfer to new owner?")}
                 {renderField("Supply Chain Risk", "operations.suppliers.concentration", true, false, "Dependency on key suppliers")}
@@ -553,8 +553,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardTitle>Team Structure & Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-amber-50 rounded-lg mb-4">
-              <h4 className="font-semibold text-md mb-3 text-amber-700">Owner Involvement</h4>
+            <div className="p-4 bg-gray-50 rounded-lg mb-4">
+              <h4 className="font-semibold text-md mb-3">Owner Involvement</h4>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   {renderField("Owner Role & Responsibilities", "team.ownerResponsibilities", true, false, "What does the owner currently do?")}
@@ -664,7 +664,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.profilePhoto || userProfile?.profilePhoto} 
                 alt="Profile" 
-                className="w-16 h-16 object-cover rounded-[30px]"
+                className={isSharedView ? "w-32 h-32 object-cover rounded-[30px]" : "w-16 h-16 object-cover rounded-[30px]"}
               />
             )}
             <div className="text-center md:text-left">
