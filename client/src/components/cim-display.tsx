@@ -79,8 +79,21 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     refetchSections();
   };
 
-  const handleSectionDelete = (sectionId: number) => {
-    refetchSections();
+  const handleSectionDelete = async (sectionId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/custom-section/${sectionId}`);
+      refetchSections();
+      toast({
+        title: "Section Deleted",
+        description: "Custom section has been removed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete custom section. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSectionUpdate = async (sectionId: number, content: string) => {
@@ -337,7 +350,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   <img 
                     src={logoUrl} 
                     alt="Company Logo" 
-                    className={isSharedView ? "h-24 w-24 object-contain rounded-[30px]" : "h-16 w-16 object-contain rounded-[30px]"}
+                    className={isSharedView ? "h-32 w-32 object-contain rounded-[30px]" : "h-20 w-20 object-contain rounded-[30px]"}
                     onError={(e) => {
                       console.error('Logo failed to load:', logoUrl);
                       const target = e.target as HTMLImageElement;
@@ -685,9 +698,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       )}
 
       {/* Contact Information Footer */}
-      <Card className="mt-8 border-t-2">
+      <Card className="mt-8">
         <CardContent className="pt-6">
-          <hr className="mb-6 border-gray-300" />
           <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
           <div className="flex flex-col md:flex-row items-center gap-6">
             {(user?.profilePhoto || userProfile?.profilePhoto) && (
