@@ -240,15 +240,11 @@ export async function analyzeCimTranscript(transcript: string, customDirections?
     if (customDirections) {
       console.log("Custom directions length:", customDirections.length, "characters");
     }
-      ? 'Provide comprehensive, detailed responses with extensive explanations, specific metrics, and thorough analysis. Each section should be thoroughly developed with supporting details.'
-      : 'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
     
-    // Build audience-specific instructions
-    const audienceInstructions = audienceType === 'Executives'
-      ? 'Write for C-level executives and sophisticated investors. Focus on strategic value, ROI potential, and high-level business metrics.'
-      : audienceType === 'Colleagues'
-      ? 'Write for business professionals and industry peers. Include operational details and practical considerations.'
-      : 'Write in an accessible, friendly manner suitable for a broader audience while maintaining business professionalism.';
+    // Use default professional tone and balanced verbosity
+    const toneInstructions = 'Use formal, professional business language with industry-specific terminology. Maintain a serious, authoritative tone throughout.';
+    const verbosityInstructions = 'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
+    const audienceInstructions = 'Target business executives and sophisticated investors who need comprehensive information for decision-making.';
     
     const result = await makePerplexityRequest([
       {
