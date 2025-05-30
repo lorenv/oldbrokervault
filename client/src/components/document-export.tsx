@@ -979,20 +979,224 @@ export function DocumentExport({
                     </div>
                   </div>
                 )}
+
+                {/* NDA Protection Section */}
+                <Card className="border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <Users className="h-5 w-5" />
+                      NDA Protection
+                    </CardTitle>
+                    <CardDescription>
+                      Require viewers to sign an NDA before accessing the CIM
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="nda-enabled">Require NDA Signature</Label>
+                      <Switch
+                        id="nda-enabled"
+                        checked={shareSettings.ndaProtected}
+                        onCheckedChange={(checked) => 
+                          setShareSettings(prev => ({ ...prev, ndaProtected: checked }))
+                        }
+                      />
+                    </div>
+
+                    {shareSettings.ndaProtected && (
+                      <div className="space-y-2">
+                        <Label htmlFor="nda-template">Select NDA Template</Label>
+                        <Select
+                          value={shareSettings.ndaTemplateId?.toString() || ""}
+                          onValueChange={(value) => 
+                            setShareSettings(prev => ({ 
+                              ...prev, 
+                              ndaTemplateId: value ? parseInt(value) : null 
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose an NDA template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ndaTemplates.map((template) => (
+                              <SelectItem key={template.id} value={template.id.toString()}>
+                                {template.name} {template.isDefault && "(Default)"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {ndaTemplates.length === 0 && (
+                          <p className="text-sm text-orange-600">
+                            No NDA templates found. Create one in the NDA Templates tab.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </>
             )}
-          </div>
-          <DialogFooter>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* NDA Templates Tab */}
+            <TabsContent value="nda-templates" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload New NDA Template</CardTitle>
+                  <CardDescription>
+                    Upload a PDF file that will be used as the NDA template for viewers to sign
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nda-name">Template Name</Label>
+                    <Input
+                      id="nda-name"
+                      placeholder="e.g., Standard Business NDA"
+                      value={newNdaTemplate.name}
+                      onChange={(e) => 
+                        setNewNdaTemplate(prev => ({ ...prev, name: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nda-file">NDA PDF File</Label>
+                    <Input
+                      id="nda-file"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setNewNdaTemplate(prev => ({ ...prev, file }));
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="nda-default"
+                      checked={newNdaTemplate.isDefault}
+                      onCheckedChange={(checked) => 
+                        setNewNdaTemplate(prev => ({ ...prev, isDefault: checked }))
+                      }
+                    />
+                    <Label htmlFor="nda-default">Set as default template</Label>
+                  </div>
+
+                  <Button 
+                    onClick={uploadNdaTemplate}
+                    disabled={isUploadingNda || !newNdaTemplate.name || !newNdaTemplate.file}
+                    className="w-full"
+                  >
+                    {isUploadingNda ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload NDA Template
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Existing Templates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing NDA Templates</CardTitle>
+                  <CardDescription>
+                    Manage your uploaded NDA templates
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {ndaTemplates.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No NDA templates uploaded yet
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {ndaTemplates.map((template) => (
+                        <div key={template.id} className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <p className="font-medium">{template.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Created: {new Date(template.createdAt).toLocaleDateString()}
+                              {template.isDefault && " • Default"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteNdaTemplate(template.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Signatures Tab */}
+            <TabsContent value="signatures" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    NDA Signatures
+                  </CardTitle>
+                  <CardDescription>
+                    View all users who have signed the NDA for this CIM
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {ndaSignatures.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No signatures yet
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {ndaSignatures.map((signature) => (
+                        <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
+                          <div>
+                            <p className="font-medium">{signature.signerName}</p>
+                            <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm">{new Date(signature.signedAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              IP: {signature.signerIpAddress}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
-              Cancel
+              Close
             </Button>
             <Button 
               onClick={updateShareSettings}
               disabled={isUpdatingShare}
             >
-              {isUpdatingShare ? "Updating..." : "Update Settings"}
+              {isUpdatingShare ? "Updating..." : "Save Settings"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
