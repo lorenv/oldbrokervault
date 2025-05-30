@@ -201,17 +201,48 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   }
 }
 
-export async function analyzeCimTranscript(transcript: string, customDirections?: string): Promise<CimAnalysis> {
+export async function analyzeCimTranscript(transcript: string, customDirections?: string, customizations?: any): Promise<CimAnalysis> {
   try {
     console.log("Analyzing transcript with Perplexity API");
     console.log("Custom directions in Perplexity function:", customDirections ? "Present" : "Not provided");
+    console.log("Customizations received:", customizations);
     if (customDirections) {
       console.log("Custom directions length:", customDirections.length, "characters");
     }
+    
+    // Build dynamic prompt based on customizations
+    const tone = customizations?.tone || 'Professional';
+    const verbosity = customizations?.verbosity || 'Balanced';
+    const audienceType = customizations?.audienceType || 'Executives';
+    
+    // Build tone-specific instructions
+    const toneInstructions = tone === 'Professional' 
+      ? 'Use formal, professional business language with industry-specific terminology. Maintain a serious, authoritative tone throughout.'
+      : 'Use approachable, conversational language while maintaining business credibility. Make the content engaging and accessible.';
+    
+    // Build verbosity-specific instructions
+    const verbosityInstructions = verbosity === 'Brief' 
+      ? 'Provide concise, bullet-point style responses. Focus on key highlights and essential information only.'
+      : verbosity === 'Robust'
+      ? 'Provide comprehensive, detailed responses with extensive explanations, specific metrics, and thorough analysis. Each section should be thoroughly developed with supporting details.'
+      : 'Provide balanced responses with sufficient detail to be informative while remaining readable and well-structured.';
+    
+    // Build audience-specific instructions
+    const audienceInstructions = audienceType === 'Executives'
+      ? 'Write for C-level executives and sophisticated investors. Focus on strategic value, ROI potential, and high-level business metrics.'
+      : audienceType === 'Colleagues'
+      ? 'Write for business professionals and industry peers. Include operational details and practical considerations.'
+      : 'Write in an accessible, friendly manner suitable for a broader audience while maintaining business professionalism.';
+    
     const result = await makePerplexityRequest([
       {
         role: "system",
         content: `You are a professional business analyst creating a Confidential Information Memorandum (CIM) for potential business buyers. When analyzing the provided transcript, respond with ONLY a JSON object (no other text) structured to answer key questions about the business in a clear Q&A style format.
+
+WRITING STYLE CUSTOMIZATIONS:
+- Tone: ${toneInstructions}
+- Detail Level: ${verbosityInstructions}
+- Target Audience: ${audienceInstructions}
 
 ${customDirections ? `IMPORTANT: Pay special attention to these custom analysis directions from the user: "${customDirections}". Incorporate these specific requirements throughout your analysis while maintaining the overall CIM structure.` : ''}
 
