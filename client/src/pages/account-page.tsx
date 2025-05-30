@@ -106,21 +106,38 @@ export default function AccountPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', field);
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please choose a file smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please choose an image file (PNG, JPG, or GIF).",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      const response = await apiRequest("POST", "/api/upload", formData);
-      const data = await response.json();
-      
-      if (data.url) {
-        handleInputChange(field, data.url);
-      }
+      // Convert file to base64 data URL for preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        handleInputChange(field, dataUrl);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       toast({
         title: "Upload Failed",
-        description: "Failed to upload file. Please try again.",
+        description: "Failed to process the image. Please try again.",
         variant: "destructive",
       });
     }
