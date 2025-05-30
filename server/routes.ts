@@ -1561,6 +1561,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Share link routes
+  app.get("/api/share/:shareSlug", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const shareLink = await storage.getShareLink(shareSlug);
+      
+      if (!shareLink) {
+        return res.status(404).json({ error: "Share link not found" });
+      }
+
+      // Check if share link is expired
+      if (shareLink.expiresAt && new Date() > shareLink.expiresAt) {
+        return res.status(410).json({ error: "Share link has expired" });
+      }
+
+      const cim = await storage.getCim(shareLink.cimId);
+      if (!cim) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get NDA template if required
+      let ndaUrl = null;
+      if (shareLink.ndaProtected && shareLink.ndaTemplateId) {
+        const ndaTemplate = await storage.getNdaTemplate(shareLink.ndaTemplateId);
+        if (ndaTemplate?.fileData) {
+          ndaUrl = `/api/nda-templates/${shareLink.ndaTemplateId}/download`;
+        }
+      }
+
+      res.json({
+        cim,
+        requiresNda: shareLink.ndaProtected,
+        ndaUrl
+      });
+    } catch (error) {
+      console.error("Error fetching share link:", error);
+      res.status(500).json({ error: "Failed to fetch share link" });
+    }
+  });
+
+  app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const { signerName, signerEmail } = req.body;
+
+      if (!signerName || !signerEmail) {
+        return res.status(400).json({ error: "Signer name and email are required" });
+      }
+
+      const shareLink = await storage.getShareLink(shareSlug);
+      if (!shareLink || !shareLink.ndaProtected) {
+        return res.status(400).json({ error: "Invalid share link or NDA not required" });
+      }
+
+      const cim = await storage.getCim(shareLink.cimId);
+      if (!cim) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const ndaTemplate = shareLink.ndaTemplateId ? 
+        await storage.getNdaTemplate(shareLink.ndaTemplateId) : null;
+
+      // Create NDA signature record
+      const signature = await storage.createNdaSignature({
+        shareSlug,
+        signerName,
+        signerEmail,
+        signerIp: req.ip || req.connection.remoteAddress || 'unknown',
+        signedAt: new Date(),
+        ndaTemplateId: shareLink.ndaTemplateId
+      });
+
+      // Send email with signed NDA and share link
+      if (ndaTemplate?.fileData) {
+        const { sendNdaSignedEmail } = await import("./email");
+        
+        await sendNdaSignedEmail(
+          signerEmail,
+          signerName,
+          cim.title,
+          shareSlug,
+          ndaTemplate.fileData,
+          ndaTemplate.name,
+          signature.signedAt
+        );
+
+        // Also send notification to document owner
+        const owner = await storage.getUser(cim.userId);
+        if (owner?.email) {
+          await sendNdaSignedEmail(
+            owner.email,
+            owner.email, // Owner name
+            cim.title,
+            shareSlug,
+            ndaTemplate.fileData,
+            ndaTemplate.name,
+            signature.signedAt,
+            true // isOwnerNotification
+          );
+        }
+      }
+
+      res.json({ 
+        message: "NDA signed successfully. You can now access the document.",
+        signatureId: signature.id
+      });
+    } catch (error) {
+      console.error("Error signing NDA:", error);
+      res.status(500).json({ error: "Failed to sign NDA" });
+    }
+  });
+
   // NDA Template routes
   app.get("/api/nda-templates", async (req, res) => {
     if (!req.user) {

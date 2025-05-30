@@ -10,6 +10,7 @@ import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
 import PricingPage from "@/pages/pricing-page";
+import { SharePage } from "@/pages/share-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -25,6 +26,7 @@ function Router() {
         <ProtectedRoute path="/pricing" component={PricingPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/share/:shareSlug" component={SharePage} />
         <Route component={NotFound} />
       </Switch>
     </>
