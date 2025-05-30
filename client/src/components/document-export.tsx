@@ -36,7 +36,8 @@ export function DocumentExport({
   selectedImages,
   user,
   isWordPressDialogOpen: externalIsWordPressDialogOpen,
-  setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen
+  setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen,
+  isSharedView = false
 }: { 
   analysis: any; 
   docId: number; 
@@ -46,6 +47,7 @@ export function DocumentExport({
   user?: any;
   isWordPressDialogOpen?: boolean;
   setIsWordPressDialogOpen?: (isOpen: boolean) => void;
+  isSharedView?: boolean;
 }) {
   const { toast } = useToast();
   const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
@@ -622,26 +624,17 @@ export function DocumentExport({
             <Button variant="outline" disabled={isUpdatingShare}>
               {isUpdatingShare ? (
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              ) : isSharedView ? (
+                <Download className="h-4 w-4 mr-2" />
               ) : (
                 <Share2 className="h-4 w-4 mr-2" />
               )}
-              {isUpdatingShare ? "Updating..." : "Share"}
+              {isUpdatingShare ? "Updating..." : isSharedView ? "Export" : "Share"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
-              <Link className="h-4 w-4 mr-2" />
-              Share Link
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={copyToClipboard}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Plain Text
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={copyHtmlToClipboard}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy as Formatted HTML
-            </DropdownMenuItem>
-            {canAccessPremiumFeatures && (
+            {isSharedView ? (
+              // Shared view: Only show Word and PDF export options
               <>
                 <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
                   {isWordLoading ? (
@@ -659,14 +652,50 @@ export function DocumentExport({
                   )}
                   {isPdfLoading ? "Generating PDF..." : "Export to PDF"}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={exportToGoogleDocs}>
-                  <Globe className="h-4 w-4 mr-2 text-blue-500" />
-                  Export to Google Docs
+              </>
+            ) : (
+              // Regular view: Show all options
+              <>
+                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+                  <Link className="h-4 w-4 mr-2" />
+                  Share Link
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsWordPressDialogOpen(true)}>
-                  <Globe className="h-4 w-4 mr-2" />
-                  Export to WordPress
+                <DropdownMenuItem onClick={copyToClipboard}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Plain Text
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={copyHtmlToClipboard}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy as Formatted HTML
+                </DropdownMenuItem>
+                {canAccessPremiumFeatures && (
+                  <>
+                    <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
+                      {isWordLoading ? (
+                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                      ) : (
+                        <File className="h-4 w-4 mr-2 text-blue-600" />
+                      )}
+                      {isWordLoading ? "Generating Word..." : "Export to Word"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={downloadPdf} disabled={isPdfLoading}>
+                      {isPdfLoading ? (
+                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                      ) : (
+                        <FileDown className="h-4 w-4 mr-2 text-red-600" />
+                      )}
+                      {isPdfLoading ? "Generating PDF..." : "Export to PDF"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportToGoogleDocs}>
+                      <Globe className="h-4 w-4 mr-2 text-blue-500" />
+                      Export to Google Docs
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsWordPressDialogOpen(true)}>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Export to WordPress
+                    </DropdownMenuItem>
+                  </>
+                )}
               </>
             )}
           </DropdownMenuContent>
