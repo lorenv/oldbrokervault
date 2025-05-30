@@ -17,7 +17,7 @@ import { generateWordDocument, generatePDF, generateHtml, formatTextContent, cre
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
 import sharp from 'sharp';
-import { sendNdaSignedEmail } from "./email";
+import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 
 // Setup upload directory
@@ -1200,8 +1200,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       // Clean up old rate limit entries periodically
       if (Math.random() < 0.1) { // 10% chance to clean up
-        for (const [email, timestamps] of contactRateLimit.entries()) {
-          const validTimestamps = timestamps.filter(ts => ts > oneHourAgo);
+        const emailsToClean = Array.from(contactRateLimit.keys());
+        for (const email of emailsToClean) {
+          const timestamps = contactRateLimit.get(email) || [];
+          const validTimestamps = timestamps.filter((ts: number) => ts > oneHourAgo);
           if (validTimestamps.length === 0) {
             contactRateLimit.delete(email);
           } else {
