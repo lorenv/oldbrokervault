@@ -36,9 +36,11 @@ interface CimDisplayProps {
   websiteUrl?: string;
   logoUrl?: string;
   selectedImages?: string[];
+  title?: string;
+  isSharedView?: boolean;
 }
 
-export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages }: CimDisplayProps) {
+export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView }: CimDisplayProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -317,7 +319,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 />
               )}
               <div>
-                <CardTitle className="text-2xl">{analysis.title || "Confidential Information Memorandum"}</CardTitle>
+                <CardTitle className="text-2xl">{title || "Confidential Information Memorandum"}</CardTitle>
               </div>
             </div>
             {user && (

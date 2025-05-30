@@ -487,6 +487,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               websiteUrl={selectedDoc.websiteUrl || undefined}
               logoUrl={selectedDoc.logoUrl || undefined}
               selectedImages={selectedDoc.selectedImages || undefined}
+              title={selectedDoc.title}
             />
           </DialogContent>
         </Dialog>

@@ -575,6 +575,7 @@ ${analysis.team.ownerResponsibilities}
           websiteUrl={form.getValues("websiteUrl")}
           logoUrl={analysis.logoUrl}
           selectedImages={selectedImages}
+          title={form.getValues("title")}
         />
       )}
 
