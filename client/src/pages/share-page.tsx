@@ -27,6 +27,7 @@ export function SharePage() {
     console.log("Requires NDA flag:", shareData?.requiresNda);
     console.log("Has signed NDA:", hasSignedNda);
     console.log("User Profile:", shareData?.cim?.userProfile);
+    console.log("Full API response:", JSON.stringify(shareData, null, 2));
     console.log("=== END SHARE DEBUG ===");
   }, [shareData, hasSignedNda]);
 
