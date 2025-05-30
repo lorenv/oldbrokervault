@@ -135,7 +135,12 @@ export function SharePage() {
 
       {shareData.cim && (
         <CimDisplay 
-          cim={shareData.cim}
+          analysis={shareData.cim.analysis}
+          docId={shareData.cim.id}
+          websiteUrl={shareData.cim.websiteUrl}
+          logoUrl={shareData.cim.logoUrl}
+          selectedImages={shareData.cim.selectedImages}
+          title={shareData.cim.title}
           isSharedView={true}
         />
       )}
