@@ -410,7 +410,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   <img 
                     src={imageUrl} 
                     alt={`Business image ${index + 1}`} 
-                    className="w-full h-32 object-cover rounded-[30px] shadow-md"
+                    className="w-full h-48 object-cover rounded-[30px] shadow-md"
                   />
                 </div>
               ))}
@@ -645,7 +645,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.businessLogo || userProfile?.businessLogo} 
                 alt="Business Logo" 
-                className="w-16 h-16 object-contain rounded-[30px] ml-auto"
+                className="w-24 h-24 object-contain rounded-[30px] ml-auto"
               />
             )}
           </div>
