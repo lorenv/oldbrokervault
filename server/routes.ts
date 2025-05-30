@@ -73,6 +73,61 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Public share endpoints (must be before authentication setup)
+  app.get("/api/share/:shareSlug", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      console.log("Fetching share data for slug:", shareSlug);
+      
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      console.log("Found document:", !!cimDoc, cimDoc?.id);
+      
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (!cimDoc.shareEnabled) {
+        console.log("Sharing disabled for document:", cimDoc.id);
+        return res.status(404).json({ error: "Sharing is disabled for this document" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        console.log("Document expired:", cimDoc.shareExpiresAt);
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Increment view count
+      console.log("Incrementing view count for document:", cimDoc.id);
+      await storage.incrementShareViewCount(cimDoc.id);
+
+      // Get NDA template if required
+      let ndaUrl = null;
+      if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
+        console.log("Getting NDA template:", cimDoc.ndaTemplateId);
+        try {
+          const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
+          if (ndaTemplate?.fileContent) {
+            ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
+          }
+        } catch (ndaError) {
+          console.log("Error fetching NDA template:", ndaError);
+          // Continue without NDA template
+        }
+      }
+
+      console.log("Sending share data successfully");
+      res.json({
+        cim: cimDoc,
+        requiresNda: cimDoc.ndaProtected || false,
+        ndaUrl
+      });
+    } catch (error) {
+      console.error("Error fetching share data:", error);
+      res.status(500).json({ error: "Failed to fetch shared document" });
+    }
+  });
+
   setupAuth(app);
 
   // API endpoint to fetch dynamic pricing from Stripe
@@ -1846,55 +1901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint for share page to fetch CIM data
-  app.get("/api/share/:shareSlug", async (req, res) => {
-    try {
-      const { shareSlug } = req.params;
-      console.log("Fetching share data for slug:", shareSlug);
-      
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
-      console.log("Found document:", !!cimDoc, cimDoc?.id);
-      
-      if (!cimDoc) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      if (!cimDoc.shareEnabled) {
-        console.log("Sharing disabled for document:", cimDoc.id);
-        return res.status(404).json({ error: "Sharing is disabled for this document" });
-      }
-
-      // Check expiration
-      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
-        console.log("Document expired:", cimDoc.shareExpiresAt);
-        return res.status(410).json({ error: "This shared link has expired" });
-      }
-
-      // Increment view count
-      console.log("Incrementing view count for document:", cimDoc.id);
-      await storage.incrementShareViewCount(cimDoc.id);
-
-      // Get NDA template if required
-      let ndaUrl = null;
-      if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
-        console.log("Getting NDA template:", cimDoc.ndaTemplateId);
-        const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
-        if (ndaTemplate?.fileContent) {
-          ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
-        }
-      }
-
-      console.log("Sending share data successfully");
-      res.json({
-        cim: cimDoc,
-        requiresNda: cimDoc.ndaProtected || false,
-        ndaUrl
-      });
-    } catch (error) {
-      console.error("Error fetching share data:", error);
-      res.status(500).json({ error: "Failed to fetch shared document" });
-    }
-  });
+  // Duplicate endpoint removed - using the public one above
 
   const httpServer = createServer(app);
   return httpServer;
