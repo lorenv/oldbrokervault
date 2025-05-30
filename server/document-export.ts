@@ -117,11 +117,11 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any): string {
+export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[]): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
-  ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px;"></div>` : ''}
+  ${logoUrl ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Business Logo" style="max-width: 200px; max-height: 100px; object-fit: contain;"></div>` : ''}
   <div style="font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 24px; color: #1a1a1a; border-bottom: 3px solid #4b5563; padding-bottom: 12px;">CONFIDENTIAL INFORMATION MEMORANDUM</div>
 `;
 
@@ -169,14 +169,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
         <p style="color: #1f2937; margin: 0; line-height: 1.6;">
-          ${analysis.websiteUrl ? `<a href="https://${analysis.websiteUrl.replace(/^https?:\/\//, '')}" target="_blank" style="color: #6366f1; text-decoration: none;">${analysis.websiteUrl}</a>` : 'Website information not available'}
+          ${websiteUrl ? `<a href="https://${websiteUrl.replace(/^https?:\/\//, '')}" target="_blank" style="color: #6366f1; text-decoration: none;">${websiteUrl}</a>` : 'Website information not available'}
         </p>
       </div>
       
-      ${analysis.selectedImages && analysis.selectedImages.length > 0 ? `
+      ${selectedImages && selectedImages.length > 0 ? `
         <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Images</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-          ${analysis.selectedImages.map((imagePath: string, index: number) => {
+          ${selectedImages.map((imagePath: string, index: number) => {
             // Convert relative paths to absolute URLs for the current domain
             const imageUrl = imagePath.startsWith('/') ? `${process.env.NODE_ENV === 'production' ? 'https://cimgod.com' : 'http://localhost:5000'}${imagePath}` : imagePath;
             return `
