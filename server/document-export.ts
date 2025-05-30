@@ -169,18 +169,22 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Website</h3>
       <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
         <p style="color: #1f2937; margin: 0; line-height: 1.6;">
-          <a href="${analysis.websiteUrl || '#'}" target="_blank" style="color: #6366f1; text-decoration: none;">${analysis.websiteUrl || 'Website information not available'}</a>
+          ${analysis.websiteUrl ? `<a href="https://${analysis.websiteUrl.replace(/^https?:\/\//, '')}" target="_blank" style="color: #6366f1; text-decoration: none;">${analysis.websiteUrl}</a>` : 'Website information not available'}
         </p>
       </div>
       
       ${analysis.selectedImages && analysis.selectedImages.length > 0 ? `
         <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Business Images</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-          ${analysis.selectedImages.map((imagePath: string, index: number) => `
+          ${analysis.selectedImages.map((imagePath: string, index: number) => {
+            // Convert relative paths to absolute URLs for the current domain
+            const imageUrl = imagePath.startsWith('/') ? `${process.env.NODE_ENV === 'production' ? 'https://cimgod.com' : 'http://localhost:5000'}${imagePath}` : imagePath;
+            return `
             <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background-color: #fff;">
-              <img src="${imagePath}" alt="Business image ${index + 1}" style="width: 100%; height: 150px; object-fit: cover; display: block;" />
+              <img src="${imageUrl}" alt="Business image ${index + 1}" style="width: 100%; height: 150px; object-fit: cover; display: block;" />
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       ` : ''}
     </div>

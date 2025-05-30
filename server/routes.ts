@@ -1302,23 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
           
           <div class="container">
-            ${generateHtml(analysis, docOwner?.businessLogo, docOwner)}
-            
-            ${docOwner ? `
-            <div class="contact-footer">
-              <div class="contact-info">
-                ${docOwner.profilePhoto ? `<img src="${docOwner.profilePhoto}" alt="Profile" class="contact-photo">` : ''}
-                <div class="contact-details">
-                  <h3>${docOwner.name || docOwner.email}</h3>
-                  ${docOwner.title ? `<p>${docOwner.title}</p>` : ''}
-                  ${docOwner.businessName ? `<p><strong>${docOwner.businessName}</strong></p>` : ''}
-                  ${docOwner.phoneNumber ? `<p>${docOwner.phoneNumber}</p>` : ''}
-                  <p>${docOwner.email}</p>
-                </div>
-                ${docOwner.businessLogo ? `<img src="${docOwner.businessLogo}" alt="Business Logo" class="business-logo">` : ''}
-              </div>
-            </div>
-            ` : ''}
+            ${generateHtml(analysis, docOwner?.businessLogo, null)}
           </div>
           
           <div class="footer">
