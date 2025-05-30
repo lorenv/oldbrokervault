@@ -30,7 +30,10 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  useSortable,
 } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 
 interface CimDisplayProps {
   analysis: any;
@@ -43,6 +46,49 @@ interface CimDisplayProps {
   userProfile?: any;
 }
 
+// Draggable Section Wrapper Component
+interface DraggableSectionProps {
+  id: string;
+  children: React.ReactNode;
+  isSharedView?: boolean;
+}
+
+function DraggableSection({ id, children, isSharedView }: DraggableSectionProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  if (isSharedView) {
+    return <div>{children}</div>;
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10"
+      >
+        <div className="bg-gray-200 hover:bg-gray-300 rounded p-1">
+          <GripVertical className="h-4 w-4 text-gray-600" />
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile }: CimDisplayProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -50,6 +96,44 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
+  
+  // Define the main sections for drag and drop
+  const mainSections = [
+    'executive-summary',
+    'business-website', 
+    'business-images',
+    'business-overview',
+    'market-position',
+    'sales-marketing',
+    'operations',
+    'inventory',
+    'team',
+    'facilities',
+    'assets-ownership'
+  ];
+  
+  const [sectionOrder, setSectionOrder] = useState(mainSections);
+
+  // Drag and drop sensors for main sections
+  const mainSectionSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for main sections
+  const handleMainSectionDragEnd = (event: any) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSectionOrder((items) => {
+        const oldIndex = items.indexOf(active.id);
+        const newIndex = items.indexOf(over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   // Fetch custom sections
   const { data: customSections = [], refetch: refetchSections } = useQuery({
@@ -340,11 +424,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-4 flex-1">
+              <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
               {logoUrl && (
                 <>
                   {(() => {
-                    console.log('Logo Debug:', { logoUrl, isSharedView });
+                    console.log('Logo Debug:', { logoUrl, isSharedView, websiteUrl });
                     return null;
                   })()}
                   <img 
@@ -359,9 +444,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   />
                 </>
               )}
-              <div>
-                <CardTitle className="text-2xl">{title || "Confidential Information Memorandum"}</CardTitle>
-              </div>
             </div>
             {(user || isSharedView) && (
               <DocumentExport 
@@ -706,7 +788,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.profilePhoto || userProfile?.profilePhoto} 
                 alt="Profile" 
-                className={isSharedView ? "w-32 h-32 object-cover rounded-[30px]" : "w-16 h-16 object-cover rounded-[30px]"}
+                className={isSharedView ? "w-32 h-32 object-cover rounded-[30px]" : "w-24 h-24 object-cover rounded-[30px]"}
               />
             )}
             <div className="text-center md:text-left">
