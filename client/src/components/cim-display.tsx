@@ -709,7 +709,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </div>
       )}
       {/* Debug: Show logoUrl */}
-      {!logoUrl && console.log('No logoUrl provided to CimDisplay')}
+      {(() => {
+        if (!logoUrl) console.log('No logoUrl provided to CimDisplay');
+        return null;
+      })()}
 
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
