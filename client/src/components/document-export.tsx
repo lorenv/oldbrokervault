@@ -24,6 +24,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { Switch } from "@/components/ui/switch";
+import { Upload, Trash2, Users, Calendar } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function DocumentExport({ 
   analysis, 
@@ -59,10 +62,22 @@ export function DocumentExport({
     shareSlug: '',
     sharePassword: '',
     shareExpiresAt: '',
-    customSlug: ''
+    customSlug: '',
+    ndaProtected: false,
+    ndaTemplateId: null as number | null
   });
   const [shareUrl, setShareUrl] = useState('');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
+  
+  // NDA related state
+  const [ndaTemplates, setNdaTemplates] = useState<any[]>([]);
+  const [isUploadingNda, setIsUploadingNda] = useState(false);
+  const [newNdaTemplate, setNewNdaTemplate] = useState({
+    name: '',
+    file: null as File | null,
+    isDefault: false
+  });
+  const [ndaSignatures, setNdaSignatures] = useState<any[]>([]);
   
   // Use external dialog state if provided, otherwise use internal state
   const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
@@ -102,7 +117,9 @@ export function DocumentExport({
         shareEnabled: shareSettings.shareEnabled,
         shareSlug: slug,
         sharePassword: shareSettings.sharePassword || null,
-        shareExpiresAt: expiresAt
+        shareExpiresAt: expiresAt,
+        ndaProtected: shareSettings.ndaProtected,
+        ndaTemplateId: shareSettings.ndaTemplateId
       });
 
       if (response.ok) {
@@ -126,6 +143,98 @@ export function DocumentExport({
     }
   };
 
+  // NDA Functions
+  const fetchNdaTemplates = async () => {
+    try {
+      const response = await apiRequest('GET', '/api/nda-templates');
+      if (response.ok) {
+        const templates = await response.json();
+        setNdaTemplates(templates);
+      }
+    } catch (error) {
+      console.error('Failed to fetch NDA templates:', error);
+    }
+  };
+
+  const fetchNdaSignatures = async () => {
+    if (!docId) return;
+    try {
+      const response = await apiRequest('GET', `/api/cim/${docId}/nda-signatures`);
+      if (response.ok) {
+        const signatures = await response.json();
+        setNdaSignatures(signatures);
+      }
+    } catch (error) {
+      console.error('Failed to fetch NDA signatures:', error);
+    }
+  };
+
+  const uploadNdaTemplate = async () => {
+    if (!newNdaTemplate.name || !newNdaTemplate.file) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a name and select a PDF file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingNda(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newNdaTemplate.name);
+      formData.append('ndaFile', newNdaTemplate.file);
+      formData.append('isDefault', newNdaTemplate.isDefault.toString());
+
+      const response = await fetch('/api/nda-templates', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast({
+          title: "NDA template uploaded",
+          description: "Your NDA template has been saved successfully"
+        });
+        setNewNdaTemplate({ name: '', file: null, isDefault: false });
+        fetchNdaTemplates();
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingNda(false);
+    }
+  };
+
+  const deleteNdaTemplate = async (templateId: number) => {
+    try {
+      const response = await apiRequest('DELETE', `/api/nda-templates/${templateId}`);
+      if (response.ok) {
+        toast({
+          title: "Template deleted",
+          description: "NDA template has been removed"
+        });
+        fetchNdaTemplates();
+        // Reset selected template if it was deleted
+        if (shareSettings.ndaTemplateId === templateId) {
+          setShareSettings(prev => ({ ...prev, ndaTemplateId: null }));
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
+
   const copyShareUrl = () => {
     navigator.clipboard.writeText(shareUrl);
     toast({
@@ -133,6 +242,14 @@ export function DocumentExport({
       description: "The link has been copied to your clipboard",
     });
   };
+
+  // Load data when dialog opens
+  useEffect(() => {
+    if (isShareDialogOpen) {
+      fetchNdaTemplates();
+      fetchNdaSignatures();
+    }
+  }, [isShareDialogOpen]);
   
   // Fetch Beaver Builder templates when credentials are available
   const fetchBeaverBuilderTemplates = async () => {
@@ -739,47 +856,67 @@ export function DocumentExport({
         </DialogContent>
       </Dialog>
 
-      {/* Share Dialog */}
+      {/* Enhanced Share Dialog with NDA Protection */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Share Your CIM</DialogTitle>
             <DialogDescription>
-              Create a shareable link for your CIM document
+              Create and manage shareable links for your CIM document with optional NDA protection
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="share-enabled">Enable Sharing</Label>
-              <Switch
-                id="share-enabled"
-                checked={shareSettings.shareEnabled}
-                onCheckedChange={async (checked) => {
-                  setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
-                  if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
-                    // Generate random slug immediately when enabling share
-                    const randomId = Math.random().toString(36).substring(2, 8);
-                    const newSlug = `cim-${randomId}`;
-                    setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
-                    setShareUrl(`${window.location.origin}/cims/${newSlug}`);
-                    
-                    // Immediately save to database
-                    if (docId) {
-                      try {
-                        await apiRequest('POST', `/api/cim/${docId}/share`, {
-                          shareEnabled: true,
-                          shareSlug: newSlug,
-                          sharePassword: null,
-                          shareExpiresAt: null
-                        });
-                      } catch (error) {
-                        console.error('Failed to save share settings immediately:', error);
-                      }
-                    }
-                  }
-                }}
-              />
-            </div>
+
+          <Tabs defaultValue="share-settings" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
+              <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
+              <TabsTrigger value="signatures">View Signatures</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="share-settings" className="space-y-6">
+              {/* Basic Share Settings - Moved to Top */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Share2 className="h-5 w-5" />
+                    Share Link Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure your shareable link and access controls
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="share-enabled">Enable Sharing</Label>
+                    <Switch
+                      id="share-enabled"
+                      checked={shareSettings.shareEnabled}
+                      onCheckedChange={async (checked) => {
+                        setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
+                        if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
+                          const randomId = Math.random().toString(36).substring(2, 8);
+                          const newSlug = `cim-${randomId}`;
+                          setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
+                          setShareUrl(`${window.location.origin}/cims/${newSlug}`);
+                          
+                          if (docId) {
+                            try {
+                              await apiRequest('POST', `/api/cim/${docId}/share`, {
+                                shareEnabled: true,
+                                shareSlug: newSlug,
+                                sharePassword: null,
+                                shareExpiresAt: null,
+                                ndaProtected: false,
+                                ndaTemplateId: null
+                              });
+                            } catch (error) {
+                              console.error('Failed to save share settings immediately:', error);
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  </div>
             
             {shareSettings.shareEnabled && (
               <>
