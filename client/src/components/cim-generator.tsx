@@ -165,6 +165,13 @@ export function CimGenerator() {
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
+        
+        // Add customization options
+        formData.append('customizations', JSON.stringify({
+          tone,
+          verbosity,
+          audienceType
+        }));
 
         try {
           if (hasWebsiteUrl) {

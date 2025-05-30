@@ -251,10 +251,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = insertCimDocumentSchema.parse(req.body);
       const docId = req.body.docId; // For regeneration
+      const customizations = req.body.customizations || {};
       
       // Debug: Check if selectedImages are present in regular route
       console.log("Selected images in regular route:", req.body.selectedImages);
       console.log("Selected images type:", typeof req.body.selectedImages);
+      console.log("Customizations in regular route:", customizations);
 
       // Check if this is a regeneration request
       if (docId) {
@@ -269,8 +271,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ error: "Regeneration limit reached" });
         }
 
-        // Analyze with new directions
-        let analysis = await analyzeCimTranscript(data.transcript, data.directions);
+        // Analyze with new directions and customizations
+        let analysis = await analyzeCimTranscript(data.transcript, data.directions, customizations);
         
         // If website URL is provided, enhance the analysis with website data
         if (data.websiteUrl) {
@@ -312,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation
-      let analysis = await analyzeCimTranscript(data.transcript, data.directions);
+      let analysis = await analyzeCimTranscript(data.transcript, data.directions, customizations);
       
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
@@ -392,12 +394,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Debug: Check if selectedImages are present
       console.log("Selected images in request:", req.body.selectedImages);
+      
+      // Parse customizations from upload form
+      const customizations = req.body.customizations ? JSON.parse(req.body.customizations) : {};
+      console.log("Customizations from upload:", customizations);
 
       console.log("Custom directions provided:", data.directions ? "Yes" : "No");
       if (data.directions) {
         console.log("Custom directions content:", data.directions);
       }
-      let analysis = await analyzeCimTranscript(transcript, data.directions);
+      let analysis = await analyzeCimTranscript(transcript, data.directions, customizations);
       
       // Handle selected images early in the process
       let savedImagePaths: string[] = [];
