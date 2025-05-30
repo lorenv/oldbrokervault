@@ -74,7 +74,10 @@ export const cimDocuments = pgTable("cim_documents", {
   sharePassword: text("share_password"),
   shareExpiresAt: timestamp("share_expires_at"),
   shareViewCount: integer("share_view_count").default(0).notNull(),
-  shareLastViewed: timestamp("share_last_viewed")
+  shareLastViewed: timestamp("share_last_viewed"),
+  // NDA protection
+  ndaProtected: boolean("nda_protected").default(false).notNull(),
+  ndaTemplateId: integer("nda_template_id")
 });
 
 export const customSections = pgTable("custom_sections", {
@@ -86,6 +89,25 @@ export const customSections = pgTable("custom_sections", {
   position: integer("position").notNull(), // Order position in the document
   insertAfterSection: text("insert_after_section").notNull(), // Which section this appears after
   createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const ndaTemplates = pgTable("nda_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  fileContent: text("file_content").notNull(), // Base64 encoded PDF
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const ndaSignatures = pgTable("nda_signatures", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  signerName: text("signer_name").notNull(),
+  signerEmail: text("signer_email").notNull(),
+  signerIpAddress: text("signer_ip_address").notNull(),
+  signedAt: timestamp("signed_at").defaultNow().notNull(),
+  signedNdaContent: text("signed_nda_content").notNull() // Base64 encoded signed PDF
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -108,10 +130,29 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   selectedImages: z.array(z.string()).optional()
 });
 
+export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
+  name: true,
+  fileContent: true,
+}).extend({
+  isDefault: z.boolean().optional()
+});
+
+export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
+  cimDocumentId: true,
+  signerName: true,
+  signerEmail: true,
+  signerIpAddress: true,
+  signedNdaContent: true
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type CimDocument = typeof cimDocuments.$inferSelect;
 export type InsertCimDocument = z.infer<typeof insertCimDocumentSchema>;
+export type NdaTemplate = typeof ndaTemplates.$inferSelect;
+export type InsertNdaTemplate = z.infer<typeof insertNdaTemplateSchema>;
+export type NdaSignature = typeof ndaSignatures.$inferSelect;
+export type InsertNdaSignature = z.infer<typeof insertNdaSignatureSchema>;
 
 // Default analysis prompt for CIM generation
 export const DEFAULT_CIM_DIRECTIONS = `You are to create custom text for generating an offering memorandum. This includes extracting the exact questions from the knowledge base attached and applying them to the new memorandum. The answers for the Q&A section are derived directly from a provided transcript, ensuring alignment with the new data while maintaining the example's aesthetic and organizational consistency. The answers should have a professional tone, and give as much pertinent information as possible. If the answer is not provided by the transcript, you can remove the question from the CIM.

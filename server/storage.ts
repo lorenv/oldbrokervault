@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections, ndaTemplates, ndaSignatures, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -45,6 +45,8 @@ export interface IStorage {
     shareSlug?: string;
     sharePassword?: string | null;
     shareExpiresAt?: Date | null;
+    ndaProtected?: boolean;
+    ndaTemplateId?: number | null;
   }): Promise<CimDocument>;
   getCimByShareSlug(slug: string): Promise<CimDocument | undefined>;
   incrementShareViewCount(id: number): Promise<void>;
@@ -60,6 +62,16 @@ export interface IStorage {
   updateCustomSection(id: number, content: string): Promise<void>;
   deleteCustomSection(id: number): Promise<void>;
   reorderCustomSections(sections: Array<{id: number, position: number}>): Promise<void>;
+  // NDA Templates
+  createNdaTemplate(userId: number, template: InsertNdaTemplate): Promise<NdaTemplate>;
+  getNdaTemplates(userId: number): Promise<NdaTemplate[]>;
+  updateNdaTemplate(id: number, template: Partial<NdaTemplate>): Promise<NdaTemplate>;
+  deleteNdaTemplate(id: number): Promise<void>;
+  setDefaultNdaTemplate(userId: number, templateId: number): Promise<void>;
+  // NDA Signatures
+  createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature>;
+  getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]>;
+  checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined>;
   sessionStore: session.Store;
 }
 
@@ -302,6 +314,8 @@ export class DatabaseStorage implements IStorage {
     shareSlug?: string;
     sharePassword?: string | null;
     shareExpiresAt?: Date | null;
+    ndaProtected?: boolean;
+    ndaTemplateId?: number | null;
   }): Promise<CimDocument> {
     const [doc] = await db.update(cimDocuments)
       .set({
@@ -309,6 +323,8 @@ export class DatabaseStorage implements IStorage {
         shareSlug: settings.shareSlug,
         sharePassword: settings.sharePassword,
         shareExpiresAt: settings.shareExpiresAt,
+        ndaProtected: settings.ndaProtected,
+        ndaTemplateId: settings.ndaTemplateId,
       })
       .where(eq(cimDocuments.id, id))
       .returning();
@@ -390,6 +406,90 @@ export class DatabaseStorage implements IStorage {
         .set({ position: section.position })
         .where(eq(customSections.id, section.id));
     }
+  }
+
+  // NDA Templates
+  async createNdaTemplate(userId: number, template: InsertNdaTemplate): Promise<NdaTemplate> {
+    // If this is set as default, unset any existing default for this user
+    if (template.isDefault) {
+      await db.update(ndaTemplates)
+        .set({ isDefault: false })
+        .where(eq(ndaTemplates.userId, userId));
+    }
+
+    const [newTemplate] = await db.insert(ndaTemplates)
+      .values({
+        userId,
+        ...template
+      })
+      .returning();
+    return newTemplate;
+  }
+
+  async getNdaTemplates(userId: number): Promise<NdaTemplate[]> {
+    return await db.select()
+      .from(ndaTemplates)
+      .where(eq(ndaTemplates.userId, userId))
+      .orderBy(asc(ndaTemplates.createdAt));
+  }
+
+  async updateNdaTemplate(id: number, template: Partial<NdaTemplate>): Promise<NdaTemplate> {
+    // If this is being set as default, unset any existing default for this user
+    if (template.isDefault) {
+      const [existing] = await db.select().from(ndaTemplates).where(eq(ndaTemplates.id, id));
+      if (existing) {
+        await db.update(ndaTemplates)
+          .set({ isDefault: false })
+          .where(eq(ndaTemplates.userId, existing.userId));
+      }
+    }
+
+    const [updated] = await db.update(ndaTemplates)
+      .set(template)
+      .where(eq(ndaTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteNdaTemplate(id: number): Promise<void> {
+    await db.delete(ndaTemplates)
+      .where(eq(ndaTemplates.id, id));
+  }
+
+  async setDefaultNdaTemplate(userId: number, templateId: number): Promise<void> {
+    // First unset all defaults for this user
+    await db.update(ndaTemplates)
+      .set({ isDefault: false })
+      .where(eq(ndaTemplates.userId, userId));
+    
+    // Then set the new default
+    await db.update(ndaTemplates)
+      .set({ isDefault: true })
+      .where(eq(ndaTemplates.id, templateId));
+  }
+
+  // NDA Signatures
+  async createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature> {
+    const [newSignature] = await db.insert(ndaSignatures)
+      .values(signature)
+      .returning();
+    return newSignature;
+  }
+
+  async getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]> {
+    return await db.select()
+      .from(ndaSignatures)
+      .where(eq(ndaSignatures.cimDocumentId, cimDocumentId))
+      .orderBy(asc(ndaSignatures.signedAt));
+  }
+
+  async checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined> {
+    const [signature] = await db.select()
+      .from(ndaSignatures)
+      .where(
+        sql`${ndaSignatures.cimDocumentId} = ${cimDocumentId} AND ${ndaSignatures.signerEmail} = ${email}`
+      );
+    return signature || undefined;
   }
 }
 
