@@ -1212,13 +1212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Redirect shared CIMs to React app for proper NDA protection
-  app.get("/cims/:slug", (req, res) => {
-    // Redirect to React app which handles NDA protection properly
-    const queryString = req.url.includes('?') ? req.url.split('?')[1] : '';
-    const redirectUrl = `/share/${req.params.slug}${queryString ? '?' + queryString : ''}`;
-    res.redirect(redirectUrl);
-  });
+  // Let React app handle shared CIMs for proper NDA protection
+  // Remove this route so requests go to React app at /cims/:slug
 
   // Add WordPress export endpoint
   app.post("/api/cim/export/wordpress/:id", async (req, res) => {

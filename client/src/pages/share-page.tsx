@@ -16,6 +16,13 @@ export function SharePage() {
 
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
+    queryFn: async () => {
+      const response = await fetch(`/api/share/${shareSlug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch shared CIM: ${response.status}`);
+      }
+      return response.json();
+    },
     enabled: !!shareSlug
   }) as { data: any, isLoading: boolean, error: any };
 
