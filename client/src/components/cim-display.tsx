@@ -392,6 +392,245 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   const mergedAnalysis = getMergedContent();
 
+  // Function to render a section with conditional drag handle
+  const renderSectionWithDragHandle = (sectionId: string, content: React.ReactNode) => {
+    if (isSharedView) {
+      return content;
+    }
+    return (
+      <DraggableSection id={sectionId} isSharedView={isSharedView}>
+        {content}
+      </DraggableSection>
+    );
+  };
+
+  // Create a map of section components
+  const getSectionContent = (sectionId: string) => {
+    switch (sectionId) {
+      case 'executive-summary':
+        return (
+          <Card className="border-blue-200">
+            <CardHeader className="bg-blue-50">
+              <CardTitle className="text-xl text-blue-900">Executive Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="text-lg leading-relaxed">
+                {renderField("Business Overview", "story.businessSummary", true, false, "Comprehensive business overview and description...")}
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-md mb-3 text-green-700">Investment Highlights</h4>
+                  {renderField("Key Buyer Attractions", "story.keyAttractions", false, true, "What makes this business attractive to buyers")}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-md mb-3 text-blue-700">Growth Opportunities</h4>
+                  {renderField("Growth Potential", "executiveSummary.growthOpportunities", false, true, "Future growth opportunities")}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                {renderField("Reason for Sale", "story.saleReason", true, false, "Why is the business being sold?")}
+              </div>
+            </CardContent>
+          </Card>
+        );
+
+      case 'business-website':
+        return websiteUrl ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Website</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                <a 
+                  href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {websiteUrl}
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null;
+
+      case 'business-images':
+        return selectedImages && selectedImages.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Gallery</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {selectedImages.map((imageUrl, index) => (
+                  <div 
+                    key={index} 
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setSelectedImageModal(imageUrl)}
+                  >
+                    <img 
+                      src={imageUrl} 
+                      alt={`Business image ${index + 1}`} 
+                      className={isSharedView ? "w-full h-64 object-cover rounded-[30px] shadow-md" : "w-full h-48 object-cover rounded-[30px] shadow-md"}
+                      onError={(e) => {
+                        console.error('Image failed to load:', imageUrl);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null;
+
+      case 'business-overview':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Overview & History</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-600 mb-1">Founded</h4>
+                  {renderField("Year Started", "story.yearStarted", false, false, "When was the business founded?")}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-600 mb-1">Business Structure</h4>
+                  {renderField("Legal Structure", "story.businessStructure", false, false, "Legal structure and organization")}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm text-gray-600 mb-1">Business Model</h4>
+                  {renderField("How It Works", "story.businessModel", true, false, "How does the business operate and make money?")}
+                </div>
+              </div>
+              
+              {renderField("Origin Story", "story.businessIdea", true, false, "How did the business idea come about?")}
+              {renderField("Growth Journey", "story.growthHistory", true, false, "How has the business grown over time?")}
+              {renderField("Order Process", "story.orderProcess", true, false, "Step-by-step process from order to completion")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'market-position':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Market Position</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Competitive Advantages", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
+              {renderField("Market Strengths", "marketAnalysis.strengths", false, true, "Key business strengths")}
+              {renderField("Target Customers", "marketAnalysis.customerProfile", true, false, "Who are the customers")}
+              {renderField("Main Competitors", "marketAnalysis.competitors", false, true, "Key competitors in the market")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'sales-marketing':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales & Marketing</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Marketing Strategies", "marketing.strategies", false, true, "How the business attracts customers")}
+              {renderField("Paid Advertising", "marketing.paidAdvertising.channels", false, true, "Advertising channels used")}
+              {renderField("Email Marketing", "marketing.emailMarketing.usage", true, false, "Email marketing strategy")}
+              {renderField("SEO Efforts", "marketing.seoEfforts", true, false, "Search engine optimization activities")}
+              {renderField("Average Order Value", "sales.averageOrderValue", false, false, "Average transaction size")}
+              {renderField("Payment Methods", "sales.paymentMethods", false, true, "Accepted payment methods")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'operations':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Operations</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
+              {renderField("Customer Relationships", "operations.customers.relationships", true, false, "Customer relationship management")}
+              {renderField("Operational Processes", "story.orderProcess", true, false, "Key operational workflows")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'inventory':
+        return shouldShowInventorySection() ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Products & Inventory Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Lead Times", "inventory.leadTime", false, false, "Inventory lead times")}
+              {renderField("Storage & Sourcing", "inventory.sourcing", true, false, "How inventory is sourced and stored")}
+              {renderField("Inventory Value", "inventory.value", false, false, "Current inventory value")}
+              {renderField("Product Count", "inventory.skuCount", false, false, "Number of SKUs/products")}
+              {renderField("Top Products", "inventory.topProducts", false, true, "Best-selling products")}
+            </CardContent>
+          </Card>
+        ) : null;
+
+      case 'team':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Team & Management</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Owner Responsibilities", "team.ownerResponsibilities", true, false, "What the owner currently handles")}
+              {renderField("Owner Hours", "team.ownerHours", false, false, "Hours per week owner works")}
+              {renderField("Employee Summary", "team.employeeSummary", true, false, "Overview of team structure")}
+              {renderField("Employee Count", "team.employeeCount", false, false, "Total number of employees")}
+              {renderField("Key Staff", "team.keyEmployees", false, true, "Critical team members")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'facilities':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Facilities & Location</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Location", "assets.location", false, false, "Business location")}
+              {renderField("Facility Ownership", "facility.ownership", false, false, "Owned or leased")}
+              {renderField("Facility Size", "facility.size", false, false, "Square footage or size description")}
+              {renderField("Occupancy Cost", "facility.cost", false, false, "Monthly rent or ownership costs")}
+              {renderField("Lease Terms", "facility.leaseDetails", true, false, "Lease terms and conditions")}
+            </CardContent>
+          </Card>
+        );
+
+      case 'assets-ownership':
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Assets & Ownership</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderField("Digital Assets", "assets.digitalAssets", false, true, "Websites, social media, digital properties")}
+              {renderField("Equipment Value", "assets.equipmentValue", false, false, "Value of equipment and assets")}
+              {renderField("Equipment Details", "assets.equipmentDetails", true, false, "Description of key equipment")}
+              {renderField("Intellectual Property", "ownership.intellectualProperty", false, true, "Trademarks, patents, copyrights")}
+            </CardContent>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Save Changes Bar - Hidden in shared view */}
@@ -460,124 +699,27 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </CardHeader>
       </Card>
 
-      {/* Executive Summary - Lead Section */}
-      {renderSectionWithInsertables("executive-summary", 
-        <Card className="border-blue-200">
-          <CardHeader className="bg-blue-50">
-            <CardTitle className="text-xl text-blue-900">Executive Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-6">
-            <div className="text-lg leading-relaxed">
-              {renderField("Business Overview", "story.businessSummary", true, false, "Comprehensive business overview and description...")}
-            </div>
+      {/* Main Sections with Drag and Drop */}
+      <DndContext
+        sensors={mainSectionSensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleMainSectionDragEnd}
+      >
+        <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+          {sectionOrder.map((sectionId) => {
+            const content = getSectionContent(sectionId);
+            if (!content) return null;
             
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-md mb-3 text-green-700">Investment Highlights</h4>
-                {renderField("Key Buyer Attractions", "story.keyAttractions", false, true, "What makes this business attractive to buyers")}
-              </div>
-              <div>
-                <h4 className="font-semibold text-md mb-3 text-blue-700">Growth Opportunities</h4>
-                {renderField("Growth Potential", "executiveSummary.growthOpportunities", false, true, "Future growth opportunities")}
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              {renderField("Reason for Sale", "story.saleReason", true, false, "Why is the business being sold?")}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Business Website */}
-      {websiteUrl && renderSectionWithInsertables("business-website",
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Website</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-              <a 
-                href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                {websiteUrl}
-              </a>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Business Images */}
-      {(() => {
-        console.log('Business Images Debug:', {
-          selectedImages,
-          hasImages: selectedImages && selectedImages.length > 0,
-          isSharedView,
-          imageCount: selectedImages?.length
-        });
-        return null;
-      })()}
-      {selectedImages && selectedImages.length > 0 && renderSectionWithInsertables("business-images",
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Gallery</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {selectedImages.map((imageUrl, index) => (
-                <div 
-                  key={index} 
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setSelectedImageModal(imageUrl)}
-                >
-                  <img 
-                    src={imageUrl} 
-                    alt={`Business image ${index + 1}`} 
-                    className={isSharedView ? "w-full h-64 object-cover rounded-[30px] shadow-md" : "w-full h-48 object-cover rounded-[30px] shadow-md"}
-                    onError={(e) => {
-                      console.error('Image failed to load:', imageUrl);
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Business Overview & History */}
-      {renderSectionWithInsertables("business-overview",
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Overview & History</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-1">Founded</h4>
-                {renderField("Year Started", "story.yearStarted", false, false, "When was the business founded?")}
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-1">Business Structure</h4>
-                {renderField("Legal Structure", "story.businessStructure", false, false, "Legal structure and organization")}
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-gray-600 mb-1">Business Model</h4>
-                {renderField("How It Works", "story.businessModel", true, false, "How does the business operate and make money?")}
-              </div>
-            </div>
+            const sectionWithInsertables = renderSectionWithInsertables(sectionId, content);
             
-            {renderField("Origin Story", "story.businessIdea", true, false, "How did the business idea come about?")}
-            {renderField("Growth Journey", "story.growthHistory", true, false, "How has the business grown over time?")}
-            {renderField("Order Process", "story.orderProcess", true, false, "Step-by-step process from order to completion")}
-          </CardContent>
-        </Card>
-      )}
+            return (
+              <div key={sectionId}>
+                {renderSectionWithDragHandle(sectionId, sectionWithInsertables)}
+              </div>
+            );
+          })}
+        </SortableContext>
+      </DndContext>
 
       {/* Market Position */}
       {renderSectionWithInsertables("market-position",
