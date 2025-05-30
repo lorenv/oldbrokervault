@@ -76,6 +76,7 @@ export function SharePage() {
 
   // Check both possible NDA flags for protection
   const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
+  console.log("NDA CHECK:", { needsNda, requiresNda: shareData?.requiresNda, ndaProtected: shareData?.cim?.ndaProtected, hasSignedNda });
   if (needsNda && !hasSignedNda) {
     return (
       <div className="flex items-center justify-center min-h-screen">
