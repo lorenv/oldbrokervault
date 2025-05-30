@@ -49,10 +49,7 @@ export function CimGenerator() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
   
-  // Document customization options
-  const [tone, setTone] = useState<'Professional' | 'Casual'>('Professional');
-  const [verbosity, setVerbosity] = useState<'Brief' | 'Balanced' | 'Robust'>('Balanced');
-  const [audienceType, setAudienceType] = useState<'Executives' | 'Colleagues' | 'Friends'>('Executives');
+
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -166,12 +163,7 @@ export function CimGenerator() {
           formData.append('docId', currentDocId.toString());
         }
         
-        // Add customization options
-        formData.append('customizations', JSON.stringify({
-          tone,
-          verbosity,
-          audienceType
-        }));
+
 
         try {
           if (hasWebsiteUrl) {
@@ -205,15 +197,10 @@ export function CimGenerator() {
             ...data,
             docId: currentDocId,
             selectedImages: selectedImages.length > 0 ? selectedImages : undefined,
-            customizations: {
-              tone,
-              verbosity,
-              audienceType
-            }
+
           });
           
           console.log("Sending selected images to backend:", selectedImages);
-          console.log("Sending customizations to backend:", { tone, verbosity, audienceType });
           
           return res.json();
         } catch (error) {
@@ -410,49 +397,7 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
             
-            {/* Document Customization Options */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Tone</label>
-                <Select value={tone} onValueChange={(value: 'Professional' | 'Casual') => setTone(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Professional">Professional</SelectItem>
-                    <SelectItem value="Casual">Casual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Verbosity</label>
-                <Select value={verbosity} onValueChange={(value: 'Brief' | 'Balanced' | 'Robust') => setVerbosity(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select detail level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Brief">Brief (bullet points)</SelectItem>
-                    <SelectItem value="Balanced">Balanced</SelectItem>
-                    <SelectItem value="Robust">Robust (detailed)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Audience</label>
-                <Select value={audienceType} onValueChange={(value: 'Executives' | 'Colleagues' | 'Friends') => setAudienceType(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Executives">Executives</SelectItem>
-                    <SelectItem value="Colleagues">Colleagues</SelectItem>
-                    <SelectItem value="Friends">Friends</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+
             
             <div className="space-y-2">
               <div className="relative">
