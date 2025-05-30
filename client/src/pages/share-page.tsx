@@ -20,10 +20,19 @@ export function SharePage() {
   }) as { data: any, isLoading: boolean, error: any };
 
   useEffect(() => {
+    console.log("=== SHARE DEBUG ===");
     console.log("Share data loaded:", shareData);
-    console.log("Requires NDA:", shareData?.requiresNda);
+    console.log("CIM document:", shareData?.cim);
+    console.log("NDA Protected flag:", shareData?.cim?.ndaProtected);
+    console.log("Requires NDA flag:", shareData?.requiresNda);
     console.log("Has signed NDA:", hasSignedNda);
-    if (shareData?.requiresNda && !hasSignedNda) {
+    console.log("User Profile:", shareData?.cim?.userProfile);
+    console.log("=== END SHARE DEBUG ===");
+    
+    // Check both possible NDA flags
+    const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
+    if (needsNda && !hasSignedNda) {
+      console.log("Showing NDA dialog because needsNda:", needsNda);
       setShowNdaDialog(true);
     }
   }, [shareData, hasSignedNda]);
@@ -71,7 +80,9 @@ export function SharePage() {
     );
   }
 
-  if (shareData?.requiresNda && !hasSignedNda) {
+  // Check both possible NDA flags for protection
+  const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
+  if (needsNda && !hasSignedNda) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
