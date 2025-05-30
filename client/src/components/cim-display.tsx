@@ -346,15 +346,21 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     const keys = fieldPath.split('.');
     const newEditedContent = { ...editedContent };
     
+    // Ensure the path exists in editedContent
     let current = newEditedContent;
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (!current[key]) return;
+      if (!current[key]) {
+        current[key] = {};
+      }
       current = current[key];
     }
     
     const finalKey = keys[keys.length - 1];
-    if (Array.isArray(current[finalKey])) {
+    // Get the current value to determine type
+    const currentValue = getCurrentValue(fieldPath);
+    
+    if (Array.isArray(currentValue)) {
       current[finalKey] = [];
     } else {
       current[finalKey] = '';
@@ -693,11 +699,17 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             alt="Company Logo"
             className="h-16 mx-auto"
             onError={(e) => {
+              console.error('Logo failed to load:', logoUrl);
               e.currentTarget.style.display = 'none';
+            }}
+            onLoad={() => {
+              console.log('Logo loaded successfully:', logoUrl);
             }}
           />
         </div>
       )}
+      {/* Debug: Show logoUrl */}
+      {!logoUrl && console.log('No logoUrl provided to CimDisplay')}
 
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
