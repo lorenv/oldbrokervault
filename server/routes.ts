@@ -1616,6 +1616,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download NDA template endpoint
+  app.get("/api/nda-templates/:id/download", async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getNdaTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: "NDA template not found" });
+      }
+
+      // Convert base64 back to buffer
+      const pdfBuffer = Buffer.from(template.fileContent, 'base64');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${template.name}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('NDA template download error:', error);
+      res.status(500).json({ error: "Failed to download NDA template" });
+    }
+  });
+
   app.put("/api/nda-templates/:id", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
