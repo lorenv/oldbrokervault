@@ -28,13 +28,6 @@ export function SharePage() {
     console.log("Has signed NDA:", hasSignedNda);
     console.log("User Profile:", shareData?.cim?.userProfile);
     console.log("=== END SHARE DEBUG ===");
-    
-    // Check both possible NDA flags
-    const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
-    if (needsNda && !hasSignedNda) {
-      console.log("Showing NDA dialog because needsNda:", needsNda);
-      setShowNdaDialog(true);
-    }
   }, [shareData, hasSignedNda]);
 
   const handleNdaSigned = () => {
