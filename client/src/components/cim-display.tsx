@@ -342,6 +342,32 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     setEditingField(null);
   };
 
+  const handleDelete = (fieldPath: string) => {
+    const keys = fieldPath.split('.');
+    const newEditedContent = { ...editedContent };
+    
+    let current = newEditedContent;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!current[key]) return;
+      current = current[key];
+    }
+    
+    const finalKey = keys[keys.length - 1];
+    if (Array.isArray(current[finalKey])) {
+      current[finalKey] = [];
+    } else {
+      current[finalKey] = '';
+    }
+    
+    setEditedContent(newEditedContent);
+    setHasUnsavedChanges(true);
+    toast({
+      title: "Field Deleted",
+      description: "Field content has been cleared. Click 'Save All Changes' to persist changes.",
+    });
+  };
+
   const saveAllChangesMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("PUT", `/api/cim/${docId}/content`, {
@@ -382,6 +408,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         onEdit={isSharedView ? () => {} : handleEdit}
         onSave={handleSave}
         onCancel={handleCancel}
+        onDelete={isSharedView ? undefined : handleDelete}
         multiline={multiline}
         isArray={isArray}
         placeholder={placeholder}
@@ -955,7 +982,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.profilePhoto || userProfile?.profilePhoto} 
                 alt="Profile" 
-                className={isSharedView ? "w-32 h-32 object-cover rounded-[30px]" : "w-24 h-24 object-cover rounded-[30px]"}
+                className={isSharedView ? "w-48 h-48 object-cover rounded-[30px]" : "w-40 h-40 object-cover rounded-[30px]"}
               />
             )}
             <div className="text-center md:text-left">
@@ -970,7 +997,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               <img 
                 src={user?.businessLogo || userProfile?.businessLogo} 
                 alt="Business Logo" 
-                className={isSharedView ? "w-48 h-48 object-contain rounded-[30px] ml-auto" : "w-32 h-32 object-contain rounded-[30px] ml-auto"}
+                className={isSharedView ? "w-64 h-64 object-contain rounded-[30px] ml-auto" : "w-48 h-48 object-contain rounded-[30px] ml-auto"}
               />
             )}
           </div>
