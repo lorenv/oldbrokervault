@@ -153,16 +153,19 @@ export function SharePage() {
       <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
         <div className="container mx-auto px-6 py-8">
           <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg">
-              <Shield className="h-5 w-5" />
-              <span className="font-medium">Confidential Information Memorandum</span>
-            </div>
-            
             {shareData.cim?.title && (
               <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 {shareData.cim.title}
               </h1>
             )}
+            
+            <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg">
+              <Shield className="h-5 w-5" />
+              <span className="font-medium">Confidential Information Memorandum</span>
+            </div>
+            
+            {/* Export button placeholder - will be moved here by CimDisplay */}
+            <div id="export-button-container" className="mt-4"></div>
             
             {shareData.requiresNda && hasSignedNda && (
               <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
@@ -177,7 +180,7 @@ export function SharePage() {
       {/* Document content with enhanced styling */}
       <div className="container mx-auto px-6 py-8">
         {shareData.cim && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+          <div className="rounded-2xl shadow-xl border border-gray-200/30 overflow-hidden" style={{background: 'inherit'}}>
             <CimDisplay 
               analysis={shareData.cim.analysis}
               docId={shareData.cim.id}
