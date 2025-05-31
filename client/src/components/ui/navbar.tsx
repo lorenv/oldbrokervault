@@ -39,7 +39,16 @@ export function Navbar() {
           )}
         </div>
 
-
+        {!user && (
+          <div className="flex items-center space-x-3">
+            <Link href="/login">
+              <Button variant="ghost" size="sm">Login</Button>
+            </Link>
+            <Link href="/login">
+              <Button size="sm">Sign Up</Button>
+            </Link>
+          </div>
+        )}
 
         {user && (
           <div className="flex items-center space-x-4">
