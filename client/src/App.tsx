@@ -14,6 +14,9 @@ import PricingPage from "@/pages/pricing-page";
 import FeaturesPage from "@/pages/features-page";
 import ContactPage from "@/pages/contact-page";
 import EulaPage from "@/pages/eula-page";
+import PrivacyPolicyPage from "@/pages/privacy-policy-page";
+import TermsOfServicePage from "@/pages/terms-of-service-page";
+import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { SharePage } from "@/pages/share-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -33,6 +36,9 @@ function Router() {
             <Route path="/features" component={FeaturesPage} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
+            <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+            <Route path="/terms-of-service" component={TermsOfServicePage} />
+            <Route path="/cookie-policy" component={CookiePolicyPage} />
             <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
             <Route path="/auth" component={AuthPage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
