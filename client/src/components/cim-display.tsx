@@ -901,6 +901,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         <BrokerContactForm 
           shareSlug={window.location.pathname.split('/').pop() || ''}
           cimTitle={title || "Confidential Information Memorandum"}
+          userProfile={userProfile}
         />
       )}
 
