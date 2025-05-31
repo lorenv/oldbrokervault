@@ -26,9 +26,6 @@ export function Navbar() {
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6 ml-8">
-              <Link href="/features">
-                <a className="text-sm font-medium hover:text-primary transition-colors">Features</a>
-              </Link>
               <Link href="/pricing">
                 <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
               </Link>

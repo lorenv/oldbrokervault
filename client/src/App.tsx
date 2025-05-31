@@ -12,7 +12,7 @@ import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
 import PricingPage from "@/pages/pricing-page";
-import FeaturesPage from "@/pages/features-page";
+
 import ContactPage from "@/pages/contact-page";
 import EulaPage from "@/pages/eula-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
@@ -35,7 +35,6 @@ function Router() {
             <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
-            <Route path="/features" component={FeaturesPage} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
             <Route path="/privacy-policy" component={PrivacyPolicyPage} />
