@@ -547,7 +547,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Overview & History</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="font-semibold text-sm text-gray-600 mb-1">Founded</h4>
@@ -576,7 +576,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Market Position</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Competitive Advantages", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
               {renderField("Market Strengths", "marketAnalysis.strengths", false, true, "Key business strengths")}
               {renderField("Target Customers", "marketAnalysis.customerProfile", true, false, "Who are the customers")}
@@ -591,7 +591,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Sales & Marketing</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Marketing Strategies", "marketing.strategies", false, true, "How the business attracts customers")}
               {renderField("Paid Advertising", "marketing.paidAdvertising.channels", false, true, "Advertising channels used")}
               {renderField("Email Marketing", "marketing.emailMarketing.usage", true, false, "Email marketing strategy")}
@@ -627,9 +627,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                                    !inventory.topProducts.every((item: string) => item === "not applicable"));
         
         return hasInventoryContent ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Products & Inventory Management</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Lead Times", "inventory.leadTime", false, false, "Inventory lead times")}
@@ -643,9 +643,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'team':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Team & Management</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Team & Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Owner Responsibilities", "team.ownerResponsibilities", true, false, "What the owner currently handles")}
@@ -659,9 +659,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'facilities':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Facilities & Location</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Facilities & Location</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Location", "assets.location", false, false, "Business location")}
@@ -675,9 +675,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'assets-ownership':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Assets & Ownership</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Assets & Ownership</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Digital Assets", "assets.digitalAssets", false, true, "Websites, social media, digital properties")}
