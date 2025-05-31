@@ -615,7 +615,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Operations</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
               {renderField("Customer Relationships", "operations.customers.relationships", true, false, "Customer relationship management")}
               {renderField("Operational Processes", "story.orderProcess", true, false, "Key operational workflows")}
@@ -638,7 +638,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Lead Times", "inventory.leadTime", false, false, "Inventory lead times")}
               {renderField("Storage & Sourcing", "inventory.sourcing", true, false, "How inventory is sourced and stored")}
               {renderField("Inventory Value", "inventory.value", false, false, "Current inventory value")}
@@ -654,7 +654,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Team & Management</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Owner Responsibilities", "team.ownerResponsibilities", true, false, "What the owner currently handles")}
               {renderField("Owner Hours", "team.ownerHours", false, false, "Hours per week owner works")}
               {renderField("Employee Summary", "team.employeeSummary", true, false, "Overview of team structure")}
@@ -670,7 +670,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Facilities & Location</CardTitle>
             </CardHeader>
-            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Location", "assets.location", false, false, "Business location")}
               {renderField("Facility Ownership", "facility.ownership", false, false, "Owned or leased")}
               {renderField("Facility Size", "facility.size", false, false, "Square footage or size description")}
@@ -816,11 +816,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Market Position */}
       {renderSectionWithInsertables("market-position",
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Position & Competitive Advantage</CardTitle>
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Market Position & Competitive Advantage</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
             {renderField("Target Customer Profile", "marketAnalysis.customerProfile", true, false, "Who are the ideal customers?")}
             {renderField("Unique Value Proposition", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart from competitors")}
             {renderField("Competitive Advantages", "marketAnalysis.strengths", false, true, "Key strengths over competitors")}
@@ -831,11 +831,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Sales & Revenue */}
       {renderSectionWithInsertables("sales-revenue",
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales & Revenue Model</CardTitle>
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Sales & Revenue Model</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-semibold text-md mb-3">Revenue Metrics</h4>
@@ -860,11 +860,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Operations & Relationships */}
       {renderSectionWithInsertables("operations",
-        <Card>
-          <CardHeader>
-            <CardTitle>Operations & Key Relationships</CardTitle>
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Operations & Key Relationships</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className={`space-y-6 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold text-md mb-3">Customer Base</h4>
