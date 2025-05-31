@@ -463,7 +463,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'executive-summary':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : "bg-blue-50"}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-6 pt-6 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -492,7 +492,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'business-website':
         return websiteUrl ? (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Website</CardTitle>
             </CardHeader>
             <CardContent className={isSharedView ? "px-8 pb-8 pt-6" : ""}>
@@ -513,7 +513,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'business-images':
         return selectedImages && selectedImages.length > 0 ? (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>
             <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
@@ -544,7 +544,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'business-overview':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Overview & History</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -573,7 +573,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'market-position':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Market Position</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -608,7 +608,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Operations</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
               {renderField("Customer Relationships", "operations.customers.relationships", true, false, "Customer relationship management")}
               {renderField("Operational Processes", "story.orderProcess", true, false, "Key operational workflows")}
@@ -631,7 +631,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Lead Times", "inventory.leadTime", false, false, "Inventory lead times")}
               {renderField("Storage & Sourcing", "inventory.sourcing", true, false, "How inventory is sourced and stored")}
               {renderField("Inventory Value", "inventory.value", false, false, "Current inventory value")}
@@ -647,7 +647,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Team & Management</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Owner Responsibilities", "team.ownerResponsibilities", true, false, "What the owner currently handles")}
               {renderField("Owner Hours", "team.ownerHours", false, false, "Hours per week owner works")}
               {renderField("Employee Summary", "team.employeeSummary", true, false, "Overview of team structure")}
@@ -663,7 +663,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Facilities & Location</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Location", "assets.location", false, false, "Business location")}
               {renderField("Facility Ownership", "facility.ownership", false, false, "Owned or leased")}
               {renderField("Facility Size", "facility.size", false, false, "Square footage or size description")}
@@ -679,7 +679,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Assets & Ownership</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
               {renderField("Digital Assets", "assets.digitalAssets", false, true, "Websites, social media, digital properties")}
               {renderField("Equipment Value", "assets.equipmentValue", false, false, "Value of equipment and assets")}
               {renderField("Equipment Details", "assets.equipmentDetails", true, false, "Description of key equipment")}
