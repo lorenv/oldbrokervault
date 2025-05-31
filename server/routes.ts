@@ -1097,8 +1097,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: profileUser?.profilePhoto
       };
       
-      // Include logo URL and user profile
-      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile);
+      // Get financial data and files
+      let financialData: any = null;
+      let financialFilesList: any[] = [];
+      
+      try {
+        const [financialsRecord] = await db.select().from(financials).where(eq(financials.cimDocumentId, docId));
+        if (financialsRecord) {
+          financialData = financialsRecord;
+        }
+        
+        const files = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, docId));
+        financialFilesList = files;
+      } catch (error) {
+        console.log("Error fetching financial data:", error);
+      }
+      
+      // Include logo URL, user profile, financial data, and files
+      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile, doc.websiteUrl, doc.selectedImages, financialData, financialFiles);
       
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });

@@ -190,45 +190,6 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
     </div>
 `;
 
-  // Investment Highlights Section
-  html += `
-    <div style="margin-bottom: 30px; padding-bottom: 20px;">
-      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Investment Highlights</h2>
-      
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business attractive to buyers?</h3>
-`;
-
-  if (analysis.executiveSummary?.buyerAttractions?.length || analysis.story?.keyAttractions?.length) {
-    const attractions = analysis.executiveSummary?.buyerAttractions || analysis.story?.keyAttractions || [];
-    html += `
-      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
-    `;
-    attractions.forEach((item: string) => {
-      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
-    });
-    html += `</ul>`;
-  } else {
-    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
-  }
-
-  html += `
-      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What growth opportunities exist for new ownership?</h3>
-`;
-
-  if (analysis.executiveSummary?.growthOpportunities?.length) {
-    html += `
-      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
-    `;
-    analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
-      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
-    });
-    html += `</ul>`;
-  } else {
-    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
-  }
-
-  html += `</div>`;
-
   // Financial Information Section (if provided by user)
   if (financialData && financialData.enabled) {
     html += `
@@ -295,6 +256,45 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
     
     html += `</div>`;
   }
+
+  // Investment Highlights Section
+  html += `
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Investment Highlights</h2>
+      
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px;">What makes this business attractive to buyers?</h3>
+`;
+
+  if (analysis.executiveSummary?.buyerAttractions?.length || analysis.story?.keyAttractions?.length) {
+    const attractions = analysis.executiveSummary?.buyerAttractions || analysis.story?.keyAttractions || [];
+    html += `
+      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+    `;
+    attractions.forEach((item: string) => {
+      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
+    });
+    html += `</ul>`;
+  } else {
+    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
+  }
+
+  html += `
+      <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">What growth opportunities exist for new ownership?</h3>
+`;
+
+  if (analysis.executiveSummary?.growthOpportunities?.length) {
+    html += `
+      <ul style="padding-left: 20px; margin-bottom: 20px; list-style-type: disc;">
+    `;
+    analysis.executiveSummary.growthOpportunities.forEach((item: string) => {
+      html += `<li style="margin-bottom: 8px; color: #1f2937; padding: 4px 0;">${item}</li>\n`;
+    });
+    html += `</ul>`;
+  } else {
+    html += `<p style="color: #6b7280; font-style: italic; padding: 10px;">Information not provided.</p>`;
+  }
+
+  html += `</div>`;
 
   // Market Analysis Section
   html += `
