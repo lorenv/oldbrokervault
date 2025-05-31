@@ -46,10 +46,11 @@ const resetPasswordSchema = z.object({
 type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
-const registerSchema = insertUserSchema.extend({
+const registerSchema = insertUserSchema.omit({ adminCode: true }).extend({
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
-  })
+  }),
+  captcha: z.string().min(1, "Please complete the captcha")
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -479,19 +480,39 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
 }
 
 function RegisterForm({ mutation }: { mutation: any }) {
+  const [captchaAnswer, setCaptchaAnswer] = useState<number>(0);
+  const [captchaQuestion, setCaptchaQuestion] = useState<string>("");
+
+  // Generate simple math captcha
+  useEffect(() => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    setCaptchaAnswer(num1 + num2);
+    setCaptchaQuestion(`${num1} + ${num2} = ?`);
+  }, []);
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
       password: "",
-      adminCode: "",
       agreeToTerms: false,
+      captcha: "",
     },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => {
+        // Validate captcha before submission
+        if (parseInt(data.captcha) !== captchaAnswer) {
+          form.setError("captcha", { message: "Incorrect answer" });
+          return;
+        }
+        // Remove captcha from submission data
+        const { captcha, ...submitData } = data;
+        mutation.mutate(submitData);
+      })} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -530,15 +551,24 @@ function RegisterForm({ mutation }: { mutation: any }) {
         />
         <FormField
           control={form.control}
-          name="adminCode"
+          name="captcha"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Admin Code (optional)</FormLabel>
+              <FormLabel>Security Check: {captchaQuestion}</FormLabel>
               <FormControl>
                 <Input
-                  type="password"
-                  placeholder="Enter admin code if provided"
+                  type="number"
+                  placeholder="Enter the answer"
                   {...field}
+                  onChange={(e) => {
+                    field.onChange(e.target.value);
+                    // Validate captcha answer
+                    if (parseInt(e.target.value) !== captchaAnswer) {
+                      form.setError("captcha", { message: "Incorrect answer" });
+                    } else {
+                      form.clearErrors("captcha");
+                    }
+                  }}
                 />
               </FormControl>
               <FormMessage />
