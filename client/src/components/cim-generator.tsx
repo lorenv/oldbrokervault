@@ -654,34 +654,6 @@ ${analysis.team.ownerResponsibilities}
     </div>
   );
 }
-                            }`}
-                            onClick={() => toggleImageSelection(imageUrl)}
-                          >
-                            <img
-                              src={imageUrl}
-                              alt={`Website image ${index + 1}`}
-                              className="w-full h-24 object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                            {selectedImages.includes(imageUrl) && (
-                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                  ✓
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      {selectedImages.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
-                        </div>
-                      )}
-                    </div>
                   )}
                   
                   {extractedImages.length === 0 && !isExtractingImages && (
