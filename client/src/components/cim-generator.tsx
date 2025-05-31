@@ -154,6 +154,21 @@ export function CimGenerator() {
     );
   };
 
+  // File handling functions
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      setFinancialFiles(prev => [...prev, ...Array.from(files)]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFinancialFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       // Set up website analysis tracking
