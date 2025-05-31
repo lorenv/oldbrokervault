@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InlineEditor } from "./inline-editor";
@@ -411,6 +412,23 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   const mergedAnalysis = getMergedContent();
 
+  // Move export button to header in shared view
+  const exportButtonPortal = isSharedView && (user || userProfile) && document.getElementById('export-button-container') ? 
+    createPortal(
+      <div className="flex justify-center">
+        <DocumentExport 
+          analysis={mergedAnalysis}
+          docId={docId}
+          websiteUrl={websiteUrl}
+          logoUrl={logoUrl}
+          selectedImages={selectedImages}
+          user={user || userProfile}
+          isSharedView={isSharedView}
+        />
+      </div>,
+      document.getElementById('export-button-container')!
+    ) : null;
+
   // Helper function to check if inventory section should be shown
   const shouldShowInventorySection = () => {
     const content = getMergedContent();
@@ -444,7 +462,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     switch (sectionId) {
       case 'executive-summary':
         return (
-          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : "border-blue-200"}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : "border-blue-200"}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : "bg-blue-50"}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
             </CardHeader>
@@ -473,12 +491,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-website':
         return websiteUrl ? (
-          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : ""}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Website</CardTitle>
             </CardHeader>
-            <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
-              <div className={`p-4 rounded-lg border-l-4 border-blue-500 ${isSharedView ? "bg-gradient-to-r from-blue-50/50 to-indigo-50/30" : "bg-gray-50"}`}>
+            <CardContent className={isSharedView ? "px-8 pb-8 pt-6" : ""}>
+              <div className={`p-6 rounded-lg border-l-4 border-blue-500 ${isSharedView ? "bg-gradient-to-r from-blue-50/50 to-indigo-50/30" : "bg-gray-50"}`}>
                 <a 
                   href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
                   target="_blank" 
@@ -677,6 +695,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   return (
     <div className="space-y-6">
+      {exportButtonPortal}
 
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
@@ -704,33 +723,52 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Title and Logo Header */}
-      <Card className={`mb-8 ${isSharedView ? 'border-0 shadow-none bg-transparent' : 'border shadow-sm'}`}>
-        <CardHeader className={isSharedView ? 'pb-8' : ''}>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center gap-6 flex-1">
-              <div className="text-center space-y-4">
-{!isSharedView && (
-                  <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
-                )}
-                
-                {logoUrl && (
-                  <div className="mx-auto flex justify-center">
-                    <img 
-                      src={logoUrl} 
-                      alt="Company Logo" 
-                      className={isSharedView ? "h-40 w-40 object-contain rounded-2xl" : "h-20 w-20 object-contain rounded-[30px]"}
-                      onError={(e) => {
-                        console.error('Logo failed to load:', logoUrl);
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+      {/* Title and Logo Header - White card in shared view */}
+      {isSharedView ? (
+        <Card className="mb-8 bg-white shadow-lg rounded-2xl border border-gray-200/30">
+          <CardHeader className="px-8 py-8">
+            <div className="flex flex-col items-center gap-6">
+              {logoUrl && (
+                <div className="mx-auto flex justify-center">
+                  <img 
+                    src={logoUrl} 
+                    alt="Company Logo" 
+                    className="h-40 w-40 object-contain rounded-2xl"
+                    onError={(e) => {
+                      console.error('Logo failed to load:', logoUrl);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
             </div>
-{(user || isSharedView) && !isSharedView && (
+          </CardHeader>
+        </Card>
+      ) : (
+        <Card className="mb-8 border shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col items-center gap-6 flex-1">
+                <div className="text-center space-y-4">
+                  <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
+                  
+                  {logoUrl && (
+                    <div className="mx-auto flex justify-center">
+                      <img 
+                        src={logoUrl} 
+                        alt="Company Logo" 
+                        className="h-20 w-20 object-contain rounded-[30px]"
+                        onError={(e) => {
+                          console.error('Logo failed to load:', logoUrl);
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
               <div>
                 <DocumentExport 
                   analysis={mergedAnalysis}
@@ -742,10 +780,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   isSharedView={isSharedView}
                 />
               </div>
-            )}
-          </div>
-        </CardHeader>
-      </Card>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
 
       {/* Main Sections with Drag and Drop */}
       <DndContext
