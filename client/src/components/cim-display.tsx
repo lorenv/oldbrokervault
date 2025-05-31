@@ -512,7 +512,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-images':
         return selectedImages && selectedImages.length > 0 ? (
-          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : ""}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>

@@ -180,7 +180,7 @@ export function SharePage() {
       {/* Document content with enhanced styling */}
       <div className="container mx-auto px-6 py-8">
         {shareData.cim && (
-          <div className="rounded-2xl shadow-xl border border-gray-200/30 overflow-hidden" style={{background: 'inherit'}}>
+          <div>
             <CimDisplay 
               analysis={shareData.cim.analysis}
               docId={shareData.cim.id}
