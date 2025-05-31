@@ -9,7 +9,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { Shield, FileText, AlertCircle } from "lucide-react";
 
 export function SharePage() {
-  const [, params] = useRoute("/cims/:shareSlug");
+  const [, params] = useRoute("/share/:shareSlug");
   const shareSlug = params?.shareSlug;
   
   console.log("Route params:", params);
