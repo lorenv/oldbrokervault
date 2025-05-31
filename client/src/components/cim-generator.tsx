@@ -37,6 +37,9 @@ import { Download, Copy, File, FileText } from "lucide-react";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { DocumentExport } from './document-export';  // Fixed import path
 import { CimDisplay } from './cim-display';
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -48,6 +51,15 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
+  const [financialsEnabled, setFinancialsEnabled] = useState(false);
+  const [financialData, setFinancialData] = useState({
+    askingPrice: '',
+    revenue: '',
+    ebitda: '',
+    askingPriceIncluded: false,
+    revenueIncluded: false,
+    ebitdaIncluded: false,
+  });
   
 
 
@@ -162,6 +174,14 @@ export function CimGenerator() {
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
+
+        // Add financial data if enabled
+        if (financialsEnabled) {
+          formData.append('financials', JSON.stringify({
+            enabled: true,
+            ...financialData
+          }));
+        }
         
 
 
@@ -197,7 +217,10 @@ export function CimGenerator() {
             ...data,
             docId: currentDocId,
             selectedImages: selectedImages.length > 0 ? selectedImages : undefined,
-
+            financials: financialsEnabled ? {
+              enabled: true,
+              ...financialData
+            } : undefined,
           });
           
           console.log("Sending selected images to backend:", selectedImages);
@@ -503,6 +526,86 @@ ${analysis.team.ownerResponsibilities}
                 </p>
               )}
             </div>
+
+            {/* Financials Section */}
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Financial Information</h3>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="financials-enabled">Include Financials</Label>
+                  <Switch
+                    id="financials-enabled"
+                    checked={financialsEnabled}
+                    onCheckedChange={setFinancialsEnabled}
+                  />
+                </div>
+              </div>
+              
+              {financialsEnabled && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  {/* Asking Price */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={financialData.askingPriceIncluded}
+                        onCheckedChange={(checked) => 
+                          setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
+                        }
+                      />
+                      <Label>Asking Price</Label>
+                    </div>
+                    <Input
+                      placeholder="$1,000,000"
+                      value={financialData.askingPrice}
+                      onChange={(e) => 
+                        setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  {/* Annual Revenue */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={financialData.revenueIncluded}
+                        onCheckedChange={(checked) => 
+                          setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
+                        }
+                      />
+                      <Label>Annual Revenue</Label>
+                    </div>
+                    <Input
+                      placeholder="$500,000"
+                      value={financialData.revenue}
+                      onChange={(e) => 
+                        setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  {/* EBITDA */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={financialData.ebitdaIncluded}
+                        onCheckedChange={(checked) => 
+                          setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
+                        }
+                      />
+                      <Label>EBITDA</Label>
+                    </div>
+                    <Input
+                      placeholder="$150,000"
+                      value={financialData.ebitda}
+                      onChange={(e) => 
+                        setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <Dialog open={isDirectionsOpen} onOpenChange={setIsDirectionsOpen}>
                 <DialogTrigger asChild>
