@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, subscriptionPlans } from "@shared/schema";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Copy, File, FileText } from "lucide-react";
+
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { DocumentExport } from './document-export';  // Fixed import path
 import { CimDisplay } from './cim-display';
@@ -60,6 +60,8 @@ export function CimGenerator() {
     revenueIncluded: false,
     ebitdaIncluded: false,
   });
+  const [financialFiles, setFinancialFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
 
 
