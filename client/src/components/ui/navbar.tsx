@@ -24,22 +24,6 @@ export function Navbar() {
           <Link href="/">
             <a className="font-semibold text-lg">CIM God</a>
           </Link>
-          {!user && (
-            <div className="flex items-center space-x-6">
-              <Link href="/features">
-                <a className="text-sm font-medium hover:text-primary">Features</a>
-              </Link>
-              <Link href="/how-it-works">
-                <a className="text-sm font-medium hover:text-primary">How It Works</a>
-              </Link>
-              <Link href="/pricing">
-                <a className="text-sm font-medium hover:text-primary">Pricing</a>
-              </Link>
-              <Link href="/contact">
-                <a className="text-sm font-medium hover:text-primary">Contact</a>
-              </Link>
-            </div>
-          )}
         </div>
 
         {user && (
