@@ -148,52 +148,55 @@ export function SharePage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <FileText className="h-5 w-5" />
-              Shared Document
-            </CardTitle>
-            <CardDescription className="text-blue-700">
-              You are viewing a shared confidential information memorandum
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+      {/* Modern header with improved design */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+        <div className="container mx-auto px-6 py-8">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg">
+              <Shield className="h-5 w-5" />
+              <span className="font-medium">Confidential Information Memorandum</span>
+            </div>
+            
+            {shareData.cim?.title && (
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                {shareData.cim.title}
+              </h1>
+            )}
+            
+            <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                <span>Professional Business Document</span>
+              </div>
               {shareData.requiresNda && hasSignedNda && (
-                <span className="ml-2 inline-flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  NDA Protected
-                </span>
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span>NDA Protected & Signed</span>
+                </div>
               )}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {shareData.cim && (
-        <>
-          {/* Debug: Log the data being passed */}
-          {(() => {
-            console.log('Share page debug - CIM data:', {
-              websiteUrl: shareData.cim.websiteUrl,
-              selectedImages: shareData.cim.selectedImages,
-              logoUrl: shareData.cim.logoUrl,
-              userProfile: shareData.cim.userProfile,
-              fullCimData: shareData.cim
-            });
-            return null;
-          })()}
-          <CimDisplay 
-            analysis={shareData.cim.analysis}
-            docId={shareData.cim.id}
-            websiteUrl={shareData.cim.websiteUrl}
-            logoUrl={shareData.cim.logoUrl}
-            selectedImages={shareData.cim.selectedImages}
-            title={shareData.cim.title}
-            isSharedView={true}
-            userProfile={shareData.cim.userProfile}
-          />
-        </>
-      )}
+      {/* Document content with enhanced styling */}
+      <div className="container mx-auto px-6 py-8">
+        {shareData.cim && (
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+            <CimDisplay 
+              analysis={shareData.cim.analysis}
+              docId={shareData.cim.id}
+              websiteUrl={shareData.cim.websiteUrl}
+              logoUrl={shareData.cim.logoUrl}
+              selectedImages={shareData.cim.selectedImages}
+              title={shareData.cim.title}
+              isSharedView={true}
+              userProfile={shareData.cim.userProfile}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

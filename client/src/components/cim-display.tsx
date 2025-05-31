@@ -444,22 +444,22 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     switch (sectionId) {
       case 'executive-summary':
         return (
-          <Card className="border-blue-200">
-            <CardHeader className="bg-blue-50">
-              <CardTitle className="text-xl text-blue-900">Executive Summary</CardTitle>
+          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : "border-blue-200"}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : "bg-blue-50"}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
+            <CardContent className={`space-y-6 pt-6 ${isSharedView ? "px-8 pb-8" : ""}`}>
               <div className="text-lg leading-relaxed">
                 {renderField("Business Overview", "story.businessSummary", true, false, "Comprehensive business overview and description...")}
               </div>
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold text-md mb-3 text-green-700">Investment Highlights</h4>
+                  <h4 className={`font-semibold text-md mb-3 ${isSharedView ? "text-green-800" : "text-green-700"}`}>Investment Highlights</h4>
                   {renderField("Key Buyer Attractions", "story.keyAttractions", false, true, "What makes this business attractive to buyers")}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-md mb-3 text-blue-700">Growth Opportunities</h4>
+                  <h4 className={`font-semibold text-md mb-3 ${isSharedView ? "text-blue-800" : "text-blue-700"}`}>Growth Opportunities</h4>
                   {renderField("Growth Potential", "executiveSummary.growthOpportunities", false, true, "Future growth opportunities")}
                 </div>
               </div>
@@ -473,17 +473,17 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-website':
         return websiteUrl ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Website</CardTitle>
+          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Website</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+            <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
+              <div className={`p-4 rounded-lg border-l-4 border-blue-500 ${isSharedView ? "bg-gradient-to-r from-blue-50/50 to-indigo-50/30" : "bg-gray-50"}`}>
                 <a 
                   href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  className={`font-medium ${isSharedView ? "text-blue-700 hover:text-blue-900 text-lg" : "text-blue-600 hover:text-blue-800"}`}
                 >
                   {websiteUrl}
                 </a>
@@ -705,40 +705,47 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       )}
 
       {/* Title and Logo Header */}
-      <Card className="mb-6">
-        <CardHeader>
+      <Card className={`mb-8 ${isSharedView ? 'border-0 shadow-none bg-transparent' : 'border shadow-sm'}`}>
+        <CardHeader className={isSharedView ? 'pb-8' : ''}>
           <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center gap-4 flex-1">
-              <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
-              {logoUrl && (
-                <>
-                  {(() => {
-                    console.log('Logo Debug:', { logoUrl, isSharedView, websiteUrl });
-                    return null;
-                  })()}
-                  <img 
-                    src={logoUrl} 
-                    alt="Company Logo" 
-                    className={isSharedView ? "h-32 w-32 object-contain rounded-[30px]" : "h-20 w-20 object-contain rounded-[30px]"}
-                    onError={(e) => {
-                      console.error('Logo failed to load:', logoUrl);
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                </>
-              )}
+            <div className="flex flex-col items-center gap-6 flex-1">
+              <div className="text-center space-y-4">
+                {isSharedView ? (
+                  <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
+                    {title || "Confidential Information Memorandum"}
+                  </h1>
+                ) : (
+                  <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
+                )}
+                
+                {logoUrl && (
+                  <div className={`mx-auto ${isSharedView ? 'p-4 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50' : ''}`}>
+                    <img 
+                      src={logoUrl} 
+                      alt="Company Logo" 
+                      className={isSharedView ? "h-40 w-40 object-contain rounded-2xl" : "h-20 w-20 object-contain rounded-[30px]"}
+                      onError={(e) => {
+                        console.error('Logo failed to load:', logoUrl);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             {(user || isSharedView) && (
-              <DocumentExport 
-                analysis={mergedAnalysis}
-                docId={docId}
-                websiteUrl={websiteUrl}
-                logoUrl={logoUrl}
-                selectedImages={selectedImages}
-                user={user || userProfile}
-                isSharedView={isSharedView}
-              />
+              <div className={isSharedView ? 'absolute top-6 right-6' : ''}>
+                <DocumentExport 
+                  analysis={mergedAnalysis}
+                  docId={docId}
+                  websiteUrl={websiteUrl}
+                  logoUrl={logoUrl}
+                  selectedImages={selectedImages}
+                  user={user || userProfile}
+                  isSharedView={isSharedView}
+                />
+              </div>
             )}
           </div>
         </CardHeader>
