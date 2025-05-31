@@ -25,7 +25,7 @@ export function Navbar() {
             <a className="font-semibold text-lg">CIM God</a>
           </Link>
           {!user && (
-            <div className="hidden md:flex items-center space-x-6 ml-8">
+            <div className="hidden md:flex items-center space-x-6 ml-16">
               <Link href="/pricing">
                 <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
               </Link>
