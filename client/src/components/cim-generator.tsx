@@ -654,31 +654,6 @@ ${analysis.team.ownerResponsibilities}
     </div>
   );
 }
-                </p>
-              )}
-            </div>
-            
-
-            
-            <div className="space-y-2">
-              <div className="relative">
-                <Input
-                  placeholder="Business Website URL (optional)"
-                  {...form.register("websiteUrl")}
-                />
-                {form.formState.errors.websiteUrl && (
-                  <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.websiteUrl.message as string}
-                  </p>
-                )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  Add a business website URL to enhance the CIM with website content
-                </div>
-              </div>
-              
-              {/* Image extraction and selection section */}
-              {form.watch("websiteUrl") && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium">Website Images</h4>
                     <Button
