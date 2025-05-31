@@ -559,6 +559,7 @@ ${analysis.team.ownerResponsibilities}
               </div>
               
               {financialsEnabled && (
+                <>
                 <div className="grid md:grid-cols-3 gap-4">
                   {/* Asking Price */}
                   <div className="space-y-2">
@@ -620,6 +621,62 @@ ${analysis.team.ownerResponsibilities}
                     />
                   </div>
                 </div>
+                
+                <div className="space-y-4 mt-6">
+                  <Label>Financial Documents (Optional)</Label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="text-center">
+                      <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Upload Financial Files
+                      </Button>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Upload financial statements, tax returns, or other relevant documents
+                      </p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      multiple={true}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    />
+                  </div>
+                  
+                  {financialFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Uploaded Files:</Label>
+                      <div className="space-y-2">
+                        {financialFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div className="flex items-center space-x-2">
+                              <FileText className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm text-gray-700">{file.name}</span>
+                              <span className="text-xs text-gray-500">
+                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                </>
               )}
             </div>
 
