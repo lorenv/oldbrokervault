@@ -462,7 +462,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     switch (sectionId) {
       case 'executive-summary':
         return (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : "border-blue-200"}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : "bg-blue-50"}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
             </CardHeader>
@@ -491,7 +491,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-website':
         return websiteUrl ? (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : ""}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Website</CardTitle>
             </CardHeader>
@@ -512,7 +512,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-images':
         return selectedImages && selectedImages.length > 0 ? (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border border-gray-200/30 mb-8" : ""}>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>
@@ -543,9 +543,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-overview':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Overview & History</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Overview & History</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -572,9 +572,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'market-position':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Market Position</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Market Position</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Competitive Advantages", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
@@ -587,9 +587,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'sales-marketing':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales & Marketing</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Sales & Marketing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Marketing Strategies", "marketing.strategies", false, true, "How the business attracts customers")}
@@ -604,9 +604,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'operations':
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Operations</CardTitle>
+          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Operations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
@@ -725,7 +725,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Title and Logo Header - White card in shared view */}
       {isSharedView ? (
-        <Card className="mb-8 bg-white shadow-lg rounded-2xl border border-gray-200/30">
+        <Card className="mb-8 bg-white rounded-2xl border-0 shadow-none">
           <CardHeader className="px-8 py-8">
             <div className="flex flex-col items-center gap-6">
               {logoUrl && (
