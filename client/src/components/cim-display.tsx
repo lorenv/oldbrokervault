@@ -11,6 +11,7 @@ import { Save, Download, X } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
+import { FinancialsSection } from "./financials-section";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -488,6 +489,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               </div>
             </CardContent>
           </Card>
+        );
+
+      case 'financials':
+        return (
+          <FinancialsSection docId={docId} isSharedView={isSharedView} />
         );
 
       case 'business-website':
