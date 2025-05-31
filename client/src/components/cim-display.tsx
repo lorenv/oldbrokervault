@@ -102,6 +102,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   // Define the main sections for drag and drop
   const mainSections = [
     'executive-summary',
+    'financials',
     'business-website', 
     'business-images',
     'business-overview',
