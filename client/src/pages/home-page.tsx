@@ -91,7 +91,7 @@ export default function HomePage() {
           </p>
           <Link href="/login">
             <Button size="lg" className="text-lg px-8 py-3">
-              Start Creating Your CIM
+              Create a Free CIM
             </Button>
           </Link>
         </div>
@@ -137,11 +137,11 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/login">
               <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                Start Free Trial
+                Create a Free CIM
               </Button>
             </Link>
             <Link href="/pricing">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-blue-600">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-gray-900 bg-white hover:bg-gray-100">
                 View Pricing
               </Button>
             </Link>
