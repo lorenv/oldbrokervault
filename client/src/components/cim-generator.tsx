@@ -559,8 +559,8 @@ ${analysis.team.ownerResponsibilities}
               </div>
               
               {financialsEnabled && (
-                <>
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-3 gap-4">
                   {/* Asking Price */}
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
@@ -676,7 +676,7 @@ ${analysis.team.ownerResponsibilities}
                     </div>
                   )}
                 </div>
-                </>
+                </div>
               )}
             </div>
 
