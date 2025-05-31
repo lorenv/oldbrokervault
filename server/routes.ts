@@ -1938,7 +1938,284 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Duplicate endpoint removed - using the public one above
+  // Financials API routes
+  
+  // Get financials for a CIM document
+  app.get("/api/cim/:id/financials", async (req, res) => {
+    try {
+      const cimId = parseInt(req.params.id);
+      const [result] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
+      
+      if (!result) {
+        // Return default financials structure if none exists
+        return res.json({
+          enabled: false,
+          askingPrice: null,
+          askingPriceIncluded: false,
+          revenue: null,
+          revenueIncluded: false,
+          ebitda: null,
+          ebitdaIncluded: false
+        });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching financials:', error);
+      res.status(500).json({ error: "Failed to fetch financials" });
+    }
+  });
+
+  // Update or create financials for a CIM document
+  app.put("/api/cim/:id/financials", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const cimId = parseInt(req.params.id);
+      
+      // Check if CIM belongs to user
+      const cim = await storage.getCim(cimId);
+      if (!cim || cim.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Check if financials record exists
+      const [existing] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
+      
+      if (existing) {
+        // Update existing record
+        const [updated] = await db
+          .update(financials)
+          .set({ 
+            ...req.body, 
+            updatedAt: new Date(),
+            cimDocumentId: cimId 
+          })
+          .where(eq(financials.cimDocumentId, cimId))
+          .returning();
+        res.json(updated);
+      } else {
+        // Create new record
+        const [created] = await db
+          .insert(financials)
+          .values({
+            cimDocumentId: cimId,
+            ...req.body
+          })
+          .returning();
+        res.json(created);
+      }
+    } catch (error) {
+      console.error('Error updating financials:', error);
+      res.status(500).json({ error: "Failed to update financials" });
+    }
+  });
+
+  // Get financial files for a CIM document
+  app.get("/api/cim/:id/financial-files", async (req, res) => {
+    try {
+      const cimId = parseInt(req.params.id);
+      const files = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimId));
+      res.json(files);
+    } catch (error) {
+      console.error('Error fetching financial files:', error);
+      res.status(500).json({ error: "Failed to fetch financial files" });
+    }
+  });
+
+  // Upload financial file
+  app.post("/api/cim/:id/financial-files", upload.single('file'), async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Check if CIM belongs to user
+      const cim = await storage.getCim(cimId);
+      if (!cim || cim.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(file.originalname);
+      const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
+      const filePath = path.join(financialFilesDir, uniqueFileName);
+
+      // Save file to secure directory
+      await fs.writeFile(filePath, file.buffer);
+
+      // Save file record to database
+      const [fileRecord] = await db
+        .insert(financialFiles)
+        .values({
+          cimDocumentId: cimId,
+          fileName: uniqueFileName,
+          originalName: file.originalname,
+          filePath,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          included: true
+        })
+        .returning();
+
+      res.json(fileRecord);
+    } catch (error) {
+      console.error('Error uploading financial file:', error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  // Download financial file
+  app.get("/api/cim/:id/financial-files/:fileId/download", async (req, res) => {
+    try {
+      const cimId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+
+      // Get file record
+      const [file] = await db.select().from(financialFiles).where(eq(financialFiles.id, fileId));
+      
+      if (!file || file.cimDocumentId !== cimId) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      // Check if file exists on disk
+      const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
+      if (!fileExists) {
+        return res.status(404).json({ error: "File not found on disk" });
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
+      res.setHeader('Content-Type', file.mimeType);
+
+      // Stream the file
+      const fileStream = await fs.readFile(file.filePath);
+      res.send(fileStream);
+    } catch (error) {
+      console.error('Error downloading financial file:', error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  // Update file inclusion status
+  app.patch("/api/cim/:id/financial-files/:fileId", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+
+      // Check if CIM belongs to user
+      const cim = await storage.getCim(cimId);
+      if (!cim || cim.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Update file inclusion
+      const [updated] = await db
+        .update(financialFiles)
+        .set({ included: req.body.included })
+        .where(eq(financialFiles.id, fileId))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating file inclusion:', error);
+      res.status(500).json({ error: "Failed to update file inclusion" });
+    }
+  });
+
+  // Delete financial file
+  app.delete("/api/cim/:id/financial-files/:fileId", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+
+      // Check if CIM belongs to user
+      const cim = await storage.getCim(cimId);
+      if (!cim || cim.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get file record to delete physical file
+      const [file] = await db.select().from(financialFiles).where(eq(financialFiles.id, fileId));
+      
+      if (file) {
+        // Delete physical file
+        try {
+          await fs.unlink(file.filePath);
+        } catch (error) {
+          console.error('Error deleting physical file:', error);
+        }
+
+        // Delete database record
+        await db.delete(financialFiles).where(eq(financialFiles.id, fileId));
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting financial file:', error);
+      res.status(500).json({ error: "Failed to delete file" });
+    }
+  });
+
+  // Bulk download financial files
+  app.get("/api/cim/:id/financial-files/bulk-download", async (req, res) => {
+    try {
+      const cimId = parseInt(req.params.id);
+      
+      // Get all included files
+      const files = await db
+        .select()
+        .from(financialFiles)
+        .where(eq(financialFiles.cimDocumentId, cimId));
+
+      const includedFiles = files.filter(f => f.included);
+
+      if (includedFiles.length === 0) {
+        return res.status(404).json({ error: "No files available for download" });
+      }
+
+      // For simplicity, we'll zip the files using a basic approach
+      // In production, you might want to use a proper ZIP library
+      const JSZip = require('jszip');
+      const zip = new JSZip();
+
+      for (const file of includedFiles) {
+        try {
+          const fileContent = await fs.readFile(file.filePath);
+          zip.file(file.originalName, fileContent);
+        } catch (error) {
+          console.error(`Error reading file ${file.originalName}:`, error);
+        }
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="financial-documents-${cimId}.zip"`);
+      res.send(zipBuffer);
+
+    } catch (error) {
+      console.error('Error creating bulk download:', error);
+      res.status(500).json({ error: "Failed to create bulk download" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
