@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,11 +23,14 @@ import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
+  const [location] = useLocation();
+  const isSharePage = location.startsWith('/share/');
+
   return (
     <>
-      <Navbar />
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1">
+      {!isSharePage && <Navbar />}
+      <div className={isSharePage ? "" : "min-h-screen flex flex-col"}>
+        <div className={isSharePage ? "" : "flex-1"}>
           <Switch>
             <Route path="/" component={HomePage} />
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
@@ -47,7 +50,7 @@ function Router() {
             <Route component={NotFound} />
           </Switch>
         </div>
-        <Footer />
+        {!isSharePage && <Footer />}
       </div>
     </>
   );
