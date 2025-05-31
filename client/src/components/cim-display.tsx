@@ -444,7 +444,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     switch (sectionId) {
       case 'executive-summary':
         return (
-          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : "border-blue-200"}>
+          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : "border-blue-200"}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : "bg-blue-50"}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
             </CardHeader>
@@ -473,7 +473,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-website':
         return websiteUrl ? (
-          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : ""}>
+          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Website</CardTitle>
             </CardHeader>
@@ -494,7 +494,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-images':
         return selectedImages && selectedImages.length > 0 ? (
-          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : ""}>
+          <Card className={isSharedView ? "border-0 shadow-none bg-transparent rounded-none mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>
@@ -503,22 +503,19 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 {selectedImages.map((imageUrl, index) => (
                   <div 
                     key={index} 
-                    className="cursor-pointer hover:opacity-80 transition-all duration-300 group"
+                    className="cursor-pointer transition-all duration-300 group relative"
                     onClick={() => setSelectedImageModal(imageUrl)}
                   >
                     <img 
                       src={imageUrl} 
                       alt={`Business image ${index + 1}`} 
-                      className={`w-full object-cover shadow-md group-hover:shadow-xl transition-all duration-300 ${isSharedView ? "h-64 rounded-[30px] group-hover:scale-105" : "h-48 rounded-[30px]"}`}
+                      className={`w-full object-cover shadow-md transition-all duration-300 ${isSharedView ? "h-64 rounded-[30px] group-hover:shadow-lg group-hover:scale-[1.02]" : "h-48 rounded-[30px] hover:opacity-80"}`}
                       onError={(e) => {
                         console.error('Image failed to load:', imageUrl);
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                       }}
                     />
-                    {isSharedView && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-[30px] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    )}
                   </div>
                 ))}
               </div>
@@ -733,8 +730,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                 )}
               </div>
             </div>
-            {(user || isSharedView) && (
-              <div className={isSharedView ? 'absolute top-6 right-6' : ''}>
+{(user || isSharedView) && !isSharedView && (
+              <div>
                 <DocumentExport 
                   analysis={mergedAnalysis}
                   docId={docId}
