@@ -385,64 +385,16 @@ ${analysis.team.ownerResponsibilities}
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Generate CIM Document</h2>
-          </div>
-          
-          <Dialog open={isDirectionsOpen} onOpenChange={setIsDirectionsOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Settings className="h-4 w-4 mr-2" />
-                Customize Analysis
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Customize Analysis Directions</DialogTitle>
-                <DialogDescription>
-                  Modify how the AI analyzes your business transcript. These directions guide the AI in extracting and structuring information from your meeting notes.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Textarea
-                  value={form.watch("directions")}
-                  onChange={(e) => form.setValue("directions", e.target.value)}
-                  className="min-h-[300px]"
-                  placeholder="Enter custom analysis directions..."
-                />
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      form.setValue("directions", DEFAULT_CIM_DIRECTIONS);
-                    }}
-                  >
-                    Reset to Default
-                  </Button>
-                  <Button onClick={() => setIsDirectionsOpen(false)}>
-                    Save Changes
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        
-        <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate CIM Document</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
             <div>
               <Input
                 placeholder="Document Title"
                 {...form.register("title")}
-                className="bg-white/70 border-gray-200 focus:border-blue-400 focus:ring-blue-400/20"
               />
               {form.formState.errors.title && (
                 <p className="text-sm text-destructive mt-1">
@@ -451,209 +403,87 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
             
-            <div>
-              <Input
-                placeholder="Business Website URL (optional)"
-                {...form.register("websiteUrl")}
-                className="bg-white/70 border-gray-200 focus:border-blue-400 focus:ring-blue-400/20"
-              />
-              {form.formState.errors.websiteUrl && (
-                <p className="text-sm text-destructive mt-1">
-                  {form.formState.errors.websiteUrl.message as string}
-                </p>
-              )}
-              <div className="text-xs text-gray-500 mt-1">
-                Add a business website URL to enhance the CIM with website content
-              </div>
-            </div>
-          </div>
-              
-          {/* Image extraction and selection section */}
-          {form.watch("websiteUrl") && (
-            <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/50">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-900">Website Images</h4>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = form.getValues("websiteUrl");
-                    if (url) extractImages(url);
-                  }}
-                  disabled={isExtractingImages}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  {isExtractingImages ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  {isExtractingImages ? "Extracting..." : "Extract Images"}
-                </Button>
+
+            
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  placeholder="Business Website URL (optional)"
+                  {...form.register("websiteUrl")}
+                />
+                {form.formState.errors.websiteUrl && (
+                  <p className="text-sm text-destructive mt-1">
+                    {form.formState.errors.websiteUrl.message as string}
+                  </p>
+                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  Add a business website URL to enhance the CIM with website content
+                </div>
               </div>
               
-              {extractedImages.length > 0 && (
-                <div className="space-y-3">
-                  <div className="text-xs text-gray-500">
-                    Select images to include in your CIM document (click to select/deselect):
+              {/* Image extraction and selection section */}
+              {form.watch("websiteUrl") && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium">Website Images</h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = form.getValues("websiteUrl");
+                        if (url) extractImages(url);
+                      }}
+                      disabled={isExtractingImages}
+                    >
+                      {isExtractingImages ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      {isExtractingImages ? "Extracting..." : "Extract Images"}
+                    </Button>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {extractedImages.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
-                          selectedImages.includes(imageUrl)
-                            ? "border-blue-400 ring-2 ring-blue-400/20"
-                            : "border-gray-200 hover:border-blue-300"
-                        }`}
-                        onClick={() => toggleImageSelection(imageUrl)}
-                      >
-                        <img
-                          src={imageUrl}
-                          alt={`Website image ${index + 1}`}
-                          className="w-full h-24 object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                        {selectedImages.includes(imageUrl) && (
-                          <div className="absolute inset-0 bg-blue-400/20 flex items-center justify-center">
-                            <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                              ✓
-                            </div>
-                          </div>
-                        )}
+                  
+                  {extractedImages.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Select images to include in your CIM document (click to select/deselect):
                       </div>
-                    ))}
-                  </div>
-                  {selectedImages.length > 0 && (
-                    <div className="text-xs text-gray-500">
-                      {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {extractedImages.map((imageUrl, index) => (
+                          <div
+                            key={index}
+                            className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
+                              selectedImages.includes(imageUrl)
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => toggleImageSelection(imageUrl)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Website image ${index + 1}`}
+                              className="w-full h-24 object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {selectedImages.includes(imageUrl) && (
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                  ✓
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {selectedImages.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
-              
-              {extractedImages.length === 0 && !isExtractingImages && (
-                <div className="text-xs text-gray-500">
-                  Click "Extract Images" to find images from the website
-                </div>
-              )}
-            </div>
-          )}
-          
-          <div>
-            <Textarea
-              placeholder="Paste your meeting transcript here..."
-              className="min-h-[200px] bg-white/70 border-gray-200 focus:border-blue-400 focus:ring-blue-400/20"
-              {...form.register("transcript")}
-            />
-            {form.formState.errors.transcript && (
-              <p className="text-sm text-destructive mt-1">
-                {form.formState.errors.transcript.message as string}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={generateMutation.isPending}
-              className="px-8 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              {generateMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {websiteAnalysisStage === 'analyzing' && 'Analyzing website...'}
-                  {websiteAnalysisStage === 'enhancing' && 'Enhancing with website content...'}
-                  {!websiteAnalysisStage && 'Generating CIM...'}
-                </>
-              ) : (
-                "Generate CIM"
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      {analysis && currentDocId && (
-        <CimDisplay
-          analysis={analysis}
-          docId={currentDocId!}
-          websiteUrl={form.getValues("websiteUrl")}
-          logoUrl={analysis.logoUrl}
-          selectedImages={selectedImages}
-          title={form.getValues("title")}
-        />
-      )}
-
-      {analysis && !currentDocId && (
-        <div className="bg-white/60 backdrop-blur-sm border border-white/40 rounded-2xl p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Generated CIM</h2>
-            <div className="flex items-center space-x-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                    <File className="h-4 w-4 mr-2" />
-                    Export as PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('word')}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Export as Word
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-            </div>
-          </div>
-          
-          <div className="prose max-w-none bg-white/50 rounded-xl p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Business Summary</h3>
-            <p className="text-gray-700 mb-6">{renderValue(analysis?.story?.businessSummary)}</p>
-            
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Key Attractions</h3>
-            <ul className="list-disc list-inside text-gray-700 mb-6">
-              {analysis?.story?.keyAttractions?.map((attraction: string, index: number) => (
-                <li key={index}>{attraction}</li>
-              ))}
-            </ul>
-            
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Market Analysis</h3>
-            <p className="text-gray-700 mb-4">{renderValue(analysis?.marketAnalysis?.customerProfile)}</p>
-            
-            <h4 className="font-medium mb-2 text-gray-900">Strengths:</h4>
-            <ul className="list-disc list-inside text-gray-700 mb-6">
-              {analysis?.marketAnalysis?.strengths?.map((strength: string, index: number) => (
-                <li key={index}>{strength}</li>
-              ))}
-            </ul>
-            
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Operations</h3>
-            <p className="text-gray-700 mb-4"><strong>Customer Relationships:</strong> {renderValue(analysis?.operations?.customers?.recurring)}</p>
-            <p className="text-gray-700 mb-6"><strong>Owner Responsibilities:</strong> {renderValue(analysis?.team?.ownerResponsibilities)}</p>
-            
-            <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-700">
-                This is a preview of your generated CIM. Use the export options above to download the full document or copy the content to your clipboard.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
                   )}
                   
                   {extractedImages.length === 0 && !isExtractingImages && (
@@ -755,8 +585,9 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               )}
             </div>
-        </form>
-      </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {analysis && currentDocId && (
         <CimDisplay
