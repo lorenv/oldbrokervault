@@ -494,28 +494,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-images':
         return selectedImages && selectedImages.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Gallery</CardTitle>
+          <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Gallery</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedImages.map((imageUrl, index) => (
                   <div 
                     key={index} 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    className="cursor-pointer hover:opacity-80 transition-all duration-300 group"
                     onClick={() => setSelectedImageModal(imageUrl)}
                   >
                     <img 
                       src={imageUrl} 
                       alt={`Business image ${index + 1}`} 
-                      className={isSharedView ? "w-full h-64 object-cover rounded-[30px] shadow-md" : "w-full h-48 object-cover rounded-[30px] shadow-md"}
+                      className={`w-full object-cover shadow-md group-hover:shadow-xl transition-all duration-300 ${isSharedView ? "h-64 rounded-[30px] group-hover:scale-105" : "h-48 rounded-[30px]"}`}
                       onError={(e) => {
                         console.error('Image failed to load:', imageUrl);
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                       }}
                     />
+                    {isSharedView && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-[30px] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    )}
                   </div>
                 ))}
               </div>
