@@ -888,11 +888,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Team & Management */}
       {renderSectionWithInsertables("team-management",
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Structure & Management</CardTitle>
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Team Structure & Management</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
             <div className="p-4 bg-gray-50 rounded-lg mb-4">
               <h4 className="font-semibold text-md mb-3">Owner Involvement</h4>
               <div className="grid md:grid-cols-2 gap-4">
