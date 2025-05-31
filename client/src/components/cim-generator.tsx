@@ -386,10 +386,7 @@ ${analysis.team.ownerResponsibilities}
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Generate CIM Document</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
             <div>
               <Input
