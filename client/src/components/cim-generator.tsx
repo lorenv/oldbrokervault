@@ -654,38 +654,6 @@ ${analysis.team.ownerResponsibilities}
     </div>
   );
 }
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium">Website Images</h4>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = form.getValues("websiteUrl");
-                        if (url) extractImages(url);
-                      }}
-                      disabled={isExtractingImages}
-                    >
-                      {isExtractingImages ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      {isExtractingImages ? "Extracting..." : "Extract Images"}
-                    </Button>
-                  </div>
-                  
-                  {extractedImages.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="text-xs text-muted-foreground">
-                        Select images to include in your CIM document (click to select/deselect):
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {extractedImages.map((imageUrl, index) => (
-                          <div
-                            key={index}
-                            className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
-                              selectedImages.includes(imageUrl)
-                                ? "border-primary ring-2 ring-primary/20"
-                                : "border-border hover:border-primary/50"
                             }`}
                             onClick={() => toggleImageSelection(imageUrl)}
                           >
