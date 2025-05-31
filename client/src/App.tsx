@@ -6,7 +6,8 @@ import { AuthProvider } from "./hooks/use-auth";
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import HomePage from "@/pages/home-page";
-import AuthPage from "@/pages/auth-page";
+import DashboardPage from "@/pages/dashboard-page";
+import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
@@ -28,7 +29,8 @@ function Router() {
       <div className="min-h-screen flex flex-col">
         <div className="flex-1">
           <Switch>
-            <ProtectedRoute path="/" component={HomePage} />
+            <Route path="/" component={HomePage} />
+            <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
             <ProtectedRoute path="/account" component={AccountPage} />
@@ -40,7 +42,8 @@ function Router() {
             <Route path="/terms-of-service" component={TermsOfServicePage} />
             <Route path="/cookie-policy" component={CookiePolicyPage} />
             <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
-            <Route path="/auth" component={AuthPage} />
+            <Route path="/login" component={LoginPage} />
+            <Route path="/auth" component={LoginPage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route component={NotFound} />
           </Switch>
