@@ -921,44 +921,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Products & Inventory - Only show if has meaningful content */}
-      {(() => {
-        const inventory = mergedAnalysis.inventory;
-        const hasInventoryContent = inventory && (
-          (inventory.topProducts && inventory.topProducts.length > 0 && inventory.topProducts.some((item: any) => item && item.trim() !== '' && item.toLowerCase() !== 'not applicable' && item.toLowerCase() !== 'n/a')) ||
-          (inventory.skuCount && inventory.skuCount.trim() !== '' && inventory.skuCount.toLowerCase() !== 'not applicable' && inventory.skuCount.toLowerCase() !== 'n/a') ||
-          (inventory.value && inventory.value.trim() !== '' && inventory.value.toLowerCase() !== 'not applicable' && inventory.value.toLowerCase() !== 'n/a') ||
-          (inventory.leadTime && inventory.leadTime.trim() !== '' && inventory.leadTime.toLowerCase() !== 'not applicable' && inventory.leadTime.toLowerCase() !== 'n/a') ||
-          (inventory.sourcing && inventory.sourcing.trim() !== '' && inventory.sourcing.toLowerCase() !== 'not applicable' && inventory.sourcing.toLowerCase() !== 'n/a') ||
-          (inventory.storage && inventory.storage.trim() !== '' && inventory.storage.toLowerCase() !== 'not applicable' && inventory.storage.toLowerCase() !== 'n/a')
-        );
-        
-        return hasInventoryContent ? renderSectionWithInsertables("products-inventory",
-          <Card>
-            <CardHeader>
-              <CardTitle>Products & Inventory Management</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-semibold text-md mb-3">Product Portfolio</h4>
-                  {renderField("Best-Selling Products", "inventory.topProducts", false, true, "Top products or services")}
-                  {renderField("Product Range", "inventory.skuCount", false, false, "Number of different products/SKUs")}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-md mb-3">Inventory Operations</h4>
-                  {renderField("Current Inventory Value", "inventory.value", false, false, "Total value of current inventory")}
-                  {renderField("Restocking Lead Time", "inventory.leadTime", false, false, "How long to restock inventory?")}
-                </div>
-              </div>
-              
-              {renderField("Sourcing Strategy", "inventory.sourcing", true, false, "Where and how is inventory sourced?")}
-              {renderField("Storage & Logistics", "inventory.storage", true, false, "How and where is inventory stored and managed?")}
-            </CardContent>
-          </Card>
-        ) : null;
-      })()}
-
       {/* Assets & Infrastructure */}
       {renderSectionWithInsertables("assets-infrastructure",
         <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
