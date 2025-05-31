@@ -164,18 +164,12 @@ export function SharePage() {
               </h1>
             )}
             
-            <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-blue-600" />
-                <span>Professional Business Document</span>
+            {shareData.requiresNda && hasSignedNda && (
+              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span>NDA Protected & Signed</span>
               </div>
-              {shareData.requiresNda && hasSignedNda && (
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4 text-green-600" />
-                  <span>NDA Protected & Signed</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>

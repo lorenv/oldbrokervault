@@ -496,7 +496,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         return selectedImages && selectedImages.length > 0 ? (
           <Card className={isSharedView ? "border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl mb-8 overflow-hidden" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Gallery</CardTitle>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>
             <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -713,16 +713,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center gap-6 flex-1">
               <div className="text-center space-y-4">
-                {isSharedView ? (
-                  <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-800 to-indigo-800 bg-clip-text text-transparent leading-tight">
-                    {title || "Confidential Information Memorandum"}
-                  </h1>
-                ) : (
+{!isSharedView && (
                   <CardTitle className="text-2xl text-center">{title || "Confidential Information Memorandum"}</CardTitle>
                 )}
                 
                 {logoUrl && (
-                  <div className={`mx-auto ${isSharedView ? 'p-4 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50' : ''}`}>
+                  <div className="mx-auto flex justify-center">
                     <img 
                       src={logoUrl} 
                       alt="Company Logo" 
