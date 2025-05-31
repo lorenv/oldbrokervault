@@ -24,7 +24,31 @@ export function Navbar() {
           <Link href="/">
             <a className="font-semibold text-lg">CIM God</a>
           </Link>
+          {!user && (
+            <div className="hidden md:flex items-center space-x-6 ml-8">
+              <Link href="/features">
+                <a className="text-sm font-medium hover:text-primary transition-colors">Features</a>
+              </Link>
+              <Link href="/pricing">
+                <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
+              </Link>
+              <Link href="/contact">
+                <a className="text-sm font-medium hover:text-primary transition-colors">Contact</a>
+              </Link>
+            </div>
+          )}
         </div>
+
+        {!user && (
+          <div className="flex items-center space-x-3">
+            <Link href="/auth">
+              <Button variant="ghost" size="sm">Login</Button>
+            </Link>
+            <Link href="/auth">
+              <Button size="sm">Get Started</Button>
+            </Link>
+          </div>
+        )}
 
         {user && (
           <div className="flex items-center space-x-4">
