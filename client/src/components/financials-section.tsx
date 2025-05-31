@@ -35,11 +35,17 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
 
   // Update financials mutation
   const updateFinancialsMutation = useMutation({
-    mutationFn: (data: Partial<Financials>) =>
-      apiRequest(`/api/cim/${docId}/financials`, {
+    mutationFn: async (data: Partial<Financials>) => {
+      const response = await fetch(`/api/cim/${docId}/financials`, {
         method: 'PUT',
-        body: JSON.stringify(data)
-      }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to update financials');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
       toast({ title: "Financials updated successfully" });
@@ -51,13 +57,15 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
 
   // Upload file mutation
   const uploadFileMutation = useMutation({
-    mutationFn: (file: File) => {
+    mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      return apiRequest(`/api/cim/${docId}/financial-files`, {
+      const response = await fetch(`/api/cim/${docId}/financial-files`, {
         method: 'POST',
-        body: formData
+        body: formData,
       });
+      if (!response.ok) throw new Error('Failed to upload file');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financial-files`] });
@@ -73,10 +81,13 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
 
   // Delete file mutation
   const deleteFileMutation = useMutation({
-    mutationFn: (fileId: number) =>
-      apiRequest(`/api/cim/${docId}/financial-files/${fileId}`, {
-        method: 'DELETE'
-      }),
+    mutationFn: async (fileId: number) => {
+      const response = await fetch(`/api/cim/${docId}/financial-files/${fileId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete file');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financial-files`] });
       toast({ title: "File deleted successfully" });
@@ -88,11 +99,17 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
 
   // Update file inclusion mutation
   const updateFileInclusionMutation = useMutation({
-    mutationFn: ({ fileId, included }: { fileId: number; included: boolean }) =>
-      apiRequest(`/api/cim/${docId}/financial-files/${fileId}`, {
+    mutationFn: async ({ fileId, included }: { fileId: number; included: boolean }) => {
+      const response = await fetch(`/api/cim/${docId}/financial-files/${fileId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ included })
-      }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ included }),
+      });
+      if (!response.ok) throw new Error('Failed to update file inclusion');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financial-files`] });
     }

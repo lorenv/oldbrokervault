@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
@@ -23,6 +23,10 @@ import { addSignatureToNda } from "./pdf-utils";
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
+
+// Setup secure financial files directory (outside public folder)
+const financialFilesDir = path.join(process.cwd(), 'private', 'financial-files');
+fs.mkdir(financialFilesDir, { recursive: true }).catch(console.error);
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
