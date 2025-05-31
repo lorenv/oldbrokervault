@@ -105,16 +105,33 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     if (!value) return value;
     
     if (typeof value === 'string') {
-      // Detect common synthetic data patterns
+      // Detect common synthetic data patterns - expanded to catch all AI-generated content
       const syntheticPatterns = [
-        /Product [A-Z]: High-demand product/,
+        /Product [A-Z]:/,
         /margin of \d+%/,
-        /Product [A-Z]: Seasonal product/,
-        /Product [A-Z]: Core product/,
+        /High-demand product/,
+        /Seasonal product/,
+        /Core product/,
         /Founder [12]/,
-        /accounting methods including FIFO/,
+        /ecommerce platform/i,
+        /customer service team/i,
+        /inventory management system/i,
+        /order process begins/i,
+        /products are packed and shipped/i,
+        /tracking information provided/i,
+        /customer inquiries and product selections/i,
+        /online payment methods/i,
+        /customer feedback is collected/i,
+        /accounting methods including/,
         /contingency plans in place/,
-        /categorized by profitability/
+        /categorized by profitability/,
+        /relationships are transferable/i,
+        /customer data and purchase history/i,
+        /ongoing marketing efforts/i,
+        /alternative sources identified/i,
+        /payment terms being primarily/i,
+        /terms and conditions for purchases/i,
+        /managed through the ecommerce platform/i
       ];
       
       // Check if the value contains synthetic patterns
@@ -863,138 +880,13 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </SortableContext>
       </DndContext>
 
-      {/* Market Position */}
-      {renderSectionWithInsertables("market-position",
-        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Market Position & Competitive Advantage</CardTitle>
-          </CardHeader>
-          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-            {renderField("Target Customer Profile", "marketAnalysis.customerProfile", true, false, "Who are the ideal customers?")}
-            {renderField("Unique Value Proposition", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart from competitors")}
-            {renderField("Competitive Advantages", "marketAnalysis.strengths", false, true, "Key strengths over competitors")}
-            {renderField("Main Competitors", "marketAnalysis.competitors", false, true, "Who are the primary competitors?")}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Sales & Revenue */}
-      {renderSectionWithInsertables("sales-revenue",
-        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Sales & Revenue Model</CardTitle>
-          </CardHeader>
-          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-md mb-3">Revenue Metrics</h4>
-                {renderField("Average Order Value", "sales.averageOrderValue", false, false, "Typical transaction size")}
-                {renderField("Revenue Seasonality", "sales.seasonality", true, false, "How do sales vary throughout the year?")}
-              </div>
-              <div>
-                <h4 className="font-semibold text-md mb-3">Sales Process</h4>
-                {renderField("Pricing Strategy", "sales.pricingModel", true, false, "How are products/services priced?")}
-                {renderField("Payment Methods", "sales.paymentMethods", false, true, "How do customers pay?")}
-              </div>
-            </div>
-            
-            <div className="border-t pt-4">
-              <h4 className="font-semibold text-md mb-3">Customer Acquisition</h4>
-              {renderField("Marketing Strategies", "marketing.strategies", false, true, "Current marketing approaches")}
-              {renderField("Client Acquisition Process", "marketing.clientAcquisition", true, false, "How are new customers found and converted?")}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Operations & Relationships */}
-      {renderSectionWithInsertables("operations",
-        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Operations & Key Relationships</CardTitle>
-          </CardHeader>
-          <CardContent className={`space-y-6 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3">Customer Base</h4>
-                {renderField("Customer Retention", "operations.customers.recurring", true, false, "Percentage of repeat customers and retention rate")}
-                {renderField("Customer Relationships", "operations.customers.relationships", true, false, "How are customer relationships maintained?")}
-                {renderField("Customer Concentration", "operations.customers.concentration", true, false, "Revenue dependency on key customers")}
-                {renderField("Contract Structure", "operations.customers.contracts", true, false, "Types of customer contracts and terms")}
-              </div>
-              
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3">Supply Chain</h4>
-                {renderField("Supplier Network", "operations.suppliers.count", false, false, "Number and types of suppliers")}
-                {renderField("Supplier Relationships", "operations.suppliers.transferability", true, false, "How easily can suppliers transfer to new owner?")}
-                {renderField("Supply Chain Risk", "operations.suppliers.concentration", true, false, "Dependency on key suppliers")}
-                {renderField("Payment Terms", "operations.suppliers.terms", true, false, "Standard payment terms with suppliers")}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Team & Management */}
-      {renderSectionWithInsertables("team-management",
-        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Team Structure & Management</CardTitle>
-          </CardHeader>
-          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-            <div className="p-4 bg-gray-50 rounded-lg mb-4">
-              <h4 className="font-semibold text-md mb-3">Owner Involvement</h4>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  {renderField("Owner Role & Responsibilities", "team.ownerResponsibilities", true, false, "What does the owner currently do?")}
-                </div>
-                <div>
-                  {renderField("Time Commitment", "team.ownerHours", false, false, "Hours per week owner works")}
-                </div>
-              </div>
-            </div>
-            
-            {renderField("Team Overview", "team.employeeSummary", true, false, "Overview of all employees and their roles")}
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                {renderField("Total Employees", "team.employeeCount", false, false, "Total number of employees")}
-              </div>
-              <div>
-                {renderField("Staff Retention", "team.turnover", true, false, "Employee retention and turnover patterns")}
-              </div>
-            </div>
-            
-            {renderField("Key Personnel", "team.keyEmployees", false, true, "Critical team members and their roles")}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Assets & Infrastructure */}
-      {renderSectionWithInsertables("assets-infrastructure",
-        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
-          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Assets & Infrastructure</CardTitle>
-          </CardHeader>
-          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3">Facilities</h4>
-                {renderField("Property Status", "facility.ownership", false, false, "Owned or leased?")}
-                {renderField("Facility Size", "facility.size", false, false, "Square footage or size description")}
-                {renderField("Occupancy Cost", "facility.cost", false, false, "Monthly rent or ownership costs")}
-                {renderField("Lease Terms", "facility.leaseDetails", true, false, "Lease terms and conditions")}
-              </div>
-              
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-md mb-3">Equipment & Digital Assets</h4>
-                {renderField("Equipment Value", "assets.equipmentValue", false, false, "Value of equipment and machinery")}
-                {renderField("Digital Properties", "assets.digitalAssets", false, true, "Websites, social media, digital assets")}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+
+
 
       {/* Add Custom Section - Only shown in edit mode */}
       {!isSharedView && (
