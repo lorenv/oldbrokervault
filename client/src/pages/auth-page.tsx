@@ -11,8 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import {
   Form,
   FormControl,
@@ -195,6 +196,8 @@ export default function AuthPage() {
             <CardTitle>Welcome to CIM God</CardTitle>
             <CardDescription>
               The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
+              <br /><br />
+              <strong>Create a free CIM today!</strong>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -361,13 +364,22 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
   );
 }
 
+const registerSchema = insertUserSchema.extend({
+  agreeToTerms: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms and conditions"
+  })
+});
+
+type RegisterFormData = z.infer<typeof registerSchema>;
+
 function RegisterForm({ mutation }: { mutation: any }) {
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(insertUserSchema),
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
       password: "",
       adminCode: "",
+      agreeToTerms: false,
     },
   });
 
@@ -427,6 +439,31 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="agreeToTerms"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="text-sm font-normal">
+                  I agree to the{" "}
+                  <Link href="/eula">
+                    <a className="text-primary hover:underline">Terms and Conditions</a>
+                  </Link>
+                </FormLabel>
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
+        
         <Button 
           type="submit" 
           className="w-full"
