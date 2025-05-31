@@ -691,28 +691,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   return (
     <div className="space-y-6">
-      {/* Company Logo - Display at the top */}
-      {logoUrl && (
-        <div className="text-center py-6 border-b">
-          <img 
-            src={logoUrl} 
-            alt="Company Logo"
-            className="h-16 mx-auto"
-            onError={(e) => {
-              console.error('Logo failed to load:', logoUrl);
-              e.currentTarget.style.display = 'none';
-            }}
-            onLoad={() => {
-              console.log('Logo loaded successfully:', logoUrl);
-            }}
-          />
-        </div>
-      )}
-      {/* Debug: Show logoUrl */}
-      {(() => {
-        if (!logoUrl) console.log('No logoUrl provided to CimDisplay');
-        return null;
-      })()}
 
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
