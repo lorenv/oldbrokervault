@@ -192,9 +192,9 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Welcome to CIM Generator</CardTitle>
+            <CardTitle>Welcome to CIM God</CardTitle>
             <CardDescription>
-              Login or create an account with your email address to get started
+              The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -219,15 +219,46 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:block bg-[url('https://images.unsplash.com/photo-1606836591695-4d58a73eba1e')] bg-cover bg-center">
-        <div className="h-full w-full bg-black/50 p-12 flex items-center">
-          <div className="text-white max-w-lg">
-            <h2 className="text-3xl font-bold mb-4">
-              Generate Professional CIM Documents
+      <div className="hidden md:block bg-gradient-to-br from-primary/20 to-primary/10">
+        <div className="h-full w-full p-12 flex items-center">
+          <div className="max-w-lg space-y-6">
+            <h2 className="text-3xl font-bold mb-6">
+              Why Choose CIM God?
             </h2>
-            <p className="text-lg opacity-90">
-              Transform your meeting transcripts into structured Confidential Information Memorandums using AI-powered analysis.
-            </p>
+            
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-semibold">NDA Protection</h3>
+                  <p className="text-sm text-muted-foreground">Built-in confidentiality agreements and secure document sharing</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-semibold">Fully Customizable</h3>
+                  <p className="text-sm text-muted-foreground">Tailor every section, add your branding, and control document layout</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-semibold">Multiple Export Formats</h3>
+                  <p className="text-sm text-muted-foreground">Export to Word, PDF, HTML, and Google Docs with professional formatting</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                <div>
+                  <h3 className="font-semibold">AI-Powered Analysis</h3>
+                  <p className="text-sm text-muted-foreground">Transform business transcripts into structured, professional documents</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
