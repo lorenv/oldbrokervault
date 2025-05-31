@@ -99,6 +99,53 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
   const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
+
+  // Filter to detect and remove synthetic/placeholder data
+  const filterSyntheticData = (value: any): any => {
+    if (!value) return value;
+    
+    if (typeof value === 'string') {
+      // Detect common synthetic data patterns
+      const syntheticPatterns = [
+        /Product [A-Z]: High-demand product/,
+        /margin of \d+%/,
+        /Product [A-Z]: Seasonal product/,
+        /Product [A-Z]: Core product/,
+        /Founder [12]/,
+        /accounting methods including FIFO/,
+        /contingency plans in place/,
+        /categorized by profitability/
+      ];
+      
+      // Check if the value contains synthetic patterns
+      const isSynthetic = syntheticPatterns.some(pattern => pattern.test(value));
+      if (isSynthetic) {
+        return ""; // Return empty string for synthetic data
+      }
+    }
+    
+    if (Array.isArray(value)) {
+      const filtered = value
+        .map(item => filterSyntheticData(item))
+        .filter(item => item && (typeof item !== 'string' || item.trim() !== ''));
+      return filtered.length > 0 ? filtered : [];
+    }
+    
+    if (typeof value === 'object' && value !== null) {
+      const filtered: any = {};
+      
+      for (const [key, val] of Object.entries(value)) {
+        const filteredVal = filterSyntheticData(val);
+        if (filteredVal !== null && filteredVal !== undefined) {
+          filtered[key] = filteredVal;
+        }
+      }
+      
+      return filtered;
+    }
+    
+    return value;
+  };
   
   // Define the main sections for drag and drop
   const mainSections = [
@@ -293,7 +340,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       return target;
     };
     
-    return mergeDeep(JSON.parse(JSON.stringify(analysis)), editedContent);
+    const merged = mergeDeep(JSON.parse(JSON.stringify(analysis)), editedContent);
+    // Apply synthetic data filter to ensure data integrity
+    return filterSyntheticData(merged) || merged;
   };
 
   const getCurrentValue = (path: string) => {
