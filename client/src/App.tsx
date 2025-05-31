@@ -6,13 +6,16 @@ import { AuthProvider } from "./hooks/use-auth";
 import { Navbar } from "@/components/ui/navbar";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
-import AdminPage from "@/pages/admin-page";
-import DocumentsPage from "@/pages/documents-page";
-import AccountPage from "@/pages/account-page";
-import PricingPage from "@/pages/pricing-page";
-import { SharePage } from "@/pages/share-page";
 import NotFound from "@/pages/not-found";
-import { ProtectedRoute } from "./lib/protected-route";
+import DocumentsPage from "@/pages/documents-page";
+import SharePage from "@/pages/share-page";
+import PricingPage from "@/pages/pricing-page";
+import AccountPage from "@/pages/account-page";
+import AdminPage from "@/pages/admin-page";
+import ProfilePage from "@/pages/profile-page";
+import FeaturesPage from "@/pages/features-page";
+import HowItWorksPage from "@/pages/how-it-works-page";
+import ContactPage from "@/pages/contact-page";
 
 function Router() {
   return (
@@ -24,6 +27,9 @@ function Router() {
         <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
         <ProtectedRoute path="/account" component={AccountPage} />
         <ProtectedRoute path="/pricing" component={PricingPage} />
+        <ProtectedRoute path="/features" component={FeaturesPage} />
+        <ProtectedRoute path="/how-it-works" component={HowItWorksPage} />
+        <ProtectedRoute path="/contact" component={ContactPage} />
         <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/cims/:shareSlug" component={SharePage} />
