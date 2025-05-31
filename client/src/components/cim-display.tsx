@@ -961,11 +961,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       {/* Assets & Infrastructure */}
       {renderSectionWithInsertables("assets-infrastructure",
-        <Card>
-          <CardHeader>
-            <CardTitle>Assets & Infrastructure</CardTitle>
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Assets & Infrastructure</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold text-md mb-3">Facilities</h4>
@@ -985,19 +985,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Assets & Ownership */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Assets & Ownership</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {renderField("Digital Assets", "assets.digitalAssets", false, true, "Websites, social media, digital properties")}
-          {renderField("Equipment Value", "assets.equipmentValue", false, false, "Value of equipment and assets")}
-          {renderField("Equipment Details", "assets.equipmentDetails", true, false, "Description of key equipment")}
-          {renderField("Intellectual Property", "ownership.intellectualProperty", false, true, "Trademarks, patents, copyrights")}
-        </CardContent>
-      </Card>
-
       {/* Add Custom Section - Only shown in edit mode */}
       {!isSharedView && (
         <AddCustomSection 
@@ -1015,9 +1002,11 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       )}
 
       {/* Contact Information Footer */}
-      <Card className="mt-8">
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+      <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8 mt-8" : "mt-8 border-blue-200"}>
+        <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+          <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Contact Information</CardTitle>
+        </CardHeader>
+        <CardContent className={`${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
           <div className="flex flex-col md:flex-row items-center gap-6">
             {(user?.profilePhoto || userProfile?.profilePhoto) && (
               <img 
