@@ -588,7 +588,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'sales-marketing':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Sales & Marketing</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -605,7 +605,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'operations':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Operations</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -628,7 +628,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         
         return hasInventoryContent ? (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -644,7 +644,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'team':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Team & Management</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -660,7 +660,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'facilities':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Facilities & Location</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
@@ -676,7 +676,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       case 'assets-ownership':
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
-            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6" : ""}>
+            <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Assets & Ownership</CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8" : ""}`}>
