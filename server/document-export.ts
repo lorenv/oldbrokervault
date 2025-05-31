@@ -117,7 +117,7 @@ function safeStringify(value: any): string {
   return stringValue;
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[]): string {
+export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[], financialData?: any, financialFiles?: any[]): string {
   // Start building the HTML snippet (without doctype and head tags)
   let html = `
 <div style="font-family: 'Arial', sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px;">
@@ -228,6 +228,73 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
   }
 
   html += `</div>`;
+
+  // Financial Information Section (if provided by user)
+  if (financialData && financialData.enabled) {
+    html += `
+    <div style="margin-bottom: 30px; padding-bottom: 20px;">
+      <h2 style="font-size: 22px; font-weight: bold; color: #1f2937; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1; text-transform: uppercase;">Financial Information</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px;">
+    `;
+    
+    if (financialData.askingPriceIncluded && financialData.askingPrice) {
+      html += `
+        <div style="padding: 20px; background-color: #f0f9ff; border-radius: 8px; border: 1px solid #0ea5e9; text-align: center;">
+          <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #0369a1; text-transform: uppercase;">Asking Price</h3>
+          <p style="margin: 0; font-size: 24px; font-weight: bold; color: #0c4a6e;">${financialData.askingPrice}</p>
+        </div>
+      `;
+    }
+    
+    if (financialData.revenueIncluded && financialData.revenue) {
+      html += `
+        <div style="padding: 20px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #22c55e; text-align: center;">
+          <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #15803d; text-transform: uppercase;">Annual Revenue</h3>
+          <p style="margin: 0; font-size: 24px; font-weight: bold; color: #14532d;">${financialData.revenue}</p>
+        </div>
+      `;
+    }
+    
+    if (financialData.ebitdaIncluded && financialData.ebitda) {
+      html += `
+        <div style="padding: 20px; background-color: #fdf4ff; border-radius: 8px; border: 1px solid #a855f7; text-align: center;">
+          <h3 style="margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #7c3aed; text-transform: uppercase;">EBITDA</h3>
+          <p style="margin: 0; font-size: 24px; font-weight: bold; color: #581c87;">${financialData.ebitda}</p>
+        </div>
+      `;
+    }
+    
+    html += `</div>`;
+    
+    // Financial Files Section (if any files are provided)
+    if (financialFiles && financialFiles.length > 0) {
+      html += `
+        <h3 style="font-size: 18px; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 20px;">Financial Documents</h3>
+        <div style="padding: 15px; background-color: #f9fafb; border-left: 4px solid #6366f1; margin-bottom: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+      `;
+      
+      financialFiles.forEach((file) => {
+        if (file.included) {
+          html += `
+            <a href="/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download" 
+               target="_blank" 
+               style="color: #6366f1; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+              📄 ${file.originalName}
+            </a>
+          `;
+        }
+      });
+      
+      html += `
+          </div>
+        </div>
+      `;
+    }
+    
+    html += `</div>`;
+  }
 
   // Market Analysis Section
   html += `
