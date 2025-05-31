@@ -96,6 +96,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
+  const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
   
   // Define the main sections for drag and drop
   const mainSections = [
@@ -343,34 +344,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   };
 
   const handleDelete = (fieldPath: string) => {
-    const keys = fieldPath.split('.');
-    const newEditedContent = { ...editedContent };
-    
-    // Ensure the path exists in editedContent
-    let current = newEditedContent;
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
-      if (!current[key]) {
-        current[key] = {};
-      }
-      current = current[key];
-    }
-    
-    const finalKey = keys[keys.length - 1];
-    // Get the current value to determine type
-    const currentValue = getCurrentValue(fieldPath);
-    
-    if (Array.isArray(currentValue)) {
-      current[finalKey] = [];
-    } else {
-      current[finalKey] = '';
-    }
-    
-    setEditedContent(newEditedContent);
+    // Add field to deleted fields set to hide it completely
+    setDeletedFields(prev => new Set([...Array.from(prev), fieldPath]));
     setHasUnsavedChanges(true);
     toast({
       title: "Field Deleted",
-      description: "Field content has been cleared. Click 'Save All Changes' to persist changes.",
+      description: "Field has been removed from display. Click 'Save All Changes' to persist changes.",
     });
   };
 
@@ -404,24 +383,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     multiline: boolean = false, 
     isArray: boolean = false,
     placeholder?: string
-  ) => (
-    <div className="space-y-2">
-      <h4 className="font-semibold text-sm text-gray-700">{title}</h4>
-      <InlineEditor
-        value={getCurrentValue(path)}
-        fieldPath={path}
-        isEditing={!isSharedView && editingField === path}
-        onEdit={isSharedView ? () => {} : handleEdit}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        onDelete={isSharedView ? undefined : handleDelete}
-        multiline={multiline}
-        isArray={isArray}
-        placeholder={placeholder}
-        readOnly={isSharedView}
-      />
-    </div>
-  );
+  ) => {
+    // Hide field completely if it's been deleted
+    if (deletedFields.has(path)) {
+      return null;
+    }
+    
+    return (
+      <div className="space-y-2">
+        <h4 className="font-semibold text-sm text-gray-700">{title}</h4>
+        <InlineEditor
+          value={getCurrentValue(path)}
+          fieldPath={path}
+          isEditing={!isSharedView && editingField === path}
+          onEdit={isSharedView ? () => {} : handleEdit}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onDelete={isSharedView ? undefined : handleDelete}
+          multiline={multiline}
+          isArray={isArray}
+          placeholder={placeholder}
+          readOnly={isSharedView}
+        />
+      </div>
+    );
+  };
 
   const mergedAnalysis = getMergedContent();
 
