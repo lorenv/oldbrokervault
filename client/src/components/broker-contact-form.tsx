@@ -122,154 +122,84 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Contact Form */}
-      <div className="lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-blue-600" />
-              Ask the Broker Your Questions
-            </CardTitle>
-            <CardDescription>
-              Get detailed information about this opportunity directly from the broker
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="viewerName">Your Name *</Label>
-                  <Input
-                    id="viewerName"
-                    value={formData.viewerName}
-                    onChange={(e) => handleInputChange('viewerName', e.target.value)}
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="viewerEmail">Your Email *</Label>
-                  <Input
-                    id="viewerEmail"
-                    type="email"
-                    value={formData.viewerEmail}
-                    onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="viewerPhone">Your Phone Number (Optional)</Label>
-                <Input
-                  id="viewerPhone"
-                  type="tel"
-                  value={formData.viewerPhone}
-                  onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
-                  placeholder="Enter your phone number"
-                />
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-blue-600" />
+          Ask the Broker Your Questions
+        </CardTitle>
+        <CardDescription>
+          Get detailed information about this opportunity directly from the broker
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="viewerName">Your Name *</Label>
+              <Input
+                id="viewerName"
+                value={formData.viewerName}
+                onChange={(e) => handleInputChange('viewerName', e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="viewerEmail">Your Email *</Label>
+              <Input
+                id="viewerEmail"
+                type="email"
+                value={formData.viewerEmail}
+                onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
+                placeholder="Enter your email address"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="viewerPhone">Your Phone Number (Optional)</Label>
+            <Input
+              id="viewerPhone"
+              type="tel"
+              value={formData.viewerPhone}
+              onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
+              placeholder="Enter your phone number"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="question">Your Question *</Label>
-                <Textarea
-                  id="question"
-                  value={formData.question}
-                  onChange={(e) => handleInputChange('question', e.target.value)}
-                  placeholder="Ask about financials, operations, growth opportunities, or any other details about this business..."
-                  rows={4}
-                  required
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="question">Your Question *</Label>
+            <Textarea
+              id="question"
+              value={formData.question}
+              onChange={(e) => handleInputChange('question', e.target.value)}
+              placeholder="Ask about financials, operations, growth opportunities, or any other details about this business..."
+              rows={4}
+              required
+            />
+          </div>
 
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-gray-800 hover:bg-gray-900"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Sending Message...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Question to Broker
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Contact Information */}
-      <div className="lg:col-span-1">
-        <Card className="bg-gray-50">
-          <CardHeader>
-            <CardTitle className="text-xl">Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {userProfile && (
-              <div className="flex items-start space-x-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  {userProfile.profileImageUrl ? (
-                    <img 
-                      src={userProfile.profileImageUrl} 
-                      alt={`${userProfile.name || 'Broker'}`}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-white" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg text-gray-900">
-                    {userProfile.name || 'Business Broker'}
-                  </h3>
-                  <p className="text-gray-600 mb-3">
-                    {userProfile.title || 'Partner'}
-                  </p>
-                  
-                  <div className="space-y-2">
-                    {userProfile.company && (
-                      <div className="flex items-center space-x-2 text-sm">
-                        <Building2 className="w-4 h-4 text-gray-500" />
-                        <span className="text-gray-700">{userProfile.company}</span>
-                      </div>
-                    )}
-                    {userProfile.phone && (
-                      <div className="flex items-center space-x-2 text-sm">
-                        <Phone className="w-4 h-4 text-gray-500" />
-                        <span className="text-gray-700">{userProfile.phone}</span>
-                      </div>
-                    )}
-                    {userProfile.email && (
-                      <div className="flex items-center space-x-2 text-sm">
-                        <Mail className="w-4 h-4 text-gray-500" />
-                        <span className="text-gray-700">{userProfile.email}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Sending Message...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Send Question to Broker
+              </>
             )}
-            
-            {userProfile?.companyLogo && (
-              <div className="flex justify-end">
-                <img 
-                  src={userProfile.companyLogo} 
-                  alt="Company Logo"
-                  className="h-12 object-contain"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
