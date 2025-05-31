@@ -1657,9 +1657,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const templates = await storage.getNdaTemplates(req.user.id);
       
-      // Check if user has a default NDA template, if not and user is paid, create one
+      // Check if user has a default NDA template, if not and user is standard or premium, create one
       const hasDefault = templates.some(template => template.isDefault);
-      if (!hasDefault && req.user.subscription === 'pro') {
+      if (!hasDefault && (req.user.subscription === 'standard' || req.user.subscription === 'premium' || req.user.subscription === 'pro')) {
         const { populateDefaultNDAForUser } = await import("./populate-default-nda");
         await populateDefaultNDAForUser(req.user.id);
         // Refetch templates after creating default

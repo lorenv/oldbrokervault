@@ -219,43 +219,60 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden md:block bg-gradient-to-br from-primary/20 to-primary/10">
+      <div className="hidden md:block bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="h-full w-full p-12 flex items-center">
           <div className="max-w-lg space-y-6">
-            <h2 className="text-3xl font-bold mb-6">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Why Choose CIM God?
             </h2>
             
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+            <div className="space-y-6">
+              <div className="flex items-start space-x-4 p-4 rounded-lg bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-green-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                  </svg>
+                </div>
                 <div>
-                  <h3 className="font-semibold">NDA Protection</h3>
-                  <p className="text-sm text-muted-foreground">Built-in confidentiality agreements and secure document sharing</p>
+                  <h3 className="font-semibold text-gray-900">NDA Protection</h3>
+                  <p className="text-sm text-gray-600">Built-in confidentiality agreements and secure document sharing</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-4 p-4 rounded-lg bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-blue-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                </div>
                 <div>
-                  <h3 className="font-semibold">Fully Customizable</h3>
-                  <p className="text-sm text-muted-foreground">Tailor every section, add your branding, and control document layout</p>
+                  <h3 className="font-semibold text-gray-900">Fully Customizable</h3>
+                  <p className="text-sm text-gray-600">Tailor every section, add your branding, and control document layout</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-4 p-4 rounded-lg bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                </div>
                 <div>
-                  <h3 className="font-semibold">Multiple Export Formats</h3>
-                  <p className="text-sm text-muted-foreground">Export to Word, PDF, HTML, and Google Docs with professional formatting</p>
+                  <h3 className="font-semibold text-gray-900">Multiple Export Formats</h3>
+                  <p className="text-sm text-gray-600">Export to Word, PDF, HTML, and Google Docs with professional formatting</p>
                 </div>
               </div>
               
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+              <div className="flex items-start space-x-4 p-4 rounded-lg bg-white/60 backdrop-blur-sm border border-white/40 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                </div>
                 <div>
-                  <h3 className="font-semibold">AI-Powered Analysis</h3>
-                  <p className="text-sm text-muted-foreground">Transform business transcripts into structured, professional documents</p>
+                  <h3 className="font-semibold text-gray-900">AI-Powered Analysis</h3>
+                  <p className="text-sm text-gray-600">Transform business transcripts into structured, professional documents</p>
                 </div>
               </div>
             </div>
