@@ -22,7 +22,7 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/">
-            <a className="font-semibold text-lg">CIM Generator</a>
+            <a className="font-semibold text-lg">CIM God</a>
           </Link>
         </div>
 
