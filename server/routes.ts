@@ -512,6 +512,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const docs = await storage.getCimDocuments(req.user!.id);
     res.json(docs);
   });
+
+  // Get individual CIM document
+  app.get("/api/cim/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+      
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "You don't have permission to view this document" });
+      }
+      
+      res.json(doc);
+    } catch (error) {
+      console.error("Error fetching CIM document:", error);
+      res.status(500).json({ error: "Failed to fetch document" });
+    }
+  });
   
   // Update CIM document (for financial and other field updates)
   app.patch("/api/cim/:id", async (req, res) => {
