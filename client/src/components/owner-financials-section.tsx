@@ -127,14 +127,38 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       console.log("Success response:", result);
       return result;
     },
-    onSuccess: () => {
-      // Force refetch of CIM data to update UI immediately
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/cim/${docId}`] });
-      toast({ title: "Financials updated successfully" });
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: [`/api/cim/${docId}`] });
+      
+      // Snapshot the previous value
+      const previousCim = queryClient.getQueryData([`/api/cim/${docId}`]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData([`/api/cim/${docId}`], (old: any) => {
+        if (!old) return old;
+        const updated = { ...old };
+        if (newData.enabled !== undefined) updated.financialsEnabled = newData.enabled;
+        if (newData.askingPrice !== undefined) updated.askingPrice = newData.askingPrice;
+        if (newData.askingPriceIncluded !== undefined) updated.askingPriceIncluded = newData.askingPriceIncluded;
+        if (newData.revenue !== undefined) updated.revenue = newData.revenue;
+        if (newData.revenueIncluded !== undefined) updated.revenueIncluded = newData.revenueIncluded;
+        if (newData.ebitda !== undefined) updated.ebitda = newData.ebitda;
+        if (newData.ebitdaIncluded !== undefined) updated.ebitdaIncluded = newData.ebitdaIncluded;
+        return updated;
+      });
+      
+      return { previousCim };
     },
-    onError: () => {
+    onError: (err, newData, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData([`/api/cim/${docId}`], context?.previousCim);
       toast({ title: "Failed to update financials", variant: "destructive" });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure server state
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
+      toast({ title: "Financials updated successfully" });
     }
   });
 
