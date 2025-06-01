@@ -579,7 +579,18 @@ ${analysis.team.ownerResponsibilities}
                   <Switch
                     id="financials-enabled"
                     checked={financialsEnabled}
-                    onCheckedChange={setFinancialsEnabled}
+                    onCheckedChange={(checked) => {
+                      setFinancialsEnabled(checked);
+                      // When enabling financials for the first time, auto-check all three fields
+                      if (checked && !financialsEnabled) {
+                        setFinancialData(prev => ({
+                          ...prev,
+                          askingPriceIncluded: true,
+                          revenueIncluded: true,
+                          ebitdaIncluded: true
+                        }));
+                      }
+                    }}
                   />
                 </div>
               </div>
