@@ -1992,7 +1992,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const cimId = parseInt(req.params.id);
       
       // Check if CIM belongs to user
-      const cim = await storage.getCim(cimId);
+      const cim = await storage.getCimDocument(cimId);
       if (!cim || cim.userId !== req.user.id) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -2056,7 +2056,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       }
 
       // Check if CIM belongs to user
-      const cim = await storage.getCim(cimId);
+      const cim = await storage.getCimDocument(cimId);
       if (!cim || cim.userId !== req.user.id) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -2133,7 +2133,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const fileId = parseInt(req.params.fileId);
 
       // Check if CIM belongs to user
-      const cim = await storage.getCim(cimId);
+      const cim = await storage.getCimDocument(cimId);
       if (!cim || cim.userId !== req.user.id) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -2163,7 +2163,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const fileId = parseInt(req.params.fileId);
 
       // Check if CIM belongs to user
-      const cim = await storage.getCim(cimId);
+      const cim = await storage.getCimDocument(cimId);
       if (!cim || cim.userId !== req.user.id) {
         return res.status(403).json({ error: "Not authorized" });
       }
