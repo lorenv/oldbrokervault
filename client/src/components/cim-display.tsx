@@ -7,7 +7,7 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3 } from "lucide-react";
+import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2 } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
@@ -100,6 +100,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
   const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
+  const [deletedSections, setDeletedSections] = useState<Set<string>>(new Set());
+  const [confirmDeleteSection, setConfirmDeleteSection] = useState<string | null>(null);
+
+  const handleDeleteSection = (sectionId: string) => {
+    setDeletedSections(prev => new Set([...Array.from(prev), sectionId]));
+    setConfirmDeleteSection(null);
+    setHasUnsavedChanges(true);
+    toast({
+      title: "Section Deleted",
+      description: "Section removed. Click 'Save All Changes' to persist changes.",
+    });
+  };
+
+  const handleRestoreSection = (sectionId: string) => {
+    setDeletedSections(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(sectionId);
+      return newSet;
+    });
+    setHasUnsavedChanges(true);
+    toast({
+      title: "Section Restored",
+      description: "Section restored. Click 'Save All Changes' to persist changes.",
+    });
+  };
 
   // Filter to detect and remove synthetic/placeholder data
   const filterSyntheticData = (value: any): any => {
