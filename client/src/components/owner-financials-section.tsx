@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, X, Download } from "lucide-react";
+import { Upload, FileText, X, Download, CheckCircle, Loader2 } from "lucide-react";
 
 interface Financials {
   enabled: boolean;
@@ -200,7 +200,10 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financial-files`] });
-      toast({ title: "File uploaded successfully" });
+      toast({ 
+        title: "File uploaded successfully",
+        description: "Your financial document has been added to the CIM"
+      });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -370,19 +373,63 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
         {/* File Upload Section - Always Visible */}
         <div className="space-y-4">
           <Label>Financial Documents</Label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+          <div className={`border-2 border-dashed rounded-lg p-6 transition-all duration-300 ${
+            uploadFileMutation.isPending 
+              ? 'border-blue-300 bg-blue-50' 
+              : uploadFileMutation.isSuccess 
+                ? 'border-green-300 bg-green-50' 
+                : 'border-gray-300 hover:border-gray-400'
+          }`}>
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mx-auto h-12 w-12 flex items-center justify-center">
+                {uploadFileMutation.isPending ? (
+                  <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                ) : uploadFileMutation.isSuccess ? (
+                  <CheckCircle className="h-8 w-8 text-green-500 animate-pulse" />
+                ) : (
+                  <Upload className="h-12 w-12 text-gray-400" />
+                )}
+              </div>
               <div className="mt-4">
                 <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadFileMutation.isPending}
+                  className={`transition-all duration-200 ${
+                    uploadFileMutation.isPending 
+                      ? 'bg-blue-50 border-blue-300' 
+                      : uploadFileMutation.isSuccess 
+                        ? 'bg-green-50 border-green-300' 
+                        : ''
+                  }`}
                 >
-                  {uploadFileMutation.isPending ? 'Uploading...' : 'Upload Financial Files'}
+                  {uploadFileMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : uploadFileMutation.isSuccess ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Upload Complete
+                    </>
+                  ) : (
+                    'Upload Financial Files'
+                  )}
                 </Button>
-                <p className="mt-2 text-sm text-gray-500">
-                  Upload financial statements, tax returns, or other relevant documents
+                <p className={`mt-2 text-sm transition-colors duration-200 ${
+                  uploadFileMutation.isPending 
+                    ? 'text-blue-600' 
+                    : uploadFileMutation.isSuccess 
+                      ? 'text-green-600' 
+                      : 'text-gray-500'
+                }`}>
+                  {uploadFileMutation.isPending 
+                    ? 'Uploading your document...' 
+                    : uploadFileMutation.isSuccess 
+                      ? 'Document uploaded successfully!' 
+                      : 'Upload financial statements, tax returns, or other relevant documents'
+                  }
                 </p>
               </div>
             </div>
