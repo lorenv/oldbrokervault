@@ -339,7 +339,7 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                 {files.map((file) => (
                   <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-3">
-                      {!isSharedView && (
+                      {isEditMode && (
                         <Checkbox
                           checked={file.included}
                           onCheckedChange={(checked) =>
@@ -360,7 +360,16 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      {isSharedView ? (
+                      {isEditMode ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteFileMutation.mutate(file.id)}
+                          disabled={deleteFileMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      ) : (
                         file.included && (
                           <Button
                             variant="outline"
@@ -370,15 +379,6 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                             Download
                           </Button>
                         )
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteFileMutation.mutate(file.id)}
-                          disabled={deleteFileMutation.isPending}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
                       )}
                     </div>
                   </div>
@@ -387,8 +387,8 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
             </div>
           )}
 
-          {/* Display included files as links in shared view */}
-          {isSharedView && files.filter(f => f.included).length > 0 && (
+          {/* Display included files as links in display view */}
+          {!isEditMode && files.filter(f => f.included).length > 0 && (
             <div className="space-y-2">
               <Label>Financial Documents</Label>
               <div className="space-y-2">
