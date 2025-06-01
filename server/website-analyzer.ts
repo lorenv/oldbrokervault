@@ -206,23 +206,17 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
           })
           .filter((src): src is string => {
             if (!src) return false;
-            // Filter out only obvious non-content images
+            // Filter out common non-content images
             const lowercaseSrc = src.toLowerCase();
             return !lowercaseSrc.includes('spacer') &&
                    !lowercaseSrc.includes('pixel') &&
-                   !lowercaseSrc.includes('blank.') &&
+                   !lowercaseSrc.includes('blank') &&
                    !lowercaseSrc.includes('loading') &&
                    !lowercaseSrc.includes('spinner') &&
-                   !lowercaseSrc.includes('1x1') &&
-                   !lowercaseSrc.includes('placeholder') &&
-                   !lowercaseSrc.includes('data:image') &&
-                   src.length > 10 && // More reasonable minimum length
-                   (lowercaseSrc.includes('.jpg') || 
-                    lowercaseSrc.includes('.jpeg') || 
-                    lowercaseSrc.includes('.png') || 
-                    lowercaseSrc.includes('.gif') || 
-                    lowercaseSrc.includes('.webp') ||
-                    lowercaseSrc.includes('.svg')); // Include actual image formats
+                   !lowercaseSrc.includes('icon') &&
+                   !lowercaseSrc.includes('logo') &&
+                   !lowercaseSrc.endsWith('.svg') &&
+                   src.length > 20; // Exclude very short URLs (likely not content images)
           })
           .slice(0, 10); // Get first 10 images
       });
