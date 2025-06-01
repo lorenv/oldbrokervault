@@ -7,12 +7,13 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2 } from "lucide-react";
+import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
 import { FinancialsSection } from "./financials-section";
 import { OwnerFinancialsSection } from "./owner-financials-section";
+import { EmailShareDialog } from "./email-share-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,

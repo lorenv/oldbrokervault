@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2 } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -12,6 +12,7 @@ import { DocumentExport } from "@/components/document-export";
 import { CimDisplay } from "@/components/cim-display";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
+import { EmailShareDialog } from "@/components/email-share-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,6 +141,12 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [htmlExportLoading, setHtmlExportLoading] = useState(false);
+  const [emailShareDialog, setEmailShareDialog] = useState<{
+    open: boolean;
+    documentId?: number;
+    documentTitle?: string;
+    shareToken?: string;
+  }>({ open: false });
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -391,6 +398,20 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         <Share2 className="mr-2 h-4 w-4" />
                         Copy Share Link
                       </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmailShareDialog({
+                            open: true,
+                            documentId: doc.id,
+                            documentTitle: doc.title,
+                            shareToken: doc.shareToken
+                          });
+                        }}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Share via Email
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleCopyToClipboard(doc.analysis);}}>
                         <Copy className="mr-2 h-4 w-4" />
@@ -533,6 +554,15 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           setIsWordPressDialogOpen={setIsWordPressDialogOpen}
         />
       )}
+
+      {/* Email Share Dialog */}
+      <EmailShareDialog
+        open={emailShareDialog.open}
+        onOpenChange={(open) => setEmailShareDialog({ open })}
+        shareUrl={emailShareDialog.shareToken ? `${window.location.origin}/share/${emailShareDialog.shareToken}` : ''}
+        documentTitle={emailShareDialog.documentTitle || ''}
+        senderName={user?.name}
+      />
     </div>
   );
 }

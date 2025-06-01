@@ -1283,6 +1283,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rate limiting storage for broker contact emails
   const contactRateLimit = new Map<string, number[]>();
 
+  // Email sharing endpoint
+  app.post("/api/share/email", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { recipientEmail, shareUrl, documentTitle, customMessage, senderName } = req.body;
+
+      // Input validation
+      if (!recipientEmail?.trim() || !shareUrl?.trim() || !documentTitle?.trim()) {
+        return res.status(400).json({ 
+          error: "Recipient email, share URL, and document title are required" 
+        });
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recipientEmail.trim())) {
+        return res.status(400).json({ 
+          error: "Invalid email address format" 
+        });
+      }
+
+      // Get sender information
+      const [sender] = await db.select().from(users).where(eq(users.id, req.session.userId));
+      if (!sender) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const fromName = senderName || sender.name || sender.email;
+      const fromEmail = sender.email;
+
+      // Prepare email content
+      const subject = `Confidential Information Memorandum - ${documentTitle}`;
+      
+      let htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+            Confidential Information Memorandum
+          </h2>
+          
+          <p style="color: #555; font-size: 16px;">
+            You have been invited to review a confidential business information memorandum.
+          </p>
+          
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1e40af; margin-top: 0;">Document: ${documentTitle}</h3>
+            <p style="color: #64748b; margin-bottom: 0;">Shared by: ${fromName}</p>
+          </div>`;
+
+      if (customMessage?.trim()) {
+        htmlContent += `
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <h4 style="color: #92400e; margin-top: 0;">Personal Message:</h4>
+            <p style="color: #78350f; white-space: pre-wrap;">${customMessage.trim()}</p>
+          </div>`;
+      }
+
+      htmlContent += `
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${shareUrl}" 
+               style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              View Document
+            </a>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
+            <p style="color: #9ca3af; font-size: 14px; text-align: center;">
+              This document contains confidential information. Please do not share this link with unauthorized parties.
+            </p>
+            <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+              Sent via CIM God - Professional CIM Generation Platform
+            </p>
+          </div>
+        </div>`;
+
+      const textContent = `
+Confidential Information Memorandum
+
+You have been invited to review a confidential business information memorandum.
+
+Document: ${documentTitle}
+Shared by: ${fromName}
+
+${customMessage?.trim() ? `Personal Message:\n${customMessage.trim()}\n\n` : ''}
+
+View the document at: ${shareUrl}
+
+This document contains confidential information. Please do not share this link with unauthorized parties.
+
+Sent via CIM God - Professional CIM Generation Platform`;
+
+      // Send email
+      const emailSent = await sendEmail({
+        to: recipientEmail.trim(),
+        from: fromEmail,
+        subject,
+        text: textContent,
+        html: htmlContent,
+        replyTo: fromEmail
+      });
+
+      if (emailSent) {
+        res.json({ 
+          success: true, 
+          message: "Email sent successfully" 
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to send email. Please try again." 
+        });
+      }
+    } catch (error) {
+      console.error("Email sharing error:", error);
+      res.status(500).json({ 
+        error: "Internal server error while sending email" 
+      });
+    }
+  });
+
   // Broker contact endpoint with rate limiting
   app.post("/api/share/:shareSlug/contact", async (req, res) => {
     try {
