@@ -77,7 +77,15 @@ export const cimDocuments = pgTable("cim_documents", {
   shareLastViewed: timestamp("share_last_viewed"),
   // NDA protection
   ndaProtected: boolean("nda_protected").default(false).notNull(),
-  ndaTemplateId: integer("nda_template_id")
+  ndaTemplateId: integer("nda_template_id"),
+  // Financial information
+  financialsEnabled: boolean("financials_enabled").default(false).notNull(),
+  askingPrice: text("asking_price"),
+  askingPriceIncluded: boolean("asking_price_included").default(false).notNull(),
+  revenue: text("revenue"),
+  revenueIncluded: boolean("revenue_included").default(false).notNull(),
+  ebitda: text("ebitda"),
+  ebitdaIncluded: boolean("ebitda_included").default(false).notNull()
 });
 
 export const customSections = pgTable("custom_sections", {
