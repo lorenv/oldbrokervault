@@ -5,9 +5,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText, File, Globe, FileDown, Link, Share2 } from "lucide-react";
+import { Copy, Download, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { EmailShareDialog } from "./email-share-dialog";
 import {
   Dialog,
   DialogContent,
@@ -80,6 +81,13 @@ export function DocumentExport({
     isDefault: false
   });
   const [ndaSignatures, setNdaSignatures] = useState<any[]>([]);
+  
+  // Email sharing state
+  const [emailShareDialog, setEmailShareDialog] = useState<{
+    open: boolean;
+    documentTitle?: string;
+    shareToken?: string;
+  }>({ open: false });
   
   // Use external dialog state if provided, otherwise use internal state
   const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
@@ -660,6 +668,21 @@ export function DocumentExport({
                   <Link className="h-4 w-4 mr-2" />
                   Share Link
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  // Get document title from analysis or use fallback
+                  const documentTitle = analysis?.story?.businessSummary ? 
+                    `${analysis.story.businessSummary.slice(0, 50)}...` : 
+                    `CIM Document #${docId}`;
+                  
+                  setEmailShareDialog({
+                    open: true,
+                    documentTitle,
+                    shareToken: shareSettings.shareSlug || shareUrl.split('/').pop()
+                  });
+                }}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Share via Email
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyToClipboard}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy Plain Text
@@ -1232,6 +1255,15 @@ export function DocumentExport({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Email Share Dialog */}
+      <EmailShareDialog
+        open={emailShareDialog.open}
+        onOpenChange={(open) => setEmailShareDialog({ open })}
+        shareUrl={emailShareDialog.shareToken ? `${window.location.origin}/share/${emailShareDialog.shareToken}` : shareUrl}
+        documentTitle={emailShareDialog.documentTitle || `CIM Document #${docId}`}
+        senderName={user?.name}
+      />
     </>
   );
 }
