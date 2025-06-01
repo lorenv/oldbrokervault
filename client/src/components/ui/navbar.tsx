@@ -40,12 +40,9 @@ export function Navbar() {
         </div>
 
         {!user && (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center">
             <Link href="/login">
-              <Button variant="ghost" size="sm">Login</Button>
-            </Link>
-            <Link href="/login">
-              <Button size="sm">Sign Up</Button>
+              <Button size="sm">Login / Sign Up</Button>
             </Link>
           </div>
         )}
