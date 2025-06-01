@@ -2039,60 +2039,96 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
   // Update or create financials for a CIM document
   app.put("/api/cim/:id/financials", async (req, res) => {
+    console.log("=== FINANCIALS PUT REQUEST ===");
+    console.log("Request headers:", req.headers);
+    console.log("Request user:", req.user);
+    console.log("Request body:", req.body);
+    console.log("Request params:", req.params);
+    
     if (!req.user) {
+      console.log("Authentication failed - no user");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
       const cimId = parseInt(req.params.id);
+      console.log("Parsed CIM ID:", cimId);
       
       // Check if CIM belongs to user
+      console.log("Fetching CIM document for ID:", cimId);
       const cim = await storage.getCimDocument(cimId);
+      console.log("CIM document found:", cim);
+      
       if (!cim || cim.userId !== req.user.id) {
+        console.log("Authorization failed:", { cim, userId: req.user.id });
         return res.status(403).json({ error: "Not authorized" });
       }
 
       // Check if financials record exists
+      console.log("Checking for existing financials record...");
       const [existing] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
+      console.log("Existing financials record:", existing);
       
       if (existing) {
         // Update existing record
+        console.log("Updating existing financials record...");
+        const updateData = { 
+          ...req.body, 
+          updatedAt: new Date(),
+          cimDocumentId: cimId 
+        };
+        console.log("Update data:", updateData);
+        
         const [updated] = await db
           .update(financials)
-          .set({ 
-            ...req.body, 
-            updatedAt: new Date(),
-            cimDocumentId: cimId 
-          })
+          .set(updateData)
           .where(eq(financials.cimDocumentId, cimId))
           .returning();
+        
+        console.log("Updated financials record:", updated);
         res.json(updated);
       } else {
         // Create new record
+        console.log("Creating new financials record...");
+        const createData = {
+          cimDocumentId: cimId,
+          ...req.body
+        };
+        console.log("Create data:", createData);
+        
         const [created] = await db
           .insert(financials)
-          .values({
-            cimDocumentId: cimId,
-            ...req.body
-          })
+          .values(createData)
           .returning();
+        
+        console.log("Created financials record:", created);
         res.json(created);
       }
     } catch (error) {
-      console.error('Error updating financials:', error);
-      res.status(500).json({ error: "Failed to update financials" });
+      console.error('Error updating financials - Full error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+      res.status(500).json({ error: "Failed to update financials", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
   // Get financial files for a CIM document
   app.get("/api/cim/:id/financial-files", async (req, res) => {
+    console.log("=== FINANCIAL FILES GET REQUEST ===");
+    console.log("Request params:", req.params);
+    
     try {
       const cimId = parseInt(req.params.id);
+      console.log("Parsed CIM ID:", cimId);
+      
       const files = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimId));
+      console.log("Found financial files:", files.length, "files");
+      console.log("Files data:", files);
+      
       res.json(files);
     } catch (error) {
-      console.error('Error fetching financial files:', error);
-      res.status(500).json({ error: "Failed to fetch financial files" });
+      console.error('Error fetching financial files - Full error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+      res.status(500).json({ error: "Failed to fetch financial files", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
