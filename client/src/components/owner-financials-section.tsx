@@ -79,13 +79,19 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   console.log("CIM Document:", cimDocument);
   console.log("Raw financial data from CIM:", {
     financialsEnabled: (cimDocument as any)?.financialsEnabled,
+    financials_enabled: (cimDocument as any)?.financials_enabled,
     askingPrice: (cimDocument as any)?.askingPrice,
+    asking_price: (cimDocument as any)?.asking_price,
     askingPriceIncluded: (cimDocument as any)?.askingPriceIncluded,
+    asking_price_included: (cimDocument as any)?.asking_price_included,
     revenue: (cimDocument as any)?.revenue,
     revenueIncluded: (cimDocument as any)?.revenueIncluded,
+    revenue_included: (cimDocument as any)?.revenue_included,
     ebitda: (cimDocument as any)?.ebitda,
-    ebitdaIncluded: (cimDocument as any)?.ebitdaIncluded
+    ebitdaIncluded: (cimDocument as any)?.ebitdaIncluded,
+    ebitda_included: (cimDocument as any)?.ebitda_included
   });
+  console.log("All CIM Document keys:", Object.keys(cimDocument || {}));
   console.log("Financials object:", financials);
   console.log("CIM Loading:", cimLoading);
 
