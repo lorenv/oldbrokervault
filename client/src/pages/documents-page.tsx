@@ -501,9 +501,6 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       {selectedDoc && (
         <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
           <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedDoc.title}</DialogTitle>
-            </DialogHeader>
             <CimDisplay 
               analysis={selectedDoc.analysis} 
               docId={selectedDoc.id}
