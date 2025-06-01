@@ -166,7 +166,17 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   });
 
   const handleFieldUpdate = (field: string, value: string | boolean) => {
-    updateFinancialsMutation.mutate({ [field]: value });
+    // When enabling financials for the first time, automatically check all three fields
+    if (field === 'enabled' && value === true && !financials?.enabled) {
+      updateFinancialsMutation.mutate({ 
+        enabled: true,
+        askingPriceIncluded: true,
+        revenueIncluded: true,
+        ebitdaIncluded: true
+      });
+    } else {
+      updateFinancialsMutation.mutate({ [field]: value });
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
