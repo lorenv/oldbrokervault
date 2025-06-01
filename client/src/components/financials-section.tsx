@@ -21,11 +21,22 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch financials data
-  const { data: financials } = useQuery<Financials>({
-    queryKey: [`/api/cim/${docId}/financials`],
+  // Fetch CIM document with financial data
+  const { data: cimDocument } = useQuery({
+    queryKey: [`/api/cim/${docId}`],
     enabled: !!docId
   });
+
+  // Extract financial data from CIM document
+  const financials = cimDocument ? {
+    enabled: (cimDocument as any).financialsEnabled || false,
+    askingPrice: (cimDocument as any).askingPrice || null,
+    askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
+    revenue: (cimDocument as any).revenue || null,
+    revenueIncluded: (cimDocument as any).revenueIncluded || false,
+    ebitda: (cimDocument as any).ebitda || null,
+    ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
+  } : null;
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({

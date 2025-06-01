@@ -46,13 +46,13 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
 
   // Extract financial data from CIM document
   const financials: Financials = cimDocument ? {
-    enabled: cimDocument.financialsEnabled || false,
-    askingPrice: cimDocument.askingPrice || null,
-    askingPriceIncluded: cimDocument.askingPriceIncluded || false,
-    revenue: cimDocument.revenue || null,
-    revenueIncluded: cimDocument.revenueIncluded || false,
-    ebitda: cimDocument.ebitda || null,
-    ebitdaIncluded: cimDocument.ebitdaIncluded || false,
+    enabled: (cimDocument as any).financialsEnabled || false,
+    askingPrice: (cimDocument as any).askingPrice || null,
+    askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
+    revenue: (cimDocument as any).revenue || null,
+    revenueIncluded: (cimDocument as any).revenueIncluded || false,
+    ebitda: (cimDocument as any).ebitda || null,
+    ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
   } : {
     enabled: false,
     askingPrice: null,
