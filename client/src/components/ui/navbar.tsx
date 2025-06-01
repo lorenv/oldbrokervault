@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User, HelpCircle } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 
@@ -67,7 +67,7 @@ export function Navbar() {
                 <DropdownMenuItem>
                   <Link href="/dashboard">
                     <a className="flex items-center">
-                      <FileText className="h-4 w-4 mr-2" />
+                      <Zap className="h-4 w-4 mr-2" />
                       Create New CIM
                     </a>
                   </Link>
