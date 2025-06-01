@@ -172,34 +172,49 @@ export class DatabaseStorage implements IStorage {
     return user.monthlyUsage < plan.limit;
   }
 
-  async createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any; regenerationCount: number }): Promise<CimDocument> {
+  async createCimDocument(userId: number, doc: any): Promise<CimDocument> {
+    console.log("=== STORAGE DEBUG ===");
+    console.log("Document data received in storage:", {
+      financialsEnabled: doc.financialsEnabled,
+      askingPrice: doc.askingPrice,
+      askingPriceIncluded: doc.askingPriceIncluded,
+      revenue: doc.revenue,
+      revenueIncluded: doc.revenueIncluded,
+      ebitda: doc.ebitda,
+      ebitdaIncluded: doc.ebitdaIncluded,
+    });
+
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
     if (!canCreate) {
       throw new Error("Monthly CIM generation limit reached");
     }
 
+    const insertData = {
+      userId,
+      title: doc.title,
+      transcript: doc.transcript,
+      directions: doc.directions,
+      regenerationCount: doc.regenerationCount,
+      analysis: doc.analysis,
+      logoUrl: doc.logoUrl,
+      websiteUrl: doc.websiteUrl,
+      websiteScreenshotUrl: doc.websiteScreenshotUrl,
+      selectedImages: doc.selectedImages,
+      financialsEnabled: doc.financialsEnabled || false,
+      askingPrice: doc.askingPrice || null,
+      askingPriceIncluded: doc.askingPriceIncluded || false,
+      revenue: doc.revenue || null,
+      revenueIncluded: doc.revenueIncluded || false,
+      ebitda: doc.ebitda || null,
+      ebitdaIncluded: doc.ebitdaIncluded || false,
+    };
+
+    console.log("Data being inserted into database:", insertData);
+
     const [cimDoc] = await db
       .insert(cimDocuments)
-      .values({
-        userId,
-        title: doc.title,
-        transcript: doc.transcript,
-        directions: doc.directions,
-        regenerationCount: doc.regenerationCount,
-        analysis: doc.analysis,
-        logoUrl: doc.logoUrl,
-        websiteUrl: doc.websiteUrl,
-        websiteScreenshotUrl: doc.websiteScreenshotUrl,
-        selectedImages: doc.selectedImages,
-        financialsEnabled: doc.financialsEnabled || false,
-        askingPrice: doc.askingPrice || null,
-        askingPriceIncluded: doc.askingPriceIncluded || false,
-        revenue: doc.revenue || null,
-        revenueIncluded: doc.revenueIncluded || false,
-        ebitda: doc.ebitda || null,
-        ebitdaIncluded: doc.ebitdaIncluded || false,
-      })
+      .values(insertData)
       .returning();
 
     await this.updateUserUsage(userId);

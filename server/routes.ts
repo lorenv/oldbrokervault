@@ -418,6 +418,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse customizations from upload form
       const customizations = req.body.customizations ? JSON.parse(req.body.customizations) : {};
+      
+      // Debug financial data in upload endpoint
+      console.log("=== UPLOAD ENDPOINT FINANCIAL DEBUG ===");
+      console.log("Raw financials from form:", req.body.financials);
+      if (req.body.financials) {
+        const parsedFinancials = JSON.parse(req.body.financials);
+        console.log("Parsed financials:", parsedFinancials);
+      }
       console.log("Customizations from upload:", customizations);
 
       console.log("Custom directions provided:", data.directions ? "Yes" : "No");
