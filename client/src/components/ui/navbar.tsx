@@ -20,7 +20,7 @@ export function Navbar() {
   return (
     <nav className="border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
             <a className="flex items-center space-x-2 font-semibold text-lg">
               <img src="/cim-god-logo.png" alt="CIM God" className="h-8 w-8" />
@@ -28,7 +28,7 @@ export function Navbar() {
             </a>
           </Link>
           {!user && (
-            <div className="hidden md:flex items-center space-x-6 ml-24">
+            <div className="hidden md:flex items-center space-x-6">
               <Link href="/pricing">
                 <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
               </Link>
