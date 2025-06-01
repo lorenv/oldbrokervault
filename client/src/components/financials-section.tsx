@@ -14,18 +14,22 @@ import type { Financials, FinancialFile } from '@shared/schema';
 interface FinancialsSectionProps {
   docId: number;
   isSharedView?: boolean;
+  cimDocument?: any;
 }
 
-export function FinancialsSection({ docId, isSharedView = false }: FinancialsSectionProps) {
+export function FinancialsSection({ docId, isSharedView = false, cimDocument: propCimDocument }: FinancialsSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch CIM document with financial data
-  const { data: cimDocument } = useQuery({
+  // Fetch CIM document with financial data (only if not provided as prop)
+  const { data: fetchedCimDocument } = useQuery({
     queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId
+    enabled: !!docId && !propCimDocument
   });
+
+  // Use prop data if available, otherwise use fetched data
+  const cimDocument = propCimDocument || fetchedCimDocument;
 
   // Extract financial data from CIM document
   const financials = cimDocument ? {
@@ -40,7 +44,9 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
 
   // Debug financial data
   console.log("=== FINANCIALS SECTION DEBUG ===");
-  console.log("CIM Document:", cimDocument);
+  console.log("Prop CIM Document:", propCimDocument);
+  console.log("Fetched CIM Document:", fetchedCimDocument);
+  console.log("Final CIM Document:", cimDocument);
   console.log("Extracted financials:", financials);
   console.log("Is shared view:", isSharedView);
   console.log("Should render section:", (financials?.enabled || isSharedView));

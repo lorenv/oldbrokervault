@@ -92,7 +92,7 @@ function DraggableSection({ id, children, isSharedView }: DraggableSectionProps)
   );
 }
 
-export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile }: CimDisplayProps) {
+export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument }: CimDisplayProps & { cimDocument?: any }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -560,7 +560,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'financials':
         return isSharedView ? (
-          <FinancialsSection docId={docId} isSharedView={isSharedView} />
+          <FinancialsSection docId={docId} isSharedView={isSharedView} cimDocument={cimDocument} />
         ) : (
           <OwnerFinancialsSection docId={docId} />
         );

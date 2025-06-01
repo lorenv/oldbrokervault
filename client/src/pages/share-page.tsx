@@ -189,6 +189,7 @@ export function SharePage() {
             title={shareData.cim.title}
             isSharedView={true}
             userProfile={shareData.cim.userProfile}
+            cimDocument={shareData.cim}
           />
         )}
       </div>
