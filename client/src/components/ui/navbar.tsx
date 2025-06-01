@@ -22,7 +22,10 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href={user ? "/dashboard" : "/"}>
-            <a className="font-semibold text-lg">CIM God</a>
+            <a className="flex items-center space-x-2 font-semibold text-lg">
+              <img src="/cim-god-logo.png" alt="CIM God" className="h-8 w-8" />
+              <span>CIM God</span>
+            </a>
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6 ml-16">
