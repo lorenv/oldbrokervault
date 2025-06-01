@@ -127,7 +127,7 @@ export function DocumentExport({
       if (response.ok) {
         const result = await response.json();
         if (result.shareSlug) {
-          setShareUrl(`${window.location.origin}/cims/${result.shareSlug}`);
+          setShareUrl(`${window.location.origin}/share/${result.shareSlug}`);
         }
         toast({
           title: "Share settings updated",
@@ -930,7 +930,7 @@ export function DocumentExport({
                           const randomId = Math.random().toString(36).substring(2, 8);
                           const newSlug = `cim-${randomId}`;
                           setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
-                          setShareUrl(`${window.location.origin}/cims/${newSlug}`);
+                          setShareUrl(`${window.location.origin}/share/${newSlug}`);
                           
                           if (docId) {
                             try {
@@ -956,7 +956,7 @@ export function DocumentExport({
                 <div className="space-y-2">
                   <Label htmlFor="custom-slug">Custom URL (optional)</Label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">cimgod.com/cims/</span>
+                    <span className="text-sm text-muted-foreground">cimgod.com/share/</span>
                     <Input
                       id="custom-slug"
                       placeholder="my-business-name"
