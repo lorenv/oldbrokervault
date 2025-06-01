@@ -7,7 +7,10 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">CIM God</h3>
+            <div className="flex items-center space-x-2">
+              <img src="/cim-god-logo.png" alt="CIM God" className="h-6 w-6 filter invert" />
+              <h3 className="text-lg font-semibold">CIM God</h3>
+            </div>
             <p className="text-gray-400 text-sm">
               The ultimate platform for creating professional Confidential Information Memorandums with AI-powered analysis and secure sharing.
             </p>
