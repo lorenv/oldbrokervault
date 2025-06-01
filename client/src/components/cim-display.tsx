@@ -7,7 +7,7 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Save, Download, X } from "lucide-react";
+import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3 } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
@@ -621,7 +621,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Overview & History</CardTitle>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                {isSharedView && <Building2 className="h-6 w-6 text-blue-600" />}
+                Business Overview & History
+              </CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -650,7 +653,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Market Position</CardTitle>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                {isSharedView && <Target className="h-6 w-6 text-green-600" />}
+                Market Position
+              </CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Competitive Advantages", "marketAnalysis.uniqueFeatures", false, true, "What sets this business apart")}
@@ -665,7 +671,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Sales & Marketing</CardTitle>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                {isSharedView && <Megaphone className="h-6 w-6 text-purple-600" />}
+                Sales & Marketing
+              </CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Marketing Strategies", "marketing.strategies", false, true, "How the business attracts customers")}

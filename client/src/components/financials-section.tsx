@@ -338,7 +338,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
           {files.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Uploaded Documents</Label>
+                <Label>Financial Documents</Label>
                 {isSharedView && (
                   <Button
                     variant="outline"
@@ -378,13 +378,24 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                     <div className="flex items-center space-x-2">
                       {isSharedView ? (
                         file.included && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(`/api/cim/${docId}/financial-files/${file.id}/download`, '_blank')}
-                          >
-                            Download
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(`/api/cim/${docId}/financial-files/${file.id}/download`, '_blank')}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Preview
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(`/api/cim/${docId}/financial-files/${file.id}/download`, '_blank')}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </>
                         )
                       ) : (
                         <Button
