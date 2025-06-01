@@ -38,6 +38,13 @@ export function FinancialsSection({ docId, isSharedView = false }: FinancialsSec
     ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
   } : null;
 
+  // Debug financial data
+  console.log("=== FINANCIALS SECTION DEBUG ===");
+  console.log("CIM Document:", cimDocument);
+  console.log("Extracted financials:", financials);
+  console.log("Is shared view:", isSharedView);
+  console.log("Should render section:", (financials?.enabled || isSharedView));
+
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
     queryKey: [`/api/cim/${docId}/financial-files`],
