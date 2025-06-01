@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, X, Download } from "lucide-react";
@@ -202,21 +203,20 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
         {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <Label className="text-base font-medium">Enable Financial Information</Label>
+            <Label className="text-base font-medium">Include Financial Information</Label>
             <p className="text-sm text-gray-600 mt-1">
-              Include financial data in your CIM and shared documents
+              When enabled, financial data will appear in your CIM and shared documents
             </p>
           </div>
-          <Checkbox
+          <Switch
             checked={financials?.enabled || false}
             onCheckedChange={(checked) => handleFieldUpdate('enabled', checked)}
           />
         </div>
 
-        {/* Financial Fields - Only show when enabled */}
-        {financials?.enabled && (
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Asking Price */}
+        {/* Financial Fields - Always visible in owner view */}
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Asking Price */}
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -269,8 +269,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
                 onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
               />
             </div>
-          </div>
-        )}
+        </div>
 
         {/* File Upload Section - Always Visible */}
         <div className="space-y-4">
