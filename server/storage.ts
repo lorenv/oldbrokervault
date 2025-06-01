@@ -15,7 +15,17 @@ export interface IStorage {
   updateUserUsage(userId: number): Promise<void>;
   resetMonthlyUsage(userId: number): Promise<void>;
   checkUserLimit(userId: number): Promise<boolean>;
-  createCimDocument(userId: number, doc: InsertCimDocument & { analysis: any; regenerationCount: number }): Promise<CimDocument>;
+  createCimDocument(userId: number, doc: InsertCimDocument & { 
+    analysis: any; 
+    regenerationCount: number;
+    financialsEnabled?: boolean;
+    askingPrice?: string | null;
+    askingPriceIncluded?: boolean;
+    revenue?: string | null;
+    revenueIncluded?: boolean;
+    ebitda?: string | null;
+    ebitdaIncluded?: boolean;
+  }): Promise<CimDocument>;
   getCimDocuments(userId: number): Promise<CimDocument[]>;
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;

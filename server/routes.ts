@@ -381,7 +381,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logoUrl,
         analysis,
         selectedImages: savedImagePaths,
-        regenerationCount: 0
+        regenerationCount: 0,
+        // Add financial data directly to the document
+        financialsEnabled: financials?.enabled || false,
+        askingPrice: financials?.askingPrice || null,
+        askingPriceIncluded: financials?.askingPriceIncluded || false,
+        revenue: financials?.revenue || null,
+        revenueIncluded: financials?.revenueIncluded || false,
+        ebitda: financials?.ebitda || null,
+        ebitdaIncluded: financials?.ebitdaIncluded || false
       });
 
       res.json(doc);
@@ -464,13 +472,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Extract financial data from request
+      const financials = req.body.financials;
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,
         selectedImages: savedImagePaths,
-        regenerationCount: 0
+        regenerationCount: 0,
+        // Add financial data directly to the document
+        financialsEnabled: financials?.enabled || false,
+        askingPrice: financials?.askingPrice || null,
+        askingPriceIncluded: financials?.askingPriceIncluded || false,
+        revenue: financials?.revenue || null,
+        revenueIncluded: financials?.revenueIncluded || false,
+        ebitda: financials?.ebitda || null,
+        ebitdaIncluded: financials?.ebitdaIncluded || false
       });
 
       res.json(doc);
