@@ -559,7 +559,7 @@ ${analysis.team.ownerResponsibilities}
             </div>
             <div>
               <Textarea
-                placeholder="Paste your meeting transcript here..."
+                placeholder="Paste your notes or meeting transcript here..."
                 className="min-h-[200px]"
                 {...form.register("transcript")}
               />
