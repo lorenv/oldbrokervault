@@ -78,7 +78,7 @@ export const cimDocuments = pgTable("cim_documents", {
   // NDA protection
   ndaProtected: boolean("nda_protected").default(false).notNull(),
   ndaTemplateId: integer("nda_template_id"),
-  // Financial information
+  // Financial data fields
   financialsEnabled: boolean("financials_enabled").default(false).notNull(),
   askingPrice: text("asking_price"),
   askingPriceIncluded: boolean("asking_price_included").default(false).notNull(),

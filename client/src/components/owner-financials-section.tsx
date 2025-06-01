@@ -9,8 +9,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, X, Download } from "lucide-react";
 
 interface Financials {
-  id: number;
-  cimDocumentId: number;
   enabled: boolean;
   askingPrice: string | null;
   askingPriceIncluded: boolean;
@@ -18,8 +16,6 @@ interface Financials {
   revenueIncluded: boolean;
   ebitda: string | null;
   ebitdaIncluded: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface FinancialFile {
@@ -42,11 +38,30 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch financials data
-  const { data: financials } = useQuery<Financials>({
-    queryKey: [`/api/cim/${docId}/financials`],
+  // Fetch CIM document with financial data
+  const { data: cimDocument } = useQuery({
+    queryKey: [`/api/cim/${docId}`],
     enabled: !!docId
   });
+
+  // Extract financial data from CIM document
+  const financials: Financials = cimDocument ? {
+    enabled: cimDocument.financialsEnabled || false,
+    askingPrice: cimDocument.askingPrice || null,
+    askingPriceIncluded: cimDocument.askingPriceIncluded || false,
+    revenue: cimDocument.revenue || null,
+    revenueIncluded: cimDocument.revenueIncluded || false,
+    ebitda: cimDocument.ebitda || null,
+    ebitdaIncluded: cimDocument.ebitdaIncluded || false,
+  } : {
+    enabled: false,
+    askingPrice: null,
+    askingPriceIncluded: false,
+    revenue: null,
+    revenueIncluded: false,
+    ebitda: null,
+    ebitdaIncluded: false,
+  };
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
@@ -57,18 +72,26 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   // Update financials mutation
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
-      const response = await fetch(`/api/cim/${docId}/financials`, {
-        method: 'PUT',
+      const response = await fetch(`/api/cim/${docId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          financialsEnabled: data.enabled,
+          askingPrice: data.askingPrice,
+          askingPriceIncluded: data.askingPriceIncluded,
+          revenue: data.revenue,
+          revenueIncluded: data.revenueIncluded,
+          ebitda: data.ebitda,
+          ebitdaIncluded: data.ebitdaIncluded,
+        }),
       });
       if (!response.ok) throw new Error('Failed to update financials');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
     onError: () => {
