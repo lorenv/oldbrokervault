@@ -1078,8 +1078,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: user?.profilePhoto
       };
       
+      // Get financial data from CIM document
+      const financialData = {
+        enabled: doc.financialsEnabled || false,
+        askingPrice: doc.askingPrice,
+        askingPriceIncluded: doc.askingPriceIncluded || false,
+        revenue: doc.revenue,
+        revenueIncluded: doc.revenueIncluded || false,
+        ebitda: doc.ebitda,
+        ebitdaIncluded: doc.ebitdaIncluded || false
+      };
+      
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile);
+      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
