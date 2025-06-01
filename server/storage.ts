@@ -190,7 +190,15 @@ export class DatabaseStorage implements IStorage {
         analysis: doc.analysis,
         logoUrl: doc.logoUrl,
         websiteUrl: doc.websiteUrl,
+        websiteScreenshotUrl: doc.websiteScreenshotUrl,
         selectedImages: doc.selectedImages,
+        financialsEnabled: doc.financialsEnabled || false,
+        askingPrice: doc.askingPrice || null,
+        askingPriceIncluded: doc.askingPriceIncluded || false,
+        revenue: doc.revenue || null,
+        revenueIncluded: doc.revenueIncluded || false,
+        ebitda: doc.ebitda || null,
+        ebitdaIncluded: doc.ebitdaIncluded || false,
       })
       .returning();
 
