@@ -372,6 +372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Extract financial data from request
+      const financials = req.body.financials;
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         websiteUrl: data.websiteUrl,
