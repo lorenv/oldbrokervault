@@ -45,24 +45,20 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     enabled: !!docId
   });
 
-  // Extract financial data from CIM document
-  const financials: Financials = cimDocument ? {
-    enabled: (cimDocument as any).financialsEnabled || false,
-    askingPrice: (cimDocument as any).askingPrice || null,
-    askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
-    revenue: (cimDocument as any).revenue || null,
-    revenueIncluded: (cimDocument as any).revenueIncluded || false,
-    ebitda: (cimDocument as any).ebitda || null,
-    ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
-  } : {
-    enabled: false,
-    askingPrice: null,
-    askingPriceIncluded: false,
-    revenue: null,
-    revenueIncluded: false,
-    ebitda: null,
-    ebitdaIncluded: false,
-  };
+  // Fetch financial data from dedicated endpoint
+  const { data: financials } = useQuery<Financials>({
+    queryKey: [`/api/cim/${docId}/financials`],
+    enabled: !!docId,
+    initialData: {
+      enabled: false,
+      askingPrice: null,
+      askingPriceIncluded: false,
+      revenue: null,
+      revenueIncluded: false,
+      ebitda: null,
+      ebitdaIncluded: false,
+    }
+  });
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
@@ -73,8 +69,8 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   // Update financials mutation
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
-      const response = await fetch(`/api/cim/${docId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/cim/${docId}/financials`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -84,6 +80,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
