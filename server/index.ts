@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 // Serve static files for logos and images
 app.use('/logos', express.static('public/logos'));
 app.use('/images', express.static('public/images'));
+app.use(express.static('public'));
 
 app.use((req, res, next) => {
   const start = Date.now();
