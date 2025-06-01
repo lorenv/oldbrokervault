@@ -62,13 +62,13 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     }
     
     return {
-      enabled: (cimDocument as any).financialsEnabled || false,
-      askingPrice: (cimDocument as any).askingPrice || null,
-      askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
+      enabled: (cimDocument as any).financialsEnabled || (cimDocument as any).financials_enabled || false,
+      askingPrice: (cimDocument as any).askingPrice || (cimDocument as any).asking_price || null,
+      askingPriceIncluded: (cimDocument as any).askingPriceIncluded || (cimDocument as any).asking_price_included || false,
       revenue: (cimDocument as any).revenue || null,
-      revenueIncluded: (cimDocument as any).revenueIncluded || false,
+      revenueIncluded: (cimDocument as any).revenueIncluded || (cimDocument as any).revenue_included || false,
       ebitda: (cimDocument as any).ebitda || null,
-      ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
+      ebitdaIncluded: (cimDocument as any).ebitdaIncluded || (cimDocument as any).ebitda_included || false,
     };
   };
   
