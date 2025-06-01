@@ -45,20 +45,24 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     enabled: !!docId
   });
 
-  // Fetch financial data from dedicated endpoint
-  const { data: financials } = useQuery<Financials>({
-    queryKey: [`/api/cim/${docId}/financials`],
-    enabled: !!docId,
-    initialData: {
-      enabled: false,
-      askingPrice: null,
-      askingPriceIncluded: false,
-      revenue: null,
-      revenueIncluded: false,
-      ebitda: null,
-      ebitdaIncluded: false,
-    }
-  });
+  // Extract financial data from main CIM document
+  const financials: Financials = cimDocument ? {
+    enabled: (cimDocument as any).financialsEnabled || false,
+    askingPrice: (cimDocument as any).askingPrice || null,
+    askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
+    revenue: (cimDocument as any).revenue || null,
+    revenueIncluded: (cimDocument as any).revenueIncluded || false,
+    ebitda: (cimDocument as any).ebitda || null,
+    ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
+  } : {
+    enabled: false,
+    askingPrice: null,
+    askingPriceIncluded: false,
+    revenue: null,
+    revenueIncluded: false,
+    ebitda: null,
+    ebitdaIncluded: false,
+  };
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
@@ -66,20 +70,32 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     enabled: !!docId
   });
 
-  // Update financials mutation
+  // Update financials mutation - save to main CIM document
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
       console.log("=== FRONTEND FINANCIALS UPDATE ===");
       console.log("DocId:", docId);
       console.log("Data being sent:", data);
-      console.log("URL:", `/api/cim/${docId}/financials`);
       
-      const response = await fetch(`/api/cim/${docId}/financials`, {
-        method: 'PUT',
+      // Convert Financials format to CIM document format
+      const cimUpdateData: any = {};
+      if (data.enabled !== undefined) cimUpdateData.financialsEnabled = data.enabled;
+      if (data.askingPrice !== undefined) cimUpdateData.askingPrice = data.askingPrice;
+      if (data.askingPriceIncluded !== undefined) cimUpdateData.askingPriceIncluded = data.askingPriceIncluded;
+      if (data.revenue !== undefined) cimUpdateData.revenue = data.revenue;
+      if (data.revenueIncluded !== undefined) cimUpdateData.revenueIncluded = data.revenueIncluded;
+      if (data.ebitda !== undefined) cimUpdateData.ebitda = data.ebitda;
+      if (data.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = data.ebitdaIncluded;
+      
+      console.log("CIM update data:", cimUpdateData);
+      console.log("URL:", `/api/cim/${docId}`);
+      
+      const response = await fetch(`/api/cim/${docId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(cimUpdateData),
       });
       
       console.log("Response status:", response.status);
@@ -96,7 +112,6 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
