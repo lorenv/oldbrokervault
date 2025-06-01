@@ -216,60 +216,60 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
         {/* Financial Fields - Only show when enabled */}
         {financials?.enabled && (
           <div className="grid md:grid-cols-3 gap-6">
-          {/* Asking Price */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={financials?.askingPriceIncluded || false}
-                onCheckedChange={(checked) => 
-                  handleFieldUpdate('askingPriceIncluded', checked)
-                }
+            {/* Asking Price */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={financials?.askingPriceIncluded || false}
+                  onCheckedChange={(checked) => 
+                    handleFieldUpdate('askingPriceIncluded', checked)
+                  }
+                />
+                <Label>Asking Price</Label>
+              </div>
+              <Input
+                placeholder="$1,000,000"
+                value={financials?.askingPrice || ''}
+                onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
               />
-              <Label>Asking Price</Label>
             </div>
-            <Input
-              placeholder="$1,000,000"
-              value={financials?.askingPrice || ''}
-              onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
-            />
-          </div>
 
-          {/* Revenue */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={financials?.revenueIncluded || false}
-                onCheckedChange={(checked) => 
-                  handleFieldUpdate('revenueIncluded', checked)
-                }
+            {/* Revenue */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={financials?.revenueIncluded || false}
+                  onCheckedChange={(checked) => 
+                    handleFieldUpdate('revenueIncluded', checked)
+                  }
+                />
+                <Label>Annual Revenue</Label>
+              </div>
+              <Input
+                placeholder="$500,000"
+                value={financials?.revenue || ''}
+                onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
               />
-              <Label>Annual Revenue</Label>
             </div>
-            <Input
-              placeholder="$500,000"
-              value={financials?.revenue || ''}
-              onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
-            />
-          </div>
 
-          {/* EBITDA */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={financials?.ebitdaIncluded || false}
-                onCheckedChange={(checked) => 
-                  handleFieldUpdate('ebitdaIncluded', checked)
-                }
+            {/* EBITDA */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={financials?.ebitdaIncluded || false}
+                  onCheckedChange={(checked) => 
+                    handleFieldUpdate('ebitdaIncluded', checked)
+                  }
+                />
+                <Label>EBITDA</Label>
+              </div>
+              <Input
+                placeholder="$150,000"
+                value={financials?.ebitda || ''}
+                onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
               />
-              <Label>EBITDA</Label>
             </div>
-            <Input
-              placeholder="$150,000"
-              value={financials?.ebitda || ''}
-              onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
-            />
           </div>
-        </div>
         )}
 
         {/* File Upload Section - Always Visible */}
