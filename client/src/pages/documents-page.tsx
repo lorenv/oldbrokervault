@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -133,7 +133,7 @@ interface CimDocumentWithAnalysis extends CimDocument {
 }
 
 export default function DocumentsPage() {
-  const { data: documents } = useQuery<CimDocumentWithAnalysis[]>({
+  const { data: documents, isLoading: documentsLoading } = useQuery<CimDocumentWithAnalysis[]>({
     queryKey: ["/api/cim"],
   });
   const [selectedDoc, setSelectedDoc] = useState<CimDocumentWithAnalysis | null>(null);
@@ -354,8 +354,18 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDocuments?.map((doc) => (
+        {/* Loading Animation */}
+        {documentsLoading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
+            <p className="text-gray-600">Loading your CIM documents...</p>
+          </div>
+        )}
+
+        {/* Documents Grid */}
+        {!documentsLoading && (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredDocuments?.map((doc) => (
             <Card 
               key={doc.id} 
               className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
@@ -388,6 +398,15 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
+                          setSelectedDoc(doc);
+                        }}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
                           toast({
                             title: "Share link copied",
@@ -395,7 +414,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                           });
                         }}
                       >
-                        <Share2 className="mr-2 h-4 w-4" />
+                        <Copy className="mr-2 h-4 w-4" />
                         Copy Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem 
@@ -486,20 +505,22 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 </div>
               </CardContent>
             </Card>
-          ))}
+            ))}
+          </div>
+        )}
 
-          {filteredDocuments?.length === 0 && documents?.length !== 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No documents match your search. Try a different search term.
-            </div>
-          )}
+        {/* Empty States */}
+        {!documentsLoading && filteredDocuments?.length === 0 && documents?.length !== 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No documents match your search. Try a different search term.
+          </div>
+        )}
 
-          {documents?.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No CIM documents yet. Create your first one!
-            </div>
-          )}
-        </div>
+        {!documentsLoading && documents?.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No CIM documents yet. Create your first one!
+          </div>
+        )}
       </main>
       
       {/* Delete confirmation dialog */}
