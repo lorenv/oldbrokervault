@@ -98,8 +98,17 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
     queryKey: [`/api/cim/${docId}/financial-files`],
-    enabled: !!docId
+    enabled: !!docId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true // Always refetch on mount
   });
+
+  // Debug logging for files
+  console.log("=== OWNER FINANCIALS FILES DEBUG ===");
+  console.log("DocId:", docId);
+  console.log("Files fetched:", files);
+  console.log("Number of files:", files.length);
 
   // Update financials mutation - save to main CIM document
   const updateFinancialsMutation = useMutation({
