@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, X, Download, FileText } from 'lucide-react';
+import { Upload, X, Download, FileText, DollarSign, TrendingUp, BarChart3, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -226,6 +226,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                     }
                   />
                 )}
+                <DollarSign className="h-4 w-4 text-green-600" />
                 <Label>Asking Price</Label>
               </div>
               {isSharedView ? (
@@ -254,6 +255,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                     }
                   />
                 )}
+                <TrendingUp className="h-4 w-4 text-blue-600" />
                 <Label>Annual Revenue</Label>
               </div>
               {isSharedView ? (
@@ -282,6 +284,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                     }
                   />
                 )}
+                <BarChart3 className="h-4 w-4 text-purple-600" />
                 <Label>EBITDA</Label>
               </div>
               {isSharedView ? (
@@ -400,26 +403,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
             </div>
           )}
 
-          {/* Display included files as links in shared view */}
-          {isSharedView && files.filter(f => f.included).length > 0 && (
-            <div className="space-y-2">
-              <Label>Financial Documents</Label>
-              <div className="space-y-2">
-                {files.filter(f => f.included).map((file) => (
-                  <a
-                    key={file.id}
-                    href={`/api/cim/${docId}/financial-files/${file.id}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 underline"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>{file.originalName}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+
         </CardContent>
       )}
     </Card>
