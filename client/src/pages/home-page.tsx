@@ -84,7 +84,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Powerful Features for Professional CIMs
+            Powerful CIMs, in a Snap
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Everything you need to create, customize, and share professional Confidential Information Memorandums with confidence and security.
