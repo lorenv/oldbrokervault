@@ -40,9 +40,11 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch CIM document with financial data
-  const { data: cimDocument } = useQuery({
+  const { data: cimDocument, isLoading: cimLoading } = useQuery({
     queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId
+    enabled: !!docId,
+    refetchOnWindowFocus: false,
+    staleTime: 0 // Ensure fresh data
   });
 
   // Extract financial data from main CIM document - make it reactive to updates
@@ -71,6 +73,12 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   };
   
   const financials = getFinancials();
+  
+  // Debug logging to track state changes
+  console.log("=== FINANCIALS COMPONENT STATE ===");
+  console.log("CIM Document:", cimDocument);
+  console.log("Financials object:", financials);
+  console.log("CIM Loading:", cimLoading);
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
@@ -120,7 +128,9 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       return result;
     },
     onSuccess: () => {
+      // Force refetch of CIM data to update UI immediately
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
+      queryClient.refetchQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
     onError: () => {
