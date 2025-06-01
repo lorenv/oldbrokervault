@@ -347,30 +347,43 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           </div>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredDocuments?.map((doc) => (
-            <Card key={doc.id} className="hover:border-primary transition-colors">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle 
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => setSelectedDoc(doc)}
-                  >
-                    {doc.title}
-                  </CardTitle>
+            <Card 
+              key={doc.id} 
+              className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
+              onClick={() => setSelectedDoc(doc)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
+                      {doc.title}
+                    </CardTitle>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(doc.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        {doc.regenerationCount} regen{doc.regenerationCount !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity">
                         <Download className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleCopyToClipboard(doc.analysis)}>
+                      <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleCopyToClipboard(doc.analysis);}}>
                         <Copy className="mr-2 h-4 w-4" />
                         Copy Plain Text
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleHtmlExport(doc.id)}
+                        onClick={(e) => {e.stopPropagation(); handleHtmlExport(doc.id);}}
                         disabled={htmlExportLoading}
                       >
                         <Code className="mr-2 h-4 w-4" />
@@ -381,20 +394,20 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={() => handleExport(doc.id, 'word')}
+                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'word');}}
                           >
                             <File className="mr-2 h-4 w-4 text-blue-600" />
                             Export to Word
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => handleExport(doc.id, 'pdf')}
+                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'pdf');}}
                           >
                             <FileDown className="mr-2 h-4 w-4 text-red-600" />
                             Export to PDF
                           </DropdownMenuItem>
                           {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
                             <DropdownMenuItem 
-                              onClick={() => handleGoogleDocsExport(doc.id)}
+                              onClick={(e) => {e.stopPropagation(); handleGoogleDocsExport(doc.id);}}
                             >
                               <Globe className="mr-2 h-4 w-4 text-blue-500" />
                               Export to Google Docs
@@ -402,7 +415,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                           )}
                           {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
                             <DropdownMenuItem 
-                              onClick={() => setIsWordPressDialogOpen(true)}
+                              onClick={(e) => {e.stopPropagation(); setIsWordPressDialogOpen(true);}}
                             >
                               <Globe className="mr-2 h-4 w-4" />
                               Export to WordPress
@@ -412,7 +425,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
-                        onClick={() => setConfirmDelete(doc.id)} 
+                        onClick={(e) => {e.stopPropagation(); setConfirmDelete(doc.id);}} 
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -422,12 +435,22 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">
-                  Created: {new Date(doc.createdAt).toLocaleDateString()}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Regenerations: {doc.regenerationCount}
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    {doc.shareEnabled ? (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
+                        <Globe className="h-3 w-3" />
+                        Shared
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
+                        <Lock className="h-3 w-3" />
+                        Private
+                      </div>
+                    )}
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all duration-200" />
                 </div>
               </CardContent>
             </Card>
