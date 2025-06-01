@@ -28,7 +28,7 @@ export function Navbar() {
             </a>
           </Link>
           {!user && (
-            <div className="hidden md:flex items-center space-x-6 ml-16">
+            <div className="hidden md:flex items-center space-x-6 ml-24">
               <Link href="/pricing">
                 <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
               </Link>
