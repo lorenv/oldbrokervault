@@ -426,7 +426,11 @@ The JSON must follow this exact structure, with full, detailed responses for eac
       },
       {
         role: "user",
-        content: `Analyze this transcript and respond with ONLY valid JSON in the exact format specified above. Do not include any other text, explanations, or markdown formatting. Ensure all JSON strings are properly escaped and the response ends with a complete closing brace.\n\nTranscript:\n${transcript}`
+        content: `Analyze this transcript and respond with ONLY valid JSON in the exact format specified above. Do not include any other text, explanations, or markdown formatting. Ensure all JSON strings are properly escaped and the response ends with a complete closing brace.
+
+CRITICAL DATA INTEGRITY REMINDER: Extract ONLY information explicitly stated in the transcript. If any information is not mentioned, use null or leave empty. Never generate, assume, estimate, or create synthetic data.
+
+Transcript:\n${transcript}`
       }
     ]);
 
