@@ -189,11 +189,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     }
   };
 
-  // Don't render if financials are not enabled
-  if (!financials?.enabled) {
-    return null;
-  }
-
+  // Always render the financial section in owner view so users can enable it
   return (
     <Card className="bg-white shadow-lg rounded-2xl border-0 mb-8">
       <CardHeader className="border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6">
@@ -203,8 +199,23 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       </CardHeader>
 
       <CardContent className="space-y-6 pt-6 px-8 pb-8">
-        {/* Financial Fields */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Enable/Disable Toggle */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div>
+            <Label className="text-base font-medium">Enable Financial Information</Label>
+            <p className="text-sm text-gray-600 mt-1">
+              Include financial data in your CIM and shared documents
+            </p>
+          </div>
+          <Checkbox
+            checked={financials?.enabled || false}
+            onCheckedChange={(checked) => handleFieldUpdate('enabled', checked)}
+          />
+        </div>
+
+        {/* Financial Fields - Only show when enabled */}
+        {financials?.enabled && (
+          <div className="grid md:grid-cols-3 gap-6">
           {/* Asking Price */}
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -259,6 +270,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
             />
           </div>
         </div>
+        )}
 
         {/* File Upload Section - Always Visible */}
         <div className="space-y-4">
