@@ -14,10 +14,9 @@ import type { Financials, FinancialFile } from '@shared/schema';
 interface FinancialsSectionProps {
   docId: number;
   isSharedView?: boolean;
-  isEditMode?: boolean;
 }
 
-export function FinancialsSection({ docId, isSharedView = false, isEditMode = false }: FinancialsSectionProps) {
+export function FinancialsSection({ docId, isSharedView = false }: FinancialsSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,17 +116,7 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
   });
 
   const handleToggleEnabled = (enabled: boolean) => {
-    // When enabling financials, check all inclusion checkboxes by default
-    if (enabled) {
-      updateFinancialsMutation.mutate({ 
-        enabled, 
-        askingPriceIncluded: true,
-        revenueIncluded: true,
-        ebitdaIncluded: true
-      });
-    } else {
-      updateFinancialsMutation.mutate({ enabled });
-    }
+    updateFinancialsMutation.mutate({ enabled });
   };
 
   const handleFieldUpdate = (field: string, value: string | boolean) => {
@@ -215,18 +204,18 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                 )}
                 <Label>Asking Price</Label>
               </div>
-              {isEditMode ? (
+              {isSharedView ? (
+                financials?.askingPriceIncluded && financials?.askingPrice && (
+                  <div className="text-lg font-semibold text-green-600">
+                    {formatCurrency(financials.askingPrice)}
+                  </div>
+                )
+              ) : (
                 <Input
                   placeholder="$1,000,000"
                   value={financials?.askingPrice || ''}
                   onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
                 />
-              ) : (
-                financials?.askingPriceIncluded && financials?.askingPrice && (
-                  <div className="text-lg font-semibold text-blue-600 bg-blue-50 px-4 py-3 rounded-lg border border-blue-200">
-                    {formatCurrency(financials.askingPrice)}
-                  </div>
-                )
               )}
             </div>
 
@@ -243,18 +232,18 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                 )}
                 <Label>Annual Revenue</Label>
               </div>
-              {isEditMode ? (
+              {isSharedView ? (
+                financials?.revenueIncluded && financials?.revenue && (
+                  <div className="text-lg font-semibold text-blue-600">
+                    {formatCurrency(financials.revenue)}
+                  </div>
+                )
+              ) : (
                 <Input
                   placeholder="$500,000"
                   value={financials?.revenue || ''}
                   onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
                 />
-              ) : (
-                financials?.revenueIncluded && financials?.revenue && (
-                  <div className="text-lg font-semibold text-green-600 bg-green-50 px-4 py-3 rounded-lg border border-green-200">
-                    {formatCurrency(financials.revenue)}
-                  </div>
-                )
               )}
             </div>
 
@@ -271,24 +260,24 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                 )}
                 <Label>EBITDA</Label>
               </div>
-              {isEditMode ? (
+              {isSharedView ? (
+                financials?.ebitdaIncluded && financials?.ebitda && (
+                  <div className="text-lg font-semibold text-purple-600">
+                    {formatCurrency(financials.ebitda)}
+                  </div>
+                )
+              ) : (
                 <Input
                   placeholder="$150,000"
                   value={financials?.ebitda || ''}
                   onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
                 />
-              ) : (
-                financials?.ebitdaIncluded && financials?.ebitda && (
-                  <div className="text-lg font-semibold text-purple-600 bg-purple-50 px-4 py-3 rounded-lg border border-purple-200">
-                    {formatCurrency(financials.ebitda)}
-                  </div>
-                )
               )}
             </div>
           </div>
 
           {/* File Upload Section */}
-          {isEditMode && (
+          {!isSharedView && (
             <div className="space-y-4">
               <Label>Financial Documents</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
@@ -323,7 +312,7 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label>Uploaded Documents</Label>
-                {!isEditMode && (
+                {isSharedView && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -339,7 +328,7 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                 {files.map((file) => (
                   <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-3">
-                      {isEditMode && (
+                      {!isSharedView && (
                         <Checkbox
                           checked={file.included}
                           onCheckedChange={(checked) =>
@@ -360,16 +349,7 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      {isEditMode ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteFileMutation.mutate(file.id)}
-                          disabled={deleteFileMutation.isPending}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      ) : (
+                      {isSharedView ? (
                         file.included && (
                           <Button
                             variant="outline"
@@ -379,6 +359,15 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
                             Download
                           </Button>
                         )
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteFileMutation.mutate(file.id)}
+                          disabled={deleteFileMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -387,8 +376,8 @@ export function FinancialsSection({ docId, isSharedView = false, isEditMode = fa
             </div>
           )}
 
-          {/* Display included files as links in display view */}
-          {!isEditMode && files.filter(f => f.included).length > 0 && (
+          {/* Display included files as links in shared view */}
+          {isSharedView && files.filter(f => f.included).length > 0 && (
             <div className="space-y-2">
               <Label>Financial Documents</Label>
               <div className="space-y-2">
