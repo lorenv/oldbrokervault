@@ -1006,7 +1006,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: user?.profilePhoto
       };
       
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile);
+      // Get financial data from CIM document
+      const financialData = {
+        enabled: doc.financialsEnabled || false,
+        askingPrice: doc.askingPrice,
+        askingPriceIncluded: doc.askingPriceIncluded || false,
+        revenue: doc.revenue,
+        revenueIncluded: doc.revenueIncluded || false,
+        ebitda: doc.ebitda,
+        ebitdaIncluded: doc.ebitdaIncluded || false
+      };
+      
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -1127,20 +1138,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: profileUser?.profilePhoto
       };
       
-      // Get financial data and files
-      let financialData: any = null;
-      let financialFilesList: any[] = [];
+      // Get financial data from CIM document and files
+      const financialData = {
+        enabled: doc.financialsEnabled || false,
+        askingPrice: doc.askingPrice,
+        askingPriceIncluded: doc.askingPriceIncluded || false,
+        revenue: doc.revenue,
+        revenueIncluded: doc.revenueIncluded || false,
+        ebitda: doc.ebitda,
+        ebitdaIncluded: doc.ebitdaIncluded || false
+      };
       
+      let financialFilesList: any[] = [];
       try {
-        const [financialsRecord] = await db.select().from(financials).where(eq(financials.cimDocumentId, docId));
-        if (financialsRecord) {
-          financialData = financialsRecord;
-        }
-        
         const files = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, docId));
         financialFilesList = files;
       } catch (error) {
-        console.log("Error fetching financial data:", error);
+        console.log("Error fetching financial files:", error);
       }
       
       // Include logo URL, user profile, financial data, and files
