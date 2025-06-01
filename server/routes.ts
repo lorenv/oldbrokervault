@@ -513,6 +513,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(docs);
   });
   
+  // Update CIM document (for financial and other field updates)
+  app.patch("/api/cim/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    console.log("=== CIM PATCH REQUEST ===");
+    console.log("Request user:", req.user);
+    console.log("Request body:", req.body);
+    console.log("Request params:", req.params);
+    
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+      
+      // Check if document exists and belongs to user
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "You don't have permission to update this document" });
+      }
+      
+      console.log("Updating CIM document with data:", req.body);
+      const updatedDoc = await storage.updateCimDocument(docId, req.body);
+      console.log("Updated CIM document:", updatedDoc);
+      
+      res.json(updatedDoc);
+    } catch (error) {
+      console.error("CIM update error:", error);
+      res.status(500).json({ error: "Failed to update document", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   // Delete a CIM document
   app.delete("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
