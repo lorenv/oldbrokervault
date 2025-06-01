@@ -78,15 +78,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          financialsEnabled: data.enabled,
-          askingPrice: data.askingPrice,
-          askingPriceIncluded: data.askingPriceIncluded,
-          revenue: data.revenue,
-          revenueIncluded: data.revenueIncluded,
-          ebitda: data.ebitda,
-          ebitdaIncluded: data.ebitdaIncluded,
-        }),
+        body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Failed to update financials');
       return response.json();

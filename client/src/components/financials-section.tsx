@@ -382,7 +382,22 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(`/api/cim/${docId}/financial-files/${file.id}/download`, '_blank')}
+                              onClick={() => {
+                                const isPdf = file.mimeType === 'application/pdf';
+                                const url = `/api/cim/${docId}/financial-files/${file.id}/download`;
+                                if (isPdf) {
+                                  // For PDFs, open in new tab for viewing
+                                  window.open(url, '_blank');
+                                } else {
+                                  // For other files, trigger download
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = file.originalName;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                }
+                              }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Preview
@@ -390,7 +405,14 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(`/api/cim/${docId}/financial-files/${file.id}/download`, '_blank')}
+                              onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = `/api/cim/${docId}/financial-files/${file.id}/download`;
+                                a.download = file.originalName;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              }}
                             >
                               <Download className="h-4 w-4 mr-1" />
                               Download
