@@ -69,6 +69,11 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   // Update financials mutation
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
+      console.log("=== FRONTEND FINANCIALS UPDATE ===");
+      console.log("DocId:", docId);
+      console.log("Data being sent:", data);
+      console.log("URL:", `/api/cim/${docId}/financials`);
+      
       const response = await fetch(`/api/cim/${docId}/financials`, {
         method: 'PUT',
         headers: {
@@ -76,8 +81,19 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
         },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to update financials');
-      return response.json();
+      
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Error response:", errorText);
+        throw new Error(`Failed to update financials: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log("Success response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
