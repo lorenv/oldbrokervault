@@ -556,9 +556,21 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     switch (sectionId) {
       case 'executive-summary':
         return (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}>
+          <Card className={`group ${isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : "border-blue-200"}`}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Executive Summary</CardTitle>
+                {!isSharedView && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                    onClick={() => setConfirmDeleteSection('executive-summary')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className={`space-y-6 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               <div className="text-lg leading-relaxed">
@@ -644,12 +656,24 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'business-overview':
         return (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+          <Card className={`group ${isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}`}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
-                {isSharedView && <Building2 className="h-6 w-6 text-blue-600" />}
-                Business Overview & History
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                  {isSharedView && <Building2 className="h-6 w-6 text-blue-600" />}
+                  Business Overview & History
+                </CardTitle>
+                {!isSharedView && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                    onClick={() => setConfirmDeleteSection('business-overview')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               <div className="grid md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -714,12 +738,24 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
       case 'operations':
         return (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+          <Card className={`group ${isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}`}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
-                {isSharedView && <Settings className="h-6 w-6 text-orange-600" />}
-                Operations
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                  {isSharedView && <Settings className="h-6 w-6 text-orange-600" />}
+                  Operations
+                </CardTitle>
+                {!isSharedView && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                    onClick={() => setConfirmDeleteSection('operations')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
@@ -906,6 +942,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       >
         <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
           {sectionOrder.map((sectionId) => {
+            // Show deleted sections as restore options (only in edit mode)
+            if (deletedSections.has(sectionId)) {
+              return !isSharedView ? (
+                <Card key={sectionId} className="border-dashed border-2 border-gray-300 bg-gray-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span className="text-sm">
+                          {sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} section deleted
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRestoreSection(sectionId)}
+                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                      >
+                        Restore Section
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null;
+            }
+
             const content = getSectionContent(sectionId);
             if (!content) return null;
             
@@ -993,6 +1054,35 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Section Delete Confirmation Dialog */}
+      <Dialog open={!!confirmDeleteSection} onOpenChange={(open) => !open && setConfirmDeleteSection(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Section</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete the <strong>{confirmDeleteSection?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong> section? 
+              This action cannot be undone, but you can restore the section before saving.
+            </p>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDeleteSection(null)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => confirmDeleteSection && handleDeleteSection(confirmDeleteSection)}
+            >
+              Delete Section
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
