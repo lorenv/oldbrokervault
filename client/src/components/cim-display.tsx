@@ -691,7 +691,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         return (
           <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Operations</CardTitle>
+              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800 flex items-center gap-3" : ""}>
+                {isSharedView && <Settings className="h-6 w-6 text-orange-600" />}
+                Operations
+              </CardTitle>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Supplier Information", "operations.suppliers.count", true, false, "Key supplier relationships")}
