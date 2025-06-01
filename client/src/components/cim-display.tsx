@@ -12,6 +12,7 @@ import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
 import { FinancialsSection } from "./financials-section";
+import { OwnerFinancialsSection } from "./owner-financials-section";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
@@ -558,8 +559,10 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         );
 
       case 'financials':
-        return (
+        return isSharedView ? (
           <FinancialsSection docId={docId} isSharedView={isSharedView} />
+        ) : (
+          <OwnerFinancialsSection docId={docId} />
         );
 
       case 'business-website':
