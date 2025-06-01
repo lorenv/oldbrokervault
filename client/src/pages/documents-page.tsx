@@ -374,10 +374,24 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity">
-                        <Download className="h-4 w-4" />
+                        <Share2 className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
+                          toast({
+                            title: "Share link copied",
+                            description: "The share link has been copied to your clipboard"
+                          });
+                        }}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Copy Share Link
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleCopyToClipboard(doc.analysis);}}>
                         <Copy className="mr-2 h-4 w-4" />
                         Copy Plain Text
@@ -436,35 +450,18 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    {doc.shareEnabled ? (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
-                        <Globe className="h-3 w-3" />
-                        Shared
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
-                        <Lock className="h-3 w-3" />
-                        Private
-                      </div>
-                    )}
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
-                      toast({
-                        title: "Share link copied",
-                        description: "The share link has been copied to your clipboard"
-                      });
-                    }}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  {doc.shareEnabled ? (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
+                      <Globe className="h-3 w-3" />
+                      Shared
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
+                      <Lock className="h-3 w-3" />
+                      Private
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
