@@ -959,7 +959,7 @@ function generateContactFooter(userProfile: any): string {
   return parts.join('\n');
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any): Promise<Buffer> {
   // Create paragraphs for the document
   const paragraphs: docx.Paragraph[] = [];
   
@@ -1090,6 +1090,44 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       spacing: { before: 100, after: 200 }
     })
   );
+
+  // Financial Information section
+  if (financialData && financialData.enabled) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "Financial Information",
+        heading: docx.HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      })
+    );
+
+    if (financialData.askingPriceIncluded && financialData.askingPrice) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Asking Price: ${financialData.askingPrice}`,
+          spacing: { before: 100, after: 100 }
+        })
+      );
+    }
+
+    if (financialData.revenueIncluded && financialData.revenue) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Annual Revenue: ${financialData.revenue}`,
+          spacing: { before: 100, after: 100 }
+        })
+      );
+    }
+
+    if (financialData.ebitdaIncluded && financialData.ebitda) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `EBITDA: ${financialData.ebitda}`,
+          spacing: { before: 100, after: 200 }
+        })
+      );
+    }
+  }
 
   // Business Website section
   if (websiteUrl) {
@@ -1808,7 +1846,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any): Promise<Buffer> {
+export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any): Promise<Buffer> {
   console.log("Starting enhanced PDF generation...");
   
   return new Promise(async (resolve, reject) => {
@@ -2049,6 +2087,31 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           // Check if the content was cut off and add it on a new page if needed
           doc.moveDown(1);
         }
+      }
+
+      // Financial Information section
+      if (financialData && financialData.enabled) {
+        doc.moveDown(1);
+        doc.fontSize(14)
+           .fillColor('#2563eb')  // Blue color
+           .text("Financial Information:")
+           .fillColor('#000000');  // Reset to black
+        doc.moveDown(0.5);
+        doc.fontSize(12);
+        
+        if (financialData.askingPriceIncluded && financialData.askingPrice) {
+          doc.text(`Asking Price: ${financialData.askingPrice}`);
+        }
+        
+        if (financialData.revenueIncluded && financialData.revenue) {
+          doc.text(`Annual Revenue: ${financialData.revenue}`);
+        }
+        
+        if (financialData.ebitdaIncluded && financialData.ebitda) {
+          doc.text(`EBITDA: ${financialData.ebitda}`);
+        }
+        
+        doc.moveDown(1);
       }
 
       // Reason for Sale section
