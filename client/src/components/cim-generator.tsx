@@ -248,13 +248,39 @@ export function CimGenerator() {
         }
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setAnalysis(data.analysis);
       setCurrentDocId(data.id);
       
       // Store the logoUrl in the analysis for display
       if (data.logoUrl) {
         setAnalysis((prev: any) => ({ ...prev, logoUrl: data.logoUrl }));
+      }
+      
+      // Upload financial files after CIM is created
+      if (financialFiles.length > 0) {
+        try {
+          for (const file of financialFiles) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            await fetch(`/api/cim/${data.id}/financial-files`, {
+              method: 'POST',
+              body: formData,
+              credentials: 'include'
+            });
+          }
+          
+          // Clear the local file list after successful upload
+          setFinancialFiles([]);
+        } catch (error) {
+          console.error('Error uploading financial files:', error);
+          toast({
+            title: "Warning",
+            description: "CIM created successfully but some financial files failed to upload",
+            variant: "destructive"
+          });
+        }
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
