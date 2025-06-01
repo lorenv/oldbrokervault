@@ -45,24 +45,32 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
     enabled: !!docId
   });
 
-  // Extract financial data from main CIM document
-  const financials: Financials = cimDocument ? {
-    enabled: (cimDocument as any).financialsEnabled || false,
-    askingPrice: (cimDocument as any).askingPrice || null,
-    askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
-    revenue: (cimDocument as any).revenue || null,
-    revenueIncluded: (cimDocument as any).revenueIncluded || false,
-    ebitda: (cimDocument as any).ebitda || null,
-    ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
-  } : {
-    enabled: false,
-    askingPrice: null,
-    askingPriceIncluded: false,
-    revenue: null,
-    revenueIncluded: false,
-    ebitda: null,
-    ebitdaIncluded: false,
+  // Extract financial data from main CIM document - make it reactive to updates
+  const getFinancials = (): Financials => {
+    if (!cimDocument) {
+      return {
+        enabled: false,
+        askingPrice: null,
+        askingPriceIncluded: false,
+        revenue: null,
+        revenueIncluded: false,
+        ebitda: null,
+        ebitdaIncluded: false,
+      };
+    }
+    
+    return {
+      enabled: (cimDocument as any).financialsEnabled || false,
+      askingPrice: (cimDocument as any).askingPrice || null,
+      askingPriceIncluded: (cimDocument as any).askingPriceIncluded || false,
+      revenue: (cimDocument as any).revenue || null,
+      revenueIncluded: (cimDocument as any).revenueIncluded || false,
+      ebitda: (cimDocument as any).ebitda || null,
+      ebitdaIncluded: (cimDocument as any).ebitdaIncluded || false,
+    };
   };
+  
+  const financials = getFinancials();
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
