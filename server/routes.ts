@@ -3016,7 +3016,68 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       const contacts = await query;
       
-      // Also get NDA signature data to enrich contacts
+      // Auto-sync from NDA signatures if no contacts exist
+      if (contacts.length === 0) {
+        const { ndaSignatures, cimDocuments } = await import('@shared/schema');
+        const { inArray } = await import('drizzle-orm');
+        
+        // Get all user's CIM documents
+        const userCims = await db.select().from(cimDocuments).where(eq(cimDocuments.userId, req.user.id));
+        const cimIds = userCims.map(cim => cim.id);
+        
+        if (cimIds.length > 0) {
+          // Get all NDA signatures for user's documents
+          const signatures = await db
+            .select()
+            .from(ndaSignatures)
+            .where(inArray(ndaSignatures.cimDocumentId, cimIds));
+          
+          // Group signatures by email and create contacts
+          const signaturesByEmail = signatures.reduce((acc, sig) => {
+            if (!acc[sig.signerEmail]) {
+              acc[sig.signerEmail] = [];
+            }
+            acc[sig.signerEmail].push(sig);
+            return acc;
+          }, {} as Record<string, any[]>);
+          
+          // Create contacts from signatures
+          for (const [email, sigs] of Object.entries(signaturesByEmail)) {
+            const latestSig = sigs.sort((a, b) => new Date(b.signedAt).getTime() - new Date(a.signedAt).getTime())[0];
+            
+            await db
+              .insert(investorContacts)
+              .values({
+                userId: req.user.id,
+                email: email,
+                name: latestSig.signerName,
+                status: 'new',
+                totalDocumentViews: sigs.length,
+                firstSeenAt: new Date(sigs[0].signedAt),
+                lastSeenAt: new Date(latestSig.signedAt),
+                tags: []
+              });
+          }
+          
+          // Re-fetch contacts after auto-sync
+          const updatedContacts = await db.select().from(investorContacts).where(and(...conditions));
+          const allSignatures = await db.select().from(ndaSignatures);
+          
+          const enrichedContacts = updatedContacts.map(contact => {
+            const contactSignatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
+            return {
+              ...contact,
+              totalNdaSignatures: contactSignatures.length,
+              documents: contactSignatures.map(sig => sig.cimDocumentId),
+              lastNdaSigned: contactSignatures.length > 0 ? Math.max(...contactSignatures.map(sig => new Date(sig.signedAt).getTime())) : null
+            };
+          });
+          
+          return res.json(enrichedContacts);
+        }
+      }
+      
+      // Get NDA signature data to enrich existing contacts
       const { ndaSignatures } = await import('@shared/schema');
       const allSignatures = await db.select().from(ndaSignatures);
       
