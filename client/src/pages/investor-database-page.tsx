@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ interface EnrichedContact extends InvestorContact {
   totalNdaSignatures: number;
   documents: DocumentInfo[];
   lastNdaSigned: number | null;
+  company?: string;
+  inferredCompany?: string;
 }
 
 const statusOptions = [
@@ -143,11 +145,87 @@ export default function InvestorDatabasePage() {
     nextFollowUpDate: ''
   });
   
+  // Function to apply advanced filters
+  const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
+    if (advancedFilters.length === 0) return contacts;
+
+    return contacts.filter(contact => {
+      let result = true;
+      let hasOrCondition = false;
+      let orResult = false;
+
+      for (const filter of advancedFilters) {
+        if (!filter.value && !['is_empty', 'is_not_empty'].includes(filter.operator)) {
+          continue;
+        }
+
+        const fieldValue = getFieldValue(contact, filter.field);
+        const filterResult = evaluateFilter(fieldValue, filter.operator, filter.value);
+
+        if (filter.logicOperator === 'OR') {
+          hasOrCondition = true;
+          orResult = orResult || filterResult;
+        } else {
+          // AND condition (default)
+          if (hasOrCondition) {
+            result = result && orResult;
+            hasOrCondition = false;
+            orResult = false;
+          }
+          result = result && filterResult;
+        }
+      }
+
+      if (hasOrCondition) {
+        result = result && orResult;
+      }
+
+      return result;
+    });
+  };
+
+  const getFieldValue = (contact: EnrichedContact, field: string): any => {
+    switch (field) {
+      case 'name': return contact.name || '';
+      case 'email': return contact.email || '';
+      case 'company': return contact.company || '';
+      case 'inferred_company': return contact.inferredCompany || '';
+      case 'status': return contact.status || '';
+      case 'location': return contact.location || '';
+      case 'total_nda_signatures': return contact.totalNdaSignatures || 0;
+      case 'last_nda_signed': return contact.lastNdaSigned || null;
+      case 'first_seen': return contact.firstSeenAt || null;
+      case 'last_activity': return contact.lastSeenAt || null;
+      default: return '';
+    }
+  };
+
+  const evaluateFilter = (value: any, operator: string, filterValue: string): boolean => {
+    const strValue = String(value || '').toLowerCase();
+    const filterStr = filterValue.toLowerCase();
+
+    switch (operator) {
+      case 'contains': return strValue.includes(filterStr);
+      case 'not_contains': return !strValue.includes(filterStr);
+      case 'equals': return strValue === filterStr;
+      case 'not_equals': return strValue !== filterStr;
+      case 'starts_with': return strValue.startsWith(filterStr);
+      case 'ends_with': return strValue.endsWith(filterStr);
+      case 'is_empty': return !value || value === '';
+      case 'is_not_empty': return value && value !== '';
+      case 'greater_than': return Number(value) > Number(filterValue);
+      case 'less_than': return Number(value) < Number(filterValue);
+      case 'greater_equal': return Number(value) >= Number(filterValue);
+      case 'less_equal': return Number(value) <= Number(filterValue);
+      default: return true;
+    }
+  };
+
   // Fetch contacts
-  const { data: contacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
-    queryKey: ['/api/investor-contacts', { search: searchTerm, status: statusFilter, sortBy, sortOrder }],
+  const { data: allContacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
+    queryKey: ['/api/investor-contacts'],
     queryFn: async () => {
-      const response = await fetch(`/api/investor-contacts?search=${encodeURIComponent(searchTerm)}&status=${statusFilter}&sortBy=${sortBy}&sortOrder=${sortOrder}`, {
+      const response = await fetch('/api/investor-contacts', {
         credentials: 'include'
       });
       if (!response.ok) {
@@ -156,6 +234,56 @@ export default function InvestorDatabasePage() {
       return response.json() as Promise<EnrichedContact[]>;
     }
   });
+
+  // Filter and sort contacts on frontend
+  const filteredAndSortedContacts = useMemo(() => {
+    let filtered = allContacts.filter(contact => {
+      const matchesSearch = !searchTerm || 
+        contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesSearch;
+    });
+
+    // Apply advanced filters
+    filtered = applyAdvancedFilters(filtered);
+
+    // Sort contacts
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'email':
+          aValue = a.email || '';
+          bValue = b.email || '';
+          break;
+        case 'totalNdaSignatures':
+          aValue = a.totalNdaSignatures || 0;
+          bValue = b.totalNdaSignatures || 0;
+          break;
+        case 'lastSeenAt':
+        default:
+          aValue = a.lastSeenAt || 0;
+          bValue = b.lastSeenAt || 0;
+          break;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  }, [allContacts, searchTerm, sortBy, sortOrder, advancedFilters]);
+
+  // Use filtered contacts as the main contacts array
+  const contacts = filteredAndSortedContacts;
 
   // Sync contacts from signatures
   const syncMutation = useMutation({
@@ -303,82 +431,6 @@ export default function InvestorDatabasePage() {
 
   const removeFilterRule = (id: string) => {
     setAdvancedFilters(filters => filters.filter(filter => filter.id !== id));
-  };
-
-  // Function to apply advanced filters
-  const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
-    if (advancedFilters.length === 0) return contacts;
-
-    return contacts.filter(contact => {
-      let result = true;
-      let hasOrCondition = false;
-      let orResult = false;
-
-      for (const filter of advancedFilters) {
-        if (!filter.value && !['is_empty', 'is_not_empty'].includes(filter.operator)) {
-          continue;
-        }
-
-        const fieldValue = getFieldValue(contact, filter.field);
-        const filterResult = evaluateFilter(fieldValue, filter.operator, filter.value);
-
-        if (filter.logicOperator === 'OR') {
-          hasOrCondition = true;
-          orResult = orResult || filterResult;
-        } else {
-          // AND condition (default)
-          if (hasOrCondition) {
-            result = result && orResult;
-            hasOrCondition = false;
-            orResult = false;
-          }
-          result = result && filterResult;
-        }
-      }
-
-      if (hasOrCondition) {
-        result = result && orResult;
-      }
-
-      return result;
-    });
-  };
-
-  const getFieldValue = (contact: EnrichedContact, field: string): any => {
-    switch (field) {
-      case 'name': return contact.name || '';
-      case 'email': return contact.email || '';
-      case 'company': return contact.company || '';
-      case 'inferred_company': return contact.inferredCompany || '';
-      case 'status': return contact.status || '';
-      case 'location': return contact.location || '';
-      case 'total_nda_signatures': return contact.totalNdaSignatures || 0;
-      case 'last_nda_signed': return contact.lastNdaSigned || null;
-      case 'first_seen': return contact.firstSeenAt || null;
-      case 'last_activity': return contact.lastSeenAt || null;
-      default: return '';
-    }
-  };
-
-  const evaluateFilter = (value: any, operator: string, filterValue: string): boolean => {
-    const strValue = String(value || '').toLowerCase();
-    const filterStr = filterValue.toLowerCase();
-
-    switch (operator) {
-      case 'contains': return strValue.includes(filterStr);
-      case 'not_contains': return !strValue.includes(filterStr);
-      case 'equals': return strValue === filterStr;
-      case 'not_equals': return strValue !== filterStr;
-      case 'starts_with': return strValue.startsWith(filterStr);
-      case 'ends_with': return strValue.endsWith(filterStr);
-      case 'is_empty': return !value || value === '';
-      case 'is_not_empty': return value && value !== '';
-      case 'greater_than': return Number(value) > Number(filterValue);
-      case 'less_than': return Number(value) < Number(filterValue);
-      case 'greater_equal': return Number(value) >= Number(filterValue);
-      case 'less_equal': return Number(value) <= Number(filterValue);
-      default: return true;
-    }
   };
 
   const getStatusBadge = (status: string) => {
