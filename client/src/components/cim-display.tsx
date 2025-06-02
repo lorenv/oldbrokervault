@@ -15,6 +15,7 @@ import { FinancialsSection } from "./financials-section";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { EmailShareDialog } from "./email-share-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { CollaborationBanner } from "./collaboration-banner";
 import {
   Dialog,
   DialogContent,
@@ -103,6 +104,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
   const [deletedSections, setDeletedSections] = useState<Set<string>>(new Set());
   const [confirmDeleteSection, setConfirmDeleteSection] = useState<string | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
 
   const handleDeleteSection = (sectionId: string) => {
     setDeletedSections(prev => new Set([...Array.from(prev), sectionId]));
@@ -423,6 +425,14 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   };
 
   const handleEdit = (fieldPath: string) => {
+    if (!canEdit) {
+      toast({
+        title: "Cannot Edit",
+        description: "Document is currently being edited by another user or you don't have edit permissions.",
+        variant: "destructive"
+      });
+      return;
+    }
     setEditingField(fieldPath);
   };
 
@@ -843,9 +853,20 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     }
   };
 
+  const isOwner = user?.id === cimDocument?.userId;
+
   return (
     <div className="space-y-6">
       {exportButtonPortal}
+
+      {/* Collaboration Banner - Hidden in shared view */}
+      {!isSharedView && docId && user && (
+        <CollaborationBanner 
+          docId={docId} 
+          isOwner={isOwner}
+          onEditingStatusChange={setCanEdit}
+        />
+      )}
 
       {/* Save Changes Bar - Hidden in shared view */}
       {!isSharedView && hasUnsavedChanges && (
