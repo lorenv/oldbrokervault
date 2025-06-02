@@ -452,6 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // CIM Document Routes with file upload support
   app.post("/api/cim", async (req, res) => {
+    console.log("🚀 CIM POST ROUTE ACCESSED");
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
