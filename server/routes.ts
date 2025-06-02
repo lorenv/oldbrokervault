@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
@@ -888,6 +888,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Collaboration routes
+  // Start editing a document (acquire lock)
+  app.post("/api/cim/:id/start-editing", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const userName = req.user!.name || req.user!.email;
+
+      // Check if user has paid subscription for collaboration
+      const user = await storage.getUser(userId);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Collaboration features require a paid subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      // Check document access
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) return res.sendStatus(404);
+
+      // Check if user owns the document or is a collaborator
+      let hasAccess = doc.userId === userId;
+      if (!hasAccess) {
+        const collaboratorAccess = await storage.getCollaboratorAccess(docId, userId);
+        hasAccess = collaboratorAccess?.permission === 'edit';
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({ error: "No edit access to this document" });
+      }
+
+      const success = await storage.startEditing(docId, userId, userName);
+      
+      if (!success) {
+        const updatedDoc = await storage.getCimDocument(docId);
+        return res.status(409).json({ 
+          error: "Document is currently being edited",
+          currentEditor: updatedDoc?.currentEditorName,
+          editStartedAt: updatedDoc?.editStartedAt
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Start editing error:", error);
+      res.status(500).json({ error: "Failed to start editing" });
+    }
+  });
+
+  // Stop editing a document (release lock)
+  app.post("/api/cim/:id/stop-editing", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      await storage.stopEditing(docId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Stop editing error:", error);
+      res.status(500).json({ error: "Failed to stop editing" });
+    }
+  });
+
+  // Heartbeat to maintain editing session
+  app.post("/api/cim/:id/heartbeat", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      await storage.heartbeat(docId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Heartbeat error:", error);
+      res.status(500).json({ error: "Failed to send heartbeat" });
+    }
+  });
+
+  // Check editing status
+  app.get("/api/cim/:id/editing-status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) return res.sendStatus(404);
+
+      // Check if current editing session is active (within 5 minutes)
+      let isBeingEdited = false;
+      let currentEditor = null;
+      
+      if (doc.currentEditorId && doc.lastActivityAt) {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        if (doc.lastActivityAt > fiveMinutesAgo) {
+          isBeingEdited = true;
+          currentEditor = {
+            id: doc.currentEditorId,
+            name: doc.currentEditorName,
+            editStartedAt: doc.editStartedAt
+          };
+        }
+      }
+
+      res.json({
+        isBeingEdited,
+        currentEditor,
+        canEdit: !isBeingEdited || doc.currentEditorId === req.user!.id
+      });
+    } catch (error) {
+      console.error("Check editing status error:", error);
+      res.status(500).json({ error: "Failed to check editing status" });
+    }
+  });
+
+  // Invite collaborator
+  app.post("/api/cim/:id/invite", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      // Check if user has paid subscription
+      const user = await storage.getUser(userId);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Collaboration features require a paid subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      // Validate request body
+      const validation = insertCollaboratorSchema.safeParse({
+        ...req.body,
+        cimDocumentId: docId,
+        invitedBy: userId
+      });
+
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors });
+      }
+
+      // Check document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== userId) {
+        return res.status(403).json({ error: "Only document owner can invite collaborators" });
+      }
+
+      const collaborator = await storage.inviteCollaborator(validation.data);
+
+      // TODO: Send invitation email
+      // await sendCollaborationInviteEmail(collaborator);
+
+      res.json(collaborator);
+    } catch (error) {
+      console.error("Invite collaborator error:", error);
+      res.status(500).json({ error: "Failed to invite collaborator" });
+    }
+  });
+
+  // Get collaborators for a document
+  app.get("/api/cim/:id/collaborators", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      // Check document access
+      const doc = await storage.getCimDocument(docId);
+      if (!doc) return res.sendStatus(404);
+
+      // Only owner or collaborators can see the collaborator list
+      let hasAccess = doc.userId === userId;
+      if (!hasAccess) {
+        const collaboratorAccess = await storage.getCollaboratorAccess(docId, userId);
+        hasAccess = !!collaboratorAccess;
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({ error: "No access to this document" });
+      }
+
+      const collaborators = await storage.getCollaborators(docId);
+      res.json(collaborators);
+    } catch (error) {
+      console.error("Get collaborators error:", error);
+      res.status(500).json({ error: "Failed to get collaborators" });
+    }
+  });
 
   // Custom sections routes
   app.get("/api/cim/:id/custom-sections", async (req, res) => {
