@@ -57,7 +57,7 @@ export const loginValidation = [
   body('password')
     .isLength({ min: 8, max: 128 })
     .withMessage('Password must be between 8 and 128 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/)
     .withMessage('Password must contain uppercase, lowercase, number, and special character'),
 ];
 
