@@ -43,8 +43,6 @@ interface EnrichedContact extends InvestorContact {
   totalNdaSignatures: number;
   documents: DocumentInfo[];
   lastNdaSigned: number | null;
-  location?: string | null;
-  isPotentialVpn?: boolean;
 }
 
 const statusOptions = [
@@ -57,24 +55,57 @@ const statusOptions = [
 ];
 
 const filterFields = [
-  { value: 'name', label: 'Name' },
-  { value: 'email', label: 'Email' },
-  { value: 'status', label: 'Status' },
-  { value: 'tags', label: 'Tags' },
-  { value: 'totalNdaSignatures', label: 'NDA Count' },
-  { value: 'lastSeenAt', label: 'Last Activity' },
-  { value: 'firstSeenAt', label: 'First Seen' }
+  { value: 'name', label: 'Name', type: 'text' },
+  { value: 'email', label: 'Email', type: 'text' },
+  { value: 'status', label: 'Status', type: 'select', options: statusOptions },
+  { value: 'tags', label: 'Tags', type: 'text' },
+  { value: 'totalNdaSignatures', label: 'NDA Count', type: 'number' },
+  { value: 'lastSeenAt', label: 'Last Activity', type: 'date' },
+  { value: 'firstSeenAt', label: 'First Seen', type: 'date' },
+  { value: 'location', label: 'Location', type: 'text' },
+  { value: 'isPotentialVpn', label: 'Privacy Tool Usage', type: 'boolean' }
 ];
 
-const filterOperators = [
-  { value: 'contains', label: 'Contains' },
-  { value: 'equals', label: 'Equals' },
-  { value: 'not_equals', label: 'Not equals' },
-  { value: 'greater_than', label: 'Greater than' },
-  { value: 'less_than', label: 'Less than' },
-  { value: 'is_empty', label: 'Is empty' },
-  { value: 'is_not_empty', label: 'Is not empty' }
-];
+const operatorsByType = {
+  text: [
+    { value: 'contains', label: 'Contains' },
+    { value: 'equals', label: 'Equals' },
+    { value: 'starts_with', label: 'Starts with' },
+    { value: 'ends_with', label: 'Ends with' },
+    { value: 'is_empty', label: 'Is empty' },
+    { value: 'is_not_empty', label: 'Is not empty' }
+  ],
+  number: [
+    { value: 'equals', label: 'Equals' },
+    { value: 'greater_than', label: 'Greater than' },
+    { value: 'less_than', label: 'Less than' },
+    { value: 'greater_equal', label: 'Greater than or equal' },
+    { value: 'less_equal', label: 'Less than or equal' }
+  ],
+  date: [
+    { value: 'is', label: 'Is' },
+    { value: 'before', label: 'Before' },
+    { value: 'after', label: 'After' },
+    { value: 'within_last', label: 'Within last' },
+    { value: 'is_empty', label: 'Is empty' },
+    { value: 'is_not_empty', label: 'Is not empty' }
+  ],
+  select: [
+    { value: 'is', label: 'Is' },
+    { value: 'is_not', label: 'Is not' }
+  ],
+  boolean: [
+    { value: 'is', label: 'Is' }
+  ]
+};
+
+interface FilterRule {
+  id: string;
+  field: string;
+  operator: string;
+  value: string;
+  logicOperator?: 'AND' | 'OR';
+}
 
 export default function InvestorDatabasePage() {
   const { toast } = useToast();
@@ -701,7 +732,7 @@ export default function InvestorDatabasePage() {
                         <Label className="text-xs">Next Follow-up</Label>
                         <Input
                           type="date"
-                          value={viewingContact.nextFollowUpDate || ''}
+                          value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
                           onChange={(e) => {
                             // Update contact follow-up date
                             // This will trigger an API call to update the contact
