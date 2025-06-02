@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import * as pdfLib from 'pdf-lib';
 
 export function addSignatureToNda(
   originalNdaBase64: string,
@@ -14,8 +15,6 @@ export function addSignatureToNda(
     console.log('📅 Date:', signedDate.toISOString());
     
     try {
-      const pdf = require('pdf-lib');
-      const fs = require('fs');
       
       // Use pdf-lib for proper PDF manipulation
       (async () => {
@@ -25,7 +24,7 @@ export function addSignatureToNda(
           const originalPdfBytes = Buffer.from(originalNdaBase64, 'base64');
           console.log('📊 PDF bytes length:', originalPdfBytes.length);
           
-          const pdfDoc = await pdf.PDFDocument.load(originalPdfBytes);
+          const pdfDoc = await pdfLib.PDFDocument.load(originalPdfBytes);
           console.log('✅ Original PDF loaded successfully, pages:', pdfDoc.getPageCount());
           
           // Create signature page
@@ -37,7 +36,7 @@ export function addSignatureToNda(
             x: width / 2 - 80,
             y: height - 100,
             size: 18,
-            color: pdf.rgb(0, 0, 0),
+            color: pdfLib.rgb(0, 0, 0),
           });
           
           signaturePage.drawText('By signing below, I acknowledge that I have read and agree to the terms', {
@@ -57,7 +56,7 @@ export function addSignatureToNda(
             x: 60,
             y: height - 230,
             size: 20,
-            color: pdf.rgb(0, 0, 0.8),
+            color: pdfLib.rgb(0, 0, 0.8),
           });
           
           // Add date
@@ -98,7 +97,7 @@ export function addSignatureToNda(
             x: width / 2 - 120,
             y: height - 80,
             size: 20,
-            color: pdf.rgb(0, 0, 0),
+            color: pdfLib.rgb(0, 0, 0),
           });
           
           // Certificate content
@@ -137,7 +136,7 @@ export function addSignatureToNda(
                 x: 50,
                 y: yPosition,
                 size: 14,
-                color: pdf.rgb(0, 0, 0),
+                color: pdfLib.rgb(0, 0, 0),
               });
             } else if (line.startsWith('•')) {
               certificatePage.drawText(line, {
