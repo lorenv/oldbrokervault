@@ -51,12 +51,12 @@ interface EnrichedContact extends InvestorContact {
 }
 
 const statusOptions = [
-  { value: 'new', label: 'New', color: 'bg-gray-300' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-gray-400' },
-  { value: 'interested', label: 'Interested', color: 'bg-gray-500' },
-  { value: 'under_review', label: 'Under Review', color: 'bg-gray-400' },
-  { value: 'declined', label: 'Declined', color: 'bg-gray-500' },
-  { value: 'closed', label: 'Closed', color: 'bg-gray-600' }
+  { value: 'new', label: 'New', color: 'bg-blue-200' },
+  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-200' },
+  { value: 'interested', label: 'Interested', color: 'bg-green-200' },
+  { value: 'under_review', label: 'Under Review', color: 'bg-purple-200' },
+  { value: 'declined', label: 'Declined', color: 'bg-red-200' },
+  { value: 'closed', label: 'Closed', color: 'bg-gray-300' }
 ];
 
 // Predefined colorful tag options
@@ -1087,27 +1087,7 @@ export default function InvestorDatabasePage() {
                           className="text-xs"
                         />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Set Status</Label>
-                        <Select 
-                          value={viewingContact.status} 
-                          onValueChange={(value) => {
-                            // Update contact status
-                            // This will trigger an API call to update the contact
-                          }}
-                        >
-                          <SelectTrigger className="text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {statusOptions.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Quick Note</Label>
