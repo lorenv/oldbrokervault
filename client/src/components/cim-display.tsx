@@ -865,6 +865,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           docId={docId} 
           isOwner={isOwner}
           onEditingStatusChange={setCanEdit}
+          shareToken={cimDocument?.shareToken}
+          shareEnabled={cimDocument?.shareEnabled}
+          title={title}
         />
       )}
 
