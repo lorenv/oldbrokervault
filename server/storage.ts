@@ -265,29 +265,58 @@ export class DatabaseStorage implements IStorage {
 
     const total = Number(totalCount.count);
 
-    // Get paginated results 
+    // Get paginated results with NDA signature count in a single query
     const results = await db
-      .select()
+      .select({
+        id: cimDocuments.id,
+        userId: cimDocuments.userId,
+        title: cimDocuments.title,
+        transcript: cimDocuments.transcript,
+        directions: cimDocuments.directions,
+        regenerationCount: cimDocuments.regenerationCount,
+        analysis: cimDocuments.analysis,
+        editedContent: cimDocuments.editedContent,
+        logoUrl: cimDocuments.logoUrl,
+        websiteUrl: cimDocuments.websiteUrl,
+        websiteScreenshotUrl: cimDocuments.websiteScreenshotUrl,
+        selectedImages: cimDocuments.selectedImages,
+        createdAt: cimDocuments.createdAt,
+        shareEnabled: cimDocuments.shareEnabled,
+        shareSlug: cimDocuments.shareSlug,
+        sharePassword: cimDocuments.sharePassword,
+        shareExpiresAt: cimDocuments.shareExpiresAt,
+        shareViewCount: cimDocuments.shareViewCount,
+        shareLastViewed: cimDocuments.shareLastViewed,
+        ndaProtected: cimDocuments.ndaProtected,
+        ndaTemplateId: cimDocuments.ndaTemplateId,
+        financialsEnabled: cimDocuments.financialsEnabled,
+        askingPrice: cimDocuments.askingPrice,
+        askingPriceIncluded: cimDocuments.askingPriceIncluded,
+        revenue: cimDocuments.revenue,
+        revenueIncluded: cimDocuments.revenueIncluded,
+        ebitda: cimDocuments.ebitda,
+        ebitdaIncluded: cimDocuments.ebitdaIncluded,
+        currentEditorId: cimDocuments.currentEditorId,
+        currentEditorName: cimDocuments.currentEditorName,
+        editStartedAt: cimDocuments.editStartedAt,
+        lastActivityAt: cimDocuments.lastActivityAt,
+        searchVector: cimDocuments.searchVector,
+        version: cimDocuments.version,
+        lastModifiedBy: cimDocuments.lastModifiedBy,
+        ndaSignatureCount: count(ndaSignatures.id)
+      })
       .from(cimDocuments)
+      .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
       .where(whereCondition)
+      .groupBy(cimDocuments.id)
       .orderBy(desc(cimDocuments.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Count NDA signatures for each document
-    const documents = await Promise.all(
-      results.map(async (result) => {
-        const [signatureCount] = await db
-          .select({ count: count() })
-          .from(ndaSignatures)
-          .where(eq(ndaSignatures.cimDocumentId, result.id));
-        
-        return {
-          ...result,
-          ndaSignatureCount: Number(signatureCount.count)
-        };
-      })
-    );
+    const documents = results.map(result => ({
+      ...result,
+      ndaSignatureCount: Number(result.ndaSignatureCount)
+    }));
 
     const hasMore = offset + documents.length < total;
 
