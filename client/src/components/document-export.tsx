@@ -38,7 +38,9 @@ export function DocumentExport({
   user,
   isWordPressDialogOpen: externalIsWordPressDialogOpen,
   setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen,
-  isSharedView = false
+  isSharedView = false,
+  shouldOpenShareDialog = false,
+  setShouldOpenShareDialog
 }: { 
   analysis: any; 
   docId: number; 
@@ -49,6 +51,8 @@ export function DocumentExport({
   isWordPressDialogOpen?: boolean;
   setIsWordPressDialogOpen?: (isOpen: boolean) => void;
   isSharedView?: boolean;
+  shouldOpenShareDialog?: boolean;
+  setShouldOpenShareDialog?: (shouldOpen: boolean) => void;
 }) {
   const { toast } = useToast();
   const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
@@ -260,6 +264,14 @@ export function DocumentExport({
       fetchNdaSignatures();
     }
   }, [isShareDialogOpen]);
+
+  // Auto-open share dialog when shouldOpenShareDialog is true
+  useEffect(() => {
+    if (shouldOpenShareDialog && setShouldOpenShareDialog) {
+      setIsShareDialogOpen(true);
+      setShouldOpenShareDialog(false);
+    }
+  }, [shouldOpenShareDialog, setShouldOpenShareDialog]);
   
   // Fetch Beaver Builder templates when credentials are available
   const fetchBeaverBuilderTemplates = async () => {
