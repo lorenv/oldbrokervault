@@ -118,7 +118,6 @@ export default function InvestorDatabasePage() {
   const [sortBy, setSortBy] = useState('lastSeenAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
@@ -306,6 +305,82 @@ export default function InvestorDatabasePage() {
     setAdvancedFilters(filters => filters.filter(filter => filter.id !== id));
   };
 
+  // Function to apply advanced filters
+  const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
+    if (advancedFilters.length === 0) return contacts;
+
+    return contacts.filter(contact => {
+      let result = true;
+      let hasOrCondition = false;
+      let orResult = false;
+
+      for (const filter of advancedFilters) {
+        if (!filter.value && !['is_empty', 'is_not_empty'].includes(filter.operator)) {
+          continue;
+        }
+
+        const fieldValue = getFieldValue(contact, filter.field);
+        const filterResult = evaluateFilter(fieldValue, filter.operator, filter.value);
+
+        if (filter.logicOperator === 'OR') {
+          hasOrCondition = true;
+          orResult = orResult || filterResult;
+        } else {
+          // AND condition (default)
+          if (hasOrCondition) {
+            result = result && orResult;
+            hasOrCondition = false;
+            orResult = false;
+          }
+          result = result && filterResult;
+        }
+      }
+
+      if (hasOrCondition) {
+        result = result && orResult;
+      }
+
+      return result;
+    });
+  };
+
+  const getFieldValue = (contact: EnrichedContact, field: string): any => {
+    switch (field) {
+      case 'name': return contact.name || '';
+      case 'email': return contact.email || '';
+      case 'company': return contact.company || '';
+      case 'inferred_company': return contact.inferredCompany || '';
+      case 'status': return contact.status || '';
+      case 'location': return contact.location || '';
+      case 'total_nda_signatures': return contact.totalNdaSignatures || 0;
+      case 'last_nda_signed': return contact.lastNdaSigned || null;
+      case 'first_seen': return contact.firstSeenAt || null;
+      case 'last_activity': return contact.lastSeenAt || null;
+      default: return '';
+    }
+  };
+
+  const evaluateFilter = (value: any, operator: string, filterValue: string): boolean => {
+    const strValue = String(value || '').toLowerCase();
+    const filterStr = filterValue.toLowerCase();
+
+    switch (operator) {
+      case 'contains': return strValue.includes(filterStr);
+      case 'not_contains': return !strValue.includes(filterStr);
+      case 'equals': return strValue === filterStr;
+      case 'not_equals': return strValue !== filterStr;
+      case 'starts_with': return strValue.startsWith(filterStr);
+      case 'ends_with': return strValue.endsWith(filterStr);
+      case 'is_empty': return !value || value === '';
+      case 'is_not_empty': return value && value !== '';
+      case 'greater_than': return Number(value) > Number(filterValue);
+      case 'less_than': return Number(value) < Number(filterValue);
+      case 'greater_equal': return Number(value) >= Number(filterValue);
+      case 'less_equal': return Number(value) <= Number(filterValue);
+      default: return true;
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = statusOptions.find(s => s.value === status);
     return (
@@ -326,14 +401,7 @@ export default function InvestorDatabasePage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            variant="outline"
-            size="sm"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Advanced Filters
-          </Button>
+
           <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Export Selected ({selectedContacts.length})
@@ -408,23 +476,10 @@ export default function InvestorDatabasePage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {statusOptions.map((status) => (
-                  <SelectItem key={status.value} value={status.value}>
-                    {status.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
           </div>
 
           {/* Advanced Filters */}
-          {showAdvancedFilters && (
             <div className="mt-4 p-4 border rounded-lg bg-muted/30">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-medium">Advanced Filters</h3>
@@ -513,7 +568,6 @@ export default function InvestorDatabasePage() {
                 </div>
               )}
             </div>
-          )}
         </CardContent>
       </Card>
 
