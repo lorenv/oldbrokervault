@@ -2546,19 +2546,38 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         console.log("Signed NDA content created successfully");
 
         // Save signature record
-        console.log("Preparing signature data...");
-        const signatureData = insertNdaSignatureSchema.parse({
+        console.log("📝 Preparing signature data...");
+        console.log("📊 Signed NDA content size:", signedNdaContent.length, "characters");
+        
+        const signatureData = {
           cimDocumentId: cimDoc.id,
           signerName,
           signerEmail,
           signerIpAddress,
           signedNdaContent
+        };
+        
+        console.log("🔍 Signature data structure:", {
+          cimDocumentId: signatureData.cimDocumentId,
+          signerName: signatureData.signerName,
+          signerEmail: signatureData.signerEmail,
+          signerIpAddress: signatureData.signerIpAddress,
+          contentLength: signatureData.signedNdaContent.length
         });
-        console.log("Signature data validated");
 
-        console.log("Creating signature record...");
-        const signature = await storage.createNdaSignature(signatureData);
-        console.log("Signature created with ID:", signature.id);
+        console.log("✅ Validating signature data against schema...");
+        const validatedData = insertNdaSignatureSchema.parse(signatureData);
+        console.log("✅ Signature data validated successfully");
+
+        console.log("💾 Creating signature record in database...");
+        const signature = await storage.createNdaSignature(validatedData);
+        console.log("✅ Signature created successfully with ID:", signature.id);
+        console.log("📊 Database signature record:", {
+          id: signature.id,
+          cimDocumentId: signature.cimDocumentId,
+          signerName: signature.signerName,
+          signerEmail: signature.signerEmail
+        });
 
         // Get owner information for email
         console.log("Getting document owner information...");
