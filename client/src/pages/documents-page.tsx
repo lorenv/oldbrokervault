@@ -147,6 +147,7 @@ export default function DocumentsPage() {
     documentTitle?: string;
     shareToken?: string;
   }>({ open: false });
+  const [shouldOpenShareDialog, setShouldOpenShareDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -399,10 +400,11 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDoc(doc);
+                          setShouldOpenShareDialog(true);
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
-                        Share Link
+                        Share Link Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={(e) => {
@@ -573,6 +575,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           user={user}
           isWordPressDialogOpen={isWordPressDialogOpen}
           setIsWordPressDialogOpen={setIsWordPressDialogOpen}
+          shouldOpenShareDialog={shouldOpenShareDialog}
+          setShouldOpenShareDialog={setShouldOpenShareDialog}
         />
       )}
 
