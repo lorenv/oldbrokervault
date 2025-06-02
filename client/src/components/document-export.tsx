@@ -1232,21 +1232,108 @@ export function DocumentExport({
                       No signatures yet
                     </p>
                   ) : (
-                    <div className="space-y-2">
-                      {ndaSignatures.map((signature) => (
-                        <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
-                          <div>
-                            <p className="font-medium">{signature.signerName}</p>
-                            <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Signed NDAs ({ndaSignatures.length})</h4>
+                        {ndaSignatures.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/cim/${docId}/nda-signatures/bulk-download`, {
+                                  method: 'GET',
+                                  credentials: 'include'
+                                });
+                                
+                                if (response.ok) {
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `nda-signatures-${docId}.zip`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                  
+                                  toast({
+                                    title: "Download Started",
+                                    description: "All signed NDAs are being downloaded as a ZIP file."
+                                  });
+                                } else {
+                                  throw new Error('Failed to download NDAs');
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Download Failed",
+                                  description: "Failed to download signed NDAs. Please try again.",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download All
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {ndaSignatures.map((signature) => (
+                          <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
+                            <div className="flex-1">
+                              <p className="font-medium">{signature.signerName}</p>
+                              <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Signed: {new Date(signature.signedAt).toLocaleDateString()} • IP: {signature.signerIpAddress}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`/api/cim/${docId}/nda-signatures/${signature.id}/download`, {
+                                      method: 'GET',
+                                      credentials: 'include'
+                                    });
+                                    
+                                    if (response.ok) {
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = `nda-${signature.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      window.URL.revokeObjectURL(url);
+                                      document.body.removeChild(a);
+                                      
+                                      toast({
+                                        title: "Download Started",
+                                        description: `NDA for ${signature.signerName} is being downloaded.`
+                                      });
+                                    } else {
+                                      throw new Error('Failed to download NDA');
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      title: "Download Failed",
+                                      description: "Failed to download the signed NDA. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm">{new Date(signature.signedAt).toLocaleDateString()}</p>
-                            <p className="text-xs text-muted-foreground">
-                              IP: {signature.signerIpAddress}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
                 </CardContent>
