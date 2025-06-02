@@ -2539,7 +2539,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         const signedNdaContent = await addSignatureToNda(
           ndaTemplate.fileContent,
           signerName,
-          signedAt
+          signedAt,
+          signerEmail,
+          signerIpAddress
         );
         console.log("Signed NDA content created successfully");
 
