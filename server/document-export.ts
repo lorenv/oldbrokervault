@@ -323,22 +323,74 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
   }
 
   // Financial Information
-  if (financialData && Object.keys(financialData).length > 0) {
+  if ((financialData && financialData.enabled) || (analysis.financials)) {
     html += `
         <div class="section financial-section">
             <h2>FINANCIAL INFORMATION</h2>
             <div class="financial-grid">`;
 
-    Object.entries(financialData).forEach(([key, value]: [string, any]) => {
-      if (value && typeof value === 'object' && value.value !== undefined) {
+    // Include CIM document financial fields if enabled and included
+    if (financialData && financialData.enabled) {
+      if (financialData.askingPriceIncluded && financialData.askingPrice) {
         html += `
                 <div class="financial-card">
-                    <div class="financial-title">${value.title || key}</div>
-                    <div>${safeStringify(value.value)}</div>
-                    ${value.description ? `<div style="font-size: 0.9em; color: #6b7280; margin-top: 5px;">${safeStringify(value.description)}</div>` : ''}
+                    <div class="financial-title">Asking Price</div>
+                    <div style="font-size: 1.2em; font-weight: bold; color: #059669;">${safeStringify(financialData.askingPrice)}</div>
                 </div>`;
       }
-    });
+      if (financialData.revenueIncluded && financialData.revenue) {
+        html += `
+                <div class="financial-card">
+                    <div class="financial-title">Annual Revenue</div>
+                    <div style="font-size: 1.2em; font-weight: bold; color: #2563eb;">${safeStringify(financialData.revenue)}</div>
+                </div>`;
+      }
+      if (financialData.ebitdaIncluded && financialData.ebitda) {
+        html += `
+                <div class="financial-card">
+                    <div class="financial-title">EBITDA</div>
+                    <div style="font-size: 1.2em; font-weight: bold; color: #7c3aed;">${safeStringify(financialData.ebitda)}</div>
+                </div>`;
+      }
+    }
+
+    // Include analysis financial data if available
+    if (analysis.financials) {
+      if (analysis.financials.revenue) {
+        if (analysis.financials.revenue.total) {
+          html += `
+                <div class="financial-card">
+                    <div class="financial-title">Total Revenue</div>
+                    <div>${safeStringify(analysis.financials.revenue.total)}</div>
+                </div>`;
+        }
+        if (analysis.financials.revenue.breakdown && typeof analysis.financials.revenue.breakdown === 'object') {
+          Object.entries(analysis.financials.revenue.breakdown).forEach(([source, amount]: [string, any]) => {
+            html += `
+                <div class="financial-card">
+                    <div class="financial-title">${source} Revenue</div>
+                    <div>${safeStringify(amount)}</div>
+                </div>`;
+          });
+        }
+      }
+      if (analysis.financials.customerMetrics) {
+        if (analysis.financials.customerMetrics.averageOrderValue) {
+          html += `
+                <div class="financial-card">
+                    <div class="financial-title">Average Order Value</div>
+                    <div>${safeStringify(analysis.financials.customerMetrics.averageOrderValue)}</div>
+                </div>`;
+        }
+        if (analysis.financials.customerMetrics.recurring) {
+          html += `
+                <div class="financial-card">
+                    <div class="financial-title">Recurring Revenue</div>
+                    <div>${safeStringify(analysis.financials.customerMetrics.recurring)}</div>
+                </div>`;
+        }
+      }
+    }
 
     html += `
             </div>
@@ -401,6 +453,28 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       if (analysis.sales.seasonality) {
         html += `<p><strong>Seasonality:</strong> ${safeStringify(analysis.sales.seasonality)}</p>`;
       }
+
+      if (analysis.sales.competitivePricing) {
+        html += `<p><strong>Competitive Pricing:</strong> ${safeStringify(analysis.sales.competitivePricing)}</p>`;
+      }
+
+      if (analysis.sales.pricingModel) {
+        html += `<p><strong>Pricing Model:</strong> ${safeStringify(analysis.sales.pricingModel)}</p>`;
+      }
+
+      if (analysis.sales.contractTerms) {
+        html += `<p><strong>Contract Terms:</strong> ${safeStringify(analysis.sales.contractTerms)}</p>`;
+      }
+
+      if (analysis.sales.paymentMethods && analysis.sales.paymentMethods.length > 0) {
+        html += `
+            <h3>Payment Methods</h3>
+            <ul>`;
+        analysis.sales.paymentMethods.forEach((method: string) => {
+          html += `<li>${safeStringify(method)}</li>`;
+        });
+        html += `</ul>`;
+      }
     }
 
     if (analysis.marketing) {
@@ -414,8 +488,38 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
         html += `</ul>`;
       }
 
+      if (analysis.marketing.clientAcquisition) {
+        html += `<p><strong>Client Acquisition:</strong> ${safeStringify(analysis.marketing.clientAcquisition)}</p>`;
+      }
+
+      if (analysis.marketing.seoEfforts) {
+        html += `<p><strong>SEO Efforts:</strong> ${safeStringify(analysis.marketing.seoEfforts)}</p>`;
+      }
+
+      if (analysis.marketing.paidAdvertising) {
+        html += `<h3>Paid Advertising</h3>`;
+        if (analysis.marketing.paidAdvertising.channels && analysis.marketing.paidAdvertising.channels.length > 0) {
+          html += `
+            <p><strong>Channels:</strong></p>
+            <ul>`;
+          analysis.marketing.paidAdvertising.channels.forEach((channel: string) => {
+            html += `<li>${safeStringify(channel)}</li>`;
+          });
+          html += `</ul>`;
+        }
+        if (analysis.marketing.paidAdvertising.effectiveness) {
+          html += `<p><strong>Effectiveness:</strong> ${safeStringify(analysis.marketing.paidAdvertising.effectiveness)}</p>`;
+        }
+      }
+
       if (analysis.marketing.emailMarketing) {
-        html += `<p><strong>Email Marketing:</strong> ${safeStringify(analysis.marketing.emailMarketing.listSize)} list size, ${safeStringify(analysis.marketing.emailMarketing.usage)}</p>`;
+        html += `<h3>Email Marketing</h3>`;
+        if (analysis.marketing.emailMarketing.listSize) {
+          html += `<p><strong>List Size:</strong> ${safeStringify(analysis.marketing.emailMarketing.listSize)}</p>`;
+        }
+        if (analysis.marketing.emailMarketing.usage) {
+          html += `<p><strong>Usage:</strong> ${safeStringify(analysis.marketing.emailMarketing.usage)}</p>`;
+        }
       }
     }
 
@@ -432,6 +536,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       html += `<p><strong>Employee Summary:</strong> ${safeStringify(analysis.team.employeeSummary)}</p>`;
     }
 
+    if (analysis.team.employeeCount) {
+      html += `<p><strong>Total Employees:</strong> ${safeStringify(analysis.team.employeeCount)}</p>`;
+    }
+
+    if (analysis.team.contractorCount) {
+      html += `<p><strong>Contractors:</strong> ${safeStringify(analysis.team.contractorCount)}</p>`;
+    }
+
     if (analysis.team.ownerResponsibilities) {
       html += `<p><strong>Owner Responsibilities:</strong> ${safeStringify(analysis.team.ownerResponsibilities)}</p>`;
     }
@@ -440,12 +552,105 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       html += `<p><strong>Owner Hours:</strong> ${safeStringify(analysis.team.ownerHours)}</p>`;
     }
 
+    if (analysis.team.turnover) {
+      html += `<p><strong>Employee Turnover:</strong> ${safeStringify(analysis.team.turnover)}</p>`;
+    }
+
+    if (analysis.team.hiring) {
+      html += `<p><strong>Hiring Process:</strong> ${safeStringify(analysis.team.hiring)}</p>`;
+    }
+
+    if (analysis.team.retention) {
+      html += `<p><strong>Retention:</strong> ${safeStringify(analysis.team.retention)}</p>`;
+    }
+
+    if (analysis.team.organization) {
+      html += `<p><strong>Organization:</strong> ${safeStringify(analysis.team.organization)}</p>`;
+    }
+
+    if (analysis.team.management) {
+      html += `<p><strong>Management Structure:</strong> ${safeStringify(analysis.team.management)}</p>`;
+    }
+
     if (analysis.team.keyEmployees && analysis.team.keyEmployees.length > 0) {
       html += `
             <h3>Key Employees</h3>
             <ul>`;
       analysis.team.keyEmployees.forEach((employee: string) => {
         html += `<li>${safeStringify(employee)}</li>`;
+      });
+      html += `</ul>`;
+    }
+
+    html += `</div>`;
+  }
+
+  // Inventory
+  if (analysis.inventory) {
+    html += `
+        <div class="section">
+            <h2>INVENTORY MANAGEMENT</h2>`;
+
+    if (analysis.inventory.value) {
+      html += `<p><strong>Inventory Value:</strong> ${safeStringify(analysis.inventory.value)}</p>`;
+    }
+
+    if (analysis.inventory.skuCount) {
+      html += `<p><strong>SKU Count:</strong> ${safeStringify(analysis.inventory.skuCount)}</p>`;
+    }
+
+    if (analysis.inventory.leadTime) {
+      html += `<p><strong>Lead Time:</strong> ${safeStringify(analysis.inventory.leadTime)}</p>`;
+    }
+
+    if (analysis.inventory.sourcing) {
+      html += `<p><strong>Sourcing:</strong> ${safeStringify(analysis.inventory.sourcing)}</p>`;
+    }
+
+    if (analysis.inventory.storage) {
+      html += `<p><strong>Storage:</strong> ${safeStringify(analysis.inventory.storage)}</p>`;
+    }
+
+    if (analysis.inventory.topProducts && analysis.inventory.topProducts.length > 0) {
+      html += `
+            <h3>Top Products</h3>
+            <ul>`;
+      analysis.inventory.topProducts.forEach((product: string) => {
+        html += `<li>${safeStringify(product)}</li>`;
+      });
+      html += `</ul>`;
+    }
+
+    html += `</div>`;
+  }
+
+  // Ownership Structure
+  if (analysis.ownership) {
+    html += `
+        <div class="section">
+            <h2>OWNERSHIP STRUCTURE</h2>`;
+
+    if (analysis.ownership.owners && analysis.ownership.owners.length > 0) {
+      html += `
+            <h3>Ownership Breakdown</h3>
+            <div class="two-column">`;
+      analysis.ownership.owners.forEach((owner: any) => {
+        html += `
+                <div class="highlight">
+                    <p><strong>${safeStringify(owner.name)}</strong></p>
+                    <p>Ownership: ${safeStringify(owner.percentage)}</p>
+                    <p>Background: ${safeStringify(owner.background)}</p>
+                </div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (analysis.ownership.intellectualProperty && analysis.ownership.intellectualProperty.length > 0) {
+      html += `
+            <h3>Intellectual Property</h3>
+            <ul>`;
+      analysis.ownership.intellectualProperty.forEach((ip: string) => {
+        html += `<li>${safeStringify(ip)}</li>`;
       });
       html += `</ul>`;
     }
@@ -466,6 +671,14 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
 
       if (analysis.assets.equipmentValue) {
         html += `<p><strong>Equipment Value:</strong> ${safeStringify(analysis.assets.equipmentValue)}</p>`;
+      }
+
+      if (analysis.assets.equipmentDetails) {
+        html += `<p><strong>Equipment Details:</strong> ${safeStringify(analysis.assets.equipmentDetails)}</p>`;
+      }
+
+      if (analysis.assets.inventoryDetails) {
+        html += `<p><strong>Inventory Details:</strong> ${safeStringify(analysis.assets.inventoryDetails)}</p>`;
       }
 
       if (analysis.assets.digitalAssets && analysis.assets.digitalAssets.length > 0) {
@@ -489,6 +702,9 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
       }
       if (analysis.facility.cost) {
         html += `<p><strong>Cost:</strong> ${safeStringify(analysis.facility.cost)}</p>`;
+      }
+      if (analysis.facility.leaseDetails) {
+        html += `<p><strong>Lease Details:</strong> ${safeStringify(analysis.facility.leaseDetails)}</p>`;
       }
     }
 
@@ -897,8 +1113,349 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     }
   }
 
-  // Add other sections following the same pattern...
-  // (Executive Summary, Market Analysis, Operations, etc.)
+  // Executive Summary
+  if (analysis.executiveSummary) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "EXECUTIVE SUMMARY",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.executiveSummary.buyerAttractions && analysis.executiveSummary.buyerAttractions.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Buyer Attractions:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      analysis.executiveSummary.buyerAttractions.forEach((attraction: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `• ${safeStringify(attraction)}`,
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+
+    if (analysis.executiveSummary.growthOpportunities && analysis.executiveSummary.growthOpportunities.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Growth Opportunities:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      analysis.executiveSummary.growthOpportunities.forEach((opportunity: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `• ${safeStringify(opportunity)}`,
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+  }
+
+  // Financial Information
+  if ((financialData && financialData.enabled) || analysis.financials) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "FINANCIAL INFORMATION",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (financialData && financialData.enabled) {
+      if (financialData.askingPriceIncluded && financialData.askingPrice) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Asking Price: ${safeStringify(financialData.askingPrice)}`,
+            spacing: { before: 100, after: 50 }
+          })
+        );
+      }
+      if (financialData.revenueIncluded && financialData.revenue) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Annual Revenue: ${safeStringify(financialData.revenue)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+      if (financialData.ebitdaIncluded && financialData.ebitda) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `EBITDA: ${safeStringify(financialData.ebitda)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+    }
+  }
+
+  // Market Analysis
+  if (analysis.marketAnalysis) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "MARKET ANALYSIS",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Unique Features & Competitive Advantages:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `• ${safeStringify(feature)}`,
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+
+    if (analysis.marketAnalysis.customerProfile) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Customer Profile: ${safeStringify(analysis.marketAnalysis.customerProfile)}`,
+          spacing: { before: 100, after: 50 }
+        })
+      );
+    }
+
+    if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Competitive Landscape:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      analysis.marketAnalysis.competitors.forEach((competitor: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `• ${safeStringify(competitor)}`,
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+  }
+
+  // Operations
+  if (analysis.operations) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "OPERATIONS",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.operations.suppliers) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Supplier Information:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      if (analysis.operations.suppliers.count) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Supplier Count: ${safeStringify(analysis.operations.suppliers.count)}`,
+            spacing: { before: 50 }
+          })
+        );
+      }
+      if (analysis.operations.suppliers.concentration) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Concentration: ${safeStringify(analysis.operations.suppliers.concentration)}`,
+            spacing: { before: 50 }
+          })
+        );
+      }
+    }
+
+    if (analysis.operations.customers) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Customer Information:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      if (analysis.operations.customers.recurring) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Recurring Customers: ${safeStringify(analysis.operations.customers.recurring)}`,
+            spacing: { before: 50 }
+          })
+        );
+      }
+      if (analysis.operations.customers.concentration) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Concentration: ${safeStringify(analysis.operations.customers.concentration)}`,
+            spacing: { before: 50 }
+          })
+        );
+      }
+    }
+  }
+
+  // Sales & Marketing
+  if (analysis.sales || analysis.marketing) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "SALES & MARKETING",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.sales) {
+      if (analysis.sales.averageOrderValue) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Average Order Value: ${safeStringify(analysis.sales.averageOrderValue)}`,
+            spacing: { before: 100, after: 50 }
+          })
+        );
+      }
+      if (analysis.sales.seasonality) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Seasonality: ${safeStringify(analysis.sales.seasonality)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+    }
+
+    if (analysis.marketing && analysis.marketing.strategies && analysis.marketing.strategies.length > 0) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: "Marketing Strategies:",
+          heading: docx.HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 }
+        })
+      );
+
+      analysis.marketing.strategies.forEach((strategy: string) => {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `• ${safeStringify(strategy)}`,
+            spacing: { before: 50 }
+          })
+        );
+      });
+    }
+  }
+
+  // Team Structure
+  if (analysis.team) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "TEAM STRUCTURE",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.team.employeeSummary) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Employee Summary: ${safeStringify(analysis.team.employeeSummary)}`,
+          spacing: { before: 100, after: 50 }
+        })
+      );
+    }
+    if (analysis.team.ownerResponsibilities) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Owner Responsibilities: ${safeStringify(analysis.team.ownerResponsibilities)}`,
+          spacing: { before: 50, after: 50 }
+        })
+      );
+    }
+    if (analysis.team.ownerHours) {
+      paragraphs.push(
+        new docx.Paragraph({
+          text: `Owner Hours: ${safeStringify(analysis.team.ownerHours)}`,
+          spacing: { before: 50, after: 50 }
+        })
+      );
+    }
+  }
+
+  // Assets & Facility
+  if (analysis.assets || analysis.facility) {
+    paragraphs.push(
+      new docx.Paragraph({
+        text: "ASSETS & FACILITY",
+        heading: docx.HeadingLevel.HEADING_1,
+        spacing: { before: 400, after: 200 }
+      })
+    );
+
+    if (analysis.assets) {
+      if (analysis.assets.location) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Location: ${safeStringify(analysis.assets.location)}`,
+            spacing: { before: 100, after: 50 }
+          })
+        );
+      }
+      if (analysis.assets.equipmentValue) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Equipment Value: ${safeStringify(analysis.assets.equipmentValue)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+    }
+
+    if (analysis.facility) {
+      if (analysis.facility.ownership) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Facility Ownership: ${safeStringify(analysis.facility.ownership)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+      if (analysis.facility.size) {
+        paragraphs.push(
+          new docx.Paragraph({
+            text: `Facility Size: ${safeStringify(analysis.facility.size)}`,
+            spacing: { before: 50, after: 50 }
+          })
+        );
+      }
+    }
+  }
 
   // Contact information header
   paragraphs.push(
@@ -1095,7 +1652,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       }
 
       // Financial Information
-      if (financialData && Object.keys(financialData).length > 0) {
+      if ((financialData && financialData.enabled) || analysis.financials) {
         doc.addPage();
         
         doc.fontSize(18)
@@ -1108,17 +1665,45 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(1);
 
-        Object.entries(financialData).forEach(([key, value]: [string, any]) => {
-          if (value && typeof value === 'object' && value.value !== undefined) {
-            doc.font('Helvetica-Bold').text(`${value.title || key}: `, { continued: true });
-            doc.font('Helvetica').text(safeStringify(value.value));
-            if (value.description) {
-              doc.fontSize(10).text(safeStringify(value.description), { indent: 20 });
-              doc.fontSize(12);
-            }
+        // Include CIM document financial fields if enabled and included
+        if (financialData && financialData.enabled) {
+          if (financialData.askingPriceIncluded && financialData.askingPrice) {
+            doc.font('Helvetica-Bold').text('Asking Price: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(financialData.askingPrice));
             doc.moveDown(0.5);
           }
-        });
+          if (financialData.revenueIncluded && financialData.revenue) {
+            doc.font('Helvetica-Bold').text('Annual Revenue: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(financialData.revenue));
+            doc.moveDown(0.5);
+          }
+          if (financialData.ebitdaIncluded && financialData.ebitda) {
+            doc.font('Helvetica-Bold').text('EBITDA: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(financialData.ebitda));
+            doc.moveDown(0.5);
+          }
+        }
+
+        // Include analysis financial data if available
+        if (analysis.financials) {
+          if (analysis.financials.revenue && analysis.financials.revenue.total) {
+            doc.font('Helvetica-Bold').text('Total Revenue: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.financials.revenue.total));
+            doc.moveDown(0.5);
+          }
+          if (analysis.financials.customerMetrics) {
+            if (analysis.financials.customerMetrics.averageOrderValue) {
+              doc.font('Helvetica-Bold').text('Average Order Value: ', { continued: true });
+              doc.font('Helvetica').text(safeStringify(analysis.financials.customerMetrics.averageOrderValue));
+              doc.moveDown(0.5);
+            }
+            if (analysis.financials.customerMetrics.recurring) {
+              doc.font('Helvetica-Bold').text('Recurring Revenue: ', { continued: true });
+              doc.font('Helvetica').text(safeStringify(analysis.financials.customerMetrics.recurring));
+              doc.moveDown(0.5);
+            }
+          }
+        }
       }
 
       // Contact Information
