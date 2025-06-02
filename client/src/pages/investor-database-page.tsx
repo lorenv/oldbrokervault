@@ -167,18 +167,6 @@ export default function InvestorDatabasePage() {
   const [showAddTag, setShowAddTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
 
-  // Fetch custom tags
-  const { data: customTags = [] } = useQuery({
-    queryKey: ['/api/custom-tags'],
-    queryFn: async () => {
-      const response = await fetch('/api/custom-tags', {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch custom tags');
-      return response.json();
-    }
-  });
-  
   // Function to apply advanced filters
   const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
     if (advancedFilters.length === 0) return contacts;
@@ -302,18 +290,6 @@ export default function InvestorDatabasePage() {
       }));
     }
   });
-
-  // Fetch custom tags
-  const { data: customTagsData = [] } = useQuery<Array<{id: number, name: string, color: string}>>({
-    queryKey: ['/api/custom-tags']
-  });
-
-  // Update local state when custom tags are loaded
-  useEffect(() => {
-    if (customTagsData.length > 0) {
-      setCustomTags(customTagsData);
-    }
-  }, [customTagsData]);
 
   // Filter and sort contacts on frontend
   const filteredAndSortedContacts = useMemo(() => {
