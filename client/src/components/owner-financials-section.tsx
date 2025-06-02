@@ -266,9 +266,12 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadFileMutation.mutate(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // Upload files one by one
+      Array.from(files).forEach(file => {
+        uploadFileMutation.mutate(file);
+      });
     }
   };
 
@@ -441,7 +444,7 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
               className="hidden"
               onChange={handleFileUpload}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-              multiple={false}
+              multiple={true}
             />
           </div>
         </div>
