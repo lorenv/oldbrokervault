@@ -117,6 +117,8 @@ export default function InvestorDatabasePage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('lastSeenAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
@@ -258,20 +260,50 @@ export default function InvestorDatabasePage() {
   };
 
   const handleExport = () => {
-    const exportUrl = selectedContacts.length > 0 
-      ? `/api/investor-contacts/export?contactIds=${selectedContacts.join(',')}`
-      : '/api/investor-contacts/export';
+    if (selectedContacts.length === 0) {
+      toast({
+        title: "No contacts selected",
+        description: "Please select contacts to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const exportUrl = `/api/investor-contacts/export?contactIds=${selectedContacts.join(',')}`;
     
     window.open(exportUrl, '_blank');
     toast({
       title: "Export Started",
-      description: "Your CSV export will download shortly."
+      description: `Exporting ${selectedContacts.length} selected contacts to CSV`
     });
   };
 
   const getSortIcon = (column: string) => {
     if (sortBy !== column) return null;
     return sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />;
+  };
+
+  const addFilterRule = () => {
+    const newRule: FilterRule = {
+      id: Date.now().toString(),
+      field: 'name',
+      operator: 'contains',
+      value: '',
+      logicOperator: advancedFilters.length > 0 ? 'AND' : undefined
+    };
+    setAdvancedFilters([...advancedFilters, newRule]);
+  };
+
+  const updateFilterRule = (id: string, updates: Partial<FilterRule>) => {
+    setAdvancedFilters(filters => 
+      filters.map(filter => 
+        filter.id === id ? { ...filter, ...updates } : filter
+      )
+    );
+  };
+
+  const removeFilterRule = (id: string) => {
+    setAdvancedFilters(filters => filters.filter(filter => filter.id !== id));
   };
 
   const getStatusBadge = (status: string) => {
@@ -295,17 +327,16 @@ export default function InvestorDatabasePage() {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={() => syncMutation.mutate()} 
-            disabled={syncMutation.isPending}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             variant="outline"
             size="sm"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {syncMutation.isPending ? 'Refreshing...' : 'Refresh Data'}
+            <Filter className="h-4 w-4 mr-2" />
+            Advanced Filters
           </Button>
-          <Button onClick={handleExport} disabled={isLoading}>
+          <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
             <Download className="h-4 w-4 mr-2" />
-            Export ({selectedContacts.length > 0 ? selectedContacts.length : contacts.length})
+            Export Selected ({selectedContacts.length})
           </Button>
         </div>
       </div>
@@ -391,6 +422,98 @@ export default function InvestorDatabasePage() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium">Advanced Filters</h3>
+                <Button onClick={addFilterRule} size="sm" variant="outline">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Filter
+                </Button>
+              </div>
+              
+              {advancedFilters.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No filters applied. Click "Add Filter" to get started.</p>
+              ) : (
+                <div className="space-y-2">
+                  {advancedFilters.map((filter, index) => (
+                    <div key={filter.id} className="flex items-center gap-2 p-2 bg-background rounded border">
+                      {index > 0 && (
+                        <Select 
+                          value={filter.logicOperator || 'AND'} 
+                          onValueChange={(value) => updateFilterRule(filter.id, { logicOperator: value as 'AND' | 'OR' })}
+                        >
+                          <SelectTrigger className="w-16">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AND">AND</SelectItem>
+                            <SelectItem value="OR">OR</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                      
+                      <Select 
+                        value={filter.field} 
+                        onValueChange={(value) => updateFilterRule(filter.id, { field: value, operator: 'contains' })}
+                      >
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filterFields.map(field => (
+                            <SelectItem key={field.value} value={field.value}>
+                              {field.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select 
+                        value={filter.operator} 
+                        onValueChange={(value) => updateFilterRule(filter.id, { operator: value })}
+                      >
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(() => {
+                            const field = filterFields.find(f => f.value === filter.field);
+                            const operators = operatorsByType[field?.type as keyof typeof operatorsByType] || operatorsByType.text;
+                            return operators.map(op => (
+                              <SelectItem key={op.value} value={op.value}>
+                                {op.label}
+                              </SelectItem>
+                            ));
+                          })()}
+                        </SelectContent>
+                      </Select>
+                      
+                      {!['is_empty', 'is_not_empty'].includes(filter.operator) && (
+                        <Input
+                          placeholder="Value..."
+                          value={filter.value}
+                          onChange={(e) => updateFilterRule(filter.id, { value: e.target.value })}
+                          className="flex-1"
+                        />
+                      )}
+                      
+                      <Button 
+                        onClick={() => removeFilterRule(filter.id)}
+                        size="sm" 
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
