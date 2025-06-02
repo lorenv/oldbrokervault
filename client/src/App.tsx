@@ -23,6 +23,7 @@ import { SharePage } from "@/pages/share-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
+import InvestorDatabasePage from "@/pages/investor-database-page";
 
 function Router() {
   const [location] = useLocation();
@@ -39,6 +40,7 @@ function Router() {
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
+            <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />

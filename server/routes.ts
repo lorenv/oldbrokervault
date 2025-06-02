@@ -2986,9 +2986,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const { investorContacts } = await import('@shared/schema');
       const { and, like, or, desc, asc } = await import('drizzle-orm');
       
-      let query = db.select().from(investorContacts).where(eq(investorContacts.userId, req.user.id));
-      
-      // Apply filters
+      // Build conditions
       const conditions = [eq(investorContacts.userId, req.user.id)];
       
       if (search) {
@@ -3004,14 +3002,16 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         conditions.push(eq(investorContacts.status, status as string));
       }
       
-      query = db.select().from(investorContacts).where(and(...conditions));
+      // Build query with conditions
+      let query = db.select().from(investorContacts).where(and(...conditions));
       
       // Apply sorting
-      const sortColumn = investorContacts[sortBy as keyof typeof investorContacts] || investorContacts.lastSeenAt;
-      if (sortOrder === 'desc') {
-        query = query.orderBy(desc(sortColumn));
+      if (sortBy === 'name') {
+        query = sortOrder === 'desc' ? query.orderBy(desc(investorContacts.name)) : query.orderBy(asc(investorContacts.name));
+      } else if (sortBy === 'email') {
+        query = sortOrder === 'desc' ? query.orderBy(desc(investorContacts.email)) : query.orderBy(asc(investorContacts.email));
       } else {
-        query = query.orderBy(asc(sortColumn));
+        query = sortOrder === 'desc' ? query.orderBy(desc(investorContacts.lastSeenAt)) : query.orderBy(asc(investorContacts.lastSeenAt));
       }
       
       const contacts = await query;
