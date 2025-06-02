@@ -163,7 +163,10 @@ export default function AccountPage() {
         }
       }
     } catch (error) {
-      console.error("Subscription action error:", error);
+      // Log error for debugging in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Subscription action error:", error);
+      }
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process request. Please try again.",
@@ -184,13 +187,8 @@ export default function AccountPage() {
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
-      console.log("=== STRIPE SESSION VERIFICATION START ===");
-      console.log("Session ID from URL:", sessionId);
-      console.log("Making request to verify session...");
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (data.success) {
         // Invalidate the user query to refresh the subscription status
@@ -206,7 +204,9 @@ export default function AccountPage() {
         throw new Error(data.error || "Failed to verify subscription");
       }
     } catch (error) {
-      console.error("Stripe session verification error:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Stripe session verification error:", error);
+      }
       toast({
         title: "Error",
         description: "Failed to verify subscription status. Please contact support if this persists.",
