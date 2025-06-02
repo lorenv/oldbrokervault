@@ -1224,7 +1224,7 @@ export default function InvestorDatabasePage() {
                   </div>
                 </div>
                 
-                {viewingContact.documents.length > 0 && (
+                {viewingContact.documents && viewingContact.documents.length > 0 && (
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Associated Documents</Label>
                     <div className="mt-2 space-y-2 max-h-64 overflow-y-auto">
