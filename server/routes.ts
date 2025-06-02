@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema } from "@shared/schema";
+import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
@@ -1084,6 +1085,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get collaborators error:", error);
       res.status(500).json({ error: "Failed to get collaborators" });
+    }
+  });
+
+  // Premium Feature: Document Search
+  app.get("/api/search", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Search features require a premium subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      const { q: query, start, end } = req.query;
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const filters: any = {};
+      if (start && end) {
+        filters.dateRange = {
+          start: new Date(start as string),
+          end: new Date(end as string)
+        };
+      }
+
+      const results = await searchService.searchDocuments(req.user!.id, query, filters);
+      
+      // Track search analytics
+      await analyticsService.trackAction(0, req.user!.id, 'search', { query, resultCount: results.length });
+
+      res.json({ results, total: results.length });
+    } catch (error) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  // Premium Feature: Version History
+  app.get("/api/cim/:id/versions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Version history requires a premium subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const versions = await versionService.getVersionHistory(docId);
+      res.json(versions);
+    } catch (error) {
+      console.error("Version history error:", error);
+      res.status(500).json({ error: "Failed to get version history" });
+    }
+  });
+
+  // Premium Feature: Restore Version
+  app.post("/api/cim/:id/restore/:version", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Version restore requires a premium subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      const docId = parseInt(req.params.id);
+      const targetVersion = parseInt(req.params.version);
+      
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const restoredVersion = await versionService.restoreVersion(docId, targetVersion, req.user!.id);
+      
+      // Track analytics
+      await analyticsService.trackAction(docId, req.user!.id, 'restore_version', { targetVersion });
+
+      res.json({ success: true, version: restoredVersion });
+    } catch (error) {
+      console.error("Version restore error:", error);
+      res.status(500).json({ error: "Failed to restore version" });
+    }
+  });
+
+  // Premium Feature: Document Analytics
+  app.get("/api/cim/:id/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Analytics require a premium subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const { start, end } = req.query;
+      const timeRange = start && end ? {
+        start: new Date(start as string),
+        end: new Date(end as string)
+      } : undefined;
+
+      const analytics = await analyticsService.getDocumentAnalytics(docId, timeRange);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to get analytics" });
+    }
+  });
+
+  // Premium Feature: User Analytics Dashboard
+  app.get("/api/analytics/dashboard", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+        return res.status(403).json({ 
+          error: "Analytics dashboard requires a premium subscription",
+          upgradeRequired: true 
+        });
+      }
+
+      const { start, end } = req.query;
+      const timeRange = start && end ? {
+        start: new Date(start as string),
+        end: new Date(end as string)
+      } : undefined;
+
+      const userAnalytics = await analyticsService.getUserAnalytics(req.user!.id, timeRange);
+      res.json(userAnalytics);
+    } catch (error) {
+      console.error("User analytics error:", error);
+      res.status(500).json({ error: "Failed to get user analytics" });
     }
   });
 
