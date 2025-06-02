@@ -1109,19 +1109,7 @@ export default function InvestorDatabasePage() {
             </div>
           )}
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewingContact(null)}>
-              Close
-            </Button>
-            {viewingContact && (
-              <Button onClick={() => {
-                handleEdit(viewingContact);
-                setViewingContact(null);
-              }}>
-                Edit Contact
-              </Button>
-            )}
-          </DialogFooter>
+
         </DialogContent>
       </Dialog>
       </div>
