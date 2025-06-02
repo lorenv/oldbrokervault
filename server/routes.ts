@@ -152,6 +152,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download individual NDA signature
+  app.get("/api/cim/:docId/nda-signatures/:signatureId/download", async (req: Request, res: Response) => {
+    try {
+      const { docId, signatureId } = req.params;
+      
+      // Verify ownership
+      const doc = await storage.getCimDocument(parseInt(docId));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get the signature
+      const signatures = await storage.getNdaSignatures(parseInt(docId));
+      const signature = signatures.find(s => s.id === parseInt(signatureId));
+      
+      if (!signature) {
+        return res.status(404).json({ error: "Signature not found" });
+      }
+
+      // Convert base64 to buffer and send as PDF
+      const pdfBuffer = Buffer.from(signature.signedNdaContent, 'base64');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="nda-${signature.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf"`);
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error("Error downloading NDA signature:", error);
+      res.status(500).json({ error: "Failed to download NDA signature" });
+    }
+  });
+
+  // Bulk download all NDA signatures as ZIP
+  app.get("/api/cim/:docId/nda-signatures/bulk-download", async (req: Request, res: Response) => {
+    try {
+      const { docId } = req.params;
+      
+      // Verify ownership
+      const doc = await storage.getCimDocument(parseInt(docId));
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get all signatures for this document
+      const signatures = await storage.getNdaSignatures(parseInt(docId));
+      
+      if (signatures.length === 0) {
+        return res.status(404).json({ error: "No signatures found" });
+      }
+
+      // Create ZIP file
+      const JSZip = require('jszip');
+      const zip = new JSZip();
+
+      signatures.forEach((signature, index) => {
+        const pdfBuffer = Buffer.from(signature.signedNdaContent, 'base64');
+        const fileName = `${index + 1}-nda-${signature.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+        zip.file(fileName, pdfBuffer);
+      });
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="nda-signatures-${docId}.zip"`);
+      res.send(zipBuffer);
+      
+    } catch (error) {
+      console.error("Error creating ZIP file:", error);
+      res.status(500).json({ error: "Failed to create ZIP file" });
+    }
+  });
+
   setupAuth(app);
 
   // API endpoint to fetch dynamic pricing from Stripe
