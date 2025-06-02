@@ -15,7 +15,7 @@ import { FinancialsSection } from "./financials-section";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { EmailShareDialog } from "./email-share-dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { CollaborationBanner } from "./collaboration-banner";
+import { CollaborationBanner } from "./collaboration-banner-simple";
 import {
   Dialog,
   DialogContent,
