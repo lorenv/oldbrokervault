@@ -23,7 +23,7 @@ import {
   Users,
   FileText,
   Clock,
-  Sync,
+  RefreshCw,
   Tag
 } from "lucide-react";
 import type { InvestorContact } from "@shared/schema";
@@ -68,14 +68,20 @@ export default function InvestorDatabasePage() {
   });
   
   // Fetch contacts
-  const { data: contacts = [], isLoading, refetch } = useQuery({
+  const { data: contacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
     queryKey: ['/api/investor-contacts', { search: searchTerm, status: statusFilter, sortBy, sortOrder }],
-    queryFn: () => apiRequest(`/api/investor-contacts?search=${encodeURIComponent(searchTerm)}&status=${statusFilter}&sortBy=${sortBy}&sortOrder=${sortOrder}`)
+    queryFn: async () => {
+      const response = await apiRequest(`/api/investor-contacts?search=${encodeURIComponent(searchTerm)}&status=${statusFilter}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
+      return response as EnrichedContact[];
+    }
   });
 
   // Sync contacts from signatures
   const syncMutation = useMutation({
-    mutationFn: () => apiRequest('/api/investor-contacts/sync-from-signatures', { method: 'POST' }),
+    mutationFn: async () => {
+      const response = await apiRequest('/api/investor-contacts/sync-from-signatures', { method: 'POST' });
+      return response as { synced: number };
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
       toast({

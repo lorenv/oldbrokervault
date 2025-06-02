@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 
@@ -80,6 +80,16 @@ export function Navbar() {
                     </a>
                   </Link>
                 </DropdownMenuItem>
+                {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
+                  <DropdownMenuItem>
+                    <Link href="/investor-database">
+                      <a className="flex items-center">
+                        <Database className="h-4 w-4 mr-2" />
+                        Investor Database
+                      </a>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem>
                   <Link href="/account">
                     <a className="flex items-center">
