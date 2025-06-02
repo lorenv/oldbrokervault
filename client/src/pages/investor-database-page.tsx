@@ -1248,7 +1248,7 @@ export default function InvestorDatabasePage() {
                   </div>
                 )}
                 
-                {viewingContact.documents.length === 0 && (
+                {(!viewingContact.documents || viewingContact.documents.length === 0) && (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">No documents associated yet</p>
