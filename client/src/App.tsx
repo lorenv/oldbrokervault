@@ -22,6 +22,7 @@ import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { SharePage } from "@/pages/share-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
+import PremiumDashboard from "@/pages/premium-dashboard";
 
 function Router() {
   const [location] = useLocation();
@@ -37,6 +38,7 @@ function Router() {
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
+            <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />
