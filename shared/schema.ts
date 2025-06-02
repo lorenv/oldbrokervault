@@ -85,7 +85,12 @@ export const cimDocuments = pgTable("cim_documents", {
   revenue: text("revenue"),
   revenueIncluded: boolean("revenue_included").default(false).notNull(),
   ebitda: text("ebitda"),
-  ebitdaIncluded: boolean("ebitda_included").default(false).notNull()
+  ebitdaIncluded: boolean("ebitda_included").default(false).notNull(),
+  // Collaboration fields
+  currentEditorId: integer("current_editor_id"),
+  currentEditorName: text("current_editor_name"),
+  editStartedAt: timestamp("edit_started_at"),
+  lastActivityAt: timestamp("last_activity_at")
 });
 
 export const customSections = pgTable("custom_sections", {
@@ -156,6 +161,19 @@ export const financialFiles = pgTable("financial_files", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
 });
 
+export const collaborators = pgTable("collaborators", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  userId: integer("user_id").notNull(),
+  invitedBy: integer("invited_by").notNull(),
+  email: text("email").notNull(),
+  permission: text("permission").notNull(), // 'view' or 'edit'
+  status: text("status").notNull(), // 'pending', 'accepted', 'declined'
+  inviteToken: text("invite_token").unique(),
+  invitedAt: timestamp("invited_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at")
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
@@ -221,6 +239,16 @@ export const insertFinancialFileSchema = createInsertSchema(financialFiles).pick
   included: true
 });
 
+export const insertCollaboratorSchema = createInsertSchema(collaborators).pick({
+  cimDocumentId: true,
+  email: true,
+  permission: true,
+  invitedBy: true
+}).extend({
+  permission: z.enum(["view", "edit"]),
+  email: z.string().email("Please enter a valid email address")
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type CimDocument = typeof cimDocuments.$inferSelect;
@@ -236,6 +264,8 @@ export type Financials = typeof financials.$inferSelect;
 export type InsertFinancials = z.infer<typeof insertFinancialsSchema>;
 export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InsertFinancialFile = z.infer<typeof insertFinancialFileSchema>;
+export type Collaborator = typeof collaborators.$inferSelect;
+export type InsertCollaborator = z.infer<typeof insertCollaboratorSchema>;
 
 // Default analysis prompt for CIM generation
 export const DEFAULT_CIM_DIRECTIONS = `You are to create custom text for generating an offering memorandum. This includes extracting the exact questions from the knowledge base attached and applying them to the new memorandum. The answers for the Q&A section are derived directly from a provided transcript, ensuring alignment with the new data while maintaining the example's aesthetic and organizational consistency. The answers should have a professional tone, and give as much pertinent information as possible. If the answer is not provided by the transcript, you can remove the question from the CIM.

@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections, ndaTemplates, ndaSignatures, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, ShareLink, InsertShareLink, CustomSection } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections, ndaTemplates, ndaSignatures, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -82,6 +82,13 @@ export interface IStorage {
   createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature>;
   getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]>;
   checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined>;
+  // Collaboration
+  startEditing(docId: number, userId: number, userName: string): Promise<boolean>;
+  stopEditing(docId: number, userId: number): Promise<void>;
+  heartbeat(docId: number, userId: number): Promise<void>;
+  inviteCollaborator(collaborator: InsertCollaborator): Promise<Collaborator>;
+  getCollaborators(cimDocumentId: number): Promise<Collaborator[]>;
+  getCollaboratorAccess(cimDocumentId: number, userId: number): Promise<{ permission: string } | null>;
   sessionStore: session.Store;
 }
 
@@ -571,6 +578,93 @@ export class DatabaseStorage implements IStorage {
       .from(ndaSignatures)
       .where(eq(ndaSignatures.shareSlug, shareSlug))
       .orderBy(desc(ndaSignatures.signedAt));
+  }
+
+  // Collaboration methods
+  async startEditing(docId: number, userId: number, userName: string): Promise<boolean> {
+    const doc = await this.getCimDocument(docId);
+    if (!doc) return false;
+
+    // Check if someone else is currently editing
+    if (doc.currentEditorId && doc.currentEditorId !== userId) {
+      // Check if the current editing session is still active (within 5 minutes)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (doc.lastActivityAt && doc.lastActivityAt > fiveMinutesAgo) {
+        return false; // Someone else is actively editing
+      }
+    }
+
+    // Start editing session
+    await db.update(cimDocuments)
+      .set({
+        currentEditorId: userId,
+        currentEditorName: userName,
+        editStartedAt: new Date(),
+        lastActivityAt: new Date()
+      })
+      .where(eq(cimDocuments.id, docId));
+
+    return true;
+  }
+
+  async stopEditing(docId: number, userId: number): Promise<void> {
+    const doc = await this.getCimDocument(docId);
+    if (!doc || doc.currentEditorId !== userId) return;
+
+    await db.update(cimDocuments)
+      .set({
+        currentEditorId: null,
+        currentEditorName: null,
+        editStartedAt: null,
+        lastActivityAt: null
+      })
+      .where(eq(cimDocuments.id, docId));
+  }
+
+  async heartbeat(docId: number, userId: number): Promise<void> {
+    const doc = await this.getCimDocument(docId);
+    if (!doc || doc.currentEditorId !== userId) return;
+
+    await db.update(cimDocuments)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(cimDocuments.id, docId));
+  }
+
+  async inviteCollaborator(collaborator: InsertCollaborator): Promise<Collaborator> {
+    // Generate unique invite token
+    const inviteToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Check if user already exists with this email
+    const existingUser = await this.getUserByEmail(collaborator.email);
+    const userId = existingUser?.id || 0; // 0 for non-existing users
+
+    const [newCollaborator] = await db.insert(collaborators)
+      .values({
+        ...collaborator,
+        userId,
+        inviteToken,
+        status: 'pending'
+      })
+      .returning();
+
+    return newCollaborator;
+  }
+
+  async getCollaborators(cimDocumentId: number): Promise<Collaborator[]> {
+    return await db.select()
+      .from(collaborators)
+      .where(eq(collaborators.cimDocumentId, cimDocumentId))
+      .orderBy(desc(collaborators.invitedAt));
+  }
+
+  async getCollaboratorAccess(cimDocumentId: number, userId: number): Promise<{ permission: string } | null> {
+    const [collaborator] = await db.select({ permission: collaborators.permission })
+      .from(collaborators)
+      .where(
+        sql`${collaborators.cimDocumentId} = ${cimDocumentId} AND ${collaborators.userId} = ${userId} AND ${collaborators.status} = 'accepted'`
+      );
+    
+    return collaborator || null;
   }
 }
 
