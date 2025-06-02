@@ -119,7 +119,13 @@ export default function InvestorDatabasePage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('lastSeenAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([]);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([{
+    id: 'default',
+    field: 'status',
+    operator: 'equals',
+    value: '',
+    logicOperator: undefined
+  }]);
   
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
@@ -628,13 +634,6 @@ export default function InvestorDatabasePage() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Contacts ({contacts.length})</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={selectAll}
-                onCheckedChange={(checked) => setSelectAll(checked === true)}
-              />
-              <Label>Select All</Label>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
