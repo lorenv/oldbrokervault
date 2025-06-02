@@ -339,6 +339,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
+  async updateCimImages(cimId: number, imagePaths: string[]): Promise<void> {
+    await db.update(cimDocuments)
+      .set({ selectedImages: imagePaths })
+      .where(eq(cimDocuments.id, cimId));
+  }
+
   async createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     if (!user) return false;
