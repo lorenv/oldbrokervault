@@ -292,6 +292,18 @@ export default function InvestorDatabasePage() {
     }
   });
 
+  // Fetch custom tags
+  const { data: customTagsData = [] } = useQuery<Array<{id: number, name: string, color: string}>>({
+    queryKey: ['/api/custom-tags']
+  });
+
+  // Update local state when custom tags are loaded
+  useEffect(() => {
+    if (customTagsData.length > 0) {
+      setCustomTags(customTagsData);
+    }
+  }, [customTagsData]);
+
   // Filter and sort contacts on frontend
   const filteredAndSortedContacts = useMemo(() => {
     let filtered = allContacts.filter(contact => {
