@@ -458,8 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug: Check EVERYTHING in the request
       console.log("=== CIM REQUEST DEBUG START ===");
       console.log("Request body keys:", Object.keys(req.body));
-      console.log("Request body:", JSON.stringify(req.body, null, 2));
-      console.log("SelectedImages specifically:", req.body.selectedImages);
+      console.log("Request body selectedImages:", req.body.selectedImages);
       console.log("=== CIM REQUEST DEBUG END ===");
       
       const data = insertCimDocumentSchema.parse(req.body);
