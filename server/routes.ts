@@ -156,6 +156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download individual NDA signature
   app.get("/api/cim/:docId/nda-signatures/:signatureId/download", async (req: Request, res: Response) => {
     try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
       const { docId, signatureId } = req.params;
       
       // Verify ownership
@@ -188,6 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk download all NDA signatures as ZIP
   app.get("/api/cim/:docId/nda-signatures/bulk-download", async (req: Request, res: Response) => {
     try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
       const { docId } = req.params;
       
       // Verify ownership
