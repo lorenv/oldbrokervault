@@ -392,9 +392,16 @@ export default function InvestorDatabasePage() {
     onSuccess: (updatedContact) => {
       queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
       setEditingContact(null);
-      // Update the viewing contact with the latest data
+      // Update the viewing contact with the latest data including enriched fields
       if (viewingContact && updatedContact.id === viewingContact.id) {
-        setViewingContact(updatedContact);
+        setViewingContact({
+          ...viewingContact,
+          ...updatedContact,
+          // Preserve enriched fields that aren't returned from the update
+          totalNdaSignatures: viewingContact.totalNdaSignatures,
+          documents: viewingContact.documents,
+          lastNdaSigned: viewingContact.lastNdaSigned
+        });
       }
       toast({
         title: "Contact Updated",
