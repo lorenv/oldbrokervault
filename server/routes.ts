@@ -455,6 +455,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // Debug: Check if request reaches this point
+      console.log("=== CIM POST ROUTE HIT ===");
+      console.log("Request method:", req.method);
+      console.log("Request URL:", req.url);
+      console.log("Has selectedImages in body:", !!req.body.selectedImages);
+      
       // Debug: Check EVERYTHING in the request
       console.log("=== CIM REQUEST DEBUG START ===");
       console.log("Request body keys:", Object.keys(req.body));
