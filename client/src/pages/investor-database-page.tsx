@@ -955,9 +955,30 @@ export default function InvestorDatabasePage() {
                 
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <div className="mt-1">
-                    {getStatusBadge(viewingContact.status)}
-                  </div>
+                  <Select 
+                    value={viewingContact.status} 
+                    onValueChange={(value) => {
+                      // Update the contact status immediately
+                      updateMutation.mutate({
+                        id: viewingContact.id,
+                        status: value
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                            {status.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {viewingContact.tags.length > 0 && (
