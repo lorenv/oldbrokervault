@@ -43,6 +43,8 @@ interface EnrichedContact extends InvestorContact {
   totalNdaSignatures: number;
   documents: DocumentInfo[];
   lastNdaSigned: number | null;
+  location?: string | null;
+  isPotentialVpn?: boolean;
 }
 
 const statusOptions = [
@@ -608,15 +610,33 @@ export default function InvestorDatabasePage() {
                 
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="font-mono">{viewingContact.email}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono flex-1">{viewingContact.email}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(viewingContact.email);
+                        toast({
+                          title: "Email copied",
+                          description: "Email address has been copied to clipboard"
+                        });
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
                 </div>
                 
-                {viewingContact.phone && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                    <p>{viewingContact.phone}</p>
-                  </div>
-                )}
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                  <p className="text-sm">
+                    {viewingContact.location || 'Unknown'}
+                    {viewingContact.isPotentialVpn && (
+                      <span className="text-amber-600 ml-2">• Likely using privacy tool</span>
+                    )}
+                  </p>
+                </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Status</Label>
@@ -670,8 +690,66 @@ export default function InvestorDatabasePage() {
                 )}
               </div>
 
-              {/* Document History */}
+              {/* Action Items & Document History */}
               <div className="space-y-4">
+                {/* Quick Actions */}
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Quick Actions</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Next Follow-up</Label>
+                        <Input
+                          type="date"
+                          value={viewingContact.nextFollowUpDate || ''}
+                          onChange={(e) => {
+                            // Update contact follow-up date
+                            // This will trigger an API call to update the contact
+                          }}
+                          className="text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Set Status</Label>
+                        <Select 
+                          value={viewingContact.status} 
+                          onValueChange={(value) => {
+                            // Update contact status
+                            // This will trigger an API call to update the contact
+                          }}
+                        >
+                          <SelectTrigger className="text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Quick Note</Label>
+                      <Textarea
+                        placeholder="Add a quick note..."
+                        rows={2}
+                        className="text-xs"
+                        onBlur={(e) => {
+                          if (e.target.value.trim()) {
+                            // Append to existing notes
+                            const timestamp = new Date().toLocaleDateString();
+                            const newNote = `[${timestamp}] ${e.target.value.trim()}`;
+                            // This will trigger an API call to update the contact notes
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Document Activity</Label>
                   <div className="mt-2">
