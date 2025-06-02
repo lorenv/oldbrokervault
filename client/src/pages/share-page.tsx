@@ -12,15 +12,15 @@ export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
   const shareSlug = params?.shareSlug;
   
-  console.log("Route params:", params);
-  console.log("Share slug extracted:", shareSlug);
+  // console.log("Route params:", params);
+  // console.log("Share slug extracted:", shareSlug);
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
 
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
     queryFn: async () => {
-      console.log('Fetching share data for slug:', shareSlug);
+      // console.log('Fetching share data for slug:', shareSlug);
       const response = await fetch(`/api/share/${shareSlug}`, {
         method: 'GET',
         headers: {
@@ -29,7 +29,7 @@ export function SharePage() {
         credentials: 'include'
       });
       
-      console.log('Share API response status:', response.status);
+      // console.log('Share API response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -38,7 +38,7 @@ export function SharePage() {
       }
       
       const data = await response.json();
-      console.log('Share API response data:', data);
+      // console.log('Share API response data:', data);
       return data;
     },
     enabled: !!shareSlug,
@@ -47,15 +47,15 @@ export function SharePage() {
   }) as { data: any, isLoading: boolean, error: any };
 
   useEffect(() => {
-    console.log("=== SHARE DEBUG ===");
-    console.log("Share data loaded:", shareData);
-    console.log("CIM document:", shareData?.cim);
-    console.log("NDA Protected flag:", shareData?.cim?.ndaProtected);
-    console.log("Requires NDA flag:", shareData?.requiresNda);
-    console.log("Has signed NDA:", hasSignedNda);
-    console.log("User Profile:", shareData?.cim?.userProfile);
-    console.log("Full API response:", JSON.stringify(shareData, null, 2));
-    console.log("=== END SHARE DEBUG ===");
+    // console.log("=== SHARE DEBUG ===");
+    // console.log("Share data loaded:", shareData);
+    // console.log("CIM document:", shareData?.cim);
+    // console.log("NDA Protected flag:", shareData?.cim?.ndaProtected);
+    // console.log("Requires NDA flag:", shareData?.requiresNda);
+    // console.log("Has signed NDA:", hasSignedNda);
+    // console.log("User Profile:", shareData?.cim?.userProfile);
+    // console.log("Full API response:", JSON.stringify(shareData, null, 2));
+    // console.log("=== END SHARE DEBUG ===");
   }, [shareData, hasSignedNda]);
 
   const handleNdaSigned = () => {
@@ -103,7 +103,7 @@ export function SharePage() {
 
   // Check both possible NDA flags for protection
   const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
-  console.log("NDA CHECK:", { needsNda, requiresNda: shareData?.requiresNda, ndaProtected: shareData?.cim?.ndaProtected, hasSignedNda });
+  // console.log("NDA CHECK:", { needsNda, requiresNda: shareData?.requiresNda, ndaProtected: shareData?.cim?.ndaProtected, hasSignedNda });
   if (needsNda && !hasSignedNda) {
     return (
       <div className="flex items-center justify-center min-h-screen">

@@ -399,7 +399,7 @@ export function DocumentExport({
   
   const copyHtmlToClipboard = async () => {
     try {
-      console.log("Starting HTML export for document ID:", docId);
+      // console.log("Starting HTML export for document ID:", docId);
       
       if (!docId) {
         throw new Error('Document ID is missing. Please ensure you have a valid document selected.');
@@ -421,7 +421,7 @@ export function DocumentExport({
         credentials: 'include'
       });
 
-      console.log("HTML export response status:", response.status);
+      // console.log("HTML export response status:", response.status);
       
       // Remove the dialog now that we've received a response
       document.body.removeChild(exportDialog);
@@ -442,7 +442,7 @@ export function DocumentExport({
       }
 
       const responseData = await response.json();
-      console.log("HTML export response received, has HTML:", Boolean(responseData.html));
+      // console.log("HTML export response received, has HTML:", Boolean(responseData.html));
       
       if (!responseData.html) {
         throw new Error('Server returned an empty HTML response');

@@ -240,7 +240,7 @@ export function CimGenerator() {
             } : undefined,
           });
           
-          console.log("Sending selected images to backend:", selectedImages);
+          // console.log("Sending selected images to backend:", selectedImages);
           
           return res.json();
         } catch (error) {

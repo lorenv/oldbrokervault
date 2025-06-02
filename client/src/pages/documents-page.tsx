@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentExport } from "@/components/document-export";
 import { CimDisplay } from "@/components/cim-display";
+import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { EmailShareDialog } from "@/components/email-share-dialog";
@@ -294,7 +295,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
   };
 
   const handleExport = async (docId: number, format: 'pdf' | 'word') => {
-    console.log(`Starting ${format} export for document ID ${docId}`);
+    // console.log(`Starting ${format} export for document ID ${docId}`);
     
     try {
       // Show export started toast
@@ -311,7 +312,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       form.target = '_blank'; // Open in new tab or trigger download
       document.body.appendChild(form);
       
-      console.log(`Submitting form to: ${form.action}`);
+      // console.log(`Submitting form to: ${form.action}`);
       form.submit();
       
       // Clean up

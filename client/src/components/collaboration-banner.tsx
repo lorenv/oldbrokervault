@@ -123,13 +123,23 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange }: C
 
   // Heartbeat to maintain editing session
   useEffect(() => {
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    
     if (editingStatus?.currentEditor?.id === user?.id) {
-      const heartbeatInterval = setInterval(() => {
-        apiRequest("POST", `/api/cim/${docId}/heartbeat`).catch(console.error);
+      heartbeatInterval = setInterval(() => {
+        apiRequest("POST", `/api/cim/${docId}/heartbeat`).catch((error) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Heartbeat error:", error);
+          }
+        });
       }, 60000); // Send heartbeat every minute
-
-      return () => clearInterval(heartbeatInterval);
     }
+
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+    };
   }, [editingStatus?.currentEditor?.id, user?.id, docId]);
 
   // Notify parent of editing status changes

@@ -38,7 +38,7 @@ export default function ContactPage() {
     try {
       // Here you would typically send the form data to your backend
       // For now, we'll just show a success message
-      console.log("Contact form submitted:", data);
+      // console.log("Contact form submitted:", data);
       
       toast({
         title: "Message Sent Successfully",
