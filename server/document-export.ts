@@ -2042,10 +2042,16 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       // If logo is available, add a small version to the top right corner of each page
       if (logoUrl) {
         try {
-          doc.image(logoUrl, doc.page.width - 150, 30, {
-            fit: [100, 50],
-            align: 'right'
-          });
+          const fullLogoPath = logoUrl.startsWith('/') 
+            ? path.resolve(process.cwd(), 'public' + logoUrl)
+            : logoUrl;
+          
+          if (fs.existsSync(fullLogoPath)) {
+            doc.image(fullLogoPath, doc.page.width - 150, 30, {
+              fit: [100, 50],
+              align: 'right'
+            });
+          }
         } catch (error) {
           console.error("Failed to add page header logo:", error);
         }
@@ -2147,7 +2153,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl, doc.page.width - 150, 30, {
+            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2206,7 +2212,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl, doc.page.width - 150, 30, {
+            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2274,10 +2280,16 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
       doc.addPage();
       if (logoUrl) {
         try {
-          doc.image(logoUrl, doc.page.width - 150, 30, {
-            fit: [100, 50],
-            align: 'right'
-          });
+          const fullLogoPath = logoUrl.startsWith('/') 
+            ? path.resolve(process.cwd(), 'public' + logoUrl)
+            : logoUrl;
+          
+          if (fs.existsSync(fullLogoPath)) {
+            doc.image(fullLogoPath, doc.page.width - 150, 30, {
+              fit: [100, 50],
+              align: 'right'
+            });
+          }
         } catch (error) {
           console.error("Failed to add page header logo:", error);
         }
@@ -2335,7 +2347,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl, doc.page.width - 150, 30, {
+            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2383,7 +2395,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.addPage();
           if (logoUrl) {
             try {
-              doc.image(logoUrl, doc.page.width - 150, 30, {
+              doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
               });
