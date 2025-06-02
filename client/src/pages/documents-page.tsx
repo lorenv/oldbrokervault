@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -385,8 +385,12 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </div>
                       <div className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
+                      </div>
+                      <div className="flex items-center gap-1">
                         <PenTool className="h-3 w-3" />
-                        {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''} signed
+                        {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>
