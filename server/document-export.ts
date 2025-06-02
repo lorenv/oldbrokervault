@@ -1706,6 +1706,292 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
+      // Market Analysis
+      if (analysis.marketAnalysis) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('MARKET ANALYSIS')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
+          doc.font('Helvetica-Bold').text('Unique Features & Competitive Advantages:');
+          doc.moveDown(0.5);
+          analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
+            doc.font('Helvetica').text(`• ${safeStringify(feature)}`);
+          });
+          doc.moveDown(1);
+        }
+
+        if (analysis.marketAnalysis.customerProfile) {
+          doc.font('Helvetica-Bold').text('Customer Profile: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.marketAnalysis.customerProfile));
+          doc.moveDown(1);
+        }
+
+        if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length > 0) {
+          doc.font('Helvetica-Bold').text('Competitive Landscape:');
+          doc.moveDown(0.5);
+          analysis.marketAnalysis.competitors.forEach((competitor: string) => {
+            doc.font('Helvetica').text(`• ${safeStringify(competitor)}`);
+          });
+          doc.moveDown(1);
+        }
+      }
+
+      // Operations
+      if (analysis.operations) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('OPERATIONS')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.operations.suppliers) {
+          doc.font('Helvetica-Bold').text('Supplier Information:');
+          doc.moveDown(0.5);
+          
+          if (analysis.operations.suppliers.count) {
+            doc.font('Helvetica-Bold').text('Supplier Count: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.operations.suppliers.count));
+          }
+          if (analysis.operations.suppliers.concentration) {
+            doc.font('Helvetica-Bold').text('Concentration: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.operations.suppliers.concentration));
+          }
+          doc.moveDown(1);
+        }
+
+        if (analysis.operations.customers) {
+          doc.font('Helvetica-Bold').text('Customer Information:');
+          doc.moveDown(0.5);
+          
+          if (analysis.operations.customers.recurring) {
+            doc.font('Helvetica-Bold').text('Recurring Customers: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.operations.customers.recurring));
+          }
+          if (analysis.operations.customers.concentration) {
+            doc.font('Helvetica-Bold').text('Concentration: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.operations.customers.concentration));
+          }
+          doc.moveDown(1);
+        }
+      }
+
+      // Sales & Marketing
+      if (analysis.sales || analysis.marketing) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('SALES & MARKETING')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.sales) {
+          if (analysis.sales.averageOrderValue) {
+            doc.font('Helvetica-Bold').text('Average Order Value: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.sales.averageOrderValue));
+            doc.moveDown(0.5);
+          }
+          if (analysis.sales.seasonality) {
+            doc.font('Helvetica-Bold').text('Seasonality: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.sales.seasonality));
+            doc.moveDown(0.5);
+          }
+          if (analysis.sales.competitivePricing) {
+            doc.font('Helvetica-Bold').text('Competitive Pricing: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.sales.competitivePricing));
+            doc.moveDown(0.5);
+          }
+        }
+
+        if (analysis.marketing && analysis.marketing.strategies && analysis.marketing.strategies.length > 0) {
+          doc.font('Helvetica-Bold').text('Marketing Strategies:');
+          doc.moveDown(0.5);
+          analysis.marketing.strategies.forEach((strategy: string) => {
+            doc.font('Helvetica').text(`• ${safeStringify(strategy)}`);
+          });
+          doc.moveDown(1);
+        }
+      }
+
+      // Team Structure
+      if (analysis.team) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('TEAM STRUCTURE')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.team.employeeSummary) {
+          doc.font('Helvetica-Bold').text('Employee Summary: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.team.employeeSummary));
+          doc.moveDown(0.5);
+        }
+        if (analysis.team.employeeCount) {
+          doc.font('Helvetica-Bold').text('Total Employees: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.team.employeeCount));
+          doc.moveDown(0.5);
+        }
+        if (analysis.team.ownerResponsibilities) {
+          doc.font('Helvetica-Bold').text('Owner Responsibilities: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.team.ownerResponsibilities));
+          doc.moveDown(0.5);
+        }
+        if (analysis.team.ownerHours) {
+          doc.font('Helvetica-Bold').text('Owner Hours: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.team.ownerHours));
+          doc.moveDown(0.5);
+        }
+      }
+
+      // Assets & Facility
+      if (analysis.assets || analysis.facility) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('ASSETS & FACILITY')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.assets) {
+          if (analysis.assets.location) {
+            doc.font('Helvetica-Bold').text('Location: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.assets.location));
+            doc.moveDown(0.5);
+          }
+          if (analysis.assets.equipmentValue) {
+            doc.font('Helvetica-Bold').text('Equipment Value: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.assets.equipmentValue));
+            doc.moveDown(0.5);
+          }
+          if (analysis.assets.equipmentDetails) {
+            doc.font('Helvetica-Bold').text('Equipment Details: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.assets.equipmentDetails));
+            doc.moveDown(0.5);
+          }
+        }
+
+        if (analysis.facility) {
+          if (analysis.facility.ownership) {
+            doc.font('Helvetica-Bold').text('Facility Ownership: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.facility.ownership));
+            doc.moveDown(0.5);
+          }
+          if (analysis.facility.size) {
+            doc.font('Helvetica-Bold').text('Facility Size: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.facility.size));
+            doc.moveDown(0.5);
+          }
+          if (analysis.facility.cost) {
+            doc.font('Helvetica-Bold').text('Facility Cost: ', { continued: true });
+            doc.font('Helvetica').text(safeStringify(analysis.facility.cost));
+            doc.moveDown(0.5);
+          }
+        }
+      }
+
+      // Inventory Management
+      if (analysis.inventory) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('INVENTORY MANAGEMENT')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.inventory.value) {
+          doc.font('Helvetica-Bold').text('Inventory Value: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.inventory.value));
+          doc.moveDown(0.5);
+        }
+        if (analysis.inventory.skuCount) {
+          doc.font('Helvetica-Bold').text('SKU Count: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.inventory.skuCount));
+          doc.moveDown(0.5);
+        }
+        if (analysis.inventory.leadTime) {
+          doc.font('Helvetica-Bold').text('Lead Time: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.inventory.leadTime));
+          doc.moveDown(0.5);
+        }
+        if (analysis.inventory.sourcing) {
+          doc.font('Helvetica-Bold').text('Sourcing: ', { continued: true });
+          doc.font('Helvetica').text(safeStringify(analysis.inventory.sourcing));
+          doc.moveDown(0.5);
+        }
+      }
+
+      // Ownership Structure
+      if (analysis.ownership) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('OWNERSHIP STRUCTURE')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.ownership.owners && analysis.ownership.owners.length > 0) {
+          doc.font('Helvetica-Bold').text('Ownership Breakdown:');
+          doc.moveDown(0.5);
+          analysis.ownership.owners.forEach((owner: any) => {
+            doc.font('Helvetica-Bold').text(`${safeStringify(owner.name)}: `, { continued: true });
+            doc.font('Helvetica').text(`${safeStringify(owner.percentage)} ownership`);
+            if (owner.background) {
+              doc.fontSize(10).text(`Background: ${safeStringify(owner.background)}`, { indent: 20 });
+              doc.fontSize(12);
+            }
+            doc.moveDown(0.5);
+          });
+        }
+
+        if (analysis.ownership.intellectualProperty && analysis.ownership.intellectualProperty.length > 0) {
+          doc.font('Helvetica-Bold').text('Intellectual Property:');
+          doc.moveDown(0.5);
+          analysis.ownership.intellectualProperty.forEach((ip: string) => {
+            doc.font('Helvetica').text(`• ${safeStringify(ip)}`);
+          });
+        }
+      }
+
       // Contact Information
       if (userProfile) {
         doc.moveDown(3);
