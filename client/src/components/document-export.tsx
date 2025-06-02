@@ -1048,26 +1048,6 @@ export function DocumentExport({
                   />
                 </div>
 
-                {shareUrl && (
-                  <div className="space-y-2">
-                    <Label>Share Link</Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        value={shareUrl}
-                        readOnly
-                        className="bg-gray-50"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={copyShareUrl}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 {/* NDA Protection Section */}
                 <Card className="border-blue-200">
                   <CardHeader>
