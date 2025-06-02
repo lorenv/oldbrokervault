@@ -51,12 +51,19 @@ interface EnrichedContact extends InvestorContact {
 }
 
 const statusOptions = [
-  { value: 'new', label: 'New', color: 'bg-blue-500' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-500' },
-  { value: 'interested', label: 'Interested', color: 'bg-green-500' },
-  { value: 'under_review', label: 'Under Review', color: 'bg-purple-500' },
-  { value: 'declined', label: 'Declined', color: 'bg-red-500' },
-  { value: 'closed', label: 'Closed', color: 'bg-gray-500' }
+  { value: 'new', label: 'New', color: 'bg-gray-300' },
+  { value: 'contacted', label: 'Contacted', color: 'bg-gray-400' },
+  { value: 'interested', label: 'Interested', color: 'bg-gray-500' },
+  { value: 'under_review', label: 'Under Review', color: 'bg-gray-400' },
+  { value: 'declined', label: 'Declined', color: 'bg-gray-500' },
+  { value: 'closed', label: 'Closed', color: 'bg-gray-600' }
+];
+
+// Predefined colorful tag options
+const tagColors = [
+  'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500', 'bg-lime-500', 
+  'bg-green-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-sky-500',
+  'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'
 ];
 
 const filterFields = [
@@ -152,6 +159,16 @@ export default function InvestorDatabasePage() {
     lastContactDate: '',
     nextFollowUpDate: ''
   });
+  
+  // Tag management state
+  const [customTags, setCustomTags] = useState<Array<{name: string, color: string}>>([
+    { name: 'Hot Lead', color: 'bg-red-500' },
+    { name: 'Strategic Partner', color: 'bg-blue-500' },
+    { name: 'Follow Up', color: 'bg-yellow-500' },
+    { name: 'High Value', color: 'bg-green-500' }
+  ]);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
   
   // Function to apply advanced filters
   const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
@@ -484,6 +501,27 @@ export default function InvestorDatabasePage() {
     );
   };
 
+  const getTagColor = (tagName: string) => {
+    const customTag = customTags.find(tag => tag.name === tagName);
+    if (customTag) return customTag.color;
+    
+    // Generate consistent color for unknown tags
+    const hash = tagName.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
+    return tagColors[hash % tagColors.length];
+  };
+
+  const addCustomTag = () => {
+    if (newTagName && !customTags.some(tag => tag.name === newTagName)) {
+      const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
+      setCustomTags([...customTags, { name: newTagName, color: randomColor }]);
+      setNewTagName('');
+    }
+  };
+
+  const removeCustomTag = (tagName: string) => {
+    setCustomTags(customTags.filter(tag => tag.name !== tagName));
+  };
+
   return (
     <TooltipProvider>
       <div className="container mx-auto p-6 space-y-6">
@@ -496,6 +534,10 @@ export default function InvestorDatabasePage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowTagManager(true)}>
+              <Tag className="h-4 w-4 mr-2" />
+              Manage Tags
+            </Button>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
@@ -986,7 +1028,7 @@ export default function InvestorDatabasePage() {
                     <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
                     <div className="flex gap-1 flex-wrap mt-1">
                       {viewingContact.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline">
+                        <Badge key={index} className={`${getTagColor(tag)} text-white`}>
                           {tag}
                         </Badge>
                       ))}
@@ -1131,6 +1173,68 @@ export default function InvestorDatabasePage() {
           )}
           
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Tag Management Modal */}
+      <Dialog open={showTagManager} onOpenChange={setShowTagManager}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Manage Custom Tags
+            </DialogTitle>
+            <DialogDescription>
+              Create and manage custom tags for organizing your contacts
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Add New Tag */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter new tag name..."
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addCustomTag()}
+              />
+              <Button onClick={addCustomTag} disabled={!newTagName}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Tag
+              </Button>
+            </div>
+            
+            {/* Existing Tags */}
+            <div>
+              <Label className="text-sm font-medium">Your Custom Tags</Label>
+              <div className="flex gap-2 flex-wrap mt-2">
+                {customTags.map((tag, index) => (
+                  <div key={index} className="flex items-center gap-1">
+                    <Badge className={`${tag.color} text-white`}>
+                      {tag.name}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCustomTag(tag.name)}
+                      className="h-6 w-6 p-0 hover:bg-red-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              {customTags.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-2">No custom tags created yet</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTagManager(false)}>
+              Done
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       </div>
