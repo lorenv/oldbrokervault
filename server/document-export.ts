@@ -774,23 +774,73 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   const sections: docx.ISectionOptions[] = [];
   const paragraphs: docx.Paragraph[] = [];
 
-  // Title page
+  // Helper function to create modern section headers
+  const createSectionHeader = (title: string) => {
+    return new docx.Paragraph({
+      children: [
+        new docx.TextRun({
+          text: title,
+          bold: true,
+          size: 28,
+          color: "FFFFFF"
+        })
+      ],
+      alignment: docx.AlignmentType.LEFT,
+      spacing: { before: 400, after: 200 },
+      shading: {
+        fill: "2563EB"
+      },
+      indent: { left: 200 }
+    });
+  };
+
+  // Helper function for subsection headers
+  const createSubsectionHeader = (title: string) => {
+    return new docx.Paragraph({
+      children: [
+        new docx.TextRun({
+          text: title,
+          bold: true,
+          size: 24,
+          color: "1E40AF"
+        })
+      ],
+      spacing: { before: 300, after: 150 }
+    });
+  };
+
+  // Modern title page
   paragraphs.push(
     new docx.Paragraph({
       children: [
         new docx.TextRun({
-          text: "CONFIDENTIAL INFORMATION MEMORANDUM",
+          text: "CONFIDENTIAL",
           bold: true,
-          size: 32,
+          size: 48,
           color: "2563EB"
         })
       ],
       alignment: docx.AlignmentType.CENTER,
-      spacing: { before: 400, after: 400 }
+      spacing: { before: 400, after: 100 }
     })
   );
 
-  // Add logo if available
+  paragraphs.push(
+    new docx.Paragraph({
+      children: [
+        new docx.TextRun({
+          text: "INFORMATION MEMORANDUM",
+          bold: true,
+          size: 52,
+          color: "2563EB"
+        })
+      ],
+      alignment: docx.AlignmentType.CENTER,
+      spacing: { after: 400 }
+    })
+  );
+
+  // Add logo if available - centered and professional
   if (logoUrl) {
     try {
       const logoPath = resolveImagePath(logoUrl);
@@ -801,13 +851,13 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               new docx.ImageRun({
                 data: fs.readFileSync(logoPath),
                 transformation: {
-                  width: 200,
-                  height: 100
+                  width: 240,
+                  height: 120
                 }
               })
             ],
             alignment: docx.AlignmentType.CENTER,
-            spacing: { before: 200, after: 200 }
+            spacing: { before: 300, after: 400 }
           })
         );
       }
@@ -818,163 +868,410 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 
   // Business Overview Section
   if (analysis.story) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: "BUSINESS OVERVIEW",
-        heading: docx.HeadingLevel.HEADING_1,
-        spacing: { before: 400, after: 200 }
-      })
-    );
+    paragraphs.push(createSectionHeader("BUSINESS OVERVIEW"));
 
     if (analysis.story.businessSummary) {
       paragraphs.push(
         new docx.Paragraph({
           children: [
             new docx.TextRun({
-              text: "Business Summary: ",
-              bold: true
-            }),
-            new docx.TextRun({
-              text: safeStringify(analysis.story.businessSummary)
+              text: safeStringify(analysis.story.businessSummary),
+              size: 22
             })
           ],
-          spacing: { before: 100, after: 100 }
+          spacing: { before: 200, after: 300 },
+          shading: {
+            fill: "F8FAFC"
+          },
+          indent: { left: 200, right: 200 }
         })
       );
     }
 
-    if (analysis.story.businessModel) {
-      paragraphs.push(
-        new docx.Paragraph({
-          children: [
-            new docx.TextRun({
-              text: "Business Model: ",
-              bold: true
-            }),
-            new docx.TextRun({
-              text: safeStringify(analysis.story.businessModel)
-            })
-          ],
-          spacing: { before: 100, after: 100 }
-        })
-      );
-    }
+    // Create a modern table for business details
+    if (analysis.story.businessModel || analysis.story.yearStarted || analysis.story.businessStructure) {
+      const table = new docx.Table({
+        rows: [
+          new docx.TableRow({
+            children: [
+              new docx.TableCell({
+                children: [
+                  new docx.Paragraph({
+                    children: [
+                      new docx.TextRun({
+                        text: "Business Details",
+                        bold: true,
+                        size: 24,
+                        color: "1E40AF"
+                      })
+                    ]
+                  })
+                ],
+                shading: { fill: "F0F9FF" },
+                width: { size: 50, type: docx.WidthType.PERCENTAGE }
+              }),
+              new docx.TableCell({
+                children: [
+                  new docx.Paragraph({
+                    children: [
+                      new docx.TextRun({
+                        text: "Company Information",
+                        bold: true,
+                        size: 24,
+                        color: "1E40AF"
+                      })
+                    ]
+                  })
+                ],
+                shading: { fill: "F0F9FF" },
+                width: { size: 50, type: docx.WidthType.PERCENTAGE }
+              })
+            ]
+          })
+        ]
+      });
 
-    if (analysis.story.yearStarted) {
-      paragraphs.push(
-        new docx.Paragraph({
+      // Add data rows
+      const leftData = [];
+      const rightData = [];
+      
+      if (analysis.story.yearStarted) {
+        leftData.push(`Founded: ${safeStringify(analysis.story.yearStarted)}`);
+      }
+      if (analysis.story.businessModel) {
+        leftData.push(`Model: ${safeStringify(analysis.story.businessModel)}`);
+      }
+      if (analysis.story.businessStructure) {
+        rightData.push(`Structure: ${safeStringify(analysis.story.businessStructure)}`);
+      }
+
+      table.addChildElement(
+        new docx.TableRow({
           children: [
-            new docx.TextRun({
-              text: "Year Started: ",
-              bold: true
+            new docx.TableCell({
+              children: leftData.map(text => 
+                new docx.Paragraph({
+                  children: [new docx.TextRun({ text, size: 20 })],
+                  spacing: { before: 100, after: 100 }
+                })
+              ),
+              verticalAlign: docx.VerticalAlign.TOP
             }),
-            new docx.TextRun({
-              text: safeStringify(analysis.story.yearStarted)
+            new docx.TableCell({
+              children: rightData.map(text => 
+                new docx.Paragraph({
+                  children: [new docx.TextRun({ text, size: 20 })],
+                  spacing: { before: 100, after: 100 }
+                })
+              ),
+              verticalAlign: docx.VerticalAlign.TOP
             })
-          ],
-          spacing: { before: 100, after: 100 }
+          ]
         })
       );
+
+      paragraphs.push(new docx.Paragraph({ children: [table] }));
     }
 
     if (analysis.story.keyAttractions && analysis.story.keyAttractions.length > 0) {
-      paragraphs.push(
-        new docx.Paragraph({
-          text: "Key Attractions:",
-          heading: docx.HeadingLevel.HEADING_2,
-          spacing: { before: 200, after: 100 }
-        })
-      );
+      paragraphs.push(createSubsectionHeader("Key Attractions"));
 
       analysis.story.keyAttractions.forEach((attraction: string) => {
         paragraphs.push(
           new docx.Paragraph({
-            text: `• ${safeStringify(attraction)}`,
-            spacing: { before: 50 }
+            children: [
+              new docx.TextRun({
+                text: "● ",
+                color: "059669",
+                bold: true,
+                size: 20
+              }),
+              new docx.TextRun({
+                text: safeStringify(attraction),
+                size: 20
+              })
+            ],
+            spacing: { before: 100, after: 50 },
+            indent: { left: 200 }
           })
         );
       });
     }
   }
 
-  // Add other sections following the same pattern...
-  // (Executive Summary, Market Analysis, Operations, etc.)
+  // Market Analysis Section
+  if (analysis.marketAnalysis) {
+    paragraphs.push(createSectionHeader("MARKET ANALYSIS"));
 
-  // Contact information header
-  paragraphs.push(
-    new docx.Paragraph({
-      text: "Contact Information",
-      heading: docx.HeadingLevel.HEADING_2,
-      alignment: docx.AlignmentType.CENTER,
-      spacing: { before: 100, after: 200 }
-    })
-  );
+    if (analysis.marketAnalysis.customerProfile) {
+      paragraphs.push(createSubsectionHeader("Customer Profile"));
+      paragraphs.push(
+        new docx.Paragraph({
+          children: [
+            new docx.TextRun({
+              text: safeStringify(analysis.marketAnalysis.customerProfile),
+              size: 20
+            })
+          ],
+          spacing: { before: 100, after: 200 }
+        })
+      );
+    }
 
-  // Add profile photo if available
-  if (userProfile?.profilePhoto) {
-    try {
-      const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-      if (fs.existsSync(profilePhotoPath)) {
+    if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
+      paragraphs.push(createSubsectionHeader("Competitive Advantages"));
+      analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
         paragraphs.push(
           new docx.Paragraph({
             children: [
-              new docx.ImageRun({
-                data: fs.readFileSync(profilePhotoPath),
-                transformation: {
-                  width: 120,
-                  height: 120
-                }
+              new docx.TextRun({
+                text: "▲ ",
+                color: "2563EB",
+                bold: true,
+                size: 20
+              }),
+              new docx.TextRun({
+                text: safeStringify(feature),
+                size: 20
               })
             ],
-            alignment: docx.AlignmentType.CENTER,
-            spacing: { before: 100, after: 100 }
+            spacing: { before: 100, after: 50 },
+            indent: { left: 200 }
           })
         );
-      }
-    } catch (error) {
-      console.error("Failed to add profile photo to Word document:", error);
+      });
     }
   }
 
-  if (userProfile?.name) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: userProfile.name,
-        alignment: docx.AlignmentType.CENTER,
-        spacing: { before: 100 }
-      })
-    );
+  // Financial Information Section
+  if (financialData && Object.keys(financialData).length > 0) {
+    paragraphs.push(createSectionHeader("FINANCIAL INFORMATION"));
+
+    // Create financial table
+    const financialTable = new docx.Table({
+      rows: [
+        new docx.TableRow({
+          children: [
+            new docx.TableCell({
+              children: [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: "Metric",
+                      bold: true,
+                      size: 24,
+                      color: "FFFFFF"
+                    })
+                  ]
+                })
+              ],
+              shading: { fill: "7C3AED" }
+            }),
+            new docx.TableCell({
+              children: [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: "Value",
+                      bold: true,
+                      size: 24,
+                      color: "FFFFFF"
+                    })
+                  ]
+                })
+              ],
+              shading: { fill: "7C3AED" }
+            })
+          ]
+        })
+      ]
+    });
+
+    Object.entries(financialData).forEach(([key, value]: [string, any]) => {
+      if (value && typeof value === 'object' && value.value !== undefined) {
+        financialTable.addChildElement(
+          new docx.TableRow({
+            children: [
+              new docx.TableCell({
+                children: [
+                  new docx.Paragraph({
+                    children: [
+                      new docx.TextRun({
+                        text: value.title || key,
+                        bold: true,
+                        size: 20,
+                        color: "1E40AF"
+                      })
+                    ]
+                  })
+                ],
+                shading: { fill: "F0F9FF" }
+              }),
+              new docx.TableCell({
+                children: [
+                  new docx.Paragraph({
+                    children: [
+                      new docx.TextRun({
+                        text: safeStringify(value.value),
+                        size: 20,
+                        color: "059669",
+                        bold: true
+                      })
+                    ]
+                  }),
+                  ...(value.description ? [
+                    new docx.Paragraph({
+                      children: [
+                        new docx.TextRun({
+                          text: safeStringify(value.description),
+                          size: 16,
+                          color: "6B7280"
+                        })
+                      ]
+                    })
+                  ] : [])
+                ]
+              })
+            ]
+          })
+        );
+      }
+    });
+
+    paragraphs.push(new docx.Paragraph({ children: [financialTable] }));
   }
 
-  if (userProfile?.title) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: userProfile.title,
-        alignment: docx.AlignmentType.CENTER,
-        spacing: { before: 50 }
-      })
-    );
-  }
+  // Contact Information Section
+  paragraphs.push(createSectionHeader("CONTACT INFORMATION"));
 
-  if (userProfile?.phoneNumber) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: `Phone: ${userProfile.phoneNumber}`,
-        alignment: docx.AlignmentType.CENTER,
-        spacing: { before: 50 }
+  // Create contact card using table
+  const contactTable = new docx.Table({
+    rows: [
+      new docx.TableRow({
+        children: [
+          new docx.TableCell({
+            children: [
+              // Add profile photo if available
+              ...(userProfile?.profilePhoto ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.ImageRun({
+                      data: fs.readFileSync(resolveImagePath(userProfile.profilePhoto)),
+                      transformation: {
+                        width: 120,
+                        height: 120
+                      }
+                    })
+                  ],
+                  alignment: docx.AlignmentType.CENTER,
+                  spacing: { before: 200, after: 200 }
+                })
+              ] : []),
+            ],
+            width: { size: 30, type: docx.WidthType.PERCENTAGE },
+            shading: { fill: "F9FAFB" }
+          }),
+          new docx.TableCell({
+            children: [
+              ...(userProfile?.name ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: userProfile.name,
+                      bold: true,
+                      size: 28,
+                      color: "1F2937"
+                    })
+                  ],
+                  spacing: { before: 200, after: 100 }
+                })
+              ] : []),
+              ...(userProfile?.title ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: userProfile.title,
+                      size: 22,
+                      color: "6B7280"
+                    })
+                  ],
+                  spacing: { after: 150 }
+                })
+              ] : []),
+              ...(userProfile?.phoneNumber ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: `📞 ${userProfile.phoneNumber}`,
+                      size: 20,
+                      color: "374151"
+                    })
+                  ],
+                  spacing: { before: 100, after: 100 }
+                })
+              ] : []),
+              ...(userProfile?.email ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: `✉ ${userProfile.email}`,
+                      size: 20,
+                      color: "374151"
+                    })
+                  ],
+                  spacing: { before: 100, after: 100 }
+                })
+              ] : []),
+              ...(userProfile?.company ? [
+                new docx.Paragraph({
+                  children: [
+                    new docx.TextRun({
+                      text: `🏢 ${userProfile.company}`,
+                      size: 20,
+                      color: "374151"
+                    })
+                  ],
+                  spacing: { before: 100, after: 200 }
+                })
+              ] : [])
+            ],
+            width: { size: 70, type: docx.WidthType.PERCENTAGE },
+            shading: { fill: "FEFEFE" }
+          })
+        ]
       })
-    );
-  }
+    ]
+  });
 
-  if (userProfile?.email) {
-    paragraphs.push(
-      new docx.Paragraph({
-        text: `Email: ${userProfile.email}`,
-        alignment: docx.AlignmentType.CENTER,
-        spacing: { before: 50 }
-      })
-    );
-  }
+  paragraphs.push(new docx.Paragraph({ children: [contactTable] }));
+
+  // Professional footer
+  paragraphs.push(
+    new docx.Paragraph({
+      children: [
+        new docx.TextRun({
+          text: "This document contains confidential and proprietary information.",
+          size: 16,
+          color: "9CA3AF"
+        })
+      ],
+      alignment: docx.AlignmentType.CENTER,
+      spacing: { before: 400, after: 100 }
+    })
+  );
+
+  paragraphs.push(
+    new docx.Paragraph({
+      children: [
+        new docx.TextRun({
+          text: "Distribution is restricted to authorized parties only.",
+          size: 16,
+          color: "9CA3AF"
+        })
+      ],
+      alignment: docx.AlignmentType.CENTER
+    })
+  );
 
   // Create the document
   const doc = new docx.Document({
@@ -991,7 +1288,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 
 export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50 });
     const buffers: Buffer[] = [];
     
     doc.on('data', buffers.push.bind(buffers));
@@ -1000,24 +1297,74 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     });
     doc.on('error', reject);
 
+    // Helper function to create modern section headers
+    const createSectionHeader = (title: string, bgColor: string = '#2563eb') => {
+      const currentY = doc.y;
+      const headerHeight = 40;
+      const headerWidth = doc.page.width - 100;
+      
+      // Draw colored background rectangle
+      doc.rect(50, currentY, headerWidth, headerHeight)
+         .fillColor(bgColor)
+         .fill();
+      
+      // Add section title text
+      doc.fillColor('#ffffff')
+         .fontSize(16)
+         .font('Helvetica-Bold')
+         .text(title, 60, currentY + 12, { 
+           width: headerWidth - 20,
+           align: 'left'
+         });
+      
+      // Reset color and move down
+      doc.fillColor('#000000')
+         .moveDown(2.5);
+    };
+
+    // Helper function for subsection headers
+    const createSubsectionHeader = (title: string) => {
+      doc.fillColor('#1e40af')
+         .fontSize(14)
+         .font('Helvetica-Bold')
+         .text(title)
+         .fillColor('#000000')
+         .fontSize(11)
+         .font('Helvetica')
+         .moveDown(0.5);
+    };
+
     try {
-      // Title page
-      doc.fontSize(24)
+      // Modern title page with professional styling
+      doc.fontSize(28)
          .font('Helvetica-Bold')
          .fillColor('#2563eb')
-         .text('CONFIDENTIAL INFORMATION MEMORANDUM', { align: 'center' });
+         .text('CONFIDENTIAL', { align: 'center' });
       
-      doc.moveDown(2);
+      doc.fontSize(32)
+         .text('INFORMATION MEMORANDUM', { align: 'center' });
+      
+      // Add decorative line
+      doc.moveDown(1);
+      const lineY = doc.y;
+      doc.moveTo(150, lineY)
+         .lineTo(doc.page.width - 150, lineY)
+         .strokeColor('#2563eb')
+         .lineWidth(3)
+         .stroke();
+      
+      doc.moveDown(3);
 
-      // Add logo if available
+      // Add logo if available - positioned professionally
       if (logoUrl) {
         try {
           const logoPath = resolveImagePath(logoUrl);
           if (fs.existsSync(logoPath)) {
-            doc.image(logoPath, doc.page.width - 150, 30, {
-              fit: [100, 50],
-              align: 'right'
+            const centerX = doc.page.width / 2 - 100;
+            doc.image(logoPath, centerX, doc.y, {
+              fit: [200, 100]
             });
+            doc.moveDown(6);
           }
         } catch (error) {
           console.error("Failed to add logo to PDF:", error);
@@ -1028,39 +1375,86 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (analysis.story) {
         doc.addPage();
         
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('BUSINESS OVERVIEW')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
+        createSectionHeader('BUSINESS OVERVIEW');
 
         if (analysis.story.businessSummary) {
-          doc.font('Helvetica-Bold').text('Business Summary: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
-          doc.moveDown(0.5);
+          doc.font('Helvetica')
+             .fontSize(11)
+             .fillColor('#374151')
+             .text(safeStringify(analysis.story.businessSummary), {
+               width: doc.page.width - 120,
+               align: 'justify'
+             });
+          doc.moveDown(1);
         }
 
-        if (analysis.story.businessModel) {
-          doc.font('Helvetica-Bold').text('Business Model: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessModel));
-          doc.moveDown(0.5);
+        // Create info boxes for key details
+        const infoBoxY = doc.y;
+        const boxWidth = (doc.page.width - 140) / 2;
+        
+        if (analysis.story.businessModel || analysis.story.yearStarted) {
+          // Left info box
+          doc.rect(50, infoBoxY, boxWidth, 80)
+             .fillColor('#f8fafc')
+             .stroke('#e2e8f0')
+             .fill();
+          
+          doc.fillColor('#1e40af')
+             .fontSize(12)
+             .font('Helvetica-Bold')
+             .text('Business Details', 60, infoBoxY + 10);
+          
+          doc.fillColor('#374151')
+             .fontSize(10)
+             .font('Helvetica');
+          
+          let yOffset = 30;
+          if (analysis.story.yearStarted) {
+            doc.text(`Founded: ${safeStringify(analysis.story.yearStarted)}`, 60, infoBoxY + yOffset);
+            yOffset += 15;
+          }
+          if (analysis.story.businessModel) {
+            doc.text(`Model: ${safeStringify(analysis.story.businessModel)}`, 60, infoBoxY + yOffset, {
+              width: boxWidth - 20
+            });
+          }
         }
 
-        if (analysis.story.yearStarted) {
-          doc.font('Helvetica-Bold').text('Year Started: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.story.yearStarted));
-          doc.moveDown(0.5);
+        if (analysis.story.businessStructure) {
+          // Right info box
+          const rightBoxX = 70 + boxWidth;
+          doc.rect(rightBoxX, infoBoxY, boxWidth, 80)
+             .fillColor('#f0f9ff')
+             .stroke('#bae6fd')
+             .fill();
+          
+          doc.fillColor('#1e40af')
+             .fontSize(12)
+             .font('Helvetica-Bold')
+             .text('Structure', rightBoxX + 10, infoBoxY + 10);
+          
+          doc.fillColor('#374151')
+             .fontSize(10)
+             .font('Helvetica')
+             .text(safeStringify(analysis.story.businessStructure), rightBoxX + 10, infoBoxY + 30, {
+               width: boxWidth - 20
+             });
         }
+        
+        doc.y = infoBoxY + 100;
 
         if (analysis.story.keyAttractions && analysis.story.keyAttractions.length > 0) {
-          doc.moveDown(1);
-          doc.font('Helvetica-Bold').text('Key Attractions:');
+          createSubsectionHeader('Key Attractions');
           analysis.story.keyAttractions.forEach((attraction: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(attraction)}`, { indent: 20 });
+            doc.fillColor('#059669')
+               .fontSize(10)
+               .text('●', 60, doc.y, { continued: true })
+               .fillColor('#374151')
+               .text(` ${safeStringify(attraction)}`, { 
+                 width: doc.page.width - 140,
+                 indent: 10
+               });
+            doc.moveDown(0.3);
           });
         }
       }
@@ -1069,28 +1463,48 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (analysis.marketAnalysis) {
         doc.addPage();
         
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('MARKET ANALYSIS')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
+        createSectionHeader('MARKET ANALYSIS', '#059669');
 
-        if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
-          doc.font('Helvetica-Bold').text('Unique Features & Competitive Advantages:');
-          analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(feature)}`, { indent: 20 });
-          });
+        if (analysis.marketAnalysis.customerProfile) {
+          createSubsectionHeader('Customer Profile');
+          doc.fillColor('#374151')
+             .fontSize(11)
+             .text(safeStringify(analysis.marketAnalysis.customerProfile), {
+               width: doc.page.width - 120,
+               align: 'justify'
+             });
           doc.moveDown(1);
         }
 
-        if (analysis.marketAnalysis.customerProfile) {
-          doc.font('Helvetica-Bold').text('Customer Profile: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.marketAnalysis.customerProfile));
+        if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
+          createSubsectionHeader('Competitive Advantages');
+          analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
+            doc.fillColor('#2563eb')
+               .fontSize(10)
+               .text('▲', 60, doc.y, { continued: true })
+               .fillColor('#374151')
+               .text(` ${safeStringify(feature)}`, { 
+                 width: doc.page.width - 140,
+                 indent: 10
+               });
+            doc.moveDown(0.4);
+          });
           doc.moveDown(0.5);
+        }
+
+        if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length > 0) {
+          createSubsectionHeader('Competitive Landscape');
+          analysis.marketAnalysis.competitors.forEach((competitor: string) => {
+            doc.fillColor('#dc2626')
+               .fontSize(10)
+               .text('■', 60, doc.y, { continued: true })
+               .fillColor('#374151')
+               .text(` ${safeStringify(competitor)}`, { 
+                 width: doc.page.width - 140,
+                 indent: 10
+               });
+            doc.moveDown(0.3);
+          });
         }
       }
 
@@ -1098,78 +1512,167 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (financialData && Object.keys(financialData).length > 0) {
         doc.addPage();
         
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('FINANCIAL INFORMATION')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
+        createSectionHeader('FINANCIAL INFORMATION', '#7c3aed');
+
+        // Create financial cards layout
+        const cardWidth = (doc.page.width - 140) / 2;
+        let cardX = 50;
+        let cardY = doc.y;
+        let cardCount = 0;
 
         Object.entries(financialData).forEach(([key, value]: [string, any]) => {
           if (value && typeof value === 'object' && value.value !== undefined) {
-            doc.font('Helvetica-Bold').text(`${value.title || key}: `, { continued: true });
-            doc.font('Helvetica').text(safeStringify(value.value));
-            if (value.description) {
-              doc.fontSize(10).text(safeStringify(value.description), { indent: 20 });
-              doc.fontSize(12);
+            // Calculate card position
+            if (cardCount > 0 && cardCount % 2 === 0) {
+              cardY += 100;
+              cardX = 50;
+            } else if (cardCount % 2 === 1) {
+              cardX = 70 + cardWidth;
             }
-            doc.moveDown(0.5);
+
+            // Draw financial card
+            doc.rect(cardX, cardY, cardWidth, 90)
+               .fillColor('#fefefe')
+               .stroke('#e5e7eb')
+               .fill();
+
+            // Card header
+            doc.rect(cardX, cardY, cardWidth, 25)
+               .fillColor('#f0f9ff')
+               .fill();
+
+            // Card title
+            doc.fillColor('#1e40af')
+               .fontSize(11)
+               .font('Helvetica-Bold')
+               .text(value.title || key, cardX + 10, cardY + 8, {
+                 width: cardWidth - 20
+               });
+
+            // Card value
+            doc.fillColor('#059669')
+               .fontSize(14)
+               .font('Helvetica-Bold')
+               .text(safeStringify(value.value), cardX + 10, cardY + 35, {
+                 width: cardWidth - 20
+               });
+
+            // Card description
+            if (value.description) {
+              doc.fillColor('#6b7280')
+                 .fontSize(9)
+                 .font('Helvetica')
+                 .text(safeStringify(value.description), cardX + 10, cardY + 60, {
+                   width: cardWidth - 20,
+                   height: 25
+                 });
+            }
+
+            cardCount++;
+            if (cardCount % 2 === 1) {
+              cardX = 70 + cardWidth;
+            } else {
+              cardX = 50;
+            }
           }
         });
+
+        // Update Y position after cards
+        doc.y = cardY + 110;
       }
 
-      // Contact Information
+      // Contact Information Section
       if (userProfile) {
-        doc.moveDown(3);
+        // Ensure we're on a new page if needed
+        if (doc.y > doc.page.height - 200) {
+          doc.addPage();
+        }
         
-        // Add a horizontal line
-        doc.moveTo(50, doc.y)
-           .lineTo(doc.page.width - 50, doc.y)
-           .stroke();
+        doc.moveDown(2);
+        createSectionHeader('CONTACT INFORMATION', '#059669');
         
-        doc.moveDown(1);
+        // Create contact card
+        const cardY = doc.y;
+        const cardHeight = 160;
+        const cardWidth = doc.page.width - 100;
         
-        // Contact Information header
-        doc.fontSize(14)
-           .text('Contact Information', { align: 'center' });
-        
-        doc.moveDown(1);
+        // Main contact card
+        doc.rect(50, cardY, cardWidth, cardHeight)
+           .fillColor('#fefefe')
+           .stroke('#d1d5db')
+           .lineWidth(1)
+           .fill();
+
+        // Card accent border
+        doc.rect(50, cardY, 5, cardHeight)
+           .fillColor('#059669')
+           .fill();
+
+        let contentY = cardY + 20;
         
         // Add profile photo if available
         if (userProfile.profilePhoto) {
           try {
             const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
             if (fs.existsSync(profilePhotoPath)) {
-              const centerX = doc.page.width / 2 - 60; // Center the 120px wide image
-              doc.image(profilePhotoPath, centerX, doc.y, {
-                fit: [120, 120]
+              // Photo on the left side
+              doc.image(profilePhotoPath, 70, contentY, {
+                fit: [80, 80]
               });
-              doc.moveDown(8); // Move down to account for image height
+              contentY += 90;
             }
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
           }
         }
         
+        // Contact details on the right side or below photo
+        let textX = userProfile.profilePhoto ? 170 : 70;
+        let textY = userProfile.profilePhoto ? cardY + 20 : contentY;
+        
         if (userProfile.name) {
-          doc.fontSize(12)
-             .text(userProfile.name, { align: 'center' });
+          doc.fillColor('#1f2937')
+             .fontSize(16)
+             .font('Helvetica-Bold')
+             .text(userProfile.name, textX, textY);
+          textY += 20;
         }
         
         if (userProfile.title) {
-          doc.text(userProfile.title, { align: 'center' });
+          doc.fillColor('#6b7280')
+             .fontSize(12)
+             .font('Helvetica')
+             .text(userProfile.title, textX, textY);
+          textY += 18;
         }
         
         if (userProfile.phoneNumber) {
-          doc.text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
+          doc.fillColor('#374151')
+             .fontSize(11)
+             .text(`📞 ${userProfile.phoneNumber}`, textX, textY);
+          textY += 15;
         }
         
         if (userProfile.email) {
-          doc.text(`Email: ${userProfile.email}`, { align: 'center' });
+          doc.fillColor('#374151')
+             .fontSize(11)
+             .text(`✉ ${userProfile.email}`, textX, textY);
+          textY += 15;
         }
+
+        if (userProfile.company) {
+          doc.fillColor('#374151')
+             .fontSize(11)
+             .text(`🏢 ${userProfile.company}`, textX, textY);
+        }
+
+        // Professional footer
+        doc.y = cardY + cardHeight + 30;
+        doc.fillColor('#9ca3af')
+           .fontSize(9)
+           .font('Helvetica')
+           .text('This document contains confidential and proprietary information.', { align: 'center' })
+           .text('Distribution is restricted to authorized parties only.', { align: 'center' });
       }
 
       doc.end();
