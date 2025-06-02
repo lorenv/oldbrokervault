@@ -607,6 +607,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: financials?.ebitdaIncluded || false
       });
 
+      // Process selected images after CIM creation with proper CIM ID
+      if (selectedImageUrls.length > 0) {
+        try {
+          console.log(`Processing ${selectedImageUrls.length} selected images for CIM ${doc.id}...`);
+          
+          const imagePromises = selectedImageUrls.map(async (imageUrl: string) => {
+            try {
+              const metadata = await imageManager.downloadImageFromUrl(imageUrl, doc.id);
+              return metadata.publicPath;
+            } catch (error) {
+              console.error(`Failed to download image ${imageUrl}:`, error);
+              return null;
+            }
+          });
+          
+          const imageResults = await Promise.allSettled(imagePromises);
+          const downloadedImages = imageResults
+            .filter(result => result.status === 'fulfilled' && result.value !== null)
+            .map(result => (result as PromiseFulfilledResult<string>).value);
+          
+          // Update the CIM document with the downloaded image paths
+          if (downloadedImages.length > 0) {
+            await storage.updateCimImages(doc.id, downloadedImages);
+            doc.selectedImages = downloadedImages; // Update the response object
+            console.log(`Successfully downloaded and stored ${downloadedImages.length} images for CIM ${doc.id}`);
+          }
+        } catch (imageError) {
+          console.error("Error processing selected images:", imageError);
+        }
+      }
+
       res.json(doc);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
