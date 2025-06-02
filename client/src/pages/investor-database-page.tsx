@@ -1058,11 +1058,6 @@ export default function InvestorDatabasePage() {
                     onValueChange={(value) => {
                       // Update the contact status immediately in local state
                       setViewingContact({...viewingContact, status: value});
-                      // Also update in the database
-                      updateMutation.mutate({
-                        id: viewingContact.id,
-                        status: value
-                      });
                     }}
                   >
                     <SelectTrigger className="w-full mt-1">
@@ -1171,12 +1166,16 @@ export default function InvestorDatabasePage() {
                   </div>
                 )}
                 
-                {viewingContact.notes && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
-                    <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">{viewingContact.notes}</p>
-                  </div>
-                )}
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                  <Textarea
+                    placeholder="Add notes about this contact..."
+                    value={viewingContact.notes || ''}
+                    onChange={(e) => setViewingContact({...viewingContact, notes: e.target.value})}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
               </div>
 
               {/* Action Items & Document History */}
@@ -1263,6 +1262,28 @@ export default function InvestorDatabasePage() {
             </div>
           )}
           
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setViewingContact(null)}>
+              Close
+            </Button>
+            <Button 
+              onClick={() => {
+                if (viewingContact) {
+                  updateMutation.mutate({
+                    id: viewingContact.id,
+                    data: {
+                      status: viewingContact.status,
+                      notes: viewingContact.notes,
+                      tags: viewingContact.tags
+                    }
+                  });
+                }
+              }}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
 
         </DialogContent>
       </Dialog>
