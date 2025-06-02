@@ -47,11 +47,59 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes for better performance
+      cacheTime: 1000 * 60 * 30, // 30 minutes cache retention
+      retry: (failureCount, error: any) => {
+        if (error?.message?.includes('401') || error?.message?.includes('404')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     },
     mutations: {
-      retry: false,
+      retry: 1,
     },
   },
 });
+
+// Optimistic update helpers
+export function createOptimisticUpdate<T>(
+  queryKey: string[],
+  updateFn: (oldData: T) => T
+) {
+  return {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousData = queryClient.getQueryData<T>(queryKey);
+      
+      if (previousData) {
+        queryClient.setQueryData(queryKey, updateFn(previousData));
+      }
+      
+      return { previousData };
+    },
+    onError: (_error: any, _variables: any, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  };
+}
+
+// Prefetch utilities for better performance
+export function prefetchCimDocument(docId: number) {
+  return queryClient.prefetchQuery({
+    queryKey: [`/api/cim/${docId}`],
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+export function prefetchUserDocuments() {
+  return queryClient.prefetchQuery({
+    queryKey: ["/api/cim"],
+    staleTime: 1000 * 60 * 5,
+  });
+}

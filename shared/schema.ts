@@ -90,7 +90,11 @@ export const cimDocuments = pgTable("cim_documents", {
   currentEditorId: integer("current_editor_id"),
   currentEditorName: text("current_editor_name"),
   editStartedAt: timestamp("edit_started_at"),
-  lastActivityAt: timestamp("last_activity_at")
+  lastActivityAt: timestamp("last_activity_at"),
+  // Search and version tracking (premium features)
+  searchVector: text("search_vector"), // Full-text search vector
+  version: integer("version").default(1).notNull(),
+  lastModifiedBy: integer("last_modified_by")
 });
 
 export const customSections = pgTable("custom_sections", {
@@ -172,6 +176,38 @@ export const collaborators = pgTable("collaborators", {
   inviteToken: text("invite_token").unique(),
   invitedAt: timestamp("invited_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at")
+});
+
+// Premium feature: Document version history
+export const documentVersions = pgTable("document_versions", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  version: integer("version").notNull(),
+  changes: jsonb("changes").notNull(), // Store changed fields
+  changedBy: integer("changed_by").notNull(),
+  changeDescription: text("change_description"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Premium feature: Usage analytics
+export const documentAnalytics = pgTable("document_analytics", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  userId: integer("user_id").notNull(),
+  action: text("action").notNull(), // 'view', 'edit', 'export', 'share'
+  metadata: jsonb("metadata"), // Additional context
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  sessionId: text("session_id")
+});
+
+// Premium feature: Document search index
+export const searchIndex = pgTable("search_index", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  content: text("content").notNull(),
+  contentType: text("content_type").notNull(), // 'title', 'summary', 'section'
+  searchVector: text("search_vector"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
