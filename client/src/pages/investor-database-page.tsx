@@ -505,28 +505,61 @@ export default function InvestorDatabasePage() {
     });
   };
 
-  const addCustomTag = () => {
-    if (!newTagName.trim()) return;
+  // Create custom tag
+  const createTagMutation = useMutation({
+    mutationFn: async ({ name, color }: { name: string; color: string }) => {
+      const response = await fetch('/api/custom-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, color })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create tag');
+      }
+      return response.json();
+    },
+    onSuccess: (newTag) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tags'] });
+      setNewTagName('');
+      setShowAddTag(false);
+      toast({
+        title: "Tag Created",
+        description: `Custom tag "${newTag.name}" has been created.`
+      });
+    }
+  });
+
+  // Delete custom tag
+  const deleteTagMutation = useMutation({
+    mutationFn: async (tagId: number) => {
+      const response = await fetch(`/api/custom-tags/${tagId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete tag');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tags'] });
+      toast({
+        title: "Tag Deleted",
+        description: "Custom tag has been deleted."
+      });
+    }
+  });
+
+  const addCustomTag = (tagName: string) => {
+    if (!tagName.trim()) return;
     
     const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
-    const newTag = { name: newTagName, color: randomColor };
-    
-    setCustomTags([...customTags, newTag]);
-    setNewTagName('');
-    
-    toast({
-      title: "Tag Created",
-      description: `Custom tag "${newTagName}" has been created.`
-    });
+    createTagMutation.mutate({ name: tagName.trim(), color: randomColor });
   };
 
-  const removeCustomTag = (tagName: string) => {
-    setCustomTags(customTags.filter(tag => tag.name !== tagName));
-    
-    toast({
-      title: "Tag Removed",
-      description: `Custom tag "${tagName}" has been removed.`
-    });
+  const removeCustomTag = (tagId: number) => {
+    deleteTagMutation.mutate(tagId);
   };
 
   const handleExport = () => {
@@ -608,10 +641,6 @@ export default function InvestorDatabasePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowTagManager(true)}>
-              <Tag className="h-4 w-4 mr-2" />
-              Manage Tags
-            </Button>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
@@ -1089,43 +1118,100 @@ export default function InvestorDatabasePage() {
                 <div>
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAddTag(!showAddTag)}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add Tag
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAddTag(!showAddTag)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Tag
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowTagManager(true)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Tag className="h-3 w-3 mr-1" />
+                        Manage
+                      </Button>
+                    </div>
                   </div>
                   
                   {showAddTag && (
-                    <div className="flex gap-2 mt-2">
-                      <Input
-                        placeholder="Enter tag name..."
-                        value={newTagInput}
-                        onChange={(e) => setNewTagInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            addTagToContact(viewingContact.id, newTagInput);
-                            setNewTagInput('');
-                            setShowAddTag(false);
-                          }
-                        }}
-                        className="text-xs"
-                      />
+                    <div className="space-y-2 mt-2">
+                      {/* Existing tags suggestions */}
+                      {customTags.length > 0 && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Choose from existing tags:</Label>
+                          <div className="flex gap-1 flex-wrap mt-1">
+                            {customTags.filter(tag => !viewingContact.tags.includes(tag.name)).map((tag) => (
+                              <Button
+                                key={tag.id}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => addTagToContact(viewingContact.id, tag.name)}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <div className={`w-2 h-2 rounded-full ${tag.color} mr-1`}></div>
+                                {tag.name}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Create new tag */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Or create a new tag:</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            placeholder="Enter new tag name..."
+                            value={newTagInput}
+                            onChange={(e) => setNewTagInput(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                if (customTags.find(tag => tag.name === newTagInput)) {
+                                  addTagToContact(viewingContact.id, newTagInput);
+                                } else {
+                                  addCustomTag(newTagInput);
+                                  addTagToContact(viewingContact.id, newTagInput);
+                                }
+                                setNewTagInput('');
+                                setShowAddTag(false);
+                              }
+                            }}
+                            className="text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (customTags.find(tag => tag.name === newTagInput)) {
+                                addTagToContact(viewingContact.id, newTagInput);
+                              } else {
+                                addCustomTag(newTagInput);
+                                addTagToContact(viewingContact.id, newTagInput);
+                              }
+                              setNewTagInput('');
+                              setShowAddTag(false);
+                            }}
+                            disabled={!newTagInput}
+                            className="h-8"
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+                      
                       <Button
+                        variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          addTagToContact(viewingContact.id, newTagInput);
-                          setNewTagInput('');
-                          setShowAddTag(false);
-                        }}
-                        disabled={!newTagInput}
-                        className="h-8"
+                        onClick={() => setShowAddTag(false)}
+                        className="h-6 px-2 text-xs text-muted-foreground"
                       >
-                        Add
+                        Cancel
                       </Button>
                     </div>
                   )}
@@ -1209,22 +1295,7 @@ export default function InvestorDatabasePage() {
                       </div>
 
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Quick Note</Label>
-                      <Textarea
-                        placeholder="Add a quick note..."
-                        rows={2}
-                        className="text-xs"
-                        onBlur={(e) => {
-                          if (e.target.value.trim()) {
-                            // Append to existing notes
-                            const timestamp = new Date().toLocaleDateString();
-                            const newNote = `[${timestamp}] ${e.target.value.trim()}`;
-                            // This will trigger an API call to update the contact notes
-                          }
-                        }}
-                      />
-                    </div>
+
                   </div>
                 </div>
 
