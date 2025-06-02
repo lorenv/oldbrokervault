@@ -2,7 +2,7 @@ import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, us
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, count } from "drizzle-orm";
 import { asc } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
@@ -222,7 +222,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimDocuments(userId: number): Promise<CimDocument[]> {
-    return db.select().from(cimDocuments).where(eq(cimDocuments.userId, userId));
+    const results = await db
+      .select({
+        ...cimDocuments,
+        ndaSignatureCount: count(ndaSignatures.id),
+      })
+      .from(cimDocuments)
+      .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
+      .where(eq(cimDocuments.userId, userId))
+      .groupBy(cimDocuments.id)
+      .orderBy(desc(cimDocuments.createdAt));
+
+    return results.map(result => ({
+      ...result,
+      ndaSignatureCount: Number(result.ndaSignatureCount)
+    }));
   }
 
   async getAllUsers(): Promise<User[]> {
