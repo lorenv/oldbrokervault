@@ -23,6 +23,7 @@ import {
   Calendar,
   Users,
   FileText,
+  Copy,
   Clock,
   RefreshCw,
   Tag,
@@ -644,7 +645,7 @@ export default function InvestorDatabasePage() {
                   <div className="flex items-center gap-2">
                     <p className="font-mono flex-1">{viewingContact.email}</p>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={() => {
                         navigator.clipboard.writeText(viewingContact.email);
@@ -653,10 +654,22 @@ export default function InvestorDatabasePage() {
                           description: "Email address has been copied to clipboard"
                         });
                       }}
+                      className="h-6 w-6 p-0"
                     >
-                      Copy
+                      <Copy className="h-3 w-3" />
                     </Button>
                   </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Inferred Company</Label>
+                  <p className="text-sm">
+                    {(() => {
+                      const domain = viewingContact.email.split('@')[1];
+                      const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
+                      return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
+                    })()}
+                  </p>
                 </div>
                 
                 <div>
@@ -690,13 +703,13 @@ export default function InvestorDatabasePage() {
                 )}
                 
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">First Seen</Label>
-                  <p>{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
+                  <Label className="text-xs font-normal text-gray-400">First Seen</Label>
+                  <p className="text-xs text-gray-500">{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
                 </div>
                 
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Last Activity</Label>
-                  <p>{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
+                  <Label className="text-xs font-normal text-gray-400">Last Activity</Label>
+                  <p className="text-xs text-gray-500">{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
                 </div>
                 
                 {viewingContact.lastContactDate && (
