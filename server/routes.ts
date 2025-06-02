@@ -153,6 +153,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shared document export endpoints - PDF
+  app.post("/api/share/:shareSlug/export/pdf", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      console.log("Shared PDF export request for slug:", shareSlug);
+      
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (!cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Sharing is disabled for this document" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Get user profile for contact information
+      const userProfile = await storage.getUser(cimDoc.userId);
+      
+      // Get financial data if available
+      const financialData = {
+        enabled: cimDoc.financialsEnabled || false,
+        askingPrice: cimDoc.askingPrice,
+        askingPriceIncluded: cimDoc.askingPriceIncluded || false,
+        revenue: cimDoc.revenue,
+        revenueIncluded: cimDoc.revenueIncluded || false,
+        ebitda: cimDoc.ebitda,
+        ebitdaIncluded: cimDoc.ebitdaIncluded || false
+      };
+
+      console.log("Generating PDF with full context:", {
+        logoUrl: cimDoc.logoUrl,
+        selectedImages: cimDoc.selectedImages?.length || 0,
+        websiteUrl: cimDoc.websiteUrl,
+        hasUserProfile: !!userProfile,
+        financialData: financialData.enabled
+      });
+
+      const pdfBuffer = await generatePDF(
+        cimDoc.analysis,
+        cimDoc.logoUrl,
+        cimDoc.websiteUrl,
+        cimDoc.selectedImages,
+        userProfile,
+        financialData
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="cim-${cimDoc.id}.pdf"`);
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error("Shared PDF export error:", error);
+      res.status(500).json({ error: "Failed to generate PDF document" });
+    }
+  });
+
+  // Shared document export endpoints - Word
+  app.post("/api/share/:shareSlug/export/word", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      console.log("Shared Word export request for slug:", shareSlug);
+      
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (!cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Sharing is disabled for this document" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Get user profile for contact information
+      const userProfile = await storage.getUser(cimDoc.userId);
+      
+      // Get financial data if available
+      const financialData = {
+        enabled: cimDoc.financialsEnabled || false,
+        askingPrice: cimDoc.askingPrice,
+        askingPriceIncluded: cimDoc.askingPriceIncluded || false,
+        revenue: cimDoc.revenue,
+        revenueIncluded: cimDoc.revenueIncluded || false,
+        ebitda: cimDoc.ebitda,
+        ebitdaIncluded: cimDoc.ebitdaIncluded || false
+      };
+
+      console.log("Generating Word document with full context:", {
+        logoUrl: cimDoc.logoUrl,
+        selectedImages: cimDoc.selectedImages?.length || 0,
+        websiteUrl: cimDoc.websiteUrl,
+        hasUserProfile: !!userProfile,
+        financialData: financialData.enabled
+      });
+
+      const wordBuffer = await generateWordDocument(
+        cimDoc.analysis,
+        cimDoc.logoUrl,
+        cimDoc.websiteUrl,
+        cimDoc.selectedImages,
+        userProfile,
+        financialData
+      );
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="cim-${cimDoc.id}.docx"`);
+      res.send(wordBuffer);
+      
+    } catch (error) {
+      console.error("Shared Word export error:", error);
+      res.status(500).json({ error: "Failed to generate Word document" });
+    }
+  });
+
 
 
   setupAuth(app);

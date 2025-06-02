@@ -566,10 +566,27 @@ export function DocumentExport({
   const downloadWord = async () => {
     setIsWordLoading(true);
     try {
-      const response = await fetch(`/api/cim/export/word/${docId}`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      let response;
+      
+      if (isSharedView) {
+        // Get share slug from current URL for shared exports
+        const currentPath = window.location.pathname;
+        const shareSlug = currentPath.split('/share/')[1];
+        
+        if (!shareSlug) {
+          throw new Error('Share link not found');
+        }
+        
+        response = await fetch(`/api/share/${shareSlug}/export/word`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } else {
+        response = await fetch(`/api/cim/export/word/${docId}`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Failed to generate Word document');
@@ -603,10 +620,27 @@ export function DocumentExport({
   const downloadPdf = async () => {
     setIsPdfLoading(true);
     try {
-      const response = await fetch(`/api/cim/export/pdf/${docId}`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      let response;
+      
+      if (isSharedView) {
+        // Get share slug from current URL for shared exports
+        const currentPath = window.location.pathname;
+        const shareSlug = currentPath.split('/share/')[1];
+        
+        if (!shareSlug) {
+          throw new Error('Share link not found');
+        }
+        
+        response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } else {
+        response = await fetch(`/api/cim/export/pdf/${docId}`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Failed to generate PDF document');
