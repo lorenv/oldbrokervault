@@ -36,7 +36,7 @@ export default function PricingPage() {
           }
         });
         const data = await response.json();
-        console.log("Fresh pricing data fetched:", data);
+        // console.log("Fresh pricing data fetched:", data);
         setPricing(data);
         setPricingError(null);
       } catch (error) {
@@ -52,27 +52,27 @@ export default function PricingPage() {
 
   const handleSubscriptionAction = async (planId?: string) => {
     try {
-      console.log("=== CHECKOUT ACTION START ===");
-      console.log("Plan ID:", planId);
-      console.log("User subscription status:", user?.subscriptionStatus);
-      console.log("Current pricing data being used:", pricing);
-      console.log("Premium price ID from current data:", pricing?.premium?.priceId);
+      // console.log("=== CHECKOUT ACTION START ===");
+      // console.log("Plan ID:", planId);
+      // console.log("User subscription status:", user?.subscriptionStatus);
+      // console.log("Current pricing data being used:", pricing);
+      // console.log("Premium price ID from current data:", pricing?.premium?.priceId);
       
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
-        console.log("Creating portal session for existing subscriber");
+        // console.log("Creating portal session for existing subscriber");
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         window.location.href = url;
       } else if (planId) {
         // For new subscriptions, create a checkout session with the plan
-        console.log("Creating checkout session for plan:", planId);
+        // console.log("Creating checkout session for plan:", planId);
         // Use the fresh pricing data we fetched to ensure correct price ID
         const checkoutPayload = { 
           plan: planId,
           priceId: planId === 'premium' ? pricing?.premium?.priceId : pricing?.standard?.priceId
         };
-        console.log("Sending checkout payload with fresh price ID:", checkoutPayload);
+        // console.log("Sending checkout payload with fresh price ID:", checkoutPayload);
         
         const response = await apiRequest("POST", "/api/subscription/create-checkout", checkoutPayload);
         
@@ -85,7 +85,7 @@ export default function PricingPage() {
         }
         
         const { url } = await response.json();
-        console.log("Checkout session created successfully, redirecting to:", url);
+        // console.log("Checkout session created successfully, redirecting to:", url);
         window.location.href = url;
       }
     } catch (error) {

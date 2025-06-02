@@ -43,13 +43,13 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
   } : null;
 
   // Debug financial data
-  console.log("=== FINANCIALS SECTION DEBUG ===");
-  console.log("Prop CIM Document:", propCimDocument);
-  console.log("Fetched CIM Document:", fetchedCimDocument);
-  console.log("Final CIM Document:", cimDocument);
-  console.log("Extracted financials:", financials);
-  console.log("Is shared view:", isSharedView);
-  console.log("Should render section:", (financials?.enabled || isSharedView));
+  // console.log("=== FINANCIALS SECTION DEBUG ===");
+  // console.log("Prop CIM Document:", propCimDocument);
+  // console.log("Fetched CIM Document:", fetchedCimDocument);
+  // console.log("Final CIM Document:", cimDocument);
+  // console.log("Extracted financials:", financials);
+  // console.log("Is shared view:", isSharedView);
+  // console.log("Should render section:", (financials?.enabled || isSharedView));
 
   // Fetch financial files
   const { data: files = [] } = useQuery<FinancialFile[]>({
