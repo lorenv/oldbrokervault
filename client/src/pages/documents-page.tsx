@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -134,12 +134,48 @@ interface CimDocumentWithAnalysis extends CimDocument {
 }
 
 export default function DocumentsPage() {
-  const { data: documents, isLoading: documentsLoading } = useQuery<CimDocumentWithAnalysis[]>({
-    queryKey: ["/api/cim"],
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when searching
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: paginatedData, isLoading: documentsLoading } = useQuery<{
+    documents: CimDocumentWithAnalysis[];
+    total: number;
+    hasMore: boolean;
+  }>({
+    queryKey: ["/api/cim", currentPage, debouncedSearchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "12"
+      });
+      if (debouncedSearchQuery) {
+        params.append("search", debouncedSearchQuery);
+      }
+      const response = await fetch(`/api/cim?${params}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      return response.json();
+    }
   });
+  
+  const documents = paginatedData?.documents || [];
+  const totalDocuments = paginatedData?.total || 0;
+  const hasMore = paginatedData?.hasMore || false;
+  const totalPages = Math.ceil(totalDocuments / 12);
+  
   const [selectedDoc, setSelectedDoc] = useState<CimDocumentWithAnalysis | null>(null);
   const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [htmlExportLoading, setHtmlExportLoading] = useState(false);
   const [emailShareDialog, setEmailShareDialog] = useState<{
@@ -167,11 +203,8 @@ export default function DocumentsPage() {
     }
   }, [matched, params, documents]);
   
-  // Filter documents based on search query and sort by creation date (newest first)
-  const filteredDocuments = documents?.filter(doc => 
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Documents are already filtered and sorted by the backend
+  const filteredDocuments = documents;
   
   // Delete document mutation
   const deleteMutation = useMutation({
@@ -526,6 +559,72 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         {!documentsLoading && documents?.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No CIM documents yet. Create your first one!
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-8">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <span>
+                Showing {((currentPage - 1) * 12) + 1} to {Math.min(currentPage * 12, totalDocuments)} of {totalDocuments} documents
+              </span>
+              {debouncedSearchQuery && (
+                <span>
+                  (filtered by "{debouncedSearchQuery}")
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || documentsLoading}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 7) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 4) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 3) {
+                    pageNum = totalPages - 6 + i;
+                  } else {
+                    pageNum = currentPage - 3 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={documentsLoading}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || documentsLoading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </div>
         )}
       </main>
