@@ -119,127 +119,17 @@ export function normalizeUrl(urlString: string): string {
 export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
   console.log('Website image extraction disabled for better performance');
   return [];
-      await page.goto(normalizedUrl, {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-      });
-      
-      // Wait a moment for any lazy-loaded images
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Extract image URLs from the page
-      const imageUrls = await page.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        return images
-          .map(img => {
-            const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-            return src;
-          })
-          .filter((src): src is string => {
-            if (!src) return false;
-            // Filter out common non-content images
-            const lowercaseSrc = src.toLowerCase();
-            return !lowercaseSrc.includes('spacer') &&
-                   !lowercaseSrc.includes('pixel') &&
-                   !lowercaseSrc.includes('blank') &&
-                   !lowercaseSrc.includes('loading') &&
-                   !lowercaseSrc.includes('spinner') &&
-                   !lowercaseSrc.includes('icon') &&
-                   !lowercaseSrc.includes('logo') &&
-                   !lowercaseSrc.endsWith('.svg') &&
-                   src.length > 20; // Exclude very short URLs (likely not content images)
-          })
-          .slice(0, 10); // Get first 10 images
-      });
-      
-      console.log(`Extracted ${imageUrls.length} images from website`);
-      console.log('Image URLs found:', imageUrls);
-      return imageUrls;
-      
-    } finally {
-      // Always close the browser
-      await browser.close();
-      console.log('Browser closed after image extraction');
-    }
-  } catch (error) {
-    console.error('Failed to extract website images:', error);
-    return [];
-  }
 }
 
 /**
- * Downloads and saves selected images to the project directory
- * @param imageUrls Array of image URLs to download
- * @param websiteUrl The website URL (used for naming)
- * @returns Promise resolving to an array of local file paths
+ * Image downloading functionality disabled to improve performance
+ * @param imageUrls Array of image URLs (ignored)
+ * @param websiteUrl The website URL (ignored)
+ * @returns Promise resolving to empty array (image downloading disabled)
  */
 export async function downloadSelectedImages(imageUrls: string[], websiteUrl: string): Promise<string[]> {
-  console.log(`Downloading ${imageUrls.length} selected images...`);
-  
-  const savedPaths: string[] = [];
-  
-  // Create images directory if it doesn't exist
-  const imagesDir = path.join(process.cwd(), 'public', 'images');
-  if (!fs.existsSync(imagesDir)) {
-    console.log(`Creating images directory: ${imagesDir}`);
-    fs.mkdirSync(imagesDir, { recursive: true });
-  }
-  
-  // Generate a hash for the website to organize images
-  const websiteHash = crypto.createHash('md5').update(websiteUrl).digest('hex').substring(0, 8);
-  
-  for (let i = 0; i < imageUrls.length; i++) {
-    try {
-      const imageUrl = imageUrls[i];
-      console.log(`Downloading image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
-      
-      // Get file extension from URL
-      const urlParts = imageUrl.split('.');
-      const extension = urlParts[urlParts.length - 1].split('?')[0] || 'jpg';
-      
-      // Generate filename
-      const filename = `${websiteHash}_image_${i + 1}.${extension}`;
-      const filepath = path.join(imagesDir, filename);
-      const publicPath = `/images/${filename}`;
-      
-      // Download the image
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        console.error(`Failed to download image: ${response.statusText}`);
-        continue;
-      }
-      
-      // Get the image buffer and apply rounded corners
-      const buffer = await response.buffer();
-      
-      try {
-        // Apply 30px rounded corners with transparent background
-        const roundedBuffer = await addRoundedCorners(buffer, 30);
-        
-        // Save the processed image as PNG (to preserve transparency)
-        const processedFilename = `${websiteHash}_image_${i + 1}.png`;
-        const processedFilepath = path.join(imagesDir, processedFilename);
-        const processedPublicPath = `/images/${processedFilename}`;
-        
-        fs.writeFileSync(processedFilepath, roundedBuffer);
-        savedPaths.push(processedPublicPath);
-        console.log(`Saved image with rounded corners: ${processedPublicPath}`);
-      } catch (error) {
-        console.error(`Error applying rounded corners to image ${i + 1}:`, error);
-        // Fallback: save original image
-        fs.writeFileSync(filepath, buffer);
-        savedPaths.push(publicPath);
-        console.log(`Saved original image (rounded corners failed): ${publicPath}`);
-      }
-      
-    } catch (error) {
-      console.error(`Error downloading image ${i + 1}:`, error);
-      // Continue with next image
-    }
-  }
-  
-  console.log(`Successfully downloaded ${savedPaths.length} images`);
-  return savedPaths;
+  console.log('Website image downloading disabled for better performance');
+  return [];
 }
 
 /**
