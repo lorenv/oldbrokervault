@@ -222,6 +222,7 @@ export class DatabaseStorage implements IStorage {
     };
 
     console.log("Data being inserted into database:", insertData);
+    console.log("SPECIFICALLY selectedImages:", insertData.selectedImages);
 
     const [cimDoc] = await db
       .insert(cimDocuments)
