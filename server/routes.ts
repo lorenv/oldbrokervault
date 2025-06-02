@@ -153,8 +153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
+  setupAuth(app);
+
   // Download individual NDA signature
-  app.get("/api/cim/:docId/nda-signatures/:signatureId/download", async (req: Request, res: Response) => {
+  app.get("/api/cim/:docId/nda-signatures/:signatureId/download", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
@@ -188,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk download all NDA signatures as ZIP
-  app.get("/api/cim/:docId/nda-signatures/bulk-download", async (req: Request, res: Response) => {
+  app.get("/api/cim/:docId/nda-signatures/bulk-download", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       
@@ -228,8 +232,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create ZIP file" });
     }
   });
-
-  setupAuth(app);
 
   // API endpoint to fetch dynamic pricing from Stripe
   app.get("/api/pricing", async (req, res) => {
@@ -1791,7 +1793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               This document contains confidential information. Please do not share this link with unauthorized parties.
             </p>
             <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-              Sent via CIM God - Professional CIM Generation Platform
+              Professional CIM Generation Platform
             </p>
           </div>
         </div>`;
@@ -1810,7 +1812,7 @@ View the document at: ${shareUrl}
 
 This document contains confidential information. Please do not share this link with unauthorized parties.
 
-Sent via CIM God - Professional CIM Generation Platform`;
+Professional CIM Generation Platform`;
 
       // Send email
       const emailSent = await sendEmail({
