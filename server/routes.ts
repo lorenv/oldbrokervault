@@ -531,6 +531,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
+      console.log("Checking for selected images:", {
+        hasWebsiteUrl: !!data.websiteUrl,
+        hasSelectedImages: !!req.body.selectedImages,
+        selectedImagesType: typeof req.body.selectedImages,
+        selectedImagesLength: Array.isArray(req.body.selectedImages) ? req.body.selectedImages.length : 'not array'
+      });
+      
       if (data.websiteUrl && req.body.selectedImages) {
         try {
           const selectedImages = req.body.selectedImages;
