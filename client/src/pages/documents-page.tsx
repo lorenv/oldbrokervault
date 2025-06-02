@@ -412,9 +412,6 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
-                        {doc.title}
-                      </CardTitle>
                       {doc.logoUrl && (
                         <div className="flex-shrink-0">
                           <img 
@@ -427,6 +424,9 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                           />
                         </div>
                       )}
+                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
+                        {doc.title}
+                      </CardTitle>
                     </div>
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
