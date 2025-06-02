@@ -1,14 +1,18 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupSecurity, securityHealthCheck } from "./security";
 
 const app = express();
+
+// Setup security first
+setupSecurity(app);
 
 // Important: Raw body parser for Stripe webhooks must come before JSON parser
 app.use('/api/webhook/stripe', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' })); // Reduced for security
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Serve static files for logos and images
 app.use('/logos', express.static('public/logos'));
@@ -29,8 +33,15 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
+      // Security: Don't log sensitive data in production
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      
+      // Only log response data in development and exclude sensitive endpoints
+      if (process.env.NODE_ENV !== 'production' && 
+          !path.includes('/login') && 
+          !path.includes('/register') && 
+          !path.includes('/user') &&
+          capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -44,6 +55,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Add security health check endpoint
+app.get('/api/security/health', securityHealthCheck);
 
 (async () => {
   const server = await registerRoutes(app);
