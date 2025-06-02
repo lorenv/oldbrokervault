@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
+import { imageManager } from "./image-manager";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
@@ -548,22 +549,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedImagesLength: Array.isArray(req.body.selectedImages) ? req.body.selectedImages.length : 'not array'
       });
       
-      // Always download selected images if provided, regardless of website URL
-      if (req.body.selectedImages) {
-        try {
-          const selectedImages = req.body.selectedImages;
-          if (Array.isArray(selectedImages) && selectedImages.length > 0) {
-            const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
-            console.log(`Processing ${selectedImages.length} selected images in regular route...`);
-            savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
-            console.log(`Successfully downloaded ${savedImagePaths.length} selected images in regular route`);
-            
-            // Add selected images to the analysis object so they show in the CIM
-            analysis.selectedImages = savedImagePaths;
-          }
-        } catch (imageError) {
-          console.error("Selected images processing error in regular route:", imageError);
-        }
+      // Store selectedImages URLs for processing after CIM creation
+      let selectedImageUrls: string[] = [];
+      if (req.body.selectedImages && Array.isArray(req.body.selectedImages) && req.body.selectedImages.length > 0) {
+        selectedImageUrls = req.body.selectedImages;
+        console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
       
       // If website URL is provided, enhance the analysis with website data

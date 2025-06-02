@@ -1,0 +1,149 @@
+import { promises as fs } from 'fs';
+import path from 'path';
+import fetch from 'node-fetch';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface ImageMetadata {
+  id: string;
+  originalName: string;
+  fileName: string;
+  localPath: string;
+  publicPath: string;
+  originalUrl?: string;
+  source: 'website' | 'upload';
+  dimensions: { width: number; height: number };
+  fileSize: number;
+  mimeType: string;
+  uploadDate: Date;
+}
+
+export class ImageManager {
+  private baseDir = 'public/business-images';
+
+  constructor() {
+    this.ensureDirectories();
+  }
+
+  private async ensureDirectories() {
+    try {
+      await fs.mkdir(this.baseDir, { recursive: true });
+    } catch (error) {
+      console.error('Error creating image directories:', error);
+    }
+  }
+
+  private getCimImageDir(cimId: number): string {
+    return path.join(this.baseDir, cimId.toString());
+  }
+
+  private getPublicPath(cimId: number, fileName: string): string {
+    return `/business-images/${cimId}/${fileName}`;
+  }
+
+  async downloadImageFromUrl(url: string, cimId: number, originalName?: string): Promise<ImageMetadata> {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.statusText}`);
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const imageId = uuidv4();
+      const fileName = `${imageId}.jpg`; // Standardize to JPG
+      
+      return await this.saveImageBuffer(buffer, cimId, fileName, {
+        originalName: originalName || path.basename(url),
+        originalUrl: url,
+        source: 'website'
+      });
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      throw error;
+    }
+  }
+
+  async saveUploadedImage(buffer: Buffer, cimId: number, originalName: string): Promise<ImageMetadata> {
+    const imageId = uuidv4();
+    const ext = path.extname(originalName).toLowerCase();
+    const fileName = `${imageId}${ext === '.jpg' || ext === '.jpeg' || ext === '.png' ? ext : '.jpg'}`;
+    
+    return await this.saveImageBuffer(buffer, cimId, fileName, {
+      originalName,
+      source: 'upload'
+    });
+  }
+
+  private async saveImageBuffer(
+    buffer: Buffer, 
+    cimId: number, 
+    fileName: string, 
+    metadata: Partial<ImageMetadata>
+  ): Promise<ImageMetadata> {
+    const cimDir = this.getCimImageDir(cimId);
+    await fs.mkdir(cimDir, { recursive: true });
+
+    // Process image with Sharp - optimize and get metadata
+    const image = sharp(buffer);
+    const sharpMetadata = await image.metadata();
+    
+    // Optimize image: resize if too large, compress
+    const optimizedBuffer = await image
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const localPath = path.join(cimDir, fileName);
+    await fs.writeFile(localPath, optimizedBuffer);
+
+    const imageMetadata: ImageMetadata = {
+      id: uuidv4(),
+      originalName: metadata.originalName || fileName,
+      fileName,
+      localPath,
+      publicPath: this.getPublicPath(cimId, fileName),
+      originalUrl: metadata.originalUrl,
+      source: metadata.source || 'upload',
+      dimensions: {
+        width: sharpMetadata.width || 0,
+        height: sharpMetadata.height || 0
+      },
+      fileSize: optimizedBuffer.length,
+      mimeType: 'image/jpeg',
+      uploadDate: new Date()
+    };
+
+    return imageMetadata;
+  }
+
+  async deleteImage(cimId: number, fileName: string): Promise<void> {
+    try {
+      const filePath = path.join(this.getCimImageDir(cimId), fileName);
+      await fs.unlink(filePath);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+    }
+  }
+
+  async deleteCimImages(cimId: number): Promise<void> {
+    try {
+      const cimDir = this.getCimImageDir(cimId);
+      await fs.rmdir(cimDir, { recursive: true });
+    } catch (error) {
+      console.error('Error deleting CIM images:', error);
+    }
+  }
+
+  async getCimImages(cimId: number): Promise<string[]> {
+    try {
+      const cimDir = this.getCimImageDir(cimId);
+      const files = await fs.readdir(cimDir);
+      return files.filter(file => /\.(jpg|jpeg|png)$/i.test(file))
+        .map(file => this.getPublicPath(cimId, file));
+    } catch (error) {
+      return [];
+    }
+  }
+}
+
+export const imageManager = new ImageManager();
