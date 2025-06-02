@@ -71,16 +71,27 @@ export default function InvestorDatabasePage() {
   const { data: contacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
     queryKey: ['/api/investor-contacts', { search: searchTerm, status: statusFilter, sortBy, sortOrder }],
     queryFn: async () => {
-      const response = await apiRequest(`/api/investor-contacts?search=${encodeURIComponent(searchTerm)}&status=${statusFilter}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
-      return response as EnrichedContact[];
+      const response = await fetch(`/api/investor-contacts?search=${encodeURIComponent(searchTerm)}&status=${statusFilter}&sortBy=${sortBy}&sortOrder=${sortOrder}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
+      return response.json() as Promise<EnrichedContact[]>;
     }
   });
 
   // Sync contacts from signatures
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('/api/investor-contacts/sync-from-signatures', { method: 'POST' });
-      return response as { synced: number };
+      const response = await fetch('/api/investor-contacts/sync-from-signatures', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to sync contacts');
+      }
+      return response.json() as Promise<{ synced: number }>;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
@@ -100,8 +111,18 @@ export default function InvestorDatabasePage() {
 
   // Update contact mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/investor-contacts/${id}`, { method: 'PUT', body: data }),
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/investor-contacts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update contact');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
       setEditingContact(null);
@@ -203,7 +224,7 @@ export default function InvestorDatabasePage() {
             disabled={syncMutation.isPending}
             variant="outline"
           >
-            <Sync className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" />
             {syncMutation.isPending ? 'Syncing...' : 'Sync from NDAs'}
           </Button>
           <Button onClick={handleExport} disabled={isLoading}>
@@ -305,7 +326,7 @@ export default function InvestorDatabasePage() {
             <div className="flex items-center space-x-2">
               <Checkbox
                 checked={selectAll}
-                onCheckedChange={setSelectAll}
+                onCheckedChange={(checked) => setSelectAll(checked === true)}
               />
               <Label>Select All</Label>
             </div>
@@ -327,7 +348,7 @@ export default function InvestorDatabasePage() {
                   <TableHead className="w-12">
                     <Checkbox
                       checked={selectAll}
-                      onCheckedChange={setSelectAll}
+                      onCheckedChange={(checked) => setSelectAll(checked === true)}
                     />
                   </TableHead>
                   <TableHead 
