@@ -225,6 +225,9 @@ export const investorContacts = pgTable("investor_contacts", {
   totalTimeSpentMinutes: integer("total_time_spent_minutes").default(0).notNull(),
   firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
   lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+  location: text("location"),
+  isPotentialVpn: boolean("is_potential_vpn").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
