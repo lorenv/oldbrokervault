@@ -465,6 +465,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docId = req.body.docId; // For regeneration
       const customizations = req.body.customizations || {};
       
+      // Debug selectedImages after Zod parsing
+      console.log("After Zod parsing - data.selectedImages:", data.selectedImages);
+      console.log("Raw req.body.selectedImages:", req.body.selectedImages);
+      
       // Debug: Check if selectedImages are present in regular route
       console.log("Selected images in regular route:", req.body.selectedImages);
       console.log("Selected images type:", typeof req.body.selectedImages);
