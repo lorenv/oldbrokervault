@@ -3453,6 +3453,49 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Custom Tags API
+  app.get("/api/custom-tags", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const tags = await storage.getCustomTags(req.user.id);
+      res.json(tags);
+    } catch (error) {
+      console.error('Error fetching custom tags:', error);
+      res.status(500).json({ error: "Failed to fetch custom tags" });
+    }
+  });
+
+  app.post("/api/custom-tags", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { name, color } = req.body;
+      if (!name || !color) {
+        return res.status(400).json({ error: "Name and color are required" });
+      }
+      
+      const newTag = await storage.createCustomTag(req.user.id, name, color);
+      res.json(newTag);
+    } catch (error) {
+      console.error('Error creating custom tag:', error);
+      res.status(500).json({ error: "Failed to create custom tag" });
+    }
+  });
+
+  app.delete("/api/custom-tags/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const tagId = parseInt(req.params.id);
+      await storage.deleteCustomTag(tagId, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting custom tag:', error);
+      res.status(500).json({ error: "Failed to delete custom tag" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -162,12 +162,7 @@ export default function InvestorDatabasePage() {
   });
   
   // Tag management state
-  const [customTags, setCustomTags] = useState<Array<{name: string, color: string}>>([
-    { name: 'Hot Lead', color: 'bg-red-500' },
-    { name: 'Strategic Partner', color: 'bg-blue-500' },
-    { name: 'Follow Up', color: 'bg-yellow-500' },
-    { name: 'High Value', color: 'bg-green-500' }
-  ]);
+  const [customTags, setCustomTags] = useState<Array<{id: number, name: string, color: string}>>([]);
   const [showTagManager, setShowTagManager] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
