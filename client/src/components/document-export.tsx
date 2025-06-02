@@ -122,6 +122,16 @@ export function DocumentExport({
   const updateShareSettings = async () => {
     if (!docId) return;
     
+    // Validate NDA template selection when NDA protection is enabled
+    if (shareSettings.ndaProtected && !shareSettings.ndaTemplateId) {
+      toast({
+        title: "NDA Template Required",
+        description: "Please select an NDA template when enabling NDA protection.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsUpdatingShare(true);
     try {
       const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
@@ -1073,7 +1083,9 @@ export function DocumentExport({
 
                     {shareSettings.ndaProtected && (
                       <div className="space-y-2">
-                        <Label htmlFor="nda-template">Select NDA Template</Label>
+                        <Label htmlFor="nda-template" className="text-red-600">
+                          Select NDA Template *
+                        </Label>
                         <Select
                           value={shareSettings.ndaTemplateId?.toString() || ""}
                           onValueChange={(value) => 
@@ -1083,8 +1095,8 @@ export function DocumentExport({
                             }))
                           }
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose an NDA template" />
+                          <SelectTrigger className={!shareSettings.ndaTemplateId ? "border-red-300" : ""}>
+                            <SelectValue placeholder="Choose an NDA template (Required)" />
                           </SelectTrigger>
                           <SelectContent>
                             {ndaTemplates.map((template) => (
@@ -1094,11 +1106,15 @@ export function DocumentExport({
                             ))}
                           </SelectContent>
                         </Select>
-                        {ndaTemplates.length === 0 && (
-                          <p className="text-sm text-orange-600">
-                            No NDA templates found. Create one in the NDA Templates tab.
+                        {ndaTemplates.length === 0 ? (
+                          <p className="text-sm text-red-600">
+                            No NDA templates found. Create one in the NDA Templates tab before enabling NDA protection.
                           </p>
-                        )}
+                        ) : !shareSettings.ndaTemplateId ? (
+                          <p className="text-sm text-red-600">
+                            Please select an NDA template to enable NDA protection.
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </CardContent>
