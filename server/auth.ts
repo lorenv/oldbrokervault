@@ -67,7 +67,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res) => {
+  app.post("/api/register", registerValidation, handleValidationErrors, auditLogger('REGISTER'), async (req, res) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
@@ -101,7 +101,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", loginValidation, handleValidationErrors, auditLogger('LOGIN'), (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
         return res.status(500).json({
