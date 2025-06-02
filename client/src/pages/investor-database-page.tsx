@@ -162,11 +162,22 @@ export default function InvestorDatabasePage() {
   });
   
   // Tag management state
-  const [customTags, setCustomTags] = useState<Array<{id: number, name: string, color: string}>>([]);
   const [showTagManager, setShowTagManager] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
+
+  // Fetch custom tags
+  const { data: customTags = [] } = useQuery({
+    queryKey: ['/api/custom-tags'],
+    queryFn: async () => {
+      const response = await fetch('/api/custom-tags', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch custom tags');
+      return response.json();
+    }
+  });
   
   // Function to apply advanced filters
   const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
@@ -1389,9 +1400,9 @@ export default function InvestorDatabasePage() {
                 placeholder="Enter new tag name..."
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addCustomTag()}
+                onKeyPress={(e) => e.key === 'Enter' && addCustomTag(newTagName)}
               />
-              <Button onClick={addCustomTag} disabled={!newTagName}>
+              <Button onClick={() => addCustomTag(newTagName)} disabled={!newTagName}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Tag
               </Button>
@@ -1401,15 +1412,15 @@ export default function InvestorDatabasePage() {
             <div>
               <Label className="text-sm font-medium">Your Custom Tags</Label>
               <div className="flex gap-2 flex-wrap mt-2">
-                {customTags.map((tag, index) => (
-                  <div key={index} className="flex items-center gap-1">
+                {customTags.map((tag) => (
+                  <div key={tag.id} className="flex items-center gap-1">
                     <Badge className={`${tag.color} text-white`}>
                       {tag.name}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeCustomTag(tag.name)}
+                      onClick={() => removeCustomTag(tag.id)}
                       className="h-6 w-6 p-0 hover:bg-red-100"
                     >
                       <X className="h-3 w-3" />
