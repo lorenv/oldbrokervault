@@ -85,6 +85,7 @@ export function DocumentExport({
     isDefault: false
   });
   const [ndaSignatures, setNdaSignatures] = useState<any[]>([]);
+  const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   
   // Email sharing state
   const [emailShareDialog, setEmailShareDialog] = useState<{
@@ -1337,8 +1338,22 @@ export function DocumentExport({
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center mb-4">
                         <h4 className="font-medium">Signed NDAs ({ndaSignatures.length})</h4>
+                      </div>
+                      
+                      {/* Search functionality */}
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="Search by name or email..."
+                          value={signatureSearchTerm}
+                          onChange={(e) => setSignatureSearchTerm(e.target.value)}
+                          className="mb-4"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
                         {ndaSignatures.length > 0 && (
                           <Button
                             variant="outline"
@@ -1384,7 +1399,14 @@ export function DocumentExport({
                       </div>
                       
                       <div className="space-y-2">
-                        {ndaSignatures.map((signature) => (
+                        {ndaSignatures
+                          .filter((signature) => {
+                            if (!signatureSearchTerm) return true;
+                            const searchLower = signatureSearchTerm.toLowerCase();
+                            return signature.signerName.toLowerCase().includes(searchLower) || 
+                                   signature.signerEmail.toLowerCase().includes(searchLower);
+                          })
+                          .map((signature) => (
                           <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
                             <div className="flex-1">
                               <p className="font-medium">{signature.signerName}</p>

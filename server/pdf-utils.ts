@@ -52,7 +52,7 @@ export function addSignatureToNda(
           });
           
           // Add signer name (signature style) - enhanced handwriting appearance
-          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesBoldItalic);
+          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanBoldItalic);
           
           // Create a more signature-like appearance with rotation and styling
           signaturePage.drawText(signerName, {
