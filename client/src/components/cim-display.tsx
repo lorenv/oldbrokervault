@@ -640,7 +640,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
               <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Business Images</CardTitle>
             </CardHeader>
-            <CardContent className={isSharedView ? "px-8 pb-8" : ""}>
+            <CardContent className={isSharedView ? "px-8 pb-8 pt-6" : "pt-6"}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedImages.map((imageUrl, index) => (
                   <div 
