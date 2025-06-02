@@ -267,9 +267,39 @@ export function DocumentExport({
     });
   };
 
+  // Fetch current share settings for the document
+  const fetchShareSettings = async () => {
+    if (!docId) return;
+    
+    try {
+      const response = await apiRequest('GET', `/api/cim/${docId}`);
+      if (response.ok) {
+        const doc = await response.json();
+        setShareSettings({
+          shareEnabled: doc.shareEnabled || false,
+          shareSlug: doc.shareSlug || '',
+          sharePassword: doc.sharePassword || '',
+          shareExpiresAt: doc.shareExpiresAt || '',
+          customSlug: doc.shareSlug || '',
+          ndaProtected: doc.ndaProtected || false,
+          ndaTemplateId: doc.ndaTemplateId || null
+        });
+        
+        // Set share URL if sharing is enabled
+        if (doc.shareEnabled && doc.shareSlug) {
+          const baseUrl = window.location.origin;
+          setShareUrl(`${baseUrl}/share/${doc.shareSlug}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching share settings:', error);
+    }
+  };
+
   // Load data when dialog opens
   useEffect(() => {
     if (isShareDialogOpen) {
+      fetchShareSettings();
       fetchNdaTemplates();
       fetchNdaSignatures();
     }
