@@ -389,9 +389,13 @@ export default function InvestorDatabasePage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedContact) => {
       queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
       setEditingContact(null);
+      // Update the viewing contact with the latest data
+      if (viewingContact && updatedContact.id === viewingContact.id) {
+        setViewingContact(updatedContact);
+      }
       toast({
         title: "Contact Updated",
         description: "Contact information has been updated successfully."
@@ -834,7 +838,7 @@ export default function InvestorDatabasePage() {
                       {getSortIcon('lastSeenAt')}
                     </div>
                   </TableHead>
-                  <TableHead>Actions</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -879,15 +883,7 @@ export default function InvestorDatabasePage() {
                     <TableCell>
                       {contact.lastSeenAt ? new Date(contact.lastSeenAt).toLocaleDateString() : 'Never'}
                     </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(contact)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
@@ -1273,8 +1269,8 @@ export default function InvestorDatabasePage() {
                     id: viewingContact.id,
                     data: {
                       status: viewingContact.status,
-                      notes: viewingContact.notes,
-                      tags: viewingContact.tags
+                      notes: viewingContact.notes || '',
+                      tags: viewingContact.tags || []
                     }
                   });
                 }
