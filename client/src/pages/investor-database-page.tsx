@@ -73,6 +73,7 @@ const filterFields = [
   { value: 'location', label: 'Location', type: 'text' },
   { value: 'status', label: 'Status', type: 'select', options: statusOptions },
   { value: 'tags', label: 'Tags', type: 'text' },
+  { value: 'associated_document', label: 'Associated Document', type: 'text' },
   { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
   { value: 'last_activity', label: 'Last Activity', type: 'date' },
   { value: 'first_seen', label: 'First Seen', type: 'date' }
@@ -560,7 +561,7 @@ export default function InvestorDatabasePage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = statusOptions.find(s => s.value === status);
     return (
-      <Badge variant="secondary" className={`${statusConfig?.color} text-white`}>
+      <Badge variant="secondary" className={`${statusConfig?.color} text-gray-800`}>
         {statusConfig?.label || status}
       </Badge>
     );
