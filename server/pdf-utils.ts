@@ -8,6 +8,11 @@ export function addSignatureToNda(
   signerIpAddress?: string
 ): Promise<string> {
   return new Promise((resolve, reject) => {
+    console.log('🔄 Starting NDA signature creation...');
+    console.log('📄 Original NDA size:', originalNdaBase64.length, 'characters');
+    console.log('✍️ Signer:', signerName);
+    console.log('📅 Date:', signedDate.toISOString());
+    
     try {
       const pdf = require('pdf-lib');
       const fs = require('fs');
@@ -15,9 +20,13 @@ export function addSignatureToNda(
       // Use pdf-lib for proper PDF manipulation
       (async () => {
         try {
+          console.log('📖 Loading original PDF...');
           // Load the original NDA PDF
           const originalPdfBytes = Buffer.from(originalNdaBase64, 'base64');
+          console.log('📊 PDF bytes length:', originalPdfBytes.length);
+          
           const pdfDoc = await pdf.PDFDocument.load(originalPdfBytes);
+          console.log('✅ Original PDF loaded successfully, pages:', pdfDoc.getPageCount());
           
           // Create signature page
           const signaturePage = pdfDoc.addPage([612, 792]); // Standard letter size
@@ -146,13 +155,22 @@ export function addSignatureToNda(
             yPosition -= 20;
           });
           
+          console.log('📝 Creating signature page...');
+          console.log('📝 Adding certificate of completion...');
+          
           // Save the modified PDF
+          console.log('💾 Saving final PDF...');
           const pdfBytes = await pdfDoc.save();
+          console.log('📊 Final PDF size:', pdfBytes.length, 'bytes');
+          
           const base64 = Buffer.from(pdfBytes).toString('base64');
+          console.log('✅ PDF signature creation completed successfully');
+          console.log('📤 Base64 output size:', base64.length, 'characters');
           resolve(base64);
           
         } catch (error) {
-          console.error('PDF processing error:', error);
+          console.error('❌ PDF processing error:', error);
+          console.log('🔄 Falling back to simple PDF creation...');
           // Fallback to simple PDF creation
           const doc = new PDFDocument();
           const chunks: Buffer[] = [];
