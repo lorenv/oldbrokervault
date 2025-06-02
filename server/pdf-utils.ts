@@ -51,14 +51,25 @@ export function addSignatureToNda(
             size: 12,
           });
           
-          // Add signer name (signature style) - using cursive-like styling
-          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanItalic);
+          // Add signer name (signature style) - enhanced handwriting appearance
+          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesBoldItalic);
+          
+          // Create a more signature-like appearance with rotation and styling
           signaturePage.drawText(signerName, {
             x: 60,
             y: height - 230,
-            size: 24,
+            size: 28,
             font: signatureFont,
-            color: pdfLib.rgb(0, 0, 0.5),
+            color: pdfLib.rgb(0.1, 0.1, 0.4),
+            rotate: pdfLib.degrees(-2), // Slight rotation for handwritten effect
+          });
+          
+          // Add a subtle underline for signature authenticity
+          signaturePage.drawLine({
+            start: { x: 50, y: height - 245 },
+            end: { x: 350, y: height - 245 },
+            thickness: 1,
+            color: pdfLib.rgb(0.6, 0.6, 0.6),
           });
           
           // Add date
