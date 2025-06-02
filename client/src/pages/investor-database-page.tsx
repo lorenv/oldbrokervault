@@ -454,10 +454,7 @@ export default function InvestorDatabasePage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{contact.name}</span>
-                      </div>
+                      <span className="font-medium">{contact.name}</span>
                     </TableCell>
                     <TableCell>{contact.email}</TableCell>
                     <TableCell>{getStatusBadge(contact.status)}</TableCell>
@@ -583,6 +580,154 @@ export default function InvestorDatabasePage() {
             <Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Detail Modal */}
+      <Dialog open={!!viewingContact} onOpenChange={() => setViewingContact(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Contact Details
+            </DialogTitle>
+            <DialogDescription>
+              View detailed information and document history for this contact
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewingContact && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                  <p className="text-lg font-semibold">{viewingContact.name}</p>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="font-mono">{viewingContact.email}</p>
+                </div>
+                
+                {viewingContact.phone && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                    <p>{viewingContact.phone}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <div className="mt-1">
+                    {getStatusBadge(viewingContact.status)}
+                  </div>
+                </div>
+                
+                {viewingContact.tags.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
+                    <div className="flex gap-1 flex-wrap mt-1">
+                      {viewingContact.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">First Seen</Label>
+                  <p>{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Last Activity</Label>
+                  <p>{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
+                </div>
+                
+                {viewingContact.lastContactDate && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Last Contacted</Label>
+                    <p>{new Date(viewingContact.lastContactDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                
+                {viewingContact.nextFollowUpDate && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Next Follow-up</Label>
+                    <p>{new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                
+                {viewingContact.notes && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                    <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">{viewingContact.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Document History */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Document Activity</Label>
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4" />
+                      <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {viewingContact.documents.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Associated Documents</Label>
+                    <div className="mt-2 space-y-2 max-h-64 overflow-y-auto">
+                      {viewingContact.documents.map((doc, index) => (
+                        <div key={index} className="border rounded-lg p-3 bg-background">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{doc.documentTitle}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Signed by {doc.signerName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(doc.signedAt).toLocaleDateString()} at {new Date(doc.signedAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {viewingContact.documents.length === 0 && (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No documents associated yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingContact(null)}>
+              Close
+            </Button>
+            {viewingContact && (
+              <Button onClick={() => {
+                handleEdit(viewingContact);
+                setViewingContact(null);
+              }}>
+                Edit Contact
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
