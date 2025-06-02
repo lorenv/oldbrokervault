@@ -644,10 +644,12 @@ export function DocumentExport({
             <Button variant="outline" disabled={isUpdatingShare}>
               {isUpdatingShare ? (
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-              ) : (
+              ) : isSharedView ? (
                 <Download className="h-4 w-4 mr-2" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
               )}
-              {isUpdatingShare ? "Updating..." : "Export"}
+              {isUpdatingShare ? "Updating..." : isSharedView ? "Export" : "Share"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -672,8 +674,27 @@ export function DocumentExport({
                 </DropdownMenuItem>
               </>
             ) : (
-              // Owner view: Show export options only (sharing moved to collaboration banner)
+              // Regular view: Show all options
               <>
+                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+                  <Link className="h-4 w-4 mr-2" />
+                  Share Link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  // Get document title from analysis or use fallback
+                  const documentTitle = analysis?.story?.businessSummary ? 
+                    `${analysis.story.businessSummary.slice(0, 50)}...` : 
+                    `CIM Document #${docId}`;
+                  
+                  setEmailShareDialog({
+                    open: true,
+                    documentTitle,
+                    shareToken: shareSettings.shareSlug || shareUrl.split('/').pop()
+                  });
+                }}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Share via Email
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyToClipboard}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy Plain Text
