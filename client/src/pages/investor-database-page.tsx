@@ -169,6 +169,8 @@ export default function InvestorDatabasePage() {
   ]);
   const [showTagManager, setShowTagManager] = useState(false);
   const [newTagName, setNewTagName] = useState('');
+  const [showAddTag, setShowAddTag] = useState(false);
+  const [newTagInput, setNewTagInput] = useState('');
   
   // Function to apply advanced filters
   const applyAdvancedFilters = (contacts: EnrichedContact[]): EnrichedContact[] => {
@@ -445,6 +447,69 @@ export default function InvestorDatabasePage() {
     });
   };
 
+  // Tag management functions
+  const addTagToContact = (contactId: number, tagName: string) => {
+    if (!tagName.trim()) return;
+    
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact || contact.tags.includes(tagName)) return;
+    
+    const updatedTags = [...contact.tags, tagName];
+    
+    // Update local state immediately
+    if (viewingContact && viewingContact.id === contactId) {
+      setViewingContact({...viewingContact, tags: updatedTags});
+    }
+    
+    // Update in database
+    updateMutation.mutate({
+      id: contactId,
+      data: { tags: updatedTags }
+    });
+  };
+
+  const removeTagFromContact = (contactId: number, tagName: string) => {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+    
+    const updatedTags = contact.tags.filter(tag => tag !== tagName);
+    
+    // Update local state immediately
+    if (viewingContact && viewingContact.id === contactId) {
+      setViewingContact({...viewingContact, tags: updatedTags});
+    }
+    
+    // Update in database
+    updateMutation.mutate({
+      id: contactId,
+      data: { tags: updatedTags }
+    });
+  };
+
+  const addCustomTag = () => {
+    if (!newTagName.trim()) return;
+    
+    const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
+    const newTag = { name: newTagName, color: randomColor };
+    
+    setCustomTags([...customTags, newTag]);
+    setNewTagName('');
+    
+    toast({
+      title: "Tag Created",
+      description: `Custom tag "${newTagName}" has been created.`
+    });
+  };
+
+  const removeCustomTag = (tagName: string) => {
+    setCustomTags(customTags.filter(tag => tag.name !== tagName));
+    
+    toast({
+      title: "Tag Removed",
+      description: `Custom tag "${tagName}" has been removed.`
+    });
+  };
+
   const handleExport = () => {
     if (selectedContacts.length === 0) {
       toast({
@@ -510,17 +575,7 @@ export default function InvestorDatabasePage() {
     return tagColors[hash % tagColors.length];
   };
 
-  const addCustomTag = () => {
-    if (newTagName && !customTags.some(tag => tag.name === newTagName)) {
-      const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
-      setCustomTags([...customTags, { name: newTagName, color: randomColor }]);
-      setNewTagName('');
-    }
-  };
 
-  const removeCustomTag = (tagName: string) => {
-    setCustomTags(customTags.filter(tag => tag.name !== tagName));
-  };
 
   return (
     <TooltipProvider>
@@ -1000,7 +1055,9 @@ export default function InvestorDatabasePage() {
                   <Select 
                     value={viewingContact.status} 
                     onValueChange={(value) => {
-                      // Update the contact status immediately
+                      // Update the contact status immediately in local state
+                      setViewingContact({...viewingContact, status: value});
+                      // Also update in the database
                       updateMutation.mutate({
                         id: viewingContact.id,
                         status: value
@@ -1023,18 +1080,71 @@ export default function InvestorDatabasePage() {
                   </Select>
                 </div>
                 
-                {viewingContact.tags.length > 0 && (
-                  <div>
+                <div>
+                  <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
-                    <div className="flex gap-1 flex-wrap mt-1">
-                      {viewingContact.tags.map((tag, index) => (
-                        <Badge key={index} className={`${getTagColor(tag)} text-white`}>
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAddTag(!showAddTag)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Tag
+                    </Button>
                   </div>
-                )}
+                  
+                  {showAddTag && (
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Enter tag name..."
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            addTagToContact(viewingContact.id, newTagInput);
+                            setNewTagInput('');
+                            setShowAddTag(false);
+                          }
+                        }}
+                        className="text-xs"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          addTagToContact(viewingContact.id, newTagInput);
+                          setNewTagInput('');
+                          setShowAddTag(false);
+                        }}
+                        disabled={!newTagInput}
+                        className="h-8"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-1 flex-wrap mt-1">
+                    {viewingContact.tags.map((tag, index) => (
+                      <div key={index} className="flex items-center">
+                        <Badge className={`${getTagColor(tag)} text-white pr-1`}>
+                          {tag}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeTagFromContact(viewingContact.id, tag)}
+                            className="h-4 w-4 p-0 ml-1 hover:bg-white/20"
+                          >
+                            <X className="h-2 w-2" />
+                          </Button>
+                        </Badge>
+                      </div>
+                    ))}
+                    {viewingContact.tags.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No tags assigned</p>
+                    )}
+                  </div>
+                </div>
                 
                 <div>
                   <Label className="text-xs font-normal text-gray-400">First Seen</Label>
