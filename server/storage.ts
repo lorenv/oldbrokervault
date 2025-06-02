@@ -46,6 +46,7 @@ export interface IStorage {
     profilePhoto?: string;
   }): Promise<User>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<void>;
+  updateCimImages(cimId: number, imagePaths: string[]): Promise<void>;
   createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: number): Promise<void>;

@@ -26,6 +26,10 @@ import { addSignatureToNda } from "./pdf-utils";
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
 
+// Setup business images directory
+const businessImagesDir = path.join(process.cwd(), 'public', 'business-images');
+fs.mkdir(businessImagesDir, { recursive: true }).catch(console.error);
+
 // Setup secure financial files directory (outside public folder)
 const financialFilesDir = path.join(process.cwd(), 'private', 'financial-files');
 fs.mkdir(financialFilesDir, { recursive: true }).catch(console.error);
@@ -606,6 +610,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(doc);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Image upload endpoint for CIM documents
+  app.post("/api/cim/:id/upload-image", upload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.sendStatus(404);
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file uploaded" });
+      }
+
+      // Save the uploaded image using the image manager
+      const metadata = await imageManager.saveUploadedImage(
+        req.file.buffer, 
+        cimId, 
+        req.file.originalname
+      );
+
+      // Get current images and add the new one
+      const currentImages = cim.selectedImages || [];
+      const updatedImages = [...currentImages, metadata.publicPath];
+      
+      // Update the CIM document with the new image
+      await storage.updateCimImages(cimId, updatedImages);
+
+      res.json({ 
+        success: true, 
+        imagePath: metadata.publicPath,
+        metadata: metadata
+      });
+    } catch (error) {
+      console.error("Image upload error:", error);
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 
