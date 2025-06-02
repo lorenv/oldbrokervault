@@ -60,12 +60,13 @@ const statusOptions = [
 const filterFields = [
   { value: 'name', label: 'Name', type: 'text' },
   { value: 'email', label: 'Email', type: 'text' },
+  { value: 'inferred_company', label: 'Inferred Company', type: 'text' },
+  { value: 'location', label: 'Location', type: 'text' },
   { value: 'status', label: 'Status', type: 'select', options: statusOptions },
   { value: 'tags', label: 'Tags', type: 'text' },
-  { value: 'totalNdaSignatures', label: 'NDA Count', type: 'number' },
-  { value: 'lastSeenAt', label: 'Last Activity', type: 'date' },
-  { value: 'firstSeenAt', label: 'First Seen', type: 'date' },
-  { value: 'location', label: 'Location', type: 'text' },
+  { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
+  { value: 'last_activity', label: 'Last Activity', type: 'date' },
+  { value: 'first_seen', label: 'First Seen', type: 'date' },
   { value: 'isPotentialVpn', label: 'Privacy Tool Usage', type: 'boolean' }
 ];
 
