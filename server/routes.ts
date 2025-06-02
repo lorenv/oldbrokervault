@@ -541,11 +541,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedImagesLength: Array.isArray(req.body.selectedImages) ? req.body.selectedImages.length : 'not array'
       });
       
-      if (data.websiteUrl && req.body.selectedImages) {
+      // Always download selected images if provided, regardless of website URL
+      if (req.body.selectedImages) {
         try {
           const selectedImages = req.body.selectedImages;
           if (Array.isArray(selectedImages) && selectedImages.length > 0) {
-            const normalizedUrl = normalizeUrl(data.websiteUrl);
+            const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
             console.log(`Processing ${selectedImages.length} selected images in regular route...`);
             savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
             console.log(`Successfully downloaded ${savedImagePaths.length} selected images in regular route`);
@@ -647,13 +648,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       let analysis = await analyzeCimTranscript(transcript, data.directions, customizations);
       
-      // Handle selected images early in the process
+      // Handle selected images early in the process - always download if provided
       let savedImagePaths: string[] = [];
-      if (data.websiteUrl && req.body.selectedImages) {
+      if (req.body.selectedImages) {
         try {
           const selectedImages = JSON.parse(req.body.selectedImages);
           if (Array.isArray(selectedImages) && selectedImages.length > 0) {
-            const normalizedUrl = normalizeUrl(data.websiteUrl);
+            const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
             console.log(`Processing ${selectedImages.length} selected images...`);
             savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
             console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
