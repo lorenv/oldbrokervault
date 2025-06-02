@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
@@ -29,7 +30,8 @@ import {
   Tag,
   Plus,
   X,
-  Eye
+  Eye,
+  HelpCircle
 } from "lucide-react";
 import type { InvestorContact } from "@shared/schema";
 
@@ -483,23 +485,30 @@ export default function InvestorDatabasePage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Investor Database</h1>
-          <p className="text-muted-foreground">
-            Manage and track your investor contacts across all documents
-          </p>
+    <TooltipProvider>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Investor Database</h1>
+            <p className="text-muted-foreground">
+              Manage and track your investor contacts across all documents
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Selected ({selectedContacts.length})
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export selected contacts to CSV format</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-        <div className="flex gap-2">
-
-          <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Selected ({selectedContacts.length})
-          </Button>
-        </div>
-      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1115,6 +1124,7 @@ export default function InvestorDatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
