@@ -2966,6 +2966,284 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Investor Database API Routes (Premium Feature)
+  
+  // Get all investor contacts for the user
+  app.get("/api/investor-contacts", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    // Check if user has premium access
+    if (req.user.subscriptionStatus === 'free') {
+      return res.status(403).json({ error: "Premium subscription required" });
+    }
+
+    try {
+      const { search, status, sortBy = 'lastSeenAt', sortOrder = 'desc' } = req.query;
+      
+      // Import investorContacts table
+      const { investorContacts } = await import('@shared/schema');
+      const { and, like, or, desc, asc } = await import('drizzle-orm');
+      
+      let query = db.select().from(investorContacts).where(eq(investorContacts.userId, req.user.id));
+      
+      // Apply filters
+      const conditions = [eq(investorContacts.userId, req.user.id)];
+      
+      if (search) {
+        conditions.push(
+          or(
+            like(investorContacts.name, `%${search}%`),
+            like(investorContacts.email, `%${search}%`)
+          )
+        );
+      }
+      
+      if (status && status !== 'all') {
+        conditions.push(eq(investorContacts.status, status as string));
+      }
+      
+      query = db.select().from(investorContacts).where(and(...conditions));
+      
+      // Apply sorting
+      const sortColumn = investorContacts[sortBy as keyof typeof investorContacts] || investorContacts.lastSeenAt;
+      if (sortOrder === 'desc') {
+        query = query.orderBy(desc(sortColumn));
+      } else {
+        query = query.orderBy(asc(sortColumn));
+      }
+      
+      const contacts = await query;
+      
+      // Also get NDA signature data to enrich contacts
+      const { ndaSignatures } = await import('@shared/schema');
+      const allSignatures = await db.select().from(ndaSignatures);
+      
+      // Enrich contacts with NDA signature data
+      const enrichedContacts = contacts.map(contact => {
+        const signatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
+        return {
+          ...contact,
+          totalNdaSignatures: signatures.length,
+          documents: signatures.map(sig => sig.cimDocumentId),
+          lastNdaSigned: signatures.length > 0 ? Math.max(...signatures.map(sig => new Date(sig.signedAt).getTime())) : null
+        };
+      });
+      
+      res.json(enrichedContacts);
+    } catch (error) {
+      console.error('Error fetching investor contacts:', error);
+      res.status(500).json({ error: "Failed to fetch investor contacts" });
+    }
+  });
+
+  // Update investor contact
+  app.put("/api/investor-contacts/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (req.user.subscriptionStatus === 'free') {
+      return res.status(403).json({ error: "Premium subscription required" });
+    }
+
+    try {
+      const contactId = parseInt(req.params.id);
+      const { investorContacts } = await import('@shared/schema');
+      const { and } = await import('drizzle-orm');
+      
+      const [updated] = await db
+        .update(investorContacts)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(investorContacts.id, contactId),
+          eq(investorContacts.userId, req.user.id)
+        ))
+        .returning();
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating investor contact:', error);
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  // Create or update investor contact from NDA signature
+  app.post("/api/investor-contacts/sync-from-signatures", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (req.user.subscriptionStatus === 'free') {
+      return res.status(403).json({ error: "Premium subscription required" });
+    }
+
+    try {
+      const { investorContacts, ndaSignatures, cimDocuments } = await import('@shared/schema');
+      const { and, inArray } = await import('drizzle-orm');
+      
+      // Get all user's CIM documents
+      const userCims = await db.select().from(cimDocuments).where(eq(cimDocuments.userId, req.user.id));
+      const cimIds = userCims.map(cim => cim.id);
+      
+      if (cimIds.length === 0) {
+        return res.json({ synced: 0 });
+      }
+      
+      // Get all NDA signatures for user's documents
+      const signatures = await db
+        .select()
+        .from(ndaSignatures)
+        .where(inArray(ndaSignatures.cimDocumentId, cimIds));
+      
+      let syncedCount = 0;
+      
+      // Group signatures by email
+      const signaturesByEmail = signatures.reduce((acc, sig) => {
+        if (!acc[sig.signerEmail]) {
+          acc[sig.signerEmail] = [];
+        }
+        acc[sig.signerEmail].push(sig);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      // Process each unique signer
+      for (const [email, sigs] of Object.entries(signaturesByEmail)) {
+        const latestSig = sigs.sort((a, b) => new Date(b.signedAt).getTime() - new Date(a.signedAt).getTime())[0];
+        
+        // Check if contact already exists
+        const [existingContact] = await db
+          .select()
+          .from(investorContacts)
+          .where(and(
+            eq(investorContacts.userId, req.user.id),
+            eq(investorContacts.email, email)
+          ));
+        
+        if (existingContact) {
+          // Update existing contact with latest data
+          await db
+            .update(investorContacts)
+            .set({
+              totalDocumentViews: existingContact.totalDocumentViews + 1,
+              lastSeenAt: new Date(latestSig.signedAt),
+              updatedAt: new Date()
+            })
+            .where(eq(investorContacts.id, existingContact.id));
+        } else {
+          // Create new contact
+          await db
+            .insert(investorContacts)
+            .values({
+              userId: req.user.id,
+              email: email,
+              name: latestSig.signerName,
+              status: 'new',
+              totalDocumentViews: sigs.length,
+              firstSeenAt: new Date(sigs[0].signedAt),
+              lastSeenAt: new Date(latestSig.signedAt),
+              tags: []
+            });
+          syncedCount++;
+        }
+      }
+      
+      res.json({ synced: syncedCount });
+    } catch (error) {
+      console.error('Error syncing investor contacts:', error);
+      res.status(500).json({ error: "Failed to sync contacts" });
+    }
+  });
+
+  // Export investor contacts to CSV
+  app.get("/api/investor-contacts/export", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (req.user.subscriptionStatus === 'free') {
+      return res.status(403).json({ error: "Premium subscription required" });
+    }
+
+    try {
+      const { contactIds } = req.query;
+      const { investorContacts, ndaSignatures } = await import('@shared/schema');
+      const { and, inArray } = await import('drizzle-orm');
+      
+      let query = db.select().from(investorContacts).where(eq(investorContacts.userId, req.user.id));
+      
+      // If specific contacts selected, filter by IDs
+      if (contactIds) {
+        const ids = (contactIds as string).split(',').map(id => parseInt(id));
+        query = db.select().from(investorContacts).where(
+          and(
+            eq(investorContacts.userId, req.user.id),
+            inArray(investorContacts.id, ids)
+          )
+        );
+      }
+      
+      const contacts = await query;
+      
+      // Get NDA signatures for additional data
+      const allSignatures = await db.select().from(ndaSignatures);
+      
+      // Create CSV content
+      const csvHeaders = [
+        'Name',
+        'Email',
+        'Status',
+        'Tags',
+        'Total NDA Signatures',
+        'Total Document Views',
+        'Total Time Spent (minutes)',
+        'First Seen',
+        'Last Seen',
+        'Last Contact Date',
+        'Next Follow Up',
+        'Notes'
+      ];
+      
+      const csvRows = contacts.map(contact => {
+        const signatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
+        return [
+          contact.name,
+          contact.email,
+          contact.status,
+          contact.tags.join('; '),
+          signatures.length,
+          contact.totalDocumentViews,
+          contact.totalTimeSpentMinutes,
+          contact.firstSeenAt?.toISOString() || '',
+          contact.lastSeenAt?.toISOString() || '',
+          contact.lastContactDate?.toISOString() || '',
+          contact.nextFollowUpDate?.toISOString() || '',
+          contact.notes || ''
+        ];
+      });
+      
+      const csvContent = [csvHeaders, ...csvRows]
+        .map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="investor-contacts-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+      
+    } catch (error) {
+      console.error('Error exporting investor contacts:', error);
+      res.status(500).json({ error: "Failed to export contacts" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

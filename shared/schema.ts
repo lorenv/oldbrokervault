@@ -210,6 +210,25 @@ export const searchIndex = pgTable("search_index", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Investor contact management for premium users
+export const investorContacts = pgTable("investor_contacts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  notes: text("notes"),
+  tags: text("tags").array().default([]).notNull(),
+  status: text("status").default("new").notNull(), // 'new', 'contacted', 'interested', 'under_review', 'declined', 'closed'
+  lastContactDate: timestamp("last_contact_date"),
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  totalDocumentViews: integer("total_document_views").default(0).notNull(),
+  totalTimeSpentMinutes: integer("total_time_spent_minutes").default(0).notNull(),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
@@ -299,6 +318,23 @@ export type CustomSection = typeof customSections.$inferSelect;
 export type Financials = typeof financials.$inferSelect;
 export type InsertFinancials = z.infer<typeof insertFinancialsSchema>;
 export type FinancialFile = typeof financialFiles.$inferSelect;
+export type InvestorContact = typeof investorContacts.$inferSelect;
+
+export const insertInvestorContactSchema = createInsertSchema(investorContacts).pick({
+  email: true,
+  name: true,
+  notes: true,
+  tags: true,
+  status: true,
+  lastContactDate: true,
+  nextFollowUpDate: true
+}).extend({
+  email: z.string().email("Please enter a valid email address"),
+  name: z.string().min(1, "Name is required"),
+  status: z.enum(["new", "contacted", "interested", "under_review", "declined", "closed"]).optional()
+});
+
+export type InsertInvestorContact = z.infer<typeof insertInvestorContactSchema>;
 export type InsertFinancialFile = z.infer<typeof insertFinancialFileSchema>;
 export type Collaborator = typeof collaborators.$inferSelect;
 export type InsertCollaborator = z.infer<typeof insertCollaboratorSchema>;
