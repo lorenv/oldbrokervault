@@ -66,8 +66,7 @@ const filterFields = [
   { value: 'tags', label: 'Tags', type: 'text' },
   { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
   { value: 'last_activity', label: 'Last Activity', type: 'date' },
-  { value: 'first_seen', label: 'First Seen', type: 'date' },
-  { value: 'isPotentialVpn', label: 'Privacy Tool Usage', type: 'boolean' }
+  { value: 'first_seen', label: 'First Seen', type: 'date' }
 ];
 
 const operatorsByType = {
@@ -228,6 +227,34 @@ export default function InvestorDatabasePage() {
     }
   };
 
+  // Helper function to infer company from email
+  const inferCompanyFromEmail = (email: string): string => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return 'Unknown';
+    
+    // Common personal email domains
+    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com'];
+    if (personalDomains.includes(domain)) {
+      return 'Personal Email';
+    }
+    
+    // Extract company name from domain
+    const parts = domain.split('.');
+    if (parts.length >= 2) {
+      let companyPart = parts[parts.length - 2];
+      
+      // Handle common domain patterns
+      if (companyPart === 'co' && parts.length >= 3) {
+        companyPart = parts[parts.length - 3];
+      }
+      
+      // Capitalize first letter
+      return companyPart.charAt(0).toUpperCase() + companyPart.slice(1);
+    }
+    
+    return domain;
+  };
+
   // Fetch contacts
   const { data: allContacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
     queryKey: ['/api/investor-contacts'],
@@ -238,7 +265,13 @@ export default function InvestorDatabasePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
-      return response.json() as Promise<EnrichedContact[]>;
+      const contacts = await response.json() as EnrichedContact[];
+      
+      // Enrich contacts with inferred company data
+      return contacts.map(contact => ({
+        ...contact,
+        inferredCompany: inferCompanyFromEmail(contact.email)
+      }));
     }
   });
 
