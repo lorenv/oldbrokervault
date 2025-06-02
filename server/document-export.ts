@@ -1005,8 +1005,8 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               if (logoHeight > 120) {
                 logoHeight = 120;
                 logoWidth = Math.round(logoHeight / aspectRatio);
-              }
-            }
+  
+
           } else {
             const jpegSize = getJpegDimensions(logoBuffer);
             if (jpegSize) {
@@ -1018,9 +1018,9 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               if (logoHeight > 120) {
                 logoHeight = 120;
                 logoWidth = Math.round(logoHeight / aspectRatio);
-              }
-            }
-          }
+  
+
+
         } catch (error) {
           console.log("Using fallback logo dimensions due to error:", error.message);
         }
@@ -1196,15 +1196,15 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
             if (jpegSize) {
               actualWidth = jpegSize.width;
               actualHeight = jpegSize.height;
-            }
+
           } else if (fullImagePath.toLowerCase().endsWith('.png')) {
             // Simple PNG dimension reading
             const pngSize = getPngDimensions(imageBuffer);
             if (pngSize) {
               actualWidth = pngSize.width;
               actualHeight = pngSize.height;
-            }
-          }
+
+
           
           // Scale down if too large while maintaining aspect ratio
           const maxWidth = 350; // Smaller size for business images
@@ -1212,7 +1212,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
             const ratio = maxWidth / actualWidth;
             actualWidth = maxWidth;
             actualHeight = Math.round(actualHeight * ratio);
-          }
+
           
           console.log(`Adding image with actual dimensions: ${imagePath} (${actualWidth}x${actualHeight})`);
         } catch (e) {
@@ -1547,7 +1547,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
               .join(', ');
           } catch (error) {
             employeeText = "[Employee Information]";
-          }
+
         } else {
           employeeText = parts.join(', ');
         }
@@ -1807,7 +1807,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
                   transformation: {
                     width: 120,
                     height: 120
-                  }
+      
                 })
               ],
               alignment: docx.AlignmentType.CENTER,
@@ -1976,7 +1976,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           let logoPath = logoUrl;
           if (logoUrl.startsWith('/logos/')) {
             logoPath = `public${logoUrl}`;
-          }
+
           
           const path = await import('path');
           logoPath = path.resolve(process.cwd(), logoPath);
@@ -1999,9 +1999,11 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               width: 120,
               height: 120,
               fit: [120, 120]
-            });
+              });
+
+
             doc.moveDown(2);
-          }
+
         } catch (logoError) {
           console.error("Failed to add logo to PDF title page:", logoError);
         }
@@ -2033,7 +2035,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               relativePath = `public${imagePath}`;
             } else if (imagePath.startsWith('/')) {
               relativePath = imagePath.substring(1);
-            }
+
             const fullImagePath = path.resolve(process.cwd(), relativePath);
             
             if (fs.existsSync(fullImagePath)) {
@@ -2045,7 +2047,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               if (currentY + imageHeight + spacingAfter > doc.page.height - 100) {
                 doc.addPage();
                 currentY = 50; // Reset to top of new page with margin
-              }
+  
               
               // Position image explicitly with fixed coordinates
               const pageWidth = doc.page.width;
@@ -2054,17 +2056,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               
               doc.image(fullImagePath, xPosition, currentY, {
                 fit: [imageWidth, imageHeight]
-              });
+                });
+
+
               
               // Update current Y position for next image
               currentY += imageHeight + spacingAfter;
               
               // Move doc position to match our tracking
               doc.y = currentY;
-            }
+
           } catch (imageError) {
             console.error(`Failed to add image ${imagePath} to PDF:`, imageError);
-          }
+
         }
       }
 
@@ -2086,8 +2090,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
-            });
-          }
+              });
+
+
+
         } catch (error) {
           console.error("Failed to add page header logo:", error);
         }
@@ -2195,10 +2201,11 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
                 fit: [100, 50],
                 align: 'right'
               });
-            }
+
+
           } catch (error) {
             console.error("Failed to add page header logo:", error);
-          }
+
         }
       } else {
         doc.moveDown(2);
@@ -2230,7 +2237,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           analysis.marketAnalysis.competitors.forEach((competitor: string) => {
             doc.text(`• ${safeStringify(competitor)}`, {
               width: doc.page.width - 120
-            });
+              });
+
+
           });
           doc.moveDown(1);
         }
@@ -2241,7 +2250,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           analysis.marketAnalysis.strengths.forEach((strength: string) => {
             doc.text(`• ${safeStringify(strength)}`, {
               width: doc.page.width - 120
-            });
+              });
+
+
           });
         }
       }
@@ -2256,10 +2267,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
-            });
+              });
+
+
           } catch (error) {
             console.error("Failed to add page header logo:", error);
-          }
+
         }
       } else {
         doc.moveDown(2);
@@ -2283,8 +2296,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (customers.recurring && !String(customers.recurring).includes('[NOT MENTIONED]')) {
             doc.text(`Recurring Revenue: ${safeStringify(customers.recurring)}`, {
               width: doc.page.width - 100
-            });
-          }
+              });
+
+
+
           doc.text(`Customer Base: ${safeStringify(customers.relationships)}`, {
             width: doc.page.width - 100
           });
@@ -2292,8 +2307,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (customers.concentration && !String(customers.concentration).includes('[NOT MENTIONED]')) {
             doc.text(`Revenue Concentration: ${safeStringify(customers.concentration)}`, {
               width: doc.page.width - 100
-            });
-          }
+              });
+
+
+
           doc.moveDown(1);
         }
         
@@ -2329,8 +2346,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
-            });
-          }
+              });
+
+
+
         } catch (error) {
           console.error("Failed to add page header logo:", error);
         }
@@ -2365,7 +2384,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
             if (typeof employee === 'string') {
               doc.text(`• ${safeStringify(employee)}`, {
                 width: doc.page.width - 120
-              });
+                });
+
+
             } else if (typeof employee === 'object' && employee !== null) {
               const parts = [];
               if (employee.role) parts.push(`Role: ${safeStringify(employee.role)}`);
@@ -2373,12 +2394,16 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               
               doc.text(`• ${parts.length > 0 ? parts.join(', ') : 'Employee info not provided'}`, {
                 width: doc.page.width - 120
-              });
+                });
+
+
             } else {
               doc.text(`• ${safeStringify(employee)}`, {
                 width: doc.page.width - 120
-              });
-            }
+                });
+
+
+
           });
         }
       }
@@ -2393,10 +2418,12 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
-            });
+              });
+
+
           } catch (error) {
             console.error("Failed to add page header logo:", error);
-          }
+
         }
       } else {
         doc.moveDown(2);
@@ -2443,11 +2470,13 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               doc.image(fullLogoPath, doc.page.width - 150, 30, {
                   fit: [100, 50],
                   align: 'right'
-              });
+                });
+
+
             } catch (error) {
               console.error("Failed to add page header logo:", error);
-            }
-          }
+
+
         } else {
           doc.moveDown(2);
         }
@@ -2468,7 +2497,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           analysis.marketing.strategies.forEach((strategy: string) => {
             doc.text(`• ${safeStringify(strategy)}`, {
               width: doc.page.width - 120
-            });
+              });
+
+
           });
           doc.moveDown(1);
         }
@@ -2479,15 +2510,19 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           analysis.marketing.paidAdvertising.channels.forEach((channel: string) => {
             doc.text(`• ${safeStringify(channel)}`, {
               width: doc.page.width - 120
-            });
+              });
+
+
           });
           
           if (analysis.marketing.paidAdvertising.effectiveness) {
             doc.moveDown(0.5);
             doc.text(`Effectiveness: ${safeStringify(analysis.marketing.paidAdvertising.effectiveness)}`, {
               width: doc.page.width - 100
-            });
-          }
+              });
+
+
+
           doc.moveDown(1);
         }
         
@@ -2499,8 +2534,10 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           if (analysis.marketing.emailMarketing.usage) {
             doc.text(`Usage: ${safeStringify(analysis.marketing.emailMarketing.usage)}`, {
               width: doc.page.width - 100
-            });
-          }
+              });
+
+
+
         }
       }
 
@@ -2529,12 +2566,14 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               const centerX = doc.page.width / 2 - 60; // Center the 120px wide image
               doc.image(profilePhotoPath, centerX, doc.y, {
                 fit: [120, 120]
-              });
+                });
+
+
               doc.moveDown(8); // Move down to account for image height
-            }
+
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
-          }
+
         }
         
         if (userProfile.name) {
@@ -2723,7 +2762,7 @@ export async function exportToGoogleDocs(analysis: any, title: string): Promise<
               .join(', ')}\n`;
           } catch (error) {
             formattedContent += `• Employee information (could not format details)\n`;
-          }
+
         } else {
           formattedContent += `• ${parts.join(', ')}\n`;
         }
