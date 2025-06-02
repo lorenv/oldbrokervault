@@ -223,9 +223,10 @@ export default function InvestorDatabasePage() {
             onClick={() => syncMutation.mutate()} 
             disabled={syncMutation.isPending}
             variant="outline"
+            size="sm"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {syncMutation.isPending ? 'Syncing...' : 'Sync from NDAs'}
+            {syncMutation.isPending ? 'Refreshing...' : 'Refresh Data'}
           </Button>
           <Button onClick={handleExport} disabled={isLoading}>
             <Download className="h-4 w-4 mr-2" />
