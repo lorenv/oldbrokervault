@@ -18,6 +18,7 @@ import {
   Filter, 
   ChevronUp, 
   ChevronDown, 
+  ChevronRight,
   Edit, 
   Calendar,
   Users,
@@ -28,9 +29,16 @@ import {
 } from "lucide-react";
 import type { InvestorContact } from "@shared/schema";
 
+interface DocumentInfo {
+  documentId: number;
+  documentTitle: string;
+  signedAt: string;
+  signerName: string;
+}
+
 interface EnrichedContact extends InvestorContact {
   totalNdaSignatures: number;
-  documents: number[];
+  documents: DocumentInfo[];
   lastNdaSigned: number | null;
 }
 
@@ -56,6 +64,7 @@ export default function InvestorDatabasePage() {
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [expandedContact, setExpandedContact] = useState<number | null>(null);
   
   // Edit dialog state
   const [editingContact, setEditingContact] = useState<EnrichedContact | null>(null);

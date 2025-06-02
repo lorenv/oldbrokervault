@@ -3065,10 +3065,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           
           const enrichedContacts = updatedContacts.map(contact => {
             const contactSignatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
+            const contactDocuments = contactSignatures.map(sig => {
+              const doc = userCims.find(d => d.id === sig.cimDocumentId);
+              return {
+                documentId: sig.cimDocumentId,
+                documentTitle: doc?.title || 'Unknown Document',
+                signedAt: sig.signedAt,
+                signerName: sig.signerName
+              };
+            });
+            
             return {
               ...contact,
               totalNdaSignatures: contactSignatures.length,
-              documents: contactSignatures.map(sig => sig.cimDocumentId),
+              documents: contactDocuments,
               lastNdaSigned: contactSignatures.length > 0 ? Math.max(...contactSignatures.map(sig => new Date(sig.signedAt).getTime())) : null
             };
           });
@@ -3081,13 +3091,27 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const { ndaSignatures } = await import('@shared/schema');
       const allSignatures = await db.select().from(ndaSignatures);
       
+      // Get CIM document details for enrichment
+      const { cimDocuments } = await import('@shared/schema');
+      const allDocuments = await db.select().from(cimDocuments);
+      
       // Enrich contacts with NDA signature data
       const enrichedContacts = contacts.map(contact => {
         const signatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
+        const contactDocuments = signatures.map(sig => {
+          const doc = allDocuments.find(d => d.id === sig.cimDocumentId);
+          return {
+            documentId: sig.cimDocumentId,
+            documentTitle: doc?.title || 'Unknown Document',
+            signedAt: sig.signedAt,
+            signerName: sig.signerName
+          };
+        });
+        
         return {
           ...contact,
           totalNdaSignatures: signatures.length,
-          documents: signatures.map(sig => sig.cimDocumentId),
+          documents: contactDocuments,
           lastNdaSigned: signatures.length > 0 ? Math.max(...signatures.map(sig => new Date(sig.signedAt).getTime())) : null
         };
       });
