@@ -112,13 +112,88 @@ export function normalizeUrl(urlString: string): string {
 }
 
 /**
- * Image extraction functionality disabled to improve performance
- * @param websiteUrl The URL of the website
- * @returns Promise resolving to empty array (image extraction disabled)
+ * Extracts image URLs from a website using lightweight HTML parsing
+ * @param websiteUrl The URL of the website to extract images from
+ * @returns Promise resolving to an array of image URLs
  */
 export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
-  console.log('Website image extraction disabled for better performance');
-  return [];
+  try {
+    console.log(`Starting lightweight image extraction for: ${websiteUrl}`);
+    
+    // Normalize and validate URL
+    const normalizedUrl = normalizeUrl(websiteUrl);
+    console.log(`Extracting images from normalized URL: ${normalizedUrl}`);
+    
+    // Fetch the website HTML directly (no browser needed)
+    const response = await fetch(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      timeout: 10000 // 10 second timeout
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    
+    const html = await response.text();
+    console.log(`Fetched HTML content, length: ${html.length} bytes`);
+    
+    // Extract the base URL for resolving relative paths
+    const urlObj = new URL(normalizedUrl);
+    const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+    
+    // Extract image URLs using regex patterns
+    const imgTagPattern = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    const imageUrls: string[] = [];
+    let match;
+    
+    while ((match = imgTagPattern.exec(html)) !== null && imageUrls.length < 10) {
+      let imageUrl = match[1];
+      
+      // Skip if it's clearly not a content image
+      const lowercaseUrl = imageUrl.toLowerCase();
+      if (lowercaseUrl.includes('spacer') ||
+          lowercaseUrl.includes('pixel') ||
+          lowercaseUrl.includes('blank') ||
+          lowercaseUrl.includes('loading') ||
+          lowercaseUrl.includes('spinner') ||
+          lowercaseUrl.includes('icon') ||
+          lowercaseUrl.includes('logo') ||
+          lowercaseUrl.endsWith('.svg') ||
+          imageUrl.length < 20) {
+        continue;
+      }
+      
+      // Resolve relative URLs
+      if (imageUrl.startsWith('//')) {
+        imageUrl = urlObj.protocol + imageUrl;
+      } else if (imageUrl.startsWith('/')) {
+        imageUrl = baseUrl + imageUrl;
+      } else if (!imageUrl.startsWith('http')) {
+        imageUrl = baseUrl + '/' + imageUrl;
+      }
+      
+      // Verify the image URL is accessible
+      try {
+        const imgResponse = await fetch(imageUrl, { method: 'HEAD', timeout: 3000 });
+        if (imgResponse.ok) {
+          imageUrls.push(imageUrl);
+        }
+      } catch (error) {
+        // Skip this image if not accessible
+        continue;
+      }
+    }
+    
+    console.log(`Extracted ${imageUrls.length} accessible images from website`);
+    return imageUrls;
+    
+  } catch (error) {
+    console.error('Failed to extract website images:', error);
+    return [];
+  }
 }
 
 /**
