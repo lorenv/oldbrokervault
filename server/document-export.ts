@@ -4,6 +4,16 @@ import { google } from "googleapis";
 import * as docx from "docx";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
+import path from 'path';
+import fs from 'fs';
+
+// Helper function to resolve image paths correctly
+function resolveImagePath(imagePath: string): string {
+  if (!imagePath) return '';
+  return imagePath.startsWith('/') 
+    ? path.resolve(process.cwd(), 'public' + imagePath)
+    : imagePath;
+}
 
 export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
 
@@ -1784,6 +1794,32 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
       })
     );
 
+    // Add profile photo if available
+    if (userProfile.profilePhoto) {
+      try {
+        const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+        if (fs.existsSync(profilePhotoPath)) {
+          paragraphs.push(
+            new docx.Paragraph({
+              children: [
+                new docx.ImageRun({
+                  data: fs.readFileSync(profilePhotoPath),
+                  transformation: {
+                    width: 120,
+                    height: 120
+                  }
+                })
+              ],
+              alignment: docx.AlignmentType.CENTER,
+              spacing: { before: 100, after: 100 }
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Failed to add profile photo to Word document:", error);
+      }
+    }
+
     if (userProfile.name) {
       paragraphs.push(
         new docx.Paragraph({
@@ -2153,7 +2189,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
+            const fullLogoPath = resolveImagePath(logoUrl);
+            if (fs.existsSync(fullLogoPath)) {
+              doc.image(fullLogoPath, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2212,7 +2250,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
+            const fullLogoPath = resolveImagePath(logoUrl);
+            if (fs.existsSync(fullLogoPath)) {
+              doc.image(fullLogoPath, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2347,7 +2387,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
         doc.addPage();
         if (logoUrl) {
           try {
-            doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
+            const fullLogoPath = resolveImagePath(logoUrl);
+            if (fs.existsSync(fullLogoPath)) {
+              doc.image(fullLogoPath, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
@@ -2395,7 +2437,9 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
           doc.addPage();
           if (logoUrl) {
             try {
-              doc.image(logoUrl.startsWith("/") ? path.resolve(process.cwd(), "public" + logoUrl) : logoUrl, doc.page.width - 150, 30, {
+              const fullLogoPath = resolveImagePath(logoUrl);
+            if (fs.existsSync(fullLogoPath)) {
+              doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
               });
@@ -2475,6 +2519,22 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
            .text('Contact Information', { align: 'center' });
         
         doc.moveDown(1);
+        
+        // Add profile photo if available
+        if (userProfile.profilePhoto) {
+          try {
+            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+            if (fs.existsSync(profilePhotoPath)) {
+              const centerX = doc.page.width / 2 - 60; // Center the 120px wide image
+              doc.image(profilePhotoPath, centerX, doc.y, {
+                fit: [120, 120]
+              });
+              doc.moveDown(8); // Move down to account for image height
+            }
+          } catch (error) {
+            console.error("Failed to add profile photo to PDF:", error);
+          }
+        }
         
         if (userProfile.name) {
           doc.fontSize(12)
