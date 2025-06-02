@@ -120,10 +120,20 @@ export function DocumentExport({
   };
 
   const updateShareSettings = async () => {
-    if (!docId) return;
+    if (!docId) {
+      console.log('❌ updateShareSettings: No docId provided');
+      return;
+    }
+    
+    console.log('🔄 Starting share settings update...', {
+      docId,
+      shareSettings,
+      userId: user?.id
+    });
     
     // Validate NDA template selection when NDA protection is enabled
     if (shareSettings.ndaProtected && !shareSettings.ndaTemplateId) {
+      console.log('❌ NDA validation failed: NDA protection enabled but no template selected');
       toast({
         title: "NDA Template Required",
         description: "Please select an NDA template when enabling NDA protection.",
@@ -137,29 +147,52 @@ export function DocumentExport({
       const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
       const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
       
-      const response = await apiRequest('POST', `/api/cim/${docId}/share`, {
+      const payload = {
         shareEnabled: shareSettings.shareEnabled,
         shareSlug: slug,
         sharePassword: shareSettings.sharePassword || null,
         shareExpiresAt: expiresAt,
         ndaProtected: shareSettings.ndaProtected,
         ndaTemplateId: shareSettings.ndaTemplateId
+      };
+      
+      console.log('📡 Sending share settings update request:', payload);
+      
+      const response = await apiRequest('POST', `/api/cim/${docId}/share`, payload);
+      
+      console.log('📡 Share settings update response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Share settings updated successfully:', result);
+        
         if (result.shareSlug) {
-          setShareUrl(`${window.location.origin}/share/${result.shareSlug}`);
+          const url = `${window.location.origin}/share/${result.shareSlug}`;
+          console.log('🔗 Setting share URL:', url);
+          setShareUrl(url);
         }
         toast({
           title: "Share settings updated",
           description: shareSettings.shareEnabled ? "Your CIM is now shareable!" : "Sharing has been disabled",
         });
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Share settings update failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`Failed to update settings: ${response.status} - ${errorText}`);
       }
     } catch (error) {
+      console.error('❌ Error updating share settings:', error);
       toast({
         title: "Error updating share settings",
-        description: "Please try again",
+        description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -269,13 +302,27 @@ export function DocumentExport({
 
   // Fetch current share settings for the document
   const fetchShareSettings = async () => {
-    if (!docId) return;
+    if (!docId) {
+      console.log('❌ fetchShareSettings: No docId provided');
+      return;
+    }
+    
+    console.log('🔍 Fetching share settings for document:', docId);
     
     try {
       const response = await apiRequest('GET', `/api/cim/${docId}`);
+      console.log('📡 Share settings response status:', response.status);
+      
       if (response.ok) {
         const doc = await response.json();
-        setShareSettings({
+        console.log('📋 Document data received:', {
+          shareEnabled: doc.shareEnabled,
+          shareSlug: doc.shareSlug,
+          ndaProtected: doc.ndaProtected,
+          ndaTemplateId: doc.ndaTemplateId
+        });
+        
+        const newSettings = {
           shareEnabled: doc.shareEnabled || false,
           shareSlug: doc.shareSlug || '',
           sharePassword: doc.sharePassword || '',
@@ -283,16 +330,26 @@ export function DocumentExport({
           customSlug: doc.shareSlug || '',
           ndaProtected: doc.ndaProtected || false,
           ndaTemplateId: doc.ndaTemplateId || null
-        });
+        };
+        
+        console.log('🔄 Setting new share settings:', newSettings);
+        setShareSettings(newSettings);
         
         // Set share URL if sharing is enabled
         if (doc.shareEnabled && doc.shareSlug) {
           const baseUrl = window.location.origin;
-          setShareUrl(`${baseUrl}/share/${doc.shareSlug}`);
+          const url = `${baseUrl}/share/${doc.shareSlug}`;
+          console.log('🔗 Setting share URL:', url);
+          setShareUrl(url);
+        } else {
+          console.log('🚫 No share URL to set (sharing disabled or no slug)');
+          setShareUrl('');
         }
+      } else {
+        console.error('❌ Failed to fetch document:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching share settings:', error);
+      console.error('❌ Error fetching share settings:', error);
     }
   };
 
@@ -966,7 +1023,7 @@ export function DocumentExport({
 
       {/* Enhanced Share Dialog with NDA Protection */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Share Your CIM</DialogTitle>
             <DialogDescription>
@@ -974,12 +1031,13 @@ export function DocumentExport({
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="share-settings" className="w-full">
+          <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
               <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
             </TabsList>
+            <div className="flex-1 overflow-y-auto mt-4">
 
             <TabsContent value="share-settings" className="space-y-6">
               {/* Basic Share Settings - Moved to Top */}
@@ -1385,6 +1443,7 @@ export function DocumentExport({
                 </CardContent>
               </Card>
             </TabsContent>
+            </div>
           </Tabs>
 
           <div className="flex justify-end gap-2 pt-4">
