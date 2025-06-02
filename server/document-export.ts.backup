@@ -2194,8 +2194,7 @@ export async function generatePDF(analysis: any, docTitle?: string, logoUrl?: st
               doc.image(fullLogoPath, doc.page.width - 150, 30, {
                 fit: [100, 50],
                 align: 'right'
-              });
-            }
+            });
           } catch (error) {
             console.error("Failed to add page header logo:", error);
           }
