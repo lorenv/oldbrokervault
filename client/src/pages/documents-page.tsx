@@ -166,7 +166,9 @@ export default function DocumentsPage() {
       });
       if (!response.ok) throw new Error('Failed to fetch documents');
       return response.json();
-    }
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false
   });
   
   const documents = paginatedData?.documents || [];
@@ -409,21 +411,35 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
-                      {doc.title}
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
+                        {doc.title}
+                      </CardTitle>
+                      {doc.logoUrl && (
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={doc.logoUrl} 
+                            alt="Company logo" 
+                            className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
-                      </div>
-                      <div className="flex items-center gap-1">
                         <PenTool className="h-3 w-3" />
                         {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
                       </div>
                     </div>
                   </div>
