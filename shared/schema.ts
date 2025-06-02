@@ -109,6 +109,14 @@ export const customSections = pgTable("custom_sections", {
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
+export const customTags = pgTable("custom_tags", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 export const ndaTemplates = pgTable("nda_templates", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -295,6 +303,12 @@ export const insertFinancialFileSchema = createInsertSchema(financialFiles).pick
   fileSize: true,
   mimeType: true,
   included: true
+});
+
+export const insertCustomTagSchema = createInsertSchema(customTags).pick({
+  userId: true,
+  name: true,
+  color: true
 });
 
 export const insertCollaboratorSchema = createInsertSchema(collaborators).pick({

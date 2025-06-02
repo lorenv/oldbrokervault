@@ -89,6 +89,10 @@ export interface IStorage {
   inviteCollaborator(collaborator: InsertCollaborator): Promise<Collaborator>;
   getCollaborators(cimDocumentId: number): Promise<Collaborator[]>;
   getCollaboratorAccess(cimDocumentId: number, userId: number): Promise<{ permission: string } | null>;
+  // Custom Tags
+  createCustomTag(userId: number, name: string, color: string): Promise<any>;
+  getCustomTags(userId: number): Promise<any[]>;
+  deleteCustomTag(id: number, userId: number): Promise<void>;
   sessionStore: session.Store;
 }
 
