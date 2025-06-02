@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections, ndaTemplates, ndaSignatures, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, customSections, ndaTemplates, ndaSignatures, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -669,6 +669,30 @@ export class DatabaseStorage implements IStorage {
       );
     
     return collaborator || null;
+  }
+
+  async createCustomTag(userId: number, name: string, color: string): Promise<any> {
+    const [newTag] = await db.insert(customTags)
+      .values({
+        userId,
+        name,
+        color
+      })
+      .returning();
+
+    return newTag;
+  }
+
+  async getCustomTags(userId: number): Promise<any[]> {
+    return await db.select()
+      .from(customTags)
+      .where(eq(customTags.userId, userId))
+      .orderBy(asc(customTags.name));
+  }
+
+  async deleteCustomTag(id: number, userId: number): Promise<void> {
+    await db.delete(customTags)
+      .where(sql`${customTags.id} = ${id} AND ${customTags.userId} = ${userId}`);
   }
 }
 
