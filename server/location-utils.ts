@@ -47,9 +47,14 @@ export async function estimateLocationFromIP(ip: string): Promise<LocationResult
 
   try {
     // Use free IP geolocation service (ip-api.com)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,regionName,city,isp,org,as,mobile,proxy,hosting`, {
-      timeout: 5000
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error('IP service unavailable');
