@@ -302,6 +302,9 @@ export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InsertFinancialFile = z.infer<typeof insertFinancialFileSchema>;
 export type Collaborator = typeof collaborators.$inferSelect;
 export type InsertCollaborator = z.infer<typeof insertCollaboratorSchema>;
+export type DocumentVersion = typeof documentVersions.$inferSelect;
+export type DocumentAnalytics = typeof documentAnalytics.$inferSelect;
+export type SearchIndex = typeof searchIndex.$inferSelect;
 
 // Default analysis prompt for CIM generation
 export const DEFAULT_CIM_DIRECTIONS = `You are to create custom text for generating an offering memorandum. This includes extracting the exact questions from the knowledge base attached and applying them to the new memorandum. The answers for the Q&A section are derived directly from a provided transcript, ensuring alignment with the new data while maintaining the example's aesthetic and organizational consistency. The answers should have a professional tone, and give as much pertinent information as possible. If the answer is not provided by the transcript, you can remove the question from the CIM.
