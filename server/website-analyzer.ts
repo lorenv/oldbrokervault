@@ -5,48 +5,8 @@
  */
 import { PERPLEXITY_API_URL } from './perplexity';
 import fetch from 'node-fetch';
-import puppeteer from 'puppeteer';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import sharp from 'sharp';
 
-// Function to add rounded corners to images using Sharp
-async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
-  try {
-    // Get image metadata
-    const image = sharp(imageBuffer);
-    const metadata = await image.metadata();
-    
-    if (!metadata.width || !metadata.height) {
-      throw new Error('Could not determine image dimensions');
-    }
 
-    // Create rounded rectangle mask
-    const roundedCorners = Buffer.from(
-      `<svg width="${metadata.width}" height="${metadata.height}">
-        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
-      </svg>`
-    );
-
-    // Apply the mask to create rounded corners with transparent background
-    const processedImage = await sharp(imageBuffer)
-      .png() // Convert to PNG to support transparency
-      .composite([
-        {
-          input: roundedCorners,
-          blend: 'dest-in'
-        }
-      ])
-      .toBuffer();
-
-    return processedImage;
-  } catch (error) {
-    console.error('Error adding rounded corners:', error);
-    // Return original buffer if processing fails
-    return imageBuffer;
-  }
-}
 
 // Define the Perplexity API response type
 interface PerplexityResponse {
@@ -152,42 +112,13 @@ export function normalizeUrl(urlString: string): string {
 }
 
 /**
- * Extracts the first 10 images from a website
- * @param websiteUrl The URL of the website to extract images from
- * @returns Promise resolving to an array of image URLs
+ * Image extraction functionality disabled to improve performance
+ * @param websiteUrl The URL of the website
+ * @returns Promise resolving to empty array (image extraction disabled)
  */
 export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
-  console.log(`Starting image extraction for: ${websiteUrl}`);
-  
-  try {
-    // Normalize and validate URL
-    const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log(`Extracting images from normalized URL: ${normalizedUrl}`);
-    
-    // Launch puppeteer browser
-    console.log('Launching headless browser for image extraction...');
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
-      ]
-    });
-    
-    try {
-      // Open a new page
-      const page = await browser.newPage();
-      
-      // Navigate to URL with timeout
-      console.log(`Navigating to: ${normalizedUrl}`);
+  console.log('Website image extraction disabled for better performance');
+  return [];
       await page.goto(normalizedUrl, {
         waitUntil: 'networkidle2',
         timeout: 30000
