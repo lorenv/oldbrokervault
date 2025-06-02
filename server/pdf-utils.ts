@@ -51,12 +51,14 @@ export function addSignatureToNda(
             size: 12,
           });
           
-          // Add signer name (signature style)
+          // Add signer name (signature style) - using cursive-like styling
+          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanItalic);
           signaturePage.drawText(signerName, {
             x: 60,
             y: height - 230,
-            size: 20,
-            color: pdfLib.rgb(0, 0, 0.8),
+            size: 24,
+            font: signatureFont,
+            color: pdfLib.rgb(0, 0, 0.5),
           });
           
           // Add date
@@ -91,67 +93,167 @@ export function addSignatureToNda(
           
           // Create Certificate of Completion page
           const certificatePage = pdfDoc.addPage([612, 792]);
+          const certWidth = certificatePage.getSize().width;
+          const certHeight = certificatePage.getSize().height;
           
-          // Certificate header
-          certificatePage.drawText('CERTIFICATE OF COMPLETION', {
-            x: width / 2 - 120,
-            y: height - 80,
-            size: 20,
-            color: pdfLib.rgb(0, 0, 0),
+          // Draw grey header background (DocuSign style)
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 120,
+            width: certWidth,
+            height: 80,
+            color: pdfLib.rgb(0.9, 0.9, 0.9),
           });
           
-          // Certificate content
-          const certificateText = [
-            'This certificate confirms that the Non-Disclosure Agreement has been',
-            'executed and completed in accordance with applicable electronic signature laws.',
-            '',
-            `Document Title: Non-Disclosure Agreement`,
-            `Completion Date: ${signedDate.toLocaleString()}`,
-            `Signer: ${signerName}`,
-            `Email: ${signerEmail || 'Not provided'}`,
-            `IP Address: ${signerIpAddress || 'Not recorded'}`,
-            '',
-            'AUDIT TRAIL:',
-            `• Document prepared: ${signedDate.toLocaleDateString()}`,
-            `• Document sent for signature: ${signedDate.toLocaleDateString()}`,
-            `• Document signed: ${signedDate.toLocaleString()}`,
-            `• Authentication method: Email verification`,
-            `• Security: IP address tracking enabled`,
-            '',
-            'DOCUMENT INTEGRITY:',
-            `• Original document preserved`,
-            `• Digital signature applied`,
-            `• Tamper-evident technology used`,
-            `• Legal compliance verified`,
-            '',
-            'This document has been completed in compliance with the Electronic',
-            'Signatures in Global and National Commerce Act (ESIGN) and the',
-            'Uniform Electronic Transactions Act (UETA).',
-          ];
+          // Certificate header in bold
+          const headerFont = await pdfDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
+          certificatePage.drawText('Certificate of Completion', {
+            x: 50,
+            y: certHeight - 70,
+            size: 18,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
           
-          let yPosition = height - 140;
-          certificateText.forEach((line) => {
-            if (line.startsWith('AUDIT TRAIL:') || line.startsWith('DOCUMENT INTEGRITY:')) {
-              certificatePage.drawText(line, {
-                x: 50,
-                y: yPosition,
-                size: 14,
-                color: pdfLib.rgb(0, 0, 0),
-              });
-            } else if (line.startsWith('•')) {
-              certificatePage.drawText(line, {
-                x: 70,
-                y: yPosition,
-                size: 10,
-              });
-            } else {
-              certificatePage.drawText(line, {
-                x: 50,
-                y: yPosition,
-                size: 12,
-              });
-            }
-            yPosition -= 20;
+          // Status indicator
+          certificatePage.drawText('Status: Completed', {
+            x: certWidth - 150,
+            y: certHeight - 70,
+            size: 12,
+            font: headerFont,
+            color: pdfLib.rgb(0.0, 0.6, 0.0),
+          });
+          
+          // Document details section
+          const regularFont = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
+          
+          // Document information box
+          certificatePage.drawRectangle({
+            x: 30,
+            y: certHeight - 220,
+            width: certWidth - 60,
+            height: 80,
+            borderColor: pdfLib.rgb(0.8, 0.8, 0.8),
+            borderWidth: 1,
+          });
+          
+          certificatePage.drawText('Document: Non-Disclosure Agreement', {
+            x: 50,
+            y: certHeight - 160,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          certificatePage.drawText(`Signer: ${signerName}`, {
+            x: 50,
+            y: certHeight - 180,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          certificatePage.drawText(`Email: ${signerEmail || 'Not provided'}`, {
+            x: 50,
+            y: certHeight - 200,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          // Signature section header
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 280,
+            width: certWidth,
+            height: 30,
+            color: pdfLib.rgb(0.95, 0.95, 0.95),
+          });
+          
+          certificatePage.drawText('Signature Events', {
+            x: 50,
+            y: certHeight - 270,
+            size: 14,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
+          
+          // Signature details
+          certificatePage.drawText(`Signed: ${signedDate.toLocaleString()}`, {
+            x: 50,
+            y: certHeight - 320,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText(`IP Address: ${signerIpAddress || 'Not recorded'}`, {
+            x: 50,
+            y: certHeight - 340,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText('Security Level: Email Verification', {
+            x: 50,
+            y: certHeight - 360,
+            size: 12,
+            font: regularFont,
+          });
+          
+          // Record tracking section
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 430,
+            width: certWidth,
+            height: 30,
+            color: pdfLib.rgb(0.95, 0.95, 0.95),
+          });
+          
+          certificatePage.drawText('Record Tracking', {
+            x: 50,
+            y: certHeight - 420,
+            size: 14,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
+          
+          certificatePage.drawText('Status: Original', {
+            x: 50,
+            y: certHeight - 460,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText(`Document ID: CIM-NDA-${Date.now().toString().slice(-8)}`, {
+            x: 50,
+            y: certHeight - 480,
+            size: 12,
+            font: regularFont,
+          });
+          
+          // Legal compliance footer
+          certificatePage.drawText('Electronic Record and Signature Disclosure:', {
+            x: 50,
+            y: certHeight - 540,
+            size: 10,
+            font: headerFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
+          });
+          
+          certificatePage.drawText('This document has been completed in compliance with the Electronic Signatures', {
+            x: 50,
+            y: certHeight - 560,
+            size: 9,
+            font: regularFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
+          });
+          
+          certificatePage.drawText('in Global and National Commerce Act (ESIGN) and applicable state laws.', {
+            x: 50,
+            y: certHeight - 575,
+            size: 9,
+            font: regularFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
           });
           
           console.log('📝 Creating signature page...');
