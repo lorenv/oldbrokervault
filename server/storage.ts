@@ -2,7 +2,7 @@ import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, us
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, sql, desc, count } from "drizzle-orm";
+import { eq, sql, desc, count, and, or, ilike } from "drizzle-orm";
 import { asc } from "drizzle-orm";
 
 const PostgresSessionStore = connectPg(session);
@@ -26,7 +26,7 @@ export interface IStorage {
     ebitda?: string | null;
     ebitdaIncluded?: boolean;
   }): Promise<CimDocument>;
-  getCimDocuments(userId: number): Promise<CimDocument[]>;
+  getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
@@ -234,22 +234,68 @@ export class DatabaseStorage implements IStorage {
     return cimDoc;
   }
 
-  async getCimDocuments(userId: number): Promise<CimDocument[]> {
-    const results = await db
-      .select({
-        ...cimDocuments,
-        ndaSignatureCount: count(ndaSignatures.id),
-      })
-      .from(cimDocuments)
-      .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
-      .where(eq(cimDocuments.userId, userId))
-      .groupBy(cimDocuments.id)
-      .orderBy(desc(cimDocuments.createdAt));
+  async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 12;
+    const offset = (page - 1) * limit;
+    const search = options?.search?.trim();
 
-    return results.map(result => ({
-      ...result,
-      ndaSignatureCount: Number(result.ndaSignatureCount)
-    }));
+    // Build base query
+    let whereCondition = eq(cimDocuments.userId, userId);
+    
+    // Add search condition if provided
+    if (search) {
+      const searchCondition = or(
+        ilike(cimDocuments.title, `%${search}%`),
+        ilike(cimDocuments.directions, `%${search}%`)
+      );
+      if (searchCondition) {
+        whereCondition = and(
+          eq(cimDocuments.userId, userId),
+          searchCondition
+        );
+      }
+    }
+
+    // Get total count for pagination
+    const [totalCount] = await db
+      .select({ count: count() })
+      .from(cimDocuments)
+      .where(whereCondition);
+
+    const total = Number(totalCount.count);
+
+    // Get paginated results 
+    const results = await db
+      .select()
+      .from(cimDocuments)
+      .where(whereCondition)
+      .orderBy(desc(cimDocuments.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Count NDA signatures for each document
+    const documents = await Promise.all(
+      results.map(async (result) => {
+        const [signatureCount] = await db
+          .select({ count: count() })
+          .from(ndaSignatures)
+          .where(eq(ndaSignatures.cimDocumentId, result.id));
+        
+        return {
+          ...result,
+          ndaSignatureCount: Number(signatureCount.count)
+        };
+      })
+    );
+
+    const hasMore = offset + documents.length < total;
+
+    return {
+      documents,
+      total,
+      hasMore
+    };
   }
 
   async getAllUsers(): Promise<User[]> {
