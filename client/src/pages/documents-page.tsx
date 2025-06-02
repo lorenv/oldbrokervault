@@ -386,7 +386,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       </div>
                       <div className="flex items-center gap-1">
                         <PenTool className="h-3 w-3" />
-                        {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''}
+                        {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''} signed
                       </div>
                     </div>
                   </div>
