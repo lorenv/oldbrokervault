@@ -214,14 +214,15 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange }: C
           )}
         </div>
 
-        {isOwner && (
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline">
-                <UserPlus className="h-4 w-4 mr-1" />
-                Invite
-              </Button>
-            </DialogTrigger>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="default">
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Invite Team Member
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Invite Collaborator</DialogTitle>
@@ -263,8 +264,9 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange }: C
                 </div>
               </form>
             </DialogContent>
-          </Dialog>
-        )}
+            </Dialog>
+          )}
+        </div>
       </div>
 
       {/* Collaborators List */}
