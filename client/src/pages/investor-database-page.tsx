@@ -25,7 +25,10 @@ import {
   FileText,
   Clock,
   RefreshCw,
-  Tag
+  Tag,
+  Plus,
+  X,
+  Eye
 } from "lucide-react";
 import type { InvestorContact } from "@shared/schema";
 
@@ -51,6 +54,26 @@ const statusOptions = [
   { value: 'closed', label: 'Closed', color: 'bg-gray-500' }
 ];
 
+const filterFields = [
+  { value: 'name', label: 'Name' },
+  { value: 'email', label: 'Email' },
+  { value: 'status', label: 'Status' },
+  { value: 'tags', label: 'Tags' },
+  { value: 'totalNdaSignatures', label: 'NDA Count' },
+  { value: 'lastSeenAt', label: 'Last Activity' },
+  { value: 'firstSeenAt', label: 'First Seen' }
+];
+
+const filterOperators = [
+  { value: 'contains', label: 'Contains' },
+  { value: 'equals', label: 'Equals' },
+  { value: 'not_equals', label: 'Not equals' },
+  { value: 'greater_than', label: 'Greater than' },
+  { value: 'less_than', label: 'Less than' },
+  { value: 'is_empty', label: 'Is empty' },
+  { value: 'is_not_empty', label: 'Is not empty' }
+];
+
 export default function InvestorDatabasePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,7 +87,16 @@ export default function InvestorDatabasePage() {
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [expandedContact, setExpandedContact] = useState<number | null>(null);
+  const [viewingContact, setViewingContact] = useState<EnrichedContact | null>(null);
+  
+  // Advanced filtering state
+  const [filters, setFilters] = useState<Array<{
+    id: string;
+    field: string;
+    operator: string;
+    value: string;
+  }>>([]);
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
   
   // Edit dialog state
   const [editingContact, setEditingContact] = useState<EnrichedContact | null>(null);
@@ -404,143 +436,59 @@ export default function InvestorDatabasePage() {
               </TableHeader>
               <TableBody>
                 {contacts.map((contact) => (
-                  <>
-                    <TableRow 
-                      key={contact.id}
-                      className={`cursor-pointer hover:bg-muted/50 ${selectedContacts.includes(contact.id) ? "bg-muted/50" : ""}`}
-                      onClick={() => setExpandedContact(expandedContact === contact.id ? null : contact.id)}
-                    >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedContacts.includes(contact.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedContacts([...selectedContacts, contact.id]);
-                            } else {
-                              setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
-                            }
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {expandedContact === contact.id ? 
-                            <ChevronDown className="h-4 w-4" /> : 
-                            <ChevronRight className="h-4 w-4" />
+                  <TableRow 
+                    key={contact.id}
+                    className={`cursor-pointer hover:bg-muted/50 ${selectedContacts.includes(contact.id) ? "bg-muted/50" : ""}`}
+                    onClick={() => setViewingContact(contact)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedContacts.includes(contact.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedContacts([...selectedContacts, contact.id]);
+                          } else {
+                            setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
                           }
-                          <span className="font-medium">{contact.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{contact.email}</TableCell>
-                      <TableCell>{getStatusBadge(contact.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {contact.tags.slice(0, 2).map((tag, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {contact.tags.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{contact.tags.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{contact.totalNdaSignatures}</TableCell>
-                      <TableCell>
-                        {contact.lastSeenAt ? new Date(contact.lastSeenAt).toLocaleDateString() : 'Never'}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(contact)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    
-                    {/* Expanded Details Row */}
-                    {expandedContact === contact.id && (
-                      <TableRow className="bg-muted/20">
-                        <TableCell colSpan={7}>
-                          <div className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {/* Contact Details */}
-                              <div className="space-y-3">
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <Users className="h-4 w-4" />
-                                  Contact Information
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <p><strong>Email:</strong> {contact.email}</p>
-                                  <p><strong>Status:</strong> {getStatusBadge(contact.status)}</p>
-                                  <p><strong>First Seen:</strong> {contact.firstSeenAt ? new Date(contact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
-                                  <p><strong>Last Activity:</strong> {contact.lastSeenAt ? new Date(contact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
-                                  {contact.notes && (
-                                    <div>
-                                      <strong>Notes:</strong>
-                                      <p className="mt-1 text-muted-foreground">{contact.notes}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* Associated Documents */}
-                              <div className="space-y-3">
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  Associated Documents ({contact.documents.length})
-                                </h4>
-                                {contact.documents.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {contact.documents.map((doc, index) => (
-                                      <div key={index} className="p-3 border rounded-lg bg-background">
-                                        <div className="flex items-start justify-between">
-                                          <div>
-                                            <p className="font-medium text-sm">{doc.documentTitle}</p>
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                              <Clock className="h-3 w-3" />
-                                              Signed: {new Date(doc.signedAt).toLocaleDateString()}
-                                            </p>
-                                          </div>
-                                          <Badge variant="secondary" className="text-xs">
-                                            NDA Signed
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">No documents associated</p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Quick Actions */}
-                            <div className="flex gap-2 pt-2 border-t">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(contact)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Contact
-                              </Button>
-                              {contact.nextFollowUpDate && (
-                                <Badge variant="outline" className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Follow-up: {new Date(contact.nextFollowUpDate).toLocaleDateString()}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{contact.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{contact.email}</TableCell>
+                    <TableCell>{getStatusBadge(contact.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {contact.tags.slice(0, 2).map((tag, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {contact.tags.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{contact.tags.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{contact.totalNdaSignatures}</TableCell>
+                    <TableCell>
+                      {contact.lastSeenAt ? new Date(contact.lastSeenAt).toLocaleDateString() : 'Never'}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(contact)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
