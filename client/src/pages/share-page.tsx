@@ -161,22 +161,29 @@ export function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm mb-4">
-            <FileText className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">Shared Document</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* White header section */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full shadow-sm mb-4">
+              <FileText className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Shared Document</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {shareData.cim.title}
+            </h1>
+            {shareData.cim.description && (
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                {shareData.cim.description}
+              </p>
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {shareData.cim.title}
-          </h1>
-          {shareData.cim.description && (
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              {shareData.cim.description}
-            </p>
-          )}
         </div>
+      </div>
+      
+      {/* Content section */}
+      <div className="max-w-7xl mx-auto p-4">
 
         <div className="space-y-6">
           {shareData.cim.isUploadedFile ? (
@@ -279,9 +286,9 @@ export function SharePage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-start gap-6">
-                          {shareData.cim.userProfile.profilePhotoUrl && (
+                          {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl) && (
                             <img 
-                              src={shareData.cim.userProfile.profilePhotoUrl} 
+                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl} 
                               alt="Profile" 
                               className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                             />
@@ -317,10 +324,10 @@ export function SharePage() {
                                 )}
                               </div>
                               
-                              {shareData.cim.logoUrl && (
+                              {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl) && (
                                 <div className="flex justify-end">
                                   <img 
-                                    src={shareData.cim.logoUrl} 
+                                    src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl} 
                                     alt="Company Logo" 
                                     className="max-w-32 max-h-20 object-contain"
                                   />
