@@ -168,6 +168,7 @@ const cspDirectives = {
     "wss://localhost:*"
   ],
   frameSrc: [
+    "'self'", // Allow iframes from same origin (for PDF viewer)
     "https://js.stripe.com",
     "https://hooks.stripe.com"
   ],
