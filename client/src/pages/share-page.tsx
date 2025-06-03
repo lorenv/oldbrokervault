@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
+import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { Shield, FileText, AlertCircle } from "lucide-react";
 
 export function SharePage() {
@@ -180,17 +181,28 @@ export function SharePage() {
       {/* Document content */}
       <div className="container mx-auto px-6 py-8">
         {shareData.cim && (
-          <CimDisplay 
-            analysis={shareData.cim.analysis}
-            docId={shareData.cim.id}
-            websiteUrl={shareData.cim.websiteUrl}
-            logoUrl={shareData.cim.logoUrl}
-            selectedImages={shareData.cim.selectedImages}
-            title={shareData.cim.title}
-            isSharedView={true}
-            userProfile={shareData.cim.userProfile}
-            cimDocument={shareData.cim}
-          />
+          <>
+            {/* Check if this is an uploaded file */}
+            {shareData.cim.isUploadedFile ? (
+              <UploadedFileViewer 
+                cimDocument={shareData.cim}
+                shareSlug={shareSlug!}
+                userProfile={shareData.cim.userProfile}
+              />
+            ) : (
+              <CimDisplay 
+                analysis={shareData.cim.analysis}
+                docId={shareData.cim.id}
+                websiteUrl={shareData.cim.websiteUrl}
+                logoUrl={shareData.cim.logoUrl}
+                selectedImages={shareData.cim.selectedImages}
+                title={shareData.cim.title}
+                isSharedView={true}
+                userProfile={shareData.cim.userProfile}
+                cimDocument={shareData.cim}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

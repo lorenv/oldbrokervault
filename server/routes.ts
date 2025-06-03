@@ -87,6 +87,76 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded file content for sharing
+  app.get("/api/share/:shareSlug/file", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      console.log("Serving uploaded file for slug:", shareSlug);
+      
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (!cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Sharing is disabled for this document" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Only serve uploaded files
+      if (!cimDoc.isUploadedFile || !cimDoc.uploadedFilePath) {
+        return res.status(404).json({ error: "No uploaded file found" });
+      }
+
+      // Increment view count
+      await storage.incrementShareViewCount(cimDoc.id);
+
+      // Read and serve the file
+      const fs = require('fs').promises;
+      const path = require('path');
+      const fullPath = path.join(process.cwd(), cimDoc.uploadedFilePath);
+      
+      try {
+        const fileBuffer = await fs.readFile(fullPath);
+        
+        // Set appropriate content type based on file type
+        let contentType = 'application/octet-stream';
+        if (cimDoc.uploadedFileMimeType === 'application/pdf') {
+          contentType = 'application/pdf';
+        } else if (cimDoc.uploadedFileMimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        } else if (cimDoc.uploadedFileMimeType === 'text/plain') {
+          contentType = 'text/plain';
+        }
+        
+        res.setHeader('Content-Type', contentType);
+        
+        // For PDF, set inline disposition for browser viewing
+        if (cimDoc.uploadedFileMimeType === 'application/pdf') {
+          res.setHeader('Content-Disposition', `inline; filename="${cimDoc.uploadedFileName}"`);
+        } else {
+          // For other files, set attachment disposition for download
+          res.setHeader('Content-Disposition', `attachment; filename="${cimDoc.uploadedFileName}"`);
+        }
+        
+        res.send(fileBuffer);
+        
+      } catch (fileError) {
+        console.error("Error reading uploaded file:", fileError);
+        res.status(404).json({ error: "File not found" });
+      }
+      
+    } catch (error) {
+      console.error("Error serving uploaded file:", error);
+      res.status(500).json({ error: "Failed to serve file" });
+    }
+  });
+
   // Public share endpoints (must be before authentication setup)
   app.get("/api/share/:shareSlug", async (req, res) => {
     try {
