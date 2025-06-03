@@ -28,10 +28,10 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
       
       const formData = new FormData();
       formData.append('title', title);
-      // For now, only upload the first file since backend expects single file
-      if (files.length > 0) {
-        formData.append('cimFile', files[0]);
-      }
+      // Upload all selected files using the new multiple file format
+      files.forEach((file, index) => {
+        formData.append('cimFiles', file);
+      });
 
       console.log("FormData created with title and file");
 
