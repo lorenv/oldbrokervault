@@ -486,6 +486,3 @@ export const insertAnalysisTemplateSchema = createInsertSchema(analysisTemplates
 
 export type AnalysisTemplate = typeof analysisTemplates.$inferSelect;
 export type InsertAnalysisTemplate = z.infer<typeof insertAnalysisTemplateSchema>;
-
-// Default CIM directions for backwards compatibility
-export const DEFAULT_CIM_DIRECTIONS = DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections;
