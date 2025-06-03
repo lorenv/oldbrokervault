@@ -13,8 +13,6 @@ export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
   const shareSlug = params?.shareSlug;
   
-  // console.log("Route params:", params);
-  // console.log("Share slug extracted:", shareSlug);
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
 
@@ -49,7 +47,7 @@ export function SharePage() {
     queryFn: async () => {
       const response = await fetch(`/api/share/${shareSlug}/files`);
       if (!response.ok) {
-        throw new Error('Failed to fetch uploaded files');
+        throw new Error('Failed to fetch files');
       }
       return response.json();
     },
@@ -59,157 +57,141 @@ export function SharePage() {
   });
 
   useEffect(() => {
-    // console.log("=== SHARE DEBUG ===");
-    // console.log("Share data loaded:", shareData);
-    // console.log("CIM document:", shareData?.cim);
-    // console.log("NDA Protected flag:", shareData?.cim?.ndaProtected);
-    // console.log("Requires NDA flag:", shareData?.requiresNda);
-    // console.log("Has signed NDA:", hasSignedNda);
-    // console.log("User Profile:", shareData?.cim?.userProfile);
-    // console.log("Full API response:", JSON.stringify(shareData, null, 2));
-    // console.log("=== END SHARE DEBUG ===");
+    if (shareData?.cim?.requiresNda && !hasSignedNda) {
+      setShowNdaDialog(true);
+    }
   }, [shareData, hasSignedNda]);
 
-  const handleNdaSigned = () => {
-    setHasSignedNda(true);
-    setShowNdaDialog(false);
+  const handleNdaAccepted = async (signature: { name: string; email: string; signature: string }) => {
+    try {
+      const response = await fetch(`/api/share/${shareSlug}/sign-nda`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signature),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setHasSignedNda(true);
+        setShowNdaDialog(false);
+      } else {
+        console.error('Failed to record NDA signature');
+      }
+    } catch (error) {
+      console.error('Error signing NDA:', error);
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="text-muted-foreground">Loading shared document...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading document...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !shareData) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              Access Denied
-            </CardTitle>
-            <CardDescription>
-              This shared link is invalid, expired, or you don't have permission to view it.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/'}
-              className="w-full"
-            >
-              Return to Homepage
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Alert className="max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to load the shared document. The link may be invalid or expired.
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
-  // Check both possible NDA flags for protection
-  const needsNda = shareData?.requiresNda || shareData?.cim?.ndaProtected;
-  // console.log("NDA CHECK:", { needsNda, requiresNda: shareData?.requiresNda, ndaProtected: shareData?.cim?.ndaProtected, hasSignedNda });
-  if (needsNda && !hasSignedNda) {
+  if (!shareData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-600">
-              <Shield className="h-5 w-5" />
-              Protected Document
-            </CardTitle>
-            <CardDescription>
-              This confidential information memorandum requires signing a Non-Disclosure Agreement.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <FileText className="h-4 w-4" />
-              <AlertDescription>
-                <strong>{shareData.cim?.title}</strong><br />
-                You must sign an NDA before accessing this document.
-              </AlertDescription>
-            </Alert>
-            <Button 
-              onClick={() => setShowNdaDialog(true)}
-              className="w-full"
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Review & Sign NDA
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center text-gray-600">
+            <p>Document not found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  const shouldShowNda = shareData.cim.requiresNda && !hasSignedNda;
+
+  if (shouldShowNda) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 rounded-full bg-yellow-100">
+                <Shield className="h-6 w-6 text-yellow-600" />
+              </div>
+              <CardTitle>Non-Disclosure Agreement Required</CardTitle>
+              <CardDescription>
+                This document requires signing an NDA before viewing
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button onClick={() => setShowNdaDialog(true)}>
+                Review and Sign NDA
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        
         <NdaDialog
           isOpen={showNdaDialog}
           onClose={() => setShowNdaDialog(false)}
-          onSigned={handleNdaSigned}
-          shareSlug={shareSlug!}
-          cimTitle={shareData.cim?.title || "Confidential Information Memorandum"}
-          ndaUrl={shareData.ndaUrl}
+          onAccept={handleNdaAccepted}
+          ndaText={shareData.ndaText}
         />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Document header without CIM God branding */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
-        <div className="container mx-auto px-6 py-8">
-          <div className="text-center space-y-4">
-            {shareData.cim?.title && (
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                {shareData.cim.title}
-              </h1>
-            )}
-            
-            <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg">
-              <Shield className="h-5 w-5" />
-              <span className="font-medium">Confidential Information Memorandum</span>
-            </div>
-            
-            {/* Export button placeholder - will be moved here by CimDisplay */}
-            <div id="export-button-container" className="mt-4"></div>
-            
-            {shareData.requiresNda && hasSignedNda && (
-              <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span>NDA Protected & Signed</span>
-              </div>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm mb-4">
+            <FileText className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-gray-700">Shared Document</span>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {shareData.cim.title}
+          </h1>
+          {shareData.cim.description && (
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              {shareData.cim.description}
+            </p>
+          )}
         </div>
-      </div>
 
-      {/* Document content */}
-      <div className="container mx-auto px-6 py-8">
-        {shareData.cim && (
-          <>
-            {/* Check if this is an uploaded file */}
-            {shareData.cim.isUploadedFile ? (
-              <div>
-                {/* Loading state for files */}
-                {filesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="text-gray-500">Loading files...</div>
-                  </div>
-                ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
-                  // Single PDF: render in browser
-                  <UploadedFileViewer 
-                    cimDocument={shareData.cim}
-                    shareSlug={shareSlug!}
-                    userProfile={shareData.cim.userProfile}
-                  />
-                ) : uploadedFiles.length > 0 ? (
-                  // Multiple files or non-PDF: show download list
+        <div className="space-y-6">
+          {shareData.cim.isUploadedFile ? (
+            <div>
+              {filesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="text-gray-500">Loading files...</div>
+                </div>
+              ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+                <UploadedFileViewer 
+                  cimDocument={shareData.cim}
+                  shareSlug={shareSlug!}
+                  userProfile={shareData.cim.userProfile}
+                  logoUrl={shareData.cim.logoUrl}
+                />
+              ) : uploadedFiles.length > 0 ? (
+                <div className="space-y-6">
                   <Card className="w-full max-w-4xl mx-auto">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -221,7 +203,6 @@ export function SharePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Individual file downloads */}
                       <div className="space-y-2">
                         {uploadedFiles.map((file: any, index: number) => (
                           <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
@@ -254,7 +235,6 @@ export function SharePage() {
                         ))}
                       </div>
                       
-                      {/* Bulk download button */}
                       {uploadedFiles.length > 1 && (
                         <div className="pt-4 border-t">
                           <Button
@@ -277,9 +257,8 @@ export function SharePage() {
                     </CardContent>
                   </Card>
                   
-                  {/* Contact Information Section for Multiple Files */}
                   {shareData.cim.userProfile && (
-                    <Card className="w-full max-w-4xl mx-auto mt-6">
+                    <Card className="w-full max-w-4xl mx-auto">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <User className="h-5 w-5" />
@@ -288,7 +267,6 @@ export function SharePage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-start gap-6">
-                          {/* Profile Photo */}
                           {shareData.cim.userProfile.profilePhotoUrl && (
                             <img 
                               src={shareData.cim.userProfile.profilePhotoUrl} 
@@ -301,13 +279,15 @@ export function SharePage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <h3 className="font-semibold text-lg mb-2">
-                                  {shareData.cim.userProfile.fullName}
+                                  {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
                                 </h3>
                                 {shareData.cim.userProfile.title && (
                                   <p className="text-gray-600 mb-1">{shareData.cim.userProfile.title}</p>
                                 )}
-                                {shareData.cim.userProfile.company && (
-                                  <p className="text-gray-600 mb-1">{shareData.cim.userProfile.company}</p>
+                                {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
+                                  <p className="text-gray-600 mb-1">
+                                    {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
+                                  </p>
                                 )}
                                 {shareData.cim.userProfile.email && (
                                   <p className="text-blue-600 mb-1">
@@ -316,16 +296,15 @@ export function SharePage() {
                                     </a>
                                   </p>
                                 )}
-                                {shareData.cim.userProfile.phone && (
+                                {(shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber) && (
                                   <p className="text-gray-600 mb-1">
-                                    <a href={`tel:${shareData.cim.userProfile.phone}`} className="hover:underline">
-                                      {shareData.cim.userProfile.phone}
+                                    <a href={`tel:${shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}`} className="hover:underline">
+                                      {shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}
                                     </a>
                                   </p>
                                 )}
                               </div>
                               
-                              {/* Business Logo */}
                               {shareData.cim.logoUrl && (
                                 <div className="flex justify-end">
                                   <img 
@@ -341,30 +320,23 @@ export function SharePage() {
                       </CardContent>
                     </Card>
                   )}
-                ) : (
-                  // Fallback for legacy single file uploads
-                  <UploadedFileViewer 
-                    cimDocument={shareData.cim}
-                    shareSlug={shareSlug!}
-                    userProfile={shareData.cim.userProfile}
-                  />
-                )}
-              </div>
-            ) : (
-              <CimDisplay 
-                analysis={shareData.cim.analysis}
-                docId={shareData.cim.id}
-                websiteUrl={shareData.cim.websiteUrl}
-                logoUrl={shareData.cim.logoUrl}
-                selectedImages={shareData.cim.selectedImages}
-                title={shareData.cim.title}
-                isSharedView={true}
-                userProfile={shareData.cim.userProfile}
-                cimDocument={shareData.cim}
-              />
-            )}
-          </>
-        )}
+                </div>
+              ) : (
+                <UploadedFileViewer 
+                  cimDocument={shareData.cim}
+                  shareSlug={shareSlug!}
+                  userProfile={shareData.cim.userProfile}
+                  logoUrl={shareData.cim.logoUrl}
+                />
+              )}
+            </div>
+          ) : (
+            <CimDisplay 
+              analysis={shareData.cim.analysis}
+              isSharedView={true}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
