@@ -28,13 +28,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
   const isPdf = files.length === 1 && files[0]?.mimeType === 'application/pdf';
   const singleFileUrl = files.length === 1 ? `/api/share/${shareSlug}/file` : null;
 
-  console.log('🔍 UploadedFileViewer debug:', {
-    uploadedFiles,
-    files,
-    isPdf,
-    singleFileUrl,
-    shouldShowIframe: isPdf && files.length === 1
-  });
+
 
   const handleFileDownload = async (fileUrl: string, fileName: string) => {
     setIsDownloading(true);
