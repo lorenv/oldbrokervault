@@ -93,6 +93,14 @@ export function DocumentExport({
     documentTitle?: string;
     shareToken?: string;
   }>({ open: false });
+
+  // Embed settings state
+  const [embedSettings, setEmbedSettings] = useState({
+    width: '100%',
+    height: '600',
+    border: true,
+    responsive: true
+  });
   
   // Use external dialog state if provided, otherwise use internal state
   const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
@@ -298,6 +306,37 @@ export function DocumentExport({
     toast({
       title: "Share link copied!",
       description: "The link has been copied to your clipboard",
+    });
+  };
+
+  const generateEmbedCode = () => {
+    if (!shareUrl) return '';
+    
+    const { width, height, border, responsive } = embedSettings;
+    
+    let iframe = `<iframe src="${shareUrl}" width="${width}" height="${height}px"`;
+    
+    if (!border) {
+      iframe += ` style="border: none;"`;
+    }
+    
+    iframe += ` frameborder="0" allowfullscreen></iframe>`;
+    
+    if (responsive && width === '100%') {
+      return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000;">
+  ${iframe.replace(`height="${height}px"`, 'style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"')}
+</div>`;
+    }
+    
+    return iframe;
+  };
+
+  const copyEmbedCode = () => {
+    const embedCode = generateEmbedCode();
+    navigator.clipboard.writeText(embedCode);
+    toast({
+      title: "Embed code copied!",
+      description: "The iframe code has been copied to your clipboard",
     });
   };
 
@@ -827,14 +866,7 @@ export function DocumentExport({
                   <Mail className="h-4 w-4 mr-2" />
                   Share via Email
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={copyToClipboard}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Plain Text
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={copyHtmlToClipboard}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy as Formatted HTML
-                </DropdownMenuItem>
+
                 {canAccessPremiumFeatures && (
                   <>
                     <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
@@ -853,14 +885,7 @@ export function DocumentExport({
                       )}
                       {isPdfLoading ? "Generating PDF..." : "Export to PDF"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={exportToGoogleDocs}>
-                      <Globe className="h-4 w-4 mr-2 text-blue-500" />
-                      Export to Google Docs
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsWordPressDialogOpen(true)}>
-                      <Globe className="h-4 w-4 mr-2" />
-                      Export to WordPress
-                    </DropdownMenuItem>
+
                   </>
                 )}
               </>
@@ -1067,8 +1092,9 @@ export function DocumentExport({
           </DialogHeader>
 
           <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1 min-h-0">
-            <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
+            <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
               <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
+              <TabsTrigger value="embed-code">Embed Code</TabsTrigger>
               <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
             </TabsList>
@@ -1244,6 +1270,128 @@ export function DocumentExport({
                 </Card>
               </>
             )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Embed Code Tab */}
+            <TabsContent value="embed-code" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Embed Your CIM
+                  </CardTitle>
+                  <CardDescription>
+                    Generate iframe code to embed your CIM document on any website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!shareSettings.shareEnabled ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 text-sm">
+                        Please enable sharing in the "Share Link Settings" tab first to generate embed code.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="embed-width">Width</Label>
+                          <Select
+                            value={embedSettings.width}
+                            onValueChange={(value) => 
+                              setEmbedSettings(prev => ({ ...prev, width: value }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="100%">100% (Responsive)</SelectItem>
+                              <SelectItem value="800">800px</SelectItem>
+                              <SelectItem value="1000">1000px</SelectItem>
+                              <SelectItem value="1200">1200px</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="embed-height">Height</Label>
+                          <Select
+                            value={embedSettings.height}
+                            onValueChange={(value) => 
+                              setEmbedSettings(prev => ({ ...prev, height: value }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="400">400px</SelectItem>
+                              <SelectItem value="600">600px</SelectItem>
+                              <SelectItem value="800">800px</SelectItem>
+                              <SelectItem value="1000">1000px</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="embed-border"
+                            checked={embedSettings.border}
+                            onCheckedChange={(checked) => 
+                              setEmbedSettings(prev => ({ ...prev, border: checked }))
+                            }
+                          />
+                          <Label htmlFor="embed-border">Show border</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="embed-responsive"
+                            checked={embedSettings.responsive}
+                            onCheckedChange={(checked) => 
+                              setEmbedSettings(prev => ({ ...prev, responsive: checked }))
+                            }
+                          />
+                          <Label htmlFor="embed-responsive">Responsive wrapper</Label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Embed Code</Label>
+                        <div className="relative">
+                          <textarea
+                            value={generateEmbedCode()}
+                            readOnly
+                            className="w-full h-32 p-3 bg-gray-50 border rounded-md font-mono text-sm resize-none"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={copyEmbedCode}
+                            className="absolute top-2 right-2"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Copy this code and paste it into any HTML page where you want to display your CIM.
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium text-blue-800 mb-2">Embed Features</h4>
+                        <ul className="list-disc pl-4 space-y-1 text-sm text-blue-700">
+                          <li>Inherits all share settings (password protection, NDA requirements, expiration)</li>
+                          <li>Responsive design adapts to different screen sizes</li>
+                          <li>Secure iframe with proper security headers</li>
+                          <li>Works on any website that allows iframe embeds</li>
+                        </ul>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
