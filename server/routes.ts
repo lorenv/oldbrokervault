@@ -34,6 +34,10 @@ fs.mkdir(businessImagesDir, { recursive: true }).catch(console.error);
 const financialFilesDir = path.join(process.cwd(), 'private', 'financial-files');
 fs.mkdir(financialFilesDir, { recursive: true }).catch(console.error);
 
+// Setup secure uploaded CIM files directory (outside public folder)
+const uploadedCimsDir = path.join(process.cwd(), 'private', 'uploaded-cims');
+fs.mkdir(uploadedCimsDir, { recursive: true }).catch(console.error);
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -791,6 +795,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("File upload error:", error);
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Upload existing CIM file endpoint
+  app.post("/api/cim/upload-file", upload.single('cimFile'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { title } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ error: "Only PDF, DOCX, and TXT files are supported" });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const ext = path.extname(req.file.originalname);
+      const fileName = `${timestamp}_${randomStr}${ext}`;
+      const filePath = path.join(uploadedCimsDir, fileName);
+
+      // Save file to disk
+      await fs.writeFile(filePath, req.file.buffer);
+
+      // Create CIM document record
+      const cimDoc = await storage.createUploadedCimDocument(req.user!.id, {
+        title,
+        fileName,
+        filePath,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype
+      });
+
+      res.json({
+        id: cimDoc.id,
+        title: cimDoc.title,
+        message: "CIM file uploaded successfully"
+      });
+
+    } catch (error) {
+      console.error("CIM file upload error:", error);
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Serve uploaded CIM files (authenticated)
+  app.get("/api/cim/:id/download", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Check if user owns the document or it's shared
+      if (doc.userId !== req.user!.id && !doc.shareEnabled) {
+        return res.status(403).json({ error: "You don't have permission to access this document" });
+      }
+      
+      if (doc.isUploadedFile && doc.uploadedFilePath) {
+        // Check if file exists
+        try {
+          await fs.access(doc.uploadedFilePath);
+          
+          // Set appropriate headers
+          res.setHeader('Content-Type', doc.uploadedFileMimeType || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${doc.uploadedFileName}"`);
+          
+          // Stream the file
+          const fileBuffer = await fs.readFile(doc.uploadedFilePath);
+          res.send(fileBuffer);
+        } catch (fileError) {
+          return res.status(404).json({ error: "File not found on disk" });
+        }
+      } else {
+        return res.status(400).json({ error: "This document is not an uploaded file" });
+      }
+    } catch (error) {
+      console.error("File download error:", error);
+      res.status(500).json({ error: "Failed to download file" });
     }
   });
 
