@@ -690,6 +690,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               logoUrl={selectedDoc.logoUrl || undefined}
               selectedImages={selectedDoc.selectedImages || undefined}
               title={selectedDoc.title}
+              cimDocument={selectedDoc}
             />
           </DialogContent>
         </Dialog>

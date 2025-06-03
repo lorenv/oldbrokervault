@@ -23,7 +23,10 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
   // Fetch uploaded files
   const { data: uploadedFiles = [], isLoading } = useQuery({
     queryKey: [`/api/cim/${docId}/uploaded-files`],
-    queryFn: () => apiRequest("GET", `/api/cim/${docId}/uploaded-files`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/cim/${docId}/uploaded-files`);
+      return Array.isArray(response) ? response : [];
+    },
   });
 
   // Upload new files mutation
