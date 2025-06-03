@@ -39,7 +39,70 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Edit } from 'lucide-react';
+
+// Simple inline editor for flexible CIM sections
+interface FlexibleSectionEditorProps {
+  value: string;
+  onSave: (value: string) => Promise<void>;
+  placeholder?: string;
+  multiline?: boolean;
+}
+
+function FlexibleSectionEditor({ value, onSave, placeholder, multiline = false }: FlexibleSectionEditorProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+
+  const handleSave = async () => {
+    await onSave(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(value);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="space-y-2">
+        {multiline ? (
+          <textarea
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            placeholder={placeholder}
+            className="w-full p-2 border rounded resize-none min-h-[100px]"
+            rows={6}
+          />
+        ) : (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            placeholder={placeholder}
+            className="w-full p-2 border rounded"
+          />
+        )}
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleSave}>Save</Button>
+          <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="cursor-pointer hover:bg-gray-50 p-2 rounded group"
+      onClick={() => setIsEditing(true)}
+    >
+      <div className="flex items-center gap-2">
+        <span className={multiline ? "whitespace-pre-wrap" : ""}>{value || placeholder}</span>
+        <Edit className="h-4 w-4 opacity-0 group-hover:opacity-100 text-gray-400" />
+      </div>
+    </div>
+  );
+}
 
 interface CimDisplayProps {
   analysis: any;
@@ -153,11 +216,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           {analysis.sections?.map((section: any, index: number) => (
             <Card key={section.id || index} className="mb-4">
               <CardHeader>
-                <CardTitle className="text-lg">{section.title}</CardTitle>
+                <CardTitle className="text-lg">
+                  {!isSharedView ? (
+                    <FlexibleSectionEditor
+                      value={section.title}
+                      onSave={(newTitle) => handleFlexibleSectionUpdate(section.id || index, 'title', newTitle)}
+                      placeholder="Section title"
+                      multiline={false}
+                    />
+                  ) : (
+                    section.title
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                  {section.content}
+                <div className="prose prose-sm max-w-none">
+                  {!isSharedView ? (
+                    <FlexibleSectionEditor
+                      value={section.content}
+                      onSave={(newContent) => handleFlexibleSectionUpdate(section.id || index, 'content', newContent)}
+                      placeholder="Section content"
+                      multiline={true}
+                    />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{section.content}</div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -175,6 +258,49 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       </div>
     );
   }
+  
+  // Function to handle flexible section updates
+  const handleFlexibleSectionUpdate = async (sectionId: string | number, field: 'title' | 'content', newValue: string) => {
+    try {
+      // Update the local analysis state
+      const updatedSections = analysis.sections.map((section: any, index: number) => {
+        const id = section.id || index;
+        if (id === sectionId) {
+          return { ...section, [field]: newValue };
+        }
+        return section;
+      });
+      
+      const updatedAnalysis = {
+        ...analysis,
+        sections: updatedSections
+      };
+      
+      // Save to backend
+      const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+        analysis: updatedAnalysis
+      });
+      
+      if (response.ok) {
+        // Update cache
+        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        
+        toast({
+          title: "Section Updated",
+          description: `${field === 'title' ? 'Title' : 'Content'} has been saved successfully.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating flexible section:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
