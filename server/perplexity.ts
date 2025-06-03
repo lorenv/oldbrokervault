@@ -1,7 +1,31 @@
 // the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
-type CimAnalysis = {
+// New flexible document structure for free-form CIM generation
+type FlexibleCimDocument = {
+  title: string;
+  companyName?: string;
+  generatedAt: string;
+  sections: Array<{
+    id: string;
+    title: string;
+    content: string;
+    order: number;
+    type: 'text' | 'table' | 'list';
+  }>;
+  metadata: {
+    purpose: string;
+    tone: string;
+    audience: string;
+    customDirections: string;
+    wordCount: number;
+    hasFinancials: boolean;
+    hasImages: boolean;
+  };
+};
+
+// Legacy CIM structure for backwards compatibility
+type LegacyCimAnalysis = {
   story: {
     yearStarted: string;
     businessIdea: string;
@@ -9,7 +33,6 @@ type CimAnalysis = {
     orderProcess: string;
     growthHistory: string;
     businessStructure: string;
-    // Add new fields for robust business description
     businessSummary: string;
     keyAttractions: string[];
     saleReason: string | null;
@@ -22,7 +45,6 @@ type CimAnalysis = {
     digitalAssets: string[];
     location: string;
     equipmentValue: string;
-    // Add inventory and equipment details
     equipmentDetails: string;
     inventoryDetails: string;
   };
@@ -108,7 +130,121 @@ type CimAnalysis = {
   };
 };
 
-async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
+// New flexible CIM generation function
+async function generateFlexibleCim(
+  transcript: string, 
+  customDirections: string, 
+  purpose: string,
+  tone: string,
+  audience: string,
+  financials?: any,
+  websiteData?: string
+): Promise<FlexibleCimDocument> {
+  const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM). 
+
+ANALYSIS PARAMETERS:
+- Purpose: ${purpose}
+- Tone: ${tone}
+- Audience: ${audience}
+
+CUSTOM DIRECTIONS:
+${customDirections}
+
+INSTRUCTIONS:
+1. Create a comprehensive CIM document with natural, flowing sections
+2. Extract and organize information from the transcript according to the custom directions
+3. Write in ${tone} tone appropriate for ${audience}
+4. Focus on ${purpose} as the primary objective
+5. Include specific details, metrics, and facts from the transcript
+6. Organize content into logical sections with clear headings
+7. Use tables or lists where appropriate for better readability
+8. Ensure all information is factual and based on the transcript
+
+${websiteData ? `WEBSITE DATA:
+Use this additional context from the company website:
+${websiteData}` : ''}
+
+${financials ? `FINANCIAL DATA:
+Include these financial details appropriately:
+${JSON.stringify(financials)}` : ''}
+
+RESPONSE FORMAT:
+Return a JSON object with this structure:
+{
+  "title": "Document title",
+  "companyName": "Company name if mentioned",
+  "generatedAt": "${new Date().toISOString()}",
+  "sections": [
+    {
+      "id": "unique-id",
+      "title": "Section Title",
+      "content": "Rich text content with markdown formatting",
+      "order": 1,
+      "type": "text"
+    }
+  ],
+  "metadata": {
+    "purpose": "${purpose}",
+    "tone": "${tone}",
+    "audience": "${audience}",
+    "customDirections": "summary of directions used",
+    "wordCount": 0,
+    "hasFinancials": ${!!financials},
+    "hasImages": false
+  }
+}`;
+
+  const userPrompt = `TRANSCRIPT TO ANALYZE:
+${transcript}
+
+Create a comprehensive CIM document following the analysis parameters and custom directions provided.`;
+
+  const response = await fetch(process.env.OPENAI_API_KEY ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY || process.env.PERPLEXITY_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_API_KEY ? "gpt-4-turbo-preview" : "llama-3.1-sonar-large-128k-online",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: 4000,
+      temperature: 0.1,
+      response_format: process.env.OPENAI_API_KEY ? { type: "json_object" } : undefined
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("API error:", { status: response.status, body: text });
+    throw new Error(`API error (${response.status}): ${text}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  
+  try {
+    const result = JSON.parse(content);
+    
+    // Calculate word count
+    const wordCount = result.sections.reduce((count: number, section: any) => {
+      return count + section.content.split(/\s+/).length;
+    }, 0);
+    
+    result.metadata.wordCount = wordCount;
+    
+    return result as FlexibleCimDocument;
+  } catch (error) {
+    console.error("Failed to parse flexible CIM response:", error);
+    throw new Error("Failed to generate CIM document");
+  }
+}
+
+// Legacy CIM analysis function for backwards compatibility
+async function makePerplexityRequest(messages: any[]): Promise<LegacyCimAnalysis> {
   const response = await fetch(PERPLEXITY_API_URL, {
     method: "POST",
     headers: {
