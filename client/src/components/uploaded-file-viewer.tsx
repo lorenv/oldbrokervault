@@ -13,7 +13,6 @@ interface UploadedFileViewerProps {
 export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: UploadedFileViewerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
-  const [showDownloadMessage, setShowDownloadMessage] = useState(false);
   const [selectedFileForViewing, setSelectedFileForViewing] = useState<string | null>(null);
 
   // For now, simulate multiple files - in future this will come from the database
@@ -32,7 +31,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
 
   const handleFileDownload = async (fileUrl: string, fileName: string) => {
     setIsDownloading(true);
-    setShowDownloadMessage(true);
     
     try {
       const response = await fetch(fileUrl, {
@@ -55,7 +53,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
       console.error('Download failed:', error);
     } finally {
       setIsDownloading(false);
-      setTimeout(() => setShowDownloadMessage(false), 3000);
     }
   };
 
@@ -98,7 +95,44 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
     }
   }, [isPdf]);
 
+  if (isPdf && uploadedFiles.length === 1) {
+    // For single PDF, show directly in iframe with download option
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{uploadedFiles[0].name}</h3>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleFileDownload(uploadedFiles[0].url, uploadedFiles[0].name)}
+                disabled={isDownloading}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+            <div className="w-full" style={{ height: '80vh' }}>
+              <iframe
+                src={`${uploadedFiles[0].url}#toolbar=1&navpanes=1&scrollbar=1`}
+                className="w-full h-full border rounded-lg"
+                title="Document Viewer"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact information */}
+        {userProfile && (
+          <ContactCard userProfile={userProfile} logoUrl={cimDocument.logoUrl} />
+        )}
+      </div>
+    );
+  }
+
   if (isPdf) {
+    // For multiple PDFs, show list with viewer
     return (
       <div className="space-y-6">
         {/* Multiple files header with bulk download */}
@@ -249,27 +283,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
         </CardContent>
       </Card>
 
-      {showDownloadMessage && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="space-y-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                <Download className="h-8 w-8 text-blue-600" />
-              </div>
-              <h2 className="text-xl font-semibold">CIM Document Downloading</h2>
-              <p className="text-muted-foreground">
-                Your confidential information memorandum is being downloaded.
-              </p>
-              {isDownloading && (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                  <span className="text-sm text-muted-foreground">Preparing download...</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Contact information */}
       {userProfile && (
