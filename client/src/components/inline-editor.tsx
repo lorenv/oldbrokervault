@@ -150,19 +150,8 @@ export function InlineEditor({
       >
         {displayValue || <span className="text-muted-foreground italic">Click to add content...</span>}
       </div>
-      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(fieldPath);
-          }}
-          className="h-6 w-6 p-0"
-        >
-          <Edit className="h-3 w-3" />
-        </Button>
-        {onDelete && (
+      {onDelete && (
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             size="sm"
             variant="ghost"
@@ -174,8 +163,8 @@ export function InlineEditor({
           >
             <Trash2 className="h-3 w-3" />
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

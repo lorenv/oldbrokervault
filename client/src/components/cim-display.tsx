@@ -811,9 +811,21 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                                    !inventory.topProducts.every((item: string) => item === "not applicable"));
         
         return hasInventoryContent ? (
-          <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}>
+          <Card className={`group ${isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8" : ""}`}>
             <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : ""}>
-              <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : ""}>Products & Inventory Management</CardTitle>
+                {!isSharedView && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
+                    onClick={() => setConfirmDeleteSection('inventory')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className={`space-y-4 ${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
               {renderField("Lead Times", "inventory.leadTime", false, false, "Inventory lead times")}
