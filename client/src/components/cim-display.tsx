@@ -948,6 +948,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           websiteUrl={websiteUrl}
           logoUrl={logoUrl}
           selectedImages={selectedImages}
+          autoTriggerShare={autoTriggerShare}
+          onShareTriggered={onShareTriggered}
         />
       )}
 
