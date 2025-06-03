@@ -667,6 +667,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tone = req.body.tone || 'professional';
       const audience = req.body.audience || 'investors';
       
+      console.log("=== USING NEW FLEXIBLE CIM SYSTEM ===");
+      console.log("Purpose:", purpose);
+      console.log("Tone:", tone);
+      console.log("Audience:", audience);
+      console.log("Custom directions:", data.directions);
+      
       let analysis = await generateFlexibleCimDocument(
         data.transcript,
         data.directions,
@@ -676,6 +682,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.financials,
         null // websiteData - will add later if needed
       );
+      
+      console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
+      console.log("Analysis type:", typeof analysis);
+      console.log("Has sections:", !!analysis.sections);
+      console.log("Number of sections:", analysis.sections?.length || 0);
       
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
