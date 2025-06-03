@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
-import { Shield, FileText, AlertCircle, Download, Package } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, User } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -276,6 +276,71 @@ export function SharePage() {
                       )}
                     </CardContent>
                   </Card>
+                  
+                  {/* Contact Information Section for Multiple Files */}
+                  {shareData.cim.userProfile && (
+                    <Card className="w-full max-w-4xl mx-auto mt-6">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Contact Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-start gap-6">
+                          {/* Profile Photo */}
+                          {shareData.cim.userProfile.profilePhotoUrl && (
+                            <img 
+                              src={shareData.cim.userProfile.profilePhotoUrl} 
+                              alt="Profile" 
+                              className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                            />
+                          )}
+                          
+                          <div className="flex-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <h3 className="font-semibold text-lg mb-2">
+                                  {shareData.cim.userProfile.fullName}
+                                </h3>
+                                {shareData.cim.userProfile.title && (
+                                  <p className="text-gray-600 mb-1">{shareData.cim.userProfile.title}</p>
+                                )}
+                                {shareData.cim.userProfile.company && (
+                                  <p className="text-gray-600 mb-1">{shareData.cim.userProfile.company}</p>
+                                )}
+                                {shareData.cim.userProfile.email && (
+                                  <p className="text-blue-600 mb-1">
+                                    <a href={`mailto:${shareData.cim.userProfile.email}`} className="hover:underline">
+                                      {shareData.cim.userProfile.email}
+                                    </a>
+                                  </p>
+                                )}
+                                {shareData.cim.userProfile.phone && (
+                                  <p className="text-gray-600 mb-1">
+                                    <a href={`tel:${shareData.cim.userProfile.phone}`} className="hover:underline">
+                                      {shareData.cim.userProfile.phone}
+                                    </a>
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Business Logo */}
+                              {shareData.cim.logoUrl && (
+                                <div className="flex justify-end">
+                                  <img 
+                                    src={shareData.cim.logoUrl} 
+                                    alt="Company Logo" 
+                                    className="max-w-32 max-h-20 object-contain"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 ) : (
                   // Fallback for legacy single file uploads
                   <UploadedFileViewer 
