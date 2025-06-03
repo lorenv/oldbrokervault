@@ -45,6 +45,7 @@ import { Label } from "@/components/ui/label";
 export function CimGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -452,9 +453,72 @@ ${analysis.team.ownerResponsibilities}
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
+      {cimMode === 'choice' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create CIM Document</CardTitle>
+            <p className="text-muted-foreground">Choose how you'd like to create your CIM document</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/50"
+                    onClick={() => setCimMode('generate')}>
+                <CardContent className="p-6 text-center space-y-3">
+                  <FileText className="w-12 h-12 text-primary mx-auto" />
+                  <h3 className="font-semibold">Generate New CIM</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Transform your meeting transcript into a professional CIM using AI
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/50"
+                    onClick={() => setCimMode('upload')}>
+                <CardContent className="p-6 text-center space-y-3">
+                  <Upload className="w-12 h-12 text-primary mx-auto" />
+                  <h3 className="font-semibold">Upload Existing CIM</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload your existing CIM file to share with secure NDA protection
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {cimMode === 'upload' && (
+        <div className="space-y-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setCimMode('choice')}
+            className="mb-4"
+          >
+            ← Back to Options
+          </Button>
+          <CimFileUpload onSuccess={(docId) => {
+            setCurrentDocId(docId);
+            // Redirect to documents page where they can enable sharing
+            setTimeout(() => {
+              window.location.href = '/documents';
+            }, 2000);
+          }} />
+        </div>
+      )}
+
+      {cimMode === 'generate' && (
+        <>
+          <div className="flex items-center space-x-2 mb-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setCimMode('choice')}
+            >
+              ← Back to Options
+            </Button>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
             <div>
               <Input
                 placeholder="Document Title"
@@ -1140,6 +1204,8 @@ ${analysis.team.ownerResponsibilities}
             </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
     </div>
   );
