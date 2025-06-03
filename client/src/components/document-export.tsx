@@ -1118,28 +1118,13 @@ export function DocumentExport({
                     <Switch
                       id="share-enabled"
                       checked={shareSettings.shareEnabled}
-                      onCheckedChange={async (checked) => {
+                      onCheckedChange={(checked) => {
                         setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
                         if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
                           const randomId = Math.random().toString(36).substring(2, 8);
                           const newSlug = `cim-${randomId}`;
                           setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
                           setShareUrl(`${window.location.origin}/share/${newSlug}`);
-                          
-                          if (docId) {
-                            try {
-                              await apiRequest('POST', `/api/cim/${docId}/share`, {
-                                shareEnabled: true,
-                                shareSlug: newSlug,
-                                sharePassword: null,
-                                shareExpiresAt: null,
-                                ndaProtected: false,
-                                ndaTemplateId: null
-                              });
-                            } catch (error) {
-                              console.error('Failed to save share settings immediately:', error);
-                            }
-                          }
                         }
                       }}
                     />
