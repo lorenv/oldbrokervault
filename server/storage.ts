@@ -26,13 +26,21 @@ export interface IStorage {
     ebitda?: string | null;
     ebitdaIncluded?: boolean;
   }): Promise<CimDocument>;
-  createUploadedCimDocument(userId: number, fileData: {
+  createUploadedCimDocument(userId: number, data: {
     title: string;
+    fileName?: string;
+    filePath?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }): Promise<CimDocument>;
+  createUploadedFile(data: {
+    cimDocumentId: number;
     fileName: string;
     filePath: string;
     fileSize: number;
     mimeType: string;
-  }): Promise<CimDocument>;
+  }): Promise<any>;
+  getUploadedFiles(cimDocumentId: number): Promise<any[]>;
   getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
@@ -241,12 +249,12 @@ export class DatabaseStorage implements IStorage {
     return cimDoc;
   }
 
-  async createUploadedCimDocument(userId: number, fileData: {
+  async createUploadedCimDocument(userId: number, data: {
     title: string;
-    fileName: string;
-    filePath: string;
-    fileSize: number;
-    mimeType: string;
+    fileName?: string;
+    filePath?: string;
+    fileSize?: number;
+    mimeType?: string;
   }): Promise<CimDocument> {
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
@@ -258,21 +266,42 @@ export class DatabaseStorage implements IStorage {
       .insert(cimDocuments)
       .values({
         userId,
-        title: fileData.title,
+        title: data.title,
         transcript: 'Uploaded File', // Required field
         directions: 'Uploaded Document', // Required field
         regenerationCount: 0,
         analysis: { isUploadedFile: true }, // Required field with indicator
         isUploadedFile: true,
-        uploadedFileName: fileData.fileName,
-        uploadedFilePath: fileData.filePath,
-        uploadedFileSize: fileData.fileSize,
-        uploadedFileMimeType: fileData.mimeType,
+        uploadedFileName: data.fileName,
+        uploadedFilePath: data.filePath,
+        uploadedFileSize: data.fileSize,
+        uploadedFileMimeType: data.mimeType,
       })
       .returning();
 
     await this.updateUserUsage(userId);
     return cimDoc;
+  }
+
+  async createUploadedFile(data: {
+    cimDocumentId: number;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+  }): Promise<any> {
+    const [uploadedFile] = await db
+      .insert(uploadedFiles)
+      .values(data)
+      .returning();
+    return uploadedFile;
+  }
+
+  async getUploadedFiles(cimDocumentId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(uploadedFiles)
+      .where(eq(uploadedFiles.cimDocumentId, cimDocumentId));
   }
 
   async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
