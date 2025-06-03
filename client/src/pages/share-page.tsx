@@ -285,6 +285,9 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
+                        {/* Debug logging */}
+                        {console.log('🔍 User profile data:', shareData.cim.userProfile)}
+                        {console.log('🔍 Logo URL:', shareData.cim.logoUrl)}
                         <div className="flex items-start gap-6">
                           {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl) && (
                             <img 
