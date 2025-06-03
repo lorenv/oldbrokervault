@@ -284,9 +284,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                           });
                           
                           if (response.ok) {
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
-                            toast({ title: "Content Updated", description: "Section content saved successfully." });
+                            // Force a page refresh to show changes immediately
+                            window.location.reload();
                           }
                         } catch (error) {
                           toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
@@ -325,12 +324,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                       });
                       
                       if (response.ok) {
-                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
-                        toast({ 
-                          title: "Section Added", 
-                          description: "New section added successfully." 
-                        });
+                        // Force a complete page refresh to show the new section immediately
+                        window.location.reload();
                       }
                     } catch (error) {
                       toast({ 
