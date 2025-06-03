@@ -284,8 +284,9 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                           });
                           
                           if (response.ok) {
-                            // Force a page refresh to show changes immediately
-                            window.location.reload();
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({ title: "Content Updated", description: "Section content saved successfully." });
                           }
                         } catch (error) {
                           toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
@@ -324,8 +325,12 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                       });
                       
                       if (response.ok) {
-                        // Force a complete page refresh to show the new section immediately
-                        window.location.reload();
+                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+                        toast({ 
+                          title: "Section Added", 
+                          description: "New section added successfully." 
+                        });
                       }
                     } catch (error) {
                       toast({ 
@@ -344,28 +349,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             </Card>
           )}
 
-          {/* Business Images Gallery - only show if images exist */}
-          {selectedImages && selectedImages.length > 0 && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Business Images</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {selectedImages.map((imageUrl, index) => (
-                    <div key={index} className="aspect-video relative overflow-hidden rounded-lg border">
-                      <img 
-                        src={imageUrl} 
-                        alt={`Business image ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                        onClick={() => setSelectedImageModal(imageUrl)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
 
           {/* Financials Section - only show if enabled and data exists */}
           {cimDocument?.financialsEnabled && (cimDocument?.askingPrice || cimDocument?.revenue || cimDocument?.ebitda) && (
