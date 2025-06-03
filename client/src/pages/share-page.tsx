@@ -44,7 +44,7 @@ export function SharePage() {
   }) as { data: any, isLoading: boolean, error: any };
 
   // Fetch uploaded files for the shared document
-  const { data: uploadedFiles = [] } = useQuery({
+  const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
     queryKey: ['/api/share', shareSlug, 'files'],
     queryFn: async () => {
       const response = await fetch(`/api/share/${shareSlug}/files`);
@@ -196,15 +196,14 @@ export function SharePage() {
             {/* Check if this is an uploaded file */}
             {shareData.cim.isUploadedFile ? (
               <div>
-                {/* Debug logging */}
-                {console.log("Share page debug:", { 
-                  uploadedFiles, 
-                  fileCount: uploadedFiles.length,
-                  firstFileType: uploadedFiles[0]?.mimeType,
-                  isUploadedFile: shareData.cim.isUploadedFile 
-                })}
-                {/* Conditional display based on file count and type */}
-                {uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+                {/* Loading state for files */}
+                {filesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="text-gray-500">Loading files...</div>
+                  </div>
+                ) : (
+                  <>
+                    {uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
                   // Single PDF: render in browser
                   <UploadedFileViewer 
                     cimDocument={shareData.cim}
@@ -286,6 +285,8 @@ export function SharePage() {
                     shareSlug={shareSlug!}
                     userProfile={shareData.cim.userProfile}
                   />
+                    )}
+                  </>
                 )}
               </div>
             ) : (
