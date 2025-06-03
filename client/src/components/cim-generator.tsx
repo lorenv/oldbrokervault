@@ -455,11 +455,7 @@ ${analysis.team.ownerResponsibilities}
     <div className="space-y-6">
       {cimMode === 'choice' && (
         <Card>
-          <CardHeader>
-            <CardTitle>Create CIM Document</CardTitle>
-            <p className="text-muted-foreground">Choose how you'd like to create your CIM document</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/50"
                     onClick={() => setCimMode('generate')}>

@@ -101,13 +101,7 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Upload className="w-5 h-5" />
-          <span>Upload Existing CIM File</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

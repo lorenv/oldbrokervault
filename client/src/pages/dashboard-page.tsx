@@ -38,13 +38,6 @@ export default function DashboardPage() {
           {/* Main Content Area */}
           <div className="lg:col-span-2">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-                <h2 className="text-xl font-semibold text-white flex items-center space-x-2">
-                  <FileText className="w-5 h-5" />
-                  <span>Generate CIM Document</span>
-                </h2>
-                <p className="text-blue-100 mt-1">Transform your business meeting transcript into a professional memorandum</p>
-              </div>
               <div className="p-6">
                 <CimGenerator />
               </div>

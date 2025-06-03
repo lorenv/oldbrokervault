@@ -259,10 +259,10 @@ export class DatabaseStorage implements IStorage {
       .values({
         userId,
         title: fileData.title,
-        transcript: '', // Empty for uploaded files
-        directions: '', // Empty for uploaded files
+        transcript: 'Uploaded File', // Required field
+        directions: 'Uploaded Document', // Required field
         regenerationCount: 0,
-        analysis: {}, // Empty analysis for uploaded files
+        analysis: { isUploadedFile: true }, // Required field with indicator
         isUploadedFile: true,
         uploadedFileName: fileData.fileName,
         uploadedFilePath: fileData.filePath,
