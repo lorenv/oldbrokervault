@@ -7,7 +7,7 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail } from "lucide-react";
+import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail, Phone, Globe } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
@@ -172,27 +172,22 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   if (isFlexibleFormat) {
     return (
       <div className="space-y-6">
-        <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-          <h3 className="font-medium text-blue-800">Flexible CIM Document</h3>
-          <p className="text-sm text-blue-600 mt-1">
-            This document was created using the new flexible system with {analysis.sections?.length || 0} sections.
-          </p>
-        </div>
-        
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">{analysis.title || title}</h2>
-            <div className="flex gap-2 text-sm">
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                {analysis.metadata?.purpose || 'Business Overview'}
-              </span>
-              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                {analysis.metadata?.tone || 'Professional'}
-              </span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
-                {analysis.metadata?.audience || 'Investors'}
-              </span>
-            </div>
+            {!isSharedView && (
+              <div className="flex gap-2 text-sm">
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                  {analysis.metadata?.purpose || 'Business Overview'}
+                </span>
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                  {analysis.metadata?.tone || 'Professional'}
+                </span>
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                  {analysis.metadata?.audience || 'Investors'}
+                </span>
+              </div>
+            )}
           </div>
           
           {logoUrl && (
@@ -241,8 +236,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                           });
                           
                           if (response.ok) {
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({ title: "Title Updated", description: "Section title saved successfully." });
                           }
                         } catch (error) {
@@ -279,8 +274,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                           });
                           
                           if (response.ok) {
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({ title: "Content Updated", description: "Section content saved successfully." });
                           }
                         } catch (error) {
@@ -343,15 +338,165 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               </CardContent>
             </Card>
           )}
+
+          {/* Business Images Gallery - only show if images exist */}
+          {selectedImages && selectedImages.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Business Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {selectedImages.map((imageUrl, index) => (
+                    <div key={index} className="aspect-video relative overflow-hidden rounded-lg border">
+                      <img 
+                        src={imageUrl} 
+                        alt={`Business image ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                        onClick={() => setSelectedImageModal(imageUrl)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Financials Section - only show if enabled and data exists */}
+          {cimDocument?.financialsEnabled && (cimDocument?.askingPrice || cimDocument?.revenue || cimDocument?.ebitda) && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Financial Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {cimDocument?.askingPriceIncluded && cimDocument?.askingPrice && (
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-sm text-blue-600 font-medium">Asking Price</div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        ${Number(cimDocument.askingPrice).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {cimDocument?.revenueIncluded && cimDocument?.revenue && (
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-sm text-green-600 font-medium">Annual Revenue</div>
+                      <div className="text-2xl font-bold text-green-900">
+                        ${Number(cimDocument.revenue).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {cimDocument?.ebitdaIncluded && cimDocument?.ebitda && (
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-sm text-purple-600 font-medium">EBITDA</div>
+                      <div className="text-2xl font-bold text-purple-900">
+                        ${Number(cimDocument.ebitda).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Information - only show in shared view */}
+          {isSharedView && userProfile && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  {userProfile.profilePhotoUrl && (
+                    <img 
+                      src={userProfile.profilePhotoUrl} 
+                      alt="Profile" 
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{userProfile.firstName} {userProfile.lastName}</h3>
+                    {userProfile.title && <p className="text-gray-600">{userProfile.title}</p>}
+                    {userProfile.company && <p className="text-gray-600">{userProfile.company}</p>}
+                    <div className="mt-3 space-y-1">
+                      {userProfile.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-gray-500" />
+                          <a href={`mailto:${userProfile.email}`} className="text-blue-600 hover:underline">
+                            {userProfile.email}
+                          </a>
+                        </div>
+                      )}
+                      {userProfile.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-gray-500" />
+                          <a href={`tel:${userProfile.phone}`} className="text-blue-600 hover:underline">
+                            {userProfile.phone}
+                          </a>
+                        </div>
+                      )}
+                      {websiteUrl && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Globe className="h-4 w-4 text-gray-500" />
+                          <a 
+                            href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {websiteUrl}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {logoUrl && (
+                    <img 
+                      src={logoUrl} 
+                      alt="Company Logo" 
+                      className="h-12 w-auto"
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-2">Document Metadata</h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Generated: {new Date(analysis.generatedAt).toLocaleString()}</p>
-              <p>Word Count: {analysis.metadata?.wordCount || 0}</p>
-              <p>Custom Directions: {analysis.metadata?.customDirections}</p>
+          {/* Document Metadata - only show in edit mode */}
+          {!isSharedView && (
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium mb-2">Document Metadata</h4>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Generated: {new Date(analysis.generatedAt).toLocaleString()}</p>
+                <p>Word Count: {analysis.metadata?.wordCount || 0}</p>
+                <p>Custom Directions: {analysis.metadata?.customDirections}</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Image Modal */}
+          {selectedImageModal && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+              onClick={() => setSelectedImageModal(null)}
+            >
+              <div className="relative max-w-4xl max-h-full">
+                <img 
+                  src={selectedImageModal} 
+                  alt="Business image" 
+                  className="max-w-full max-h-full object-contain"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute top-4 right-4"
+                  onClick={() => setSelectedImageModal(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
