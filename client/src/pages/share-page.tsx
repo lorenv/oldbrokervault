@@ -201,9 +201,7 @@ export function SharePage() {
                   <div className="flex justify-center py-8">
                     <div className="text-gray-500">Loading files...</div>
                   </div>
-                ) : (
-                  <>
-                    {uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+                ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
                   // Single PDF: render in browser
                   <UploadedFileViewer 
                     cimDocument={shareData.cim}
@@ -285,8 +283,6 @@ export function SharePage() {
                     shareSlug={shareSlug!}
                     userProfile={shareData.cim.userProfile}
                   />
-                    )}
-                  </>
                 )}
               </div>
             ) : (
