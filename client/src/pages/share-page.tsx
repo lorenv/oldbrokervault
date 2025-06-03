@@ -344,6 +344,10 @@ export function SharePage() {
               analysis={shareData.cim.analysis}
               isSharedView={true}
               docId={shareData.cim.id}
+              websiteUrl={shareData.websiteUrl}
+              logoUrl={shareData.logoUrl}
+              selectedImages={shareData.selectedImages}
+              title={shareData.cim.title}
             />
           )}
         </div>
