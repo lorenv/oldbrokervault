@@ -696,17 +696,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         </Dialog>
       )}
 
-      {selectedDoc && (
-        <DocumentExport 
-          analysis={selectedDoc.analysis} 
-          docId={selectedDoc.id} 
-          user={user}
-          isWordPressDialogOpen={isWordPressDialogOpen}
-          setIsWordPressDialogOpen={setIsWordPressDialogOpen}
-          shouldOpenShareDialog={shouldOpenShareDialog}
-          setShouldOpenShareDialog={setShouldOpenShareDialog}
-        />
-      )}
+
 
       {/* Email Share Dialog */}
       <EmailShareDialog
