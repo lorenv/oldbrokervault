@@ -28,9 +28,10 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
       
       const formData = new FormData();
       formData.append('title', title);
-      files.forEach((file, index) => {
-        formData.append(`cimFile${index}`, file);
-      });
+      // For now, only upload the first file since backend expects single file
+      if (files.length > 0) {
+        formData.append('cimFile', files[0]);
+      }
 
       console.log("FormData created with title and file");
 
@@ -196,19 +197,40 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
               onDrop={handleDrop}
             >
               {selectedFiles.length > 0 ? (
-                <div className="space-y-2">
-                  <FileText className="w-8 h-8 mx-auto text-primary" />
-                  <p className="font-medium">{selectedFiles[0].name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFiles[0].size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <FileText className="w-8 h-8 mx-auto text-primary mb-2" />
+                    <p className="font-medium">{selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected</p>
+                  </div>
+                  <div className="max-h-32 overflow-y-auto space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <div>
+                          <p className="font-medium truncate">{file.name}</p>
+                          <p className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newFiles = selectedFiles.filter((_, i) => i !== index);
+                            setSelectedFiles(newFiles);
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedFiles([])}
+                    className="w-full"
                   >
-                    Remove
+                    Remove All
                   </Button>
                 </div>
               ) : (
@@ -229,10 +251,12 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
                 id="file-input"
                 type="file"
                 accept=".pdf,.docx,.txt"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleFileSelect(e.target.files[0]);
+                  if (e.target.files && e.target.files.length > 0) {
+                    const filesArray = Array.from(e.target.files);
+                    setSelectedFiles(filesArray);
                   }
                 }}
               />
