@@ -101,44 +101,91 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
   if (isPdf) {
     return (
       <div className="space-y-6">
-        {/* PDF viewer with controls */}
+        {/* Multiple files header with bulk download */}
         <Card>
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold">{cimDocument.uploadedFileName}</h2>
+                <Archive className="h-5 w-5 text-blue-600" />
+                <h2 className="text-lg font-semibold">CIM Documents ({uploadedFiles.length})</h2>
               </div>
-              <div className="flex gap-2">
+              {uploadedFiles.length > 1 && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleFileDownload(defaultFileUrl, cimDocument.uploadedFileName)}
-                  disabled={isDownloading}
+                  onClick={handleBulkDownload}
+                  disabled={isBulkDownloading}
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
+                  <Archive className="h-4 w-4 mr-2" />
+                  {isBulkDownloading ? 'Creating Archive...' : 'Download All'}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.print()}
-                >
-                  Print
-                </Button>
-              </div>
+              )}
             </div>
-            
-            {/* PDF embed */}
-            <div className="w-full" style={{ height: '80vh' }}>
-              <iframe
-                src={`${defaultFileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                className="w-full h-full border rounded-lg"
-                title={cimDocument.uploadedFileName}
-              />
+
+            {/* Files list */}
+            <div className="space-y-3">
+              {uploadedFiles.map((file, index) => (
+                <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {file.mimeType === 'application/pdf' ? 'PDF Document' : 'Document'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {file.mimeType === 'application/pdf' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedFileForViewing(file.url)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFileDownload(file.url, file.name)}
+                      disabled={isDownloading}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
+
+        {/* PDF viewer */}
+        {selectedFileForViewing && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Document Viewer</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedFileForViewing(null)}
+                >
+                  Close Viewer
+                </Button>
+              </div>
+              <div className="w-full" style={{ height: '80vh' }}>
+                <iframe
+                  src={`${selectedFileForViewing}#toolbar=1&navpanes=1&scrollbar=1`}
+                  className="w-full h-full border rounded-lg"
+                  title="Document Viewer"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Contact information */}
         {userProfile && (
@@ -148,9 +195,60 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
     );
   }
 
-  // For non-PDF files, show download message
+  // For non-PDF files, show multiple files interface with download options
   return (
     <div className="space-y-6">
+      {/* Multiple files header with bulk download */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-blue-600" />
+              <h2 className="text-lg font-semibold">CIM Documents ({uploadedFiles.length})</h2>
+            </div>
+            {uploadedFiles.length > 1 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleBulkDownload}
+                disabled={isBulkDownloading}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                {isBulkDownloading ? 'Creating Archive...' : 'Download All'}
+              </Button>
+            )}
+          </div>
+
+          {/* Files list */}
+          <div className="space-y-3">
+            {uploadedFiles.map((file, index) => (
+              <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {file.mimeType === 'application/pdf' ? 'PDF Document' : 'Document'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFileDownload(file.url, file.name)}
+                    disabled={isDownloading}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {showDownloadMessage && (
         <Card>
           <CardContent className="p-8 text-center">
@@ -160,7 +258,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
               </div>
               <h2 className="text-xl font-semibold">CIM Document Downloading</h2>
               <p className="text-muted-foreground">
-                Your confidential information memorandum "{cimDocument.uploadedFileName}" is being downloaded.
+                Your confidential information memorandum is being downloaded.
               </p>
               {isDownloading && (
                 <div className="flex items-center justify-center space-x-2">
@@ -173,28 +271,9 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
         </Card>
       )}
 
-      {/* Always show contact information for non-PDF files */}
+      {/* Contact information */}
       {userProfile && (
         <ContactCard userProfile={userProfile} />
-      )}
-
-      {/* Fallback download button */}
-      {!showDownloadMessage && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <div className="space-y-4">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto" />
-              <h3 className="text-lg font-semibold">Document Ready</h3>
-              <p className="text-muted-foreground">
-                Click below to download your CIM document.
-              </p>
-              <Button onClick={handleDownload} disabled={isDownloading}>
-                <Download className="h-4 w-4 mr-2" />
-                Download CIM
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       )}
     </div>
   );
