@@ -608,8 +608,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ error: "Regeneration limit reached" });
         }
 
-        // Analyze with new directions and customizations
-        let analysis = await analyzeCimTranscript(data.transcript, data.directions, customizations);
+        // Generate flexible CIM with new directions and customizations
+        const purpose = req.body.purpose || 'business_overview';
+        const tone = req.body.tone || 'professional';
+        const audience = req.body.audience || 'investors';
+        
+        let analysis = await generateFlexibleCimDocument(
+          data.transcript,
+          data.directions,
+          purpose,
+          tone,
+          audience,
+          req.body.financials,
+          null // websiteData - will add later if needed
+        );
         
         // If website URL is provided, enhance the analysis with website data
         if (data.websiteUrl) {
@@ -650,8 +662,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(updatedDoc);
       }
 
-      // New document generation
-      let analysis = await analyzeCimTranscript(data.transcript, data.directions, customizations);
+      // New document generation using flexible CIM system
+      const purpose = req.body.purpose || 'business_overview';
+      const tone = req.body.tone || 'professional';
+      const audience = req.body.audience || 'investors';
+      
+      let analysis = await generateFlexibleCimDocument(
+        data.transcript,
+        data.directions,
+        purpose,
+        tone,
+        audience,
+        req.body.financials,
+        null // websiteData - will add later if needed
+      );
       
       // Handle selected images early in the process for regular route
       let savedImagePaths: string[] = [];
@@ -828,7 +852,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (data.directions) {
         console.log("Custom directions content:", data.directions);
       }
-      let analysis = await analyzeCimTranscript(transcript, data.directions, customizations);
+      
+      // Use flexible CIM system for upload route as well
+      const purpose = req.body.purpose || 'business_overview';
+      const tone = req.body.tone || 'professional';
+      const audience = req.body.audience || 'investors';
+      
+      let analysis = await generateFlexibleCimDocument(
+        transcript,
+        data.directions,
+        purpose,
+        tone,
+        audience,
+        req.body.financials ? JSON.parse(req.body.financials) : undefined,
+        null
+      );
       
       // Handle selected images early in the process - always download if provided
       let savedImagePaths: string[] = [];
