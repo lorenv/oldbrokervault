@@ -165,6 +165,16 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const { toast } = useToast();
   const { user } = useAuth();
   
+  // State variables for both formats
+  const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<any>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
+  const [deletedSections, setDeletedSections] = useState<Set<string>>(new Set());
+  const [confirmDeleteSection, setConfirmDeleteSection] = useState<string | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+  
   // Check if this is a new flexible CIM format
   const isFlexibleFormat = analysis?.sections && Array.isArray(analysis.sections);
   
@@ -501,15 +511,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       </div>
     );
   }
-  
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editedContent, setEditedContent] = useState<any>({});
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectedImageModal, setSelectedImageModal] = useState<string | null>(null);
-  const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
-  const [deletedSections, setDeletedSections] = useState<Set<string>>(new Set());
-  const [confirmDeleteSection, setConfirmDeleteSection] = useState<string | null>(null);
-  const [canEdit, setCanEdit] = useState(false);
 
   const handleDeleteSection = (sectionId: string) => {
     setDeletedSections(prev => new Set([...Array.from(prev), sectionId]));
