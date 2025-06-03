@@ -1058,21 +1058,21 @@ export function DocumentExport({
 
       {/* Enhanced Share Dialog with NDA Protection */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] min-h-[500px] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Share Your CIM</DialogTitle>
             <DialogDescription>
               Create and manage shareable links for your CIM document with optional NDA protection
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1 min-h-0">
+            <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
               <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
               <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
             </TabsList>
-            <div className="flex-1 overflow-y-auto mt-4">
+            <div className="flex-1 overflow-y-auto mt-4 min-h-0">
 
             <TabsContent value="share-settings" className="space-y-6">
               {/* Basic Share Settings - Moved to Top */}
@@ -1502,7 +1502,7 @@ export function DocumentExport({
             </div>
           </Tabs>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4 border-t bg-white flex-shrink-0">
             <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
               Close
             </Button>
