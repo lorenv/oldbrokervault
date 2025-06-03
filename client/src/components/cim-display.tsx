@@ -1021,17 +1021,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   )}
                 </div>
               </div>
-              <div>
-                <DocumentExport 
-                  analysis={mergedAnalysis}
-                  docId={docId}
-                  websiteUrl={websiteUrl}
-                  logoUrl={logoUrl}
-                  selectedImages={selectedImages}
-                  user={user || userProfile}
-                  isSharedView={isSharedView}
-                />
-              </div>
+
             </div>
           </CardHeader>
         </Card>
