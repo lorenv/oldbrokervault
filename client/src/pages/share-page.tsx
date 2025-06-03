@@ -266,9 +266,11 @@ export function SharePage() {
                       </CardHeader>
                       <CardContent className="p-8">
                         {(() => {
+                          console.log("Share data debug:", shareData);
                           console.log("Contact section debug:", {
                             hasUserProfile: !!shareData.cim.userProfile,
-                            userProfileData: shareData.cim.userProfile
+                            userProfileData: shareData.cim.userProfile,
+                            fullCimData: shareData.cim
                           });
                           return null;
                         })()}
