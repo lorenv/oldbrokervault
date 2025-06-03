@@ -8,7 +8,7 @@ import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
-import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign, Mail } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign, Mail, TrendingUp, BarChart3 } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -161,6 +161,38 @@ export function SharePage() {
                 {shareData.cim.description}
               </p>
             )}
+            
+            {/* Export Button */}
+            <div className="mt-8">
+              <Button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (response.ok) {
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${shareData.cim.title || 'document'}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    }
+                  } catch (error) {
+                    console.error('Export failed:', error);
+                  }
+                }}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Export as PDF
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -254,12 +286,7 @@ export function SharePage() {
                     </CardContent>
                   </Card>
                   
-                  {(() => {
-                    console.log("Main debug - shareData:", shareData);
-                    console.log("CIM data:", shareData.cim);
-                    console.log("User profile check:", shareData.cim.userProfile);
-                    return null;
-                  })()}
+
                   {shareData.cim.userProfile && (
                     <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                       <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
@@ -408,7 +435,10 @@ export function SharePage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {shareData.cim.askingPrice && (
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <h4 className="text-lg font-semibold text-gray-600 mb-2">Asking Price</h4>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <DollarSign className="h-5 w-5 text-green-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
+                          </div>
                           <p className="text-3xl font-bold text-green-600">
                             ${parseInt(shareData.cim.askingPrice).toLocaleString()}
                           </p>
@@ -416,7 +446,10 @@ export function SharePage() {
                       )}
                       {shareData.cim.revenue && (
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <h4 className="text-lg font-semibold text-gray-600 mb-2">Annual Revenue</h4>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
+                          </div>
                           <p className="text-3xl font-bold text-blue-600">
                             ${parseInt(shareData.cim.revenue).toLocaleString()}
                           </p>
@@ -424,7 +457,10 @@ export function SharePage() {
                       )}
                       {shareData.cim.ebitda && (
                         <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <h4 className="text-lg font-semibold text-gray-600 mb-2">EBITDA</h4>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
+                          </div>
                           <p className="text-3xl font-bold text-purple-600">
                             ${parseInt(shareData.cim.ebitda).toLocaleString()}
                           </p>
