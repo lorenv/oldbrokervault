@@ -381,6 +381,66 @@ export function SharePage() {
                 title={shareData.cim.title}
                 userProfile={shareData.cim.userProfile}
               />
+
+              {/* Contact Information at Bottom */}
+              {shareData.cim.userProfile && (
+                <Card className="w-full max-w-5xl mx-auto mt-12 bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200/50 rounded-3xl shadow-xl overflow-hidden">
+                  <CardContent className="px-8 py-10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto) && (
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
+                              alt="Profile" 
+                              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-bold text-slate-900">
+                            {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
+                          </h3>
+                          {shareData.cim.userProfile.title && (
+                            <p className="text-blue-600 font-medium">{shareData.cim.userProfile.title}</p>
+                          )}
+                          {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
+                            <p className="text-slate-600">
+                              {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
+                            </p>
+                          )}
+                          
+                          {shareData.cim.userProfile.email && (
+                            <div className="pt-2">
+                              <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors">
+                                {shareData.cim.userProfile.email}
+                              </a>
+                            </div>
+                          )}
+                          {shareData.cim.userProfile.phone && (
+                            <div>
+                              <a href={`tel:${shareData.cim.userProfile.phone}`} className="text-blue-600 hover:text-blue-700 transition-colors">
+                                {shareData.cim.userProfile.phone}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {shareData.logoUrl && (
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={shareData.logoUrl} 
+                            alt="Company Logo" 
+                            className="max-w-32 max-h-20 object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
