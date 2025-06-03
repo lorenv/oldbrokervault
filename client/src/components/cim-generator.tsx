@@ -65,7 +65,31 @@ export function CimGenerator() {
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // New analysis template state
+  const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
+  const [selectedTone, setSelectedTone] = useState<string>('professional');
+  const [selectedAudience, setSelectedAudience] = useState<string>('investors');
+  const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
+  const [savedTemplates, setSavedTemplates] = useState<Array<{name: string, directions: string}>>([]);
 
+  // Handler to update custom directions when presets change
+  const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
+    const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
+    if (template) {
+      setCustomDirections(template.customDirections);
+      form.setValue('directions', template.customDirections);
+    }
+  };
+
+  // Handler to save custom template
+  const saveCustomTemplate = (name: string) => {
+    const newTemplate = { name, directions: customDirections };
+    setSavedTemplates(prev => [...prev, newTemplate]);
+    toast({
+      title: "Template Saved",
+      description: `"${name}" has been saved to your templates.`,
+    });
+  };
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -778,53 +802,164 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
 
-            <div>
-              <Dialog open={isDirectionsOpen} onOpenChange={setIsDirectionsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" type="button" className="w-full">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Customize Analysis Directions
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Analysis Directions</DialogTitle>
-                    <DialogDescription>
-                      Customize how the AI analyzes your transcript. These directions guide the CIM generation process.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Textarea
-                    className="min-h-[400px]"
-                    {...form.register("directions")}
-                  />
-                  <div className="text-sm text-muted-foreground mt-2">
-                    {currentDocId && (
-                      <>
-                        Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
-                      </>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button 
-                      type="button"
-                      onClick={() => setIsDirectionsOpen(false)}
-                      className="flex-1"
-                    >
-                      Save Directions
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        form.setValue("directions", DEFAULT_CIM_DIRECTIONS);
-                      }}
-                      className="flex-1"
-                    >
-                      Reset to Default
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+            {/* New flexible analysis directions interface */}
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <h3 className="text-sm font-medium">Analysis Directions</h3>
+              <p className="text-xs text-muted-foreground">
+                Customize how AI analyzes your transcript to create the perfect CIM for your needs.
+              </p>
+              
+              {/* Preset dropdowns */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Purpose</Label>
+                  <Select
+                    value={selectedPurpose}
+                    onValueChange={(value) => {
+                      setSelectedPurpose(value);
+                      handlePresetChange(value, selectedTone, selectedAudience);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="business_overview">Business Overview</SelectItem>
+                      <SelectItem value="equity_raise">Equity Raise</SelectItem>
+                      <SelectItem value="acquisition_summary">Acquisition Summary</SelectItem>
+                      <SelectItem value="partnership_brief">Partnership Brief</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Tone</Label>
+                  <Select
+                    value={selectedTone}
+                    onValueChange={(value) => {
+                      setSelectedTone(value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="conversational">Conversational</SelectItem>
+                      <SelectItem value="executive_summary">Executive Summary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Audience</Label>
+                  <Select
+                    value={selectedAudience}
+                    onValueChange={(value) => {
+                      setSelectedAudience(value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="investors">Investors</SelectItem>
+                      <SelectItem value="partners">Business Partners</SelectItem>
+                      <SelectItem value="internal_team">Internal Team</SelectItem>
+                      <SelectItem value="potential_buyers">Potential Buyers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Custom directions with save template functionality */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Custom Directions</Label>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings className="mr-2 h-3 w-3" />
+                        Advanced
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Advanced Analysis Directions</DialogTitle>
+                        <DialogDescription>
+                          Fine-tune your analysis directions. Changes will update automatically.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Textarea
+                        className="min-h-[400px]"
+                        value={customDirections}
+                        onChange={(e) => {
+                          setCustomDirections(e.target.value);
+                          form.setValue("directions", e.target.value);
+                        }}
+                        placeholder="Enter your custom analysis directions..."
+                      />
+                      <div className="flex gap-2 mt-4">
+                        <Input 
+                          placeholder="Template name (e.g., 'My Custom Template')" 
+                          id="templateName"
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById('templateName') as HTMLInputElement;
+                            if (input?.value.trim()) {
+                              saveCustomTemplate(input.value.trim());
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Save Template
+                        </Button>
+                      </div>
+                      
+                      {savedTemplates.length > 0 && (
+                        <div className="mt-4">
+                          <Label className="text-sm font-medium">Saved Templates</Label>
+                          <div className="grid grid-cols-1 gap-2 mt-2">
+                            {savedTemplates.map((template, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 border rounded">
+                                <span className="text-sm">{template.name}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setCustomDirections(template.directions);
+                                    form.setValue("directions", template.directions);
+                                  }}
+                                >
+                                  Load
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <Textarea
+                  className="min-h-[100px] text-xs"
+                  value={customDirections}
+                  onChange={(e) => {
+                    setCustomDirections(e.target.value);
+                    form.setValue("directions", e.target.value);
+                  }}
+                  placeholder="Add additional custom directions here..."
+                />
+              </div>
+              
+              {currentDocId && (
+                <div className="text-xs text-muted-foreground">
+                  Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
+                </div>
+              )}
             </div>
             <div className="space-y-3">
               <Button
