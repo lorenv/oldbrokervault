@@ -243,7 +243,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl: cimDoc.websiteUrl,
         selectedImages: cimDoc.selectedImages,
         logoUrl: cimDoc.logoUrl,
-        hasUserProfile: !!userProfile
+        hasUserProfile: !!userProfile,
+        userProfileData: userProfile ? {
+          name: userProfile.name,
+          title: userProfile.title,
+          email: userProfile.email,
+          phoneNumber: userProfile.phoneNumber,
+          businessName: userProfile.businessName
+        } : null
       });
       
       res.json({
