@@ -322,7 +322,7 @@ export function CimGenerator() {
       
       // Redirect to My CIMs page to view the editable version
       setTimeout(() => {
-        window.location.href = `/cim/${data.id}`;
+        window.location.href = `/documents/${data.id}`;
       }, 1500);
     },
     onError: (error: any) => {
