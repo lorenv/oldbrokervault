@@ -265,6 +265,13 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-8">
+                        {(() => {
+                          console.log("Contact section debug:", {
+                            hasUserProfile: !!shareData.cim.userProfile,
+                            userProfileData: shareData.cim.userProfile
+                          });
+                          return null;
+                        })()}
                         {shareData.cim.userProfile ? (
                           <div className="flex items-start gap-8">
                             {shareData.cim.userProfile.profilePhoto && (
