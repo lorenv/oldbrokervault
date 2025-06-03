@@ -930,7 +930,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
   return (
     <div className="space-y-6">
-      {exportButtonPortal}
+      {/* Only show export button portal in shared view */}
+      {isSharedView && exportButtonPortal}
 
       {/* Collaboration Banner - Hidden in shared view */}
       {!isSharedView && docId && user && (
