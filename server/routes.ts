@@ -989,6 +989,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get uploaded files for a shared CIM document (public endpoint)
+  app.get("/api/share/:shareSlug/files", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      const files = await storage.getUploadedFiles(cimDoc.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching shared document files:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
   app.get("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     

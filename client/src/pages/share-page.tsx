@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
-import { Shield, FileText, AlertCircle } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -21,7 +21,6 @@ export function SharePage() {
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
     queryFn: async () => {
-      // console.log('Fetching share data for slug:', shareSlug);
       const response = await fetch(`/api/share/${shareSlug}`, {
         method: 'GET',
         headers: {
@@ -30,8 +29,6 @@ export function SharePage() {
         credentials: 'include'
       });
       
-      // console.log('Share API response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Share API error:', errorText);
@@ -39,13 +36,27 @@ export function SharePage() {
       }
       
       const data = await response.json();
-      // console.log('Share API response data:', data);
       return data;
     },
     enabled: !!shareSlug,
     staleTime: 0,
     gcTime: 0
   }) as { data: any, isLoading: boolean, error: any };
+
+  // Fetch uploaded files for the shared document
+  const { data: uploadedFiles = [] } = useQuery({
+    queryKey: ['/api/share', shareSlug, 'files'],
+    queryFn: async () => {
+      const response = await fetch(`/api/share/${shareSlug}/files`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch uploaded files');
+      }
+      return response.json();
+    },
+    enabled: !!shareSlug && !!shareData?.isUploadedFile,
+    staleTime: 0,
+    gcTime: 0
+  });
 
   useEffect(() => {
     // console.log("=== SHARE DEBUG ===");
@@ -184,11 +195,92 @@ export function SharePage() {
           <>
             {/* Check if this is an uploaded file */}
             {shareData.cim.isUploadedFile ? (
-              <UploadedFileViewer 
-                cimDocument={shareData.cim}
-                shareSlug={shareSlug!}
-                userProfile={shareData.cim.userProfile}
-              />
+              <div>
+                {/* Conditional display based on file count and type */}
+                {uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+                  // Single PDF: render in browser
+                  <UploadedFileViewer 
+                    cimDocument={shareData.cim}
+                    shareSlug={shareSlug!}
+                    userProfile={shareData.cim.userProfile}
+                  />
+                ) : uploadedFiles.length > 0 ? (
+                  // Multiple files or non-PDF: show download list
+                  <Card className="w-full max-w-4xl mx-auto">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Package className="h-5 w-5" />
+                        Document Files ({uploadedFiles.length})
+                      </CardTitle>
+                      <CardDescription>
+                        Download individual files or all files at once
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Individual file downloads */}
+                      <div className="space-y-2">
+                        {uploadedFiles.map((file: any, index: number) => (
+                          <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-gray-500" />
+                              <div>
+                                <p className="font-medium">{file.fileName}</p>
+                                <p className="text-sm text-gray-500">
+                                  {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {file.mimeType.split('/').pop()?.toUpperCase()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const downloadUrl = `/api/share/${shareSlug}/download/${file.id}`;
+                                const link = document.createElement('a');
+                                link.href = downloadUrl;
+                                link.download = file.fileName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Bulk download button */}
+                      {uploadedFiles.length > 1 && (
+                        <div className="pt-4 border-t">
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              const downloadUrl = `/api/share/${shareSlug}/download-all`;
+                              const link = document.createElement('a');
+                              link.href = downloadUrl;
+                              link.download = `${shareData.cim.title}_files.zip`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            <Package className="h-4 w-4 mr-2" />
+                            Download All Files ({uploadedFiles.length})
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  // Fallback for legacy single file uploads
+                  <UploadedFileViewer 
+                    cimDocument={shareData.cim}
+                    shareSlug={shareSlug!}
+                    userProfile={shareData.cim.userProfile}
+                  />
+                )}
+              </div>
             ) : (
               <CimDisplay 
                 analysis={shareData.cim.analysis}
