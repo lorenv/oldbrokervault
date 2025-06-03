@@ -103,6 +103,16 @@ export const cimDocuments = pgTable("cim_documents", {
   lastModifiedBy: integer("last_modified_by")
 });
 
+export const uploadedFiles = pgTable("uploaded_files", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
+});
+
 export const customSections = pgTable("custom_sections", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
@@ -276,6 +286,14 @@ export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
   uploadedFileMimeType: z.string()
 });
 
+export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).pick({
+  cimDocumentId: true,
+  fileName: true,
+  filePath: true,
+  fileSize: true,
+  mimeType: true
+});
+
 export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
   name: true,
   fileContent: true,
@@ -342,6 +360,8 @@ export type User = typeof users.$inferSelect;
 export type CimDocument = typeof cimDocuments.$inferSelect;
 export type InsertCimDocument = z.infer<typeof insertCimDocumentSchema>;
 export type InsertUploadedCim = z.infer<typeof insertUploadedCimSchema>;
+export type UploadedFile = typeof uploadedFiles.$inferSelect;
+export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
 export type ShareLink = typeof shareLinks.$inferSelect;
 export type InsertShareLink = z.infer<typeof insertShareLinkSchema>;
 export type NdaTemplate = typeof ndaTemplates.$inferSelect;
