@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -3291,6 +3291,63 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.error('Error updating financials - Full error:', error);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
       res.status(500).json({ error: "Failed to update financials", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Get uploaded files for a CIM document (authenticated)
+  app.get("/api/cim/:id/uploaded-files", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const files = await storage.getUploadedFiles(cimId);
+      res.json(files);
+    } catch (error) {
+      console.error('Error fetching uploaded files:', error);
+      res.status(500).json({ error: "Failed to fetch uploaded files" });
+    }
+  });
+
+  // Delete uploaded file (authenticated)
+  app.delete("/api/cim/:id/uploaded-files/:fileId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+      
+      const cim = await storage.getCimDocument(cimId);
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const files = await storage.getUploadedFiles(cimId);
+      const file = files.find(f => f.id === fileId);
+      
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Delete file from filesystem
+      try {
+        await fs.unlink(file.filePath);
+      } catch (fsError) {
+        console.warn("Could not delete file from filesystem:", fsError);
+      }
+      
+      // Delete from database
+      await db.delete(uploadedFiles).where(eq(uploadedFiles.id, fileId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting uploaded file:', error);
+      res.status(500).json({ error: "Failed to delete file" });
     }
   });
 

@@ -288,7 +288,7 @@ export function SharePage() {
                               <img 
                                 src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
                                 alt="Profile" 
-                                className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg"
+                                className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
                               />
                             </div>
                           )}
@@ -332,7 +332,7 @@ export function SharePage() {
                               
                               {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo) && (
                                 <div className="flex justify-center lg:justify-end items-start">
-                                  <div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                                  <div className="p-6 bg-white rounded-2xl border border-gray-100">
                                     <img 
                                       src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo} 
                                       alt="Company Logo" 
