@@ -50,6 +50,8 @@ interface CimDisplayProps {
   title?: string;
   isSharedView?: boolean;
   userProfile?: any;
+  autoTriggerShare?: boolean;
+  onShareTriggered?: () => void;
 }
 
 // Draggable Section Wrapper Component
@@ -95,7 +97,7 @@ function DraggableSection({ id, children, isSharedView }: DraggableSectionProps)
   );
 }
 
-export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument }: CimDisplayProps & { cimDocument?: any }) {
+export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument, autoTriggerShare, onShareTriggered }: CimDisplayProps & { cimDocument?: any }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
