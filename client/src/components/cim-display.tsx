@@ -16,6 +16,7 @@ import { OwnerFinancialsSection } from "./owner-financials-section";
 import { EmailShareDialog } from "./email-share-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { CollaborationBanner } from "./collaboration-banner-simple";
+import { UploadedCimFileManager } from "./uploaded-cim-file-manager";
 import {
   Dialog,
   DialogContent,
@@ -1028,52 +1029,62 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         </Card>
       )}
 
-      {/* Main Sections with Drag and Drop */}
-      <DndContext
-        sensors={mainSectionSensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleMainSectionDragEnd}
-      >
-        <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
-          {sectionOrder.map((sectionId) => {
-            // Show deleted sections as restore options (only in edit mode)
-            if (deletedSections.has(sectionId)) {
-              return !isSharedView ? (
-                <Card key={sectionId} className="border-dashed border-2 border-gray-300 bg-gray-50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <span className="text-sm">
-                          {sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} section deleted
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRestoreSection(sectionId)}
-                        className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                      >
-                        Restore Section
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null;
-            }
+      {/* Conditional Content: File Management for Uploaded CIMs or Template Sections for Generated CIMs */}
+      {cimDocument?.isUploadedFile ? (
+        <UploadedCimFileManager 
+          docId={docId}
+          cimTitle={title || "Uploaded CIM Document"}
+        />
+      ) : (
+        <>
+          {/* Main Sections with Drag and Drop */}
+          <DndContext
+            sensors={mainSectionSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleMainSectionDragEnd}
+          >
+            <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+              {sectionOrder.map((sectionId) => {
+                // Show deleted sections as restore options (only in edit mode)
+                if (deletedSections.has(sectionId)) {
+                  return !isSharedView ? (
+                    <Card key={sectionId} className="border-dashed border-2 border-gray-300 bg-gray-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-sm">
+                              {sectionId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} section deleted
+                            </span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRestoreSection(sectionId)}
+                            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                          >
+                            Restore Section
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null;
+                }
 
-            const content = getSectionContent(sectionId);
-            if (!content) return null;
-            
-            const sectionWithInsertables = renderSectionWithInsertables(sectionId, content);
-            
-            return (
-              <div key={sectionId}>
-                {renderSectionWithDragHandle(sectionId, sectionWithInsertables)}
-              </div>
-            );
-          })}
-        </SortableContext>
-      </DndContext>
+                const content = getSectionContent(sectionId);
+                if (!content) return null;
+                
+                const sectionWithInsertables = renderSectionWithInsertables(sectionId, content);
+                
+                return (
+                  <div key={sectionId}>
+                    {renderSectionWithDragHandle(sectionId, sectionWithInsertables)}
+                  </div>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
+        </>
+      )}
 
 
 

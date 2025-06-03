@@ -3314,6 +3314,91 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Upload additional files to existing CIM (authenticated)
+  app.post("/api/cim/:id/upload-more-files", upload.array('cimFiles', 10), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+
+      const savedFiles = [];
+      
+      for (const file of files) {
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const fileName = `${timestamp}_${randomSuffix}.${file.originalname.split('.').pop()}`;
+        const filePath = path.join(uploadedCimsDir, fileName);
+
+        await fs.writeFile(filePath, file.buffer);
+
+        const uploadedFile = await storage.createUploadedFile({
+          cimDocumentId: cimId,
+          fileName: file.originalname,
+          filePath,
+          fileSize: file.size,
+          mimeType: file.mimetype
+        });
+
+        savedFiles.push(uploadedFile);
+      }
+
+      res.json({
+        success: true,
+        filesUploaded: savedFiles.length,
+        files: savedFiles
+      });
+    } catch (error) {
+      console.error('Error uploading additional files:', error);
+      res.status(500).json({ error: "Failed to upload files" });
+    }
+  });
+
+  // Download individual uploaded file (authenticated)
+  app.get("/api/cim/:id/download/:fileId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+      
+      const cim = await storage.getCimDocument(cimId);
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const files = await storage.getUploadedFiles(cimId);
+      const file = files.find(f => f.id === fileId);
+      
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      try {
+        const fileBuffer = await fs.readFile(file.filePath);
+        
+        res.setHeader('Content-Type', file.mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+        res.send(fileBuffer);
+      } catch (fsError) {
+        console.error("Error reading file:", fsError);
+        res.status(404).json({ error: "File not found on disk" });
+      }
+    } catch (error) {
+      console.error('Error downloading uploaded file:', error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
   // Delete uploaded file (authenticated)
   app.delete("/api/cim/:id/uploaded-files/:fileId", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
