@@ -109,11 +109,11 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
         <Card>
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">{uploadedFiles[0].name}</h3>
+              <h3 className="text-lg font-semibold">{files[0].name}</h3>
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => handleFileDownload(uploadedFiles[0].url, uploadedFiles[0].name)}
+                onClick={() => handleFileDownload(singleFileUrl!, files[0].name)}
                 disabled={isDownloading}
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -122,7 +122,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
             </div>
             <div className="w-full" style={{ height: '80vh' }}>
               <iframe
-                src={`${uploadedFiles[0].url}#toolbar=1&navpanes=1&scrollbar=1`}
+                src={`${singleFileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
                 className="w-full h-full border rounded-lg"
                 title="Document Viewer"
               />
