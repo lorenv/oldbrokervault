@@ -1007,6 +1007,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download individual uploaded file from shared document
+  app.get("/api/share/:shareSlug/download/:fileId", async (req, res) => {
+    try {
+      const { shareSlug, fileId } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      const files = await storage.getUploadedFiles(cimDoc.id);
+      const file = files.find(f => f.id === parseInt(fileId));
+      
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      // Check if file exists on disk
+      try {
+        await fs.access(file.filePath);
+        
+        // Set appropriate headers
+        res.setHeader('Content-Type', file.mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+        
+        // Stream the file
+        const fileBuffer = await fs.readFile(file.filePath);
+        res.send(fileBuffer);
+      } catch (fileError) {
+        return res.status(404).json({ error: "File not found on disk" });
+      }
+    } catch (error) {
+      console.error("Shared file download error:", error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  // Download all files as ZIP from shared document
+  app.get("/api/share/:shareSlug/download-all", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      const files = await storage.getUploadedFiles(cimDoc.id);
+      
+      if (files.length === 0) {
+        return res.status(404).json({ error: "No files found" });
+      }
+
+      const JSZip = require('jszip');
+      const zip = new JSZip();
+
+      // Add each file to the ZIP
+      for (const file of files) {
+        try {
+          const fileBuffer = await fs.readFile(file.filePath);
+          zip.file(file.fileName, fileBuffer);
+        } catch (fileError) {
+          console.warn(`Could not add file ${file.fileName} to ZIP:`, fileError);
+        }
+      }
+
+      // Generate ZIP buffer
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      
+      // Set headers for ZIP download
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${cimDoc.title}_files.zip"`);
+      res.send(zipBuffer);
+    } catch (error) {
+      console.error("Bulk download error:", error);
+      res.status(500).json({ error: "Failed to create ZIP file" });
+    }
+  });
+
   app.get("/api/cim", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
