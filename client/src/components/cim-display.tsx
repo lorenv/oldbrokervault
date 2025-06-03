@@ -6,7 +6,7 @@ import { InlineEditor } from "./inline-editor";
 import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
@@ -161,7 +161,7 @@ function DraggableSection({ id, children, isSharedView }: DraggableSectionProps)
 }
 
 export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument, autoTriggerShare, onShareTriggered }: CimDisplayProps & { cimDocument?: any }) {
-  const queryClient = useQueryClient();
+  const queryClientHook = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -320,8 +320,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                       });
                       
                       if (response.ok) {
-                        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                        queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
                         toast({ 
                           title: "Section Added", 
                           description: "New section added successfully." 
