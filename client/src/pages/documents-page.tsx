@@ -454,7 +454,13 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDoc(doc);
-                          setShouldOpenShareDialog(true);
+                          // Set a flag to automatically open share dialog after document opens
+                          setTimeout(() => {
+                            const shareButton = document.querySelector('[data-share-trigger]') as HTMLButtonElement;
+                            if (shareButton) {
+                              shareButton.click();
+                            }
+                          }, 100);
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />

@@ -857,7 +857,7 @@ export function DocumentExport({
       <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" disabled={isUpdatingShare}>
+            <Button variant="outline" disabled={isUpdatingShare} data-share-trigger>
               {isUpdatingShare ? (
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
               ) : isSharedView ? (
