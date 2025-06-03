@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DocumentExport } from "./document-export";
 
 interface CollaborationBannerProps {
   docId: number;
@@ -20,6 +21,10 @@ interface CollaborationBannerProps {
   shareToken?: string;
   shareEnabled?: boolean;
   title?: string;
+  analysis?: any;
+  websiteUrl?: string;
+  logoUrl?: string;
+  selectedImages?: string[];
 }
 
 interface EditingStatus {
@@ -40,14 +45,12 @@ interface Collaborator {
   invitedAt: string;
 }
 
-export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, shareToken, shareEnabled, title }: CollaborationBannerProps) {
+export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, shareToken, shareEnabled, title, analysis, websiteUrl, logoUrl, selectedImages }: CollaborationBannerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", permission: "view" });
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [emailShareDialog, setEmailShareDialog] = useState({ open: false, shareUrl: "", documentTitle: "" });
 
   // Query editing status every 10 seconds
   const { data: editingStatus } = useQuery({
@@ -244,34 +247,15 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
 
           <div className="flex items-center gap-2">
             {/* Share Controls */}
-            {isOwner && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Share Document
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {shareEnabled && shareToken ? (
-                    <>
-                      <DropdownMenuItem onClick={copyShareUrl}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Share Link
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleEmailShare}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Share via Email
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  ) : null}
-                  <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
-                    <Globe className="h-4 w-4 mr-2" />
-                    Share Settings
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {isOwner && analysis && (
+              <DocumentExport 
+                analysis={analysis}
+                docId={docId}
+                websiteUrl={websiteUrl}
+                logoUrl={logoUrl}
+                selectedImages={selectedImages}
+                user={user}
+              />
             )}
 
             {/* Team Invite */}
@@ -351,86 +335,7 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
         </div>
       </div>
 
-      {/* Share Settings Dialog */}
-      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share Settings</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Configure how others can access this document. Visit the full export menu for advanced sharing options.
-            </div>
-            {shareEnabled && shareToken ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-medium text-green-800 mb-2">
-                    <Globe className="h-4 w-4" />
-                    Document is publicly accessible
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Share link: {window.location.origin}/share/{shareToken}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={copyShareUrl} className="flex-1">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </Button>
-                  <Button onClick={handleEmailShare} variant="outline" className="flex-1">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
-                <Lock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <div className="text-sm font-medium text-gray-600 mb-1">Document is private</div>
-                <div className="text-xs text-gray-500">
-                  Use the export menu to configure public sharing
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Email Share Dialog */}
-      <Dialog open={emailShareDialog.open} onOpenChange={(open) => setEmailShareDialog({ ...emailShareDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share via Email</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="recipient-email">Recipient Email</Label>
-              <Input
-                id="recipient-email"
-                type="email"
-                placeholder="colleague@company.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="share-message">Message (Optional)</Label>
-              <textarea
-                id="share-message"
-                className="w-full p-2 border rounded-md text-sm"
-                rows={3}
-                placeholder="Add a personal message..."
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEmailShareDialog({ ...emailShareDialog, open: false })}>
-                Cancel
-              </Button>
-              <Button>
-                Send Email
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Collaborators List */}
       {collaborators && collaborators.length > 0 && (
