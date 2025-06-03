@@ -116,8 +116,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment view count
       await storage.incrementShareViewCount(cimDoc.id);
 
-      // Read and serve the file
-      const fullPath = path.join(process.cwd(), cimDoc.uploadedFilePath);
+      // Read and serve the file - fix path duplication issue
+      const fullPath = cimDoc.uploadedFilePath.startsWith('/') ? 
+        cimDoc.uploadedFilePath : 
+        path.join(process.cwd(), cimDoc.uploadedFilePath);
       
       try {
         const fileBuffer = await fs.readFile(fullPath);

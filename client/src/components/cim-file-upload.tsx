@@ -15,22 +15,22 @@ interface CimFileUploadProps {
 export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
   const [uploadedDocId, setUploadedDocId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const { toast } = useToast();
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ title, file }: { title: string; file: File }) => {
+    mutationFn: async ({ title, files }: { title: string; files: File[] }) => {
       console.log("=== FRONTEND UPLOAD DEBUG ===");
       console.log("Title:", title);
-      console.log("File:", file);
-      console.log("File name:", file.name);
-      console.log("File type:", file.type);
-      console.log("File size:", file.size);
+      console.log("Files:", files);
+      console.log("File count:", files.length);
       
       const formData = new FormData();
       formData.append('title', title);
-      formData.append('cimFile', file);
+      files.forEach((file, index) => {
+        formData.append(`cimFile${index}`, file);
+      });
 
       console.log("FormData created with title and file");
 
@@ -91,16 +91,16 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
       return;
     }
     
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast({
-        title: "File required",
-        description: "Please select a CIM file to upload.",
+        title: "Files required",
+        description: "Please select CIM files to upload.",
         variant: "destructive"
       });
       return;
     }
     
-    uploadMutation.mutate({ title: title.trim(), file: selectedFile });
+    uploadMutation.mutate({ title: title.trim(), files: selectedFiles });
   };
 
   const handleFileSelect = (file: File) => {
