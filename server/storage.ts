@@ -26,6 +26,13 @@ export interface IStorage {
     ebitda?: string | null;
     ebitdaIncluded?: boolean;
   }): Promise<CimDocument>;
+  createUploadedCimDocument(userId: number, fileData: {
+    title: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+  }): Promise<CimDocument>;
   getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
@@ -234,6 +241,40 @@ export class DatabaseStorage implements IStorage {
     return cimDoc;
   }
 
+  async createUploadedCimDocument(userId: number, fileData: {
+    title: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+  }): Promise<CimDocument> {
+    // Check if user is within their limit
+    const canCreate = await this.checkUserLimit(userId);
+    if (!canCreate) {
+      throw new Error("Monthly CIM generation limit reached");
+    }
+
+    const [cimDoc] = await db
+      .insert(cimDocuments)
+      .values({
+        userId,
+        title: fileData.title,
+        transcript: '', // Empty for uploaded files
+        directions: '', // Empty for uploaded files
+        regenerationCount: 0,
+        analysis: {}, // Empty analysis for uploaded files
+        isUploadedFile: true,
+        uploadedFileName: fileData.fileName,
+        uploadedFilePath: fileData.filePath,
+        uploadedFileSize: fileData.fileSize,
+        uploadedFileMimeType: fileData.mimeType,
+      })
+      .returning();
+
+    await this.updateUserUsage(userId);
+    return cimDoc;
+  }
+
   async getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }> {
     const page = options?.page || 1;
     const limit = options?.limit || 12;
@@ -303,6 +344,11 @@ export class DatabaseStorage implements IStorage {
         searchVector: cimDocuments.searchVector,
         version: cimDocuments.version,
         lastModifiedBy: cimDocuments.lastModifiedBy,
+        isUploadedFile: cimDocuments.isUploadedFile,
+        uploadedFileName: cimDocuments.uploadedFileName,
+        uploadedFilePath: cimDocuments.uploadedFilePath,
+        uploadedFileSize: cimDocuments.uploadedFileSize,
+        uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
         ndaSignatureCount: count(ndaSignatures.id)
       })
       .from(cimDocuments)

@@ -37,6 +37,7 @@ import {
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { DocumentExport } from './document-export';  // Fixed import path
 import { CimDisplay } from './cim-display';
+import { CimFileUpload } from './cim-file-upload';
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
