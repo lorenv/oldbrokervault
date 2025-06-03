@@ -1,55 +1,38 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { queryClient } from "@/lib/queryClient";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Upload, FileText, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-const uploadCimSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  cimFile: z.any().refine((files) => files?.length === 1, "Please select a file")
-});
-
-type UploadCimFormData = z.infer<typeof uploadCimSchema>;
+import { Label } from "@/components/ui/label";
 
 interface CimFileUploadProps {
   onSuccess?: (docId: number) => void;
 }
 
 export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
-  const { toast } = useToast();
   const [uploadedDocId, setUploadedDocId] = useState<number | null>(null);
-
-  const form = useForm<UploadCimFormData>({
-    resolver: zodResolver(uploadCimSchema),
-    defaultValues: {
-      title: ""
-    }
-  });
+  const [title, setTitle] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const { toast } = useToast();
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: UploadCimFormData) => {
+    mutationFn: async ({ title, file }: { title: string; file: File }) => {
       console.log("=== FRONTEND UPLOAD DEBUG ===");
-      console.log("Title:", data.title);
-      console.log("File:", data.cimFile?.[0]);
-      console.log("File name:", data.cimFile?.[0]?.name);
-      console.log("File type:", data.cimFile?.[0]?.type);
-      console.log("File size:", data.cimFile?.[0]?.size);
+      console.log("Title:", title);
+      console.log("File:", file);
+      console.log("File name:", file.name);
+      console.log("File type:", file.type);
+      console.log("File size:", file.size);
       
       const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('cimFile', data.cimFile[0]);
+      formData.append('title', title);
+      formData.append('cimFile', file);
 
-      console.log("FormData entries:");
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
+      console.log("FormData created with title and file");
 
       const res = await fetch('/api/cim/upload-file', {
         method: 'POST',
@@ -79,26 +62,90 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
       
       toast({
-        title: "CIM File Uploaded Successfully",
-        description: `Your file "${data.title}" has been uploaded and is ready to share.`,
-        duration: 5000
+        title: "Upload successful",
+        description: "Your CIM file has been uploaded and is ready to share."
       });
-
+      
       if (onSuccess) {
         onSuccess(data.id);
       }
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload CIM file",
+        title: "Upload failed",
+        description: error.message,
         variant: "destructive"
       });
     }
   });
 
-  const onSubmit = (data: UploadCimFormData) => {
-    uploadMutation.mutate(data);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for your CIM file.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedFile) {
+      toast({
+        title: "File required",
+        description: "Please select a CIM file to upload.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    uploadMutation.mutate({ title: title.trim(), file: selectedFile });
+  };
+
+  const handleFileSelect = (file: File) => {
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a PDF, DOCX, or TXT file.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select a file smaller than 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSelectedFile(file);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
   };
 
   if (uploadedDocId) {
@@ -124,66 +171,92 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Document Title</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter a title for your CIM document" 
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Document Title</Label>
+            <Input
+              id="title"
+              placeholder="Enter a title for your CIM document"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
+          </div>
 
-            <FormField
-              control={form.control}
-              name="cimFile"
-              render={({ field: { onChange, ...field } }) => (
-                <FormItem>
-                  <FormLabel>CIM File</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept=".pdf,.docx,.txt"
-                      onChange={(e) => onChange(e.target.files)}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
+          <div className="space-y-2">
+            <Label htmlFor="cimFile">CIM File</Label>
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                dragActive 
+                  ? "border-primary bg-primary/10" 
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <FileText className="w-8 h-8 mx-auto text-primary" />
+                  <p className="font-medium">{selectedFile.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    Drag and drop your CIM file here, or{" "}
+                    <label htmlFor="file-input" className="text-primary cursor-pointer hover:underline">
+                      browse files
+                    </label>
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Supported formats: PDF, DOCX, TXT (Max 10MB)
                   </p>
-                </FormItem>
+                </div>
               )}
-            />
+              <input
+                id="file-input"
+                type="file"
+                accept=".pdf,.docx,.txt"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileSelect(e.target.files[0]);
+                  }
+                }}
+              />
+            </div>
+          </div>
 
-            <Button 
-              type="submit" 
-              disabled={uploadMutation.isPending}
-              className="w-full"
-            >
-              {uploadMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Upload CIM File
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
+          <Button 
+            type="submit" 
+            disabled={uploadMutation.isPending}
+            className="w-full"
+          >
+            {uploadMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <FileText className="w-4 h-4 mr-2" />
+                Upload CIM File
+              </>
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );
