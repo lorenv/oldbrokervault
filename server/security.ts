@@ -182,8 +182,8 @@ export function setupSecurity(app: Express) {
 
   // Security headers with conditional frameguard
   app.use((req, res, next) => {
-    // Apply helmet with conditional frameguard
-    const isSharedFileEndpoint = req.path.match(/^\/api\/share\/[^\/]+\/file$/);
+    // Apply helmet with conditional frameguard for shared routes
+    const isSharedRoute = req.path.startsWith('/share/') || req.path.match(/^\/api\/share\/[^\/]+/);
     
     helmet({
       contentSecurityPolicy: {
@@ -195,7 +195,7 @@ export function setupSecurity(app: Express) {
         includeSubDomains: true,
         preload: true
       },
-      frameguard: isSharedFileEndpoint ? { action: 'sameorigin' } : { action: 'deny' },
+      frameguard: isSharedRoute ? false : { action: 'deny' },
       noSniff: true,
       xssFilter: true,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
