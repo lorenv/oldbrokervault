@@ -8,7 +8,7 @@ import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
-import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign, Mail } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -265,68 +265,86 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-8">
-                        <div className="flex items-start gap-8">
-                          {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto) && (
-                            <div className="flex-shrink-0">
-                              <img 
-                                src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
-                                alt="Profile" 
-                                className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
-                              />
-                            </div>
-                          )}
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                              <div className="space-y-4">
-                                <div>
-                                  <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                                    {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
-                                  </h3>
-                                  {shareData.cim.userProfile.title && (
-                                    <p className="text-lg text-blue-600 font-medium mb-2">{shareData.cim.userProfile.title}</p>
-                                  )}
-                                  {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
-                                    <p className="text-lg text-slate-600 font-medium mb-3">
-                                      {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
-                                    </p>
-                                  )}
-                                </div>
-                                
-                                <div className="space-y-3">
-                                  {shareData.cim.userProfile.email && (
-                                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                      <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
-                                        {shareData.cim.userProfile.email}
-                                      </a>
-                                    </div>
-                                  )}
-                                  {(shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber) && (
-                                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                      <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                                      <a href={`tel:${shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
-                                        {shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}
-                                      </a>
-                                    </div>
-                                  )}
-                                </div>
+                        {shareData.cim.userProfile && (shareData.cim.userProfile.name || shareData.cim.userProfile.title || shareData.cim.userProfile.businessName || shareData.cim.userProfile.phoneNumber || shareData.cim.userProfile.profilePhoto) ? (
+                          <div className="flex items-start gap-8">
+                            {shareData.cim.userProfile.profilePhoto && (
+                              <div className="flex-shrink-0">
+                                <img 
+                                  src={shareData.cim.userProfile.profilePhoto} 
+                                  alt="Profile" 
+                                  className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
+                                />
                               </div>
-                              
-                              {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo) && (
-                                <div className="flex justify-center lg:justify-end items-start">
-                                  <div className="p-6 bg-white rounded-2xl border border-gray-100">
-                                    <img 
-                                      src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo} 
-                                      alt="Company Logo" 
-                                      className="max-w-48 max-h-32 object-contain"
-                                    />
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                  <div>
+                                    {shareData.cim.userProfile.name && (
+                                      <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                                        {shareData.cim.userProfile.name}
+                                      </h3>
+                                    )}
+                                    {shareData.cim.userProfile.title && (
+                                      <p className="text-lg text-blue-600 font-medium mb-2">{shareData.cim.userProfile.title}</p>
+                                    )}
+                                    {shareData.cim.userProfile.businessName && (
+                                      <p className="text-lg text-slate-600 font-medium mb-3">
+                                        {shareData.cim.userProfile.businessName}
+                                      </p>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="space-y-3">
+                                    {shareData.cim.userProfile.email && (
+                                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+                                          {shareData.cim.userProfile.email}
+                                        </a>
+                                      </div>
+                                    )}
+                                    {shareData.cim.userProfile.phoneNumber && (
+                                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                        <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                        <a href={`tel:${shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
+                                          {shareData.cim.userProfile.phoneNumber}
+                                        </a>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              )}
+                                
+                                {(shareData.cim.logoUrl || shareData.cim.userProfile.businessLogo) && (
+                                  <div className="flex justify-center lg:justify-end items-start">
+                                    <div className="p-6 bg-white rounded-2xl border border-gray-100">
+                                      <img 
+                                        src={shareData.cim.logoUrl || shareData.cim.userProfile.businessLogo} 
+                                        alt="Company Logo" 
+                                        className="max-w-48 max-h-32 object-contain"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {shareData.cim.userProfile?.title && (
+                              <p className="text-slate-700 font-medium">{shareData.cim.userProfile.title}</p>
+                            )}
+                            {shareData.cim.userProfile?.email && (
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-blue-600" />
+                                <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors">
+                                  {shareData.cim.userProfile.email}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
