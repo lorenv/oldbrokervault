@@ -35,9 +35,21 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (data: UploadCimFormData) => {
+      console.log("=== FRONTEND UPLOAD DEBUG ===");
+      console.log("Title:", data.title);
+      console.log("File:", data.cimFile?.[0]);
+      console.log("File name:", data.cimFile?.[0]?.name);
+      console.log("File type:", data.cimFile?.[0]?.type);
+      console.log("File size:", data.cimFile?.[0]?.size);
+      
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('cimFile', data.cimFile[0]);
+
+      console.log("FormData entries:");
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
       const res = await fetch('/api/cim/upload-file', {
         method: 'POST',
@@ -45,8 +57,18 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
         credentials: 'include'
       });
 
+      console.log("Response status:", res.status);
+      console.log("Response ok:", res.ok);
+
       if (!res.ok) {
-        const error = await res.json();
+        const errorText = await res.text();
+        console.log("Error response:", errorText);
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
         throw new Error(error.error || "Failed to upload CIM file");
       }
 
