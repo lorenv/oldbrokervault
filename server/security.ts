@@ -174,6 +174,13 @@ const cspDirectives = {
   ],
   objectSrc: ["'none'"],
   upgradeInsecureRequests: [],
+  frameAncestors: ["'self'"], // Default: only allow same origin
+};
+
+// CSP directives for shared routes (allow iframe embedding)
+const sharedCspDirectives = {
+  ...cspDirectives,
+  frameAncestors: ["*"], // Allow embedding in any iframe for shared documents
 };
 
 export function setupSecurity(app: Express) {
@@ -187,7 +194,7 @@ export function setupSecurity(app: Express) {
     
     helmet({
       contentSecurityPolicy: {
-        directives: cspDirectives,
+        directives: isSharedRoute ? sharedCspDirectives : cspDirectives,
         reportOnly: false,
       },
       hsts: {
