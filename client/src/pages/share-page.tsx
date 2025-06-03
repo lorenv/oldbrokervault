@@ -49,7 +49,9 @@ export function SharePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch files');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('🔍 Share page uploaded files data:', data);
+      return data;
     },
     enabled: !!shareSlug && !!shareData?.cim?.isUploadedFile,
     staleTime: 0,
@@ -183,7 +185,17 @@ export function SharePage() {
                 <div className="flex justify-center py-8">
                   <div className="text-gray-500">Loading files...</div>
                 </div>
-              ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+              ) : (() => {
+                console.log('🔍 Single PDF check:', {
+                  uploadedFiles,
+                  length: uploadedFiles.length,
+                  firstFile: uploadedFiles[0],
+                  mimeType: uploadedFiles[0]?.mimeType,
+                  isPdf: uploadedFiles[0]?.mimeType === 'application/pdf',
+                  condition: uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf'
+                });
+                return uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf';
+              })() ? (
                 <UploadedFileViewer 
                   cimDocument={shareData.cim}
                   shareSlug={shareSlug!}
