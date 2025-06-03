@@ -187,6 +187,7 @@ export default function DocumentsPage() {
     shareToken?: string;
   }>({ open: false });
   const [shouldOpenShareDialog, setShouldOpenShareDialog] = useState(false);
+  const [autoTriggerShare, setAutoTriggerShare] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -454,13 +455,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDoc(doc);
-                          // Set a flag to automatically open share dialog after document opens
-                          setTimeout(() => {
-                            const shareButton = document.querySelector('[data-share-trigger]') as HTMLButtonElement;
-                            if (shareButton) {
-                              shareButton.click();
-                            }
-                          }, 100);
+                          setAutoTriggerShare(true);
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
@@ -747,6 +742,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               selectedImages={selectedDoc.selectedImages || undefined}
               title={selectedDoc.title}
               cimDocument={selectedDoc}
+              autoTriggerShare={autoTriggerShare}
+              onShareTriggered={() => setAutoTriggerShare(false)}
             />
           </DialogContent>
         </Dialog>
