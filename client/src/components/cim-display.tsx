@@ -98,6 +98,83 @@ function DraggableSection({ id, children, isSharedView }: DraggableSectionProps)
 }
 
 export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument, autoTriggerShare, onShareTriggered }: CimDisplayProps & { cimDocument?: any }) {
+  // Check if this is a new flexible CIM format
+  const isFlexibleFormat = analysis?.sections && Array.isArray(analysis.sections);
+  
+  // If it's the new flexible format, render the flexible display
+  if (isFlexibleFormat) {
+    return (
+      <div className="space-y-6">
+        <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+          <h3 className="font-medium text-blue-800">Flexible CIM Document</h3>
+          <p className="text-sm text-blue-600 mt-1">
+            This document was created using the new flexible system with {analysis.sections?.length || 0} sections.
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">{analysis.title || title}</h2>
+            <div className="flex gap-2 text-sm">
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                {analysis.metadata?.purpose || 'Business Overview'}
+              </span>
+              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                {analysis.metadata?.tone || 'Professional'}
+              </span>
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                {analysis.metadata?.audience || 'Investors'}
+              </span>
+            </div>
+          </div>
+          
+          {logoUrl && (
+            <div className="flex justify-center mb-6">
+              <img src={logoUrl} alt="Company Logo" className="h-16" />
+            </div>
+          )}
+          
+          {selectedImages && selectedImages.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-medium mb-3">Business Images</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {selectedImages.map((image, index) => (
+                  <img 
+                    key={index} 
+                    src={image} 
+                    alt={`Business image ${index + 1}`}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {analysis.sections?.map((section: any, index: number) => (
+            <Card key={section.id || index} className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-lg">{section.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                  {section.content}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium mb-2">Document Metadata</h4>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>Generated: {new Date(analysis.generatedAt).toLocaleString()}</p>
+              <p>Word Count: {analysis.metadata?.wordCount || 0}</p>
+              <p>Custom Directions: {analysis.metadata?.customDirections}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const { toast } = useToast();
   const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
