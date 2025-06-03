@@ -64,27 +64,7 @@ export function SharePage() {
     }
   }, [shareData, hasSignedNda]);
 
-  const handleNdaAccepted = async (signature: { name: string; email: string; signature: string }) => {
-    try {
-      const response = await fetch(`/api/share/${shareSlug}/sign-nda`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signature),
-        credentials: 'include'
-      });
 
-      if (response.ok) {
-        setHasSignedNda(true);
-        setShowNdaDialog(false);
-      } else {
-        console.error('Failed to record NDA signature');
-      }
-    } catch (error) {
-      console.error('Error signing NDA:', error);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -153,8 +133,10 @@ export function SharePage() {
         <NdaDialog
           isOpen={showNdaDialog}
           onClose={() => setShowNdaDialog(false)}
-          onAccept={handleNdaAccepted}
-          ndaText={shareData.ndaText}
+          onSigned={() => setHasSignedNda(true)}
+          shareSlug={shareSlug || ''}
+          cimTitle={shareData.cim.title}
+          ndaUrl={shareData.ndaUrl}
         />
       </div>
     );
@@ -361,6 +343,7 @@ export function SharePage() {
             <CimDisplay 
               analysis={shareData.cim.analysis}
               isSharedView={true}
+              docId={shareData.cim.id}
             />
           )}
         </div>
