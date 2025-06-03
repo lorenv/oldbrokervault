@@ -161,20 +161,20 @@ export function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* White header section */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Modern header section */}
+      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full shadow-sm mb-4">
-              <FileText className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">Shared Document</span>
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full shadow-sm mb-6 border border-blue-100">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-semibold text-slate-700 tracking-wide">SHARED DOCUMENT</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
               {shareData.cim.title}
             </h1>
             {shareData.cim.description && (
-              <p className="text-gray-600 max-w-2xl mx-auto">
+              <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
                 {shareData.cim.description}
               </p>
             )}
@@ -183,7 +183,7 @@ export function SharePage() {
       </div>
       
       {/* Content section */}
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-6xl mx-auto px-6 py-8">
 
         <div className="space-y-6">
           {shareData.cim.isUploadedFile ? (
@@ -192,17 +192,7 @@ export function SharePage() {
                 <div className="flex justify-center py-8">
                   <div className="text-gray-500">Loading files...</div>
                 </div>
-              ) : (() => {
-                console.log('🔍 Single PDF check:', {
-                  uploadedFiles,
-                  length: uploadedFiles.length,
-                  firstFile: uploadedFiles[0],
-                  mimeType: uploadedFiles[0]?.mimeType,
-                  isPdf: uploadedFiles[0]?.mimeType === 'application/pdf',
-                  condition: uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf'
-                });
-                return uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf';
-              })() ? (
+              ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
                 <UploadedFileViewer 
                   cimDocument={shareData.cim}
                   shareSlug={shareSlug!}
@@ -210,33 +200,38 @@ export function SharePage() {
                   uploadedFiles={uploadedFiles}
                 />
               ) : uploadedFiles.length > 0 ? (
-                <div className="space-y-6">
-                  <Card className="w-full max-w-4xl mx-auto">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Package className="h-5 w-5" />
+                <div className="space-y-8">
+                  <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Package className="h-6 w-6 text-blue-600" />
+                        </div>
                         Document Files ({uploadedFiles.length})
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-lg text-slate-600 mt-2">
                         Download individual files or all files at once
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
+                    <CardContent className="p-8 space-y-6">
+                      <div className="space-y-4">
                         {uploadedFiles.map((file: any, index: number) => (
-                          <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-gray-500" />
+                          <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-blue-50 rounded-lg">
+                                <FileText className="h-6 w-6 text-blue-600" />
+                              </div>
                               <div>
-                                <p className="font-medium">{file.fileName}</p>
-                                <p className="text-sm text-gray-500">
+                                <p className="font-semibold text-lg text-slate-900">{file.fileName}</p>
+                                <p className="text-sm text-slate-500 mt-1">
                                   {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {file.mimeType.split('/').pop()?.toUpperCase()}
                                 </p>
                               </div>
                             </div>
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="lg"
+                              className="bg-white/90 hover:bg-blue-50 border-blue-200 text-blue-700 font-medium"
                               onClick={() => {
                                 const downloadUrl = `/api/share/${shareSlug}/download/${file.id}`;
                                 const link = document.createElement('a');
@@ -247,7 +242,7 @@ export function SharePage() {
                                 document.body.removeChild(link);
                               }}
                             >
-                              <Download className="h-4 w-4 mr-2" />
+                              <Download className="h-5 w-5 mr-2" />
                               Download
                             </Button>
                           </div>
@@ -255,9 +250,9 @@ export function SharePage() {
                       </div>
                       
                       {uploadedFiles.length > 1 && (
-                        <div className="pt-4 border-t">
+                        <div className="pt-6 border-t border-gray-200/50">
                           <Button
-                            className="w-full"
+                            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white shadow-lg"
                             onClick={() => {
                               const downloadUrl = `/api/share/${shareSlug}/download-all`;
                               const link = document.createElement('a');
@@ -268,7 +263,7 @@ export function SharePage() {
                               document.body.removeChild(link);
                             }}
                           >
-                            <Package className="h-4 w-4 mr-2" />
+                            <Package className="h-6 w-6 mr-3" />
                             Download All Files ({uploadedFiles.length})
                           </Button>
                         </div>
@@ -277,60 +272,73 @@ export function SharePage() {
                   </Card>
                   
                   {shareData.cim.userProfile && (
-                    <Card className="w-full max-w-4xl mx-auto">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <User className="h-5 w-5" />
+                    <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
+                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <User className="h-6 w-6 text-blue-600" />
+                          </div>
                           Contact Information
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="flex items-start gap-6">
+                      <CardContent className="p-8">
+                        <div className="flex items-start gap-8">
                           {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto) && (
-                            <img 
-                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
-                              alt="Profile" 
-                              className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                            />
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
+                                alt="Profile" 
+                                className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg"
+                              />
+                            </div>
                           )}
                           
-                          <div className="flex-1">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <h3 className="font-semibold text-lg mb-2">
-                                  {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
-                                </h3>
-                                {shareData.cim.userProfile.title && (
-                                  <p className="text-gray-600 mb-1">{shareData.cim.userProfile.title}</p>
-                                )}
-                                {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
-                                  <p className="text-gray-600 mb-1">
-                                    {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
-                                  </p>
-                                )}
-                                {shareData.cim.userProfile.email && (
-                                  <p className="text-blue-600 mb-1">
-                                    <a href={`mailto:${shareData.cim.userProfile.email}`} className="hover:underline">
-                                      {shareData.cim.userProfile.email}
-                                    </a>
-                                  </p>
-                                )}
-                                {(shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber) && (
-                                  <p className="text-gray-600 mb-1">
-                                    <a href={`tel:${shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}`} className="hover:underline">
-                                      {shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}
-                                    </a>
-                                  </p>
-                                )}
+                          <div className="flex-1 min-w-0">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                              <div className="space-y-4">
+                                <div>
+                                  <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                                    {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
+                                  </h3>
+                                  {shareData.cim.userProfile.title && (
+                                    <p className="text-lg text-blue-600 font-medium mb-2">{shareData.cim.userProfile.title}</p>
+                                  )}
+                                  {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
+                                    <p className="text-lg text-slate-600 font-medium mb-3">
+                                      {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  {shareData.cim.userProfile.email && (
+                                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                      <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+                                        {shareData.cim.userProfile.email}
+                                      </a>
+                                    </div>
+                                  )}
+                                  {(shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber) && (
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                      <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                      <a href={`tel:${shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
+                                        {shareData.cim.userProfile.phone || shareData.cim.userProfile.phoneNumber}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               
                               {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo) && (
-                                <div className="flex justify-end">
-                                  <img 
-                                    src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo} 
-                                    alt="Company Logo" 
-                                    className="max-w-32 max-h-20 object-contain"
-                                  />
+                                <div className="flex justify-center lg:justify-end items-start">
+                                  <div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+                                    <img 
+                                      src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo} 
+                                      alt="Company Logo" 
+                                      className="max-w-48 max-h-32 object-contain"
+                                    />
+                                  </div>
                                 </div>
                               )}
                             </div>
