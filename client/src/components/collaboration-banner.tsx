@@ -25,6 +25,8 @@ interface CollaborationBannerProps {
   websiteUrl?: string;
   logoUrl?: string;
   selectedImages?: string[];
+  autoTriggerShare?: boolean;
+  onShareTriggered?: () => void;
 }
 
 interface EditingStatus {
@@ -55,7 +57,9 @@ export function CollaborationBanner({
   analysis, 
   websiteUrl, 
   logoUrl, 
-  selectedImages 
+  selectedImages,
+  autoTriggerShare,
+  onShareTriggered
 }: CollaborationBannerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -252,6 +256,8 @@ export function CollaborationBanner({
             logoUrl={logoUrl}
             selectedImages={selectedImages}
             user={user}
+            autoTriggerShare={autoTriggerShare}
+            onShareTriggered={onShareTriggered}
           />
         </div>
       </div>

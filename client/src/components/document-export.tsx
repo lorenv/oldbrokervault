@@ -40,7 +40,9 @@ export function DocumentExport({
   setIsWordPressDialogOpen: externalSetIsWordPressDialogOpen,
   isSharedView = false,
   shouldOpenShareDialog = false,
-  setShouldOpenShareDialog
+  setShouldOpenShareDialog,
+  autoTriggerShare = false,
+  onShareTriggered
 }: { 
   analysis: any; 
   docId: number; 
@@ -53,6 +55,8 @@ export function DocumentExport({
   isSharedView?: boolean;
   shouldOpenShareDialog?: boolean;
   setShouldOpenShareDialog?: (shouldOpen: boolean) => void;
+  autoTriggerShare?: boolean;
+  onShareTriggered?: () => void;
 }) {
   const { toast } = useToast();
   const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
@@ -851,6 +855,14 @@ export function DocumentExport({
   };
 
   const canAccessPremiumFeatures = user?.isAdmin || user?.subscriptionStatus === "premium" || user?.subscriptionStatus === "admin";
+
+  // Auto-trigger share dialog when autoTriggerShare is true
+  useEffect(() => {
+    if (autoTriggerShare && !isSharedView) {
+      setIsShareDialogOpen(true);
+      onShareTriggered?.();
+    }
+  }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
   return (
     <>
