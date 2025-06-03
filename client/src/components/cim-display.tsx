@@ -185,19 +185,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">{analysis.title || title}</h2>
-            {!isSharedView && (
-              <div className="flex gap-2 text-sm">
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                  {analysis.metadata?.purpose || 'Business Overview'}
-                </span>
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                  {analysis.metadata?.tone || 'Professional'}
-                </span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
-                  {analysis.metadata?.audience || 'Investors'}
-                </span>
-              </div>
-            )}
+
           </div>
           
           {logoUrl && (

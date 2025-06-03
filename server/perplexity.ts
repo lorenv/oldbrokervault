@@ -140,25 +140,84 @@ async function generateFlexibleCim(
   financials?: any,
   websiteData?: string
 ): Promise<FlexibleCimDocument> {
+  
+  // Map tone to specific formatting instructions
+  let formatInstructions = '';
+  if (tone === 'memo') {
+    formatInstructions = `
+FORMAT REQUIREMENTS FOR MEMO STYLE:
+- Use bullet points extensively for key information
+- Keep sentences short and direct (under 20 words when possible)
+- Use numbered lists for sequential information
+- Create concise, scannable sections
+- Minimize paragraph length (2-3 sentences max)
+- Use bold headings and subheadings for easy navigation
+- Total word count should be under 800 words
+- Prioritize clarity and brevity over detailed explanations`;
+  } else if (tone === 'robust') {
+    formatInstructions = `
+FORMAT REQUIREMENTS FOR ROBUST STYLE:
+- Write comprehensive, detailed paragraphs (4-6 sentences each)
+- Include thorough explanations and context
+- Use complete sentences with sophisticated vocabulary
+- Provide detailed analysis and insights
+- Include background information and market context
+- Target word count should be 1200-1800 words
+- Use descriptive language and comprehensive coverage
+- Include detailed financial analysis when available`;
+  } else if (tone === 'balanced') {
+    formatInstructions = `
+FORMAT REQUIREMENTS FOR BALANCED STYLE:
+- Use moderate paragraph length (3-4 sentences)
+- Balance bullet points with full paragraphs
+- Include key details without overwhelming information
+- Target word count should be 800-1200 words
+- Use clear, professional language
+- Combine lists and narrative sections effectively
+- Provide sufficient detail while maintaining readability`;
+  }
+
+  // Map purpose to content focus
+  let purposeFocus = '';
+  if (purpose === 'business_overview') {
+    purposeFocus = 'Focus on comprehensive business description, operations, market position, and growth potential suitable for stakeholder understanding.';
+  } else if (purpose === 'equity_raise') {
+    purposeFocus = 'Emphasize investment opportunity, financial performance, growth projections, and reasons why investors should participate.';
+  }
+
+  // Map audience to communication style
+  let audienceStyle = '';
+  if (audience === 'investors') {
+    audienceStyle = 'Use financial terminology, emphasize ROI and market opportunities, include detailed metrics and projections.';
+  } else if (audience === 'colleagues') {
+    audienceStyle = 'Use professional but accessible language, focus on operational details and strategic considerations.';
+  } else if (audience === 'friends') {
+    audienceStyle = 'Use conversational but professional tone, explain business concepts clearly, minimize jargon.';
+  }
+
   const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM). 
 
 ANALYSIS PARAMETERS:
-- Purpose: ${purpose}
-- Tone: ${tone}
-- Audience: ${audience}
+- Purpose: ${purpose} - ${purposeFocus}
+- Length Style: ${tone} - ${formatInstructions}
+- Audience: ${audience} - ${audienceStyle}
 
 CUSTOM DIRECTIONS:
 ${customDirections}
 
+CRITICAL FORMATTING INSTRUCTIONS:
+${formatInstructions}
+
 INSTRUCTIONS:
-1. Create a comprehensive CIM document with natural, flowing sections
+1. Create a comprehensive CIM document following the specific formatting requirements above
 2. Extract and organize information from the transcript according to the custom directions
-3. Write in ${tone} tone appropriate for ${audience}
-4. Focus on ${purpose} as the primary objective
-5. Include specific details, metrics, and facts from the transcript
-6. Organize content into logical sections with clear headings
-7. Use tables or lists where appropriate for better readability
-8. Ensure all information is factual and based on the transcript
+3. Apply the ${tone} formatting style consistently throughout
+4. Write for ${audience} using the appropriate communication style
+5. Focus on ${purpose} as the primary objective
+6. Include specific details, metrics, and facts from the transcript
+7. Organize content into logical sections with clear headings
+8. STRICTLY follow the formatting requirements for ${tone} style
+9. Ensure all information is factual and based on the transcript
 
 ${websiteData ? `WEBSITE DATA:
 Use this additional context from the company website:
