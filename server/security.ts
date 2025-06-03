@@ -179,22 +179,27 @@ export function setupSecurity(app: Express) {
   // Trust proxy for accurate IP addresses
   app.set('trust proxy', 1);
 
-  // Security headers
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: cspDirectives,
-      reportOnly: false,
-    },
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true
-    },
-    frameguard: { action: 'deny' },
-    noSniff: true,
-    xssFilter: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
-  }));
+  // Security headers with conditional frameguard
+  app.use((req, res, next) => {
+    // Apply helmet with conditional frameguard
+    const isSharedFileEndpoint = req.path.match(/^\/api\/share\/[^\/]+\/file$/);
+    
+    helmet({
+      contentSecurityPolicy: {
+        directives: cspDirectives,
+        reportOnly: false,
+      },
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true
+      },
+      frameguard: isSharedFileEndpoint ? { action: 'sameorigin' } : { action: 'deny' },
+      noSniff: true,
+      xssFilter: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+    })(req, res, next);
+  });
 
   // Prevent HTTP Parameter Pollution
   app.use(hpp());

@@ -130,9 +130,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Set appropriate content type
           res.setHeader('Content-Type', firstFile.mimeType);
           
-          // For PDF, set inline disposition for browser viewing
+          // For PDF, set inline disposition for browser viewing and allow iframe embedding
           if (firstFile.mimeType === 'application/pdf') {
             res.setHeader('Content-Disposition', `inline; filename="${firstFile.fileName}"`);
+            // Allow iframe embedding for PDFs
+            res.removeHeader('X-Frame-Options');
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN');
           } else {
             // For other files, set attachment disposition for download
             res.setHeader('Content-Disposition', `attachment; filename="${firstFile.fileName}"`);
@@ -163,9 +166,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           res.setHeader('Content-Type', contentType);
           
-          // For PDF, set inline disposition for browser viewing
+          // For PDF, set inline disposition for browser viewing and allow iframe embedding
           if (cimDoc.uploadedFileMimeType === 'application/pdf') {
             res.setHeader('Content-Disposition', `inline; filename="${cimDoc.uploadedFileName}"`);
+            // Allow iframe embedding for PDFs
+            res.removeHeader('X-Frame-Options');
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN');
           } else {
             // For other files, set attachment disposition for download
             res.setHeader('Content-Disposition', `attachment; filename="${cimDoc.uploadedFileName}"`);
