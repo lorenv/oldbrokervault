@@ -265,7 +265,7 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-8">
-                        {shareData.cim.userProfile && (shareData.cim.userProfile.name || shareData.cim.userProfile.title || shareData.cim.userProfile.businessName || shareData.cim.userProfile.phoneNumber || shareData.cim.userProfile.profilePhoto) ? (
+                        {shareData.cim.userProfile ? (
                           <div className="flex items-start gap-8">
                             {shareData.cim.userProfile.profilePhoto && (
                               <div className="flex-shrink-0">
@@ -331,18 +331,36 @@ export function SharePage() {
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
+                            {shareData.cim.userProfile?.name && (
+                              <h3 className="text-xl font-bold text-slate-900">
+                                {shareData.cim.userProfile.name}
+                              </h3>
+                            )}
                             {shareData.cim.userProfile?.title && (
-                              <p className="text-slate-700 font-medium">{shareData.cim.userProfile.title}</p>
+                              <p className="text-lg text-blue-600 font-medium">{shareData.cim.userProfile.title}</p>
                             )}
-                            {shareData.cim.userProfile?.email && (
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-blue-600" />
-                                <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors">
-                                  {shareData.cim.userProfile.email}
-                                </a>
-                              </div>
+                            {shareData.cim.userProfile?.businessName && (
+                              <p className="text-lg text-slate-600 font-medium">{shareData.cim.userProfile.businessName}</p>
                             )}
+                            <div className="space-y-3">
+                              {shareData.cim.userProfile?.email && (
+                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                                  <Mail className="h-4 w-4 text-blue-600" />
+                                  <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors font-medium">
+                                    {shareData.cim.userProfile.email}
+                                  </a>
+                                </div>
+                              )}
+                              {shareData.cim.userProfile?.phoneNumber && (
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                                  <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                  <a href={`tel:${shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 hover:text-slate-700 transition-colors font-medium">
+                                    {shareData.cim.userProfile.phoneNumber}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </CardContent>
