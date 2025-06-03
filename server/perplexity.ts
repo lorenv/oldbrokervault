@@ -243,8 +243,11 @@ Create a comprehensive CIM document following the analysis parameters and custom
   }
 }
 
+// Type alias for backwards compatibility
+type CimAnalysis = LegacyCimAnalysis;
+
 // Legacy CIM analysis function for backwards compatibility
-async function makePerplexityRequest(messages: any[]): Promise<LegacyCimAnalysis> {
+async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
   const response = await fetch(PERPLEXITY_API_URL, {
     method: "POST",
     headers: {
@@ -577,3 +580,38 @@ Transcript:\n${transcript}`
     throw new Error(`Failed to analyze transcript: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
+// New flexible CIM generation export
+export async function generateFlexibleCimDocument(
+  transcript: string,
+  customDirections: string,
+  purpose: string,
+  tone: string,
+  audience: string,
+  financials?: any,
+  websiteData?: string
+): Promise<FlexibleCimDocument> {
+  try {
+    console.log("Generating flexible CIM document");
+    console.log("Parameters:", { purpose, tone, audience, hasFinancials: !!financials, hasWebsiteData: !!websiteData });
+    
+    const result = await generateFlexibleCim(
+      transcript,
+      customDirections,
+      purpose,
+      tone,
+      audience,
+      financials,
+      websiteData
+    );
+    
+    console.log("Successfully generated flexible CIM document");
+    return result;
+  } catch (error) {
+    console.error("Error generating flexible CIM:", error);
+    throw new Error(`Failed to generate flexible CIM: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Export types for use in other files
+export type { FlexibleCimDocument, CimAnalysis };
