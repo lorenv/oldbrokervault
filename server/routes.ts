@@ -18,6 +18,7 @@ import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 import { getGoogleAuthUrl, handleGoogleCallback } from "./google-auth";
+import JSZip from 'jszip';
 import sharp from 'sharp';
 import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
@@ -413,7 +414,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create ZIP file
-      const JSZip = require('jszip');
       const zip = new JSZip();
 
       signatures.forEach((signature, index) => {
@@ -1060,7 +1060,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "No files found" });
       }
 
-      const JSZip = require('jszip');
       const zip = new JSZip();
 
       // Add each file to the ZIP
@@ -3447,7 +3446,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       // For simplicity, we'll zip the files using a basic approach
       // In production, you might want to use a proper ZIP library
-      const JSZip = require('jszip');
       const zip = new JSZip();
 
       for (const file of includedFiles) {
