@@ -53,7 +53,7 @@ export function SharePage() {
       }
       return response.json();
     },
-    enabled: !!shareSlug && !!shareData?.isUploadedFile,
+    enabled: !!shareSlug && !!shareData?.cim?.isUploadedFile,
     staleTime: 0,
     gcTime: 0
   });
@@ -196,6 +196,13 @@ export function SharePage() {
             {/* Check if this is an uploaded file */}
             {shareData.cim.isUploadedFile ? (
               <div>
+                {/* Debug logging */}
+                {console.log("Share page debug:", { 
+                  uploadedFiles, 
+                  fileCount: uploadedFiles.length,
+                  firstFileType: uploadedFiles[0]?.mimeType,
+                  isUploadedFile: shareData.cim.isUploadedFile 
+                })}
                 {/* Conditional display based on file count and type */}
                 {uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
                   // Single PDF: render in browser
