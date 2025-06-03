@@ -110,44 +110,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only serve uploaded files
-      if (!cimDoc.isUploadedFile || !cimDoc.uploadedFilePath) {
+      if (!cimDoc.isUploadedFile) {
         return res.status(404).json({ error: "No uploaded file found" });
       }
 
       // Increment view count
       await storage.incrementShareViewCount(cimDoc.id);
 
-      // Read and serve the file
-      const fullPath = cimDoc.uploadedFilePath;
+      // Check for files in the new uploadedFiles table first
+      const uploadedFiles = await storage.getUploadedFiles(cimDoc.id);
       
-      try {
-        const fileBuffer = await fs.readFile(fullPath);
+      if (uploadedFiles.length > 0) {
+        // Serve the first uploaded file (for single file uploads)
+        const firstFile = uploadedFiles[0];
         
-        // Set appropriate content type based on file type
-        let contentType = 'application/octet-stream';
-        if (cimDoc.uploadedFileMimeType === 'application/pdf') {
-          contentType = 'application/pdf';
-        } else if (cimDoc.uploadedFileMimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        } else if (cimDoc.uploadedFileMimeType === 'text/plain') {
-          contentType = 'text/plain';
+        try {
+          const fileBuffer = await fs.readFile(firstFile.filePath);
+          
+          // Set appropriate content type
+          res.setHeader('Content-Type', firstFile.mimeType);
+          
+          // For PDF, set inline disposition for browser viewing
+          if (firstFile.mimeType === 'application/pdf') {
+            res.setHeader('Content-Disposition', `inline; filename="${firstFile.fileName}"`);
+          } else {
+            // For other files, set attachment disposition for download
+            res.setHeader('Content-Disposition', `attachment; filename="${firstFile.fileName}"`);
+          }
+          
+          res.send(fileBuffer);
+          return;
+          
+        } catch (fileError) {
+          console.error("Error reading uploaded file from uploadedFiles table:", fileError);
         }
-        
-        res.setHeader('Content-Type', contentType);
-        
-        // For PDF, set inline disposition for browser viewing
-        if (cimDoc.uploadedFileMimeType === 'application/pdf') {
-          res.setHeader('Content-Disposition', `inline; filename="${cimDoc.uploadedFileName}"`);
-        } else {
-          // For other files, set attachment disposition for download
-          res.setHeader('Content-Disposition', `attachment; filename="${cimDoc.uploadedFileName}"`);
+      }
+
+      // Fallback to old uploadedFilePath system
+      if (cimDoc.uploadedFilePath) {
+        try {
+          const fileBuffer = await fs.readFile(cimDoc.uploadedFilePath);
+          
+          // Set appropriate content type based on file type
+          let contentType = 'application/octet-stream';
+          if (cimDoc.uploadedFileMimeType === 'application/pdf') {
+            contentType = 'application/pdf';
+          } else if (cimDoc.uploadedFileMimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          } else if (cimDoc.uploadedFileMimeType === 'text/plain') {
+            contentType = 'text/plain';
+          }
+          
+          res.setHeader('Content-Type', contentType);
+          
+          // For PDF, set inline disposition for browser viewing
+          if (cimDoc.uploadedFileMimeType === 'application/pdf') {
+            res.setHeader('Content-Disposition', `inline; filename="${cimDoc.uploadedFileName}"`);
+          } else {
+            // For other files, set attachment disposition for download
+            res.setHeader('Content-Disposition', `attachment; filename="${cimDoc.uploadedFileName}"`);
+          }
+          
+          res.send(fileBuffer);
+          
+        } catch (fileError) {
+          console.error("Error reading uploaded file from legacy path:", fileError);
+          res.status(404).json({ error: "File not found" });
         }
-        
-        res.send(fileBuffer);
-        
-      } catch (fileError) {
-        console.error("Error reading uploaded file:", fileError);
-        res.status(404).json({ error: "File not found" });
+      } else {
+        res.status(404).json({ error: "No file path found" });
       }
       
     } catch (error) {
