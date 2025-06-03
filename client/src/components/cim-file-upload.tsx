@@ -125,7 +125,7 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
       return;
     }
     
-    setSelectedFile(file);
+    setSelectedFiles([file]);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -195,18 +195,18 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
-              {selectedFile ? (
+              {selectedFiles.length > 0 ? (
                 <div className="space-y-2">
                   <FileText className="w-8 h-8 mx-auto text-primary" />
-                  <p className="font-medium">{selectedFile.name}</p>
+                  <p className="font-medium">{selectedFiles[0].name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    {(selectedFiles[0].size / 1024 / 1024).toFixed(2)} MB
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setSelectedFile(null)}
+                    onClick={() => setSelectedFiles([])}
                   >
                     Remove
                   </Button>
