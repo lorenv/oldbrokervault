@@ -67,7 +67,7 @@ export function CimGenerator() {
   
   // New analysis template state
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
-  const [selectedTone, setSelectedTone] = useState<string>('professional');
+  const [selectedTone, setSelectedTone] = useState<string>('balanced');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
   const [savedTemplates, setSavedTemplates] = useState<Array<{name: string, directions: string}>>([]);
@@ -829,14 +829,12 @@ ${analysis.team.ownerResponsibilities}
                     <SelectContent>
                       <SelectItem value="business_overview">Business Overview</SelectItem>
                       <SelectItem value="equity_raise">Equity Raise</SelectItem>
-                      <SelectItem value="acquisition_summary">Acquisition Summary</SelectItem>
-                      <SelectItem value="partnership_brief">Partnership Brief</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium">Tone</Label>
+                  <Label className="text-xs font-medium">Length</Label>
                   <Select
                     value={selectedTone}
                     onValueChange={(value) => {
@@ -847,9 +845,9 @@ ${analysis.team.ownerResponsibilities}
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="professional">Professional</SelectItem>
-                      <SelectItem value="conversational">Conversational</SelectItem>
-                      <SelectItem value="executive_summary">Executive Summary</SelectItem>
+                      <SelectItem value="robust">Robust</SelectItem>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="memo">Memo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -867,9 +865,8 @@ ${analysis.team.ownerResponsibilities}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="investors">Investors</SelectItem>
-                      <SelectItem value="partners">Business Partners</SelectItem>
-                      <SelectItem value="internal_team">Internal Team</SelectItem>
-                      <SelectItem value="potential_buyers">Potential Buyers</SelectItem>
+                      <SelectItem value="colleagues">Colleagues</SelectItem>
+                      <SelectItem value="friends">Friends</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
