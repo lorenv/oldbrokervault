@@ -8,26 +8,33 @@ interface UploadedFileViewerProps {
   cimDocument: any;
   shareSlug: string;
   userProfile: any;
+  uploadedFiles: any[];
 }
 
-export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: UploadedFileViewerProps) {
+export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, uploadedFiles }: UploadedFileViewerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [selectedFileForViewing, setSelectedFileForViewing] = useState<string | null>(null);
 
-  // For now, simulate multiple files - in future this will come from the database
-  const uploadedFiles = [
-    {
-      id: 1,
-      name: cimDocument.uploadedFileName,
-      mimeType: cimDocument.uploadedFileMimeType,
-      size: cimDocument.uploadedFileSize,
-      url: `/api/share/${shareSlug}/file`
-    }
-  ];
+  // Map the uploaded files to the expected format
+  const files = (uploadedFiles || []).map(file => ({
+    id: file.id,
+    name: file.fileName,
+    mimeType: file.mimeType,
+    size: file.fileSize,
+    url: `/api/share/${shareSlug}/download/${file.id}`
+  }));
 
-  const isPdf = cimDocument.uploadedFileMimeType === 'application/pdf';
-  const defaultFileUrl = `/api/share/${shareSlug}/file`;
+  const isPdf = files.length === 1 && files[0]?.mimeType === 'application/pdf';
+  const singleFileUrl = files.length === 1 ? `/api/share/${shareSlug}/file` : null;
+
+  console.log('🔍 UploadedFileViewer debug:', {
+    uploadedFiles,
+    files,
+    isPdf,
+    singleFileUrl,
+    shouldShowIframe: isPdf && files.length === 1
+  });
 
   const handleFileDownload = async (fileUrl: string, fileName: string) => {
     setIsDownloading(true);
@@ -90,12 +97,12 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
 
   // Auto-trigger download for non-PDF files
   useEffect(() => {
-    if (!isPdf) {
-      handleFileDownload(defaultFileUrl, cimDocument.uploadedFileName);
+    if (!isPdf && singleFileUrl && files[0]) {
+      handleFileDownload(singleFileUrl, files[0].name);
     }
-  }, [isPdf]);
+  }, [isPdf, singleFileUrl]);
 
-  if (isPdf && uploadedFiles.length === 1) {
+  if (isPdf && files.length === 1) {
     // For single PDF, show directly in iframe with download option
     return (
       <div className="space-y-6">

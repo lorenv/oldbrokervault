@@ -200,7 +200,7 @@ export function SharePage() {
                   cimDocument={shareData.cim}
                   shareSlug={shareSlug!}
                   userProfile={shareData.cim.userProfile}
-                  logoUrl={shareData.cim.logoUrl}
+                  uploadedFiles={uploadedFiles}
                 />
               ) : uploadedFiles.length > 0 ? (
                 <div className="space-y-6">
