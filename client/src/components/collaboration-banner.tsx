@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/use-auth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Users, Lock, Clock, UserPlus, Share2, Copy, Globe, Mail } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { DocumentExport } from "./document-export";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Lock, Edit, UserPlus, Users, Globe } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { DocumentExport } from './document-export';
 
 interface CollaborationBannerProps {
   docId: number;
@@ -45,7 +45,18 @@ interface Collaborator {
   invitedAt: string;
 }
 
-export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, shareToken, shareEnabled, title, analysis, websiteUrl, logoUrl, selectedImages }: CollaborationBannerProps) {
+export function CollaborationBanner({ 
+  docId, 
+  isOwner, 
+  onEditingStatusChange, 
+  shareToken, 
+  shareEnabled, 
+  title, 
+  analysis, 
+  websiteUrl, 
+  logoUrl, 
+  selectedImages 
+}: CollaborationBannerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +66,7 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
   // Query editing status every 10 seconds
   const { data: editingStatus } = useQuery({
     queryKey: [`/api/cim/${docId}/editing-status`],
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: 10000,
     enabled: !!user && (user.subscriptionStatus !== 'free' || user.isAdmin)
   });
 
@@ -102,7 +113,7 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
       onEditingStatusChange?.(false);
       toast({
         title: "Editing Stopped",
-        description: "Others can now edit this document."
+        description: "You have stopped editing this document."
       });
     }
   });
@@ -116,45 +127,37 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
       setIsInviteDialogOpen(false);
       setInviteForm({ email: "", permission: "view" });
       toast({
-        title: "Collaborator Invited",
-        description: "An invitation has been sent to the email address."
+        title: "Invitation Sent",
+        description: "The collaboration invitation has been sent."
       });
     },
-    onError: async (error: any) => {
-      const errorData = await error.response?.json();
+    onError: (error: any) => {
       toast({
-        title: "Invitation Failed",
-        description: errorData?.error || "Failed to invite collaborator",
+        title: "Failed to Send Invitation",
+        description: "Could not send the collaboration invitation.",
         variant: "destructive"
       });
     }
   });
 
-  // Heartbeat to maintain editing session
+  // Auto-stop editing after 2 hours of inactivity
   useEffect(() => {
-    let heartbeatInterval: NodeJS.Timeout | null = null;
-    
-    if (editingStatus?.currentEditor?.id === user?.id) {
-      heartbeatInterval = setInterval(() => {
-        apiRequest("POST", `/api/cim/${docId}/heartbeat`).catch((error) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.error("Heartbeat error:", error);
-          }
-        });
-      }, 60000); // Send heartbeat every minute
-    }
+    const typedStatus = editingStatus as EditingStatus | undefined;
+    if (typedStatus?.currentEditor?.id === user?.id) {
+      const timeout = setTimeout(() => {
+        stopEditingMutation.mutate();
+      }, 2 * 60 * 60 * 1000); // 2 hours
 
-    return () => {
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-      }
-    };
-  }, [editingStatus?.currentEditor?.id, user?.id, docId]);
+      return () => clearTimeout(timeout);
+    }
+  }, [editingStatus, user?.id, docId, stopEditingMutation]);
 
   // Notify parent of editing status changes
   useEffect(() => {
-    onEditingStatusChange?.(editingStatus?.canEdit || false);
-  }, [editingStatus?.canEdit, onEditingStatusChange]);
+    const typedStatus = editingStatus as EditingStatus | undefined;
+    const canEdit = typedStatus?.canEdit || false;
+    onEditingStatusChange?.(canEdit);
+  }, [editingStatus, onEditingStatusChange]);
 
   // Don't show collaboration features for free users
   if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
@@ -168,48 +171,25 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
     }
   };
 
-  const copyShareUrl = () => {
-    if (shareToken) {
-      const shareUrl = `${window.location.origin}/share/${shareToken}`;
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Share link copied",
-        description: "The share link has been copied to your clipboard"
-      });
-    }
-  };
-
-  const handleEmailShare = () => {
-    if (shareToken) {
-      setEmailShareDialog({
-        open: true,
-        shareUrl: `${window.location.origin}/share/${shareToken}`,
-        documentTitle: title || `CIM Document #${docId}`
-      });
-    }
-  };
+  const typedEditingStatus = editingStatus as EditingStatus | undefined;
+  const typedCollaborators = collaborators as Collaborator[] | undefined;
 
   return (
     <div className="space-y-3 mb-6">
       {/* Editing Status Banner */}
-      {editingStatus?.isBeingEdited && editingStatus.currentEditor && (
+      {typedEditingStatus?.isBeingEdited && typedEditingStatus.currentEditor && (
         <Alert>
           <Lock className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span>
-                {editingStatus.currentEditor.id === user.id 
-                  ? "You are currently editing this document"
-                  : `${editingStatus.currentEditor.name} is currently editing this document`
-                }
+                <strong>{typedEditingStatus.currentEditor.name}</strong> is currently editing this document
               </span>
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Since {new Date(editingStatus.currentEditor.editStartedAt).toLocaleTimeString()}
-              </Badge>
+              <span className="text-xs text-muted-foreground">
+                Started {format(new Date(typedEditingStatus.currentEditor.editStartedAt), 'h:mm a')}
+              </span>
             </div>
-            
-            {editingStatus.currentEditor.id === user.id && (
+            {typedEditingStatus.currentEditor.id === user?.id && (
               <Button 
                 size="sm" 
                 variant="outline"
@@ -223,126 +203,134 @@ export function CollaborationBanner({ docId, isOwner, onEditingStatusChange, sha
         </Alert>
       )}
 
-      {/* Collaboration & Sharing Controls */}
-      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      {/* Collaboration Bar */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+        {/* Left side - Edit controls */}
+        <div className="flex items-center gap-3">
+          {typedEditingStatus?.isBeingEdited ? (
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="text-sm font-medium">
-                Team Collaboration {collaborators?.length ? `(${collaborators.length})` : ''}
+              <span className="text-sm font-medium text-orange-600">
+                {typedEditingStatus.currentEditor?.name} is editing
               </span>
+              <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
+                In Use
+              </Badge>
             </div>
-            
-            {!editingStatus?.isBeingEdited && (
-              <Button 
-                size="sm"
-                onClick={() => startEditingMutation.mutate()}
-                disabled={startEditingMutation.isPending}
-              >
-                Start Editing
-              </Button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Share Controls */}
-            {isOwner && analysis && (
-              <DocumentExport 
-                analysis={analysis}
-                docId={docId}
-                websiteUrl={websiteUrl}
-                logoUrl={logoUrl}
-                selectedImages={selectedImages}
-                user={user}
-              />
-            )}
-
-            {/* Team Invite */}
-            {isOwner && (
-              <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="default">
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    Invite Team Member
-                  </Button>
-                </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite Collaborator</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleInviteSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={inviteForm.email}
-                    onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="colleague@company.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="permission">Permission</Label>
-                  <Select 
-                    value={inviteForm.permission} 
-                    onValueChange={(value) => setInviteForm(prev => ({ ...prev, permission: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="view">View Only</SelectItem>
-                      <SelectItem value="edit">Can Edit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={inviteCollaboratorMutation.isPending}>
-                    Send Invitation
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-            </Dialog>
+          ) : (
+            <Button
+              onClick={() => startEditingMutation.mutate()}
+              disabled={startEditingMutation.isPending || !typedEditingStatus?.canEdit}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Edit className="h-4 w-4" />
+              {startEditingMutation.isPending ? "Starting..." : "Start Editing"}
+            </Button>
           )}
         </div>
 
-        {/* Status Indicators */}
-        <div className="flex items-center gap-3 text-xs">
-          {shareEnabled ? (
-            <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
-              <Globe className="h-3 w-3" />
-              Public Link Active
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-              <Lock className="h-3 w-3" />
-              Private Document
-            </div>
+        {/* Right side - Actions */}
+        <div className="flex items-center gap-2">
+          {/* Add Collaborator */}
+          {isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsInviteDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Invite
+            </Button>
           )}
-          
-          {collaborators && collaborators.length > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
-              <Users className="h-3 w-3" />
-              {collaborators.length} Team {collaborators.length === 1 ? 'Member' : 'Members'}
-            </div>
-          )}
+
+          {/* Document Export */}
+          <DocumentExport
+            docId={docId}
+            analysis={analysis}
+            websiteUrl={websiteUrl}
+            logoUrl={logoUrl}
+            selectedImages={selectedImages}
+            user={user}
+          />
         </div>
       </div>
 
+      {/* Status Indicators */}
+      <div className="flex items-center gap-3 text-xs">
+        {shareEnabled ? (
+          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
+            <Globe className="h-3 w-3" />
+            Public Link Active
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+            <Lock className="h-3 w-3" />
+            Private Document
+          </div>
+        )}
+        
+        {typedCollaborators && typedCollaborators.length > 0 && (
+          <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
+            <Users className="h-3 w-3" />
+            {typedCollaborators.length} Team {typedCollaborators.length === 1 ? 'Member' : 'Members'}
+          </div>
+        )}
+      </div>
 
+      {/* Invite Collaborator Dialog */}
+      {isOwner && (
+        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Invite Collaborator</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleInviteSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="colleague@company.com"
+                  value={inviteForm.email}
+                  onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="permission">Permission Level</Label>
+                <Select
+                  value={inviteForm.permission}
+                  onValueChange={(value) => setInviteForm({ ...inviteForm, permission: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="view">View Only</SelectItem>
+                    <SelectItem value="edit">Can Edit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={inviteCollaboratorMutation.isPending}>
+                  Send Invitation
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Collaborators List */}
-      {collaborators && collaborators.length > 0 && (
+      {typedCollaborators && typedCollaborators.length > 0 && (
         <div className="bg-gray-50 p-3 rounded-lg">
           <h4 className="text-sm font-medium mb-2">Team Members</h4>
           <div className="space-y-2">
-            {collaborators.map((collaborator) => (
+            {typedCollaborators.map((collaborator) => (
               <div key={collaborator.id} className="flex items-center justify-between text-sm">
                 <span>{collaborator.email}</span>
                 <div className="flex items-center gap-2">
