@@ -178,10 +178,6 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
                     <div>
                       <p className="font-semibold text-lg text-slate-900">{file.fileName}</p>
                       <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-                        <span>{formatFileSize(file.fileSize)}</span>
-                        <span>•</span>
-                        <span>{file.mimeType.split('/').pop()?.toUpperCase()}</span>
-                        <span>•</span>
                         <span>Uploaded {formatDistanceToNow(new Date(file.uploadedAt))} ago</span>
                       </div>
                     </div>
