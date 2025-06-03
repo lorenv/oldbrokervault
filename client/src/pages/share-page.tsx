@@ -254,6 +254,12 @@ export function SharePage() {
                     </CardContent>
                   </Card>
                   
+                  {(() => {
+                    console.log("Main debug - shareData:", shareData);
+                    console.log("CIM data:", shareData.cim);
+                    console.log("User profile check:", shareData.cim.userProfile);
+                    return null;
+                  })()}
                   {shareData.cim.userProfile && (
                     <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                       <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
