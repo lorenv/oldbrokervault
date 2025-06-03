@@ -892,9 +892,13 @@ export function DocumentExport({
             ) : (
               // Regular view: Show all options
               <>
+                <DropdownMenuItem onClick={copyShareUrl}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Share Link
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
                   <Link className="h-4 w-4 mr-2" />
-                  Share Link
+                  Share Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   // Get document title from analysis or use fallback
