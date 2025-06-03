@@ -220,7 +220,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   {!isSharedView ? (
                     <FlexibleSectionEditor
                       value={section.title}
-                      onSave={(newTitle) => handleFlexibleSectionUpdate(section.id || index, 'title', newTitle)}
+                      onSave={async (newTitle: string) => {
+                        try {
+                          const updatedSections = analysis.sections.map((sec: any, idx: number) => {
+                            const id = sec.id || idx;
+                            if (id === (section.id || index)) {
+                              return { ...sec, title: newTitle };
+                            }
+                            return sec;
+                          });
+                          
+                          const updatedAnalysis = { ...analysis, sections: updatedSections };
+                          
+                          const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                            analysis: updatedAnalysis
+                          });
+                          
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({ title: "Title Updated", description: "Section title saved successfully." });
+                          }
+                        } catch (error) {
+                          toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                        }
+                      }}
                       placeholder="Section title"
                       multiline={false}
                     />
@@ -234,7 +258,31 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                   {!isSharedView ? (
                     <FlexibleSectionEditor
                       value={section.content}
-                      onSave={(newContent) => handleFlexibleSectionUpdate(section.id || index, 'content', newContent)}
+                      onSave={async (newContent: string) => {
+                        try {
+                          const updatedSections = analysis.sections.map((sec: any, idx: number) => {
+                            const id = sec.id || idx;
+                            if (id === (section.id || index)) {
+                              return { ...sec, content: newContent };
+                            }
+                            return sec;
+                          });
+                          
+                          const updatedAnalysis = { ...analysis, sections: updatedSections };
+                          
+                          const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                            analysis: updatedAnalysis
+                          });
+                          
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({ title: "Content Updated", description: "Section content saved successfully." });
+                          }
+                        } catch (error) {
+                          toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                        }
+                      }}
                       placeholder="Section content"
                       multiline={true}
                     />
@@ -258,48 +306,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
       </div>
     );
   }
-  
-  // Function to handle flexible section updates
-  const handleFlexibleSectionUpdate = async (sectionId: string | number, field: 'title' | 'content', newValue: string) => {
-    try {
-      // Update the local analysis state
-      const updatedSections = analysis.sections.map((section: any, index: number) => {
-        const id = section.id || index;
-        if (id === sectionId) {
-          return { ...section, [field]: newValue };
-        }
-        return section;
-      });
-      
-      const updatedAnalysis = {
-        ...analysis,
-        sections: updatedSections
-      };
-      
-      // Save to backend
-      const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-        analysis: updatedAnalysis
-      });
-      
-      if (response.ok) {
-        // Update cache
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-        
-        toast({
-          title: "Section Updated",
-          description: `${field === 'title' ? 'Title' : 'Content'} has been saved successfully.`,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating flexible section:', error);
-      toast({
-        title: "Save Failed",
-        description: "Failed to save changes. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
   
   const { toast } = useToast();
   const { user } = useAuth();
