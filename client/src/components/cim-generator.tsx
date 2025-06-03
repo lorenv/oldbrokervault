@@ -206,6 +206,9 @@ export function CimGenerator() {
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
+        formData.append('purpose', selectedPurpose);
+        formData.append('tone', selectedTone);
+        formData.append('audience', selectedAudience);
         
         if (hasWebsiteUrl) {
           formData.append('websiteUrl', data.websiteUrl!);
@@ -278,14 +281,6 @@ export function CimGenerator() {
       }
     },
     onSuccess: async (data) => {
-      setAnalysis(data.analysis);
-      setCurrentDocId(data.id);
-      
-      // Store the logoUrl in the analysis for display
-      if (data.logoUrl) {
-        setAnalysis((prev: any) => ({ ...prev, logoUrl: data.logoUrl }));
-      }
-      
       // Upload financial files after CIM is created
       if (financialFiles.length > 0) {
         try {
@@ -317,15 +312,18 @@ export function CimGenerator() {
       // Reset website analysis stage
       setWebsiteAnalysisStage(null);
       
-      // Show success message with website enhancement information if applicable
+      // Show success message
       const websiteUrl = form.getValues('websiteUrl');
-      if (websiteUrl) {
-        toast({
-          title: "CIM Generated Successfully",
-          description: "Your CIM has been enhanced with data from " + websiteUrl,
-          duration: 5000
-        });
-      }
+      toast({
+        title: "CIM Generated Successfully",
+        description: websiteUrl ? `Your CIM has been enhanced with data from ${websiteUrl}` : "Your CIM has been generated successfully",
+        duration: 3000
+      });
+      
+      // Redirect to My CIMs page to view the editable version
+      setTimeout(() => {
+        window.location.href = `/cim/${data.id}`;
+      }, 1500);
     },
     onError: (error: any) => {
       // Reset website analysis stage
