@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
+import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign } from "lucide-react";
 
 export function SharePage() {
@@ -381,33 +382,7 @@ export function SharePage() {
                     </div>
                     
                     {/* Financial Documents Download Section */}
-                    <div className="mt-8 p-6 bg-slate-50 rounded-xl">
-                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2 justify-start h-auto p-4"
-                          onClick={() => window.open(`/api/cim/${shareData.cim.id}/export-financials`, '_blank')}
-                        >
-                          <FileText className="h-5 w-5 text-blue-600" />
-                          <div className="text-left">
-                            <div className="font-medium">Financial Summary</div>
-                            <div className="text-sm text-gray-500">Revenue, expenses, and key metrics</div>
-                          </div>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2 justify-start h-auto p-4"
-                          onClick={() => window.open(`/api/cim/${shareData.cim.id}/export-statements`, '_blank')}
-                        >
-                          <Download className="h-5 w-5 text-green-600" />
-                          <div className="text-left">
-                            <div className="font-medium">Financial Statements</div>
-                            <div className="text-sm text-gray-500">P&L, balance sheet, cash flow</div>
-                          </div>
-                        </Button>
-                      </div>
-                    </div>
+                    <FinancialDocumentsDisplay cimId={shareData.cim.id} />
                   </CardContent>
                 </Card>
               )}
