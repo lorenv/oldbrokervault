@@ -461,13 +461,63 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Share Link Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
-                          toast({
-                            title: "Share link copied",
-                            description: "The share link has been copied to your clipboard"
-                          });
+                          
+                          // If document doesn't have a share token, automatically enable sharing
+                          if (!doc.shareToken) {
+                            try {
+                              // Generate a new share slug
+                              const randomId = Math.random().toString(36).substring(2, 8);
+                              const newSlug = `cim-${randomId}`;
+                              const newShareUrl = `${window.location.origin}/share/${newSlug}`;
+                              
+                              // Save to server
+                              const response = await fetch(`/api/cim/${doc.id}/share`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                credentials: 'include',
+                                body: JSON.stringify({
+                                  shareEnabled: true,
+                                  shareSlug: newSlug,
+                                  sharePassword: null,
+                                  shareExpiresAt: null,
+                                  ndaProtected: false,
+                                  ndaTemplateId: null
+                                }),
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error('Failed to enable sharing');
+                              }
+                              
+                              // Copy the new URL
+                              navigator.clipboard.writeText(newShareUrl);
+                              toast({
+                                title: "Sharing enabled and link copied!",
+                                description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
+                              });
+                              
+                              // Refresh the documents list to show updated share status
+                              queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+                            } catch (error) {
+                              console.error('Failed to enable sharing:', error);
+                              toast({
+                                title: "Error enabling sharing",
+                                description: "Failed to enable sharing. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          } else {
+                            // Normal copy operation when sharing is already enabled
+                            navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
+                            toast({
+                              title: "Share link copied",
+                              description: "The share link has been copied to your clipboard"
+                            });
+                          }
                         }}
                       >
                         <Copy className="mr-2 h-4 w-4" />
