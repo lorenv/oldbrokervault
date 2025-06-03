@@ -117,8 +117,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.incrementShareViewCount(cimDoc.id);
 
       // Read and serve the file
-      const fs = require('fs').promises;
-      const path = require('path');
       const fullPath = path.join(process.cwd(), cimDoc.uploadedFilePath);
       
       try {
