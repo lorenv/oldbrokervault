@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, User, Phone, Mail, Building } from "lucide-react";
+import { Download, FileText, User, Phone, Mail, Building, Archive, Eye } from "lucide-react";
+import JSZip from 'jszip';
 
 interface UploadedFileViewerProps {
   cimDocument: any;
