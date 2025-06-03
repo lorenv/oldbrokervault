@@ -39,7 +39,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Edit } from 'lucide-react';
+import { GripVertical, Edit, Plus } from 'lucide-react';
 
 // Simple inline editor for flexible CIM sections
 interface FlexibleSectionEditorProps {
@@ -161,6 +161,10 @@ function DraggableSection({ id, children, isSharedView }: DraggableSectionProps)
 }
 
 export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImages, title, isSharedView, userProfile, cimDocument, autoTriggerShare, onShareTriggered }: CimDisplayProps & { cimDocument?: any }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
   // Check if this is a new flexible CIM format
   const isFlexibleFormat = analysis?.sections && Array.isArray(analysis.sections);
   
@@ -293,6 +297,52 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
               </CardContent>
             </Card>
           ))}
+
+          {/* Add Section Button - only show in edit mode */}
+          {!isSharedView && (
+            <Card className="mb-4 border-dashed border-2 border-gray-300 hover:border-blue-400 transition-colors">
+              <CardContent className="p-6 text-center">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const newSection = {
+                      id: `section_${Date.now()}`,
+                      title: "New Section",
+                      content: "Click to edit this section content..."
+                    };
+                    
+                    const updatedSections = [...analysis.sections, newSection];
+                    const updatedAnalysis = { ...analysis, sections: updatedSections };
+                    
+                    try {
+                      const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                        analysis: updatedAnalysis
+                      });
+                      
+                      if (response.ok) {
+                        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                        toast({ 
+                          title: "Section Added", 
+                          description: "New section added successfully." 
+                        });
+                      }
+                    } catch (error) {
+                      toast({ 
+                        title: "Error", 
+                        description: "Failed to add new section.", 
+                        variant: "destructive" 
+                      });
+                    }
+                  }}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Custom Section
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium mb-2">Document Metadata</h4>
@@ -307,8 +357,6 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     );
   }
   
-  const { toast } = useToast();
-  const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<any>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
