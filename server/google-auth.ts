@@ -9,7 +9,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 // Create OAuth2Client with dynamic redirect URI
 function createOAuth2Client(redirectUri?: string) {
   const defaultRedirectUri = process.env.NODE_ENV === 'production' 
-    ? 'https://business-exits-cim-generator.replit.app/api/auth/google/callback'
+    ? `${process.env.PRODUCTION_URL || 'http://localhost:5000'}/api/auth/google/callback`
     : 'http://localhost:5000/api/auth/google/callback';
     
   return new OAuth2Client(
