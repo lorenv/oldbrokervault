@@ -867,11 +867,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload existing CIM file endpoint
-  app.post("/api/cim/upload-file", upload.single('cimFile'), async (req, res) => {
+  app.post("/api/cim/upload-file", upload.array('cimFiles', 10), async (req, res) => {
     console.log("=== CIM FILE UPLOAD REQUEST ===");
     console.log("User authenticated:", req.isAuthenticated());
     console.log("Request body:", req.body);
-    console.log("File received:", !!req.file);
+    console.log("Files received:", req.files?.length || 0);
     
     if (!req.isAuthenticated()) {
       console.log("Authentication failed");
@@ -879,9 +879,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      if (!req.file) {
-        console.log("No file in request");
-        return res.status(400).json({ error: "No file uploaded" });
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        console.log("No files in request");
+        return res.status(400).json({ error: "No files uploaded" });
       }
 
       const { title } = req.body;
@@ -890,35 +891,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Title is required" });
       }
 
-      // Validate file type
+      // Validate file types
       const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      if (!allowedTypes.includes(req.file.mimetype)) {
-        return res.status(400).json({ error: "Only PDF, DOCX, and TXT files are supported" });
+      for (const file of files) {
+        if (!allowedTypes.includes(file.mimetype)) {
+          return res.status(400).json({ error: `File "${file.originalname}" is not a supported type. Only PDF, DOCX, and TXT files are supported.` });
+        }
       }
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(2, 8);
-      const ext = path.extname(req.file.originalname);
-      const fileName = `${timestamp}_${randomStr}${ext}`;
-      const filePath = path.join(uploadedCimsDir, fileName);
+      // Create upload directory if it doesn't exist
+      const uploadedCimsDir = path.join(process.cwd(), 'uploaded-cims');
+      await fs.mkdir(uploadedCimsDir, { recursive: true });
 
-      // Save file to disk
-      await fs.writeFile(filePath, req.file.buffer);
-
-      // Create CIM document record
+      // Create CIM document record first
       const cimDoc = await storage.createUploadedCimDocument(req.user!.id, {
-        title,
-        fileName,
-        filePath,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype
+        title: title.trim()
       });
+
+      // Process and save each file
+      const savedFiles = [];
+      for (const file of files) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 8);
+        const ext = path.extname(file.originalname);
+        const fileName = `${timestamp}_${randomStr}${ext}`;
+        const filePath = path.join(uploadedCimsDir, fileName);
+
+        // Save file to disk
+        await fs.writeFile(filePath, file.buffer);
+
+        // Store file record in uploadedFiles table
+        const uploadedFile = await storage.createUploadedFile({
+          cimDocumentId: cimDoc.id,
+          fileName: file.originalname,
+          filePath,
+          fileSize: file.size,
+          mimeType: file.mimetype
+        });
+
+        savedFiles.push(uploadedFile);
+      }
+
+      console.log(`Successfully uploaded ${savedFiles.length} files for CIM ${cimDoc.id}`);
 
       res.json({
         id: cimDoc.id,
         title: cimDoc.title,
-        message: "CIM file uploaded successfully"
+        filesUploaded: savedFiles.length,
+        message: `CIM document with ${savedFiles.length} file(s) uploaded successfully`
       });
 
     } catch (error) {
