@@ -24,8 +24,15 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
   const { data: uploadedFiles = [], isLoading } = useQuery({
     queryKey: [`/api/cim/${docId}/uploaded-files`],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/cim/${docId}/uploaded-files`);
-      return Array.isArray(response) ? response : [];
+      const response = await fetch(`/api/cim/${docId}/uploaded-files`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch files');
+      }
+      const data = await response.json();
+      console.log('Fetched uploaded files:', data);
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -144,9 +151,71 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
         <p className="text-gray-600">Manage your uploaded CIM documents</p>
       </div>
 
-      {/* Upload Section */}
+      {/* Current Files Section - Now First */}
       <Card className="border-0 shadow-xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl">
         <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-800">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FileText className="h-5 w-5 text-green-600" />
+            </div>
+            Current Files ({Array.isArray(uploadedFiles) ? uploadedFiles.length : 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-8">
+          {!Array.isArray(uploadedFiles) || uploadedFiles.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-500">No files uploaded yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {uploadedFiles.map((file: any) => (
+                <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-lg text-slate-900">{file.fileName}</p>
+                      <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
+                        <span>{formatFileSize(file.fileSize)}</span>
+                        <span>•</span>
+                        <span>{file.mimeType.split('/').pop()?.toUpperCase()}</span>
+                        <span>•</span>
+                        <span>Uploaded {formatDistanceToNow(new Date(file.uploadedAt))} ago</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(file)}
+                      className="bg-white/90 hover:bg-blue-50 border-blue-200 text-blue-700"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(file.id)}
+                      disabled={deleteMutation.isPending}
+                      className="bg-white/90 hover:bg-red-50 border-red-200 text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upload Section - Now Second */}
+      <Card className="border-0 shadow-xl bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-md rounded-2xl">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50 pb-6 pt-8 px-8">
           <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-800">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Plus className="h-5 w-5 text-blue-600" />
@@ -229,67 +298,7 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
         </CardContent>
       </Card>
 
-      {/* Existing Files */}
-      <Card className="border-0 shadow-xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-800">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <FileText className="h-5 w-5 text-green-600" />
-            </div>
-            Current Files ({Array.isArray(uploadedFiles) ? uploadedFiles.length : 0})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-8">
-          {!Array.isArray(uploadedFiles) || uploadedFiles.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">No files uploaded yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {Array.isArray(uploadedFiles) && uploadedFiles.map((file: any) => (
-                <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <FileText className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-lg text-slate-900">{file.fileName}</p>
-                      <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
-                        <span>{formatFileSize(file.fileSize)}</span>
-                        <span>•</span>
-                        <span>{file.mimeType.split('/').pop()?.toUpperCase()}</span>
-                        <span>•</span>
-                        <span>Uploaded {formatDistanceToNow(new Date(file.uploadedAt))} ago</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownload(file)}
-                      className="bg-white/90 hover:bg-blue-50 border-blue-200 text-blue-700"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(file.id)}
-                      disabled={deleteMutation.isPending}
-                      className="bg-white/90 hover:bg-red-50 border-red-200 text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
     </div>
   );
 }
