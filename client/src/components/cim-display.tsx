@@ -17,6 +17,7 @@ import { EmailShareDialog } from "./email-share-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { CollaborationBanner } from "./collaboration-banner";
 import { UploadedCimFileManager } from "./uploaded-cim-file-manager";
+import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
   DialogContent,
@@ -183,10 +184,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     return (
       <div className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">{analysis.title || title}</h2>
-
-          </div>
+          {/* Removed auto-generated title display */}
           
           {logoUrl && (
             <div className="flex justify-center mb-6">
@@ -284,7 +282,17 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
                       multiline={true}
                     />
                   ) : (
-                    <div className="whitespace-pre-wrap">{section.content}</div>
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown 
+                        components={{
+                          ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                        }}
+                      >
+                        {section.content}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </div>
               </CardContent>
