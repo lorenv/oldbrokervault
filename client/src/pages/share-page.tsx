@@ -285,13 +285,10 @@ export function SharePage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        {/* Debug logging */}
-                        {console.log('🔍 User profile data:', shareData.cim.userProfile)}
-                        {console.log('🔍 Logo URL:', shareData.cim.logoUrl)}
                         <div className="flex items-start gap-6">
-                          {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl) && (
+                          {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto) && (
                             <img 
-                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl} 
+                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
                               alt="Profile" 
                               className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                             />
@@ -327,10 +324,10 @@ export function SharePage() {
                                 )}
                               </div>
                               
-                              {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl) && (
+                              {(shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo) && (
                                 <div className="flex justify-end">
                                   <img 
-                                    src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl} 
+                                    src={shareData.cim.logoUrl || shareData.cim.userProfile.businessImageUrl || shareData.cim.userProfile.businessLogo} 
                                     alt="Company Logo" 
                                     className="max-w-32 max-h-20 object-contain"
                                   />
