@@ -1558,13 +1558,21 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     doc.on('error', reject);
 
     try {
-      // Title page
+      // Title page with modern design
       doc.fontSize(24)
          .font('Helvetica-Bold')
          .fillColor('#2563eb')
          .text('CONFIDENTIAL INFORMATION MEMORANDUM', { align: 'center' });
       
-      doc.moveDown(2);
+      doc.moveDown(1);
+      
+      // Add document title if available
+      if (analysis.title) {
+        doc.fontSize(20)
+           .fillColor('#1e293b')
+           .text(analysis.title, { align: 'center' });
+        doc.moveDown(1);
+      }
 
       // Add logo if available
       if (logoUrl) {
@@ -1581,8 +1589,123 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
-      // Business Overview Section
-      if (analysis.story) {
+      // Financial Information Section (if enabled)
+      if (financialData && financialData.enabled) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('FINANCIAL INFORMATION')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (financialData.askingPriceIncluded && financialData.askingPrice) {
+          doc.font('Helvetica-Bold').text('💰 Asking Price: ', { continued: true });
+          doc.font('Helvetica').text(`$${parseInt(financialData.askingPrice).toLocaleString()}`);
+          doc.moveDown(0.5);
+        }
+        if (financialData.revenueIncluded && financialData.revenue) {
+          doc.font('Helvetica-Bold').text('📈 Annual Revenue: ', { continued: true });
+          doc.font('Helvetica').text(`$${parseInt(financialData.revenue).toLocaleString()}`);
+          doc.moveDown(0.5);
+        }
+        if (financialData.ebitdaIncluded && financialData.ebitda) {
+          doc.font('Helvetica-Bold').text('📊 EBITDA: ', { continued: true });
+          doc.font('Helvetica').text(`$${parseInt(financialData.ebitda).toLocaleString()}`);
+          doc.moveDown(0.5);
+        }
+        
+        // Note about financial documents
+        doc.moveDown(1);
+        doc.fontSize(10)
+           .fillColor('#666666')
+           .text('Note: Additional financial documents may be available upon request.');
+      }
+
+      // Business Images Section
+      if (selectedImages && selectedImages.length > 0) {
+        doc.addPage();
+        
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('BUSINESS IMAGES')
+           .fillColor('#000000');
+        
+        doc.moveDown(1);
+        
+        let currentY = doc.y;
+        let currentX = 50;
+        const imageWidth = 200;
+        const imageHeight = 150;
+        const margin = 20;
+        
+        for (let i = 0; i < selectedImages.length; i++) {
+          try {
+            const imagePath = resolveImagePath(selectedImages[i]);
+            if (fs.existsSync(imagePath)) {
+              // Check if we need a new row
+              if (currentX + imageWidth > doc.page.width - 50) {
+                currentX = 50;
+                currentY += imageHeight + margin;
+                
+                // Check if we need a new page
+                if (currentY + imageHeight > doc.page.height - 50) {
+                  doc.addPage();
+                  currentY = 50;
+                }
+              }
+              
+              doc.image(imagePath, currentX, currentY, {
+                fit: [imageWidth, imageHeight]
+              });
+              
+              currentX += imageWidth + margin;
+            }
+          } catch (error) {
+            console.error(`Failed to add image ${selectedImages[i]} to PDF:`, error);
+          }
+        }
+      }
+
+      // Flexible Document Sections (modern format)
+      if (analysis.sections && Array.isArray(analysis.sections)) {
+        analysis.sections.forEach((section: any, index: number) => {
+          if (index > 0 || !financialData?.enabled) {
+            doc.addPage();
+          }
+          
+          doc.fontSize(18)
+             .font('Helvetica-Bold')
+             .fillColor('#2563eb')
+             .text(section.title || `Section ${index + 1}`)
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
+          
+          doc.moveDown(1);
+          
+          if (section.content) {
+            // Handle markdown-style content by converting to plain text
+            const content = section.content
+              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+              .replace(/^#+\s+/gm, '') // Remove headers
+              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+              .trim();
+            
+            doc.font('Helvetica').text(content, {
+              align: 'left',
+              lineGap: 4
+            });
+          }
+        });
+      } else if (analysis.story) {
+        // Fallback to old format if no sections
         doc.addPage();
         
         doc.fontSize(18)

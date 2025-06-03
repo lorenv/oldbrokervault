@@ -475,7 +475,7 @@ export function SharePage() {
               )}
 
               {/* Business Images for flexible CIM documents */}
-              {shareData.selectedImages && shareData.selectedImages.length > 0 && (
+              {shareData.cim.selectedImages && Array.isArray(shareData.cim.selectedImages) && shareData.cim.selectedImages.length > 0 && (
                 <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                   <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
                     <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
@@ -487,7 +487,7 @@ export function SharePage() {
                   </CardHeader>
                   <CardContent className="p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {shareData.selectedImages.map((imageUrl: string, index: number) => (
+                      {shareData.cim.selectedImages.map((imageUrl: string, index: number) => (
                         <div key={index} className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
                           <img 
                             src={imageUrl} 
