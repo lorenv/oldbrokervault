@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
-import { Shield, FileText, AlertCircle, Download, Package, User } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -341,7 +341,76 @@ export function SharePage() {
             </div>
           ) : (
             <div className="space-y-8">
-
+              {/* Financial Information Section */}
+              {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
+                <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50/50 pb-6 pt-8 px-8">
+                    <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <DollarSign className="h-6 w-6 text-green-600" />
+                      </div>
+                      Financial Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {shareData.cim.askingPrice && (
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <h4 className="text-lg font-semibold text-gray-600 mb-2">Asking Price</h4>
+                          <p className="text-3xl font-bold text-green-600">
+                            ${parseInt(shareData.cim.askingPrice).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {shareData.cim.revenue && (
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <h4 className="text-lg font-semibold text-gray-600 mb-2">Annual Revenue</h4>
+                          <p className="text-3xl font-bold text-blue-600">
+                            ${parseInt(shareData.cim.revenue).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {shareData.cim.ebitda && (
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <h4 className="text-lg font-semibold text-gray-600 mb-2">EBITDA</h4>
+                          <p className="text-3xl font-bold text-purple-600">
+                            ${parseInt(shareData.cim.ebitda).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Financial Documents Download Section */}
+                    <div className="mt-8 p-6 bg-slate-50 rounded-xl">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2 justify-start h-auto p-4"
+                          onClick={() => window.open(`/api/cim/${shareData.cim.id}/export-financials`, '_blank')}
+                        >
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <div className="text-left">
+                            <div className="font-medium">Financial Summary</div>
+                            <div className="text-sm text-gray-500">Revenue, expenses, and key metrics</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2 justify-start h-auto p-4"
+                          onClick={() => window.open(`/api/cim/${shareData.cim.id}/export-statements`, '_blank')}
+                        >
+                          <Download className="h-5 w-5 text-green-600" />
+                          <div className="text-left">
+                            <div className="font-medium">Financial Statements</div>
+                            <div className="text-sm text-gray-500">P&L, balance sheet, cash flow</div>
+                          </div>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Business Images for flexible CIM documents */}
               {shareData.selectedImages && shareData.selectedImages.length > 0 && (
@@ -382,65 +451,7 @@ export function SharePage() {
                 userProfile={shareData.cim.userProfile}
               />
 
-              {/* Contact Information at Bottom */}
-              {shareData.cim.userProfile && (
-                <Card className="w-full max-w-5xl mx-auto mt-12 bg-gradient-to-br from-slate-50 to-blue-50/30 border border-slate-200/50 rounded-3xl shadow-xl overflow-hidden">
-                  <CardContent className="px-8 py-10">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                        {(shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto) && (
-                          <div className="flex-shrink-0">
-                            <img 
-                              src={shareData.cim.userProfile.profilePhotoUrl || shareData.cim.userProfile.profilePictureUrl || shareData.cim.userProfile.profilePhoto} 
-                              alt="Profile" 
-                              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                            />
-                          </div>
-                        )}
-                        
-                        <div className="space-y-1">
-                          <h3 className="text-xl font-bold text-slate-900">
-                            {shareData.cim.userProfile.fullName || shareData.cim.userProfile.name}
-                          </h3>
-                          {shareData.cim.userProfile.title && (
-                            <p className="text-blue-600 font-medium">{shareData.cim.userProfile.title}</p>
-                          )}
-                          {(shareData.cim.userProfile.company || shareData.cim.userProfile.businessName) && (
-                            <p className="text-slate-600">
-                              {shareData.cim.userProfile.company || shareData.cim.userProfile.businessName}
-                            </p>
-                          )}
-                          
-                          {shareData.cim.userProfile.email && (
-                            <div className="pt-2">
-                              <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors">
-                                {shareData.cim.userProfile.email}
-                              </a>
-                            </div>
-                          )}
-                          {shareData.cim.userProfile.phone && (
-                            <div>
-                              <a href={`tel:${shareData.cim.userProfile.phone}`} className="text-blue-600 hover:text-blue-700 transition-colors">
-                                {shareData.cim.userProfile.phone}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {shareData.logoUrl && (
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={shareData.logoUrl} 
-                            alt="Company Logo" 
-                            className="max-w-32 max-h-20 object-contain"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
             </div>
           )}
         </div>
