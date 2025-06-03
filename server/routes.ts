@@ -800,15 +800,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Upload existing CIM file endpoint
   app.post("/api/cim/upload-file", upload.single('cimFile'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log("=== CIM FILE UPLOAD REQUEST ===");
+    console.log("User authenticated:", req.isAuthenticated());
+    console.log("Request body:", req.body);
+    console.log("File received:", !!req.file);
+    
+    if (!req.isAuthenticated()) {
+      console.log("Authentication failed");
+      return res.status(401).json({ error: "Not authenticated" });
+    }
 
     try {
       if (!req.file) {
+        console.log("No file in request");
         return res.status(400).json({ error: "No file uploaded" });
       }
 
       const { title } = req.body;
-      if (!title) {
+      if (!title || title.trim() === '') {
+        console.log("No title provided:", title);
         return res.status(400).json({ error: "Title is required" });
       }
 
