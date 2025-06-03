@@ -90,7 +90,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
                 src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
                 className="w-full h-full border rounded-lg"
                 title={cimDocument.uploadedFileName}
-                type="application/pdf"
               />
             </div>
           </CardContent>
