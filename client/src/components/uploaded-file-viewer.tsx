@@ -12,12 +12,25 @@ interface UploadedFileViewerProps {
 
 export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: UploadedFileViewerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [showDownloadMessage, setShowDownloadMessage] = useState(false);
+  const [selectedFileForViewing, setSelectedFileForViewing] = useState<string | null>(null);
+
+  // For now, simulate multiple files - in future this will come from the database
+  const uploadedFiles = [
+    {
+      id: 1,
+      name: cimDocument.uploadedFileName,
+      mimeType: cimDocument.uploadedFileMimeType,
+      size: cimDocument.uploadedFileSize,
+      url: `/api/share/${shareSlug}/file`
+    }
+  ];
 
   const isPdf = cimDocument.uploadedFileMimeType === 'application/pdf';
-  const fileUrl = `/api/share/${shareSlug}/file`;
+  const defaultFileUrl = `/api/share/${shareSlug}/file`;
 
-  const handleDownload = async () => {
+  const handleFileDownload = async (fileUrl: string, fileName: string) => {
     setIsDownloading(true);
     setShowDownloadMessage(true);
     
@@ -32,7 +45,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = cimDocument.uploadedFileName || 'document';
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -42,15 +55,46 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
       console.error('Download failed:', error);
     } finally {
       setIsDownloading(false);
-      // Keep the download message visible for a few seconds
       setTimeout(() => setShowDownloadMessage(false), 3000);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (uploadedFiles.length === 1) {
+      await handleFileDownload(uploadedFiles[0].url, uploadedFiles[0].name);
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    
+    try {
+      const zip = new JSZip();
+      
+      for (const file of uploadedFiles) {
+        const response = await fetch(file.url, { credentials: 'include' });
+        const blob = await response.blob();
+        zip.file(file.name, blob);
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `${cimDocument.title || 'CIM_Documents'}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Bulk download failed:', error);
+    } finally {
+      setIsBulkDownloading(false);
     }
   };
 
   // Auto-trigger download for non-PDF files
   useEffect(() => {
     if (!isPdf) {
-      handleDownload();
+      handleFileDownload(defaultFileUrl, cimDocument.uploadedFileName);
     }
   }, [isPdf]);
 
@@ -69,7 +113,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={handleDownload}
+                  onClick={() => handleFileDownload(defaultFileUrl, cimDocument.uploadedFileName)}
                   disabled={isDownloading}
                 >
                   <Download className="h-4 w-4 mr-2" />
@@ -88,7 +132,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile }: Uplo
             {/* PDF embed */}
             <div className="w-full" style={{ height: '80vh' }}>
               <iframe
-                src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                src={`${defaultFileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
                 className="w-full h-full border rounded-lg"
                 title={cimDocument.uploadedFileName}
               />
