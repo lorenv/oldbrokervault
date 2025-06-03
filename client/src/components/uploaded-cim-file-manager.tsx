@@ -236,18 +236,18 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
             <div className="p-2 bg-green-100 rounded-lg">
               <FileText className="h-5 w-5 text-green-600" />
             </div>
-            Current Files ({uploadedFiles.length})
+            Current Files ({Array.isArray(uploadedFiles) ? uploadedFiles.length : 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
-          {uploadedFiles.length === 0 ? (
+          {!Array.isArray(uploadedFiles) || uploadedFiles.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-500">No files uploaded yet</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {uploadedFiles.map((file: any) => (
+              {Array.isArray(uploadedFiles) && uploadedFiles.map((file: any) => (
                 <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-50 rounded-lg">

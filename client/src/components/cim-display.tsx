@@ -989,7 +989,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             </div>
           </CardHeader>
         </Card>
-      ) : (
+      ) : !cimDocument?.isUploadedFile ? (
         <Card className="mb-8 border shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -1027,7 +1027,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             </div>
           </CardHeader>
         </Card>
-      )}
+      ) : null}
 
       {/* Conditional Content: File Management for Uploaded CIMs or Template Sections for Generated CIMs */}
       {cimDocument?.isUploadedFile ? (
@@ -1094,8 +1094,8 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
 
 
 
-      {/* Add Custom Section - Only shown in edit mode */}
-      {!isSharedView && (
+      {/* Add Custom Section - Only shown in edit mode for generated CIMs */}
+      {!isSharedView && !cimDocument?.isUploadedFile && (
         <AddCustomSection 
           docId={docId}
           onSectionAdded={handleSectionAdded}
@@ -1111,38 +1111,40 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
         />
       )}
 
-      {/* Contact Information Footer */}
-      <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8 mt-8" : "mt-8 border-blue-200"}>
-        <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
-          <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Contact Information</CardTitle>
-        </CardHeader>
-        <CardContent className={`${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            {(user?.profilePhoto || userProfile?.profilePhoto) && (
-              <img 
-                src={user?.profilePhoto || userProfile?.profilePhoto} 
-                alt="Profile" 
-                className={isSharedView ? "w-48 h-48 object-cover rounded-[30px]" : "w-40 h-40 object-cover rounded-[30px]"}
-              />
-            )}
-            <div className="text-center md:text-left">
-              <h3 className="text-lg font-semibold">{user?.name || userProfile?.name || user?.email || userProfile?.email || 'Contact Information'}</h3>
-              {(user?.title || userProfile?.title) && <p className="text-sm text-gray-600">{user?.title || userProfile?.title}</p>}
-              {(user?.businessName || userProfile?.businessName) && <p className="text-sm font-medium">{user?.businessName || userProfile?.businessName}</p>}
-              {(user?.phoneNumber || userProfile?.phoneNumber) && <p className="text-sm text-gray-600">{user?.phoneNumber || userProfile?.phoneNumber}</p>}
-              {(user?.email || userProfile?.email) && <p className="text-sm text-gray-600">{user?.email || userProfile?.email}</p>}
-              {!user?.email && !userProfile?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
+      {/* Contact Information Footer - Only for generated CIMs */}
+      {!cimDocument?.isUploadedFile && (
+        <Card className={isSharedView ? "bg-white shadow-lg rounded-2xl border-0 mb-8 mt-8" : "mt-8 border-blue-200"}>
+          <CardHeader className={isSharedView ? "border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6" : "bg-blue-50"}>
+            <CardTitle className={isSharedView ? "text-2xl font-bold text-slate-800" : "text-xl text-blue-900"}>Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent className={`${isSharedView ? "px-8 pb-8 pt-8" : "pt-6"}`}>
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {(user?.profilePhoto || userProfile?.profilePhoto) && (
+                <img 
+                  src={user?.profilePhoto || userProfile?.profilePhoto} 
+                  alt="Profile" 
+                  className={isSharedView ? "w-48 h-48 object-cover rounded-[30px]" : "w-40 h-40 object-cover rounded-[30px]"}
+                />
+              )}
+              <div className="text-center md:text-left">
+                <h3 className="text-lg font-semibold">{user?.name || userProfile?.name || user?.email || userProfile?.email || 'Contact Information'}</h3>
+                {(user?.title || userProfile?.title) && <p className="text-sm text-gray-600">{user?.title || userProfile?.title}</p>}
+                {(user?.businessName || userProfile?.businessName) && <p className="text-sm font-medium">{user?.businessName || userProfile?.businessName}</p>}
+                {(user?.phoneNumber || userProfile?.phoneNumber) && <p className="text-sm text-gray-600">{user?.phoneNumber || userProfile?.phoneNumber}</p>}
+                {(user?.email || userProfile?.email) && <p className="text-sm text-gray-600">{user?.email || userProfile?.email}</p>}
+                {!user?.email && !userProfile?.email && isSharedView && <p className="text-sm text-gray-600">For more information, please contact the document owner.</p>}
+              </div>
+              {(user?.businessLogo || userProfile?.businessLogo) && (
+                <img 
+                  src={user?.businessLogo || userProfile?.businessLogo} 
+                  alt="Business Logo" 
+                  className={isSharedView ? "w-64 h-64 object-contain rounded-[30px] ml-auto" : "w-48 h-48 object-contain rounded-[30px] ml-auto"}
+                />
+              )}
             </div>
-            {(user?.businessLogo || userProfile?.businessLogo) && (
-              <img 
-                src={user?.businessLogo || userProfile?.businessLogo} 
-                alt="Business Logo" 
-                className={isSharedView ? "w-64 h-64 object-contain rounded-[30px] ml-auto" : "w-48 h-48 object-contain rounded-[30px] ml-auto"}
-              />
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Image Modal */}
       <Dialog open={!!selectedImageModal} onOpenChange={() => setSelectedImageModal(null)}>
