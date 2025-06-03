@@ -126,7 +126,7 @@ export function SharePage() {
     );
   }
 
-  const shouldShowNda = shareData.cim.requiresNda && !hasSignedNda;
+  const shouldShowNda = shareData.requiresNda && !hasSignedNda;
 
   if (shouldShowNda) {
     return (
