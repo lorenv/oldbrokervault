@@ -160,17 +160,19 @@ export function CoverImageManager({
     
     setIsSearching(true);
     try {
-      // For now, we'll need the Unsplash API key to be implemented
-      // This is a placeholder for the search functionality
-      toast({
-        title: "Unsplash integration",
-        description: "Unsplash API integration requires an API key. Please contact support to enable this feature.",
-        variant: "destructive",
-      });
+      const response = await fetch(`/api/unsplash/search?query=${encodeURIComponent(searchQuery)}&per_page=12`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to search images');
+      }
+      
+      const data = await response.json();
+      setUnsplashResults(data.results || []);
     } catch (error) {
       toast({
         title: "Search failed",
-        description: "Failed to search Unsplash images. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to search Unsplash images. Please try again.",
         variant: "destructive",
       });
     } finally {
