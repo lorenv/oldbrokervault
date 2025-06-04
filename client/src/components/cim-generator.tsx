@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +71,25 @@ export function CimGenerator() {
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
   const [savedTemplates, setSavedTemplates] = useState<Array<{name: string, directions: string}>>([]);
+  const [templateNameInput, setTemplateNameInput] = useState<string>('');
+
+  // Load saved templates from localStorage on component mount
+  useEffect(() => {
+    const savedTemplatesFromStorage = localStorage.getItem('cim-custom-templates');
+    if (savedTemplatesFromStorage) {
+      try {
+        const templates = JSON.parse(savedTemplatesFromStorage);
+        setSavedTemplates(templates);
+      } catch (error) {
+        console.error('Error loading saved templates:', error);
+      }
+    }
+  }, []);
+
+  // Save templates to localStorage whenever savedTemplates changes
+  useEffect(() => {
+    localStorage.setItem('cim-custom-templates', JSON.stringify(savedTemplates));
+  }, [savedTemplates]);
 
   // Handler to update custom directions when presets change
   const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
@@ -85,9 +104,29 @@ export function CimGenerator() {
   const saveCustomTemplate = (name: string) => {
     const newTemplate = { name, directions: customDirections };
     setSavedTemplates(prev => [...prev, newTemplate]);
+    setTemplateNameInput('');
     toast({
       title: "Template Saved",
       description: `"${name}" has been saved to your templates.`,
+    });
+  };
+
+  // Handler to load template with confirmation
+  const loadTemplate = (template: {name: string, directions: string}) => {
+    setCustomDirections(template.directions);
+    form.setValue("directions", template.directions);
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" has been loaded successfully.`,
+    });
+  };
+
+  // Handler to delete template
+  const deleteTemplate = (index: number) => {
+    setSavedTemplates(prev => prev.filter((_, i) => i !== index));
+    toast({
+      title: "Template Deleted",
+      description: "Template has been removed from your saved templates.",
     });
   };
 
@@ -656,29 +695,31 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
 
-            {/* Financials Section */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            {/* Financial Information - Cleaner styling */}
+            <div className="space-y-4 p-4 border rounded-lg bg-background">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Financial Information</h3>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="financials-enabled">Include Financials</Label>
-                  <Switch
-                    id="financials-enabled"
-                    checked={financialsEnabled}
-                    onCheckedChange={(checked) => {
-                      setFinancialsEnabled(checked);
-                      // When enabling financials for the first time, auto-check all three fields
-                      if (checked && !financialsEnabled) {
-                        setFinancialData(prev => ({
-                          ...prev,
-                          askingPriceIncluded: true,
-                          revenueIncluded: true,
-                          ebitdaIncluded: true
-                        }));
-                      }
-                    }}
-                  />
+                <div>
+                  <h3 className="text-sm font-medium">Financial Information</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Add key financial metrics to enhance the CIM
+                  </p>
                 </div>
+                <Switch
+                  id="financials-enabled"
+                  checked={financialsEnabled}
+                  onCheckedChange={(checked) => {
+                    setFinancialsEnabled(checked);
+                    // When enabling financials for the first time, auto-check all three fields
+                    if (checked && !financialsEnabled) {
+                      setFinancialData(prev => ({
+                        ...prev,
+                        askingPriceIncluded: true,
+                        revenueIncluded: true,
+                        ebitdaIncluded: true
+                      }));
+                    }
+                  }}
+                />
               </div>
               
               {financialsEnabled && (
@@ -803,17 +844,106 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
 
-            {/* New flexible analysis directions interface */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <h3 className="text-sm font-medium">Analysis Directions</h3>
-              <p className="text-xs text-muted-foreground">
-                Customize how AI analyzes your transcript to create the perfect CIM for your needs.
-              </p>
+            {/* Analysis Directions - Cleaner, less busy interface */}
+            <div className="space-y-4 p-4 border rounded-lg bg-background">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium">Analysis Directions</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Customize how AI analyzes your transcript
+                  </p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Settings className="h-4 w-4" />
+                      Templates
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Manage Direction Templates</DialogTitle>
+                      <DialogDescription>
+                        Create, save, and load custom analysis direction templates
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Current Directions</Label>
+                        <Textarea
+                          className="min-h-[300px] text-sm"
+                          value={customDirections}
+                          onChange={(e) => {
+                            setCustomDirections(e.target.value);
+                            form.setValue("directions", e.target.value);
+                          }}
+                          placeholder="Enter your custom analysis directions..."
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Template name (e.g., 'Investor Deck Template')"
+                          value={templateNameInput}
+                          onChange={(e) => setTemplateNameInput(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            if (templateNameInput.trim()) {
+                              saveCustomTemplate(templateNameInput.trim());
+                            }
+                          }}
+                          disabled={!templateNameInput.trim()}
+                          className="gap-2"
+                        >
+                          <Save className="h-4 w-4" />
+                          Save Template
+                        </Button>
+                      </div>
+                      
+                      {savedTemplates.length > 0 && (
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Saved Templates</Label>
+                          <div className="grid grid-cols-1 gap-2">
+                            {savedTemplates.map((template, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                <span className="text-sm font-medium">{template.name}</span>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => loadTemplate(template)}
+                                    className="gap-2"
+                                  >
+                                    <FolderOpen className="h-4 w-4" />
+                                    Load
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteTemplate(index)}
+                                    className="gap-2 text-destructive hover:text-destructive"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
               
-              {/* Preset dropdowns */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Purpose</Label>
+              {/* Simplified preset controls */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Purpose</Label>
                   <Select
                     value={selectedPurpose}
                     onValueChange={(value) => {
@@ -821,7 +951,7 @@ ${analysis.team.ownerResponsibilities}
                       handlePresetChange(value, selectedTone, selectedAudience);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -831,15 +961,15 @@ ${analysis.team.ownerResponsibilities}
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Length</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Length</Label>
                   <Select
                     value={selectedTone}
                     onValueChange={(value) => {
                       setSelectedTone(value);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -850,15 +980,15 @@ ${analysis.team.ownerResponsibilities}
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Audience</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Audience</Label>
                   <Select
                     value={selectedAudience}
                     onValueChange={(value) => {
                       setSelectedAudience(value);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -870,86 +1000,16 @@ ${analysis.team.ownerResponsibilities}
                 </div>
               </div>
 
-              {/* Custom directions with save template functionality */}
+              {/* Compact custom directions field */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Custom Directions</Label>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Settings className="mr-2 h-3 w-3" />
-                        Advanced
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Advanced Analysis Directions</DialogTitle>
-                        <DialogDescription>
-                          Fine-tune your analysis directions. Changes will update automatically.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Textarea
-                        className="min-h-[400px]"
-                        value={customDirections}
-                        onChange={(e) => {
-                          setCustomDirections(e.target.value);
-                          form.setValue("directions", e.target.value);
-                        }}
-                        placeholder="Enter your custom analysis directions..."
-                      />
-                      <div className="flex gap-2 mt-4">
-                        <Input 
-                          placeholder="Template name (e.g., 'My Custom Template')" 
-                          id="templateName"
-                          className="flex-1"
-                        />
-                        <Button 
-                          type="button"
-                          onClick={() => {
-                            const input = document.getElementById('templateName') as HTMLInputElement;
-                            if (input?.value.trim()) {
-                              saveCustomTemplate(input.value.trim());
-                              input.value = '';
-                            }
-                          }}
-                        >
-                          Save Template
-                        </Button>
-                      </div>
-                      
-                      {savedTemplates.length > 0 && (
-                        <div className="mt-4">
-                          <Label className="text-sm font-medium">Saved Templates</Label>
-                          <div className="grid grid-cols-1 gap-2 mt-2">
-                            {savedTemplates.map((template, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 border rounded">
-                                <span className="text-sm">{template.name}</span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setCustomDirections(template.directions);
-                                    form.setValue("directions", template.directions);
-                                  }}
-                                >
-                                  Load
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </div>
                 <Textarea
-                  className="min-h-[100px] text-xs"
+                  className="min-h-[80px] text-xs resize-none"
                   value={customDirections}
                   onChange={(e) => {
                     setCustomDirections(e.target.value);
                     form.setValue("directions", e.target.value);
                   }}
-                  placeholder="Add additional custom directions here..."
+                  placeholder="Custom directions will appear here..."
                 />
               </div>
               
