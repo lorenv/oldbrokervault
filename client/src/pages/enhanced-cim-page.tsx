@@ -69,14 +69,6 @@ export default function EnhancedCimPage() {
           <h1 className="text-2xl font-bold">{cimDocument.title}</h1>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowShareDialog(true)}
-          >
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
           <DocumentExport 
             analysis={cimDocument.analysis} 
             title={cimDocument.title}
