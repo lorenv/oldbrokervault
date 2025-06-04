@@ -25,9 +25,9 @@ export function CoverImageDisplay({
   }
 
   return (
-    <div className="relative w-full mb-8">
+    <div className="relative w-full">
       {/* Cover Image with 16:3 aspect ratio */}
-      <div className="relative w-full h-0 pb-[18.75%] overflow-hidden rounded-lg">
+      <div className="relative w-full h-0 pb-[18.75%] overflow-hidden">
         <img 
           src={coverImageUrl}
           alt="Cover image"
@@ -37,15 +37,13 @@ export function CoverImageDisplay({
           }}
         />
         
-        {/* Gradient overlay for smooth transition to content */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white opacity-60" />
-        
-
+        {/* Semi-transparent gradient overlay for visual appeal */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-black/10 to-transparent" />
       </div>
       
       {/* Attribution */}
       {coverImageAttribution && (
-        <div className="mt-2 text-xs text-gray-500 text-right">
+        <div className="mt-2 text-xs text-gray-500 text-right px-6">
           {coverImageAttribution}
         </div>
       )}
