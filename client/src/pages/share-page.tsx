@@ -211,7 +211,7 @@ export function SharePage() {
                     }
                   }}
                   disabled={isExportingPdf}
-                  className="min-w-[200px] border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm"
+                  className="min-w-[200px] border-white/30 text-white hover:bg-white hover:text-slate-800 bg-white/5 backdrop-blur-sm transition-all duration-200"
                   style={{
                     boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                   }}
@@ -411,7 +411,7 @@ export function SharePage() {
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 pb-6 pt-8 px-8 border-b border-blue-300/50">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-300 rounded-lg">
                           <DollarSign className="h-6 w-6 text-blue-700" />
