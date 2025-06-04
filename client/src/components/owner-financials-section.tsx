@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileText, X, Download, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, X, Download, CheckCircle, Loader2, BarChart3, DollarSign, TrendingUp, Banknote } from "lucide-react";
 
 interface Financials {
   enabled: boolean;
@@ -298,12 +298,45 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
   return (
     <Card className="bg-white shadow-lg rounded-2xl border-0 mb-8">
       <CardHeader className="border-b border-gray-100/50 bg-gradient-to-r from-slate-100 to-blue-100/50 px-8 py-6">
-        <CardTitle className="text-2xl font-bold text-slate-800">
+        <CardTitle className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <BarChart3 className="h-6 w-6" />
           Financial Information
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-6 pt-6 px-8 pb-8">
+        {/* Financial Metrics Display - Only show if enabled and at least one field has value */}
+        {financials?.enabled && (financials.askingPriceIncluded || financials.revenueIncluded || financials.ebitdaIncluded) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {financials.askingPriceIncluded && financials.askingPrice && (
+              <div className="flex items-center gap-2 p-4 bg-green-50 rounded-lg">
+                <DollarSign className="h-6 w-6 text-green-600" />
+                <div>
+                  <div className="text-sm text-gray-600">Asking Price</div>
+                  <div className="font-semibold text-lg">${parseInt(financials.askingPrice).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+            {financials.revenueIncluded && financials.revenue && (
+              <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-blue-600" />
+                <div>
+                  <div className="text-sm text-gray-600">Annual Revenue</div>
+                  <div className="font-semibold text-lg">${parseInt(financials.revenue).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+            {financials.ebitdaIncluded && financials.ebitda && (
+              <div className="flex items-center gap-2 p-4 bg-purple-50 rounded-lg">
+                <Banknote className="h-6 w-6 text-purple-600" />
+                <div>
+                  <div className="text-sm text-gray-600">EBITDA</div>
+                  <div className="font-semibold text-lg">${parseInt(financials.ebitda).toLocaleString()}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>

@@ -247,46 +247,7 @@ export function CimDisplay({
 
         {/* Financial Information Section at Top */}
         {!isSharedView && cimDocument && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Financial Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {cimDocument.askingPriceIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">Asking Price</div>
-                      <div className="font-semibold">${parseInt(cimDocument.askingPrice || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-                {cimDocument.revenueIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                    <TrendingUpIcon className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">Annual Revenue</div>
-                      <div className="font-semibold">${parseInt(cimDocument.revenue || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-                {cimDocument.ebitdaIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
-                    <Banknote className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">EBITDA</div>
-                      <div className="font-semibold">${parseInt(cimDocument.ebitda || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <OwnerFinancialsSection docId={docId} />
-            </CardContent>
-          </Card>
+          <OwnerFinancialsSection docId={docId} />
         )}
         
         {/* Business Images */}
