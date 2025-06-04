@@ -137,6 +137,10 @@ export default function InvestorDatabasePage() {
     logicOperator: undefined
   }]);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  
   // Selection state
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -283,28 +287,49 @@ export default function InvestorDatabasePage() {
     return domain;
   };
 
-  // Fetch contacts with automatic refresh
-  const { data: allContacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
-    queryKey: ['/api/investor-contacts'],
+  // Fetch contacts with pagination
+  const { data: contactsResponse, isLoading, refetch } = useQuery({
+    queryKey: ['/api/investor-contacts', currentPage, pageSize, searchTerm, statusFilter, sortBy, sortOrder],
     queryFn: async () => {
-      const response = await fetch('/api/investor-contacts', {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        sortBy,
+        sortOrder,
+      });
+      
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      
+      const response = await fetch(`/api/investor-contacts?${params}`, {
         credentials: 'include'
       });
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
-      const contacts = await response.json() as EnrichedContact[];
-      
-      // Enrich contacts with inferred company data
-      return contacts.map(contact => ({
-        ...contact,
-        inferredCompany: inferCompanyFromEmail(contact.email)
-      }));
+      return response.json() as {
+        contacts: EnrichedContact[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+      };
     },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchIntervalInBackground: true, // Continue refreshing when tab is not active
-    staleTime: 10000 // Consider data stale after 10 seconds
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
+    staleTime: 10000
   });
+
+  const allContacts = contactsResponse?.contacts?.map(contact => ({
+    ...contact,
+    inferredCompany: inferCompanyFromEmail(contact.email)
+  })) || [];
+  
+  const pagination = contactsResponse?.pagination;
 
   // Filter and sort contacts on frontend
   const filteredAndSortedContacts = useMemo(() => {
