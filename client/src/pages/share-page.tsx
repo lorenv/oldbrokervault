@@ -148,7 +148,7 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
-        <div className="relative h-[35vh] md:h-[40vh] overflow-hidden">
+        <div className="relative h-[30vh] md:h-[35vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center transform scale-110"
@@ -410,7 +410,7 @@ export function SharePage() {
               <>
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                  <Card className="border border-gray-200/50 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-300 rounded-lg">
