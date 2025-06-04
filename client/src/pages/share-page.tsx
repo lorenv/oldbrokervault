@@ -17,6 +17,7 @@ export function SharePage() {
   
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],

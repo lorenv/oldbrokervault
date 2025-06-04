@@ -323,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Get financial files for the document
-      const financialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id));
+      const documentFinancialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id));
 
       console.log("Generating PDF with full context:", {
         logoUrl: cimDoc.logoUrl,
@@ -331,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl: cimDoc.websiteUrl,
         hasUserProfile: !!userProfile,
         financialData: financialData.enabled,
-        financialFilesCount: financialFiles.length
+        financialFilesCount: documentFinancialFiles?.length || 0
       });
 
       const pdfBuffer = await generatePDF(
@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.selectedImages,
         userProfile,
         financialData,
-        financialFiles
+        documentFinancialFiles
       );
 
       res.setHeader('Content-Type', 'application/pdf');
