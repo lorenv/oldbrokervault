@@ -1569,8 +1569,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       
       doc.moveDown(2);
       
-      // Add document title if available
-      if (analysis.title) {
+      // Add document title if available (but exclude unwanted fallback text)
+      if (analysis.title && analysis.title !== 'Comprehensive Business Overview') {
         doc.fontSize(18)
            .fillColor('#2563eb')
            .text(analysis.title, { align: 'center' });
