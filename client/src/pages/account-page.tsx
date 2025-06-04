@@ -300,47 +300,22 @@ export default function AccountPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current Password</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Password (Optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm New Password</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="pt-4 border-t">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                    onClick={() => {
+                      // Add password reset functionality here
+                      toast({
+                        title: "Password Reset",
+                        description: "Password reset functionality will be available soon.",
+                      });
+                    }}
+                  >
+                    Reset Password
+                  </Button>
+                </div>
 
                 <Button type="submit" disabled={isUpdating}>
                   {isUpdating ? "Updating..." : "Update Profile"}
