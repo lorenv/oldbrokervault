@@ -7,7 +7,7 @@ import { InsertableSection, CustomSection } from "./insertable-section";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail, Phone, Globe } from "lucide-react";
+import { Save, Download, X, Building2, TrendingUp, Target, Megaphone, Settings, Package, Users, MapPin, FileText, BarChart3, Trash2, Share2, Mail, Phone, Globe, DollarSign, Banknote, TrendingUp as TrendingUpIcon } from "lucide-react";
 import { DocumentExport } from "./document-export";
 import { BrokerContactForm } from "./broker-contact-form";
 import { AddCustomSection } from "./add-custom-section";
@@ -173,12 +173,76 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [deletedFields, setDeletedFields] = useState<Set<string>>(new Set());
   const [deletedSections, setDeletedSections] = useState<Set<string>>(new Set());
-  const [confirmDeleteSection, setConfirmDeleteSection] = useState<string | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   
   // Check if this is a new flexible CIM format
   const isFlexibleFormat = analysis?.sections && Array.isArray(analysis.sections);
   
+  // State for section management
+  const [sections, setSections] = useState(analysis?.sections || []);
+  const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const oldIndex = sections.findIndex((section: any) => (section.id || section.title) === active.id);
+      const newIndex = sections.findIndex((section: any) => (section.id || section.title) === over.id);
+
+      const newSections = arrayMove(sections, oldIndex, newIndex);
+      setSections(newSections);
+
+      // Save to backend
+      try {
+        const updatedAnalysis = { ...analysis, sections: newSections };
+        const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+          analysis: updatedAnalysis
+        });
+        
+        if (response.ok) {
+          queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+          queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+          toast({ title: "Sections Reordered", description: "Section order saved successfully." });
+        }
+      } catch (error) {
+        toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
+        setSections(analysis.sections); // Revert on error
+      }
+    }
+  };
+
+  // Handle section deletion
+  const handleDeleteSection = async (sectionId: string) => {
+    try {
+      const newSections = sections.filter((section: any) => (section.id || section.title) !== sectionId);
+      setSections(newSections);
+
+      const updatedAnalysis = { ...analysis, sections: newSections };
+      const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+        analysis: updatedAnalysis
+      });
+      
+      if (response.ok) {
+        queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+        toast({ title: "Section Deleted", description: "Section removed successfully." });
+      }
+    } catch (error) {
+      toast({ title: "Delete Failed", description: "Failed to delete section.", variant: "destructive" });
+      setSections(analysis.sections); // Revert on error
+    }
+    setConfirmDeleteSection(null);
+  };
+
   // If it's the new flexible format, render the flexible display
   if (isFlexibleFormat) {
     return (
@@ -188,8 +252,52 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
           
           {logoUrl && (
             <div className="flex justify-center mb-6">
-              <img src={logoUrl} alt="Company Logo" className="h-16" />
+              <img src={logoUrl} alt="Company Logo" className="h-32" />
             </div>
+          )}
+
+          {/* Financial Information Section */}
+          {!isSharedView && cimDocument && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Financial Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  {cimDocument.askingPriceIncluded && (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                      <div>
+                        <div className="text-sm text-gray-600">Asking Price</div>
+                        <div className="font-semibold">${parseInt(cimDocument.askingPrice || '0').toLocaleString()}</div>
+                      </div>
+                    </div>
+                  )}
+                  {cimDocument.revenueIncluded && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                      <TrendingUpIcon className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <div className="text-sm text-gray-600">Annual Revenue</div>
+                        <div className="font-semibold">${parseInt(cimDocument.revenue || '0').toLocaleString()}</div>
+                      </div>
+                    </div>
+                  )}
+                  {cimDocument.ebitdaIncluded && (
+                    <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
+                      <Banknote className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <div className="text-sm text-gray-600">EBITDA</div>
+                        <div className="font-semibold">${parseInt(cimDocument.ebitda || '0').toLocaleString()}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <OwnerFinancialsSection docId={docId} />
+              </CardContent>
+            </Card>
           )}
           
           {selectedImages && selectedImages.length > 0 && (
@@ -208,96 +316,143 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
             </div>
           )}
           
-          {analysis.sections?.map((section: any, index: number) => (
-            <Card key={section.id || index} className="mb-4">
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  {!isSharedView ? (
-                    <FlexibleSectionEditor
-                      value={section.title}
-                      onSave={async (newTitle: string) => {
-                        try {
-                          const updatedSections = analysis.sections.map((sec: any, idx: number) => {
-                            const id = sec.id || idx;
-                            if (id === (section.id || index)) {
-                              return { ...sec, title: newTitle };
-                            }
-                            return sec;
-                          });
-                          
-                          const updatedAnalysis = { ...analysis, sections: updatedSections };
-                          
-                          const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                            analysis: updatedAnalysis
-                          });
-                          
-                          if (response.ok) {
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
-                            toast({ title: "Title Updated", description: "Section title saved successfully." });
-                          }
-                        } catch (error) {
-                          toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                        }
-                      }}
-                      placeholder="Section title"
-                      multiline={false}
-                    />
-                  ) : (
-                    section.title
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm max-w-none">
-                  {!isSharedView ? (
-                    <FlexibleSectionEditor
-                      value={section.content}
-                      onSave={async (newContent: string) => {
-                        try {
-                          const updatedSections = analysis.sections.map((sec: any, idx: number) => {
-                            const id = sec.id || idx;
-                            if (id === (section.id || index)) {
-                              return { ...sec, content: newContent };
-                            }
-                            return sec;
-                          });
-                          
-                          const updatedAnalysis = { ...analysis, sections: updatedSections };
-                          
-                          const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                            analysis: updatedAnalysis
-                          });
-                          
-                          if (response.ok) {
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
-                            toast({ title: "Content Updated", description: "Section content saved successfully." });
-                          }
-                        } catch (error) {
-                          toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                        }
-                      }}
-                      placeholder="Section content"
-                      multiline={true}
-                    />
-                  ) : (
-                    <div className="prose prose-sm max-w-none">
-                      <ReactMarkdown 
-                        components={{
-                          ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
-                        }}
-                      >
-                        {section.content}
-                      </ReactMarkdown>
-                    </div>
-                  )}
+          {/* Draggable Sections */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sections.map((section: any, index: number) => section.id || section.title || `section-${index}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              {sections.map((section: any, index: number) => {
+                const sectionId = section.id || section.title || `section-${index}`;
+                return (
+                  <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
+                    <Card className="mb-4 relative group">
+                      {!isSharedView && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setConfirmDeleteSection(sectionId)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="text-lg pr-8">
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={section.title}
+                              onSave={async (newTitle: string) => {
+                                try {
+                                  const updatedSections = sections.map((sec: any, idx: number) => {
+                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                      return { ...sec, title: newTitle };
+                                    }
+                                    return sec;
+                                  });
+                                  setSections(updatedSections);
+                                  
+                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                  
+                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                    analysis: updatedAnalysis
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                    queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+                                    toast({ title: "Title Updated", description: "Section title saved successfully." });
+                                  }
+                                } catch (error) {
+                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                }
+                              }}
+                              placeholder="Section title"
+                              multiline={false}
+                            />
+                          ) : (
+                            section.title
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none">
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={section.content}
+                              onSave={async (newContent: string) => {
+                                try {
+                                  const updatedSections = sections.map((sec: any, idx: number) => {
+                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                      return { ...sec, content: newContent };
+                                    }
+                                    return sec;
+                                  });
+                                  setSections(updatedSections);
+                                  
+                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                  
+                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                    analysis: updatedAnalysis
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClientHook.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                    queryClientHook.invalidateQueries({ queryKey: ['/api/cim'] });
+                                    toast({ title: "Content Updated", description: "Section content saved successfully." });
+                                  }
+                                } catch (error) {
+                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                }
+                              }}
+                              placeholder="Section content"
+                              multiline={true}
+                            />
+                          ) : (
+                            <div className="prose prose-sm max-w-none">
+                              <ReactMarkdown 
+                                components={{
+                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                }}
+                              >
+                                {section.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </DraggableSection>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
+
+          {/* Delete Confirmation Dialog */}
+          {confirmDeleteSectionId && (
+            <Dialog open={!!confirmDeleteSectionId} onOpenChange={() => setConfirmDeleteSectionId(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Section</DialogTitle>
+                </DialogHeader>
+                <p>Are you sure you want to delete this section? This action cannot be undone.</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setConfirmDeleteSectionId(null)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleDeleteSection(confirmDeleteSectionId)}>
+                    Delete
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </DialogContent>
+            </Dialog>
+          )}
 
           {/* Add Section Button - only show in edit mode */}
           {!isSharedView && (
@@ -487,15 +642,7 @@ export function CimDisplay({ analysis, docId, websiteUrl, logoUrl, selectedImage
     );
   }
 
-  const handleDeleteSection = (sectionId: string) => {
-    setDeletedSections(prev => new Set([...Array.from(prev), sectionId]));
-    setConfirmDeleteSection(null);
-    setHasUnsavedChanges(true);
-    toast({
-      title: "Section Deleted",
-      description: "Section removed. Click 'Save All Changes' to persist changes.",
-    });
-  };
+
 
   const handleRestoreSection = (sectionId: string) => {
     setDeletedSections(prev => {
