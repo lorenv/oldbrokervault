@@ -24,6 +24,7 @@ import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
+import EnhancedCimPage from "@/pages/enhanced-cim-page";
 
 function Router() {
   const [location] = useLocation();
@@ -39,6 +40,8 @@ function Router() {
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentsPage} />
+            <ProtectedRoute path="/cim/:id" component={EnhancedCimPage} />
+            <ProtectedRoute path="/enhanced-cim/:id" component={EnhancedCimPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/account" component={AccountPage} />
