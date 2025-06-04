@@ -240,16 +240,6 @@ export function CimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {/* Cover Image Display - Only in Share View */}
-        {isSharedView && cimDocument && (
-          <CoverImageDisplay
-            coverImageUrl={cimDocument.coverImageUrl}
-            coverImagePosition={cimDocument.coverImagePosition}
-            coverImageAttribution={cimDocument.coverImageAttribution}
-            title={cimDocument.title}
-          />
-        )}
-
         {/* Cover Image Manager - Only in Edit View */}
         {!isSharedView && cimDocument && (
           <CoverImageManager
@@ -264,16 +254,16 @@ export function CimDisplay({
           />
         )}
 
-        {/* Larger Logo */}
+        {/* Financial Information Section at Top */}
+        {!isSharedView && cimDocument && (
+          <OwnerFinancialsSection docId={docId} />
+        )}
+
+        {/* Larger Logo - moved above business images for share view */}
         {logoUrl && (
           <div className="flex justify-center mb-6">
             <img src={logoUrl} alt="Company Logo" className="h-32" />
           </div>
-        )}
-
-        {/* Financial Information Section at Top */}
-        {!isSharedView && cimDocument && (
-          <OwnerFinancialsSection docId={docId} />
         )}
         
         {/* Business Images */}
