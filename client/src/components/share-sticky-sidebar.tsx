@@ -104,9 +104,9 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="bg-gradient-to-r from-blue-200 to-indigo-300 pb-4 pt-6 px-6 border-b border-blue-400/50">
+            <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 pb-4 pt-6 px-6 border-b border-blue-300/50">
               <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <div className="p-1.5 bg-blue-300 rounded-lg">
+                <div className="p-1.5 bg-blue-200 rounded-lg">
                   <User className="h-4 w-4 text-blue-700" />
                 </div>
                 Contact Information
@@ -186,9 +186,9 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
         {/* Ask Questions Section */}
         <div className="border-t border-gray-100">
-          <CardHeader className="bg-gradient-to-r from-blue-200 to-indigo-300 pb-4 pt-6 px-6 border-b border-blue-400/50">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 pb-4 pt-6 px-6 border-b border-blue-300/50">
             <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <div className="p-1.5 bg-blue-300 rounded-lg">
+              <div className="p-1.5 bg-blue-200 rounded-lg">
                 <MessageSquare className="h-4 w-4 text-blue-700" />
               </div>
               Ask Questions
