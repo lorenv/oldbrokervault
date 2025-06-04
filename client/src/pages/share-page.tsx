@@ -365,33 +365,7 @@ export function SharePage() {
                   </Card>
                 )}
 
-                {/* Business Images for flexible CIM documents */}
-                {shareData.cim.selectedImages && Array.isArray(shareData.cim.selectedImages) && shareData.cim.selectedImages.length > 0 && (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <Package className="h-6 w-6 text-purple-600" />
-                        </div>
-                        Business Images
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {shareData.cim.selectedImages.map((imageUrl: string, index: number) => (
-                          <div key={index} className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                            <img 
-                              src={imageUrl} 
-                              alt={`Business Image ${index + 1}`} 
-                              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+
 
                 <CimDisplay 
                   analysis={shareData.cim.analysis}
@@ -402,6 +376,7 @@ export function SharePage() {
                   selectedImages={shareData.selectedImages}
                   title={shareData.cim.title}
                   userProfile={shareData.cim.userProfile}
+                  cimDocument={shareData.cim}
                 />
               </>
             )}
