@@ -168,6 +168,7 @@ export function SharePage() {
             <div className="mt-8">
               <Button
                 onClick={async () => {
+                  setIsExportingPdf(true);
                   try {
                     const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
                       method: 'POST',
@@ -184,15 +185,29 @@ export function SharePage() {
                       a.click();
                       window.URL.revokeObjectURL(url);
                       document.body.removeChild(a);
+                    } else {
+                      console.error('Export failed with status:', response.status);
                     }
                   } catch (error) {
                     console.error('Export failed:', error);
+                  } finally {
+                    setIsExportingPdf(false);
                   }
                 }}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                disabled={isExportingPdf}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                <Download className="h-5 w-5 mr-2" />
-                Export as PDF
+                {isExportingPdf ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 mr-2 border-2 border-white border-t-transparent"></div>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-5 w-5 mr-2" />
+                    Export as PDF
+                  </>
+                )}
               </Button>
             </div>
           </div>
