@@ -494,12 +494,38 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                                 throw new Error('Failed to enable sharing');
                               }
                               
-                              // Copy the new URL
-                              navigator.clipboard.writeText(newShareUrl);
-                              toast({
-                                title: "Sharing enabled and link copied!",
-                                description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
-                              });
+                              // Copy the new URL with error handling
+                              try {
+                                await navigator.clipboard.writeText(newShareUrl);
+                                toast({
+                                  title: "Sharing enabled and link copied!",
+                                  description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
+                                });
+                              } catch (clipboardError) {
+                                console.warn('Clipboard API failed, falling back to manual selection:', clipboardError);
+                                // Fallback: Create a temporary input element for manual copy
+                                const textArea = document.createElement('textarea');
+                                textArea.value = newShareUrl;
+                                textArea.style.position = 'fixed';
+                                textArea.style.left = '-999999px';
+                                textArea.style.top = '-999999px';
+                                document.body.appendChild(textArea);
+                                textArea.focus();
+                                textArea.select();
+                                try {
+                                  document.execCommand('copy');
+                                  toast({
+                                    title: "Sharing enabled and link copied!",
+                                    description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
+                                  });
+                                } catch (fallbackError) {
+                                  toast({
+                                    title: "Sharing enabled!",
+                                    description: `Sharing has been enabled. Please copy this link manually: ${newShareUrl}`,
+                                  });
+                                }
+                                document.body.removeChild(textArea);
+                              }
                               
                               // Refresh the documents list to show updated share status
                               queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
