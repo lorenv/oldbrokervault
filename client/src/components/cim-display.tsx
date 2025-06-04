@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
+import { CoverImageDisplay } from "./cover-image-display";
 import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
@@ -239,6 +240,30 @@ export function CimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
+        {/* Cover Image Display - Only in Share View */}
+        {isSharedView && cimDocument && (
+          <CoverImageDisplay
+            coverImageUrl={cimDocument.coverImageUrl}
+            coverImagePosition={cimDocument.coverImagePosition}
+            coverImageAttribution={cimDocument.coverImageAttribution}
+            title={cimDocument.title}
+          />
+        )}
+
+        {/* Cover Image Manager - Only in Edit View */}
+        {!isSharedView && cimDocument && (
+          <CoverImageManager
+            docId={docId}
+            currentCoverImage={cimDocument.coverImageUrl}
+            currentPosition={cimDocument.coverImagePosition}
+            currentAttribution={cimDocument.coverImageAttribution}
+            onUpdate={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+              queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+            }}
+          />
+        )}
+
         {/* Larger Logo */}
         {logoUrl && (
           <div className="flex justify-center mb-6">
