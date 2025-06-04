@@ -411,10 +411,10 @@ export function SharePage() {
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-slate-200 to-slate-300 pb-6 pt-8 px-8 border-b border-slate-400/50">
+                    <CardHeader className="bg-gradient-to-r from-blue-200 to-indigo-300 pb-6 pt-8 px-8 border-b border-blue-400/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-slate-300 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-slate-700" />
+                        <div className="p-2 bg-blue-300 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-blue-700" />
                         </div>
                         Financial Information
                       </CardTitle>
@@ -426,7 +426,7 @@ export function SharePage() {
                           <img 
                             src={shareData.logoUrl} 
                             alt="Company Logo" 
-                            className="h-20 md:h-28 object-contain"
+                            className="h-24 md:h-36 object-contain"
                           />
                         </div>
                       )}
