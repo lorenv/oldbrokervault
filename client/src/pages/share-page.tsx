@@ -148,7 +148,7 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
-        <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+        <div className="relative h-[45vh] md:h-[50vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center transform scale-110"
@@ -166,19 +166,6 @@ export function SharePage() {
           {/* Header Content Overlay - Bottom Positioned */}
           <div className="absolute inset-x-0 bottom-0 pb-16 px-6">
             <div className="max-w-6xl mx-auto text-center">
-              {/* Website extracted logo above title */}
-              {shareData.logoUrl && (
-                <div className="flex justify-center mb-6">
-                  <img 
-                    src={shareData.logoUrl} 
-                    alt="Company Logo" 
-                    className="h-24 md:h-32 drop-shadow-2xl"
-                    style={{
-                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3)) drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-                    }}
-                  />
-                </div>
-              )}
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
@@ -318,6 +305,19 @@ export function SharePage() {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Website extracted logo section - after header */}
+      {shareData.logoUrl && (
+        <div className="bg-white/80 backdrop-blur-sm py-8">
+          <div className="max-w-6xl mx-auto px-6 text-center">
+            <img 
+              src={shareData.logoUrl} 
+              alt="Company Logo" 
+              className="h-20 md:h-24 mx-auto"
+            />
           </div>
         </div>
       )}
