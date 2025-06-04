@@ -97,6 +97,10 @@ export const cimDocuments = pgTable("cim_documents", {
   currentEditorName: text("current_editor_name"),
   editStartedAt: timestamp("edit_started_at"),
   lastActivityAt: timestamp("last_activity_at"),
+  // Cover image fields
+  coverImageUrl: text("cover_image_url"),
+  coverImagePosition: text("cover_image_position"), // JSON string for image positioning within 16:3 frame
+  coverImageAttribution: text("cover_image_attribution"), // For Unsplash credits
   // Search and version tracking (premium features)
   searchVector: text("search_vector"), // Full-text search vector
   version: integer("version").default(1).notNull(),
@@ -273,7 +277,10 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   websiteUrl: z.string().optional(),
   logoUrl: z.string().nullable().optional(),
   websiteScreenshotUrl: z.string().nullable().optional(),
-  selectedImages: z.array(z.string()).optional()
+  selectedImages: z.array(z.string()).optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  coverImagePosition: z.string().nullable().optional(),
+  coverImageAttribution: z.string().nullable().optional()
 });
 
 export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
