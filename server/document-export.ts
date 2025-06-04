@@ -78,7 +78,7 @@ function safeStringify(value: any): string {
 }
 
 export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[], financialData?: any, financialFiles?: any[]): string {
-  const title = 'CONFIDENTIAL INFORMATION MEMORANDUM';
+  const title = analysis.title || 'CONFIDENTIAL INFORMATION MEMORANDUM';
   
   let html = `
 <!DOCTYPE html>
@@ -1604,20 +1604,40 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(1);
 
+        // Create a table-like layout for financial data
+        const tableData = [];
         if (financialData.askingPriceIncluded && financialData.askingPrice) {
-          doc.font('Helvetica-Bold').text('Asking Price:', { continued: true });
-          doc.font('Helvetica').text(`             $${parseInt(financialData.askingPrice).toLocaleString()}`);
-          doc.moveDown(0.5);
+          tableData.push(['Asking Price:', `$${parseInt(financialData.askingPrice).toLocaleString()}`]);
         }
         if (financialData.revenueIncluded && financialData.revenue) {
-          doc.font('Helvetica-Bold').text('Annual Revenue:', { continued: true });
-          doc.font('Helvetica').text(`               $${parseInt(financialData.revenue).toLocaleString()}`);
-          doc.moveDown(0.5);
+          tableData.push(['Annual Revenue:', `$${parseInt(financialData.revenue).toLocaleString()}`]);
         }
         if (financialData.ebitdaIncluded && financialData.ebitda) {
-          doc.font('Helvetica-Bold').text('EBITDA:', { continued: true });
-          doc.font('Helvetica').text(`       $${parseInt(financialData.ebitda).toLocaleString()}`);
-          doc.moveDown(0.5);
+          tableData.push(['EBITDA:', `$${parseInt(financialData.ebitda).toLocaleString()}`]);
+        }
+
+        // Draw the table with proper alignment
+        if (tableData.length > 0) {
+          const startX = 50;
+          const labelWidth = 150;
+          const valueWidth = 200;
+          let currentY = doc.y;
+
+          tableData.forEach(([label, value]) => {
+            // Draw label
+            doc.font('Helvetica-Bold')
+               .fillColor('#000000')
+               .text(label, startX, currentY, { width: labelWidth, align: 'left' });
+            
+            // Draw value
+            doc.font('Helvetica')
+               .fillColor('#2563eb')
+               .text(value, startX + labelWidth, currentY, { width: valueWidth, align: 'left' });
+            
+            currentY += 20;
+          });
+          
+          doc.y = currentY + 10;
         }
         
         // Add financial files section with hyperlinks
