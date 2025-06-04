@@ -408,6 +408,17 @@ export function SharePage() {
               </div>
             ) : (
               <>
+                {/* Website extracted logo above Financial Information */}
+                {shareData.logoUrl && (
+                  <div className="flex justify-center mb-8">
+                    <img 
+                      src={shareData.logoUrl} 
+                      alt="Company Logo" 
+                      className="h-24 md:h-32 object-contain"
+                    />
+                  </div>
+                )}
+                
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
@@ -480,18 +491,7 @@ export function SharePage() {
           </div>
 
           {/* Sticky Sidebar */}
-          <div className="lg:w-[28rem] flex-shrink-0 space-y-6">
-            {/* Website extracted logo above financial information */}
-            {shareData.logoUrl && (
-              <div className="flex justify-center">
-                <img 
-                  src={shareData.logoUrl} 
-                  alt="Company Logo" 
-                  className="h-16 md:h-20 object-contain"
-                />
-              </div>
-            )}
-            
+          <div className="lg:w-[28rem] flex-shrink-0">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
