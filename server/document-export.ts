@@ -1616,28 +1616,19 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           tableData.push(['EBITDA:', `$${parseInt(financialData.ebitda).toLocaleString()}`]);
         }
 
-        // Draw the table with proper alignment
+        // Draw financial data in a clean, aligned format
         if (tableData.length > 0) {
-          const startX = 50;
-          const labelWidth = 150;
-          const valueWidth = 200;
-          let currentY = doc.y;
-
           tableData.forEach(([label, value]) => {
-            // Draw label
             doc.font('Helvetica-Bold')
                .fillColor('#000000')
-               .text(label, startX, currentY, { width: labelWidth, align: 'left' });
+               .text(label, { continued: true });
             
-            // Draw value
             doc.font('Helvetica')
                .fillColor('#2563eb')
-               .text(value, startX + labelWidth, currentY, { width: valueWidth, align: 'left' });
+               .text(`  ${value}`);
             
-            currentY += 20;
+            doc.moveDown(0.5);
           });
-          
-          doc.y = currentY + 10;
         }
         
         // Add financial files section with hyperlinks
