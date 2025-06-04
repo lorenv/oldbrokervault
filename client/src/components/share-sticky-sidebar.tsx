@@ -142,12 +142,12 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     </p>
                   )}
 
-                  {/* Company Logo - moved under business name */}
-                  {(logoUrl || userProfile.businessLogo) && (
+                  {/* User's Business Logo - only show user's actual business logo */}
+                  {userProfile.businessLogo && (
                     <div className="flex justify-center pt-2">
                       <img 
-                        src={logoUrl || userProfile.businessLogo} 
-                        alt="Company Logo" 
+                        src={userProfile.businessLogo} 
+                        alt="Business Logo" 
                         className="max-w-40 max-h-24 object-contain"
                       />
                     </div>

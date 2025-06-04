@@ -159,6 +159,12 @@ export function SharePage() {
       <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="text-center">
+            {/* Website extracted logo above title */}
+            {shareData.logoUrl && (
+              <div className="flex justify-center mb-6">
+                <img src={shareData.logoUrl} alt="Company Logo" className="h-20 md:h-24" />
+              </div>
+            )}
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
               {shareData.cim.title}
             </h1>
