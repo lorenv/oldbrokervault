@@ -8,6 +8,7 @@ import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
+import { BrokerContactForm } from "@/components/broker-contact-form";
 import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign, Mail, TrendingUp, BarChart3 } from "lucide-react";
 
 export function SharePage() {
@@ -286,6 +287,14 @@ export function SharePage() {
                     </CardContent>
                   </Card>
                   
+                  {/* Broker Contact Form */}
+                  <div className="w-full max-w-5xl mx-auto">
+                    <BrokerContactForm 
+                      shareSlug={shareSlug!}
+                      cimTitle={shareData.cim.title}
+                      userProfile={shareData.cim.userProfile}
+                    />
+                  </div>
 
                   {shareData.cim.userProfile && (
                     <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
@@ -513,6 +522,15 @@ export function SharePage() {
                 userProfile={shareData.cim.userProfile}
               />
 
+              {/* Broker Contact Form for Generated CIMs */}
+              <div className="w-full max-w-5xl mx-auto">
+                <BrokerContactForm 
+                  shareSlug={shareSlug!}
+                  cimTitle={shareData.cim.title}
+                  userProfile={shareData.userProfileData}
+                />
+              </div>
+
               {/* Contact Information Card for Generated CIMs */}
               {shareData.userProfileData && (
                 <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
@@ -531,7 +549,7 @@ export function SharePage() {
                           <img 
                             src={shareData.userProfileData.profilePhoto} 
                             alt="Profile" 
-                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg"
+                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
                           />
                         </div>
                       )}
@@ -577,7 +595,7 @@ export function SharePage() {
                           
                           {(shareData.logoUrl || shareData.userProfileData.businessLogo) && (
                             <div className="flex justify-center lg:justify-end items-start">
-                              <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                              <div className="p-6 bg-white rounded-2xl border border-gray-100">
                                 <img 
                                   src={shareData.logoUrl || shareData.userProfileData.businessLogo} 
                                   alt="Company Logo" 
