@@ -215,50 +215,46 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="viewerName" className="text-xs font-medium text-slate-700">Your Name *</Label>
                     <Input
                       id="viewerName"
                       value={formData.viewerName}
                       onChange={(e) => handleInputChange('viewerName', e.target.value)}
                       placeholder="Enter your full name"
-                      className="mt-1 text-sm"
+                      className="text-sm"
                       required
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="viewerEmail" className="text-xs font-medium text-slate-700">Your Email *</Label>
                     <Input
                       id="viewerEmail"
                       type="email"
                       value={formData.viewerEmail}
                       onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
                       placeholder="Enter your email"
-                      className="mt-1 text-sm"
+                      className="text-sm"
                       required
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="viewerPhone" className="text-xs font-medium text-slate-700">Phone (Optional)</Label>
                     <Input
                       id="viewerPhone"
                       type="tel"
                       value={formData.viewerPhone}
                       onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
-                      placeholder="Your phone number"
-                      className="mt-1 text-sm"
+                      placeholder="Your phone number (optional)"
+                      className="text-sm"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="question" className="text-xs font-medium text-slate-700">Your Question *</Label>
                     <Textarea
                       id="question"
                       value={formData.question}
                       onChange={(e) => handleInputChange('question', e.target.value)}
                       placeholder="What would you like to know about this opportunity?"
-                      className="mt-1 text-sm min-h-20 resize-none"
+                      className="text-sm min-h-20 resize-none"
                       required
                     />
                   </div>
