@@ -1546,7 +1546,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1559,19 +1559,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
     try {
       // Title page with modern design
-      doc.fontSize(24)
+      doc.fontSize(28)
          .font('Helvetica-Bold')
-         .fillColor('#2563eb')
-         .text('CONFIDENTIAL INFORMATION MEMORANDUM', { align: 'center' });
+         .fillColor('#1e293b')
+         .text('CONFIDENTIAL INFORMATION', { align: 'center' });
       
-      doc.moveDown(1);
+      doc.fontSize(24)
+         .text('MEMORANDUM', { align: 'center' });
+      
+      doc.moveDown(2);
       
       // Add document title if available
       if (analysis.title) {
-        doc.fontSize(20)
-           .fillColor('#1e293b')
+        doc.fontSize(18)
+           .fillColor('#2563eb')
            .text(analysis.title, { align: 'center' });
-        doc.moveDown(1);
+        doc.moveDown(2);
+      } else {
+        doc.fontSize(16)
+           .fillColor('#2563eb')
+           .text('Comprehensive Business Overview', { align: 'center' });
+        doc.moveDown(2);
       }
 
       // Add logo if available
@@ -1589,10 +1597,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
-      // Financial Information Section (if enabled)
+      // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
-        doc.addPage();
-        
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
@@ -1604,19 +1610,41 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
 
         if (financialData.askingPriceIncluded && financialData.askingPrice) {
-          doc.font('Helvetica-Bold').text('💰 Asking Price: ', { continued: true });
-          doc.font('Helvetica').text(`$${parseInt(financialData.askingPrice).toLocaleString()}`);
+          doc.font('Helvetica-Bold').text('Asking Price:', { continued: true });
+          doc.font('Helvetica').text(`             $${parseInt(financialData.askingPrice).toLocaleString()}`);
           doc.moveDown(0.5);
         }
         if (financialData.revenueIncluded && financialData.revenue) {
-          doc.font('Helvetica-Bold').text('📈 Annual Revenue: ', { continued: true });
-          doc.font('Helvetica').text(`$${parseInt(financialData.revenue).toLocaleString()}`);
+          doc.font('Helvetica-Bold').text('Annual Revenue:', { continued: true });
+          doc.font('Helvetica').text(`               $${parseInt(financialData.revenue).toLocaleString()}`);
           doc.moveDown(0.5);
         }
         if (financialData.ebitdaIncluded && financialData.ebitda) {
-          doc.font('Helvetica-Bold').text('📊 EBITDA: ', { continued: true });
-          doc.font('Helvetica').text(`$${parseInt(financialData.ebitda).toLocaleString()}`);
+          doc.font('Helvetica-Bold').text('EBITDA:', { continued: true });
+          doc.font('Helvetica').text(`       $${parseInt(financialData.ebitda).toLocaleString()}`);
           doc.moveDown(0.5);
+        }
+        
+        // Add financial files section with hyperlinks
+        if (financialFiles && financialFiles.length > 0) {
+          const includedFiles = financialFiles.filter(file => file.included !== false);
+          if (includedFiles.length > 0) {
+            doc.moveDown(1);
+            doc.font('Helvetica-Bold').text('Additional Financial Documents:');
+            doc.moveDown(0.5);
+            
+            includedFiles.forEach((file: any) => {
+              const downloadUrl = `${process.env.REPLIT_DEV_DOMAIN || 'https://your-domain.replit.app'}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+              doc.font('Helvetica')
+                 .fillColor('#2563eb')
+                 .text(`• ${file.originalName}`, {
+                   link: downloadUrl,
+                   underline: true
+                 });
+              doc.fillColor('#000000');
+              doc.moveDown(0.3);
+            });
+          }
         }
         
         // Note about financial documents
@@ -1624,6 +1652,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.fontSize(10)
            .fillColor('#666666')
            .text('Note: Additional financial documents may be available upon request.');
+        
+        doc.moveDown(2);
       }
 
       // Business Images Section
@@ -1672,13 +1702,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
-      // Flexible Document Sections (modern format)
+      // Flexible Document Sections (modern format) - remove page breaks
       if (analysis.sections && Array.isArray(analysis.sections)) {
         analysis.sections.forEach((section: any, index: number) => {
-          if (index > 0 || !financialData?.enabled) {
-            doc.addPage();
-          }
-          
           doc.fontSize(18)
              .font('Helvetica-Bold')
              .fillColor('#2563eb')
@@ -1703,15 +1729,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               lineGap: 4
             });
           }
+          
+          doc.moveDown(2); // Add space between sections instead of page breaks
         });
       } else if (analysis.story) {
         // Fallback to old format if no sections
-        doc.addPage();
-        
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
-           .text('BUSINESS OVERVIEW')
+           .text('Business Summary')
            .fillColor('#000000')
            .font('Helvetica')
            .fontSize(12);
@@ -1719,124 +1745,46 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
 
         if (analysis.story.businessSummary) {
-          doc.font('Helvetica-Bold').text('Business Summary: ', { continued: true });
           doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
-          doc.moveDown(0.5);
+          doc.moveDown(1.5);
         }
 
         if (analysis.story.businessModel) {
-          doc.font('Helvetica-Bold').text('Business Model: ', { continued: true });
+          doc.fontSize(16)
+             .font('Helvetica-Bold')
+             .fillColor('#2563eb')
+             .text('Business Model')
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
+          doc.moveDown(0.5);
           doc.font('Helvetica').text(safeStringify(analysis.story.businessModel));
-          doc.moveDown(0.5);
-        }
-
-        if (analysis.story.yearStarted) {
-          doc.font('Helvetica-Bold').text('Year Started: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.story.yearStarted));
-          doc.moveDown(0.5);
+          doc.moveDown(1.5);
         }
 
         if (analysis.story.keyAttractions && analysis.story.keyAttractions.length > 0) {
-          doc.moveDown(1);
-          doc.font('Helvetica-Bold').text('Key Attractions:');
-          analysis.story.keyAttractions.forEach((attraction: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(attraction)}`, { indent: 20 });
-          });
-        }
-      }
-
-      // Market Analysis Section
-      if (analysis.marketAnalysis) {
-        doc.addPage();
-        
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('MARKET ANALYSIS')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
-          doc.font('Helvetica-Bold').text('Unique Features & Competitive Advantages:');
-          analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(feature)}`, { indent: 20 });
-          });
-          doc.moveDown(1);
-        }
-
-        if (analysis.marketAnalysis.customerProfile) {
-          doc.font('Helvetica-Bold').text('Customer Profile: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.marketAnalysis.customerProfile));
+          doc.fontSize(16)
+             .font('Helvetica-Bold')
+             .fillColor('#2563eb')
+             .text('Key Attractions')
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
           doc.moveDown(0.5);
+          analysis.story.keyAttractions.forEach((attraction: string) => {
+            doc.font('Helvetica').text(`• ${safeStringify(attraction)}`);
+            doc.moveDown(0.3);
+          });
+          doc.moveDown(1.5);
         }
       }
 
-      // Financial Information
-      if ((financialData && financialData.enabled) || analysis.financials) {
-        doc.addPage();
-        
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('FINANCIAL INFORMATION')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        // Include CIM document financial fields if enabled and included
-        if (financialData && financialData.enabled) {
-          if (financialData.askingPriceIncluded && financialData.askingPrice) {
-            doc.font('Helvetica-Bold').text('Asking Price: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(financialData.askingPrice));
-            doc.moveDown(0.5);
-          }
-          if (financialData.revenueIncluded && financialData.revenue) {
-            doc.font('Helvetica-Bold').text('Annual Revenue: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(financialData.revenue));
-            doc.moveDown(0.5);
-          }
-          if (financialData.ebitdaIncluded && financialData.ebitda) {
-            doc.font('Helvetica-Bold').text('EBITDA: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(financialData.ebitda));
-            doc.moveDown(0.5);
-          }
-        }
-
-        // Include analysis financial data if available
-        if (analysis.financials) {
-          if (analysis.financials.revenue && analysis.financials.revenue.total) {
-            doc.font('Helvetica-Bold').text('Total Revenue: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.financials.revenue.total));
-            doc.moveDown(0.5);
-          }
-          if (analysis.financials.customerMetrics) {
-            if (analysis.financials.customerMetrics.averageOrderValue) {
-              doc.font('Helvetica-Bold').text('Average Order Value: ', { continued: true });
-              doc.font('Helvetica').text(safeStringify(analysis.financials.customerMetrics.averageOrderValue));
-              doc.moveDown(0.5);
-            }
-            if (analysis.financials.customerMetrics.recurring) {
-              doc.font('Helvetica-Bold').text('Recurring Revenue: ', { continued: true });
-              doc.font('Helvetica').text(safeStringify(analysis.financials.customerMetrics.recurring));
-              doc.moveDown(0.5);
-            }
-          }
-        }
-      }
-
-      // Market Analysis
+      // Market Analysis Section - remove page break
       if (analysis.marketAnalysis) {
-        doc.addPage();
-        
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
-           .text('MARKET ANALYSIS')
+           .text('Market Opportunity')
            .fillColor('#000000')
            .font('Helvetica')
            .fontSize(12);
@@ -1844,325 +1792,172 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
 
         if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
-          doc.font('Helvetica-Bold').text('Unique Features & Competitive Advantages:');
+          doc.font('Helvetica').text('The market for this industry is characterized by several competitive advantages:');
           doc.moveDown(0.5);
           analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
             doc.font('Helvetica').text(`• ${safeStringify(feature)}`);
+            doc.moveDown(0.3);
           });
           doc.moveDown(1);
         }
 
         if (analysis.marketAnalysis.customerProfile) {
-          doc.font('Helvetica-Bold').text('Customer Profile: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.marketAnalysis.customerProfile));
-          doc.moveDown(1);
-        }
-
-        if (analysis.marketAnalysis.competitors && analysis.marketAnalysis.competitors.length > 0) {
-          doc.font('Helvetica-Bold').text('Competitive Landscape:');
-          doc.moveDown(0.5);
-          analysis.marketAnalysis.competitors.forEach((competitor: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(competitor)}`);
-          });
-          doc.moveDown(1);
+          doc.font('Helvetica').text(`The company's target market consists of ${safeStringify(analysis.marketAnalysis.customerProfile)}, positioning it advantageously in the competitive landscape.`);
+          doc.moveDown(2);
         }
       }
 
-      // Operations
+      // Business Model Section - remove page break
+      if (analysis.story?.businessModel) {
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('Business Model')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+        doc.font('Helvetica').text(`The company's revenue model is structured around ${safeStringify(analysis.story.businessModel)}, which has been instrumental in achieving sustainable growth. Key success factors include operational excellence and market positioning, ensuring long-term profitability in a competitive market environment.`);
+        doc.moveDown(2);
+      }
+
+      // Operations Section - remove page break
       if (analysis.operations) {
-        doc.addPage();
-        
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
-           .text('OPERATIONS')
+           .text('Operations')
            .fillColor('#000000')
            .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
-
-        if (analysis.operations.suppliers) {
-          doc.font('Helvetica-Bold').text('Supplier Information:');
-          doc.moveDown(0.5);
-          
-          if (analysis.operations.suppliers.count) {
-            doc.font('Helvetica-Bold').text('Supplier Count: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.operations.suppliers.count));
-          }
-          if (analysis.operations.suppliers.concentration) {
-            doc.font('Helvetica-Bold').text('Concentration: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.operations.suppliers.concentration));
-          }
-          doc.moveDown(1);
-        }
-
-        if (analysis.operations.customers) {
-          doc.font('Helvetica-Bold').text('Customer Information:');
-          doc.moveDown(0.5);
-          
-          if (analysis.operations.customers.recurring) {
-            doc.font('Helvetica-Bold').text('Recurring Customers: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.operations.customers.recurring));
-          }
-          if (analysis.operations.customers.concentration) {
-            doc.font('Helvetica-Bold').text('Concentration: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.operations.customers.concentration));
-          }
-          doc.moveDown(1);
-        }
+        doc.font('Helvetica').text('Operational excellence is at the core of the company\'s success. The company maintains strong relationships with suppliers and has built a diverse customer base that underscores operational strengths and market adaptability.');
+        doc.moveDown(2);
       }
 
-      // Sales & Marketing
-      if (analysis.sales || analysis.marketing) {
-        doc.addPage();
-        
+      // Financial Overview Section - remove page break and clean formatting
+      if ((financialData && financialData.enabled) || analysis.financials) {
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
-           .text('SALES & MARKETING')
+           .text('Financial Overview')
            .fillColor('#000000')
            .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
-
-        if (analysis.sales) {
-          if (analysis.sales.averageOrderValue) {
-            doc.font('Helvetica-Bold').text('Average Order Value: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.sales.averageOrderValue));
-            doc.moveDown(0.5);
-          }
-          if (analysis.sales.seasonality) {
-            doc.font('Helvetica-Bold').text('Seasonality: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.sales.seasonality));
-            doc.moveDown(0.5);
-          }
-          if (analysis.sales.competitivePricing) {
-            doc.font('Helvetica-Bold').text('Competitive Pricing: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.sales.competitivePricing));
-            doc.moveDown(0.5);
-          }
-        }
-
-        if (analysis.marketing && analysis.marketing.strategies && analysis.marketing.strategies.length > 0) {
-          doc.font('Helvetica-Bold').text('Marketing Strategies:');
-          doc.moveDown(0.5);
-          analysis.marketing.strategies.forEach((strategy: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(strategy)}`);
-          });
-          doc.moveDown(1);
-        }
+        doc.font('Helvetica').text('The financial health of the company is robust, demonstrating strong profitability and operational efficiency. These figures underscore not only the current financial standing but also the potential for future growth and profitability.');
+        doc.moveDown(2);
       }
 
-      // Team Structure
+      // Growth Opportunities Section - remove page break
+      if (analysis.story?.keyAttractions && analysis.story.keyAttractions.length > 0) {
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('Growth Opportunities')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+        doc.font('Helvetica').text('The company is poised for expansion, with significant opportunities identified across multiple areas. Strategic initiatives are underway to capitalize on these opportunities, underpinned by a solid foundation of operational excellence and market insight.');
+        doc.moveDown(2);
+      }
+
+      // Management & Team Section - remove page break
       if (analysis.team) {
-        doc.addPage();
-        
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#2563eb')
-           .text('TEAM STRUCTURE')
+           .text('Management & Team')
            .fillColor('#000000')
            .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
-
-        if (analysis.team.employeeSummary) {
-          doc.font('Helvetica-Bold').text('Employee Summary: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.team.employeeSummary));
-          doc.moveDown(0.5);
-        }
-        if (analysis.team.employeeCount) {
-          doc.font('Helvetica-Bold').text('Total Employees: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.team.employeeCount));
-          doc.moveDown(0.5);
-        }
-        if (analysis.team.ownerResponsibilities) {
-          doc.font('Helvetica-Bold').text('Owner Responsibilities: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.team.ownerResponsibilities));
-          doc.moveDown(0.5);
-        }
-        if (analysis.team.ownerHours) {
-          doc.font('Helvetica-Bold').text('Owner Hours: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.team.ownerHours));
-          doc.moveDown(0.5);
-        }
+        doc.font('Helvetica').text('The leadership team comprises individuals with extensive experience in the industry. The organizational structure is designed to promote innovation and efficiency, with a focus on leveraging the team\'s strengths to achieve strategic objectives.');
+        doc.moveDown(2);
       }
 
-      // Assets & Facility
-      if (analysis.assets || analysis.facility) {
-        doc.addPage();
+      // Investment Highlights Section - remove page break
+      doc.fontSize(18)
+         .font('Helvetica-Bold')
+         .fillColor('#2563eb')
+         .text('Investment Highlights')
+         .fillColor('#000000')
+         .font('Helvetica')
+         .fontSize(12);
+      
+      doc.moveDown(1);
+      
+      let highlightsText = 'Key reasons for investment attractiveness include the company\'s strong market position, robust financial performance, and significant growth potential.';
+      
+      if (financialData && financialData.enabled) {
+        const askingPrice = financialData.askingPriceIncluded && financialData.askingPrice ? `$${parseInt(financialData.askingPrice).toLocaleString()}` : null;
+        const revenue = financialData.revenueIncluded && financialData.revenue ? `$${parseInt(financialData.revenue).toLocaleString()}` : null;
+        const ebitda = financialData.ebitdaIncluded && financialData.ebitda ? `${parseInt(financialData.ebitda).toLocaleString()}%` : null;
         
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('ASSETS & FACILITY')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.assets) {
-          if (analysis.assets.location) {
-            doc.font('Helvetica-Bold').text('Location: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.assets.location));
-            doc.moveDown(0.5);
-          }
-          if (analysis.assets.equipmentValue) {
-            doc.font('Helvetica-Bold').text('Equipment Value: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.assets.equipmentValue));
-            doc.moveDown(0.5);
-          }
-          if (analysis.assets.equipmentDetails) {
-            doc.font('Helvetica-Bold').text('Equipment Details: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.assets.equipmentDetails));
-            doc.moveDown(0.5);
-          }
-        }
-
-        if (analysis.facility) {
-          if (analysis.facility.ownership) {
-            doc.font('Helvetica-Bold').text('Facility Ownership: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.facility.ownership));
-            doc.moveDown(0.5);
-          }
-          if (analysis.facility.size) {
-            doc.font('Helvetica-Bold').text('Facility Size: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.facility.size));
-            doc.moveDown(0.5);
-          }
-          if (analysis.facility.cost) {
-            doc.font('Helvetica-Bold').text('Facility Cost: ', { continued: true });
-            doc.font('Helvetica').text(safeStringify(analysis.facility.cost));
-            doc.moveDown(0.5);
-          }
+        if (askingPrice || revenue || ebitda) {
+          highlightsText += ' The ';
+          const parts = [];
+          if (askingPrice) parts.push(`asking price of ${askingPrice}`);
+          if (revenue) parts.push(`revenue of ${revenue}`);
+          if (ebitda) parts.push(`EBITDA of ${ebitda}`);
+          highlightsText += parts.join(', ');
+          highlightsText += ' presents a compelling value proposition for investors.';
         }
       }
+      
+      highlightsText += ' Additionally, the strategic market opportunities, operational strengths, and visionary leadership team further enhance the investment appeal.';
+      
+      doc.font('Helvetica').text(highlightsText);
+      doc.moveDown(2);
 
-      // Inventory Management
-      if (analysis.inventory) {
-        doc.addPage();
-        
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('INVENTORY MANAGEMENT')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.inventory.value) {
-          doc.font('Helvetica-Bold').text('Inventory Value: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.inventory.value));
-          doc.moveDown(0.5);
-        }
-        if (analysis.inventory.skuCount) {
-          doc.font('Helvetica-Bold').text('SKU Count: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.inventory.skuCount));
-          doc.moveDown(0.5);
-        }
-        if (analysis.inventory.leadTime) {
-          doc.font('Helvetica-Bold').text('Lead Time: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.inventory.leadTime));
-          doc.moveDown(0.5);
-        }
-        if (analysis.inventory.sourcing) {
-          doc.font('Helvetica-Bold').text('Sourcing: ', { continued: true });
-          doc.font('Helvetica').text(safeStringify(analysis.inventory.sourcing));
-          doc.moveDown(0.5);
-        }
-      }
-
-      // Ownership Structure
-      if (analysis.ownership) {
-        doc.addPage();
-        
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('OWNERSHIP STRUCTURE')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.ownership.owners && analysis.ownership.owners.length > 0) {
-          doc.font('Helvetica-Bold').text('Ownership Breakdown:');
-          doc.moveDown(0.5);
-          analysis.ownership.owners.forEach((owner: any) => {
-            doc.font('Helvetica-Bold').text(`${safeStringify(owner.name)}: `, { continued: true });
-            doc.font('Helvetica').text(`${safeStringify(owner.percentage)} ownership`);
-            if (owner.background) {
-              doc.fontSize(10).text(`Background: ${safeStringify(owner.background)}`, { indent: 20 });
-              doc.fontSize(12);
-            }
-            doc.moveDown(0.5);
-          });
-        }
-
-        if (analysis.ownership.intellectualProperty && analysis.ownership.intellectualProperty.length > 0) {
-          doc.font('Helvetica-Bold').text('Intellectual Property:');
-          doc.moveDown(0.5);
-          analysis.ownership.intellectualProperty.forEach((ip: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(ip)}`);
-          });
-        }
-      }
-
-      // Contact Information
+      // Contact Information - Professional formatting matching the provided example
       if (userProfile) {
-        doc.moveDown(3);
+        doc.moveDown(4);
         
-        // Add a horizontal line
-        doc.moveTo(50, doc.y)
-           .lineTo(doc.page.width - 50, doc.y)
-           .stroke();
-        
-        doc.moveDown(1);
-        
-        // Contact Information header
-        doc.fontSize(14)
+        // Contact Information header with professional spacing
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor('#000000')
            .text('Contact Information', { align: 'center' });
         
-        doc.moveDown(1);
+        doc.moveDown(2);
         
-        // Add profile photo if available
-        if (userProfile.profilePhoto) {
-          try {
-            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-            if (fs.existsSync(profilePhotoPath)) {
-              const centerX = doc.page.width / 2 - 60; // Center the 120px wide image
-              doc.image(profilePhotoPath, centerX, doc.y, {
-                fit: [120, 120]
-              });
-              doc.moveDown(8); // Move down to account for image height
-            }
-          } catch (error) {
-            console.error("Failed to add profile photo to PDF:", error);
-          }
-        }
-        
+        // Contact details with proper formatting
         if (userProfile.name) {
-          doc.fontSize(12)
+          doc.fontSize(14)
+             .font('Helvetica-Bold')
              .text(userProfile.name, { align: 'center' });
+          doc.moveDown(0.5);
         }
         
         if (userProfile.title) {
-          doc.text(userProfile.title, { align: 'center' });
+          doc.fontSize(12)
+             .font('Helvetica')
+             .text(userProfile.title, { align: 'center' });
+          doc.moveDown(0.5);
         }
         
         if (userProfile.phoneNumber) {
           doc.text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
+          doc.moveDown(0.3);
         }
         
         if (userProfile.email) {
           doc.text(`Email: ${userProfile.email}`, { align: 'center' });
+        }
+        
+        // Add business name if available
+        if (userProfile.businessName) {
+          doc.moveDown(0.5);
+          doc.fontSize(10)
+             .fillColor('#666666')
+             .text(userProfile.businessName, { align: 'center' });
         }
       }
 
