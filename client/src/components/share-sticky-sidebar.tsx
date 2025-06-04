@@ -120,7 +120,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     <img 
                       src={userProfile.profilePhoto} 
                       alt="Profile" 
-                      className="w-24 h-24 rounded-xl object-cover"
+                      className="w-28 h-28 rounded-xl object-cover"
                     />
                   </div>
                 )}
@@ -148,7 +148,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       <img 
                         src={logoUrl || userProfile.businessLogo} 
                         alt="Company Logo" 
-                        className="max-w-32 max-h-20 object-contain"
+                        className="max-w-40 max-h-24 object-contain"
                       />
                     </div>
                   )}
@@ -194,7 +194,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
               Ask Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-6 pb-6">
+          <CardContent className="px-6 pb-6 pt-6">
             {isSubmitted ? (
               <div className="text-center py-6">
                 <div className="flex justify-center mb-3">
