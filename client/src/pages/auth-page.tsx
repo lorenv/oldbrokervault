@@ -172,7 +172,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome to CIM God</CardTitle>
+          <CardTitle>Welcome to CIM Share</CardTitle>
           <CardDescription>
             The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
             <br /><br />

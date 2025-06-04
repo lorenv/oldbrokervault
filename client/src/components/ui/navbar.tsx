@@ -23,8 +23,7 @@ export function Navbar() {
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
             <a className="flex items-center space-x-2 font-semibold text-lg">
-              <img src="/cim-god-logo.png" alt="CIM God" className="h-10 w-10" />
-              <span>CIM God</span>
+              <span>CIM Share</span>
             </a>
           </Link>
           {!user && (
