@@ -322,12 +322,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: cimDoc.ebitdaIncluded || false
       };
 
+      // Get financial files for the document
+      const financialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id));
+
       console.log("Generating PDF with full context:", {
         logoUrl: cimDoc.logoUrl,
         selectedImages: cimDoc.selectedImages?.length || 0,
         websiteUrl: cimDoc.websiteUrl,
         hasUserProfile: !!userProfile,
-        financialData: financialData.enabled
+        financialData: financialData.enabled,
+        financialFilesCount: financialFiles.length
       });
 
       const pdfBuffer = await generatePDF(
@@ -336,7 +340,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.websiteUrl,
         cimDoc.selectedImages,
         userProfile,
-        financialData
+        financialData,
+        financialFiles
       );
 
       res.setHeader('Content-Type', 'application/pdf');
