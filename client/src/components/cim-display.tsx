@@ -14,6 +14,7 @@ import {
   GripVertical
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
+import { CoverImageManager } from "./cover-image-manager";
 import ReactMarkdown from 'react-markdown';
 import {
   Dialog,

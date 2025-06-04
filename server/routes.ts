@@ -4215,6 +4215,75 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Cover Image Management API
+  app.post("/api/cim/:id/cover-image", upload.single('coverImage'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const { coverImageUrl, coverImagePosition, coverImageAttribution } = req.body;
+      
+      // Verify document ownership
+      const document = await storage.getCimDocument(cimId);
+      if (!document || document.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      let finalCoverImageUrl = coverImageUrl;
+      
+      // Handle file upload if present
+      if (req.file) {
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 8);
+        const fileExtension = path.extname(req.file.originalname).toLowerCase();
+        const fileName = `${timestamp}_${randomId}${fileExtension}`;
+        const filePath = path.join(uploadsDir, fileName);
+        
+        // Save the uploaded file
+        await fs.writeFile(filePath, req.file.buffer);
+        finalCoverImageUrl = `/uploads/${fileName}`;
+      }
+      
+      // Update the CIM document with cover image data
+      const updatedDoc = await storage.updateCimDocument(cimId, {
+        coverImageUrl: finalCoverImageUrl,
+        coverImagePosition: coverImagePosition || null,
+        coverImageAttribution: coverImageAttribution || null
+      });
+      
+      res.json(updatedDoc);
+    } catch (error) {
+      console.error('Error updating cover image:', error);
+      res.status(500).json({ error: "Failed to update cover image" });
+    }
+  });
+
+  app.delete("/api/cim/:id/cover-image", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      
+      // Verify document ownership
+      const document = await storage.getCimDocument(cimId);
+      if (!document || document.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Remove cover image data
+      const updatedDoc = await storage.updateCimDocument(cimId, {
+        coverImageUrl: null,
+        coverImagePosition: null,
+        coverImageAttribution: null
+      });
+      
+      res.json(updatedDoc);
+    } catch (error) {
+      console.error('Error removing cover image:', error);
+      res.status(500).json({ error: "Failed to remove cover image" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

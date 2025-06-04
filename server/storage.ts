@@ -378,6 +378,9 @@ export class DatabaseStorage implements IStorage {
         uploadedFilePath: cimDocuments.uploadedFilePath,
         uploadedFileSize: cimDocuments.uploadedFileSize,
         uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
+        coverImageUrl: cimDocuments.coverImageUrl,
+        coverImagePosition: cimDocuments.coverImagePosition,
+        coverImageAttribution: cimDocuments.coverImageAttribution,
         ndaSignatureCount: count(ndaSignatures.id)
       })
       .from(cimDocuments)
