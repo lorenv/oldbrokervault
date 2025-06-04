@@ -162,7 +162,7 @@ export function SharePage() {
             {/* Website extracted logo above title */}
             {shareData.logoUrl && (
               <div className="flex justify-center mb-6">
-                <img src={shareData.logoUrl} alt="Company Logo" className="h-20 md:h-24" />
+                <img src={shareData.logoUrl} alt="Company Logo" className="h-32 md:h-40" />
               </div>
             )}
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
