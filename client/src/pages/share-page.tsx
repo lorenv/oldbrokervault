@@ -213,7 +213,7 @@ export function SharePage() {
       </div>
       
       {/* Content section with sidebar layout */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-[90rem] mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main content area */}
           <div className="flex-1 min-w-0 space-y-6">
@@ -408,7 +408,7 @@ export function SharePage() {
           </div>
 
           {/* Sticky Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-96 flex-shrink-0">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}

@@ -98,192 +98,193 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
   };
 
   return (
-    <div className="sticky top-8 space-y-6">
-      {/* Contact Information Card */}
-      {userProfile && (
-        <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-4 pt-6 px-6">
+    <div className="sticky top-8">
+      {/* Combined Contact Information and Form Card */}
+      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+        {/* Contact Information Section */}
+        {userProfile && (
+          <>
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-4 pt-6 px-6">
+              <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                <div className="p-1.5 bg-blue-100 rounded-lg">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+                Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 pt-8">
+              <div className="space-y-6">
+                {/* Profile Photo */}
+                {userProfile.profilePhoto && (
+                  <div className="flex justify-center">
+                    <img 
+                      src={userProfile.profilePhoto} 
+                      alt="Profile" 
+                      className="w-24 h-24 rounded-xl object-cover"
+                    />
+                  </div>
+                )}
+                
+                {/* Name and Title */}
+                <div className="text-center space-y-2">
+                  {userProfile.name && (
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {userProfile.name}
+                    </h3>
+                  )}
+                  {userProfile.title && (
+                    <p className="text-sm text-blue-600 font-medium">{userProfile.title}</p>
+                  )}
+                  {userProfile.businessName && (
+                    <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {userProfile.businessName}
+                    </p>
+                  )}
+                  
+                  {/* Company Logo - moved under business name */}
+                  {(logoUrl || userProfile.businessLogo) && (
+                    <div className="flex justify-center pt-2">
+                      <img 
+                        src={logoUrl || userProfile.businessLogo} 
+                        alt="Company Logo" 
+                        className="max-w-32 max-h-20 object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Contact Details */}
+                <div className="space-y-2">
+                  {userProfile.email && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                      <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <a 
+                        href={`mailto:${userProfile.email}`} 
+                        className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors truncate"
+                      >
+                        {userProfile.email}
+                      </a>
+                    </div>
+                  )}
+                  {userProfile.phoneNumber && (
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                      <Phone className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                      <a 
+                        href={`tel:${userProfile.phoneNumber}`} 
+                        className="text-slate-600 text-sm font-medium hover:text-slate-700 transition-colors"
+                      >
+                        {userProfile.phoneNumber}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {/* Ask Questions Section */}
+        <div className="border-t border-gray-100">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 pb-4 pt-6 px-6">
             <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
               <div className="p-1.5 bg-blue-100 rounded-lg">
-                <User className="h-4 w-4 text-blue-600" />
+                <MessageSquare className="h-4 w-4 text-blue-600" />
               </div>
-              Contact Information
+              Ask Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {/* Profile Photo */}
-              {userProfile.profilePhoto && (
-                <div className="flex justify-center">
-                  <img 
-                    src={userProfile.profilePhoto} 
-                    alt="Profile" 
-                    className="w-20 h-20 rounded-xl object-cover border-2 border-gray-100"
-                  />
+          <CardContent className="px-6 pb-6">
+            {isSubmitted ? (
+              <div className="text-center py-6">
+                <div className="flex justify-center mb-3">
+                  <CheckCircle className="h-12 w-12 text-green-500" />
                 </div>
-              )}
-              
-              {/* Name and Title */}
-              <div className="text-center space-y-1">
-                {userProfile.name && (
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {userProfile.name}
-                  </h3>
-                )}
-                {userProfile.title && (
-                  <p className="text-sm text-blue-600 font-medium">{userProfile.title}</p>
-                )}
-                {userProfile.businessName && (
-                  <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {userProfile.businessName}
-                  </p>
-                )}
+                <h3 className="text-lg font-semibold text-green-700 mb-2">Message Sent!</h3>
+                <p className="text-sm text-slate-600">The broker will contact you directly.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setIsSubmitted(false)}
+                >
+                  Send Another Message
+                </Button>
               </div>
-              
-              {/* Contact Details */}
-              <div className="space-y-2">
-                {userProfile.email && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                    <a 
-                      href={`mailto:${userProfile.email}`} 
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors truncate"
-                    >
-                      {userProfile.email}
-                    </a>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="viewerName" className="text-xs font-medium text-slate-700">Your Name *</Label>
+                    <Input
+                      id="viewerName"
+                      value={formData.viewerName}
+                      onChange={(e) => handleInputChange('viewerName', e.target.value)}
+                      placeholder="Enter your full name"
+                      className="mt-1 text-sm"
+                      required
+                    />
                   </div>
-                )}
-                {userProfile.phoneNumber && (
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <Phone className="h-4 w-4 text-slate-600 flex-shrink-0" />
-                    <a 
-                      href={`tel:${userProfile.phoneNumber}`} 
-                      className="text-slate-600 text-sm font-medium hover:text-slate-700 transition-colors"
-                    >
-                      {userProfile.phoneNumber}
-                    </a>
+                  
+                  <div>
+                    <Label htmlFor="viewerEmail" className="text-xs font-medium text-slate-700">Your Email *</Label>
+                    <Input
+                      id="viewerEmail"
+                      type="email"
+                      value={formData.viewerEmail}
+                      onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
+                      placeholder="Enter your email"
+                      className="mt-1 text-sm"
+                      required
+                    />
                   </div>
-                )}
-              </div>
-              
-              {/* Company Logo */}
-              {logoUrl && (
-                <div className="flex justify-center pt-2">
-                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                    <img 
-                      src={logoUrl} 
-                      alt="Company Logo" 
-                      className="max-w-24 max-h-16 object-contain"
+                  
+                  <div>
+                    <Label htmlFor="viewerPhone" className="text-xs font-medium text-slate-700">Phone (Optional)</Label>
+                    <Input
+                      id="viewerPhone"
+                      type="tel"
+                      value={formData.viewerPhone}
+                      onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
+                      placeholder="Your phone number"
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="question" className="text-xs font-medium text-slate-700">Your Question *</Label>
+                    <Textarea
+                      id="question"
+                      value={formData.question}
+                      onChange={(e) => handleInputChange('question', e.target.value)}
+                      placeholder="What would you like to know about this opportunity?"
+                      className="mt-1 text-sm min-h-20 resize-none"
+                      required
                     />
                   </div>
                 </div>
-              )}
-            </div>
+                
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 mr-2 border-2 border-white border-t-transparent"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Send Message
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
           </CardContent>
-        </Card>
-      )}
-
-      {/* Contact Form Card */}
-      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50/50 pb-4 pt-6 px-6">
-          <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <div className="p-1.5 bg-green-100 rounded-lg">
-              <MessageSquare className="h-4 w-4 text-green-600" />
-            </div>
-            Ask Questions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          {isSubmitted ? (
-            <div className="text-center py-6">
-              <div className="flex justify-center mb-3">
-                <CheckCircle className="h-12 w-12 text-green-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-green-700 mb-2">Message Sent!</h3>
-              <p className="text-sm text-slate-600">The broker will contact you directly.</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={() => setIsSubmitted(false)}
-              >
-                Send Another Message
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="viewerName" className="text-xs font-medium text-slate-700">Your Name *</Label>
-                  <Input
-                    id="viewerName"
-                    value={formData.viewerName}
-                    onChange={(e) => handleInputChange('viewerName', e.target.value)}
-                    placeholder="Enter your full name"
-                    className="mt-1 text-sm"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="viewerEmail" className="text-xs font-medium text-slate-700">Your Email *</Label>
-                  <Input
-                    id="viewerEmail"
-                    type="email"
-                    value={formData.viewerEmail}
-                    onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
-                    placeholder="Enter your email"
-                    className="mt-1 text-sm"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="viewerPhone" className="text-xs font-medium text-slate-700">Phone (Optional)</Label>
-                  <Input
-                    id="viewerPhone"
-                    type="tel"
-                    value={formData.viewerPhone}
-                    onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
-                    placeholder="Your phone number"
-                    className="mt-1 text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="question" className="text-xs font-medium text-slate-700">Your Question *</Label>
-                  <Textarea
-                    id="question"
-                    value={formData.question}
-                    onChange={(e) => handleInputChange('question', e.target.value)}
-                    placeholder="What would you like to know about this opportunity?"
-                    className="mt-1 text-sm min-h-20 resize-none"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium text-sm"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 mr-2 border-2 border-white border-t-transparent"></div>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Send Message
-                  </>
-                )}
-              </Button>
-            </form>
-          )}
-        </CardContent>
+        </div>
       </Card>
     </div>
   );
