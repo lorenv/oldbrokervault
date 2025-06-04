@@ -408,7 +408,7 @@ export function SharePage() {
           </div>
 
           {/* Sticky Sidebar */}
-          <div className="lg:w-96 flex-shrink-0">
+          <div className="lg:w-[28rem] flex-shrink-0">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
