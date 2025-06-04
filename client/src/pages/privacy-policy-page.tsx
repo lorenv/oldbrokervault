@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
             <p>
-              Dealve Inc. ("Company," "we," "us," or "our") operates the CIM God platform ("Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using CIM God, you agree to the collection and use of information in accordance with this policy.
+              Dealve Inc. ("Company," "we," "us," or "our") operates the CIM Share platform ("Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. By using CIM Share, you agree to the collection and use of information in accordance with this policy.
             </p>
           </section>
 
@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-xl font-semibold mb-3">3. How We Use Your Information</h2>
             <p>We use the information we collect to:</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li>Provide, maintain, and improve the CIM God service</li>
+              <li>Provide, maintain, and improve the CIM Share service</li>
               <li>Process AI analysis of your business content</li>
               <li>Generate and format CIM documents according to your specifications</li>
               <li>Process payments and manage subscriptions</li>

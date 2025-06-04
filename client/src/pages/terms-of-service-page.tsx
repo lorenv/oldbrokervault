@@ -12,14 +12,14 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
             <p>
-              These Terms of Service ("Terms") govern your use of the CIM God platform ("Service") operated by Dealve Inc., a Delaware corporation ("Company," "we," "us," or "our"). By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
+              These Terms of Service ("Terms") govern your use of the CIM Share platform ("Service") operated by Dealve Inc., a Delaware corporation ("Company," "we," "us," or "our"). By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold mb-3">2. Description of Service</h2>
             <p>
-              CIM God is a web-based platform that enables users to create, customize, and share Confidential Information Memorandums (CIMs) using artificial intelligence-powered analysis. The Service includes document generation, editing tools, export capabilities, NDA protection, and secure sharing features.
+              CIM Share is a web-based platform that enables users to create, customize, and share Confidential Information Memorandums (CIMs) using artificial intelligence-powered analysis. The Service includes document generation, editing tools, export capabilities, NDA protection, and secure sharing features.
             </p>
           </section>
 

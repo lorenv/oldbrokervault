@@ -66,7 +66,7 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Have questions about CIM God? Need help with your account? We're here to assist you every step of the way.
+            Have questions about CIM Share? Need help with your account? We're here to assist you every step of the way.
           </p>
         </div>
       </section>
