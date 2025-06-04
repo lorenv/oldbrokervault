@@ -259,8 +259,8 @@ export function CimDisplay({
           <OwnerFinancialsSection docId={docId} />
         )}
 
-        {/* Larger Logo - moved above business images for share view */}
-        {logoUrl && (
+        {/* Logo only in edit view, not share view (header handles it there) */}
+        {!isSharedView && logoUrl && (
           <div className="flex justify-center mb-6">
             <img src={logoUrl} alt="Company Logo" className="h-32" />
           </div>
