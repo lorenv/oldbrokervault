@@ -733,8 +733,9 @@ ${analysis.team.ownerResponsibilities}
                         onCheckedChange={(checked) => 
                           setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
                         }
+                        className="h-4 w-4"
                       />
-                      <Label>Asking Price</Label>
+                      <Label className="text-xs text-muted-foreground">Asking Price</Label>
                     </div>
                     <Input
                       placeholder="$1,000,000"
@@ -742,6 +743,7 @@ ${analysis.team.ownerResponsibilities}
                       onChange={(e) => 
                         setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
                       }
+                      className="h-9"
                     />
                   </div>
 
@@ -753,8 +755,9 @@ ${analysis.team.ownerResponsibilities}
                         onCheckedChange={(checked) => 
                           setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
                         }
+                        className="h-4 w-4"
                       />
-                      <Label>Annual Revenue</Label>
+                      <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
                     </div>
                     <Input
                       placeholder="$500,000"
@@ -762,6 +765,7 @@ ${analysis.team.ownerResponsibilities}
                       onChange={(e) => 
                         setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
                       }
+                      className="h-9"
                     />
                   </div>
 
@@ -773,8 +777,9 @@ ${analysis.team.ownerResponsibilities}
                         onCheckedChange={(checked) => 
                           setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
                         }
+                        className="h-4 w-4"
                       />
-                      <Label>EBITDA</Label>
+                      <Label className="text-xs text-muted-foreground">EBITDA</Label>
                     </div>
                     <Input
                       placeholder="$150,000"
@@ -782,25 +787,28 @@ ${analysis.team.ownerResponsibilities}
                       onChange={(e) => 
                         setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
                       }
+                      className="h-9"
                     />
                   </div>
                 </div>
                 
-                <div className="space-y-4 mt-6">
-                  <Label>Financial Documents (Optional)</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <div className="space-y-3 mt-4">
+                  <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
+                  <div className="border-2 border-dashed border-muted rounded-lg p-4">
                     <div className="text-center">
-                      <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
+                        className="gap-2"
                       >
-                        Upload Financial Files
+                        <File className="h-4 w-4" />
+                        Upload Files
                       </Button>
-                      <p className="mt-2 text-xs text-gray-500">
-                        Upload financial statements, tax returns, or other relevant documents
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Financial statements, tax returns, or other documents
                       </p>
                     </div>
                     <input
@@ -815,14 +823,14 @@ ${analysis.team.ownerResponsibilities}
                   
                   {financialFiles.length > 0 && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Uploaded Files:</Label>
+                      <Label className="text-xs text-muted-foreground">Uploaded Files:</Label>
                       <div className="space-y-2">
                         {financialFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
                             <div className="flex items-center space-x-2">
-                              <FileText className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm text-gray-700">{file.name}</span>
-                              <span className="text-xs text-gray-500">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{file.name}</span>
+                              <span className="text-xs text-muted-foreground">
                                 ({(file.size / 1024 / 1024).toFixed(2)} MB)
                               </span>
                             </div>
