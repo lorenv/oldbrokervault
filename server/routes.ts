@@ -2568,6 +2568,41 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
   
+  // Unsplash search endpoint
+  app.get("/api/unsplash/search", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { query, page = 1, per_page = 12 } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+      if (!accessKey) {
+        return res.status(500).json({ error: "Unsplash API key not configured" });
+      }
+
+      const response = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&page=${page}&per_page=${per_page}&orientation=landscape`, {
+        headers: {
+          'Authorization': `Client-ID ${accessKey}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unsplash API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      res.json(data);
+
+    } catch (error) {
+      console.error("Unsplash search error:", error);
+      res.status(500).json({ error: "Failed to search images" });
+    }
+  });
+
   // Add endpoint to fetch Beaver Builder templates
   app.post("/api/wordpress/fetch-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

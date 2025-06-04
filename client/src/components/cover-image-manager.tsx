@@ -46,7 +46,7 @@ export function CoverImageManager({
   const [searchQuery, setSearchQuery] = useState("");
   const [unsplashResults, setUnsplashResults] = useState<UnsplashImage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(currentCoverImage);
+  const [selectedImage, setSelectedImage] = useState<string | null>(currentCoverImage || null);
   const [imagePosition, setImagePosition] = useState(() => {
     if (currentPosition) {
       try {
