@@ -8,8 +8,8 @@ import { CimDisplay } from "@/components/cim-display";
 import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
-import { BrokerContactForm } from "@/components/broker-contact-form";
-import { Shield, FileText, AlertCircle, Download, Package, User, DollarSign, Mail, TrendingUp, BarChart3 } from "lucide-react";
+import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -66,8 +66,6 @@ export function SharePage() {
       setShowNdaDialog(true);
     }
   }, [shareData, hasSignedNda]);
-
-
 
   if (isLoading) {
     return (
@@ -214,26 +212,26 @@ export function SharePage() {
         </div>
       </div>
       
-      {/* Content section */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-
-        <div className="space-y-6">
-          {shareData.cim.isUploadedFile ? (
-            <div>
-              {filesLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="text-gray-500">Loading files...</div>
-                </div>
-              ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
-                <UploadedFileViewer 
-                  cimDocument={shareData.cim}
-                  shareSlug={shareSlug!}
-                  userProfile={shareData.cim.userProfile}
-                  uploadedFiles={uploadedFiles}
-                />
-              ) : uploadedFiles.length > 0 ? (
-                <div className="space-y-8">
-                  <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+      {/* Content section with sidebar layout */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main content area */}
+          <div className="flex-1 min-w-0 space-y-6">
+            {shareData.cim.isUploadedFile ? (
+              <div>
+                {filesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="text-gray-500">Loading files...</div>
+                  </div>
+                ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
+                  <UploadedFileViewer 
+                    cimDocument={shareData.cim}
+                    shareSlug={shareSlug!}
+                    userProfile={shareData.cim.userProfile}
+                    uploadedFiles={uploadedFiles}
+                  />
+                ) : uploadedFiles.length > 0 ? (
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -302,333 +300,122 @@ export function SharePage() {
                       )}
                     </CardContent>
                   </Card>
-                  
-                  {/* Broker Contact Form */}
-                  <div className="w-full max-w-5xl mx-auto">
-                    <BrokerContactForm 
-                      shareSlug={shareSlug!}
-                      cimTitle={shareData.cim.title}
-                      userProfile={shareData.cim.userProfile}
-                    />
-                  </div>
-
-                  {shareData.cim.userProfile && (
-                    <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-                        <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <User className="h-6 w-6 text-blue-600" />
-                          </div>
-                          Contact Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-8">
-                        {(() => {
-                          console.log("Share data debug:", shareData);
-                          console.log("Contact section debug:", {
-                            hasUserProfile: !!shareData.cim.userProfile,
-                            userProfileData: shareData.cim.userProfile,
-                            fullCimData: shareData.cim
-                          });
-                          return null;
-                        })()}
-                        {shareData.cim.userProfile ? (
-                          <div className="flex items-start gap-8">
-                            {shareData.cim.userProfile.profilePhoto && (
-                              <div className="flex-shrink-0">
-                                <img 
-                                  src={shareData.cim.userProfile.profilePhoto} 
-                                  alt="Profile" 
-                                  className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
-                                />
-                              </div>
-                            )}
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                  <div>
-                                    {shareData.cim.userProfile.name && (
-                                      <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                                        {shareData.cim.userProfile.name}
-                                      </h3>
-                                    )}
-                                    {shareData.cim.userProfile.title && (
-                                      <p className="text-lg text-blue-600 font-medium mb-2">{shareData.cim.userProfile.title}</p>
-                                    )}
-                                    {shareData.cim.userProfile.businessName && (
-                                      <p className="text-lg text-slate-600 font-medium mb-3">
-                                        {shareData.cim.userProfile.businessName}
-                                      </p>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="space-y-3">
-                                    {shareData.cim.userProfile.email && (
-                                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
-                                          {shareData.cim.userProfile.email}
-                                        </a>
-                                      </div>
-                                    )}
-                                    {shareData.cim.userProfile.phoneNumber && (
-                                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                        <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                                        <a href={`tel:${shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
-                                          {shareData.cim.userProfile.phoneNumber}
-                                        </a>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {(shareData.cim.logoUrl || shareData.cim.userProfile.businessLogo) && (
-                                  <div className="flex justify-center lg:justify-end items-start">
-                                    <div className="p-6 bg-white rounded-2xl border border-gray-100">
-                                      <img 
-                                        src={shareData.cim.logoUrl || shareData.cim.userProfile.businessLogo} 
-                                        alt="Company Logo" 
-                                        className="max-w-48 max-h-32 object-contain"
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                ) : (
+                  <UploadedFileViewer 
+                    cimDocument={shareData.cim}
+                    shareSlug={shareSlug!}
+                    userProfile={shareData.cim.userProfile}
+                    uploadedFiles={uploadedFiles}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Financial Information Section */}
+                {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50/50 pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-green-600" />
+                        </div>
+                        Financial Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {shareData.cim.askingPrice && (
+                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <DollarSign className="h-5 w-5 text-green-600" />
+                              <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {shareData.cim.userProfile?.name && (
-                              <h3 className="text-xl font-bold text-slate-900">
-                                {shareData.cim.userProfile.name}
-                              </h3>
-                            )}
-                            {shareData.cim.userProfile?.title && (
-                              <p className="text-lg text-blue-600 font-medium">{shareData.cim.userProfile.title}</p>
-                            )}
-                            {shareData.cim.userProfile?.businessName && (
-                              <p className="text-lg text-slate-600 font-medium">{shareData.cim.userProfile.businessName}</p>
-                            )}
-                            <div className="space-y-3">
-                              {shareData.cim.userProfile?.email && (
-                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                                  <Mail className="h-4 w-4 text-blue-600" />
-                                  <a href={`mailto:${shareData.cim.userProfile.email}`} className="text-blue-600 hover:text-blue-700 transition-colors font-medium">
-                                    {shareData.cim.userProfile.email}
-                                  </a>
-                                </div>
-                              )}
-                              {shareData.cim.userProfile?.phoneNumber && (
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                                  <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                                  <a href={`tel:${shareData.cim.userProfile.phoneNumber}`} className="text-slate-600 hover:text-slate-700 transition-colors font-medium">
-                                    {shareData.cim.userProfile.phoneNumber}
-                                  </a>
-                                </div>
-                              )}
-                            </div>
+                            <p className="text-3xl font-bold text-green-600">
+                              ${parseInt(shareData.cim.askingPrice).toLocaleString()}
+                            </p>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              ) : (
-                <UploadedFileViewer 
-                  cimDocument={shareData.cim}
-                  shareSlug={shareSlug!}
-                  userProfile={shareData.cim.userProfile}
-                  uploadedFiles={uploadedFiles}
-                />
-              )}
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Financial Information Section */}
-              {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
-                <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50/50 pb-6 pt-8 px-8">
-                    <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <DollarSign className="h-6 w-6 text-green-600" />
-                      </div>
-                      Financial Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {shareData.cim.askingPrice && (
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            <DollarSign className="h-5 w-5 text-green-600" />
-                            <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
+                        {shareData.cim.revenue && (
+                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <TrendingUp className="h-5 w-5 text-blue-600" />
+                              <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
+                            </div>
+                            <p className="text-3xl font-bold text-blue-600">
+                              ${parseInt(shareData.cim.revenue).toLocaleString()}
+                            </p>
                           </div>
-                          <p className="text-3xl font-bold text-green-600">
-                            ${parseInt(shareData.cim.askingPrice).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                      {shareData.cim.revenue && (
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            <TrendingUp className="h-5 w-5 text-blue-600" />
-                            <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
+                        )}
+                        {shareData.cim.ebitda && (
+                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center justify-center gap-2 mb-3">
+                              <BarChart3 className="h-5 w-5 text-purple-600" />
+                              <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
+                            </div>
+                            <p className="text-3xl font-bold text-purple-600">
+                              ${parseInt(shareData.cim.ebitda).toLocaleString()}
+                            </p>
                           </div>
-                          <p className="text-3xl font-bold text-blue-600">
-                            ${parseInt(shareData.cim.revenue).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                      {shareData.cim.ebitda && (
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            <BarChart3 className="h-5 w-5 text-purple-600" />
-                            <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
-                          </div>
-                          <p className="text-3xl font-bold text-purple-600">
-                            ${parseInt(shareData.cim.ebitda).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Financial Documents Download Section */}
-                    <FinancialDocumentsDisplay cimId={shareData.cim.id} />
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Business Images for flexible CIM documents */}
-              {shareData.cim.selectedImages && Array.isArray(shareData.cim.selectedImages) && shareData.cim.selectedImages.length > 0 && (
-                <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-                    <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <Package className="h-6 w-6 text-purple-600" />
+                        )}
                       </div>
-                      Business Images
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {shareData.cim.selectedImages.map((imageUrl: string, index: number) => (
-                        <div key={index} className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                          <img 
-                            src={imageUrl} 
-                            alt={`Business Image ${index + 1}`} 
-                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <CimDisplay 
-                analysis={shareData.cim.analysis}
-                isSharedView={true}
-                docId={shareData.cim.id}
-                websiteUrl={shareData.websiteUrl}
-                logoUrl={shareData.logoUrl}
-                selectedImages={shareData.selectedImages}
-                title={shareData.cim.title}
-                userProfile={shareData.cim.userProfile}
-              />
-
-              {/* Broker Contact Form for Generated CIMs */}
-              <div className="w-full max-w-5xl mx-auto">
-                <BrokerContactForm 
-                  shareSlug={shareSlug!}
-                  cimTitle={shareData.cim.title}
-                  userProfile={shareData.userProfileData}
-                />
-              </div>
-
-              {/* Contact Information Card for Generated CIMs */}
-              {shareData.userProfileData && (
-                <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-                    <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <User className="h-6 w-6 text-blue-600" />
-                      </div>
-                      Contact Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-8">
-                      {shareData.userProfileData.profilePhoto && (
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={shareData.userProfileData.profilePhoto} 
-                            alt="Profile" 
-                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white"
-                          />
-                        </div>
-                      )}
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                          <div className="space-y-4">
-                            <div>
-                              {shareData.userProfileData.name && (
-                                <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                                  {shareData.userProfileData.name}
-                                </h3>
-                              )}
-                              {shareData.userProfileData.title && (
-                                <p className="text-lg text-blue-600 font-medium mb-2">{shareData.userProfileData.title}</p>
-                              )}
-                              {shareData.userProfileData.businessName && (
-                                <p className="text-lg text-slate-600 font-medium mb-3">
-                                  {shareData.userProfileData.businessName}
-                                </p>
-                              )}
-                            </div>
-                            
-                            <div className="space-y-3">
-                              {shareData.userProfileData.email && (
-                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                                  <Mail className="h-5 w-5 text-blue-600" />
-                                  <a href={`mailto:${shareData.userProfileData.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
-                                    {shareData.userProfileData.email}
-                                  </a>
-                                </div>
-                              )}
-                              {shareData.userProfileData.phoneNumber && (
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                  <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                                  <a href={`tel:${shareData.userProfileData.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
-                                    {shareData.userProfileData.phoneNumber}
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {(shareData.logoUrl || shareData.userProfileData.businessLogo) && (
-                            <div className="flex justify-center lg:justify-end items-start">
-                              <div className="p-6 bg-white rounded-2xl border border-gray-100">
-                                <img 
-                                  src={shareData.logoUrl || shareData.userProfileData.businessLogo} 
-                                  alt="Company Logo" 
-                                  className="max-w-48 max-h-32 object-contain"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                      {/* Financial Documents Download Section */}
+                      <FinancialDocumentsDisplay cimId={shareData.cim.id} />
+                    </CardContent>
+                  </Card>
+                )}
 
-            </div>
-          )}
+                {/* Business Images for flexible CIM documents */}
+                {shareData.cim.selectedImages && Array.isArray(shareData.cim.selectedImages) && shareData.cim.selectedImages.length > 0 && (
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Package className="h-6 w-6 text-purple-600" />
+                        </div>
+                        Business Images
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {shareData.cim.selectedImages.map((imageUrl: string, index: number) => (
+                          <div key={index} className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                            <img 
+                              src={imageUrl} 
+                              alt={`Business Image ${index + 1}`} 
+                              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <CimDisplay 
+                  analysis={shareData.cim.analysis}
+                  isSharedView={true}
+                  docId={shareData.cim.id}
+                  websiteUrl={shareData.websiteUrl}
+                  logoUrl={shareData.logoUrl}
+                  selectedImages={shareData.selectedImages}
+                  title={shareData.cim.title}
+                  userProfile={shareData.cim.userProfile}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Sticky Sidebar */}
+          <div className="lg:w-80 flex-shrink-0">
+            <ShareStickySidebar 
+              shareSlug={shareSlug!}
+              cimTitle={shareData.cim.title}
+              userProfile={shareData.userProfileData || shareData.cim.userProfile}
+              logoUrl={shareData.logoUrl}
+            />
+          </div>
         </div>
       </div>
     </div>
