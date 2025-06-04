@@ -1546,7 +1546,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[]): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1574,11 +1574,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.fontSize(18)
            .fillColor('#2563eb')
            .text(analysis.title, { align: 'center' });
-        doc.moveDown(2);
-      } else {
-        doc.fontSize(16)
-           .fillColor('#2563eb')
-           .text('Comprehensive Business Overview', { align: 'center' });
         doc.moveDown(2);
       }
 
@@ -1634,10 +1629,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             doc.moveDown(0.5);
             
             includedFiles.forEach((file: any) => {
-              const downloadUrl = `${process.env.REPLIT_DEV_DOMAIN || 'https://your-domain.replit.app'}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+              // Use the dynamic base URL for file downloads
+              const domain = baseUrl || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev';
+              const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               doc.font('Helvetica')
                  .fillColor('#2563eb')
-                 .text(`• ${file.originalName}`, {
+                 .text(file.originalName, {
                    link: downloadUrl,
                    underline: true
                  });

@@ -334,6 +334,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         financialFilesCount: documentFinancialFiles?.length || 0
       });
 
+      // Get the base URL from the request
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+
       const pdfBuffer = await generatePDF(
         cimDoc.analysis,
         cimDoc.logoUrl,
@@ -341,7 +346,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.selectedImages,
         userProfile,
         financialData,
-        documentFinancialFiles
+        documentFinancialFiles,
+        baseUrl
       );
 
       res.setHeader('Content-Type', 'application/pdf');
