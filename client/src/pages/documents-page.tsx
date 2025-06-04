@@ -540,54 +540,21 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       </DropdownMenuItem>
                       
                       {/* Show additional options only for generated CIMs, not uploaded files */}
-                      {!doc.isUploadedFile && (
+                      {!doc.isUploadedFile && user?.subscriptionStatus !== "free" && (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={(e) => {e.stopPropagation(); handleCopyToClipboard(doc.analysis);}}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy Plain Text
+                          <DropdownMenuItem 
+                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'word');}}
+                          >
+                            <File className="mr-2 h-4 w-4 text-blue-600" />
+                            Export to Word
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={(e) => {e.stopPropagation(); handleHtmlExport(doc.id);}}
-                            disabled={htmlExportLoading}
+                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'pdf');}}
                           >
-                            <Code className="mr-2 h-4 w-4" />
-                            Copy as HTML
-                            {htmlExportLoading && <span className="ml-2 h-4 w-4 animate-spin">·</span>}
+                            <FileDown className="mr-2 h-4 w-4 text-red-600" />
+                            Export to PDF
                           </DropdownMenuItem>
-                          {user?.subscriptionStatus !== "free" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'word');}}
-                              >
-                                <File className="mr-2 h-4 w-4 text-blue-600" />
-                                Export to Word
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'pdf');}}
-                              >
-                                <FileDown className="mr-2 h-4 w-4 text-red-600" />
-                                Export to PDF
-                              </DropdownMenuItem>
-                              {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
-                                <DropdownMenuItem 
-                                  onClick={(e) => {e.stopPropagation(); handleGoogleDocsExport(doc.id);}}
-                                >
-                                  <Globe className="mr-2 h-4 w-4 text-blue-500" />
-                                  Export to Google Docs
-                                </DropdownMenuItem>
-                              )}
-                              {(user?.subscriptionStatus === "premium" || user?.isAdmin) && (
-                                <DropdownMenuItem 
-                                  onClick={(e) => {e.stopPropagation(); setIsWordPressDialogOpen(true);}}
-                                >
-                                  <Globe className="mr-2 h-4 w-4" />
-                                  Export to WordPress
-                                </DropdownMenuItem>
-                              )}
-                            </>
-                          )}
                         </>
                       )}
                       
