@@ -159,15 +159,11 @@ export function SharePage() {
       <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full shadow-sm mb-6 border border-blue-100">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-semibold text-slate-700 tracking-wide">SHARED DOCUMENT</span>
-            </div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
               {shareData.cim.title}
             </h1>
             {shareData.cim.description && (
-              <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8">
                 {shareData.cim.description}
               </p>
             )}
@@ -175,6 +171,7 @@ export function SharePage() {
             {/* Export Button */}
             <div className="mt-8">
               <Button
+                variant="outline"
                 onClick={async () => {
                   setIsExportingPdf(true);
                   try {
