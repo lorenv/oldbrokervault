@@ -314,10 +314,10 @@ export function SharePage() {
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50/50 pb-6 pt-8 px-8">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 pb-6 pt-8 px-8">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-green-600" />
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-blue-600" />
                         </div>
                         Financial Information
                       </CardTitle>
@@ -327,10 +327,10 @@ export function SharePage() {
                         {shareData.cim.askingPrice && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
-                              <DollarSign className="h-5 w-5 text-green-600" />
+                              <DollarSign className="h-5 w-5 text-blue-600" />
                               <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                             </div>
-                            <p className="text-3xl font-bold text-green-600">
+                            <p className="text-3xl font-bold text-blue-600">
                               ${parseInt(shareData.cim.askingPrice).toLocaleString()}
                             </p>
                           </div>
