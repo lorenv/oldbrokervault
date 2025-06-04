@@ -148,7 +148,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       <img 
                         src={userProfile.businessLogo} 
                         alt="Business Logo" 
-                        className="max-w-40 max-h-24 object-contain"
+                        className="max-w-48 max-h-32 object-contain"
                       />
                     </div>
                   )}

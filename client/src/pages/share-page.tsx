@@ -408,29 +408,28 @@ export function SharePage() {
               </div>
             ) : (
               <>
-                {/* Website extracted logo above Financial Information */}
-                {shareData.logoUrl && (
-                  <div className="flex justify-center mb-8">
-                    <img 
-                      src={shareData.logoUrl} 
-                      alt="Company Logo" 
-                      className="h-24 md:h-32 object-contain"
-                    />
-                  </div>
-                )}
-                
                 {/* Financial Information Section */}
                 {(shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 pb-6 pt-8 px-8">
+                    <CardHeader className="bg-gradient-to-r from-slate-200 to-slate-300 pb-6 pt-8 px-8 border-b border-slate-400/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-blue-600" />
+                        <div className="p-2 bg-slate-300 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-slate-700" />
                         </div>
                         Financial Information
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8">
+                      {/* Website extracted logo inside financial box */}
+                      {shareData.logoUrl && (
+                        <div className="flex justify-center mb-8 pb-6 border-b border-gray-200">
+                          <img 
+                            src={shareData.logoUrl} 
+                            alt="Company Logo" 
+                            className="h-20 md:h-28 object-contain"
+                          />
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {shareData.cim.askingPrice && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
