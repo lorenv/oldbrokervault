@@ -59,14 +59,15 @@ export default function EnhancedCimPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/cims">
+        <div className="flex items-center justify-between w-full">
+          <Link href="/documents">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to CIMs
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">{cimDocument.title}</h1>
+          <h1 className="text-2xl font-bold text-center flex-1">{cimDocument.title}</h1>
+          <div className="w-24"></div> {/* Spacer for centering */}
         </div>
         <div className="flex gap-2">
           <DocumentExport 
