@@ -12,7 +12,7 @@ export default function CookiePolicyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. What Are Cookies</h2>
             <p>
-              Cookies are small text files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and provide a better user experience. This Cookie Policy explains how Dealve Inc. ("we," "us," or "our") uses cookies and similar technologies on the CIM God platform ("Service").
+              Cookies are small text files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and provide a better user experience. This Cookie Policy explains how Dealve Inc. ("we," "us," or "our") uses cookies and similar technologies on the CIM Share platform ("Service").
             </p>
           </section>
 
@@ -93,7 +93,7 @@ export default function CookiePolicyPage() {
             </ul>
 
             <h3 className="text-lg font-medium mb-2 mt-4">Service Settings</h3>
-            <p>Within the CIM God platform, you can:</p>
+            <p>Within the CIM Share platform, you can:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Manage cookie preferences in your account settings</li>
               <li>Opt out of non-essential cookies</li>

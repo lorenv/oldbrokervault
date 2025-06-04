@@ -132,7 +132,7 @@ export default function FeaturesPage() {
             Ready to Transform Your Business Documentation?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of professionals who trust CIM God for their confidential business documentation needs.
+            Join thousands of professionals who trust CIM Share for their confidential business documentation needs.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth">
