@@ -3201,6 +3201,53 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           console.error('Failed to send NDA confirmation emails');
         }
 
+        // Auto-sync to investor database after successful NDA signing
+        console.log("Auto-syncing new contact to investor database...");
+        try {
+          const { investorContacts } = await import('@shared/schema');
+          const { and } = await import('drizzle-orm');
+          
+          // Check if contact already exists
+          const [existingContact] = await db
+            .select()
+            .from(investorContacts)
+            .where(and(
+              eq(investorContacts.userId, cimDoc.userId),
+              eq(investorContacts.email, signerEmail)
+            ));
+          
+          if (existingContact) {
+            // Update existing contact with latest activity
+            await db
+              .update(investorContacts)
+              .set({
+                totalDocumentViews: existingContact.totalDocumentViews + 1,
+                lastSeenAt: new Date(),
+                updatedAt: new Date()
+              })
+              .where(eq(investorContacts.id, existingContact.id));
+            console.log("Updated existing investor contact:", signerEmail);
+          } else {
+            // Create new contact
+            await db
+              .insert(investorContacts)
+              .values({
+                userId: cimDoc.userId,
+                email: signerEmail,
+                name: signerName,
+                status: 'new',
+                totalDocumentViews: 1,
+                firstSeenAt: new Date(),
+                lastSeenAt: new Date(),
+                tags: []
+              });
+            console.log("Created new investor contact:", signerEmail);
+          }
+        } catch (syncError) {
+          console.error('Auto-sync to investor database failed:', syncError);
+          // Don't fail the NDA signing if sync fails
+        }
+
         console.log("NDA signing completed successfully");
         res.json({ 
           success: true, 

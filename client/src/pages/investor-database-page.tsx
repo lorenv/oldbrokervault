@@ -283,7 +283,7 @@ export default function InvestorDatabasePage() {
     return domain;
   };
 
-  // Fetch contacts
+  // Fetch contacts with automatic refresh
   const { data: allContacts = [], isLoading, refetch } = useQuery<EnrichedContact[]>({
     queryKey: ['/api/investor-contacts'],
     queryFn: async () => {
@@ -300,7 +300,10 @@ export default function InvestorDatabasePage() {
         ...contact,
         inferredCompany: inferCompanyFromEmail(contact.email)
       }));
-    }
+    },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchIntervalInBackground: true, // Continue refreshing when tab is not active
+    staleTime: 10000 // Consider data stale after 10 seconds
   });
 
   // Filter and sort contacts on frontend
@@ -380,6 +383,51 @@ export default function InvestorDatabasePage() {
       });
     }
   });
+
+  // Silent background sync (no toast notifications)
+  const backgroundSyncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/investor-contacts/sync-from-signatures', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to sync contacts');
+      }
+      return response.json() as Promise<{ synced: number }>;
+    },
+    onSuccess: (data) => {
+      // Only invalidate queries if new contacts were synced
+      if (data.synced > 0) {
+        queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
+      }
+    },
+    onError: () => {
+      // Silent failure for background sync
+      console.log('Background sync failed, will retry on next interval');
+    }
+  });
+
+  // Auto-sync effect that runs every 2 minutes
+  useEffect(() => {
+    const autoSyncInterval = setInterval(() => {
+      if (!backgroundSyncMutation.isPending) {
+        backgroundSyncMutation.mutate();
+      }
+    }, 120000); // 2 minutes
+
+    // Run initial background sync after 5 seconds
+    const initialSyncTimeout = setTimeout(() => {
+      if (!backgroundSyncMutation.isPending) {
+        backgroundSyncMutation.mutate();
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(autoSyncInterval);
+      clearTimeout(initialSyncTimeout);
+    };
+  }, [backgroundSyncMutation]);
 
   // Update contact mutation
   const updateMutation = useMutation({
