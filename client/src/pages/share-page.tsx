@@ -10,7 +10,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
-import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2 } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -146,84 +146,181 @@ export function SharePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Cover Image at very top - only for non-uploaded file CIMs */}
-      {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl && (
-        <CoverImageDisplay
-          coverImageUrl={shareData.cim.coverImageUrl}
-          coverImagePosition={shareData.cim.coverImagePosition}
-          coverImageAttribution={shareData.cim.coverImageAttribution}
-        />
-      )}
-      
-      {/* Modern header section */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="text-center">
-            {/* Website extracted logo above title */}
-            {shareData.logoUrl && (
-              <div className="flex justify-center mb-6">
-                <img src={shareData.logoUrl} alt="Company Logo" className="h-32 md:h-40" />
-              </div>
-            )}
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
-              {shareData.cim.title}
-            </h1>
-            {shareData.cim.description && (
-              <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8">
-                {shareData.cim.description}
-              </p>
-            )}
-            
-            {/* Export Button */}
-            <div className="mt-8">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  setIsExportingPdf(true);
-                  try {
-                    const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' }
-                    });
-                    
-                    if (response.ok) {
-                      const blob = await response.blob();
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${shareData.cim.title || 'document'}.pdf`;
-                      document.body.appendChild(a);
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
-                    } else {
-                      console.error('Export failed with status:', response.status);
+      {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
+      {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
+        <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+          {/* Cover Image with Parallax */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center transform scale-110"
+            style={{
+              backgroundImage: `url(${shareData.cim.coverImageUrl})`,
+              backgroundPosition: shareData.cim.coverImagePosition || 'center',
+              transform: 'scale(1.1) translateZ(0)',
+              willChange: 'transform'
+            }}
+          />
+          
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+          
+          {/* Header Content Overlay - Bottom Positioned */}
+          <div className="absolute inset-x-0 bottom-0 pb-16 px-6">
+            <div className="max-w-6xl mx-auto text-center">
+              {/* Website extracted logo above title */}
+              {shareData.logoUrl && (
+                <div className="flex justify-center mb-6">
+                  <img 
+                    src={shareData.logoUrl} 
+                    alt="Company Logo" 
+                    className="h-24 md:h-32 drop-shadow-2xl"
+                    style={{
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3)) drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                    }}
+                  />
+                </div>
+              )}
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight"
+                  style={{
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
+                  }}>
+                {shareData.cim.title}
+              </h1>
+              {shareData.cim.description && (
+                <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8"
+                   style={{
+                     textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2)'
+                   }}>
+                  {shareData.cim.description}
+                </p>
+              )}
+              
+              {/* Export Button */}
+              <div className="mt-8">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setIsExportingPdf(true);
+                    try {
+                      const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${shareData.cim.title || 'document'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }
+                    } catch (error) {
+                      console.error('Export failed:', error);
+                    } finally {
+                      setIsExportingPdf(false);
                     }
-                  } catch (error) {
-                    console.error('Export failed:', error);
-                  } finally {
-                    setIsExportingPdf(false);
-                  }
-                }}
-                disabled={isExportingPdf}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isExportingPdf ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 mr-2 border-2 border-white border-t-transparent"></div>
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-5 w-5 mr-2" />
-                    Export as PDF
-                  </>
-                )}
-              </Button>
+                  }}
+                  disabled={isExportingPdf}
+                  className="min-w-[200px] border-white/30 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm"
+                  style={{
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  {isExportingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-5 w-5" />
+                      Export as PDF
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Cover Image Attribution */}
+          {shareData.cim.coverImageAttribution && (
+            <div className="absolute bottom-2 right-2 text-white/70 text-xs bg-black/20 px-2 py-1 rounded backdrop-blur-sm">
+              {shareData.cim.coverImageAttribution}
+            </div>
+          )}
+        </div>
+      ) : (
+        // Fallback header when no cover image
+        <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <div className="text-center">
+              {/* Website extracted logo above title */}
+              {shareData.logoUrl && (
+                <div className="flex justify-center mb-6">
+                  <img src={shareData.logoUrl} alt="Company Logo" className="h-32 md:h-40" />
+                </div>
+              )}
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
+                {shareData.cim.title}
+              </h1>
+              {shareData.cim.description && (
+                <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8">
+                  {shareData.cim.description}
+                </p>
+              )}
+              
+              {/* Export Button */}
+              <div className="mt-8">
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setIsExportingPdf(true);
+                    try {
+                      const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${shareData.cim.title || 'document'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }
+                    } catch (error) {
+                      console.error('Export failed:', error);
+                    } finally {
+                      setIsExportingPdf(false);
+                    }
+                  }}
+                  disabled={isExportingPdf}
+                  className="min-w-[200px] border-slate-300 text-slate-700 hover:bg-slate-50"
+                >
+                  {isExportingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-5 w-5" />
+                      Export as PDF
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Content section with sidebar layout */}
       <div className="max-w-[90rem] mx-auto px-6 py-8">
