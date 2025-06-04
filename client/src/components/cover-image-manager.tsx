@@ -96,8 +96,16 @@ export function CoverImageManager({
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+      
+      // Update local state to show the image immediately
+      setSelectedImage(data.coverImageUrl);
+      if (data.coverImageAttribution) {
+        setAttribution(data.coverImageAttribution);
+      }
+      
       toast({
         title: "Cover image updated",
         description: "Your cover image has been successfully updated.",
