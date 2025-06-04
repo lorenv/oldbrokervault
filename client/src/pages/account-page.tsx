@@ -260,14 +260,10 @@ export default function AccountPage() {
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${user?.isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
-          </TabsTrigger>
-          <TabsTrigger value="business" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Business
           </TabsTrigger>
           {user?.isAdmin && (
             <TabsTrigger value="security" className="flex items-center gap-2">
@@ -528,128 +524,15 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
+        <SubscriptionCard 
+          status={user?.subscriptionStatus} 
+          endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
+          monthlyUsage={user?.monthlyUsage}
+        />
+
         </TabsContent>
 
-        <TabsContent value="business">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Business Information
-              </CardTitle>
-              <CardDescription>
-                Your business details for professional CIM branding.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={profileForm.companyName}
-                    onChange={(e) => handleInputChange("companyName", e.target.value)}
-                    placeholder="Enter your company name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    value={profileForm.website}
-                    onChange={(e) => handleInputChange("website", e.target.value)}
-                    placeholder="https://yourcompany.com"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="address">Business Address</Label>
-                <Input
-                  id="address"
-                  value={profileForm.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="Enter your business address"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Business Logo
-                </Label>
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  {profileForm.businessLogo ? (
-                    <div className="space-y-3">
-                      <img 
-                        src={profileForm.businessLogo} 
-                        alt="Business Logo" 
-                        className="w-20 h-20 mx-auto object-contain"
-                      />
-                      <div className="flex gap-2 justify-center">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => document.getElementById('businessLogo')?.click()}
-                        >
-                          Change Logo
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleInputChange("businessLogo", "")}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Upload your business logo (max 350px width)
-                      </p>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => document.getElementById('businessLogo')?.click()}
-                      >
-                        Choose File
-                      </Button>
-                    </div>
-                  )}
-                  <input
-                    id="businessLogo"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, "businessLogo")}
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    PNG, JPG, or GIF up to 5MB
-                  </p>
-                </div>
-              </div>
 
-              <Button 
-                onClick={handleProfileSave} 
-                disabled={updateProfileMutation.isPending}
-                className="w-full"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Business Information"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <SubscriptionCard 
-            status={user?.subscriptionStatus} 
-            endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
-            monthlyUsage={user?.monthlyUsage}
-          />
-        </TabsContent>
 
         {user?.isAdmin && (
           <TabsContent value="security">
