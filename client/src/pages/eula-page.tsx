@@ -12,7 +12,7 @@ export default function EulaPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Agreement to Terms</h2>
             <p>
-              This End User License Agreement ("EULA") is a legal agreement between you ("User" or "You") and Dealve Inc., a Delaware corporation ("Company," "We," or "Us") for the use of the CIM God software platform ("Software" or "Service"). By registering for an account, accessing, or using our Service, you agree to be bound by the terms of this EULA.
+              This End User License Agreement ("EULA") is a legal agreement between you ("User" or "You") and Dealve Inc., a Delaware corporation ("Company," "We," or "Us") for the use of the CIM Share software platform ("Software" or "Service"). By registering for an account, accessing, or using our Service, you agree to be bound by the terms of this EULA.
             </p>
           </section>
 
