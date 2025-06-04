@@ -3777,11 +3777,22 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     try {
-      const { search, status, sortBy = 'lastSeenAt', sortOrder = 'desc' } = req.query;
+      const { 
+        search, 
+        status, 
+        sortBy = 'lastSeenAt', 
+        sortOrder = 'desc',
+        page = '1',
+        limit = '20'
+      } = req.query;
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const offset = (pageNum - 1) * limitNum;
       
       // Import investorContacts table
       const { investorContacts } = await import('@shared/schema');
-      const { and, like, or, desc, asc } = await import('drizzle-orm');
+      const { and, like, or, desc, asc, count } = await import('drizzle-orm');
       
       // Build conditions
       const conditions = [eq(investorContacts.userId, req.user.id)];
@@ -3799,8 +3810,21 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         conditions.push(eq(investorContacts.status, status as string));
       }
       
-      // Build query with conditions
-      let query = db.select().from(investorContacts).where(and(...conditions));
+      // Get total count for pagination
+      const totalCountResult = await db
+        .select({ count: count() })
+        .from(investorContacts)
+        .where(and(...conditions));
+      
+      const totalCount = totalCountResult[0]?.count || 0;
+      
+      // Build query with conditions, sorting, and pagination
+      let query = db
+        .select()
+        .from(investorContacts)
+        .where(and(...conditions))
+        .limit(limitNum)
+        .offset(offset);
       
       // Apply sorting
       if (sortBy === 'name') {
@@ -3913,7 +3937,18 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         };
       });
       
-      res.json(enrichedContacts);
+      // Return paginated response with metadata
+      res.json({
+        contacts: enrichedContacts,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limitNum),
+          hasNext: pageNum < Math.ceil(totalCount / limitNum),
+          hasPrev: pageNum > 1
+        }
+      });
     } catch (error) {
       console.error('Error fetching investor contacts:', error);
       res.status(500).json({ error: "Failed to fetch investor contacts" });
