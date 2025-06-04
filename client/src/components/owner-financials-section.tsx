@@ -305,38 +305,6 @@ export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
       </CardHeader>
 
       <CardContent className="space-y-6 pt-6 px-8 pb-8">
-        {/* Financial Metrics Display - Only show if enabled and at least one field has value */}
-        {financials?.enabled && (financials.askingPriceIncluded || financials.revenueIncluded || financials.ebitdaIncluded) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {financials.askingPriceIncluded && financials.askingPrice && (
-              <div className="flex items-center gap-2 p-4 bg-green-50 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" />
-                <div>
-                  <div className="text-sm text-gray-600">Asking Price</div>
-                  <div className="font-semibold text-lg">${parseInt(financials.askingPrice).toLocaleString()}</div>
-                </div>
-              </div>
-            )}
-            {financials.revenueIncluded && financials.revenue && (
-              <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
-                <div>
-                  <div className="text-sm text-gray-600">Annual Revenue</div>
-                  <div className="font-semibold text-lg">${parseInt(financials.revenue).toLocaleString()}</div>
-                </div>
-              </div>
-            )}
-            {financials.ebitdaIncluded && financials.ebitda && (
-              <div className="flex items-center gap-2 p-4 bg-purple-50 rounded-lg">
-                <Banknote className="h-6 w-6 text-purple-600" />
-                <div>
-                  <div className="text-sm text-gray-600">EBITDA</div>
-                  <div className="font-semibold text-lg">${parseInt(financials.ebitda).toLocaleString()}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
         {/* Enable/Disable Toggle */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
