@@ -148,7 +148,7 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
-        <div className="relative h-[45vh] md:h-[50vh] overflow-hidden">
+        <div className="relative h-[35vh] md:h-[40vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center transform scale-110"
@@ -305,19 +305,6 @@ export function SharePage() {
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Website extracted logo section - after header */}
-      {shareData.logoUrl && (
-        <div className="bg-white/80 backdrop-blur-sm py-8">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <img 
-              src={shareData.logoUrl} 
-              alt="Company Logo" 
-              className="h-20 md:h-24 mx-auto"
-            />
           </div>
         </div>
       )}
@@ -493,7 +480,18 @@ export function SharePage() {
           </div>
 
           {/* Sticky Sidebar */}
-          <div className="lg:w-[28rem] flex-shrink-0">
+          <div className="lg:w-[28rem] flex-shrink-0 space-y-6">
+            {/* Website extracted logo above financial information */}
+            {shareData.logoUrl && (
+              <div className="flex justify-center">
+                <img 
+                  src={shareData.logoUrl} 
+                  alt="Company Logo" 
+                  className="h-16 md:h-20 object-contain"
+                />
+              </div>
+            )}
+            
             <ShareStickySidebar 
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
