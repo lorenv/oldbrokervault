@@ -513,6 +513,85 @@ export function SharePage() {
                 userProfile={shareData.cim.userProfile}
               />
 
+              {/* Contact Information Card for Generated CIMs */}
+              {shareData.userProfileData && (
+                <Card className="w-full max-w-5xl mx-auto border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
+                    <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <User className="h-6 w-6 text-blue-600" />
+                      </div>
+                      Contact Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="flex items-start gap-8">
+                      {shareData.userProfileData.profilePhoto && (
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={shareData.userProfileData.profilePhoto} 
+                            alt="Profile" 
+                            className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <div>
+                              {shareData.userProfileData.name && (
+                                <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                                  {shareData.userProfileData.name}
+                                </h3>
+                              )}
+                              {shareData.userProfileData.title && (
+                                <p className="text-lg text-blue-600 font-medium mb-2">{shareData.userProfileData.title}</p>
+                              )}
+                              {shareData.userProfileData.businessName && (
+                                <p className="text-lg text-slate-600 font-medium mb-3">
+                                  {shareData.userProfileData.businessName}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-3">
+                              {shareData.userProfileData.email && (
+                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                  <Mail className="h-5 w-5 text-blue-600" />
+                                  <a href={`mailto:${shareData.userProfileData.email}`} className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+                                    {shareData.userProfileData.email}
+                                  </a>
+                                </div>
+                              )}
+                              {shareData.userProfileData.phoneNumber && (
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                  <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                                  <a href={`tel:${shareData.userProfileData.phoneNumber}`} className="text-slate-600 font-medium hover:text-slate-700 transition-colors">
+                                    {shareData.userProfileData.phoneNumber}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {(shareData.logoUrl || shareData.userProfileData.businessLogo) && (
+                            <div className="flex justify-center lg:justify-end items-start">
+                              <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                <img 
+                                  src={shareData.logoUrl || shareData.userProfileData.businessLogo} 
+                                  alt="Company Logo" 
+                                  className="max-w-48 max-h-32 object-contain"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             </div>
           )}
