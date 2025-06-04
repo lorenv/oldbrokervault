@@ -34,7 +34,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.viewerName.trim() || !formData.viewerEmail.trim() || !formData.question.trim()) {
       toast({
         title: "Required fields missing",
@@ -104,7 +104,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-4 pt-6 px-6">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4 pt-6 px-6">
               <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
                 <div className="p-1.5 bg-blue-100 rounded-lg">
                   <User className="h-4 w-4 text-blue-600" />
@@ -124,7 +124,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     />
                   </div>
                 )}
-                
+
                 {/* Name and Title */}
                 <div className="text-center space-y-2">
                   {userProfile.name && (
@@ -141,7 +141,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       {userProfile.businessName}
                     </p>
                   )}
-                  
+
                   {/* Company Logo - moved under business name */}
                   {(logoUrl || userProfile.businessLogo) && (
                     <div className="flex justify-center pt-2">
@@ -153,7 +153,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     </div>
                   )}
                 </div>
-                
+
                 {/* Contact Details */}
                 <div className="space-y-2">
                   {userProfile.email && (
@@ -186,7 +186,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
         {/* Ask Questions Section */}
         <div className="border-t border-gray-100">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 pb-4 pt-6 px-6">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-4 pt-6 px-6">
             <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
               <div className="p-1.5 bg-blue-100 rounded-lg">
                 <MessageSquare className="h-4 w-4 text-blue-600" />
@@ -224,7 +224,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Input
                       id="viewerEmail"
@@ -236,7 +236,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Input
                       id="viewerPhone"
@@ -247,7 +247,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       className="text-sm"
                     />
                   </div>
-                  
+
                   <div>
                     <Textarea
                       id="question"
@@ -259,7 +259,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     />
                   </div>
                 </div>
-                
+
                 <Button
                   type="submit"
                   disabled={isSubmitting}
