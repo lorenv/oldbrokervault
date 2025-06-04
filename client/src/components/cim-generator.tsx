@@ -1011,7 +1011,7 @@ ${analysis.team.ownerResponsibilities}
               {/* Compact custom directions field */}
               <div className="space-y-2">
                 <Textarea
-                  className="min-h-[80px] text-xs resize-none"
+                  className="min-h-[80px] text-xs resize-y"
                   value={customDirections}
                   onChange={(e) => {
                     setCustomDirections(e.target.value);
