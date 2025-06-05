@@ -2018,8 +2018,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const section = await storage.createCustomSection({
         cimDocumentId: cimId,
         type: 'text',
-        content: content || '<p>Click to edit text...</p>',
-        insertAfterSection: afterSection
+        title: 'Custom Text Section',
+        content: content || 'Click to edit this text section...',
+        insertAfterSection: afterSection || 'end'
       });
 
       res.json(section);
@@ -2029,7 +2030,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/cim/:id/custom-section/image", upload.single('image'), async (req, res) => {
+  app.post("/api/cim/:id/custom-section/image", upload.array('images', 10), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
@@ -2040,28 +2041,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(404);
       }
 
-      if (!req.file) {
-        return res.status(400).json({ message: "No image file provided" });
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ message: "No image files provided" });
       }
 
       const { afterSection } = req.body;
       
-      // Process and save the image
-      const filename = `custom-section-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const imagePath = path.join(uploadsDir, filename);
+      // Process and save all images
+      const imageUrls: string[] = [];
       
-      await sharp(req.file.buffer)
-        .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toFile(imagePath);
+      for (const file of req.files) {
+        const filename = `custom-section-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+        const imagePath = path.join(uploadsDir, filename);
+        
+        await sharp(file.buffer)
+          .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 85 })
+          .toFile(imagePath);
 
-      const imageUrl = `/uploads/${filename}`;
+        imageUrls.push(`/uploads/${filename}`);
+      }
       
       const section = await storage.createCustomSection({
         cimDocumentId: cimId,
         type: 'image',
-        imageUrl,
-        insertAfterSection: afterSection
+        title: 'Custom Image Section',
+        imageUrls,
+        insertAfterSection: afterSection || 'end'
       });
 
       res.json(section);

@@ -597,7 +597,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         cimDocumentId: section.cimDocumentId,
         type: section.type,
-        title: section.title,
+        title: section.title || 'Custom Section',
         content: section.content,
         imageUrl: section.imageUrl,
         imageUrls: section.imageUrls,
