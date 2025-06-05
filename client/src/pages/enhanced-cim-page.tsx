@@ -5,13 +5,23 @@ import { Button } from "@/components/ui/button";
 import { EnhancedCimDisplay } from "@/components/enhanced-cim-display";
 import { DocumentExport } from "@/components/document-export";
 import { EmailShareDialog } from "@/components/email-share-dialog";
-import { ArrowLeft, Share2, Download } from "lucide-react";
+import { ShareSettingsDialog } from "@/components/share-settings-dialog";
+import { ArrowLeft, Share2, Download, ExternalLink, Copy, Mail, FileDown, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EnhancedCimPage() {
   const { id } = useParams<{ id: string }>();
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [emailShareDialog, setEmailShareDialog] = useState({ open: false, documentTitle: "", shareToken: "" });
+  const { toast } = useToast();
 
   const { data: cimDocument, isLoading } = useQuery({
     queryKey: ['/api/cim', parseInt(id!)],
@@ -24,6 +34,65 @@ export default function EnhancedCimPage() {
     },
     enabled: !!id
   });
+
+  // Helper functions for sharing
+  const copyShareUrl = async () => {
+    if (!cimDocument?.shareSlug) return;
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    await navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Share Link Copied",
+      description: "The share link has been copied to your clipboard"
+    });
+  };
+
+  const openSharePage = () => {
+    if (!cimDocument?.shareSlug) return;
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    window.open(shareUrl, '_blank');
+  };
+
+  const handleEmailShare = () => {
+    setEmailShareDialog({
+      open: true,
+      documentTitle: cimDocument?.title || `CIM Document #${id}`,
+      shareToken: cimDocument?.shareSlug || ""
+    });
+  };
+
+  const downloadPdf = async () => {
+    try {
+      const response = await fetch(`/api/cim/export/pdf/${id}`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cimDocument?.title || 'document'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Your CIM has been exported as a PDF"
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export to PDF",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -59,26 +128,49 @@ export default function EnhancedCimPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center justify-between w-full">
-          <Link href="/documents">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to CIMs
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-center flex-1">{cimDocument.title}</h1>
-          <div className="w-24"></div> {/* Spacer for centering */}
-        </div>
+        <Link href="/documents">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to CIMs
+          </Button>
+        </Link>
+        
+        <h1 className="text-2xl font-bold text-center flex-1">{cimDocument.title}</h1>
+        
         <div className="flex gap-2">
-          <DocumentExport 
-            analysis={cimDocument.analysis} 
-            title={cimDocument.title}
-            docId={parseInt(id!)}
-            logoUrl={cimDocument.logoUrl}
-            selectedImages={cimDocument.selectedImages}
-            websiteUrl={cimDocument.websiteUrl}
-            cimDocument={cimDocument}
-          />
+          {/* Share Button with Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowShareDialog(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Share Link Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={copyShareUrl}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Share Link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEmailShare}>
+                <Mail className="h-4 w-4 mr-2" />
+                Share via Email
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadPdf}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export to PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* View Share Link Button */}
+          <Button variant="default" onClick={openSharePage}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Share Link
+          </Button>
         </div>
       </div>
 
@@ -89,19 +181,24 @@ export default function EnhancedCimPage() {
         logoUrl={cimDocument.logoUrl}
         selectedImages={cimDocument.selectedImages}
         websiteUrl={cimDocument.websiteUrl}
-        title={cimDocument.title}
         isSharedView={false}
         cimDocument={cimDocument}
       />
 
-      {/* Share Dialog */}
-      {showShareDialog && (
-        <EmailShareDialog
-          isOpen={showShareDialog}
-          onClose={() => setShowShareDialog(false)}
-          docId={parseInt(id!)}
-        />
-      )}
+      {/* Share Settings Dialog */}
+      <ShareSettingsDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        docId={parseInt(id!)}
+      />
+
+      {/* Email Share Dialog */}
+      <EmailShareDialog
+        open={emailShareDialog.open}
+        onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
+        documentTitle={emailShareDialog.documentTitle}
+        shareSlug={emailShareDialog.shareToken}
+      />
     </div>
   );
 }
