@@ -2092,6 +2092,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/cim/:id/custom-sections", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user.id) {
+        return res.sendStatus(404);
+      }
+
+      const customSections = await storage.getCustomSections(cimId);
+      res.json(customSections);
+    } catch (error) {
+      console.error("Error fetching custom sections:", error);
+      res.status(500).json({ message: "Failed to fetch custom sections" });
+    }
+  });
+
   app.delete("/api/custom-section/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     

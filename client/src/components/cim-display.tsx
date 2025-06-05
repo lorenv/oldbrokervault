@@ -183,6 +183,7 @@ export function CimDisplay({
 
   // State for section management
   const [sections, setSections] = useState(analysis?.sections || []);
+  const [customSections, setCustomSections] = useState<any[]>([]);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   
   // Local state for immediate UI updates
@@ -207,6 +208,25 @@ export function CimDisplay({
       }
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
+
+  // Fetch custom sections
+  useEffect(() => {
+    const fetchCustomSections = async () => {
+      if (!docId) return;
+      
+      try {
+        const response = await fetch(`/api/cim/${docId}/custom-sections`);
+        if (response.ok) {
+          const sections = await response.json();
+          setCustomSections(sections);
+        }
+      } catch (error) {
+        console.error('Failed to fetch custom sections:', error);
+      }
+    };
+
+    fetchCustomSections();
+  }, [docId]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -497,6 +517,123 @@ export function CimDisplay({
           </SortableContext>
         </DndContext>
 
+        {/* Custom Sections */}
+        {customSections.map((customSection: any) => (
+          <Card key={`custom-${customSection.id}`} className="mb-4 relative group">
+            {!isSharedView && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={async () => {
+                  try {
+                    const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
+                    if (response.ok) {
+                      setCustomSections(prev => prev.filter(s => s.id !== customSection.id));
+                      toast({ title: "Section Deleted", description: "Custom section removed successfully." });
+                    }
+                  } catch (error) {
+                    toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            <CardHeader>
+              <CardTitle className="text-lg pr-8">
+                {!isSharedView ? (
+                  <FlexibleSectionEditor
+                    value={customSection.title}
+                    onSave={async (newTitle: string) => {
+                      try {
+                        const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                          title: newTitle
+                        });
+                        
+                        if (response.ok) {
+                          setCustomSections(prev => prev.map(s => 
+                            s.id === customSection.id ? { ...s, title: newTitle } : s
+                          ));
+                          toast({ title: "Title Updated", description: "Custom section title saved successfully." });
+                        }
+                      } catch (error) {
+                        toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                      }
+                    }}
+                    placeholder="Section title"
+                    multiline={false}
+                  />
+                ) : (
+                  customSection.title
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {customSection.type === 'text' ? (
+                <div className="prose prose-sm max-w-none">
+                  {!isSharedView ? (
+                    <FlexibleSectionEditor
+                      value={customSection.content}
+                      onSave={async (newContent: string) => {
+                        try {
+                          const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                            content: newContent
+                          });
+                          
+                          if (response.ok) {
+                            setCustomSections(prev => prev.map(s => 
+                              s.id === customSection.id ? { ...s, content: newContent } : s
+                            ));
+                            toast({ title: "Content Updated", description: "Custom section content saved successfully." });
+                          }
+                        } catch (error) {
+                          toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                        }
+                      }}
+                      placeholder="Section content"
+                      multiline={true}
+                    />
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown 
+                        components={{
+                          ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                        }}
+                      >
+                        {customSection.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customSection.imageUrls && customSection.imageUrls.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {customSection.imageUrls.map((imageUrl: string, index: number) => (
+                        <img 
+                          key={index}
+                          src={imageUrl} 
+                          alt={`Custom section image ${index + 1}`}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                  ) : customSection.imageUrl ? (
+                    <img 
+                      src={customSection.imageUrl} 
+                      alt="Custom section image"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                  ) : null}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
         {/* Add Custom Section Button - Only in Edit View */}
         {!isSharedView && (
           <div className="flex justify-center py-4">
@@ -527,6 +664,12 @@ export function CimDisplay({
                           });
 
                           if (response.ok) {
+                            // Refresh custom sections
+                            const sectionsResponse = await fetch(`/api/cim/${docId}/custom-sections`);
+                            if (sectionsResponse.ok) {
+                              const sections = await sectionsResponse.json();
+                              setCustomSections(sections);
+                            }
                             queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                             queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({
@@ -575,6 +718,12 @@ export function CimDisplay({
                             });
 
                             if (response.ok) {
+                              // Refresh custom sections
+                              const sectionsResponse = await fetch(`/api/cim/${docId}/custom-sections`);
+                              if (sectionsResponse.ok) {
+                                const sections = await sectionsResponse.json();
+                                setCustomSections(sections);
+                              }
                               queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                               queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                               toast({
