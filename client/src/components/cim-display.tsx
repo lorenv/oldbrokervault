@@ -185,6 +185,7 @@ export function CimDisplay({
   const [sections, setSections] = useState(analysis?.sections || []);
   const [customSections, setCustomSections] = useState<any[]>([]);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
+  const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   
   // Local state for immediate UI updates
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(logoUrl || undefined);
@@ -637,7 +638,7 @@ export function CimDisplay({
         {/* Add Custom Section Button - Only in Edit View */}
         {!isSharedView && (
           <div className="flex justify-center py-4">
-            <Dialog>
+            <Dialog open={addSectionDialogOpen} onOpenChange={setAddSectionDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -676,6 +677,7 @@ export function CimDisplay({
                               title: "Text Section Added",
                               description: "Your new text section has been added to the document.",
                             });
+                            setAddSectionDialogOpen(false);
                           }
                         } catch (error) {
                           toast({
@@ -730,6 +732,7 @@ export function CimDisplay({
                                 title: "Image Section Added",
                                 description: "Your new image section has been added to the document.",
                               });
+                              setAddSectionDialogOpen(false);
                             }
                           } catch (error) {
                             toast({
