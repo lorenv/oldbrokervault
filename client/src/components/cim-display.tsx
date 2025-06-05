@@ -30,6 +30,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { MarkdownGuide } from "./markdown-guide";
+import { processMarkdownWithEscaping, restoreEscapedCharacters } from "@/lib/markdown-utils";
 import {
   DndContext,
   closestCenter,
@@ -94,6 +96,7 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
           <Button size="sm" onClick={handleSave}>Save</Button>
           <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
         </div>
+        {multiline && <MarkdownGuide />}
       </div>
     );
   }
@@ -613,10 +616,11 @@ export function CimDisplay({
                                 components={{
                                   ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
                                   li: ({ children }) => <li className="mb-1">{children}</li>,
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                  text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
                                 }}
                               >
-                                {section.content}
+                                {processMarkdownWithEscaping(section.content)}
                               </ReactMarkdown>
                             </div>
                           )}
@@ -711,10 +715,11 @@ export function CimDisplay({
                                   components={{
                                     ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
                                     li: ({ children }) => <li className="mb-1">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                    text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
                                   }}
                                 >
-                                  {customSection.content}
+                                  {processMarkdownWithEscaping(customSection.content)}
                                 </ReactMarkdown>
                               </div>
                             )}
