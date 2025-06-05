@@ -376,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'localhost:5000';
+      const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
       const pdfBuffer = await generatePDF(
@@ -2645,7 +2645,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       const emailSent = await sendEmail({
         to: ownerProfile.email,
-        from: 'noreply@cimgod.com',
+        from: 'noreply@cimshare.com',
         replyTo: viewerEmail,
         subject: emailSubject,
         text: emailBody

@@ -1558,22 +1558,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     doc.on('error', reject);
 
     try {
-      // Title page with modern design
-      doc.fontSize(28)
-         .font('Helvetica-Bold')
-         .fillColor('#1e293b')
-         .text('CONFIDENTIAL INFORMATION', { align: 'center' });
-      
-      doc.fontSize(24)
-         .text('MEMORANDUM', { align: 'center' });
-      
-      doc.moveDown(2);
-      
-      // Add document title if available (but exclude unwanted fallback text)
-      if (analysis.title && analysis.title !== 'Comprehensive Business Overview') {
-        doc.fontSize(18)
-           .fillColor('#2563eb')
-           .text(analysis.title, { align: 'center' });
+      // Title page with modern design - using only the document title
+      if (title && title !== 'Comprehensive Business Overview') {
+        doc.fontSize(28)
+           .font('Helvetica-Bold')
+           .fillColor('#1e293b')
+           .text(title, { align: 'center' });
         doc.moveDown(2);
       }
 
@@ -1947,7 +1937,29 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.font('Helvetica').text(highlightsText);
       doc.moveDown(2);
 
-      // Contact Information - Professional formatting matching the provided example
+      // Website URL Section
+      if (websiteUrl) {
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('Website')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+        doc.fontSize(12)
+           .fillColor('#2563eb')
+           .text(websiteUrl, {
+             link: websiteUrl,
+             underline: true,
+             align: 'center'
+           });
+        doc.fillColor('#000000');
+        doc.moveDown(2);
+      }
+
+      // Contact Information - Professional formatting with images
       if (userProfile) {
         doc.moveDown(4);
         
@@ -1958,6 +1970,23 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .text('Contact Information', { align: 'center' });
         
         doc.moveDown(2);
+        
+        // Add profile photo if available
+        if (userProfile.profilePhoto) {
+          try {
+            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+            if (fs.existsSync(profilePhotoPath)) {
+              const centerX = (doc.page.width - 60) / 2;
+              doc.image(profilePhotoPath, centerX, doc.y, {
+                fit: [60, 60],
+                align: 'center'
+              });
+              doc.moveDown(4);
+            }
+          } catch (error) {
+            console.error("Failed to add profile photo to PDF:", error);
+          }
+        }
         
         // Contact details with proper formatting
         if (userProfile.name) {
@@ -1981,6 +2010,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         if (userProfile.email) {
           doc.text(`Email: ${userProfile.email}`, { align: 'center' });
+          doc.moveDown(0.3);
         }
         
         // Add business name if available
@@ -1989,6 +2019,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           doc.fontSize(10)
              .fillColor('#666666')
              .text(userProfile.businessName, { align: 'center' });
+          doc.moveDown(0.5);
+        }
+        
+        // Add business logo if available
+        if (userProfile.businessLogo) {
+          try {
+            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+            if (fs.existsSync(businessLogoPath)) {
+              const centerX = (doc.page.width - 80) / 2;
+              doc.image(businessLogoPath, centerX, doc.y, {
+                fit: [80, 40],
+                align: 'center'
+              });
+              doc.moveDown(3);
+            }
+          } catch (error) {
+            console.error("Failed to add business logo to PDF:", error);
+          }
         }
       }
 
