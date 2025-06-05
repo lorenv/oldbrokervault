@@ -627,10 +627,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(customSections.id, id));
   }
 
-  async reorderCustomSections(sections: Array<{id: number, position: number}>): Promise<void> {
+  async reorderCustomSections(sections: Array<{id: number, position: number, insertAfterSection?: string}>): Promise<void> {
     for (const section of sections) {
+      const updateData: any = { position: section.position };
+      if (section.insertAfterSection !== undefined) {
+        updateData.insertAfterSection = section.insertAfterSection;
+      }
+      
       await db.update(customSections)
-        .set({ position: section.position })
+        .set(updateData)
         .where(eq(customSections.id, section.id));
     }
   }

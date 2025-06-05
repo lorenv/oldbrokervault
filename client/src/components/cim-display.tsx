@@ -273,15 +273,30 @@ export function CimDisplay({
       if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         const reorderedItems = arrayMove(allItems, activeIndex, overIndex);
         
-        // Separate regular and custom sections while maintaining order
+        // Track positions for custom sections relative to regular sections
         const newRegularSections: any[] = [];
-        const newCustomSections: any[] = [];
+        const updatedCustomSections: any[] = [];
         
-        reorderedItems.forEach(item => {
+        reorderedItems.forEach((item, index) => {
           if (item.type === 'regular') {
             newRegularSections.push(item.data);
           } else {
-            newCustomSections.push(item.data);
+            // For custom sections, find which regular section they should appear after
+            let insertAfterSection = 'start'; // Default to start of document
+            
+            // Look backwards to find the last regular section
+            for (let i = index - 1; i >= 0; i--) {
+              if (reorderedItems[i].type === 'regular') {
+                insertAfterSection = reorderedItems[i].data.id || reorderedItems[i].data.title || 'start';
+                break;
+              }
+            }
+            
+            updatedCustomSections.push({
+              ...item.data,
+              insertAfterSection,
+              position: index + 1 // Global position in the document
+            });
           }
         });
 
@@ -294,23 +309,27 @@ export function CimDisplay({
             });
           }
 
-          // Save custom sections order
-          const customSectionIds = newCustomSections.map((s, index) => ({ id: s.id, position: index + 1 }));
-          if (customSectionIds.length > 0) {
+          // Save custom sections with their new positions and insertAfterSection values
+          if (updatedCustomSections.length > 0) {
+            const customSectionUpdates = updatedCustomSections.map(s => ({
+              id: s.id,
+              position: s.position,
+              insertAfterSection: s.insertAfterSection
+            }));
+            
             await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
-              sections: customSectionIds
+              sections: customSectionUpdates
             });
           }
 
-          // Update both states after successful save to maintain the dragged order
+          // Update states to reflect the new order
           setSections(newRegularSections);
-          setCustomSections(newCustomSections);
+          setCustomSections(updatedCustomSections);
 
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
           queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
           toast({ title: "Sections Reordered", description: "Section order saved successfully." });
         } catch (error) {
-          // Revert on error - don't change the UI if save failed
           toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
         }
       }
@@ -364,6 +383,67 @@ export function CimDisplay({
       setSections(analysis.sections); // Revert on error
     }
     setConfirmDeleteSectionId(null);
+  };
+
+  // Create unified sections list for rendering with proper integration
+  const createUnifiedSections = () => {
+    const unifiedSections: any[] = [];
+    
+    // Add custom sections that should appear at start
+    const customAtStart = customSections.filter((cs: any) => 
+      cs.insertAfterSection === 'start'
+    ).sort((a: any, b: any) => a.position - b.position);
+    
+    customAtStart.forEach((customSection: any) => {
+      unifiedSections.push({
+        id: `custom-${customSection.id}`,
+        type: 'custom',
+        data: customSection,
+        position: customSection.position
+      });
+    });
+    
+    // Add regular sections with their associated custom sections
+    sections.forEach((section: any, index: number) => {
+      const sectionId = section.id || section.title || `section-${index}`;
+      unifiedSections.push({
+        id: sectionId,
+        type: 'regular',
+        data: section,
+        position: index + 1
+      });
+      
+      // Add custom sections that come after this regular section
+      const customAfterThis = customSections.filter((cs: any) => 
+        cs.insertAfterSection === sectionId
+      ).sort((a: any, b: any) => a.position - b.position);
+      
+      customAfterThis.forEach((customSection: any) => {
+        unifiedSections.push({
+          id: `custom-${customSection.id}`,
+          type: 'custom',
+          data: customSection,
+          position: customSection.position
+        });
+      });
+    });
+    
+    // Add custom sections that should appear at end or don't match any regular section
+    const customAtEnd = customSections.filter((cs: any) => 
+      cs.insertAfterSection === 'end' || 
+      (cs.insertAfterSection !== 'start' && !sections.some((s: any) => (s.id || s.title) === cs.insertAfterSection))
+    ).sort((a: any, b: any) => a.position - b.position);
+    
+    customAtEnd.forEach((customSection: any) => {
+      unifiedSections.push({
+        id: `custom-${customSection.id}`,
+        type: 'custom',
+        data: customSection,
+        position: customSection.position
+      });
+    });
+    
+    return unifiedSections;
   };
 
   // Handle logo deletion
@@ -483,121 +563,238 @@ export function CimDisplay({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={[
-              ...sections.map((section: any, index: number) => section.id || section.title || `section-${index}`),
-              ...customSections.map((section: any) => `custom-${section.id}`)
-            ]}
+            items={createUnifiedSections().map(section => section.id)}
             strategy={verticalListSortingStrategy}
           >
-            {/* Regular Sections */}
-            {sections.map((section: any, index: number) => {
-              const sectionId = section.id || section.title || `section-${index}`;
-              return (
-                <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                  <Card className="mb-4 relative group">
-                    {!isSharedView && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setConfirmDeleteSectionId(sectionId)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="text-lg pr-8">
-                        {!isSharedView ? (
-                          <FlexibleSectionEditor
-                            value={section.title}
-                            onSave={async (newTitle: string) => {
-                              try {
-                                const updatedSections = sections.map((sec: any, idx: number) => {
-                                  if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                    return { ...sec, title: newTitle };
+            {/* Unified Sections - Regular and Custom integrated */}
+            {createUnifiedSections().map((unifiedSection: any) => {
+              if (unifiedSection.type === 'regular') {
+                const section = unifiedSection.data;
+                const sectionId = unifiedSection.id;
+                return (
+                  <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
+                    <Card className="mb-4 relative group">
+                      {!isSharedView && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setConfirmDeleteSectionId(sectionId)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="text-lg pr-8">
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={section.title}
+                              onSave={async (newTitle: string) => {
+                                try {
+                                  const updatedSections = sections.map((sec: any, idx: number) => {
+                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                      return { ...sec, title: newTitle };
+                                    }
+                                    return sec;
+                                  });
+                                  setSections(updatedSections);
+                                  
+                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                  
+                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                    analysis: updatedAnalysis
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                                    toast({ title: "Title Updated", description: "Section title saved successfully." });
                                   }
-                                  return sec;
-                                });
-                                setSections(updatedSections);
-                                
-                                const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                
-                                const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                  analysis: updatedAnalysis
-                                });
-                                
-                                if (response.ok) {
-                                  queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                  toast({ title: "Title Updated", description: "Section title saved successfully." });
+                                } catch (error) {
+                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
                                 }
-                              } catch (error) {
-                                toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                              }
-                            }}
-                            placeholder="Section title"
-                            multiline={false}
-                          />
-                        ) : (
-                          section.title
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none">
-                        {!isSharedView ? (
-                          <FlexibleSectionEditor
-                            value={section.content}
-                            onSave={async (newContent: string) => {
-                              try {
-                                const updatedSections = sections.map((sec: any, idx: number) => {
-                                  if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                    return { ...sec, content: newContent };
-                                  }
-                                  return sec;
-                                });
-                                setSections(updatedSections);
-                                
-                                const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                
-                                const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                  analysis: updatedAnalysis
-                                });
-                                
-                                if (response.ok) {
-                                  queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                  toast({ title: "Content Updated", description: "Section content saved successfully." });
-                                }
-                              } catch (error) {
-                                toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                              }
-                            }}
-                            placeholder="Section content"
-                            multiline={true}
-                          />
-                        ) : (
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown 
-                              components={{
-                                ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                li: ({ children }) => <li className="mb-1">{children}</li>,
-                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                               }}
-                            >
-                              {section.content}
-                            </ReactMarkdown>
+                              placeholder="Section title"
+                              multiline={false}
+                            />
+                          ) : (
+                            section.title
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose prose-sm max-w-none">
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={section.content}
+                              onSave={async (newContent: string) => {
+                                try {
+                                  const updatedSections = sections.map((sec: any, idx: number) => {
+                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                      return { ...sec, content: newContent };
+                                    }
+                                    return sec;
+                                  });
+                                  setSections(updatedSections);
+                                  
+                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                  
+                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                    analysis: updatedAnalysis
+                                  });
+                                  
+                                  if (response.ok) {
+                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                                    toast({ title: "Content Updated", description: "Section content saved successfully." });
+                                  }
+                                } catch (error) {
+                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                }
+                              }}
+                              placeholder="Section content"
+                              multiline={true}
+                            />
+                          ) : (
+                            <div className="prose prose-sm max-w-none">
+                              <ReactMarkdown 
+                                components={{
+                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                }}
+                              >
+                                {section.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </DraggableSection>
+                );
+              } else {
+                // Custom section rendering
+                const customSection = unifiedSection.data;
+                return (
+                  <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
+                    <Card className="mb-4 relative group">
+                      {!isSharedView && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={async () => {
+                            try {
+                              const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
+                              if (response.ok) {
+                                setCustomSections(prev => prev.filter(s => s.id !== customSection.id));
+                                toast({ title: "Section Deleted", description: "Custom section removed successfully." });
+                              }
+                            } catch (error) {
+                              toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="text-lg pr-8">
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={customSection.title}
+                              onSave={async (newTitle: string) => {
+                                try {
+                                  const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                                    title: newTitle
+                                  });
+                                  
+                                  if (response.ok) {
+                                    setCustomSections(prev => prev.map(s => 
+                                      s.id === customSection.id ? { ...s, title: newTitle } : s
+                                    ));
+                                    toast({ title: "Title Updated", description: "Custom section title saved successfully." });
+                                  }
+                                } catch (error) {
+                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                }
+                              }}
+                              placeholder="Section title"
+                              multiline={false}
+                            />
+                          ) : (
+                            customSection.title
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {customSection.type === 'text' ? (
+                          <div className="prose prose-sm max-w-none">
+                            {!isSharedView ? (
+                              <FlexibleSectionEditor
+                                value={customSection.content}
+                                onSave={async (newContent: string) => {
+                                  try {
+                                    const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
+                                      content: newContent
+                                    });
+                                    
+                                    if (response.ok) {
+                                      setCustomSections(prev => prev.map(s => 
+                                        s.id === customSection.id ? { ...s, content: newContent } : s
+                                      ));
+                                      toast({ title: "Content Updated", description: "Custom section content saved successfully." });
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                  }
+                                }}
+                                placeholder="Click to edit this text section..."
+                                multiline={true}
+                              />
+                            ) : (
+                              <div className="prose prose-sm max-w-none">
+                                <ReactMarkdown 
+                                  components={{
+                                    ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                  }}
+                                >
+                                  {customSection.content}
+                                </ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {customSection.imageUrls && customSection.imageUrls.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {customSection.imageUrls.map((imageUrl: string, index: number) => (
+                                  <img 
+                                    key={index}
+                                    src={imageUrl} 
+                                    alt={`Custom section image ${index + 1}`}
+                                    className="w-full h-48 object-cover rounded-lg"
+                                  />
+                                ))}
+                              </div>
+                            ) : customSection.imageUrl ? (
+                              <img 
+                                src={customSection.imageUrl} 
+                                alt="Custom section image"
+                                className="w-full h-48 object-cover rounded-lg"
+                              />
+                            ) : null}
                           </div>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </DraggableSection>
-              );
+                      </CardContent>
+                    </Card>
+                  </DraggableSection>
+                );
+              }
             })}
-
-            {/* Custom Sections */}
-            {customSections.map((customSection: any) => (
               <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
                 <Card className="mb-4 relative group">
                   {!isSharedView && (
