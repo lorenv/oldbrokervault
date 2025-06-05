@@ -299,11 +299,18 @@ export function CimDisplay({
           }
 
           // Save custom sections order
-          const customSectionIds = newCustomSections.map((s, index) => ({ id: s.id, order: index }));
+          const customSectionIds = newCustomSections.map((s, index) => ({ id: s.id, position: index + 1 }));
           if (customSectionIds.length > 0) {
             await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
               sections: customSectionIds
             });
+          }
+
+          // Refresh custom sections to get updated order
+          const refreshedSections = await fetch(`/api/cim/${docId}/custom-sections`);
+          if (refreshedSections.ok) {
+            const sections = await refreshedSections.json();
+            setCustomSections(sections);
           }
 
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
