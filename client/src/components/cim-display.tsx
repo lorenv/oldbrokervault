@@ -285,10 +285,6 @@ export function CimDisplay({
           }
         });
 
-        // Update both states immediately for instant UI feedback
-        setSections(newRegularSections);
-        setCustomSections(newCustomSections);
-
         try {
           // Save regular sections if they changed
           if (JSON.stringify(newRegularSections) !== JSON.stringify(sections)) {
@@ -306,26 +302,15 @@ export function CimDisplay({
             });
           }
 
-          // Refresh custom sections to get updated order
-          const refreshedSections = await fetch(`/api/cim/${docId}/custom-sections`);
-          if (refreshedSections.ok) {
-            const sections = await refreshedSections.json();
-            setCustomSections(sections);
-          }
+          // Update both states after successful save to maintain the dragged order
+          setSections(newRegularSections);
+          setCustomSections(newCustomSections);
 
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
           queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
           toast({ title: "Sections Reordered", description: "Section order saved successfully." });
         } catch (error) {
-          // Revert on error
-          setSections(analysis.sections);
-          try {
-            const originalCustomSections = await fetch(`/api/cim/${docId}/custom-sections`);
-            if (originalCustomSections.ok) {
-              const sections = await originalCustomSections.json();
-              setCustomSections(sections);
-            }
-          } catch {}
+          // Revert on error - don't change the UI if save failed
           toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
         }
       }
