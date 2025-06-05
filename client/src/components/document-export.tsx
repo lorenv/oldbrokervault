@@ -442,10 +442,16 @@ export function DocumentExport({
     }
   };
 
-  // Load data when dialog opens
+  // Load share settings when component mounts with docId
+  useEffect(() => {
+    if (docId) {
+      fetchShareSettings();
+    }
+  }, [docId]);
+
+  // Load additional data when dialog opens
   useEffect(() => {
     if (isShareDialogOpen) {
-      fetchShareSettings();
       fetchNdaTemplates();
       fetchNdaSignatures();
     }
