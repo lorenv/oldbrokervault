@@ -17,7 +17,7 @@ import {
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
-import { ShareSettingsDialog } from "./share-settings-dialog";
+
 import ReactMarkdown from 'react-markdown';
 import {
   Dialog,

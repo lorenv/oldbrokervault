@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { EnhancedCimDisplay } from "@/components/enhanced-cim-display";
 import { DocumentExport } from "@/components/document-export";
 import { EmailShareDialog } from "@/components/email-share-dialog";
-import { ShareSettingsDialog } from "@/components/share-settings-dialog";
 import { ArrowLeft, Share2, Download, ExternalLink, Copy, Mail, FileDown, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -185,11 +184,16 @@ export default function EnhancedCimPage() {
         cimDocument={cimDocument}
       />
 
-      {/* Share Settings Dialog */}
-      <ShareSettingsDialog
-        open={showShareDialog}
-        onOpenChange={setShowShareDialog}
+      {/* Comprehensive Share Dialog */}
+      <DocumentExport
+        analysis={cimDocument.analysis}
         docId={parseInt(id!)}
+        autoTriggerShare={showShareDialog}
+        onShareTriggered={() => setShowShareDialog(false)}
+        isSharedView={false}
+        websiteUrl={cimDocument.websiteUrl}
+        logoUrl={cimDocument.logoUrl}
+        selectedImages={cimDocument.selectedImages}
       />
 
       {/* Email Share Dialog */}
