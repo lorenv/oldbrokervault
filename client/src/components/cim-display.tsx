@@ -242,28 +242,111 @@ export function CimDisplay({
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
-      const oldIndex = sections.findIndex((section: any) => (section.id || section.title) === active.id);
-      const newIndex = sections.findIndex((section: any) => (section.id || section.title) === over.id);
+    if (!over || active.id === over.id) {
+      return;
+    }
 
-      const newSections = arrayMove(sections, oldIndex, newIndex);
-      setSections(newSections);
+    // Check if we're dealing with custom sections
+    const isActiveCustom = String(active.id).startsWith('custom-');
+    const isOverCustom = String(over.id).startsWith('custom-');
 
-      // Save to backend
-      try {
-        const updatedAnalysis = { ...analysis, sections: newSections };
-        const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-          analysis: updatedAnalysis
-        });
+    if (isActiveCustom || isOverCustom) {
+      // Handle mixed section reordering (regular + custom)
+      const allItems = [
+        ...sections.map((section: any, index: number) => ({
+          id: section.id || section.title || `section-${index}`,
+          type: 'regular',
+          data: section,
+          originalIndex: index
+        })),
+        ...customSections.map((section: any, index: number) => ({
+          id: `custom-${section.id}`,
+          type: 'custom',
+          data: section,
+          originalIndex: index
+        }))
+      ];
+
+      const activeIndex = allItems.findIndex(item => item.id === active.id);
+      const overIndex = allItems.findIndex(item => item.id === over.id);
+
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+        const reorderedItems = arrayMove(allItems, activeIndex, overIndex);
         
-        if (response.ok) {
+        // Separate regular and custom sections while maintaining order
+        const newRegularSections: any[] = [];
+        const newCustomSections: any[] = [];
+        
+        reorderedItems.forEach(item => {
+          if (item.type === 'regular') {
+            newRegularSections.push(item.data);
+          } else {
+            newCustomSections.push(item.data);
+          }
+        });
+
+        // Update both states immediately for instant UI feedback
+        setSections(newRegularSections);
+        setCustomSections(newCustomSections);
+
+        try {
+          // Save regular sections if they changed
+          if (JSON.stringify(newRegularSections) !== JSON.stringify(sections)) {
+            const updatedAnalysis = { ...analysis, sections: newRegularSections };
+            await apiRequest("PATCH", `/api/cim/${docId}`, {
+              analysis: updatedAnalysis
+            });
+          }
+
+          // Save custom sections order
+          const customSectionIds = newCustomSections.map((s, index) => ({ id: s.id, order: index }));
+          if (customSectionIds.length > 0) {
+            await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
+              sections: customSectionIds
+            });
+          }
+
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
           queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
           toast({ title: "Sections Reordered", description: "Section order saved successfully." });
+        } catch (error) {
+          // Revert on error
+          setSections(analysis.sections);
+          try {
+            const originalCustomSections = await fetch(`/api/cim/${docId}/custom-sections`);
+            if (originalCustomSections.ok) {
+              const sections = await originalCustomSections.json();
+              setCustomSections(sections);
+            }
+          } catch {}
+          toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
         }
-      } catch (error) {
-        toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
-        setSections(analysis.sections); // Revert on error
+      }
+    } else {
+      // Handle regular section reordering only
+      const oldIndex = sections.findIndex((section: any) => (section.id || section.title) === active.id);
+      const newIndex = sections.findIndex((section: any) => (section.id || section.title) === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const newSections = arrayMove(sections, oldIndex, newIndex);
+        setSections(newSections);
+
+        // Save to backend
+        try {
+          const updatedAnalysis = { ...analysis, sections: newSections };
+          const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+            analysis: updatedAnalysis
+          });
+          
+          if (response.ok) {
+            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+            toast({ title: "Sections Reordered", description: "Section order saved successfully." });
+          }
+        } catch (error) {
+          toast({ title: "Save Failed", description: "Failed to save section order.", variant: "destructive" });
+          setSections(analysis.sections); // Revert on error
+        }
       }
     }
   };
