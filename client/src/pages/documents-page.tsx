@@ -753,7 +753,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Share Link Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        if (!selectedDoc.shareToken) {
+                        if (!selectedDoc.shareSlug) {
+                          // Auto-enable sharing if not already enabled
                           const randomId = Math.random().toString(36).substring(2, 8);
                           const newSlug = `cim-${randomId}`;
                           const newShareUrl = `${window.location.origin}/share/${newSlug}`;
@@ -788,7 +789,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                             });
                           }
                         } else {
-                          const shareUrl = `${window.location.origin}/share/${selectedDoc.shareToken}`;
+                          const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
                           await navigator.clipboard.writeText(shareUrl);
                           toast({
                             title: "Share Link Copied",
@@ -803,7 +804,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         setEmailShareDialog({
                           open: true,
                           documentTitle: selectedDoc.title,
-                          shareToken: selectedDoc.shareToken || ""
+                          shareSlug: selectedDoc.shareSlug || ""
                         });
                       }}>
                         <Mail className="h-4 w-4 mr-2" />
@@ -821,8 +822,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     variant="default" 
                     size="sm" 
                     onClick={() => {
-                      if (selectedDoc.shareToken) {
-                        const shareUrl = `${window.location.origin}/share/${selectedDoc.shareToken}`;
+                      if (selectedDoc.shareSlug) {
+                        const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
                         window.open(shareUrl, '_blank');
                       } else {
                         toast({

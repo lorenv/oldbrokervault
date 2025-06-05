@@ -511,6 +511,28 @@ export function CimDisplay({
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Share Settings Dialog */}
+        {!isSharedView && cimDocument && (
+          <ShareSettingsDialog
+            open={shareDialogOpen}
+            onOpenChange={setShareDialogOpen}
+            documentTitle={cimDocument.title}
+            docId={docId}
+            currentSettings={{
+              shareEnabled: cimDocument.shareEnabled || false,
+              shareSlug: cimDocument.shareSlug || "",
+              sharePassword: cimDocument.sharePassword || "",
+              shareExpiresAt: cimDocument.shareExpiresAt || null,
+              ndaProtected: cimDocument.ndaProtected || false,
+              ndaTemplateId: cimDocument.ndaTemplateId || null
+            }}
+            onUpdate={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+              queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+            }}
+          />
+        )}
       </div>
     </div>
   );
