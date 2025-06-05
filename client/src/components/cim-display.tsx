@@ -17,6 +17,7 @@ import {
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
+import { ShareSettingsDialog } from "./share-settings-dialog";
 import ReactMarkdown from 'react-markdown';
 import {
   Dialog,
@@ -168,7 +169,9 @@ export function CimDisplay({
   logoUrl,
   selectedImages,
   isSharedView,
-  cimDocument
+  cimDocument,
+  autoTriggerShare,
+  onShareTriggered
 }: CimDisplayProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -176,6 +179,29 @@ export function CimDisplay({
   // State for section management
   const [sections, setSections] = useState(analysis?.sections || []);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
+  
+  // Local state for immediate UI updates
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(logoUrl || undefined);
+  const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
+
+  // Share settings dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalLogoUrl(logoUrl);
+    setLocalSelectedImages(selectedImages || []);
+  }, [logoUrl, selectedImages]);
+
+  // Handle auto-trigger share settings
+  useEffect(() => {
+    if (autoTriggerShare && !isSharedView) {
+      setShareDialogOpen(true);
+      if (onShareTriggered) {
+        onShareTriggered();
+      }
+    }
+  }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -241,13 +267,21 @@ export function CimDisplay({
   // Handle logo deletion
   const handleDeleteLogo = async () => {
     try {
+      // Immediately update local state for instant UI feedback
+      setLocalLogoUrl(undefined);
+      
       const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Logo Deleted", description: "Website logo removed successfully." });
+      } else {
+        // Revert on error
+        setLocalLogoUrl(logoUrl || undefined);
       }
     } catch (error) {
+      // Revert on error
+      setLocalLogoUrl(logoUrl || undefined);
       toast({ title: "Delete Failed", description: "Failed to delete logo.", variant: "destructive" });
     }
   };
@@ -255,13 +289,22 @@ export function CimDisplay({
   // Handle business image deletion
   const handleDeleteImage = async (imageIndex: number) => {
     try {
+      // Immediately update local state for instant UI feedback
+      const updatedImages = localSelectedImages.filter((_, index) => index !== imageIndex);
+      setLocalSelectedImages(updatedImages);
+      
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Image Deleted", description: "Business image removed successfully." });
+      } else {
+        // Revert on error
+        setLocalSelectedImages(selectedImages || []);
       }
     } catch (error) {
+      // Revert on error
+      setLocalSelectedImages(selectedImages || []);
       toast({ title: "Delete Failed", description: "Failed to delete image.", variant: "destructive" });
     }
   };
@@ -289,9 +332,9 @@ export function CimDisplay({
         )}
 
         {/* Logo only in edit view, not share view (header handles it there) */}
-        {!isSharedView && logoUrl && (
+        {!isSharedView && localLogoUrl && (
           <div className="flex justify-center mb-6 relative group">
-            <img src={logoUrl} alt="Company Logo" className="h-32" />
+            <img src={localLogoUrl} alt="Company Logo" className="h-32" />
             <Button
               variant="ghost"
               size="sm"
@@ -304,11 +347,11 @@ export function CimDisplay({
         )}
         
         {/* Business Images */}
-        {selectedImages && selectedImages.length > 0 && (
+        {localSelectedImages && localSelectedImages.length > 0 && (
           <div className="mb-6">
             <h3 className="font-medium mb-3">Business Images</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {selectedImages.map((image, index) => (
+              {localSelectedImages.map((image, index) => (
                 <div key={index} className="relative group">
                   <img 
                     src={image} 
