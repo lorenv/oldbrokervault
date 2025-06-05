@@ -1448,7 +1448,7 @@ export function DocumentExport({
                 <CardHeader>
                   <CardTitle>Upload New NDA Template</CardTitle>
                   <CardDescription>
-                    Upload a PDF file that will be used as the NDA template for viewers to sign
+                    Upload a PDF or Word document (.pdf, .docx, .doc) that will be used as the NDA template for viewers to sign. Word documents will be automatically converted to PDF.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1465,16 +1465,22 @@ export function DocumentExport({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="nda-file">NDA PDF File</Label>
-                    <Input
-                      id="nda-file"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setNewNdaTemplate(prev => ({ ...prev, file }));
-                      }}
-                    />
+                    <Label htmlFor="nda-file">NDA Document File</Label>
+                    <div className="relative">
+                      <Input
+                        id="nda-file"
+                        type="file"
+                        accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setNewNdaTemplate(prev => ({ ...prev, file }));
+                        }}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Supported formats: PDF, Word (.docx, .doc). Word documents will be converted to PDF automatically.
+                    </p>
                   </div>
 
                   <div className="flex items-center space-x-2">
