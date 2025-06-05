@@ -237,6 +237,34 @@ export function CimDisplay({
     setConfirmDeleteSectionId(null);
   };
 
+  // Handle logo deletion
+  const handleDeleteLogo = async () => {
+    try {
+      const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        toast({ title: "Logo Deleted", description: "Website logo removed successfully." });
+      }
+    } catch (error) {
+      toast({ title: "Delete Failed", description: "Failed to delete logo.", variant: "destructive" });
+    }
+  };
+
+  // Handle business image deletion
+  const handleDeleteImage = async (imageIndex: number) => {
+    try {
+      const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        toast({ title: "Image Deleted", description: "Business image removed successfully." });
+      }
+    } catch (error) {
+      toast({ title: "Delete Failed", description: "Failed to delete image.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -261,8 +289,16 @@ export function CimDisplay({
 
         {/* Logo only in edit view, not share view (header handles it there) */}
         {!isSharedView && logoUrl && (
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 relative group">
             <img src={logoUrl} alt="Company Logo" className="h-32" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
+              onClick={handleDeleteLogo}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         )}
         
@@ -272,12 +308,23 @@ export function CimDisplay({
             <h3 className="font-medium mb-3">Business Images</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {selectedImages.map((image, index) => (
-                <img 
-                  key={index} 
-                  src={image} 
-                  alt={`Business image ${index + 1}`}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <div key={index} className="relative group">
+                  <img 
+                    src={image} 
+                    alt={`Business image ${index + 1}`}
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  {!isSharedView && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
+                      onClick={() => handleDeleteImage(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

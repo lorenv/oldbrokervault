@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Settings, ExternalLink } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -727,11 +727,116 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       {selectedDoc && (
         <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
           <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Edit CIM Document</DialogTitle>
-              <DialogDescription>
-                Edit your Confidential Information Memorandum document
-              </DialogDescription>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>Edit CIM Document</DialogTitle>
+                  <DialogDescription>
+                    {selectedDoc.title}
+                  </DialogDescription>
+                </div>
+                <div className="flex gap-2">
+                  {/* Share Button with Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedDoc(selectedDoc);
+                        setAutoTriggerShare(true);
+                      }}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Share Link Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        if (!selectedDoc.shareToken) {
+                          const randomId = Math.random().toString(36).substring(2, 8);
+                          const newSlug = `cim-${randomId}`;
+                          const newShareUrl = `${window.location.origin}/share/${newSlug}`;
+                          
+                          try {
+                            const response = await fetch(`/api/cim/${selectedDoc.id}/share`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({
+                                shareEnabled: true,
+                                shareSlug: newSlug,
+                                sharePassword: null,
+                                shareExpiresAt: null,
+                                ndaProtected: false,
+                                ndaTemplateId: null
+                              }),
+                            });
+                            
+                            if (response.ok) {
+                              await navigator.clipboard.writeText(newShareUrl);
+                              toast({
+                                title: "Sharing enabled and link copied!",
+                                description: "Share link has been copied to clipboard"
+                              });
+                              queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Failed to enable sharing",
+                              variant: "destructive"
+                            });
+                          }
+                        } else {
+                          const shareUrl = `${window.location.origin}/share/${selectedDoc.shareToken}`;
+                          await navigator.clipboard.writeText(shareUrl);
+                          toast({
+                            title: "Share Link Copied",
+                            description: "The share link has been copied to your clipboard"
+                          });
+                        }
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Share Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setEmailShareDialog({
+                          open: true,
+                          documentTitle: selectedDoc.title,
+                          shareToken: selectedDoc.shareToken || ""
+                        });
+                      }}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Share via Email
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExport(selectedDoc.id, 'pdf')}>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Export to PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* View Share Link Button */}
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => {
+                      if (selectedDoc.shareToken) {
+                        const shareUrl = `${window.location.origin}/share/${selectedDoc.shareToken}`;
+                        window.open(shareUrl, '_blank');
+                      } else {
+                        toast({
+                          title: "No share link available",
+                          description: "Enable sharing first to view the share link"
+                        });
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Share Link
+                  </Button>
+                </div>
+              </div>
             </DialogHeader>
             <CimDisplay 
               analysis={selectedDoc.analysis} 
