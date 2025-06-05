@@ -201,7 +201,7 @@ export default function EnhancedCimPage() {
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
         documentTitle={emailShareDialog.documentTitle}
-        shareSlug={emailShareDialog.shareToken}
+        shareUrl={emailShareDialog.shareToken ? `${window.location.origin}/share/${emailShareDialog.shareToken}` : ''}
       />
     </div>
   );
