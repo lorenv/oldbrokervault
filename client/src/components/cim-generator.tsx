@@ -41,6 +41,9 @@ import { CimFileUpload } from './cim-file-upload';
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ImageIcon, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -72,6 +75,16 @@ export function CimGenerator() {
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
   const [savedTemplates, setSavedTemplates] = useState<Array<{name: string, directions: string}>>([]);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
+
+  // Cover image state
+  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
+  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
+  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load saved templates from localStorage on component mount
   useEffect(() => {
@@ -232,6 +245,51 @@ export function CimGenerator() {
 
   const removeFile = (index: number) => {
     setFinancialFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Cover image handlers
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSelectedCoverImage(url);
+      setCoverImageAttribution('');
+    }
+    if (coverImageFileInputRef.current) {
+      coverImageFileInputRef.current.value = '';
+    }
+  };
+
+  const searchUnsplash = async () => {
+    if (!unsplashSearchQuery.trim()) return;
+    
+    setIsSearchingUnsplash(true);
+    try {
+      const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(unsplashSearchQuery)}`);
+      const data = await response.json();
+      setUnsplashResults(data.results || []);
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to search Unsplash images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingUnsplash(false);
+    }
+  };
+
+  const selectUnsplashImage = (image: any) => {
+    setSelectedCoverImage(image.urls.regular);
+    setCoverImageAttribution(`Photo by ${image.user.name} on Unsplash`);
+    setIsUnsplashDialogOpen(false);
+  };
+
+  const handlePositionChange = (axis: 'x' | 'y', value: number[]) => {
+    setCoverImagePosition(prev => ({
+      ...prev,
+      [axis]: value[0]
+    }));
   };
 
   const generateMutation = useMutation({

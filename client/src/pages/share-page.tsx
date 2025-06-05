@@ -10,7 +10,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
-import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2 } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink } from "lucide-react";
 
 export function SharePage() {
   const [, params] = useRoute("/share/:shareSlug");
@@ -471,7 +471,35 @@ export function SharePage() {
                   </Card>
                 )}
 
-
+                {/* Website URL Section */}
+                {shareData.websiteUrl && (
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-6 pt-8 px-8 border-b border-green-200/50">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Globe className="h-6 w-6 text-green-600" />
+                        </div>
+                        Website
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                      <div className="text-center">
+                        <a 
+                          href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-2xl font-semibold text-green-600 hover:text-green-700 transition-colors duration-200 hover:underline"
+                        >
+                          {shareData.websiteUrl.replace(/^https?:\/\//, '')}
+                          <ExternalLink className="h-5 w-5" />
+                        </a>
+                        <p className="text-gray-600 mt-3 text-lg">
+                          Visit the company website to learn more
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <CimDisplay 
                   analysis={shareData.cim.analysis}
