@@ -19,7 +19,6 @@ interface NdaDialogProps {
   onClose: () => void;
   onSigned: () => void;
   shareSlug: string;
-  cimTitle: string;
   ndaUrl?: string;
 }
 
@@ -28,7 +27,6 @@ export function NdaDialog({
   onClose, 
   onSigned, 
   shareSlug, 
-  cimTitle,
   ndaUrl 
 }: NdaDialogProps) {
   const { toast } = useToast();
@@ -106,7 +104,6 @@ export function NdaDialog({
 
         <div className="space-y-4 py-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-2">Document: {cimTitle}</h3>
             <p className="text-sm text-blue-800">
               By proceeding, you agree to keep all information confidential and comply with the terms 
               of the Non-Disclosure Agreement.
