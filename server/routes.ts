@@ -1972,7 +1972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create custom section
+  // Create custom section (updated to support both text and image types)
   app.post("/api/cim/:id/custom-sections", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -1984,14 +1984,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(404);
       }
 
-      const { title, content, insertAfterSection } = req.body;
+      const { title, content, type, imageUrls, insertAfterSection } = req.body;
       
       const section = await storage.createCustomSection({
         cimDocumentId: cimId,
-        type: 'text',
+        type: type || 'text',
+        title: title,
         content: content,
-        insertAfterSection: insertAfterSection,
-        title: title
+        imageUrls: imageUrls,
+        insertAfterSection: insertAfterSection
       });
 
       res.json(section);

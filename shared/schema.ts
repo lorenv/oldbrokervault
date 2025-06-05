@@ -123,7 +123,8 @@ export const customSections = pgTable("custom_sections", {
   type: text("type").notNull(), // 'text' or 'image'
   title: text("title"), // Section title
   content: text("content"), // Rich text content for text sections
-  imageUrl: text("image_url"), // Image URL for image sections
+  imageUrls: text("image_urls").array(), // Array of image URLs for image sections
+  imageUrl: text("image_url"), // Legacy single image URL - kept for backward compatibility
   position: integer("position").notNull(), // Order position in the document
   insertAfterSection: text("insert_after_section").notNull(), // Which section this appears after
   createdAt: timestamp("created_at").defaultNow().notNull()
