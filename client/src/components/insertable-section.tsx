@@ -27,8 +27,10 @@ interface InsertableSectionProps {
 interface CustomSectionProps {
   id: number;
   type: 'text' | 'image';
+  title?: string;
   content?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   onDelete: (id: number) => void;
   onUpdate: (id: number, content: string) => void;
 }
@@ -177,7 +179,7 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
   );
 }
 
-export function CustomSection({ id, type, content, imageUrl, onDelete, onUpdate }: CustomSectionProps) {
+export function CustomSection({ id, type, title, content, imageUrl, imageUrls, onDelete, onUpdate }: CustomSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -227,6 +229,9 @@ export function CustomSection({ id, type, content, imageUrl, onDelete, onUpdate 
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Get images to display (prioritize imageUrls array, fallback to single imageUrl)
+  const imagesToDisplay = imageUrls && imageUrls.length > 0 ? imageUrls : (imageUrl ? [imageUrl] : []);
+
   return (
     <div 
       ref={setNodeRef}
@@ -254,17 +259,31 @@ export function CustomSection({ id, type, content, imageUrl, onDelete, onUpdate 
         </Button>
       </div>
 
-      {type === 'image' && imageUrl && (
-        <div className="flex justify-center">
-          <img 
-            src={imageUrl} 
-            alt="Custom section" 
-            className="max-w-full h-auto rounded-lg shadow-md"
-            style={{ borderRadius: '30px' }}
-          />
+      {/* Section Title */}
+      {title && (
+        <h3 className="text-lg font-semibold mb-3 text-gray-800 pr-16">
+          {title}
+        </h3>
+      )}
+
+      {/* Image Section Display */}
+      {type === 'image' && imagesToDisplay.length > 0 && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {imagesToDisplay.map((imgUrl, index) => (
+              <div key={index} className="flex justify-center">
+                <img 
+                  src={imgUrl} 
+                  alt={`${title || 'Custom section'} image ${index + 1}`}
+                  className="w-full h-auto rounded-lg shadow-md object-cover max-h-64"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Text Section Display */}
       {type === 'text' && (
         <div className="prose max-w-none">
           {isEditing ? (

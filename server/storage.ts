@@ -581,6 +581,7 @@ export class DatabaseStorage implements IStorage {
     title?: string;
     content?: string;
     imageUrl?: string;
+    imageUrls?: string[];
     insertAfterSection: string;
   }): Promise<any> {
     // Get current max position for this section
@@ -599,6 +600,7 @@ export class DatabaseStorage implements IStorage {
         title: section.title,
         content: section.content,
         imageUrl: section.imageUrl,
+        imageUrls: section.imageUrls,
         insertAfterSection: section.insertAfterSection,
         position: maxPosition + 1
       })
