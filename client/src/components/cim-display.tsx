@@ -17,6 +17,7 @@ import {
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
+import { DocumentExport } from "./document-export";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -512,6 +513,18 @@ export function CimDisplay({
           </Dialog>
         )}
 
+      {/* DocumentExport component to handle share functionality */}
+      {!isSharedView && (
+        <DocumentExport
+          analysis={analysis}
+          docId={docId}
+          autoTriggerShare={shareDialogOpen}
+          onShareTriggered={() => setShareDialogOpen(false)}
+          isSharedView={false}
+          logoUrl={localLogoUrl}
+          selectedImages={localSelectedImages}
+        />
+      )}
 
       </div>
     </div>
