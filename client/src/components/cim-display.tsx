@@ -563,238 +563,121 @@ export function CimDisplay({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={createUnifiedSections().map(section => section.id)}
+            items={[
+              ...sections.map((section: any, index: number) => section.id || section.title || `section-${index}`),
+              ...customSections.map((section: any) => `custom-${section.id}`)
+            ]}
             strategy={verticalListSortingStrategy}
           >
-            {/* Unified Sections - Regular and Custom integrated */}
-            {createUnifiedSections().map((unifiedSection: any) => {
-              if (unifiedSection.type === 'regular') {
-                const section = unifiedSection.data;
-                const sectionId = unifiedSection.id;
-                return (
-                  <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                    <Card className="mb-4 relative group">
-                      {!isSharedView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => setConfirmDeleteSectionId(sectionId)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <CardHeader>
-                        <CardTitle className="text-lg pr-8">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={section.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const updatedSections = sections.map((sec: any, idx: number) => {
-                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                      return { ...sec, title: newTitle };
-                                    }
-                                    return sec;
-                                  });
-                                  setSections(updatedSections);
-                                  
-                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
-                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
-                                  });
-                                  
-                                  if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                    toast({ title: "Title Updated", description: "Section title saved successfully." });
+            {/* Regular Sections */}
+            {sections.map((section: any, index: number) => {
+              const sectionId = section.id || section.title || `section-${index}`;
+              return (
+                <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
+                  <Card className="mb-4 relative group">
+                    {!isSharedView && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => setConfirmDeleteSectionId(sectionId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <CardHeader>
+                      <CardTitle className="text-lg pr-8">
+                        {!isSharedView ? (
+                          <FlexibleSectionEditor
+                            value={section.title}
+                            onSave={async (newTitle: string) => {
+                              try {
+                                const updatedSections = sections.map((sec: any, idx: number) => {
+                                  if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                    return { ...sec, title: newTitle };
                                   }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                                  return sec;
+                                });
+                                setSections(updatedSections);
+                                
+                                const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                
+                                const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                  analysis: updatedAnalysis
+                                });
+                                
+                                if (response.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                                  toast({ title: "Title Updated", description: "Section title saved successfully." });
                                 }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
-                            />
-                          ) : (
-                            section.title
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="prose prose-sm max-w-none">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={section.content}
-                              onSave={async (newContent: string) => {
-                                try {
-                                  const updatedSections = sections.map((sec: any, idx: number) => {
-                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                      return { ...sec, content: newContent };
-                                    }
-                                    return sec;
-                                  });
-                                  setSections(updatedSections);
-                                  
-                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
-                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
-                                  });
-                                  
-                                  if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                    toast({ title: "Content Updated", description: "Section content saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section content"
-                              multiline={true}
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <ReactMarkdown 
-                                components={{
-                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
-                                }}
-                              >
-                                {section.content}
-                              </ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </DraggableSection>
-                );
-              } else {
-                // Custom section rendering
-                const customSection = unifiedSection.data;
-                return (
-                  <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
-                    <Card className="mb-4 relative group">
-                      {!isSharedView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={async () => {
-                            try {
-                              const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
-                              if (response.ok) {
-                                setCustomSections(prev => prev.filter(s => s.id !== customSection.id));
-                                toast({ title: "Section Deleted", description: "Custom section removed successfully." });
+                              } catch (error) {
+                                toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
                               }
-                            } catch (error) {
-                              toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <CardHeader>
-                        <CardTitle className="text-lg pr-8">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={customSection.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                    title: newTitle
-                                  });
-                                  
-                                  if (response.ok) {
-                                    setCustomSections(prev => prev.map(s => 
-                                      s.id === customSection.id ? { ...s, title: newTitle } : s
-                                    ));
-                                    toast({ title: "Title Updated", description: "Custom section title saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
-                            />
-                          ) : (
-                            customSection.title
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {customSection.type === 'text' ? (
-                          <div className="prose prose-sm max-w-none">
-                            {!isSharedView ? (
-                              <FlexibleSectionEditor
-                                value={customSection.content}
-                                onSave={async (newContent: string) => {
-                                  try {
-                                    const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                      content: newContent
-                                    });
-                                    
-                                    if (response.ok) {
-                                      setCustomSections(prev => prev.map(s => 
-                                        s.id === customSection.id ? { ...s, content: newContent } : s
-                                      ));
-                                      toast({ title: "Content Updated", description: "Custom section content saved successfully." });
-                                    }
-                                  } catch (error) {
-                                    toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                  }
-                                }}
-                                placeholder="Click to edit this text section..."
-                                multiline={true}
-                              />
-                            ) : (
-                              <div className="prose prose-sm max-w-none">
-                                <ReactMarkdown 
-                                  components={{
-                                    ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>
-                                  }}
-                                >
-                                  {customSection.content}
-                                </ReactMarkdown>
-                              </div>
-                            )}
-                          </div>
+                            }}
+                            placeholder="Section title"
+                            multiline={false}
+                          />
                         ) : (
-                          <div className="space-y-4">
-                            {customSection.imageUrls && customSection.imageUrls.length > 0 ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {customSection.imageUrls.map((imageUrl: string, index: number) => (
-                                  <img 
-                                    key={index}
-                                    src={imageUrl} 
-                                    alt={`Custom section image ${index + 1}`}
-                                    className="w-full h-48 object-cover rounded-lg"
-                                  />
-                                ))}
-                              </div>
-                            ) : customSection.imageUrl ? (
-                              <img 
-                                src={customSection.imageUrl} 
-                                alt="Custom section image"
-                                className="w-full h-48 object-cover rounded-lg"
-                              />
-                            ) : null}
+                          section.title
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose prose-sm max-w-none">
+                        {!isSharedView ? (
+                          <FlexibleSectionEditor
+                            value={section.content}
+                            onSave={async (newContent: string) => {
+                              try {
+                                const updatedSections = sections.map((sec: any, idx: number) => {
+                                  if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
+                                    return { ...sec, content: newContent };
+                                  }
+                                  return sec;
+                                });
+                                setSections(updatedSections);
+                                
+                                const updatedAnalysis = { ...analysis, sections: updatedSections };
+                                
+                                const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                                  analysis: updatedAnalysis
+                                });
+                                
+                                if (response.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                                  toast({ title: "Content Updated", description: "Section content saved successfully." });
+                                }
+                              } catch (error) {
+                                toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                              }
+                            }}
+                            placeholder="Section content"
+                            multiline={true}
+                          />
+                        ) : (
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown 
+                              components={{
+                                ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                              }}
+                            >
+                              {section.content}
+                            </ReactMarkdown>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  </DraggableSection>
-                );
-              }
+                      </div>
+                    </CardContent>
+                  </Card>
+                </DraggableSection>
+              );
             })}
+
+            {/* Custom Sections */}
+            {customSections.map((customSection: any) => (
               <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
                 <Card className="mb-4 relative group">
                   {!isSharedView && (
@@ -868,7 +751,7 @@ export function CimDisplay({
                                 toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
                               }
                             }}
-                            placeholder="Section content"
+                            placeholder="Click to edit this text section..."
                             multiline={true}
                           />
                         ) : (
