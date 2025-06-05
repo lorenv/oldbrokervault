@@ -2731,7 +2731,113 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Share settings endpoint
+  // Get share settings endpoint
+  app.get("/api/cim/:id/share-settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      res.json({
+        shareSlug: doc.shareSlug,
+        isPublic: doc.shareEnabled,
+        requireNda: doc.ndaProtected,
+        password: doc.sharePassword,
+        expiresAt: doc.shareExpiresAt,
+        viewCount: doc.shareViewCount
+      });
+    } catch (error) {
+      console.error("Error fetching share settings:", error);
+      res.status(500).json({ error: "Failed to fetch share settings" });
+    }
+  });
+
+  // Update share settings endpoint
+  app.patch("/api/cim/:id/share-settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const { isPublic, requireNda, password, expiresAt } = req.body;
+      
+      // Generate share slug if enabling sharing and no slug exists
+      let shareSlug = doc.shareSlug;
+      if (isPublic && !shareSlug) {
+        shareSlug = Math.random().toString(36).substring(2, 15);
+      }
+
+      const updatedDoc = await storage.updateCimShareSettings(docId, {
+        shareEnabled: isPublic,
+        shareSlug: shareSlug,
+        sharePassword: password,
+        shareExpiresAt: expiresAt,
+        ndaProtected: requireNda,
+        ndaTemplateId: doc.ndaTemplateId
+      });
+
+      res.json({
+        shareSlug: updatedDoc.shareSlug,
+        isPublic: updatedDoc.shareEnabled,
+        requireNda: updatedDoc.ndaProtected,
+        password: updatedDoc.sharePassword,
+        expiresAt: updatedDoc.shareExpiresAt,
+        viewCount: updatedDoc.shareViewCount
+      });
+    } catch (error) {
+      console.error("Error updating share settings:", error);
+      res.status(500).json({ error: "Failed to update share settings" });
+    }
+  });
+
+  // Regenerate share slug endpoint
+  app.post("/api/cim/:id/regenerate-share-slug", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.id);
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const newSlug = Math.random().toString(36).substring(2, 15);
+      
+      const updatedDoc = await storage.updateCimShareSettings(docId, {
+        shareEnabled: doc.shareEnabled,
+        shareSlug: newSlug,
+        sharePassword: doc.sharePassword,
+        shareExpiresAt: doc.shareExpiresAt,
+        ndaProtected: doc.ndaProtected,
+        ndaTemplateId: doc.ndaTemplateId
+      });
+
+      res.json({
+        shareSlug: updatedDoc.shareSlug,
+        isPublic: updatedDoc.shareEnabled,
+        requireNda: updatedDoc.ndaProtected,
+        password: updatedDoc.sharePassword,
+        expiresAt: updatedDoc.shareExpiresAt,
+        viewCount: updatedDoc.shareViewCount
+      });
+    } catch (error) {
+      console.error("Error regenerating share slug:", error);
+      res.status(500).json({ error: "Failed to regenerate share slug" });
+    }
+  });
+
+  // Share settings endpoint (legacy)
   app.post("/api/cim/:id/share", async (req, res) => {
     if (!req.isAuthenticated()) {
       console.log("Share endpoint: User not authenticated");
