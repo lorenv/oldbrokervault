@@ -12,7 +12,10 @@ import {
   Trash2, 
   Edit,
   GripVertical,
-  X
+  X,
+  Plus,
+  Type,
+  ImageIcon
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -25,6 +28,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DndContext,
@@ -492,6 +496,117 @@ export function CimDisplay({
             })}
           </SortableContext>
         </DndContext>
+
+        {/* Add Custom Section Button - Only in Edit View */}
+        {!isSharedView && (
+          <div className="flex justify-center py-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Custom Section</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Choose the type of section you'd like to add to your CIM document.
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button
+                      variant="outline"
+                      className="h-auto p-4 flex flex-col items-start gap-2"
+                      onClick={async () => {
+                        try {
+                          const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/text`, {
+                            content: 'Click to edit this text section...',
+                            afterSection: 'end'
+                          });
+
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                            toast({
+                              title: "Text Section Added",
+                              description: "Your new text section has been added to the document.",
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Failed to Add Section",
+                            description: "Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Type className="h-4 w-4" />
+                        <span className="font-medium">Text Section</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Add a custom text section with your own content
+                      </span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="h-auto p-4 flex flex-col items-start gap-2"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.multiple = true;
+                        input.onchange = async (e) => {
+                          const files = Array.from((e.target as HTMLInputElement).files || []);
+                          if (files.length === 0) return;
+
+                          try {
+                            const formData = new FormData();
+                            files.forEach(file => formData.append('images', file));
+                            formData.append('afterSection', 'end');
+
+                            const response = await fetch(`/api/cim/${docId}/custom-section/image`, {
+                              method: 'POST',
+                              body: formData,
+                            });
+
+                            if (response.ok) {
+                              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                              queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                              toast({
+                                title: "Image Section Added",
+                                description: "Your new image section has been added to the document.",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Failed to Add Images",
+                              description: "Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="font-medium">Image Section</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Upload and add images to your document
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
 
         {/* Delete Confirmation Dialog */}
         {confirmDeleteSectionId && (
