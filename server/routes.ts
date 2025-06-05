@@ -88,6 +88,21 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Public health check endpoint for debugging shared document access
+  app.get("/api/public-health", (req, res) => {
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      message: "Public endpoint accessible without authentication",
+      headers: {
+        host: req.get('host'),
+        userAgent: req.get('user-agent'),
+        origin: req.get('origin'),
+        referer: req.get('referer')
+      }
+    });
+  });
+
   // Serve uploaded file content for sharing
   app.get("/api/share/:shareSlug/file", async (req, res) => {
     try {

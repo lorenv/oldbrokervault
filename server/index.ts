@@ -19,6 +19,16 @@ app.use('/logos', express.static('public/logos'));
 app.use('/images', express.static('public/images'));
 app.use(express.static('public'));
 
+// Special handling for shared document routes - ensure they bypass any auth requirements
+app.use('/share/*', (req, res, next) => {
+  // Remove any auth headers that might interfere with public access
+  delete req.headers.authorization;
+  // Set public access headers
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.setHeader('X-Robots-Tag', 'noindex'); // Prevent indexing of shared documents
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
