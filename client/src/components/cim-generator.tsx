@@ -325,6 +325,15 @@ export function CimGenerator() {
             ...financialData
           }));
         }
+
+        // Add cover image data if selected
+        if (selectedCoverImage) {
+          formData.append('coverImageUrl', selectedCoverImage);
+          formData.append('coverImagePosition', JSON.stringify(coverImagePosition));
+          if (coverImageAttribution) {
+            formData.append('coverImageAttribution', coverImageAttribution);
+          }
+        }
         
 
 
@@ -366,6 +375,11 @@ export function CimGenerator() {
             financials: financialsEnabled ? {
               enabled: true,
               ...financialData
+            } : undefined,
+            coverImage: selectedCoverImage ? {
+              url: selectedCoverImage,
+              position: coverImagePosition,
+              attribution: coverImageAttribution
             } : undefined,
           });
           
@@ -1079,6 +1093,156 @@ ${analysis.team.ownerResponsibilities}
                 />
               </div>
               
+              {/* Cover Image Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  <Label className="text-sm font-medium">Cover Image</Label>
+                  {selectedCoverImage && <Badge variant="secondary">Set</Badge>}
+                </div>
+                
+                {selectedCoverImage && (
+                  <div className="space-y-3">
+                    <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+                      <img 
+                        src={selectedCoverImage}
+                        alt="Cover image preview"
+                        className="w-full h-full object-cover"
+                        style={{
+                          objectPosition: `${coverImagePosition.x}% ${coverImagePosition.y}%`
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white opacity-30" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Horizontal</Label>
+                        <Slider
+                          value={[coverImagePosition.x]}
+                          onValueChange={(value) => handlePositionChange('x', value)}
+                          max={100}
+                          step={1}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Vertical</Label>
+                        <Slider
+                          value={[coverImagePosition.y]}
+                          onValueChange={(value) => handlePositionChange('y', value)}
+                          max={100}
+                          step={1}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    {coverImageAttribution && (
+                      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                        {coverImageAttribution}
+                      </div>
+                    )}
+                    
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedCoverImage(null);
+                        setCoverImageAttribution('');
+                        setCoverImagePosition({ x: 50, y: 50 });
+                      }}
+                      className="w-full"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remove Cover Image
+                    </Button>
+                  </div>
+                )}
+                
+                {!selectedCoverImage && (
+                  <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                    <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-500 mb-3">
+                      Add a cover image to enhance your CIM presentation
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => coverImageFileInputRef.current?.click()}
+                    className="flex-1"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </Button>
+                  
+                  <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Search className="h-4 w-4 mr-2" />
+                        Unsplash
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                      <DialogHeader>
+                        <DialogTitle>Search Unsplash Images</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search for images..."
+                            value={unsplashSearchQuery}
+                            onChange={(e) => setUnsplashSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && searchUnsplash()}
+                          />
+                          <Button onClick={searchUnsplash} disabled={isSearchingUnsplash}>
+                            {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                          {unsplashResults.map((image: any) => (
+                            <div 
+                              key={image.id} 
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => selectUnsplashImage(image)}
+                            >
+                              <img 
+                                src={image.urls.small} 
+                                alt={image.description || 'Unsplash image'}
+                                className="w-full h-24 object-cover rounded"
+                              />
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                by {image.user.name}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                <input
+                  ref={coverImageFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverImageUpload}
+                  className="hidden"
+                />
+              </div>
+
               {currentDocId && (
                 <div className="text-xs text-muted-foreground">
                   Regenerations remaining: {Math.max(0, subscriptionPlans[user?.subscriptionStatus as keyof typeof subscriptionPlans]?.regenerationLimit - (analysis?.regenerationCount || 0))}
