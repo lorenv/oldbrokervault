@@ -1222,7 +1222,7 @@ export function DocumentExport({
                 <div className="space-y-2">
                   <Label htmlFor="custom-slug">Custom URL (optional)</Label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">cimgod.com/share/</span>
+                    <span className="text-sm text-muted-foreground">cimshare.com/share/</span>
                     <Input
                       id="custom-slug"
                       placeholder="my-business-name"
