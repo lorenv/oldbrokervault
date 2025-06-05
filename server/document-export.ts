@@ -1674,40 +1674,63 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .text('BUSINESS IMAGES')
            .fillColor('#000000');
         
-        doc.moveDown(1);
+        doc.moveDown(2);
         
+        // Calculate layout parameters
+        const pageMargin = 50;
+        const imageWidth = 220;
+        const imageHeight = 165;
+        const horizontalMargin = 25;
+        const verticalMargin = 30;
+        const imagesPerRow = 2; // Fixed 2 images per row for better layout
+        
+        // Calculate starting positions
+        const totalImageWidth = (imageWidth * imagesPerRow) + (horizontalMargin * (imagesPerRow - 1));
+        const startX = (doc.page.width - totalImageWidth) / 2; // Center the images
+        let currentRow = 0;
         let currentY = doc.y;
-        let currentX = 50;
-        const imageWidth = 200;
-        const imageHeight = 150;
-        const margin = 20;
         
         for (let i = 0; i < selectedImages.length; i++) {
           try {
             const imagePath = resolveImagePath(selectedImages[i]);
             if (fs.existsSync(imagePath)) {
-              // Check if we need a new row
-              if (currentX + imageWidth > doc.page.width - 50) {
-                currentX = 50;
-                currentY += imageHeight + margin;
+              // Calculate position in grid
+              const col = i % imagesPerRow;
+              const row = Math.floor(i / imagesPerRow);
+              
+              // Check if we need a new page
+              const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
+              if (imageY + imageHeight > doc.page.height - pageMargin) {
+                doc.addPage();
                 
-                // Check if we need a new page
-                if (currentY + imageHeight > doc.page.height - 50) {
-                  doc.addPage();
-                  currentY = 50;
-                }
+                // Add section header on new page
+                doc.fontSize(18)
+                   .font('Helvetica-Bold')
+                   .fillColor('#2563eb')
+                   .text('BUSINESS IMAGES (continued)')
+                   .fillColor('#000000');
+                
+                doc.moveDown(2);
+                currentY = doc.y;
+                currentRow = row;
               }
               
-              doc.image(imagePath, currentX, currentY, {
-                fit: [imageWidth, imageHeight]
-              });
+              // Calculate final position
+              const finalX = startX + (col * (imageWidth + horizontalMargin));
+              const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
-              currentX += imageWidth + margin;
+              doc.image(imagePath, finalX, finalY, {
+                fit: [imageWidth, imageHeight],
+                align: 'center'
+              });
             }
           } catch (error) {
             console.error(`Failed to add image ${selectedImages[i]} to PDF:`, error);
           }
         }
+        
+        // Add extra space after images section
+        doc.moveDown(3);
       }
 
       // Flexible Document Sections (modern format) - remove page breaks
