@@ -1570,7 +1570,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.moveDown(2);
       
       // Add document title if available (but exclude unwanted fallback text)
-      if (analysis.title && analysis.title !== 'Comprehensive Business Overview' && analysis.title !== 'Confidential Information Memorandum') {
+      if (analysis.title && analysis.title !== 'Comprehensive Business Overview') {
         doc.fontSize(18)
            .fillColor('#2563eb')
            .text(analysis.title, { align: 'center' });
@@ -1910,28 +1910,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(1);
         doc.font('Helvetica').text('The leadership team comprises individuals with extensive experience in the industry. The organizational structure is designed to promote innovation and efficiency, with a focus on leveraging the team\'s strengths to achieve strategic objectives.');
-        doc.moveDown(2);
-      }
-
-      // Website URL Section
-      if (websiteUrl) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Website')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        
-        // Format website URL nicely
-        const displayUrl = websiteUrl.replace(/^https?:\/\//, '');
-        doc.fontSize(14)
-           .fillColor('#2563eb')
-           .text(displayUrl, { link: websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}` });
-        
-        doc.fillColor('#000000');
         doc.moveDown(2);
       }
 
