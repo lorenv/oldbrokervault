@@ -116,8 +116,8 @@ export function SharePage() {
         <div className="flex justify-center items-center min-h-[50vh]">
           <Card className="max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 rounded-full bg-yellow-100">
-                <Shield className="h-6 w-6 text-yellow-600" />
+              <div className="mx-auto mb-4 p-3 rounded-full bg-blue-100">
+                <Shield className="h-6 w-6 text-blue-600" />
               </div>
               <CardTitle>Non-Disclosure Agreement Required</CardTitle>
               <CardDescription>
@@ -137,7 +137,6 @@ export function SharePage() {
           onClose={() => setShowNdaDialog(false)}
           onSigned={() => setHasSignedNda(true)}
           shareSlug={shareSlug || ''}
-          cimTitle={shareData.cim.title}
           ndaUrl={shareData.ndaUrl}
         />
       </div>
