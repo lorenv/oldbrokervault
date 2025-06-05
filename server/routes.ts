@@ -3220,11 +3220,92 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      if (file.mimetype !== 'application/pdf') {
-        return res.status(400).json({ error: "Only PDF files are allowed" });
+      // Accept both PDF and Word documents
+      const allowedMimeTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/msword' // .doc
+      ];
+
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return res.status(400).json({ error: "Only PDF and Word documents (.pdf, .docx, .doc) are allowed" });
       }
 
-      const fileContent = file.buffer.toString('base64');
+      let fileContent: string;
+
+      if (file.mimetype === 'application/pdf') {
+        // Handle PDF files directly
+        fileContent = file.buffer.toString('base64');
+      } else {
+        // Convert Word documents to PDF
+        const mammoth = require('mammoth');
+        const PDFDocument = require('pdfkit');
+        
+        try {
+          // Extract HTML from Word document
+          const result = await mammoth.convertToHtml({ buffer: file.buffer });
+          const htmlContent = result.value;
+          
+          // Create PDF from HTML using PDFKit
+          const doc = new PDFDocument({
+            margins: {
+              top: 72,
+              bottom: 72,
+              left: 72,
+              right: 72
+            }
+          });
+          
+          const chunks: Buffer[] = [];
+          doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+          
+          // Simple HTML to PDF conversion
+          // Remove HTML tags and convert to plain text for basic conversion
+          const plainText = htmlContent
+            .replace(/<[^>]*>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"');
+          
+          // Add text to PDF with proper formatting
+          const lines = plainText.split('\n');
+          let yPosition = 72;
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              // Check if we need a new page
+              if (yPosition > doc.page.height - 72) {
+                doc.addPage();
+                yPosition = 72;
+              }
+              
+              doc.fontSize(12).text(line.trim(), 72, yPosition, {
+                width: doc.page.width - 144,
+                align: 'left'
+              });
+              yPosition += 20;
+            } else {
+              yPosition += 10; // Add space for empty lines
+            }
+          }
+          
+          doc.end();
+          
+          // Wait for PDF generation to complete
+          await new Promise<void>((resolve) => {
+            doc.on('end', resolve);
+          });
+          
+          const pdfBuffer = Buffer.concat(chunks);
+          fileContent = pdfBuffer.toString('base64');
+          
+        } catch (conversionError) {
+          console.error('Word to PDF conversion error:', conversionError);
+          return res.status(400).json({ error: "Failed to convert Word document to PDF. Please ensure the document is valid." });
+        }
+      }
       
       const templateData = insertNdaTemplateSchema.parse({
         name,
