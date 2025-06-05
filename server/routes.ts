@@ -884,6 +884,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete website logo endpoint
+  app.delete("/api/cim/:id/logo", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.sendStatus(404);
+      }
+
+      // Remove the logo URL from the document
+      await storage.updateCimDocument(cimId, { logoUrl: null });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Logo deletion error:", error);
+      res.status(500).json({ error: "Failed to delete logo" });
+    }
+  });
+
+  // Delete individual business image endpoint
+  app.delete("/api/cim/:id/business-image/:index", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      const imageIndex = parseInt(req.params.index);
+      const cim = await storage.getCimDocument(cimId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.sendStatus(404);
+      }
+
+      if (!cim.selectedImages || imageIndex < 0 || imageIndex >= cim.selectedImages.length) {
+        return res.status(400).json({ error: "Invalid image index" });
+      }
+
+      // Remove the image at the specified index
+      const updatedImages = cim.selectedImages.filter((_, index) => index !== imageIndex);
+      await storage.updateCimImages(cimId, updatedImages);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Business image deletion error:", error);
+      res.status(500).json({ error: "Failed to delete business image" });
+    }
+  });
+
   // File upload endpoint for large text
   app.post("/api/cim/upload", upload.single('transcript'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

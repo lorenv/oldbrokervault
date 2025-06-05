@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Trash2, 
   Edit,
-  GripVertical
+  GripVertical,
+  X
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
