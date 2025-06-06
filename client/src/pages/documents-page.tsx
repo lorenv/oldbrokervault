@@ -728,7 +728,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
           <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pr-8">
                 <div>
                   <DialogTitle>Edit CIM Document</DialogTitle>
                   <DialogDescription>
