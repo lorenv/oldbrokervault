@@ -449,6 +449,37 @@ export function CimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
+        {/* Document Title Editor - Only in Edit View */}
+        {!isSharedView && cimDocument && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Document Title</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FlexibleSectionEditor
+                value={cimDocument.title}
+                onSave={async (newTitle: string) => {
+                  try {
+                    const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                      title: newTitle
+                    });
+                    
+                    if (response.ok) {
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                      toast({ title: "Title Updated", description: "Document title saved successfully." });
+                    }
+                  } catch (error) {
+                    toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
+                  }
+                }}
+                placeholder="Enter document title"
+                multiline={false}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Cover Image Manager - Only in Edit View */}
         {!isSharedView && cimDocument && (
           <CoverImageManager
@@ -461,6 +492,18 @@ export function CimDisplay({
               queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
             }}
           />
+        )}
+
+        {/* Markdown Reference Guide - Only in Edit View */}
+        {!isSharedView && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Formatting Reference</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MarkdownGuide />
+            </CardContent>
+          </Card>
         )}
 
         {/* Financial Information Section at Top */}
