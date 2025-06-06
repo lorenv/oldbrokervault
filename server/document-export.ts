@@ -2091,30 +2091,34 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         if (userProfile.profilePhoto) {
           try {
             console.log("=== PROFILE PHOTO DEBUG ===");
-            console.log("Profile photo URL:", userProfile.profilePhoto);
-            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-            console.log("Resolved profile photo path:", profilePhotoPath);
-            console.log("Profile photo exists:", fs.existsSync(profilePhotoPath));
-            console.log("Current working directory:", process.cwd());
+            console.log("Profile photo found, type:", userProfile.profilePhoto.startsWith('data:') ? 'base64' : 'file path');
             
-            if (fs.existsSync(profilePhotoPath)) {
+            if (userProfile.profilePhoto.startsWith('data:')) {
+              // Handle base64 data URI
+              const base64Data = userProfile.profilePhoto.split(',')[1];
+              const imageBuffer = Buffer.from(base64Data, 'base64');
               const centerX = (doc.page.width - 60) / 2;
-              doc.image(profilePhotoPath, centerX, doc.y, {
+              doc.image(imageBuffer, centerX, doc.y, {
                 fit: [60, 60],
                 align: 'center'
               });
               doc.moveDown(4);
-              console.log("Successfully added profile photo to PDF");
+              console.log("Successfully added base64 profile photo to PDF");
             } else {
-              console.log("Profile photo file does not exist at path:", profilePhotoPath);
-              // List directory contents for debugging
-              const dirname = path.dirname(profilePhotoPath);
-              console.log("Directory contents of", dirname, ":");
-              try {
-                const files = fs.readdirSync(dirname);
-                console.log(files.slice(0, 10)); // Show first 10 files
-              } catch (e) {
-                console.log("Could not read directory:", e.message);
+              // Handle file path
+              const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+              console.log("Resolved profile photo path:", profilePhotoPath);
+              
+              if (fs.existsSync(profilePhotoPath)) {
+                const centerX = (doc.page.width - 60) / 2;
+                doc.image(profilePhotoPath, centerX, doc.y, {
+                  fit: [60, 60],
+                  align: 'center'
+                });
+                doc.moveDown(4);
+                console.log("Successfully added file-based profile photo to PDF");
+              } else {
+                console.log("Profile photo file does not exist at path:", profilePhotoPath);
               }
             }
             console.log("=== END PROFILE PHOTO DEBUG ===");
@@ -2162,22 +2166,38 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add business logo if available
         if (userProfile.businessLogo) {
           try {
-            console.log("Business logo URL:", userProfile.businessLogo);
-            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
-            console.log("Resolved business logo path:", businessLogoPath);
-            console.log("Business logo exists:", fs.existsSync(businessLogoPath));
+            console.log("=== BUSINESS LOGO DEBUG ===");
+            console.log("Business logo found, type:", userProfile.businessLogo.startsWith('data:') ? 'base64' : 'file path');
             
-            if (fs.existsSync(businessLogoPath)) {
+            if (userProfile.businessLogo.startsWith('data:')) {
+              // Handle base64 data URI
+              const base64Data = userProfile.businessLogo.split(',')[1];
+              const imageBuffer = Buffer.from(base64Data, 'base64');
               const centerX = (doc.page.width - 80) / 2;
-              doc.image(businessLogoPath, centerX, doc.y, {
+              doc.image(imageBuffer, centerX, doc.y, {
                 fit: [80, 40],
                 align: 'center'
               });
               doc.moveDown(3);
-              console.log("Successfully added business logo to PDF");
+              console.log("Successfully added base64 business logo to PDF");
             } else {
-              console.log("Business logo file does not exist at path:", businessLogoPath);
+              // Handle file path
+              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+              console.log("Resolved business logo path:", businessLogoPath);
+              
+              if (fs.existsSync(businessLogoPath)) {
+                const centerX = (doc.page.width - 80) / 2;
+                doc.image(businessLogoPath, centerX, doc.y, {
+                  fit: [80, 40],
+                  align: 'center'
+                });
+                doc.moveDown(3);
+                console.log("Successfully added file-based business logo to PDF");
+              } else {
+                console.log("Business logo file does not exist at path:", businessLogoPath);
+              }
             }
+            console.log("=== END BUSINESS LOGO DEBUG ===");
           } catch (error) {
             console.error("Failed to add business logo to PDF:", error);
           }
