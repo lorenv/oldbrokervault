@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { ImageIcon, Upload, Search, X, ChevronDown, ChevronRight, Move } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DraggableImagePositioner } from "./draggable-image-positioner";
 
 interface CoverImageManagerProps {
   docId: number;
@@ -210,6 +211,18 @@ export function CoverImageManager({
     }
   };
 
+  const handleDragPositionChange = (newPosition: { x: number; y: number }) => {
+    setImagePosition(newPosition);
+    
+    if (selectedImage) {
+      updateCoverImageMutation.mutate({
+        coverImageUrl: selectedImage,
+        coverImagePosition: JSON.stringify(newPosition),
+        coverImageAttribution: attribution,
+      });
+    }
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
@@ -231,39 +244,40 @@ export function CoverImageManager({
           <CardContent className="space-y-4">
             {selectedImage && (
               <div className="space-y-4">
-                <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
-                  <img 
-                    src={selectedImage}
-                    alt="Cover image"
-                    className="w-full h-full object-cover"
-                    style={{
-                      objectPosition: `${imagePosition.x}% ${imagePosition.y}%`
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white opacity-30" />
-                </div>
+                <DraggableImagePositioner
+                  imageUrl={selectedImage}
+                  position={imagePosition}
+                  onPositionChange={handleDragPositionChange}
+                  disabled={updateCoverImageMutation.isPending}
+                />
                 
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-xs">Horizontal Position</Label>
-                    <Slider
-                      value={[imagePosition.x]}
-                      onValueChange={(value) => handlePositionChange('x', value)}
-                      max={100}
-                      step={1}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="text-xs">Vertical Position</Label>
-                    <Slider
-                      value={[imagePosition.y]}
-                      onValueChange={(value) => handlePositionChange('y', value)}
-                      max={100}
-                      step={1}
-                      className="mt-1"
-                    />
+                {/* Fine-tuning sliders for precise adjustments */}
+                <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-xs font-medium text-gray-700">Fine-tune position:</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-600">Horizontal ({Math.round(imagePosition.x)}%)</Label>
+                      <Slider
+                        value={[imagePosition.x]}
+                        onValueChange={(value) => handlePositionChange('x', value)}
+                        max={100}
+                        step={1}
+                        className="mt-1"
+                        disabled={updateCoverImageMutation.isPending}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="text-xs text-gray-600">Vertical ({Math.round(imagePosition.y)}%)</Label>
+                      <Slider
+                        value={[imagePosition.y]}
+                        onValueChange={(value) => handlePositionChange('y', value)}
+                        max={100}
+                        step={1}
+                        className="mt-1"
+                        disabled={updateCoverImageMutation.isPending}
+                      />
+                    </div>
                   </div>
                 </div>
                 
