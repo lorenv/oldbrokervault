@@ -1615,38 +1615,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
-    // Track page information for footers
+    // Track page information
     let currentPageNumber = 1;
-    const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
-    
-    // Function to add footer to current page
-    const addFooter = (pageNum: number) => {
-      const pageHeight = doc.page.height;
-      const footerY = pageHeight - 30;
-      
-      // Save current state
-      const savedY = doc.y;
-      
-      // Set footer style
-      doc.fontSize(9).fillColor('#666666');
-      
-      // Add document title on left (truncate if too long)
-      const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
-      doc.text(truncatedTitle, 50, footerY, {
-        width: doc.page.width - 200,
-        align: 'left'
-      });
-      
-      // Add page number on right
-      doc.text(`Page ${pageNum}`, doc.page.width - 150, footerY, {
-        width: 100,
-        align: 'right'
-      });
-      
-      // Restore state
-      doc.y = savedY;
-      doc.fontSize(12).fillColor('#000000');
-    };
     
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
@@ -1662,6 +1632,43 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("Custom Sections data:", JSON.stringify(customSections, null, 2));
       console.log("Selected Images count:", selectedImages ? selectedImages.length : 0);
       console.log("===========================");
+      
+      // Add cover image at the top of the first page if available
+      if (selectedImages && selectedImages.length > 0) {
+        try {
+          const firstImage = selectedImages[0];
+          console.log("Adding cover image:", firstImage);
+          
+          if (firstImage.startsWith('data:')) {
+            // Handle base64 data URI
+            const base64Data = firstImage.split(',')[1];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            doc.image(imageBuffer, 50, 50, {
+              width: doc.page.width - 100,
+              height: 80,
+              align: 'center'
+            });
+            doc.moveDown(8);
+            console.log("Successfully added base64 cover image");
+          } else {
+            // Handle file path
+            const imagePath = resolveImagePath(firstImage);
+            if (fs.existsSync(imagePath)) {
+              doc.image(imagePath, 50, 50, {
+                width: doc.page.width - 100,
+                height: 80,
+                align: 'center'
+              });
+              doc.moveDown(8);
+              console.log("Successfully added file-based cover image");
+            } else {
+              console.log("Cover image file does not exist:", imagePath);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to add cover image:", error);
+        }
+      }
       
       // Extract title from analysis or use provided documentTitle
       const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
@@ -2223,10 +2230,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Contact Information - Professional formatting with images
       if (userProfile) {
-        // Add footer to current page before creating new page
-        addFooter(currentPageNumber);
-        currentPageNumber++;
-        
         // Add page break before contact information
         doc.addPage();
         
@@ -2366,9 +2369,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
-      // Add footer to the final page
-      addFooter(currentPageNumber);
-      
       doc.end();
     } catch (error) {
       reject(error);
