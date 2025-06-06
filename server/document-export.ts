@@ -1619,6 +1619,35 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     let currentPageNumber = 1;
     const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
     
+    // Function to add footer to current page
+    const addFooter = (pageNum: number) => {
+      const pageHeight = doc.page.height;
+      const footerY = pageHeight - 30;
+      
+      // Save current state
+      const savedY = doc.y;
+      
+      // Set footer style
+      doc.fontSize(9).fillColor('#666666');
+      
+      // Add document title on left (truncate if too long)
+      const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
+      doc.text(truncatedTitle, 50, footerY, {
+        width: doc.page.width - 200,
+        align: 'left'
+      });
+      
+      // Add page number on right
+      doc.text(`Page ${pageNum}`, doc.page.width - 150, footerY, {
+        width: 100,
+        align: 'right'
+      });
+      
+      // Restore state
+      doc.y = savedY;
+      doc.fontSize(12).fillColor('#000000');
+    };
+    
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
       resolve(Buffer.concat(buffers));
@@ -2194,6 +2223,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Contact Information - Professional formatting with images
       if (userProfile) {
+        // Add footer to current page before creating new page
+        addFooter(currentPageNumber);
+        currentPageNumber++;
+        
         // Add page break before contact information
         doc.addPage();
         
@@ -2229,7 +2262,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 fit: [100, 100],
                 align: 'center'
               });
-              doc.moveDown(4);
+              doc.moveDown(6);
               console.log("Successfully added base64 profile photo to PDF");
             } else {
               // Handle file path
@@ -2333,6 +2366,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
+      // Add footer to the final page
+      addFooter(currentPageNumber);
+      
       doc.end();
     } catch (error) {
       reject(error);
