@@ -41,9 +41,11 @@ import { CimFileUpload } from './cim-file-upload';
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ImageIcon, Search } from "lucide-react";
+import { ImageIcon, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DraggableImagePositioner } from "./draggable-image-positioner";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -84,6 +86,7 @@ export function CimGenerator() {
   const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
   const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
   const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load saved templates from localStorage on component mount
