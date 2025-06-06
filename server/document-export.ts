@@ -1558,6 +1558,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     doc.on('error', reject);
 
     try {
+      // Debug logging for PDF generation
+      console.log("=== PDF Generation Debug ===");
+      console.log("User Profile received:", JSON.stringify(userProfile, null, 2));
+      console.log("Custom Sections count:", customSections ? customSections.length : 0);
+      console.log("Custom Sections data:", JSON.stringify(customSections, null, 2));
+      console.log("Selected Images count:", selectedImages ? selectedImages.length : 0);
+      console.log("===========================");
+      
       // Extract title from analysis or use provided documentTitle
       const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
       
@@ -2057,7 +2065,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add profile photo if available
         if (userProfile.profilePhoto) {
           try {
+            console.log("Profile photo URL:", userProfile.profilePhoto);
             const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+            console.log("Resolved profile photo path:", profilePhotoPath);
+            console.log("Profile photo exists:", fs.existsSync(profilePhotoPath));
+            
             if (fs.existsSync(profilePhotoPath)) {
               const centerX = (doc.page.width - 60) / 2;
               doc.image(profilePhotoPath, centerX, doc.y, {
@@ -2065,10 +2077,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 align: 'center'
               });
               doc.moveDown(4);
+              console.log("Successfully added profile photo to PDF");
+            } else {
+              console.log("Profile photo file does not exist at path:", profilePhotoPath);
             }
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
           }
+        } else {
+          console.log("No profile photo provided in userProfile");
         }
         
         // Contact details with proper formatting
@@ -2108,7 +2125,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add business logo if available
         if (userProfile.businessLogo) {
           try {
+            console.log("Business logo URL:", userProfile.businessLogo);
             const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+            console.log("Resolved business logo path:", businessLogoPath);
+            console.log("Business logo exists:", fs.existsSync(businessLogoPath));
+            
             if (fs.existsSync(businessLogoPath)) {
               const centerX = (doc.page.width - 80) / 2;
               doc.image(businessLogoPath, centerX, doc.y, {
@@ -2116,10 +2137,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 align: 'center'
               });
               doc.moveDown(3);
+              console.log("Successfully added business logo to PDF");
+            } else {
+              console.log("Business logo file does not exist at path:", businessLogoPath);
             }
           } catch (error) {
             console.error("Failed to add business logo to PDF:", error);
           }
+        } else {
+          console.log("No business logo provided in userProfile");
         }
       }
 
