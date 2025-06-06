@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,9 +16,11 @@ import { SupportDialog } from "./support-dialog";
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [location] = useLocation();
+  const isHomePage = location === '/';
 
   return (
-    <nav className="border-b">
+    <nav className={isHomePage ? "absolute top-0 left-0 right-0 z-50" : "border-b"}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
