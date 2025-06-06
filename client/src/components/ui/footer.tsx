@@ -8,7 +8,7 @@ export function Footer() {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold">CIM Share</h3>
+              <img src="/cim-share-logo.png" alt="CIM Share" className="h-8 filter invert" />
             </div>
             <p className="text-gray-400 text-sm">
               The ultimate platform for creating professional Confidential Information Memorandums with AI-powered analysis and secure sharing.
