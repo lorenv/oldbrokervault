@@ -3568,21 +3568,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         }
         console.log("Owner found:", owner.email);
 
-        // Send initial confirmation emails
-        console.log("Sending initial confirmation emails...");
-        const shareLink = `${req.protocol}://${req.get('host')}/cims/${shareSlug}`;
-        const initialEmailSent = await sendNdaSignedEmail(
-          signerEmail,
-          owner.email,
-          owner.name || owner.email,
-          cimDoc.title,
-          shareLink,
-          signedNdaContent
-        );
 
-        if (!initialEmailSent) {
-          console.error('Failed to send initial NDA confirmation emails');
-        }
 
         // Auto-sync to investor database after successful NDA signing
         console.log("Auto-syncing new contact to investor database...");

@@ -20,6 +20,7 @@ import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { SharePage } from "@/pages/share-page";
+import { NdaRedirectPage } from "@/pages/nda-redirect-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
@@ -55,6 +56,7 @@ function Router() {
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
+            <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <Route component={NotFound} />
           </Switch>
         </div>
