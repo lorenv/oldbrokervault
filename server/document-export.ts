@@ -1619,55 +1619,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     let currentPageNumber = 1;
     const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
     
-    // Function to add footer to current page
-    const addCurrentPageFooter = () => {
-      const pageHeight = doc.page.height;
-      const margin = 50;
-      const footerY = pageHeight - 30;
-      
-      // Save current state
-      const currentY = doc.y;
-      const currentFont = doc._font;
-      const currentFontSize = doc._fontSize;
-      
-      // Set footer style
-      doc.fontSize(9)
-         .font('Helvetica')
-         .fillColor('#666666');
-      
-      // Add document title on left (truncate if too long)
-      const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
-      doc.text(truncatedTitle, margin, footerY, {
-        width: doc.page.width - (2 * margin) - 100,
-        align: 'left'
-      });
-      
-      // Add page number on right
-      doc.text(`Page ${currentPageNumber}`, doc.page.width - 150, footerY, {
-        width: 100,
-        align: 'right'
-      });
-      
-      // Restore previous state
-      doc.y = currentY;
-      doc.font(currentFont);
-      doc.fontSize(currentFontSize);
-      doc.fillColor('#000000');
-    };
-    
-    // Hook into page creation to add footers and track pages
-    const originalAddPage = doc.addPage.bind(doc);
-    doc.addPage = function(options?: any) {
-      // Add footer to current page before creating new page
-      addCurrentPageFooter();
-      currentPageNumber++;
-      return originalAddPage(options);
-    };
-    
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
-      // Add footer to the final page
-      addCurrentPageFooter();
       resolve(Buffer.concat(buffers));
     });
     doc.on('error', reject);
