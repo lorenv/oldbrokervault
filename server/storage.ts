@@ -616,9 +616,18 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(customSections.position));
   }
 
-  async updateCustomSection(id: number, content: string): Promise<void> {
+  async updateCustomSection(id: number, updates: { title?: string; content?: string }): Promise<void> {
+    // Filter out undefined values to avoid "No values to set" error
+    const validUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+    
+    if (Object.keys(validUpdates).length === 0) {
+      throw new Error("No valid updates provided");
+    }
+    
     await db.update(customSections)
-      .set({ content })
+      .set(validUpdates)
       .where(eq(customSections.id, id));
   }
 

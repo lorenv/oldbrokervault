@@ -2097,9 +2097,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const sectionId = parseInt(req.params.id);
-      const { content } = req.body;
+      const { title, content } = req.body;
       
-      await storage.updateCustomSection(sectionId, content);
+      await storage.updateCustomSection(sectionId, { title, content });
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating custom section:", error);
