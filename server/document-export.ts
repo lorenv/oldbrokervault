@@ -998,6 +998,45 @@ export function formatTextContent(analysis: any, userProfile?: any): string {
   return content;
 }
 
+// Function to add footer to each page
+function addFooter(doc: any, pageNumber: number, totalPages: number, documentTitle?: string) {
+  const pageHeight = doc.page.height;
+  const margin = 50;
+  const footerY = pageHeight - 30;
+  
+  // Save current state
+  const currentY = doc.y;
+  const currentFont = doc._font;
+  const currentFontSize = doc._fontSize;
+  const currentColor = doc._fillColor;
+  
+  // Set footer style
+  doc.fontSize(9)
+     .font('Helvetica')
+     .fillColor('#666666');
+  
+  // Add document title on left (truncate if too long)
+  if (documentTitle) {
+    const truncatedTitle = documentTitle.length > 50 ? documentTitle.substring(0, 50) + '...' : documentTitle;
+    doc.text(truncatedTitle, margin, footerY, {
+      width: doc.page.width - (2 * margin) - 100,
+      align: 'left'
+    });
+  }
+  
+  // Add page number on right
+  doc.text(`Page ${pageNumber} of ${totalPages}`, doc.page.width - 150, footerY, {
+    width: 100,
+    align: 'right'
+  });
+  
+  // Restore previous state
+  doc.y = currentY;
+  doc.font(currentFont);
+  doc.fontSize(currentFontSize);
+  doc.fillColor(currentColor || '#000000');
+}
+
 function generateContactFooter(userProfile: any): string {
   return `
         <div class="contact-footer">
@@ -1576,8 +1615,59 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
+    // Track page information for footers
+    let currentPageNumber = 1;
+    const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
+    
+    // Function to add footer to current page
+    const addCurrentPageFooter = () => {
+      const pageHeight = doc.page.height;
+      const margin = 50;
+      const footerY = pageHeight - 30;
+      
+      // Save current state
+      const currentY = doc.y;
+      const currentFont = doc._font;
+      const currentFontSize = doc._fontSize;
+      
+      // Set footer style
+      doc.fontSize(9)
+         .font('Helvetica')
+         .fillColor('#666666');
+      
+      // Add document title on left (truncate if too long)
+      const truncatedTitle = title.length > 50 ? title.substring(0, 50) + '...' : title;
+      doc.text(truncatedTitle, margin, footerY, {
+        width: doc.page.width - (2 * margin) - 100,
+        align: 'left'
+      });
+      
+      // Add page number on right
+      doc.text(`Page ${currentPageNumber}`, doc.page.width - 150, footerY, {
+        width: 100,
+        align: 'right'
+      });
+      
+      // Restore previous state
+      doc.y = currentY;
+      doc.font(currentFont);
+      doc.fontSize(currentFontSize);
+      doc.fillColor('#000000');
+    };
+    
+    // Hook into page creation to add footers and track pages
+    const originalAddPage = doc.addPage.bind(doc);
+    doc.addPage = function(options?: any) {
+      // Add footer to current page before creating new page
+      addCurrentPageFooter();
+      currentPageNumber++;
+      return originalAddPage(options);
+    };
+    
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {
+      // Add footer to the final page
+      addCurrentPageFooter();
       resolve(Buffer.concat(buffers));
     });
     doc.on('error', reject);
@@ -2151,7 +2241,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Contact Information - Professional formatting with images
       if (userProfile) {
-        doc.moveDown(4);
+        // Add page break before contact information
+        doc.addPage();
         
         // Add horizontal line before contact information
         doc.strokeColor('#e5e7eb')
@@ -2256,9 +2347,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Handle base64 data URI
               const base64Data = userProfile.businessLogo.split(',')[1];
               const imageBuffer = Buffer.from(base64Data, 'base64');
-              const centerX = (doc.page.width - 120) / 2;
+              const centerX = (doc.page.width - 240) / 2;
               doc.image(imageBuffer, centerX, doc.y, {
-                fit: [120, 60],
+                fit: [240, 120],
                 align: 'center'
               });
               doc.moveDown(3);
@@ -2269,9 +2360,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Resolved business logo path:", businessLogoPath);
               
               if (fs.existsSync(businessLogoPath)) {
-                const centerX = (doc.page.width - 120) / 2;
+                const centerX = (doc.page.width - 240) / 2;
                 doc.image(businessLogoPath, centerX, doc.y, {
-                  fit: [120, 60],
+                  fit: [240, 120],
                   align: 'center'
                 });
                 doc.moveDown(3);
