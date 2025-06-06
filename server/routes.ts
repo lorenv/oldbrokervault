@@ -22,6 +22,7 @@ import JSZip from 'jszip';
 import sharp from 'sharp';
 import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
+import { generateSecureToken, generateRedirectId } from "./token-utils";
 
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -3567,10 +3568,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         }
         console.log("Owner found:", owner.email);
 
-        // Send emails to both signer and owner
-        console.log("Sending confirmation emails...");
+        // Send initial confirmation emails
+        console.log("Sending initial confirmation emails...");
         const shareLink = `${req.protocol}://${req.get('host')}/cims/${shareSlug}`;
-        const emailSent = await sendNdaSignedEmail(
+        const initialEmailSent = await sendNdaSignedEmail(
           signerEmail,
           owner.email,
           owner.name || owner.email,
@@ -3579,8 +3580,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           signedNdaContent
         );
 
-        if (!emailSent) {
-          console.error('Failed to send NDA confirmation emails');
+        if (!initialEmailSent) {
+          console.error('Failed to send initial NDA confirmation emails');
         }
 
         // Auto-sync to investor database after successful NDA signing
@@ -3630,10 +3631,50 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           // Don't fail the NDA signing if sync fails
         }
 
+        // Create access token for the signed user
+        console.log("Creating access token for NDA-signed user...");
+        const accessToken = generateSecureToken();
+        const ndaAccessToken = await storage.createNdaAccessToken(
+          accessToken,
+          cimDoc.id,
+          signature.id,
+          signerEmail
+        );
+        console.log("Access token created:", ndaAccessToken.id);
+
+        // Create redirect link
+        console.log("Creating redirect link...");
+        const redirectId = generateRedirectId();
+        const redirectLink = await storage.createNdaRedirectLink(
+          redirectId,
+          ndaAccessToken.id,
+          cimDoc.id,
+          signerEmail
+        );
+        console.log("Redirect link created:", redirectLink.id);
+
+        // Send updated email with redirect link instead of direct share link
+        console.log("Sending confirmation emails with redirect link...");
+        const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
+        const finalEmailSent = await sendNdaSignedEmail(
+          signerEmail,
+          owner.email,
+          owner.name || owner.email,
+          cimDoc.title,
+          redirectUrl,
+          signedNdaContent
+        );
+
+        if (!finalEmailSent) {
+          console.error('Failed to send NDA confirmation emails');
+        }
+
         console.log("NDA signing completed successfully");
         res.json({ 
           success: true, 
           signature,
+          accessToken,
+          redirectUrl,
           message: "NDA signed successfully. Check your email for confirmation and CIM access."
         });
 
@@ -3646,6 +3687,90 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.error('NDA signing error:', error);
       console.log("=== END NDA SIGNING DEBUG ===");
       res.status(500).json({ error: "Failed to process NDA signature" });
+    }
+  });
+
+  // NDA Redirect handler - stable URL that redirects to current token
+  app.get("/api/nda/redirect/:redirectId", async (req, res) => {
+    try {
+      const { redirectId } = req.params;
+      
+      console.log("=== NDA REDIRECT DEBUG ===");
+      console.log("Redirect ID:", redirectId);
+      
+      // Get redirect link
+      const redirectLink = await storage.getNdaRedirectLink(redirectId);
+      if (!redirectLink || !redirectLink.isActive) {
+        console.log("ERROR: Redirect link not found or inactive");
+        return res.status(404).json({ error: "Invalid or expired redirect link" });
+      }
+      
+      console.log("Found redirect link:", redirectLink.id);
+      
+      // Get current access token
+      const accessToken = await storage.getNdaAccessToken(redirectLink.currentTokenId.toString());
+      if (!accessToken || !accessToken.isActive) {
+        console.log("ERROR: Access token not found or inactive");
+        return res.status(404).json({ error: "Invalid or expired access token" });
+      }
+      
+      console.log("Found access token:", accessToken.id);
+      
+      // Update token last accessed
+      await storage.updateTokenLastAccessed(accessToken.token);
+      
+      // Get CIM document
+      const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
+      if (!cimDoc) {
+        console.log("ERROR: CIM document not found");
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      console.log("Redirecting to document with token:", accessToken.token);
+      console.log("=== END NDA REDIRECT DEBUG ===");
+      
+      // Redirect to document with token
+      const documentUrl = `/cims/${cimDoc.shareSlug}?token=${accessToken.token}`;
+      res.redirect(documentUrl);
+      
+    } catch (error) {
+      console.error('NDA redirect error:', error);
+      res.status(500).json({ error: "Failed to process redirect" });
+    }
+  });
+
+  // Validate NDA access token
+  app.get("/api/nda/validate-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const accessToken = await storage.getNdaAccessToken(token);
+      if (!accessToken || !accessToken.isActive) {
+        return res.status(401).json({ error: "Invalid or expired token", valid: false });
+      }
+      
+      // Update last accessed
+      await storage.updateTokenLastAccessed(token);
+      
+      // Get CIM document
+      const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
+      if (!cimDoc) {
+        return res.status(404).json({ error: "Document not found", valid: false });
+      }
+      
+      res.json({
+        valid: true,
+        cimDocument: {
+          id: cimDoc.id,
+          title: cimDoc.title,
+          shareSlug: cimDoc.shareSlug
+        },
+        signerEmail: accessToken.signerEmail
+      });
+      
+    } catch (error) {
+      console.error('Token validation error:', error);
+      res.status(500).json({ error: "Failed to validate token", valid: false });
     }
   });
 
