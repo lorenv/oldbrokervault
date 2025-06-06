@@ -10,9 +10,34 @@ import fs from 'fs';
 // Helper function to resolve image paths correctly
 function resolveImagePath(imagePath: string): string {
   if (!imagePath) return '';
-  return imagePath.startsWith('/') 
-    ? path.resolve(process.cwd(), 'public' + imagePath)
-    : imagePath;
+  
+  // If it's already an absolute path, return as is
+  if (path.isAbsolute(imagePath)) {
+    return imagePath;
+  }
+  
+  // If it starts with '/', assume it's relative to the project root
+  if (imagePath.startsWith('/')) {
+    return path.resolve(process.cwd(), imagePath.substring(1));
+  }
+  
+  // If it starts with 'attached_assets/', resolve relative to project root
+  if (imagePath.startsWith('attached_assets/')) {
+    return path.resolve(process.cwd(), imagePath);
+  }
+  
+  // For other cases, try both attached_assets and public directories
+  const attachedAssetsPath = path.resolve(process.cwd(), 'attached_assets', imagePath);
+  const publicPath = path.resolve(process.cwd(), 'public', imagePath);
+  
+  if (fs.existsSync(attachedAssetsPath)) {
+    return attachedAssetsPath;
+  } else if (fs.existsSync(publicPath)) {
+    return publicPath;
+  }
+  
+  // Default to attached_assets if file doesn't exist yet
+  return attachedAssetsPath;
 }
 
 export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
@@ -2065,10 +2090,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add profile photo if available
         if (userProfile.profilePhoto) {
           try {
+            console.log("=== PROFILE PHOTO DEBUG ===");
             console.log("Profile photo URL:", userProfile.profilePhoto);
             const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
             console.log("Resolved profile photo path:", profilePhotoPath);
             console.log("Profile photo exists:", fs.existsSync(profilePhotoPath));
+            console.log("Current working directory:", process.cwd());
             
             if (fs.existsSync(profilePhotoPath)) {
               const centerX = (doc.page.width - 60) / 2;
@@ -2080,7 +2107,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Successfully added profile photo to PDF");
             } else {
               console.log("Profile photo file does not exist at path:", profilePhotoPath);
+              // List directory contents for debugging
+              const dirname = path.dirname(profilePhotoPath);
+              console.log("Directory contents of", dirname, ":");
+              try {
+                const files = fs.readdirSync(dirname);
+                console.log(files.slice(0, 10)); // Show first 10 files
+              } catch (e) {
+                console.log("Could not read directory:", e.message);
+              }
             }
+            console.log("=== END PROFILE PHOTO DEBUG ===");
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
           }
