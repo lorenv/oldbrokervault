@@ -168,6 +168,31 @@ export const ndaSignatures = pgTable("nda_signatures", {
   signedNdaContent: text("signed_nda_content").notNull() // Base64 encoded signed PDF
 });
 
+// NDA Access Tokens - unique tokens for users who signed NDAs
+export const ndaAccessTokens = pgTable("nda_access_tokens", {
+  id: serial("id").primaryKey(),
+  token: text("token").unique().notNull(), // Unique secure token
+  cimDocumentId: integer("cim_document_id").notNull(),
+  ndaSignatureId: integer("nda_signature_id").notNull(),
+  signerEmail: text("signer_email").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+});
+
+// NDA Redirect Links - stable URLs that redirect to current tokens
+export const ndaRedirectLinks = pgTable("nda_redirect_links", {
+  id: serial("id").primaryKey(),
+  redirectId: text("redirect_id").unique().notNull(), // Stable redirect identifier
+  currentTokenId: integer("current_token_id").notNull(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  signerEmail: text("signer_email").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const financials = pgTable("financials", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
@@ -326,6 +351,22 @@ export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
   shareSlug: z.string().optional()
 });
 
+export const insertNdaAccessTokenSchema = createInsertSchema(ndaAccessTokens).pick({
+  token: true,
+  cimDocumentId: true,
+  ndaSignatureId: true,
+  signerEmail: true
+}).extend({
+  expiresAt: z.date().optional()
+});
+
+export const insertNdaRedirectLinkSchema = createInsertSchema(ndaRedirectLinks).pick({
+  redirectId: true,
+  currentTokenId: true,
+  cimDocumentId: true,
+  signerEmail: true
+});
+
 export const insertFinancialsSchema = createInsertSchema(financials).pick({
   cimDocumentId: true,
   enabled: true,
@@ -376,6 +417,10 @@ export type NdaTemplate = typeof ndaTemplates.$inferSelect;
 export type InsertNdaTemplate = z.infer<typeof insertNdaTemplateSchema>;
 export type NdaSignature = typeof ndaSignatures.$inferSelect;
 export type InsertNdaSignature = z.infer<typeof insertNdaSignatureSchema>;
+export type NdaAccessToken = typeof ndaAccessTokens.$inferSelect;
+export type InsertNdaAccessToken = z.infer<typeof insertNdaAccessTokenSchema>;
+export type NdaRedirectLink = typeof ndaRedirectLinks.$inferSelect;
+export type InsertNdaRedirectLink = z.infer<typeof insertNdaRedirectLinkSchema>;
 export type CustomSection = typeof customSections.$inferSelect;
 export type Financials = typeof financials.$inferSelect;
 export type InsertFinancials = z.infer<typeof insertFinancialsSchema>;
