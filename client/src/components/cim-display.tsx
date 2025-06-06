@@ -61,6 +61,11 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
 
+  // Update editValue when value prop changes
+  useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
   const handleSave = async () => {
     await onSave(editValue);
     setIsEditing(false);
@@ -451,33 +456,28 @@ export function CimDisplay({
       <div className="space-y-4">
         {/* Document Title Editor - Only in Edit View */}
         {!isSharedView && cimDocument && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Document Title</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FlexibleSectionEditor
-                value={cimDocument.title}
-                onSave={async (newTitle: string) => {
-                  try {
-                    const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                      title: newTitle
-                    });
-                    
-                    if (response.ok) {
-                      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                      toast({ title: "Title Updated", description: "Document title saved successfully." });
-                    }
-                  } catch (error) {
-                    toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
+          <div className="mb-4">
+            <FlexibleSectionEditor
+              value={cimDocument.title}
+              onSave={async (newTitle: string) => {
+                try {
+                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                    title: newTitle
+                  });
+                  
+                  if (response.ok) {
+                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                    toast({ title: "Title Updated", description: "Document title saved successfully." });
                   }
-                }}
-                placeholder="Enter document title"
-                multiline={false}
-              />
-            </CardContent>
-          </Card>
+                } catch (error) {
+                  toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
+                }
+              }}
+              placeholder="Enter document title"
+              multiline={false}
+            />
+          </div>
         )}
 
         {/* Cover Image Manager - Only in Edit View */}
@@ -494,17 +494,7 @@ export function CimDisplay({
           />
         )}
 
-        {/* Markdown Reference Guide - Only in Edit View */}
-        {!isSharedView && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Formatting Reference</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MarkdownGuide />
-            </CardContent>
-          </Card>
-        )}
+
 
         {/* Financial Information Section at Top */}
         {!isSharedView && cimDocument && (
@@ -965,6 +955,20 @@ export function CimDisplay({
       )}
 
       </div>
+      
+      {/* Markdown Reference Guide - Only in Edit View - Bottom of Interface */}
+      {!isSharedView && (
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Formatting Reference</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MarkdownGuide />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
