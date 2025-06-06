@@ -456,27 +456,29 @@ export function CimDisplay({
       <div className="space-y-4">
         {/* Document Title Editor - Only in Edit View */}
         {!isSharedView && cimDocument && (
-          <div className="mb-4">
-            <FlexibleSectionEditor
-              value={cimDocument.title}
-              onSave={async (newTitle: string) => {
-                try {
-                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                    title: newTitle
-                  });
-                  
-                  if (response.ok) {
-                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                    toast({ title: "Title Updated", description: "Document title saved successfully." });
+          <div className="mb-6">
+            <div className="text-3xl font-bold">
+              <FlexibleSectionEditor
+                value={cimDocument.title}
+                onSave={async (newTitle: string) => {
+                  try {
+                    const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                      title: newTitle
+                    });
+                    
+                    if (response.ok) {
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                      toast({ title: "Title Updated", description: "Document title saved successfully." });
+                    }
+                  } catch (error) {
+                    toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
                   }
-                } catch (error) {
-                  toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
-                }
-              }}
-              placeholder="Enter document title"
-              multiline={false}
-            />
+                }}
+                placeholder="Enter document title"
+                multiline={false}
+              />
+            </div>
           </div>
         )}
 
