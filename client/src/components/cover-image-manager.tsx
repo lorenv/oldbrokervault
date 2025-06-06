@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,17 +211,24 @@ export function CoverImageManager({
     }
   };
 
-  const handleDragPositionChange = (newPosition: { x: number; y: number }) => {
+  const handleDragPositionChange = useCallback((newPosition: { x: number; y: number }) => {
     setImagePosition(newPosition);
+  }, []);
+
+  // Debounced API call to prevent excessive requests
+  useEffect(() => {
+    if (!selectedImage) return;
     
-    if (selectedImage) {
+    const timeoutId = setTimeout(() => {
       updateCoverImageMutation.mutate({
         coverImageUrl: selectedImage,
-        coverImagePosition: JSON.stringify(newPosition),
+        coverImagePosition: JSON.stringify(imagePosition),
         coverImageAttribution: attribution,
       });
-    }
-  };
+    }, 1000); // Wait 1 second after user stops dragging
+
+    return () => clearTimeout(timeoutId);
+  }, [imagePosition, selectedImage, attribution]);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
