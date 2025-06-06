@@ -1546,7 +1546,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1558,6 +1558,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     doc.on('error', reject);
 
     try {
+      // Extract title from analysis or use provided documentTitle
+      const title = documentTitle || analysis?.title || 'Confidential Information Memorandum';
+      
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)

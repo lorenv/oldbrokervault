@@ -85,7 +85,7 @@ export interface IStorage {
     insertAfterSection: string;
   }): Promise<any>;
   getCustomSections(cimDocumentId: number): Promise<any[]>;
-  updateCustomSection(id: number, content: string): Promise<void>;
+  updateCustomSection(id: number, updates: { title?: string; content?: string }): Promise<void>;
   deleteCustomSection(id: number): Promise<void>;
   reorderCustomSections(sections: Array<{id: number, position: number}>): Promise<void>;
   // NDA Templates
