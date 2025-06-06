@@ -19,6 +19,31 @@ export function SharePage() {
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Check for access token in URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      setAccessToken(token);
+      // Remove token from URL for security
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Validate access token if present
+  const { data: tokenValidation } = useQuery({
+    queryKey: ['/api/nda/validate-token', accessToken],
+    queryFn: async () => {
+      if (!accessToken) return null;
+      const response = await fetch(`/api/nda/validate-token/${accessToken}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!accessToken,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
@@ -108,7 +133,9 @@ export function SharePage() {
     );
   }
 
-  const shouldShowNda = shareData.requiresNda && !hasSignedNda;
+  // If user has a valid access token, they can bypass NDA
+  const hasValidToken = tokenValidation?.valid === true;
+  const shouldShowNda = shareData.requiresNda && !hasSignedNda && !hasValidToken;
 
   if (shouldShowNda) {
     return (
