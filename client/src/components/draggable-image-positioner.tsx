@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Move } from "lucide-react";
 
 interface DraggableImagePositionerProps {
@@ -17,21 +17,8 @@ export function DraggableImagePositioner({
   disabled = false
 }: DraggableImagePositionerProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (disabled) return;
-    
-    e.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setInitialPosition(position);
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [position, disabled]);
+  const dragDataRef = useRef({ startX: 0, startY: 0, startPosition: { x: 0, y: 0 } });
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging || !containerRef.current) return;
@@ -39,31 +26,60 @@ export function DraggableImagePositioner({
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
     
-    // Calculate movement as percentage of container size
-    const deltaX = ((e.clientX - dragStart.x) / rect.width) * 100;
-    const deltaY = ((e.clientY - dragStart.y) / rect.height) * 100;
+    // Calculate movement as percentage
+    const deltaX = ((e.clientX - dragDataRef.current.startX) / rect.width) * 100;
+    const deltaY = ((e.clientY - dragDataRef.current.startY) / rect.height) * 100;
     
-    // Apply movement to initial position and clamp to 0-100%
-    const newX = Math.max(0, Math.min(100, initialPosition.x + deltaX));
-    const newY = Math.max(0, Math.min(100, initialPosition.y + deltaY));
+    // Apply movement and clamp to 0-100%
+    const newX = Math.max(0, Math.min(100, dragDataRef.current.startPosition.x + deltaX));
+    const newY = Math.max(0, Math.min(100, dragDataRef.current.startPosition.y + deltaY));
     
     onPositionChange({ x: newX, y: newY });
-  }, [isDragging, dragStart, initialPosition, onPositionChange]);
+  }, [isDragging, onPositionChange]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  }, [handleMouseMove]);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (disabled) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragDataRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosition: { ...position }
+    };
+    
+    setIsDragging(true);
+  }, [position, disabled]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (disabled) return;
     
     e.preventDefault();
     const touch = e.touches[0];
+    
+    dragDataRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startPosition: { ...position }
+    };
+    
     setIsDragging(true);
-    setDragStart({ x: touch.clientX, y: touch.clientY });
-    setInitialPosition(position);
   }, [position, disabled]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -74,14 +90,14 @@ export function DraggableImagePositioner({
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
     
-    const deltaX = ((touch.clientX - dragStart.x) / rect.width) * 100;
-    const deltaY = ((touch.clientY - dragStart.y) / rect.height) * 100;
+    const deltaX = ((touch.clientX - dragDataRef.current.startX) / rect.width) * 100;
+    const deltaY = ((touch.clientY - dragDataRef.current.startY) / rect.height) * 100;
     
-    const newX = Math.max(0, Math.min(100, initialPosition.x + deltaX));
-    const newY = Math.max(0, Math.min(100, initialPosition.y + deltaY));
+    const newX = Math.max(0, Math.min(100, dragDataRef.current.startPosition.x + deltaX));
+    const newY = Math.max(0, Math.min(100, dragDataRef.current.startPosition.y + deltaY));
     
     onPositionChange({ x: newX, y: newY });
-  }, [isDragging, dragStart, initialPosition, onPositionChange]);
+  }, [isDragging, onPositionChange]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -91,7 +107,9 @@ export function DraggableImagePositioner({
     <div className={`relative group ${className}`}>
       <div 
         ref={containerRef}
-        className={`relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden cursor-${disabled ? 'not-allowed' : 'move'} ${isDragging ? 'cursor-grabbing' : ''}`}
+        className={`relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden select-none ${
+          disabled ? 'cursor-not-allowed' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -107,19 +125,21 @@ export function DraggableImagePositioner({
           draggable={false}
         />
         
-        {/* Overlay gradient for visual appeal */}
+        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white opacity-30 pointer-events-none" />
         
         {/* Drag indicator */}
         {!disabled && (
-          <div className={`absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-md transition-opacity ${isDragging || containerRef.current ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+          <div className={`absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-md transition-opacity ${
+            isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}>
             <Move className="h-3 w-3" />
           </div>
         )}
         
         {/* Position indicator dot */}
         <div 
-          className="absolute w-2 h-2 bg-blue-500 border border-white rounded-full shadow-sm pointer-events-none transform -translate-x-1 -translate-y-1"
+          className="absolute w-3 h-3 bg-blue-500 border-2 border-white rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
           style={{
             left: `${position.x}%`,
             top: `${position.y}%`
@@ -129,7 +149,7 @@ export function DraggableImagePositioner({
       
       {!disabled && (
         <div className="mt-2 text-xs text-gray-500 text-center">
-          Click and drag to reposition the image
+          Click and drag to reposition the image • Position: {Math.round(position.x)}%, {Math.round(position.y)}%
         </div>
       )}
     </div>
