@@ -199,6 +199,7 @@ export function CimDisplay({
   // Local state for immediate UI updates
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(logoUrl || undefined);
   const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
+  const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -207,7 +208,8 @@ export function CimDisplay({
   useEffect(() => {
     setLocalLogoUrl(logoUrl);
     setLocalSelectedImages(selectedImages || []);
-  }, [logoUrl, selectedImages]);
+    setLocalTitle(cimDocument?.title || "");
+  }, [logoUrl, selectedImages, cimDocument?.title]);
 
   // Handle auto-trigger share settings
   useEffect(() => {
@@ -459,9 +461,12 @@ export function CimDisplay({
           <div className="mb-6">
             <div className="text-3xl font-bold">
               <FlexibleSectionEditor
-                value={cimDocument.title}
+                value={localTitle}
                 onSave={async (newTitle: string) => {
                   try {
+                    // Update local state immediately for instant UI feedback
+                    setLocalTitle(newTitle);
+                    
                     const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                       title: newTitle
                     });
@@ -470,8 +475,13 @@ export function CimDisplay({
                       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                       queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                       toast({ title: "Title Updated", description: "Document title saved successfully." });
+                    } else {
+                      // Revert on error
+                      setLocalTitle(cimDocument.title);
                     }
                   } catch (error) {
+                    // Revert on error
+                    setLocalTitle(cimDocument.title);
                     toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
                   }
                 }}
