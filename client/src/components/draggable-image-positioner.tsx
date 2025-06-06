@@ -26,9 +26,9 @@ export function DraggableImagePositioner({
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
     
-    // Calculate movement as percentage
-    const deltaX = ((e.clientX - dragDataRef.current.startX) / rect.width) * 100;
-    const deltaY = ((e.clientY - dragDataRef.current.startY) / rect.height) * 100;
+    // Calculate movement as percentage (inverted for intuitive dragging)
+    const deltaX = ((dragDataRef.current.startX - e.clientX) / rect.width) * 100;
+    const deltaY = ((dragDataRef.current.startY - e.clientY) / rect.height) * 100;
     
     // Apply movement and clamp to 0-100%
     const newX = Math.max(0, Math.min(100, dragDataRef.current.startPosition.x + deltaX));
@@ -90,8 +90,8 @@ export function DraggableImagePositioner({
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
     
-    const deltaX = ((touch.clientX - dragDataRef.current.startX) / rect.width) * 100;
-    const deltaY = ((touch.clientY - dragDataRef.current.startY) / rect.height) * 100;
+    const deltaX = ((dragDataRef.current.startX - touch.clientX) / rect.width) * 100;
+    const deltaY = ((dragDataRef.current.startY - touch.clientY) / rect.height) * 100;
     
     const newX = Math.max(0, Math.min(100, dragDataRef.current.startPosition.x + deltaX));
     const newY = Math.max(0, Math.min(100, dragDataRef.current.startPosition.y + deltaY));
