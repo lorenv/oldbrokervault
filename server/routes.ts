@@ -334,6 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Shared PDF export request for slug:", shareSlug);
       
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      console.log("Found document for PDF export:", cimDoc ? cimDoc.id : 'null');
       
       if (!cimDoc) {
         return res.status(404).json({ error: "Document not found" });
@@ -382,6 +383,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
+      console.log("About to call generatePDF function...");
+      
       const pdfBuffer = await generatePDF(
         cimDoc.analysis,
         cimDoc.logoUrl,
@@ -394,6 +397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.title,
         customSections
       );
+      
+      console.log("PDF generation completed, buffer length:", pdfBuffer.length);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="cim-${cimDoc.id}.pdf"`);
