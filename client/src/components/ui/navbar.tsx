@@ -24,8 +24,8 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
-            <a className="flex items-center space-x-2 font-semibold text-lg">
-              <span>CIM Share</span>
+            <a className="flex items-center space-x-2">
+              <img src="/cim-share-logo.png" alt="CIM Share" className="h-8" />
             </a>
           </Link>
           {!user && (
@@ -43,7 +43,12 @@ export function Navbar() {
         {!user && (
           <div className="flex items-center ml-8">
             <Link href="/login">
-              <Button size="sm">Login / Sign Up</Button>
+              <Button 
+                size="sm" 
+                className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-900 transition-colors" : ""}
+              >
+                Login / Sign Up
+              </Button>
             </Link>
           </div>
         )}
@@ -57,7 +62,11 @@ export function Navbar() {
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-900 transition-colors" : ""}
+                >
                   <User className="h-4 w-4 mr-2" />
                   My Account
                 </Button>
