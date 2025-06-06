@@ -384,6 +384,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = `${protocol}://${host}`;
 
       console.log("About to call generatePDF function...");
+      console.log("Parameters being passed to generatePDF:");
+      console.log("- analysis:", !!cimDoc.analysis ? "present" : "missing");
+      console.log("- logoUrl:", cimDoc.logoUrl);
+      console.log("- websiteUrl:", cimDoc.websiteUrl);
+      console.log("- selectedImages:", cimDoc.selectedImages);
+      console.log("- userProfile:", JSON.stringify(userProfile, null, 2));
+      console.log("- financialData:", JSON.stringify(financialData, null, 2));
+      console.log("- customSections:", JSON.stringify(customSections, null, 2));
       
       const pdfBuffer = await generatePDF(
         cimDoc.analysis,
