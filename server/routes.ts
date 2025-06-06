@@ -374,6 +374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         financialFilesCount: documentFinancialFiles?.length || 0
       });
 
+      // Get custom sections for the shared document
+      const customSections = await storage.getCustomSections(cimDoc.id);
+
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
@@ -388,7 +391,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         financialData,
         documentFinancialFiles,
         baseUrl,
-        cimDoc.title
+        cimDoc.title,
+        customSections
       );
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -2324,9 +2328,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitda: doc.ebitda,
         ebitdaIncluded: doc.ebitdaIncluded || false
       };
+
+      // Get custom sections for the document
+      const customSections = await storage.getCustomSections(docId);
       
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.title, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData);
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, [], undefined, doc.title, customSections);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");

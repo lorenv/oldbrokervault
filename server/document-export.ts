@@ -1546,7 +1546,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1655,6 +1655,99 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .text('Note: Additional financial documents may be available upon request.');
         
         doc.moveDown(2);
+      }
+
+      // Website URL Section (moved after financials)
+      if (websiteUrl) {
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('Website')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+        doc.fontSize(12)
+           .fillColor('#2563eb')
+           .text(websiteUrl, {
+             link: websiteUrl,
+             underline: true,
+             align: 'center'
+           });
+        doc.fillColor('#000000');
+        doc.moveDown(2);
+      }
+
+      // Custom Sections (in their proper order)
+      if (customSections && customSections.length > 0) {
+        // Sort custom sections by position
+        const sortedCustomSections = [...customSections].sort((a, b) => a.position - b.position);
+        
+        sortedCustomSections.forEach((customSection) => {
+          doc.fontSize(18)
+             .font('Helvetica-Bold')
+             .fillColor('#2563eb')
+             .text(customSection.title || 'Custom Section')
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
+          
+          doc.moveDown(1);
+          
+          if (customSection.type === 'text' && customSection.content) {
+            // Handle markdown-style content by converting to plain text
+            const content = customSection.content
+              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+              .replace(/^#+\s+/gm, '') // Remove headers
+              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+              .trim();
+            
+            doc.font('Helvetica').text(content, {
+              align: 'left',
+              lineGap: 4
+            });
+          } else if (customSection.type === 'image' && customSection.imageUrls && customSection.imageUrls.length > 0) {
+            // Handle custom image sections
+            const imageWidth = 220;
+            const imageHeight = 165;
+            const horizontalMargin = 25;
+            const verticalMargin = 30;
+            const imagesPerRow = 2;
+            
+            const totalImageWidth = (imageWidth * imagesPerRow) + (horizontalMargin * (imagesPerRow - 1));
+            const startX = (doc.page.width - totalImageWidth) / 2;
+            let currentY = doc.y;
+            
+            customSection.imageUrls.forEach((imageUrl: string, index: number) => {
+              try {
+                const imagePath = resolveImagePath(imageUrl);
+                if (fs.existsSync(imagePath)) {
+                  const col = index % imagesPerRow;
+                  const row = Math.floor(index / imagesPerRow);
+                  
+                  const finalX = startX + (col * (imageWidth + horizontalMargin));
+                  const finalY = currentY + (row * (imageHeight + verticalMargin));
+                  
+                  doc.image(imagePath, finalX, finalY, {
+                    fit: [imageWidth, imageHeight],
+                    align: 'center'
+                  });
+                }
+              } catch (error) {
+                console.error(`Failed to add custom section image ${imageUrl} to PDF:`, error);
+              }
+            });
+            
+            // Calculate how much space the images took
+            const rows = Math.ceil(customSection.imageUrls.length / imagesPerRow);
+            const totalImageHeight = rows * imageHeight + (rows - 1) * verticalMargin;
+            doc.y = currentY + totalImageHeight;
+          }
+          
+          doc.moveDown(2);
+        });
       }
 
       // Business Images Section
@@ -1940,31 +2033,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.font('Helvetica').text(highlightsText);
       doc.moveDown(2);
 
-      // Website URL Section
-      if (websiteUrl) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Website')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.fontSize(12)
-           .fillColor('#2563eb')
-           .text(websiteUrl, {
-             link: websiteUrl,
-             underline: true,
-             align: 'center'
-           });
-        doc.fillColor('#000000');
-        doc.moveDown(2);
-      }
-
       // Contact Information - Professional formatting with images
       if (userProfile) {
         doc.moveDown(4);
+        
+        // Add horizontal line before contact information
+        doc.strokeColor('#e5e7eb')
+           .lineWidth(1)
+           .moveTo(50, doc.y)
+           .lineTo(doc.page.width - 50, doc.y)
+           .stroke();
+        
+        doc.moveDown(2);
         
         // Contact Information header with professional spacing
         doc.fontSize(16)
