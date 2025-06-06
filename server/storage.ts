@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -98,6 +98,15 @@ export interface IStorage {
   createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature>;
   getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]>;
   checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined>;
+  // NDA Access Tokens
+  createNdaAccessToken(token: string, cimDocumentId: number, ndaSignatureId: number, signerEmail: string, expiresAt?: Date): Promise<any>;
+  getNdaAccessToken(token: string): Promise<any | undefined>;
+  updateTokenLastAccessed(token: string): Promise<void>;
+  deactivateToken(token: string): Promise<void>;
+  // NDA Redirect Links
+  createNdaRedirectLink(redirectId: string, tokenId: number, cimDocumentId: number, signerEmail: string): Promise<any>;
+  getNdaRedirectLink(redirectId: string): Promise<any | undefined>;
+  updateRedirectLinkToken(redirectId: string, newTokenId: number): Promise<void>;
   // Collaboration
   startEditing(docId: number, userId: number, userName: string): Promise<boolean>;
   stopEditing(docId: number, userId: number): Promise<void>;
@@ -731,6 +740,78 @@ export class DatabaseStorage implements IStorage {
         sql`${ndaSignatures.cimDocumentId} = ${cimDocumentId} AND ${ndaSignatures.signerEmail} = ${email}`
       );
     return signature || undefined;
+  }
+
+  // NDA Access Tokens
+  async createNdaAccessToken(token: string, cimDocumentId: number, ndaSignatureId: number, signerEmail: string, expiresAt?: Date): Promise<NdaAccessToken> {
+    const [newToken] = await db.insert(ndaAccessTokens)
+      .values({
+        token,
+        cimDocumentId,
+        ndaSignatureId,
+        signerEmail,
+        expiresAt
+      })
+      .returning();
+    return newToken;
+  }
+
+  async getNdaAccessToken(token: string): Promise<NdaAccessToken | undefined> {
+    const [accessToken] = await db.select()
+      .from(ndaAccessTokens)
+      .where(and(
+        eq(ndaAccessTokens.token, token),
+        eq(ndaAccessTokens.isActive, true),
+        or(
+          sql`${ndaAccessTokens.expiresAt} IS NULL`,
+          sql`${ndaAccessTokens.expiresAt} > NOW()`
+        )
+      ));
+    return accessToken;
+  }
+
+  async updateTokenLastAccessed(token: string): Promise<void> {
+    await db.update(ndaAccessTokens)
+      .set({ lastAccessedAt: new Date() })
+      .where(eq(ndaAccessTokens.token, token));
+  }
+
+  async deactivateToken(token: string): Promise<void> {
+    await db.update(ndaAccessTokens)
+      .set({ isActive: false })
+      .where(eq(ndaAccessTokens.token, token));
+  }
+
+  // NDA Redirect Links
+  async createNdaRedirectLink(redirectId: string, tokenId: number, cimDocumentId: number, signerEmail: string): Promise<NdaRedirectLink> {
+    const [newRedirect] = await db.insert(ndaRedirectLinks)
+      .values({
+        redirectId,
+        currentTokenId: tokenId,
+        cimDocumentId,
+        signerEmail
+      })
+      .returning();
+    return newRedirect;
+  }
+
+  async getNdaRedirectLink(redirectId: string): Promise<NdaRedirectLink | undefined> {
+    const [redirect] = await db.select()
+      .from(ndaRedirectLinks)
+      .where(and(
+        eq(ndaRedirectLinks.redirectId, redirectId),
+        eq(ndaRedirectLinks.isActive, true)
+      ));
+    return redirect;
+  }
+
+  async updateRedirectLinkToken(redirectId: string, newTokenId: number): Promise<void> {
+    await db.update(ndaRedirectLinks)
+      .set({ 
+        currentTokenId: newTokenId,
+        updatedAt: new Date()
+      })
+      .where(eq(ndaRedirectLinks.redirectId, redirectId));
   }
 
   // Share Links
