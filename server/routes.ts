@@ -387,7 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userProfile,
         financialData,
         documentFinancialFiles,
-        baseUrl
+        baseUrl,
+        cimDoc.title
       );
 
       res.setHeader('Content-Type', 'application/pdf');
