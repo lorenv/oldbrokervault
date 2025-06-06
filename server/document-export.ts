@@ -2066,6 +2066,89 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.font('Helvetica').text(highlightsText);
       doc.moveDown(2);
 
+      // Custom Sections - Add after Investment Highlights
+      if (customSections && customSections.length > 0) {
+        console.log("=== ADDING CUSTOM SECTIONS TO PDF ===");
+        console.log("Custom sections found:", customSections.length);
+        
+        customSections.forEach((section: any, index: number) => {
+          try {
+            console.log(`Processing custom section ${index + 1}:`, section.title, section.type);
+            
+            // Add section title
+            doc.fontSize(18)
+               .font('Helvetica-Bold')
+               .fillColor('#2563eb')
+               .text(section.title || `Custom Section ${index + 1}`)
+               .fillColor('#000000')
+               .font('Helvetica')
+               .fontSize(12);
+            
+            doc.moveDown(1);
+            
+            // Handle different section types
+            if (section.type === 'text' && section.content) {
+              // Text section
+              doc.font('Helvetica').text(section.content, {
+                align: 'left',
+                lineGap: 4
+              });
+              doc.moveDown(2);
+            } else if (section.type === 'image' && section.image_urls) {
+              // Image section
+              console.log("Processing image section with URLs:", section.image_urls);
+              
+              const imageUrls = Array.isArray(section.image_urls) ? section.image_urls : [section.image_urls];
+              
+              imageUrls.forEach((imageUrl: string, imgIndex: number) => {
+                try {
+                  if (imageUrl) {
+                    console.log(`Processing image ${imgIndex + 1}:`, imageUrl);
+                    
+                    if (imageUrl.startsWith('data:')) {
+                      // Handle base64 data URI
+                      const base64Data = imageUrl.split(',')[1];
+                      const imageBuffer = Buffer.from(base64Data, 'base64');
+                      const centerX = (doc.page.width - 300) / 2;
+                      doc.image(imageBuffer, centerX, doc.y, {
+                        fit: [300, 200],
+                        align: 'center'
+                      });
+                      doc.moveDown(3);
+                      console.log("Successfully added base64 custom section image");
+                    } else {
+                      // Handle file path
+                      const imagePath = resolveImagePath(imageUrl);
+                      console.log("Resolved custom section image path:", imagePath);
+                      
+                      if (fs.existsSync(imagePath)) {
+                        const centerX = (doc.page.width - 300) / 2;
+                        doc.image(imagePath, centerX, doc.y, {
+                          fit: [300, 200],
+                          align: 'center'
+                        });
+                        doc.moveDown(3);
+                        console.log("Successfully added file-based custom section image");
+                      } else {
+                        console.log("Custom section image file does not exist:", imagePath);
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error(`Failed to add custom section image ${imgIndex + 1}:`, error);
+                }
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to process custom section ${index + 1}:`, error);
+          }
+        });
+        
+        console.log("=== FINISHED ADDING CUSTOM SECTIONS ===");
+      } else {
+        console.log("No custom sections to add to PDF");
+      }
+
       // Contact Information - Professional formatting with images
       if (userProfile) {
         doc.moveDown(4);
@@ -2097,9 +2180,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Handle base64 data URI
               const base64Data = userProfile.profilePhoto.split(',')[1];
               const imageBuffer = Buffer.from(base64Data, 'base64');
-              const centerX = (doc.page.width - 60) / 2;
+              const centerX = (doc.page.width - 100) / 2;
               doc.image(imageBuffer, centerX, doc.y, {
-                fit: [60, 60],
+                fit: [100, 100],
                 align: 'center'
               });
               doc.moveDown(4);
@@ -2110,9 +2193,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Resolved profile photo path:", profilePhotoPath);
               
               if (fs.existsSync(profilePhotoPath)) {
-                const centerX = (doc.page.width - 60) / 2;
+                const centerX = (doc.page.width - 100) / 2;
                 doc.image(profilePhotoPath, centerX, doc.y, {
-                  fit: [60, 60],
+                  fit: [100, 100],
                   align: 'center'
                 });
                 doc.moveDown(4);
@@ -2173,9 +2256,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Handle base64 data URI
               const base64Data = userProfile.businessLogo.split(',')[1];
               const imageBuffer = Buffer.from(base64Data, 'base64');
-              const centerX = (doc.page.width - 80) / 2;
+              const centerX = (doc.page.width - 120) / 2;
               doc.image(imageBuffer, centerX, doc.y, {
-                fit: [80, 40],
+                fit: [120, 60],
                 align: 'center'
               });
               doc.moveDown(3);
@@ -2186,9 +2269,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Resolved business logo path:", businessLogoPath);
               
               if (fs.existsSync(businessLogoPath)) {
-                const centerX = (doc.page.width - 80) / 2;
+                const centerX = (doc.page.width - 120) / 2;
                 doc.image(businessLogoPath, centerX, doc.y, {
-                  fit: [80, 40],
+                  fit: [120, 60],
                   align: 'center'
                 });
                 doc.moveDown(3);
