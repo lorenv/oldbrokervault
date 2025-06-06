@@ -137,14 +137,7 @@ export function DraggableImagePositioner({
           </div>
         )}
         
-        {/* Position indicator dot */}
-        <div 
-          className="absolute w-3 h-3 bg-blue-500 border-2 border-white rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            left: `${position.x}%`,
-            top: `${position.y}%`
-          }}
-        />
+
       </div>
       
       {!disabled && (
