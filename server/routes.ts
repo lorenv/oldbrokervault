@@ -4273,7 +4273,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       // Import investorContacts table
       const { investorContacts } = await import('@shared/schema');
-      const { and, like, or, desc, asc, count } = await import('drizzle-orm');
+      const { and, like, or, desc, asc, count, inArray } = await import('drizzle-orm');
       
       // Build conditions
       const conditions = [eq(investorContacts.userId, req.user.id)];
@@ -4389,32 +4389,82 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         }
       }
       
-      // Get NDA signature data to enrich existing contacts
-      const { ndaSignatures } = await import('@shared/schema');
-      const allSignatures = await db.select().from(ndaSignatures);
+      // Efficiently get NDA signature data using joins for better performance
+      const { ndaSignatures, cimDocuments } = await import('@shared/schema');
+      const { sql, inArray: inArrayImport } = await import('drizzle-orm');
       
-      // Get CIM document details for enrichment
-      const { cimDocuments } = await import('@shared/schema');
-      const allDocuments = await db.select().from(cimDocuments);
+      // Get user's document IDs for filtering
+      const userCims = await db
+        .select({ id: cimDocuments.id })
+        .from(cimDocuments)
+        .where(eq(cimDocuments.userId, req.user.id));
+      const userCimIds = userCims.map(cim => cim.id);
       
-      // Enrich contacts with NDA signature data
+      // Use efficient aggregation query to get signature counts and latest dates
+      const signatureStats = userCimIds.length > 0 ? await db
+        .select({
+          signerEmail: ndaSignatures.signerEmail,
+          totalSignatures: sql<number>`COUNT(*)::int`,
+          lastSignedAt: sql<Date>`MAX(${ndaSignatures.signedAt})`
+        })
+        .from(ndaSignatures)
+        .where(
+          and(
+            inArrayImport(ndaSignatures.cimDocumentId, userCimIds),
+            sql`${ndaSignatures.signerEmail} IN (${sql.join(
+              contacts.map(c => sql`${c.email}`),
+              sql`, `
+            )})`
+          )
+        )
+        .groupBy(ndaSignatures.signerEmail) : [];
+      
+      // Get detailed document info only for contacts that need it
+      const contactDocuments = userCimIds.length > 0 ? await db
+        .select({
+          signerEmail: ndaSignatures.signerEmail,
+          documentId: ndaSignatures.cimDocumentId,
+          documentTitle: cimDocuments.title,
+          signedAt: ndaSignatures.signedAt,
+          signerName: ndaSignatures.signerName
+        })
+        .from(ndaSignatures)
+        .innerJoin(cimDocuments, eq(ndaSignatures.cimDocumentId, cimDocuments.id))
+        .where(
+          and(
+            inArrayImport(ndaSignatures.cimDocumentId, userCimIds),
+            sql`${ndaSignatures.signerEmail} IN (${sql.join(
+              contacts.map(c => sql`${c.email}`),
+              sql`, `
+            )})`
+          )
+        ) : [];
+      
+      // Create lookup maps for O(1) access
+      const statsMap = new Map(signatureStats.map(stat => [stat.signerEmail, stat]));
+      const docsMap = new Map<string, typeof contactDocuments>();
+      contactDocuments.forEach(doc => {
+        if (!docsMap.has(doc.signerEmail)) {
+          docsMap.set(doc.signerEmail, []);
+        }
+        docsMap.get(doc.signerEmail)!.push(doc);
+      });
+      
+      // Efficiently enrich contacts using lookup maps
       const enrichedContacts = contacts.map(contact => {
-        const signatures = allSignatures.filter(sig => sig.signerEmail === contact.email);
-        const contactDocuments = signatures.map(sig => {
-          const doc = allDocuments.find(d => d.id === sig.cimDocumentId);
-          return {
-            documentId: sig.cimDocumentId,
-            documentTitle: doc?.title || 'Unknown Document',
-            signedAt: sig.signedAt,
-            signerName: sig.signerName
-          };
-        });
+        const stats = statsMap.get(contact.email);
+        const docs = docsMap.get(contact.email) || [];
         
         return {
           ...contact,
-          totalNdaSignatures: signatures.length,
-          documents: contactDocuments,
-          lastNdaSigned: signatures.length > 0 ? Math.max(...signatures.map(sig => new Date(sig.signedAt).getTime())) : null
+          totalNdaSignatures: stats?.totalSignatures || 0,
+          documents: docs.map(doc => ({
+            documentId: doc.documentId,
+            documentTitle: doc.documentTitle,
+            signedAt: doc.signedAt,
+            signerName: doc.signerName
+          })),
+          lastNdaSigned: stats?.lastSignedAt ? new Date(stats.lastSignedAt).getTime() : null
         };
       });
       
