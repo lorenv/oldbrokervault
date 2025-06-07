@@ -212,9 +212,32 @@ export function setupSecurity(app: Express) {
   // Prevent HTTP Parameter Pollution
   app.use(hpp());
 
-  // Global rate limiting
-  app.use('/api', speedLimiter);
-  app.use('/api', apiLimiter);
+  // Global rate limiting - exclude public routes
+  app.use('/api', (req, res, next) => {
+    const isPublicApiRoute = req.path.startsWith('/api/share/') || 
+                            req.path.startsWith('/api/register') ||
+                            req.path.startsWith('/api/login');
+    
+    if (isPublicApiRoute) {
+      // More lenient limits for public routes
+      const publicLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 200, // Double the limit for public routes
+        message: {
+          error: "Too many requests, please try again later.",
+          retryAfter: "15 minutes"
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+      return publicLimiter(req, res, next);
+    }
+    
+    // Apply normal limits for authenticated routes
+    speedLimiter(req, res, () => {
+      apiLimiter(req, res, next);
+    });
+  });
 
   // Stricter limits for sensitive endpoints
   app.use('/api/login', authLimiter);
@@ -238,8 +261,8 @@ export function setupSecurity(app: Express) {
   app.use('/api/upload', auditLogger('FILE_UPLOAD'));
 }
 
-// Enhanced session security
-export const secureSessionConfig = {
+// Enhanced session security - Dynamic configuration based on route
+export const getSessionConfig = (isPublicRoute: boolean = false) => ({
   name: 'sessionId', // Don't use default session name
   secret: process.env.SESSION_SECRET!,
   resave: false,
@@ -248,10 +271,13 @@ export const secureSessionConfig = {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true, // Prevent XSS access to cookies
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'strict' as const, // CSRF protection
+    sameSite: isPublicRoute ? 'lax' as const : 'strict' as const, // Allow cross-site for public routes
   },
   rolling: true, // Reset expiry on each request
-};
+});
+
+// Legacy export for backwards compatibility
+export const secureSessionConfig = getSessionConfig(false);
 
 // Security health check endpoint
 export const securityHealthCheck = (req: Request, res: Response) => {

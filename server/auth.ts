@@ -6,7 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { secureSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
+import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
 
 declare global {
   namespace Express {
@@ -30,13 +30,28 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // Use enhanced secure session configuration
-  const sessionSettings: session.SessionOptions = {
-    ...secureSessionConfig,
-    store: storage.sessionStore,
-  };
+  // Dynamic session configuration based on route
+  app.use((req, res, next) => {
+    const isPublicRoute = req.path.startsWith('/share/') || 
+                         req.path.startsWith('/api/share/') ||
+                         req.path === '/' ||
+                         req.path === '/pricing' ||
+                         req.path === '/privacy-policy' ||
+                         req.path === '/cookie-policy' ||
+                         req.path === '/login' ||
+                         req.path === '/auth' ||
+                         req.path.startsWith('/nda/redirect/') ||
+                         req.path.startsWith('/api/register') ||
+                         req.path.startsWith('/api/login');
+    
+    const sessionSettings: session.SessionOptions = {
+      ...getSessionConfig(isPublicRoute),
+      store: storage.sessionStore,
+    };
 
-  app.use(session(sessionSettings));
+    session(sessionSettings)(req, res, next);
+  });
+
   app.use(passport.initialize());
   app.use(passport.session());
 
