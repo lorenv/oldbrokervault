@@ -45,7 +45,7 @@ export function Navbar() {
             <Link href="/login">
               <Button 
                 size="sm" 
-                className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-900 transition-colors" : ""}
+                className={isHomePage ? "bg-transparent border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors" : ""}
               >
                 Login / Sign Up
               </Button>
