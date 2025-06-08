@@ -66,7 +66,7 @@ export function Navbar() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className={isHomePage ? "bg-transparent border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white transition-colors" : ""}
+                  className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}
                 >
                   <User className="h-4 w-4 mr-2" />
                   My Account
