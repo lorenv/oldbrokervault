@@ -98,7 +98,7 @@ export async function sendNdaSignedEmail(
   // Email to owner
   const ownerSuccess = await sendEmail({
     to: ownerEmail,
-    from: ownerEmail, // From the owner's own email
+    from: 'noreply@cimshare.io', // Use verified sender
     subject: `NDA Signed by ${viewerEmail} - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
