@@ -1627,10 +1627,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     try {
       // Debug logging for PDF generation
       console.log("=== PDF Generation Debug ===");
+      console.log("Analysis received:", !!analysis ? "present" : "missing");
+      console.log("Analysis type:", typeof analysis);
+      console.log("Analysis sections:", analysis?.sections ? analysis.sections.length : "no sections");
+      console.log("Analysis structure:", JSON.stringify(analysis, null, 2));
       console.log("User Profile received:", JSON.stringify(userProfile, null, 2));
       console.log("Custom Sections count:", customSections ? customSections.length : 0);
       console.log("Custom Sections data:", JSON.stringify(customSections, null, 2));
       console.log("Selected Images count:", selectedImages ? selectedImages.length : 0);
+      console.log("Selected Images data:", selectedImages);
       console.log("===========================");
       
       // Add cover image at the top of the first page if available
