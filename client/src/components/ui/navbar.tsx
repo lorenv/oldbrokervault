@@ -23,22 +23,20 @@ export function Navbar() {
     <nav className={isHomePage ? "absolute top-0 left-0 right-0 z-50" : "border-b"}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
-          <Link href={user ? "/dashboard" : "/"}>
-            <a className="flex items-center space-x-2">
-              <img 
-                src="/cim-share-logo.png" 
-                alt="CIM Share" 
-                className={`h-12 ${isHomePage ? "brightness-0 invert" : ""}`}
-              />
-            </a>
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
+            <img 
+              src="/cim-share-logo.png" 
+              alt="CIM Share" 
+              className={`h-12 ${isHomePage ? "brightness-0 invert" : ""}`}
+            />
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
-              <Link href="/pricing">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</a>
+              <Link href="/pricing" className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>
+                Pricing
               </Link>
-              <Link href="/contact">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</a>
+              <Link href="/contact" className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>
+                Contact
               </Link>
             </div>
           )}
