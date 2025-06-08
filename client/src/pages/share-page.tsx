@@ -13,8 +13,9 @@ import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
 import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink } from "lucide-react";
 
 export function SharePage() {
-  const [, params] = useRoute("/share/:shareSlug");
-  const shareSlug = params?.shareSlug;
+  const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
+  const [matchCims, paramsCims] = useRoute("/cims/:shareSlug");
+  const shareSlug = paramsShare?.shareSlug || paramsCims?.shareSlug;
   
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
