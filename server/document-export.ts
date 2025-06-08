@@ -1644,6 +1644,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
+    // Register custom Segoe UI fonts
+    try {
+      doc.registerFont('Segoe-Regular', path.join(__dirname, 'fonts', 'segoe-ui-regular.ttf'));
+      doc.registerFont('Segoe-Bold', path.join(__dirname, 'fonts', 'segoe-ui-bold.ttf'));
+      doc.registerFont('Segoe-Italic', path.join(__dirname, 'fonts', 'segoe-ui-italic.ttf'));
+      doc.registerFont('Segoe-Light', path.join(__dirname, 'fonts', 'segoe-ui-light.ttf'));
+      console.log("Successfully registered Segoe UI fonts");
+    } catch (error) {
+      console.error("Failed to register custom fonts, falling back to default:", error);
+    }
+    
     // Track page information
     let currentPageNumber = 1;
     
@@ -1765,9 +1776,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
+        doc.moveDown(0.5);
+        
+        // Add subtitle text
+        doc.fontSize(12)
+           .font('Segoe-Italic')
+           .fillColor('#6b7280')
+           .text('Confidential Memorandum - includes sensitive material', { align: 'center' });
         doc.moveDown(1);
       }
 
@@ -1857,12 +1875,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
+        doc.addPage(); // Add page break before Financial Information
         doc.fontSize(18)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('FINANCIAL INFORMATION')
            .fillColor('#000000')
-           .font('Helvetica')
+           .font('Segoe-Regular')
            .fontSize(12);
         
         doc.moveDown(1);
