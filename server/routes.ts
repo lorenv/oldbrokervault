@@ -981,6 +981,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload business image endpoint
+  app.post("/api/cim/:id/business-image", upload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No image uploaded" });
+      }
+
+      console.log(`Business image upload request - CIM ID: ${cimId}`);
+
+      const cim = await storage.getCimDocument(cimId);
+      if (!cim) {
+        console.log("CIM document not found");
+        return res.status(404).json({ error: "CIM not found" });
+      }
+
+      if (cim.userId !== req.user!.id) {
+        console.log("Unauthorized access attempt");
+        return res.sendStatus(403);
+      }
+
+      // Ensure business images directory exists
+      if (!fs.existsSync(businessImagesDir)) {
+        fs.mkdirSync(businessImagesDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `business-${cimId}-${Date.now()}${fileExtension}`;
+      const filePath = path.join(businessImagesDir, fileName);
+      const publicPath = `/business-images/${fileName}`;
+
+      // Save the file
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Update the CIM document with the new image
+      const currentImages = cim.selectedImages || [];
+      const updatedImages = [...currentImages, publicPath];
+      await storage.updateCimImages(cimId, updatedImages);
+
+      console.log(`Successfully uploaded business image: ${publicPath}`);
+      res.json({ success: true, imagePath: publicPath });
+    } catch (error) {
+      console.error("Business image upload error:", error);
+      res.status(500).json({ error: "Failed to upload business image" });
+    }
+  });
+
   // Delete individual business image endpoint
   app.delete("/api/cim/:id/business-image/:index", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
