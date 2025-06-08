@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
-import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
+import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
@@ -736,32 +736,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           null // websiteData - will add later if needed
         );
         
-        // If website URL is provided, enhance the analysis with website data
+        // If website URL is provided, extract logo in parallel
         if (data.websiteUrl) {
           try {
-            // Normalize and validate the URL
             const normalizedUrl = normalizeUrl(data.websiteUrl);
             
-            // First, capture a screenshot of the website
-            let websiteScreenshotUrl = null;
+            // Extract logo only (screenshot functionality removed for efficiency)
             try {
-              console.log("Capturing website screenshot...");
-              websiteScreenshotUrl = await captureWebsiteScreenshot(normalizedUrl);
-              console.log("Website screenshot captured:", websiteScreenshotUrl);
-            } catch (screenshotError) {
-              console.error("Website screenshot error:", screenshotError);
-              // Continue even if screenshot fails
+              console.log("Extracting logo from website...");
+              const logoUrl = await extractLogoFromWebsite(normalizedUrl);
+              if (logoUrl) {
+                existingDoc.logoUrl = logoUrl;
+              }
+              console.log("Logo extraction completed:", logoUrl);
+            } catch (logoError) {
+              console.error("Logo extraction error:", logoError);
             }
-            
-            // Analyze the website
-            // Website analysis disabled to fix selected images
-            console.log("Website analysis disabled - using transcript data only");
-            
-            // Add website screenshot URL to be saved with the document
-            existingDoc.websiteScreenshotUrl = websiteScreenshotUrl;
           } catch (error) {
-            console.error("Website analysis error:", error);
-            // Continue with just the transcript analysis, but log the error
+            console.error("Website processing error:", error);
           }
         }
         
@@ -817,30 +809,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
       
-      // If website URL is provided, enhance the analysis with website data
+      // If website URL is provided, extract logo and images in parallel
       let logoUrl = null;
+      let extractedImages: string[] = [];
+      
       if (data.websiteUrl) {
         try {
-          // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
+          console.log("Starting parallel website processing...");
           
-          // Try to extract logo from the website
-          try {
-            logoUrl = await extractLogoFromWebsite(normalizedUrl);
-            console.log("Extracted logo URL:", logoUrl);
-          } catch (logoError) {
-            console.error("Logo extraction error:", logoError);
-            // Continue without the logo
+          // Run logo extraction and image extraction in parallel for efficiency
+          const [logoResult, imagesResult] = await Promise.allSettled([
+            extractLogoFromWebsite(normalizedUrl),
+            extractWebsiteImages(normalizedUrl)
+          ]);
+          
+          // Handle logo extraction result
+          if (logoResult.status === 'fulfilled' && logoResult.value) {
+            logoUrl = logoResult.value;
+            console.log("Logo extracted successfully:", logoUrl);
+          } else {
+            console.log("Logo extraction failed or no logo found");
           }
           
-          // Analyze the website
-          // Website analysis disabled
+          // Handle image extraction result
+          if (imagesResult.status === 'fulfilled' && Array.isArray(imagesResult.value)) {
+            extractedImages = imagesResult.value;
+            console.log(`Extracted ${extractedImages.length} images from website`);
+          } else {
+            console.log("Image extraction failed or no images found");
+          }
           
-          // Enhance the CIM with website data
-          // Website enhancement disabled
         } catch (error) {
-          console.error("Website analysis error:", error);
-          // Continue with just the transcript analysis, but log the error
+          console.error("Website processing error:", error);
+          // Continue with just the transcript analysis
         }
       }
       
@@ -1133,30 +1135,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // If website URL is provided, enhance the analysis with website data
+      // If website URL is provided, extract logo in parallel (for file upload route)
       let logoUrl = null;
       if (data.websiteUrl) {
         try {
-          // Normalize and validate the URL
           const normalizedUrl = normalizeUrl(data.websiteUrl);
+          console.log("Extracting logo from website (upload route)...");
           
-          // Try to extract logo from the website
           try {
             logoUrl = await extractLogoFromWebsite(normalizedUrl);
-            console.log("Extracted logo URL:", logoUrl);
+            console.log("Logo extraction completed:", logoUrl);
           } catch (logoError) {
             console.error("Logo extraction error:", logoError);
-            // Continue without the logo
           }
-          
-          // Analyze the website
-          // Website analysis disabled
-          
-          // Enhance the CIM with website data
-          // Website enhancement disabled
         } catch (error) {
-          console.error("Website analysis error:", error);
-          // Continue with just the transcript analysis, but log the error
+          console.error("Website processing error:", error);
         }
       }
       
