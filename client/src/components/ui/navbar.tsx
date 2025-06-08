@@ -25,7 +25,7 @@ export function Navbar() {
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
             <a className="flex items-center space-x-2">
-              <img src="/cim-share-logo.png" alt="CIM Share" className="h-8" />
+              <img src="/cim-share-logo.png" alt="CIM Share" className="h-12" />
             </a>
           </Link>
           {!user && (
@@ -46,7 +46,7 @@ export function Navbar() {
               <Button 
                 variant="outline"
                 size="sm" 
-                className={isHomePage ? "bg-transparent border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white transition-colors" : ""}
+                className={isHomePage ? "bg-transparent border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors" : ""}
               >
                 Login / Sign Up
               </Button>
