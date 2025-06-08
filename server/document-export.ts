@@ -1791,7 +1791,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(2);
       }
 
-      // Custom Sections (in their proper order)
+      // Render content sections - prioritize custom sections over analysis sections
       if (customSections && customSections.length > 0) {
         // Sort custom sections by position
         const sortedCustomSections = [...customSections].sort((a, b) => a.position - b.position);
@@ -1835,6 +1835,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             customSection.imageUrls.forEach((imageUrl: string, index: number) => {
               try {
                 const imagePath = resolveImagePath(imageUrl);
+                console.log(`Trying to add custom section image: ${imageUrl} -> ${imagePath}`);
+                
                 if (fs.existsSync(imagePath)) {
                   const col = index % imagesPerRow;
                   const row = Math.floor(index / imagesPerRow);
@@ -1846,6 +1848,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                     fit: [imageWidth, imageHeight],
                     align: 'center'
                   });
+                  console.log(`Successfully added custom section image at ${finalX}, ${finalY}`);
+                } else {
+                  console.log(`Custom section image file does not exist: ${imagePath}`);
                 }
               } catch (error) {
                 console.error(`Failed to add custom section image ${imageUrl} to PDF:`, error);
@@ -1860,9 +1865,54 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           doc.moveDown(2);
         });
+      } else if (analysis.sections && Array.isArray(analysis.sections)) {
+        // Only render analysis sections if no custom sections exist
+        analysis.sections.forEach((section: any, index: number) => {
+          doc.fontSize(18)
+             .font('Helvetica-Bold')
+             .fillColor('#2563eb')
+             .text(section.title || `Section ${index + 1}`)
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
+          
+          doc.moveDown(1);
+          
+          if (section.content) {
+            // Handle markdown-style content by converting to plain text
+            const content = section.content
+              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+              .replace(/^#+\s+/gm, '') // Remove headers
+              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+              .trim();
+            
+            doc.font('Helvetica').text(content, {
+              align: 'left',
+              lineGap: 4
+            });
+          }
+          
+          doc.moveDown(2);
+        });
+      } else if (analysis.story) {
+        // Fallback to old format if no sections
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('Business Summary')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.story.businessSummary) {
+          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
+        }
       }
 
-      // Business Images Section
+      // Business Images Section - separate from content sections
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
         
@@ -1874,23 +1924,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(2);
         
+        console.log(`Processing ${selectedImages.length} business images for PDF`);
+        
         // Calculate layout parameters
         const pageMargin = 50;
         const imageWidth = 220;
         const imageHeight = 165;
         const horizontalMargin = 25;
         const verticalMargin = 30;
-        const imagesPerRow = 2; // Fixed 2 images per row for better layout
+        const imagesPerRow = 2;
         
         // Calculate starting positions
         const totalImageWidth = (imageWidth * imagesPerRow) + (horizontalMargin * (imagesPerRow - 1));
-        const startX = (doc.page.width - totalImageWidth) / 2; // Center the images
+        const startX = (doc.page.width - totalImageWidth) / 2;
         let currentRow = 0;
         let currentY = doc.y;
         
         for (let i = 0; i < selectedImages.length; i++) {
           try {
             const imagePath = resolveImagePath(selectedImages[i]);
+            console.log(`Processing business image ${i}: ${selectedImages[i]} -> ${imagePath}`);
+            
             if (fs.existsSync(imagePath)) {
               // Calculate position in grid
               const col = i % imagesPerRow;
@@ -1921,9 +1975,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 fit: [imageWidth, imageHeight],
                 align: 'center'
               });
+              console.log(`Successfully added business image ${i} at ${finalX}, ${finalY}`);
+            } else {
+              console.log(`Business image file does not exist: ${imagePath}`);
             }
           } catch (error) {
-            console.error(`Failed to add image ${selectedImages[i]} to PDF:`, error);
+            console.error(`Failed to add business image ${selectedImages[i]} to PDF:`, error);
           }
         }
         
@@ -1931,441 +1988,43 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(3);
       }
 
-      // Flexible Document Sections (modern format) - remove page breaks
-      if (analysis.sections && Array.isArray(analysis.sections)) {
-        analysis.sections.forEach((section: any, index: number) => {
-          doc.fontSize(18)
-             .font('Helvetica-Bold')
-             .fillColor('#2563eb')
-             .text(section.title || `Section ${index + 1}`)
-             .fillColor('#000000')
-             .font('Helvetica')
-             .fontSize(12);
-          
-          doc.moveDown(1);
-          
-          if (section.content) {
-            // Handle markdown-style content by converting to plain text
-            const content = section.content
-              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-              .replace(/^#+\s+/gm, '') // Remove headers
-              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
-              .trim();
-            
-            doc.font('Helvetica').text(content, {
-              align: 'left',
-              lineGap: 4
-            });
-          }
-          
-          doc.moveDown(2); // Add space between sections instead of page breaks
-        });
-      } else if (analysis.story) {
-        // Fallback to old format if no sections
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Business Summary')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.story.businessSummary) {
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
-          doc.moveDown(1.5);
-        }
-
-        if (analysis.story.businessModel) {
-          doc.fontSize(16)
-             .font('Helvetica-Bold')
-             .fillColor('#2563eb')
-             .text('Business Model')
-             .fillColor('#000000')
-             .font('Helvetica')
-             .fontSize(12);
-          doc.moveDown(0.5);
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessModel));
-          doc.moveDown(1.5);
-        }
-
-        if (analysis.story.keyAttractions && analysis.story.keyAttractions.length > 0) {
-          doc.fontSize(16)
-             .font('Helvetica-Bold')
-             .fillColor('#2563eb')
-             .text('Key Attractions')
-             .fillColor('#000000')
-             .font('Helvetica')
-             .fontSize(12);
-          doc.moveDown(0.5);
-          analysis.story.keyAttractions.forEach((attraction: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(attraction)}`);
-            doc.moveDown(0.3);
-          });
-          doc.moveDown(1.5);
-        }
-      }
-
-      // Market Analysis Section - remove page break
-      if (analysis.marketAnalysis) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Market Opportunity')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.marketAnalysis.uniqueFeatures && analysis.marketAnalysis.uniqueFeatures.length > 0) {
-          doc.font('Helvetica').text('The market for this industry is characterized by several competitive advantages:');
-          doc.moveDown(0.5);
-          analysis.marketAnalysis.uniqueFeatures.forEach((feature: string) => {
-            doc.font('Helvetica').text(`• ${safeStringify(feature)}`);
-            doc.moveDown(0.3);
-          });
-          doc.moveDown(1);
-        }
-
-        if (analysis.marketAnalysis.customerProfile) {
-          doc.font('Helvetica').text(`The company's target market consists of ${safeStringify(analysis.marketAnalysis.customerProfile)}, positioning it advantageously in the competitive landscape.`);
-          doc.moveDown(2);
-        }
-      }
-
-      // Business Model Section - remove page break
-      if (analysis.story?.businessModel) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Business Model')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.font('Helvetica').text(`The company's revenue model is structured around ${safeStringify(analysis.story.businessModel)}, which has been instrumental in achieving sustainable growth. Key success factors include operational excellence and market positioning, ensuring long-term profitability in a competitive market environment.`);
-        doc.moveDown(2);
-      }
-
-      // Operations Section - remove page break
-      if (analysis.operations) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Operations')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.font('Helvetica').text('Operational excellence is at the core of the company\'s success. The company maintains strong relationships with suppliers and has built a diverse customer base that underscores operational strengths and market adaptability.');
-        doc.moveDown(2);
-      }
-
-      // Financial Overview Section - remove page break and clean formatting
-      if ((financialData && financialData.enabled) || analysis.financials) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Financial Overview')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.font('Helvetica').text('The financial health of the company is robust, demonstrating strong profitability and operational efficiency. These figures underscore not only the current financial standing but also the potential for future growth and profitability.');
-        doc.moveDown(2);
-      }
-
-      // Growth Opportunities Section - remove page break
-      if (analysis.story?.keyAttractions && analysis.story.keyAttractions.length > 0) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Growth Opportunities')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.font('Helvetica').text('The company is poised for expansion, with significant opportunities identified across multiple areas. Strategic initiatives are underway to capitalize on these opportunities, underpinned by a solid foundation of operational excellence and market insight.');
-        doc.moveDown(2);
-      }
-
-      // Management & Team Section - remove page break
-      if (analysis.team) {
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#2563eb')
-           .text('Management & Team')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-        doc.font('Helvetica').text('The leadership team comprises individuals with extensive experience in the industry. The organizational structure is designed to promote innovation and efficiency, with a focus on leveraging the team\'s strengths to achieve strategic objectives.');
-        doc.moveDown(2);
-      }
-
-      // Investment Highlights Section - remove page break
-      doc.fontSize(18)
-         .font('Helvetica-Bold')
-         .fillColor('#2563eb')
-         .text('Investment Highlights')
-         .fillColor('#000000')
-         .font('Helvetica')
-         .fontSize(12);
-      
-      doc.moveDown(1);
-      
-      let highlightsText = 'Key reasons for investment attractiveness include the company\'s strong market position, robust financial performance, and significant growth potential.';
-      
-      if (financialData && financialData.enabled) {
-        const askingPrice = financialData.askingPriceIncluded && financialData.askingPrice ? `$${parseInt(financialData.askingPrice).toLocaleString()}` : null;
-        const revenue = financialData.revenueIncluded && financialData.revenue ? `$${parseInt(financialData.revenue).toLocaleString()}` : null;
-        const ebitda = financialData.ebitdaIncluded && financialData.ebitda ? `${parseInt(financialData.ebitda).toLocaleString()}%` : null;
-        
-        if (askingPrice || revenue || ebitda) {
-          highlightsText += ' The ';
-          const parts = [];
-          if (askingPrice) parts.push(`asking price of ${askingPrice}`);
-          if (revenue) parts.push(`revenue of ${revenue}`);
-          if (ebitda) parts.push(`EBITDA of ${ebitda}`);
-          highlightsText += parts.join(', ');
-          highlightsText += ' presents a compelling value proposition for investors.';
-        }
-      }
-      
-      highlightsText += ' Additionally, the strategic market opportunities, operational strengths, and visionary leadership team further enhance the investment appeal.';
-      
-      doc.font('Helvetica').text(highlightsText);
-      doc.moveDown(2);
-
-      // Custom Sections - Add after Investment Highlights
-      if (customSections && customSections.length > 0) {
-        console.log("=== ADDING CUSTOM SECTIONS TO PDF ===");
-        console.log("Custom sections found:", customSections.length);
-        
-        customSections.forEach((section: any, index: number) => {
-          try {
-            console.log(`Processing custom section ${index + 1}:`, section.title, section.type);
-            
-            // Add section title
-            doc.fontSize(18)
-               .font('Helvetica-Bold')
-               .fillColor('#2563eb')
-               .text(section.title || `Custom Section ${index + 1}`)
-               .fillColor('#000000')
-               .font('Helvetica')
-               .fontSize(12);
-            
-            doc.moveDown(1);
-            
-            // Handle different section types
-            if (section.type === 'text' && section.content) {
-              // Text section
-              doc.font('Helvetica').text(section.content, {
-                align: 'left',
-                lineGap: 4
-              });
-              doc.moveDown(2);
-            } else if (section.type === 'image' && section.image_urls) {
-              // Image section
-              console.log("Processing image section with URLs:", section.image_urls);
-              
-              const imageUrls = Array.isArray(section.image_urls) ? section.image_urls : [section.image_urls];
-              
-              imageUrls.forEach((imageUrl: string, imgIndex: number) => {
-                try {
-                  if (imageUrl) {
-                    console.log(`Processing image ${imgIndex + 1}:`, imageUrl);
-                    
-                    if (imageUrl.startsWith('data:')) {
-                      // Handle base64 data URI
-                      const base64Data = imageUrl.split(',')[1];
-                      const imageBuffer = Buffer.from(base64Data, 'base64');
-                      const centerX = (doc.page.width - 300) / 2;
-                      doc.image(imageBuffer, centerX, doc.y, {
-                        fit: [300, 200],
-                        align: 'center'
-                      });
-                      doc.moveDown(3);
-                      console.log("Successfully added base64 custom section image");
-                    } else {
-                      // Handle file path
-                      const imagePath = resolveImagePath(imageUrl);
-                      console.log("Resolved custom section image path:", imagePath);
-                      
-                      if (fs.existsSync(imagePath)) {
-                        const centerX = (doc.page.width - 300) / 2;
-                        doc.image(imagePath, centerX, doc.y, {
-                          fit: [300, 200],
-                          align: 'center'
-                        });
-                        doc.moveDown(3);
-                        console.log("Successfully added file-based custom section image");
-                      } else {
-                        console.log("Custom section image file does not exist:", imagePath);
-                      }
-                    }
-                  }
-                } catch (error) {
-                  console.error(`Failed to add custom section image ${imgIndex + 1}:`, error);
-                }
-              });
-            }
-          } catch (error) {
-            console.error(`Failed to process custom section ${index + 1}:`, error);
-          }
-        });
-        
-        console.log("=== FINISHED ADDING CUSTOM SECTIONS ===");
-      } else {
-        console.log("No custom sections to add to PDF");
-      }
-
-      // Contact Information - Professional formatting with images
-      if (userProfile) {
-        // Add page break before contact information
+      // Contact Information Footer
+      if (userProfile && (userProfile.name || userProfile.email || userProfile.phoneNumber)) {
         doc.addPage();
         
-        // Add horizontal line before contact information
-        doc.strokeColor('#e5e7eb')
-           .lineWidth(1)
-           .moveTo(50, doc.y)
-           .lineTo(doc.page.width - 50, doc.y)
-           .stroke();
-        
-        doc.moveDown(2);
-        
-        // Contact Information header with professional spacing
-        doc.fontSize(16)
+        doc.fontSize(18)
            .font('Helvetica-Bold')
+           .fillColor('#2563eb')
+           .text('CONTACT INFORMATION')
            .fillColor('#000000')
-           .text('Contact Information', { align: 'center' });
+           .font('Helvetica')
+           .fontSize(12);
         
         doc.moveDown(2);
         
-        // Add profile photo if available
-        if (userProfile.profilePhoto) {
-          try {
-            console.log("=== PROFILE PHOTO DEBUG ===");
-            console.log("Profile photo found, type:", userProfile.profilePhoto.startsWith('data:') ? 'base64' : 'file path');
-            
-            if (userProfile.profilePhoto.startsWith('data:')) {
-              // Handle base64 data URI
-              const base64Data = userProfile.profilePhoto.split(',')[1];
-              const imageBuffer = Buffer.from(base64Data, 'base64');
-              const centerX = (doc.page.width - 100) / 2;
-              doc.image(imageBuffer, centerX, doc.y, {
-                fit: [100, 100],
-                align: 'center'
-              });
-              doc.moveDown(6);
-              console.log("Successfully added base64 profile photo to PDF");
-            } else {
-              // Handle file path
-              const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-              console.log("Resolved profile photo path:", profilePhotoPath);
-              
-              if (fs.existsSync(profilePhotoPath)) {
-                const centerX = (doc.page.width - 100) / 2;
-                doc.image(profilePhotoPath, centerX, doc.y, {
-                  fit: [100, 100],
-                  align: 'center'
-                });
-                doc.moveDown(4);
-                console.log("Successfully added file-based profile photo to PDF");
-              } else {
-                console.log("Profile photo file does not exist at path:", profilePhotoPath);
-              }
-            }
-            console.log("=== END PROFILE PHOTO DEBUG ===");
-          } catch (error) {
-            console.error("Failed to add profile photo to PDF:", error);
-          }
-        } else {
-          console.log("No profile photo provided in userProfile");
-        }
-        
-        // Contact details with proper formatting
         if (userProfile.name) {
-          doc.fontSize(14)
-             .font('Helvetica-Bold')
-             .text(userProfile.name, { align: 'center' });
+          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`);
           doc.moveDown(0.5);
         }
         
         if (userProfile.title) {
-          doc.fontSize(12)
-             .font('Helvetica')
-             .text(userProfile.title, { align: 'center' });
+          doc.font('Helvetica').text(`Title: ${userProfile.title}`);
           doc.moveDown(0.5);
         }
         
         if (userProfile.phoneNumber) {
-          doc.text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
-          doc.moveDown(0.3);
+          doc.font('Helvetica').text(`Phone: ${userProfile.phoneNumber}`);
+          doc.moveDown(0.5);
         }
         
         if (userProfile.email) {
-          doc.text(`Email: ${userProfile.email}`, { align: 'center' });
-          doc.moveDown(0.3);
+          doc.font('Helvetica').text(`Email: ${userProfile.email}`);
+          doc.moveDown(0.5);
         }
         
-        // Add business name if available
         if (userProfile.businessName) {
+          doc.font('Helvetica').text(`Company: ${userProfile.businessName}`);
           doc.moveDown(0.5);
-          doc.fontSize(10)
-             .fillColor('#666666')
-             .text(userProfile.businessName, { align: 'center' });
-          doc.moveDown(0.5);
-        }
-        
-        // Add business logo if available
-        if (userProfile.businessLogo) {
-          try {
-            console.log("=== BUSINESS LOGO DEBUG ===");
-            console.log("Business logo found, type:", userProfile.businessLogo.startsWith('data:') ? 'base64' : 'file path');
-            
-            if (userProfile.businessLogo.startsWith('data:')) {
-              // Handle base64 data URI
-              const base64Data = userProfile.businessLogo.split(',')[1];
-              const imageBuffer = Buffer.from(base64Data, 'base64');
-              const centerX = (doc.page.width - 240) / 2;
-              doc.image(imageBuffer, centerX, doc.y, {
-                fit: [240, 120],
-                align: 'center'
-              });
-              doc.moveDown(3);
-              console.log("Successfully added base64 business logo to PDF");
-            } else {
-              // Handle file path
-              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
-              console.log("Resolved business logo path:", businessLogoPath);
-              
-              if (fs.existsSync(businessLogoPath)) {
-                const centerX = (doc.page.width - 240) / 2;
-                doc.image(businessLogoPath, centerX, doc.y, {
-                  fit: [240, 120],
-                  align: 'center'
-                });
-                doc.moveDown(3);
-                console.log("Successfully added file-based business logo to PDF");
-              } else {
-                console.log("Business logo file does not exist at path:", businessLogoPath);
-              }
-            }
-            console.log("=== END BUSINESS LOGO DEBUG ===");
-          } catch (error) {
-            console.error("Failed to add business logo to PDF:", error);
-          }
-        } else {
-          console.log("No business logo provided in userProfile");
         }
       }
 
