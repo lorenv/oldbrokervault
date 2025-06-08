@@ -24,12 +24,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // In production, you might want to log this to an error reporting service
-    console.error('=== ERROR BOUNDARY CAUGHT ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Component stack:', errorInfo.componentStack);
-    console.error('========================================');
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error boundary caught an error:', error, errorInfo);
+    }
   }
 
   public render() {

@@ -896,7 +896,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Processing ${imagesToProcess.length} user-selected images for CIM ${doc.id}...`);
           console.log(`Selected image URLs:`, imagesToProcess);
           
-          console.time("Image Download and Processing");
           const imagePromises = imagesToProcess.map(async (imageUrl: string, index: number) => {
             try {
               console.log(`Downloading image ${index + 1}/${imagesToProcess.length}: ${imageUrl}`);
@@ -913,7 +912,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const downloadedImages = imageResults
             .filter(result => result.status === 'fulfilled' && result.value !== null)
             .map(result => (result as PromiseFulfilledResult<string>).value);
-          console.timeEnd("Image Download and Processing");
           
           console.log(`Download results: ${downloadedImages.length}/${imagesToProcess.length} images downloaded successfully`);
           console.log(`Downloaded image paths:`, downloadedImages);
@@ -2919,44 +2917,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to process template request"
       });
-    }
-  });
-
-  // Simple custom directions endpoints - save and load user's preferred directions
-  app.post("/api/user/custom-directions", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const { customDirections } = req.body;
-      
-      if (!customDirections || typeof customDirections !== 'string') {
-        return res.status(400).json({ error: "Custom directions text is required" });
-      }
-
-      // Update user's custom directions preference
-      await db.update(users)
-        .set({ customDirections })
-        .where(eq(users.id, req.user!.id));
-
-      res.json({ message: "Custom directions saved successfully" });
-    } catch (error) {
-      console.error("Error saving custom directions:", error);
-      res.status(500).json({ error: "Failed to save custom directions" });
-    }
-  });
-
-  app.get("/api/user/custom-directions", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    try {
-      const [user] = await db.select({ customDirections: users.customDirections })
-        .from(users)
-        .where(eq(users.id, req.user!.id));
-
-      res.json({ customDirections: user?.customDirections || null });
-    } catch (error) {
-      console.error("Error loading custom directions:", error);
-      res.status(500).json({ error: "Failed to load custom directions" });
     }
   });
 

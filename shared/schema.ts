@@ -48,8 +48,6 @@ export const users = pgTable("users", {
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
   businessLogo: text("business_logo"), // File path for business logo
-  // Simple custom directions preference
-  customDirections: text("custom_directions"), // User's preferred analysis directions
   profilePhoto: text("profile_photo"), // File path for profile photo
   // Password reset fields
   resetToken: text("reset_token"),
