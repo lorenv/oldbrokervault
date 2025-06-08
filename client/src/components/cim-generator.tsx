@@ -76,10 +76,19 @@ export function CimGenerator() {
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
 
-  // Force update to ensure valid values on mount
+  // Force update to ensure valid values on mount and clear any cached invalid values
   useEffect(() => {
+    // Clear any potential cached invalid values
+    localStorage.removeItem('selectedTone');
+    localStorage.removeItem('selectedAudience');
+    
     setSelectedTone('professional');
     setSelectedAudience('investors');
+    
+    // Force re-render to ensure UI updates
+    setTimeout(() => {
+      setSelectedTone('professional');
+    }, 100);
   }, []);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
 
