@@ -96,10 +96,15 @@ export function CimGenerator() {
 
   // Mutations for template management
   const createTemplateMutation = useMutation({
-    mutationFn: (templateData: any) => apiRequest('/api/analysis-templates', {
-      method: 'POST',
-      body: JSON.stringify(templateData),
-    }),
+    mutationFn: async (templateData: any) => {
+      const response = await fetch('/api/analysis-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData),
+      });
+      if (!response.ok) throw new Error('Failed to create template');
+      return response.json();
+    },
     onSuccess: () => {
       refetchTemplates();
       toast({
@@ -117,9 +122,13 @@ export function CimGenerator() {
   });
 
   const deleteTemplateMutation = useMutation({
-    mutationFn: (templateId: number) => apiRequest(`/api/analysis-templates/${templateId}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: async (templateId: number) => {
+      const response = await fetch(`/api/analysis-templates/${templateId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete template');
+      return response.json();
+    },
     onSuccess: () => {
       refetchTemplates();
       toast({
@@ -1161,13 +1170,18 @@ ${analysis.team.ownerResponsibilities}
                         </Button>
                       </div>
                       
-                      {savedTemplates.length > 0 && (
+                      {analysisTemplates && analysisTemplates.length > 0 && (
                         <div className="space-y-3">
                           <Label className="text-sm font-medium">Saved Templates</Label>
                           <div className="grid grid-cols-1 gap-2">
-                            {savedTemplates.map((template, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                                <span className="text-sm font-medium">{template.name}</span>
+                            {analysisTemplates.map((template) => (
+                              <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium">{template.name}</span>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {template.purpose} • {template.tone} • {template.audience}
+                                  </div>
+                                </div>
                                 <div className="flex gap-2">
                                   <Button
                                     variant="outline"
@@ -1181,7 +1195,7 @@ ${analysis.team.ownerResponsibilities}
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => deleteTemplate(index)}
+                                    onClick={() => deleteTemplate(template.id)}
                                     className="gap-2 text-destructive hover:text-destructive"
                                   >
                                     <X className="h-4 w-4" />
