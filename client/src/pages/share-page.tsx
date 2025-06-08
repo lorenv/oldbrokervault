@@ -317,11 +317,11 @@ export function SharePage() {
           )}
         </div>
       ) : (
-        // Fallback header when no cover image
+        // Fallback header when no cover image - only show logo if no cover image exists
         <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
           <div className="max-w-6xl mx-auto px-6 py-12">
             <div className="text-center">
-              {/* Website extracted logo above title */}
+              {/* Website extracted logo above title - only when no cover image */}
               {shareData.logoUrl && (
                 <div className="flex justify-center mb-6">
                   <img src={shareData.logoUrl} alt="Company Logo" className="h-32 md:h-40" />
