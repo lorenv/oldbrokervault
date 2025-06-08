@@ -120,6 +120,14 @@ export function NdaDialog({
                 onChange={(e) => setSignerName(e.target.value)}
                 disabled={isSigning}
               />
+              {signerName.trim() && (
+                <div className="mt-2 p-3 bg-gray-50 rounded border">
+                  <p className="text-xs text-gray-600 mb-1">Signature preview:</p>
+                  <div className="signature-handwriting" style={{ color: '#1a365d' }}>
+                    {signerName.trim()}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
