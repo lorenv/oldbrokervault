@@ -85,7 +85,7 @@ export class ImageManager {
 
       const buffer = Buffer.from(await response.arrayBuffer());
       const imageId = uuidv4();
-      const fileName = `${imageId}.jpg`; // Standardize to JPG
+      const fileName = `${imageId}.png`; // PNG to support rounded corners with transparency
       
       return await this.saveImageBuffer(buffer, cimId, fileName, {
         originalName: originalName || path.basename(url),
@@ -100,8 +100,7 @@ export class ImageManager {
 
   async saveUploadedImage(buffer: Buffer, cimId: number, originalName: string): Promise<ImageMetadata> {
     const imageId = uuidv4();
-    const ext = path.extname(originalName).toLowerCase();
-    const fileName = `${imageId}${ext === '.jpg' || ext === '.jpeg' || ext === '.png' ? ext : '.jpg'}`;
+    const fileName = `${imageId}.png`; // PNG to support rounded corners with transparency
     
     return await this.saveImageBuffer(buffer, cimId, fileName, {
       originalName,
@@ -123,10 +122,13 @@ export class ImageManager {
     const sharpMetadata = await image.metadata();
     
     // Optimize image: resize if too large, compress
-    const optimizedBuffer = await image
+    let optimizedBuffer = await image
       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 85 })
       .toBuffer();
+    
+    // Apply rounded corners consistently to all business images
+    optimizedBuffer = await addRoundedCorners(optimizedBuffer, 12);
 
     const localPath = path.join(cimDir, fileName);
     await fs.writeFile(localPath, optimizedBuffer);
@@ -144,7 +146,7 @@ export class ImageManager {
         height: sharpMetadata.height || 0
       },
       fileSize: optimizedBuffer.length,
-      mimeType: 'image/jpeg',
+      mimeType: 'image/png', // PNG to support transparency from rounded corners
       uploadDate: new Date()
     };
 
