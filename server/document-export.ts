@@ -1692,12 +1692,43 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Add logo if available
       if (logoUrl) {
         try {
+          console.log("Processing logo URL:", logoUrl);
           const logoPath = resolveImagePath(logoUrl);
+          console.log("Resolved logo path:", logoPath);
+          
           if (fs.existsSync(logoPath)) {
+            console.log("Logo file exists, adding to PDF");
             doc.image(logoPath, doc.page.width - 150, 30, {
               fit: [100, 50],
               align: 'right'
             });
+            console.log("Successfully added logo to PDF");
+          } else {
+            console.log("Logo file does not exist, checking alternative paths");
+            // Try alternative paths for logo
+            const alternativePaths = [
+              path.resolve(process.cwd(), 'public', logoUrl.replace(/^\/+/, '')),
+              path.resolve(process.cwd(), logoUrl.replace(/^\/+/, '')),
+              path.resolve(process.cwd(), 'attached_assets', logoUrl.replace(/^\/+/, ''))
+            ];
+            
+            let logoFound = false;
+            for (const altPath of alternativePaths) {
+              console.log("Trying alternative logo path:", altPath);
+              if (fs.existsSync(altPath)) {
+                doc.image(altPath, doc.page.width - 150, 30, {
+                  fit: [100, 50],
+                  align: 'right'
+                });
+                console.log("Successfully added logo from alternative path:", altPath);
+                logoFound = true;
+                break;
+              }
+            }
+            
+            if (!logoFound) {
+              console.log("Logo file not found in any location:", logoPath);
+            }
           }
         } catch (error) {
           console.error("Failed to add logo to PDF:", error);
@@ -1952,7 +1983,33 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const imagePath = resolveImagePath(selectedImages[i]);
             console.log(`Processing business image ${i}: ${selectedImages[i]} -> ${imagePath}`);
             
+            let imageFound = false;
+            let finalImagePath = imagePath;
+            
             if (fs.existsSync(imagePath)) {
+              imageFound = true;
+            } else {
+              // Try alternative paths for business images
+              console.log(`Business image not found at ${imagePath}, trying alternatives`);
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', selectedImages[i].replace(/^\/+/, '')),
+                path.resolve(process.cwd(), selectedImages[i].replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', selectedImages[i].replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'public', 'business-images', path.basename(selectedImages[i]))
+              ];
+              
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative business image path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  finalImagePath = altPath;
+                  imageFound = true;
+                  console.log("Found business image at alternative path:", altPath);
+                  break;
+                }
+              }
+            }
+            
+            if (imageFound) {
               // Calculate position in grid
               const col = i % imagesPerRow;
               const row = Math.floor(i / imagesPerRow);
@@ -1978,13 +2035,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const finalX = startX + (col * (imageWidth + horizontalMargin));
               const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
-              doc.image(imagePath, finalX, finalY, {
+              doc.image(finalImagePath, finalX, finalY, {
                 fit: [imageWidth, imageHeight],
                 align: 'center'
               });
               console.log(`Successfully added business image ${i} at ${finalX}, ${finalY}`);
             } else {
-              console.log(`Business image file does not exist: ${imagePath}`);
+              console.log(`Business image file not found in any location: ${selectedImages[i]}`);
             }
           } catch (error) {
             console.error(`Failed to add business image ${selectedImages[i]} to PDF:`, error);
