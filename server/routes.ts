@@ -213,24 +213,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/share/:shareSlug", async (req, res) => {
     try {
       const { shareSlug } = req.params;
+      console.log("=== SHARE LINK ACCESS ===");
       console.log("Fetching share data for slug:", shareSlug);
       
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
       console.log("Found document:", !!cimDoc, cimDoc?.id);
       
       if (!cimDoc) {
+        console.log("Document not found for share slug:", shareSlug);
         return res.status(404).json({ error: "Document not found" });
       }
       
+      console.log("Document details:", {
+        id: cimDoc.id,
+        title: cimDoc.title,
+        shareEnabled: cimDoc.shareEnabled,
+        shareExpiresAt: cimDoc.shareExpiresAt,
+        ndaProtected: cimDoc.ndaProtected
+      });
+      
       if (!cimDoc.shareEnabled) {
-        console.log("Sharing disabled for document:", cimDoc.id);
+        console.log("ERROR: Sharing disabled for document:", cimDoc.id);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
-      // Check expiration
-      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
-        console.log("Document expired:", cimDoc.shareExpiresAt);
-        return res.status(410).json({ error: "This shared link has expired" });
+      // Check expiration with detailed logging
+      if (cimDoc.shareExpiresAt) {
+        const now = new Date();
+        const expirationDate = new Date(cimDoc.shareExpiresAt);
+        console.log("Expiration check:", {
+          now: now.toISOString(),
+          expiresAt: expirationDate.toISOString(),
+          isExpired: now > expirationDate
+        });
+        
+        if (now > expirationDate) {
+          console.log("ERROR: Document has expired");
+          return res.status(410).json({ error: "This shared link has expired" });
+        }
+      } else {
+        console.log("No expiration date set - link never expires");
       }
 
       // Increment view count
@@ -3768,10 +3790,25 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   app.get("/api/nda/validate-token/:token", async (req, res) => {
     try {
       const { token } = req.params;
+      console.log("Validating NDA access token:", token?.substring(0, 10) + "...");
       
       const accessToken = await storage.getNdaAccessToken(token);
-      if (!accessToken || !accessToken.isActive) {
-        return res.status(401).json({ error: "Invalid or expired token", valid: false });
+      console.log("Token lookup result:", !!accessToken, accessToken?.isActive);
+      
+      if (!accessToken) {
+        console.log("Token not found in database");
+        return res.status(401).json({ error: "Invalid token", valid: false });
+      }
+      
+      if (!accessToken.isActive) {
+        console.log("Token is inactive");
+        return res.status(401).json({ error: "Token has been deactivated", valid: false });
+      }
+      
+      // Check if token has expired (only if expiresAt is set)
+      if (accessToken.expiresAt && new Date() > accessToken.expiresAt) {
+        console.log("Token has expired:", accessToken.expiresAt);
+        return res.status(401).json({ error: "Token has expired", valid: false });
       }
       
       // Update last accessed
@@ -3780,9 +3817,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Get CIM document
       const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
       if (!cimDoc) {
+        console.log("CIM document not found for token");
         return res.status(404).json({ error: "Document not found", valid: false });
       }
       
+      console.log("Token validation successful");
       res.json({
         valid: true,
         cimDocument: {
