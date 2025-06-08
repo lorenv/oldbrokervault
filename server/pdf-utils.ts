@@ -51,17 +51,17 @@ export function addSignatureToNda(
             size: 12,
           });
           
-          // Add signer name (signature style) - enhanced handwriting appearance
-          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanBoldItalic);
+          // Add signer name (signature style) - handwriting appearance without tilt
+          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanItalic);
           
-          // Create a more signature-like appearance with rotation and styling
+          // Create a handwriting-like appearance without rotation
           signaturePage.drawText(signerName, {
             x: 60,
             y: height - 230,
-            size: 28,
+            size: 32,
             font: signatureFont,
             color: pdfLib.rgb(0.1, 0.1, 0.4),
-            rotate: pdfLib.degrees(-2), // Slight rotation for handwritten effect
+            // Removed rotation for cleaner signature appearance
           });
           
           // Add a subtle underline for signature authenticity
@@ -298,7 +298,7 @@ export function addSignatureToNda(
           doc.fontSize(12).text('NDA Document', 50, 50);
           doc.addPage();
           doc.fontSize(16).text('SIGNATURE PAGE', 50, 50, { align: 'center' });
-          doc.fontSize(18).font('Times-Italic').text(signerName, 55, 150);
+          doc.fontSize(24).font('Times-Roman').text(signerName, 55, 150);
           doc.fontSize(12).font('Helvetica').text(`Date: ${signedDate.toLocaleDateString()}`, 300, 150);
           doc.end();
         }
