@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Palette } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 
@@ -105,14 +105,6 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem>
-                  <Link href="/export-templates">
-                    <a className="flex items-center">
-                      <Palette className="h-4 w-4 mr-2" />
-                      Export Templates
-                    </a>
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Link href="/account">
                     <a className="flex items-center">

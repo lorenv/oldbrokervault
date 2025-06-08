@@ -16,14 +16,12 @@ import {
   Plus,
   Type,
   ImageIcon,
-  Upload,
-  Download
+  Upload
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
 import { DocumentExport } from "./document-export";
-import { TemplateExportDialog } from "./template-export-dialog";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -510,51 +508,38 @@ export function CimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {/* Document Title Editor and Export Actions - Only in Edit View */}
+        {/* Document Title Editor - Only in Edit View */}
         {!isSharedView && cimDocument && (
           <div className="mb-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-3xl font-bold flex-1">
-                <FlexibleSectionEditor
-                  value={localTitle}
-                  onSave={async (newTitle: string) => {
-                    try {
-                      // Update local state immediately for instant UI feedback
-                      setLocalTitle(newTitle);
-                      
-                      const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                        title: newTitle
-                      });
-                      
-                      if (response.ok) {
-                        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                        toast({ title: "Title Updated", description: "Document title saved successfully." });
-                      } else {
-                        // Revert on error
-                        setLocalTitle(cimDocument.title);
-                      }
-                    } catch (error) {
+            <div className="text-3xl font-bold">
+              <FlexibleSectionEditor
+                value={localTitle}
+                onSave={async (newTitle: string) => {
+                  try {
+                    // Update local state immediately for instant UI feedback
+                    setLocalTitle(newTitle);
+                    
+                    const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
+                      title: newTitle
+                    });
+                    
+                    if (response.ok) {
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+                      toast({ title: "Title Updated", description: "Document title saved successfully." });
+                    } else {
                       // Revert on error
                       setLocalTitle(cimDocument.title);
-                      toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
                     }
-                  }}
-                  placeholder="Enter document title"
-                  multiline={false}
-                />
-              </div>
-              
-              {/* Template Export Button */}
-              <TemplateExportDialog 
-                documentId={docId}
-                documentTitle={localTitle || "CIM Document"}
-              >
-                <Button className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export PDF
-                </Button>
-              </TemplateExportDialog>
+                  } catch (error) {
+                    // Revert on error
+                    setLocalTitle(cimDocument.title);
+                    toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
+                  }
+                }}
+                placeholder="Enter document title"
+                multiline={false}
+              />
             </div>
           </div>
         )}

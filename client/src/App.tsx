@@ -26,7 +26,6 @@ import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
 import EnhancedCimPage from "@/pages/enhanced-cim-page";
-import { ExportTemplatesPage } from "@/pages/export-templates-page";
 
 function Router() {
   const [location] = useLocation();
@@ -46,7 +45,6 @@ function Router() {
             <ProtectedRoute path="/enhanced-cim/:id" component={EnhancedCimPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
-            <ProtectedRoute path="/export-templates" component={ExportTemplatesPage} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />

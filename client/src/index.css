@@ -2,18 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Handwritania Font for eSignatures */
-@font-face {
-  font-family: 'Handwritania';
-  src: url('/fonts/Handwritania.woff2') format('woff2'),
-       url('/fonts/Handwritania.woff') format('woff'),
-       url('/fonts/Handwritania.ttf') format('truetype'),
-       url('/fonts/Handwritania.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 @layer base {
   * {
     @apply border-border;
@@ -21,18 +9,5 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  .font-handwritania {
-    font-family: 'Handwritania', cursive, serif;
-  }
-  
-  .signature-style {
-    font-family: 'Handwritania', cursive, serif;
-    font-size: 2rem;
-    color: #1e3a8a;
-    letter-spacing: 0.05em;
   }
 }

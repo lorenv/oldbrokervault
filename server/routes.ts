@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema, insertExportTemplateSchema } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -2392,9 +2392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Template-based PDF export route  
-  app.get("/api/cim/:id/pdf", async (req, res) => {
-    console.log("Template PDF export request received for document ID:", req.params.id);
+  app.post("/api/cim/export/pdf/:id", async (req, res) => {
+    console.log("PDF export request received for document ID:", req.params.id);
     
     if (!req.isAuthenticated()) {
       console.log("PDF export authentication error - User not authenticated");
@@ -2404,9 +2403,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("User authenticated, retrieving document");
       const docId = parseInt(req.params.id);
-      const templateId = req.query.templateId ? parseInt(req.query.templateId as string) : undefined;
-      console.log("Template ID:", templateId);
-      
       const doc = await storage.getCimDocument(docId);
       
       if (!doc) {
@@ -2423,30 +2419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
       
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
-        console.log("Permission error: User does not have premium/admin access");
-        return res.status(403).json({ error: "Premium subscription required" });
-      }
-
-      // Get template if specified
-      let template = null;
-      if (templateId) {
-        try {
-          template = await storage.getExportTemplate(templateId);
-          console.log("Using export template:", template?.name);
-          
-          // Update template usage count
-          if (template) {
-            await storage.updateExportTemplate(templateId, { usageCount: template.usageCount + 1 });
-          }
-        } catch (error) {
-          console.warn("Failed to load export template:", error);
-        }
-      }
-
-      const user2 = await storage.getUser(req.user!.id);
-      console.log(`User subscription status: ${user2?.subscriptionStatus}, isAdmin: ${user2?.isAdmin}`);
-      
-      if (!user2?.isAdmin && user2?.subscriptionStatus !== "premium" && user2?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
       }
@@ -4954,90 +4926,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error('Error deleting analysis template:', error);
       res.status(500).json({ error: "Failed to delete analysis template" });
-    }
-  });
-
-  // Export Templates API
-  app.get("/api/export-templates", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templates = await storage.getExportTemplates(req.user.id);
-      res.json(templates);
-    } catch (error) {
-      console.error('Error fetching export templates:', error);
-      res.status(500).json({ error: "Failed to fetch export templates" });
-    }
-  });
-
-  app.post("/api/export-templates", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templateData = insertExportTemplateSchema.parse(req.body);
-      const newTemplate = await storage.createExportTemplate(req.user.id, templateData);
-      res.json(newTemplate);
-    } catch (error) {
-      console.error('Error creating export template:', error);
-      res.status(500).json({ error: "Failed to create export template" });
-    }
-  });
-
-  app.get("/api/export-templates/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templateId = parseInt(req.params.id);
-      const template = await storage.getExportTemplate(templateId);
-      
-      if (!template || template.userId !== req.user.id) {
-        return res.status(404).json({ error: "Template not found" });
-      }
-      
-      res.json(template);
-    } catch (error) {
-      console.error('Error fetching export template:', error);
-      res.status(500).json({ error: "Failed to fetch export template" });
-    }
-  });
-
-  app.put("/api/export-templates/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templateId = parseInt(req.params.id);
-      const templateData = insertExportTemplateSchema.partial().parse(req.body);
-      const updatedTemplate = await storage.updateExportTemplate(templateId, templateData);
-      res.json(updatedTemplate);
-    } catch (error) {
-      console.error('Error updating export template:', error);
-      res.status(500).json({ error: "Failed to update export template" });
-    }
-  });
-
-  app.delete("/api/export-templates/:id", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templateId = parseInt(req.params.id);
-      await storage.deleteExportTemplate(templateId, req.user.id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error deleting export template:', error);
-      res.status(500).json({ error: "Failed to delete export template" });
-    }
-  });
-
-  app.post("/api/export-templates/:id/set-default", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const templateId = parseInt(req.params.id);
-      await storage.setDefaultExportTemplate(req.user.id, templateId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error setting default export template:', error);
-      res.status(500).json({ error: "Failed to set default export template" });
     }
   });
 
