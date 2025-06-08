@@ -879,18 +879,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: financials?.ebitdaIncluded || false
       });
 
-      // Combine selected images from user selection and extracted website images
-      const allSelectedImages = [...selectedImageUrls, ...extractedImages];
+      // Process only the user-selected images (selectedImageUrls already contains the user's choices)
+      // Note: extractedImages are just for UI display, selectedImageUrls contains the actual user selections
+      const imagesToProcess = selectedImageUrls;
       
       // Process selected images after CIM creation with proper CIM ID
-      if (allSelectedImages.length > 0) {
+      if (imagesToProcess.length > 0) {
         try {
-          console.log(`Processing ${allSelectedImages.length} total images (${selectedImageUrls.length} selected + ${extractedImages.length} extracted) for CIM ${doc.id}...`);
-          console.log(`All image URLs:`, allSelectedImages);
+          console.log(`Processing ${imagesToProcess.length} user-selected images for CIM ${doc.id}...`);
+          console.log(`Selected image URLs:`, imagesToProcess);
           
-          const imagePromises = allSelectedImages.map(async (imageUrl: string, index: number) => {
+          const imagePromises = imagesToProcess.map(async (imageUrl: string, index: number) => {
             try {
-              console.log(`Downloading image ${index + 1}/${allSelectedImages.length}: ${imageUrl}`);
+              console.log(`Downloading image ${index + 1}/${imagesToProcess.length}: ${imageUrl}`);
               const metadata = await imageManager.downloadImageFromUrl(imageUrl, doc.id);
               console.log(`Successfully downloaded image ${index + 1}: ${metadata.publicPath}`);
               return metadata.publicPath;
@@ -905,7 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .filter(result => result.status === 'fulfilled' && result.value !== null)
             .map(result => (result as PromiseFulfilledResult<string>).value);
           
-          console.log(`Download results: ${downloadedImages.length}/${allSelectedImages.length} images downloaded successfully`);
+          console.log(`Download results: ${downloadedImages.length}/${imagesToProcess.length} images downloaded successfully`);
           console.log(`Downloaded image paths:`, downloadedImages);
           
           // Update the CIM document with the downloaded image paths

@@ -4,6 +4,41 @@ import fetch from 'node-fetch';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 
+// Function to add rounded corners to images
+async function addRoundedCorners(imageBuffer: Buffer, radius: number = 12): Promise<Buffer> {
+  try {
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
+    
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Could not determine image dimensions');
+    }
+
+    // Create rounded rectangle mask
+    const roundedCorners = Buffer.from(
+      `<svg width="${metadata.width}" height="${metadata.height}">
+        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
+      </svg>`
+    );
+
+    // Apply the mask to create rounded corners
+    const processedImage = await sharp(imageBuffer)
+      .png() // Convert to PNG to support transparency for rounded corners
+      .composite([
+        {
+          input: roundedCorners,
+          blend: 'dest-in'
+        }
+      ])
+      .toBuffer();
+
+    return processedImage;
+  } catch (error) {
+    console.error('Error adding rounded corners:', error);
+    return imageBuffer; // Return original if processing fails
+  }
+}
+
 export interface ImageMetadata {
   id: string;
   originalName: string;
