@@ -5,10 +5,10 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
@@ -3720,12 +3720,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       console.log("Found redirect link:", redirectLink.id);
       
-      // Get current access token
-      const accessToken = await storage.getNdaAccessToken(redirectLink.currentTokenId.toString());
-      if (!accessToken || !accessToken.isActive) {
-        console.log("ERROR: Access token not found or inactive");
+      // Get current access token by ID using storage method
+      console.log("Looking up access token by ID:", redirectLink.currentTokenId);
+      const accessTokens = await db.select().from(ndaAccessTokens).where(eq(ndaAccessTokens.id, redirectLink.currentTokenId));
+      
+      if (!accessTokens || accessTokens.length === 0) {
+        console.log("ERROR: Access token record not found");
         return res.status(404).json({ error: "Invalid or expired access token" });
       }
+      
+      const accessToken = accessTokens[0];
+      
+      if (!accessToken.isActive) {
+        console.log("ERROR: Access token is inactive");
+        return res.status(404).json({ error: "Invalid or expired access token" });
+      }
+      
+      console.log("Found access token record:", accessToken.id, "Token:", accessToken.token.substring(0, 10) + "...");
       
       console.log("Found access token:", accessToken.id);
       
