@@ -36,8 +36,7 @@ export default function EnhancedCimPage() {
 
   // Helper functions for sharing
   const copyShareUrl = async () => {
-    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
-    if (!shareSlug) {
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
       toast({
         title: "Sharing Not Enabled",
         description: "Please enable sharing in the share settings first.",
@@ -45,7 +44,7 @@ export default function EnhancedCimPage() {
       });
       return;
     }
-    const shareUrl = `${window.location.origin}/share/${shareSlug}`;
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
     await navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Share Link Copied",
@@ -54,9 +53,7 @@ export default function EnhancedCimPage() {
   };
 
   const openSharePage = () => {
-    // Check multiple possible share slug fields for compatibility
-    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
-    if (!shareSlug) {
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
       toast({
         title: "Sharing Not Enabled",
         description: "Please enable sharing in the share settings first.",
@@ -64,16 +61,23 @@ export default function EnhancedCimPage() {
       });
       return;
     }
-    const shareUrl = `${window.location.origin}/share/${shareSlug}`;
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
     window.open(shareUrl, '_blank');
   };
 
   const handleEmailShare = () => {
-    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
+      });
+      return;
+    }
     setEmailShareDialog({
       open: true,
       documentTitle: cimDocument?.title || `CIM Document #${id}`,
-      shareToken: shareSlug || ""
+      shareToken: cimDocument.shareSlug
     });
   };
 
