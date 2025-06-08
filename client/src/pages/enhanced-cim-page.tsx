@@ -36,8 +36,16 @@ export default function EnhancedCimPage() {
 
   // Helper functions for sharing
   const copyShareUrl = async () => {
-    if (!cimDocument?.shareSlug) return;
-    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
+    if (!shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    const shareUrl = `${window.location.origin}/share/${shareSlug}`;
     await navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Share Link Copied",
@@ -46,16 +54,26 @@ export default function EnhancedCimPage() {
   };
 
   const openSharePage = () => {
-    if (!cimDocument?.shareSlug) return;
-    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    // Check multiple possible share slug fields for compatibility
+    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
+    if (!shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    const shareUrl = `${window.location.origin}/share/${shareSlug}`;
     window.open(shareUrl, '_blank');
   };
 
   const handleEmailShare = () => {
+    const shareSlug = cimDocument?.shareSlug || cimDocument?.shareToken;
     setEmailShareDialog({
       open: true,
       documentTitle: cimDocument?.title || `CIM Document #${id}`,
-      shareToken: cimDocument?.shareSlug || ""
+      shareToken: shareSlug || ""
     });
   };
 

@@ -1065,7 +1065,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract financial data from request
-      const financials = req.body.financials;
+      const financials = req.body.financials ? JSON.parse(req.body.financials) : undefined;
+      
+      // Extract cover image data from request
+      const coverImageUrl = req.body.coverImageUrl || null;
+      const coverImagePosition = req.body.coverImagePosition ? JSON.parse(req.body.coverImagePosition) : null;
+      const coverImageAttribution = req.body.coverImageAttribution || null;
       
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
@@ -1074,6 +1079,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         analysis,
         selectedImages: savedImagePaths,
         regenerationCount: 0,
+        // Add cover image data
+        coverImageUrl,
+        coverImagePosition,
+        coverImageAttribution,
         // Add financial data directly to the document
         financialsEnabled: financials?.enabled || false,
         askingPrice: financials?.askingPrice || null,
