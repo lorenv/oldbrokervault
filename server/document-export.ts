@@ -1696,10 +1696,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .font('Helvetica-Bold')
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
-        doc.moveDown(2);
+        doc.moveDown(1);
       }
 
-      // Add logo if available
+      // Add website extracted logo below title, centered and bigger
       if (logoUrl) {
         try {
           console.log("Processing logo URL:", logoUrl);
@@ -1708,10 +1708,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           if (fs.existsSync(logoPath)) {
             console.log("Logo file exists, adding to PDF");
-            doc.image(logoPath, doc.page.width - 150, 30, {
-              fit: [100, 50],
-              align: 'right'
+            // Center the logo below the title, make it bigger
+            const logoWidth = 150;
+            const logoHeight = 75;
+            const centerX = (doc.page.width - logoWidth) / 2;
+            doc.image(logoPath, centerX, doc.y + 20, {
+              width: logoWidth,
+              height: logoHeight,
+              align: 'center'
             });
+            doc.moveDown(6); // Account for logo space
             console.log("Successfully added logo to PDF");
           } else {
             console.log("Logo file does not exist, checking alternative paths");
@@ -1726,10 +1732,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             for (const altPath of alternativePaths) {
               console.log("Trying alternative logo path:", altPath);
               if (fs.existsSync(altPath)) {
-                doc.image(altPath, doc.page.width - 150, 30, {
-                  fit: [100, 50],
-                  align: 'right'
+                const logoWidth = 150;
+                const logoHeight = 75;
+                const centerX = (doc.page.width - logoWidth) / 2;
+                doc.image(altPath, centerX, doc.y + 20, {
+                  width: logoWidth,
+                  height: logoHeight,
+                  align: 'center'
                 });
+                doc.moveDown(6); // Account for logo space
                 console.log("Successfully added logo from alternative path:", altPath);
                 logoFound = true;
                 break;
@@ -1738,11 +1749,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             if (!logoFound) {
               console.log("Logo file not found in any location:", logoPath);
+              doc.moveDown(1);
             }
           }
         } catch (error) {
           console.error("Failed to add logo to PDF:", error);
+          doc.moveDown(1);
         }
+      } else {
+        doc.moveDown(1);
       }
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
@@ -1808,12 +1823,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           }
         }
         
-        // Note about financial documents
-        doc.moveDown(1);
-        doc.fontSize(10)
-           .fillColor('#666666')
-           .text('Note: Additional financial documents may be available upon request.');
-        
         doc.moveDown(2);
       }
 
@@ -1833,7 +1842,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .text(websiteUrl, {
              link: websiteUrl,
              underline: true,
-             align: 'center'
+             align: 'left'
            });
         doc.fillColor('#000000');
         doc.moveDown(2);
@@ -2102,29 +2111,139 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(2);
         
+        // Add profile picture if available
+        if (userProfile.profilePhoto) {
+          try {
+            console.log("Processing profile photo:", userProfile.profilePhoto);
+            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+            console.log("Resolved profile photo path:", profilePhotoPath);
+            
+            if (fs.existsSync(profilePhotoPath)) {
+              console.log("Profile photo file exists, adding to PDF");
+              const photoWidth = 100;
+              const photoHeight = 100;
+              const centerX = (doc.page.width - photoWidth) / 2;
+              doc.image(profilePhotoPath, centerX, doc.y, {
+                width: photoWidth,
+                height: photoHeight,
+                align: 'center'
+              });
+              doc.moveDown(7); // Account for photo space
+              console.log("Successfully added profile photo to PDF");
+            } else {
+              console.log("Profile photo file does not exist, checking alternative paths");
+              // Try alternative paths for profile photo
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', userProfile.profilePhoto.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), userProfile.profilePhoto.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', userProfile.profilePhoto.replace(/^\/+/, ''))
+              ];
+              
+              let photoFound = false;
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative profile photo path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  const photoWidth = 100;
+                  const photoHeight = 100;
+                  const centerX = (doc.page.width - photoWidth) / 2;
+                  doc.image(altPath, centerX, doc.y, {
+                    width: photoWidth,
+                    height: photoHeight,
+                    align: 'center'
+                  });
+                  doc.moveDown(7); // Account for photo space
+                  console.log("Successfully added profile photo from alternative path:", altPath);
+                  photoFound = true;
+                  break;
+                }
+              }
+              
+              if (!photoFound) {
+                console.log("Profile photo file not found in any location:", profilePhotoPath);
+              }
+            }
+          } catch (error) {
+            console.error("Failed to add profile photo to PDF:", error);
+          }
+        }
+        
         if (userProfile.name) {
-          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`);
+          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.title) {
-          doc.font('Helvetica').text(`Title: ${userProfile.title}`);
+          doc.font('Helvetica').text(`Title: ${userProfile.title}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.phoneNumber) {
-          doc.font('Helvetica').text(`Phone: ${userProfile.phoneNumber}`);
+          doc.font('Helvetica').text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.email) {
-          doc.font('Helvetica').text(`Email: ${userProfile.email}`);
+          doc.font('Helvetica').text(`Email: ${userProfile.email}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.businessName) {
-          doc.font('Helvetica').text(`Company: ${userProfile.businessName}`);
-          doc.moveDown(0.5);
+          doc.font('Helvetica').text(`Company: ${userProfile.businessName}`, { align: 'center' });
+          doc.moveDown(1);
+        }
+        
+        // Add business logo if available
+        if (userProfile.businessLogo) {
+          try {
+            console.log("Processing business logo:", userProfile.businessLogo);
+            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+            console.log("Resolved business logo path:", businessLogoPath);
+            
+            if (fs.existsSync(businessLogoPath)) {
+              console.log("Business logo file exists, adding to PDF");
+              const logoWidth = 120;
+              const logoHeight = 60;
+              const centerX = (doc.page.width - logoWidth) / 2;
+              doc.image(businessLogoPath, centerX, doc.y + 10, {
+                width: logoWidth,
+                height: logoHeight,
+                align: 'center'
+              });
+              console.log("Successfully added business logo to PDF");
+            } else {
+              console.log("Business logo file does not exist, checking alternative paths");
+              // Try alternative paths for business logo
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, ''))
+              ];
+              
+              let logoFound = false;
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative business logo path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  const logoWidth = 120;
+                  const logoHeight = 60;
+                  const centerX = (doc.page.width - logoWidth) / 2;
+                  doc.image(altPath, centerX, doc.y + 10, {
+                    width: logoWidth,
+                    height: logoHeight,
+                    align: 'center'
+                  });
+                  console.log("Successfully added business logo from alternative path:", altPath);
+                  logoFound = true;
+                  break;
+                }
+              }
+              
+              if (!logoFound) {
+                console.log("Business logo file not found in any location:", businessLogoPath);
+              }
+            }
+          } catch (error) {
+            console.error("Failed to add business logo to PDF:", error);
+          }
         }
       }
 
