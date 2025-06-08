@@ -1024,7 +1024,7 @@ function addFooter(doc: any, pageNumber: number, totalPages: number, documentTit
   
   // Set footer style
   doc.fontSize(9)
-     .font('Helvetica')
+     .font('Segoe-Regular')
      .fillColor('#666666');
   
   // Add document title on left (truncate if too long)
@@ -1901,11 +1901,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Draw financial data in a clean, aligned format
         if (tableData.length > 0) {
           tableData.forEach(([label, value]) => {
-            doc.font('Helvetica-Bold')
+            doc.font('Segoe-Bold')
                .fillColor('#000000')
                .text(label, { continued: true });
             
-            doc.font('Helvetica')
+            doc.font('Segoe-Regular')
                .fillColor('#2563eb')
                .text(`  ${value}`);
             
@@ -1921,7 +1921,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           if (includedFiles.length > 0) {
             doc.moveDown(1);
-            doc.font('Helvetica-Bold')
+            doc.font('Segoe-Bold')
                .fillColor('#000000')
                .text('Additional Financial Documents:');
             doc.moveDown(0.5);
@@ -1933,18 +1933,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
               // Add file name as clickable link
-              doc.font('Helvetica')
+              doc.font('Segoe-Regular')
                  .fillColor('#2563eb')
                  .text(`• ${file.originalName}`, {
                    link: downloadUrl,
                    underline: true
                  });
               
-              // Add file size and type information  
-              doc.font('Helvetica')
+              // Add file size information  
+              doc.font('Segoe-Regular')
                  .fillColor('#666666')
                  .fontSize(10)
-                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB | Type: ${file.mimeType || 'Unknown'}`, {
+                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB | ${file.mimeType || 'Unknown'}`, {
                    indent: 20
                  });
               
@@ -1965,11 +1965,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Website URL Section (moved after financials)
       if (websiteUrl) {
         doc.fontSize(18)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('Website')
            .fillColor('#000000')
-           .font('Helvetica')
+           .font('Segoe-Regular')
            .fontSize(12);
         
         doc.moveDown(1);
@@ -1991,11 +1991,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         sortedCustomSections.forEach((customSection) => {
           doc.fontSize(18)
-             .font('Helvetica-Bold')
+             .font('Segoe-Bold')
              .fillColor('#2563eb')
              .text(customSection.title || 'Custom Section')
              .fillColor('#000000')
-             .font('Helvetica')
+             .font('Segoe-Regular')
              .fontSize(12);
           
           doc.moveDown(1);
@@ -2009,7 +2009,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
               .trim();
             
-            doc.font('Helvetica').text(content, {
+            doc.font('Segoe-Regular').text(content, {
               align: 'left',
               lineGap: 4
             });
@@ -2088,11 +2088,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Only render analysis sections if no custom sections exist
         analysis.sections.forEach((section: any, index: number) => {
           doc.fontSize(18)
-             .font('Helvetica-Bold')
+             .font('Segoe-Bold')
              .fillColor('#2563eb')
              .text(section.title || `Section ${index + 1}`)
              .fillColor('#000000')
-             .font('Helvetica')
+             .font('Segoe-Regular')
              .fontSize(12);
           
           doc.moveDown(1);
@@ -2106,7 +2106,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
               .trim();
             
-            doc.font('Helvetica').text(content, {
+            doc.font('Segoe-Regular').text(content, {
               align: 'left',
               lineGap: 4
             });
@@ -2117,17 +2117,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       } else if (analysis.story) {
         // Fallback to old format if no sections
         doc.fontSize(18)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('Business Summary')
            .fillColor('#000000')
-           .font('Helvetica')
+           .font('Segoe-Regular')
            .fontSize(12);
         
         doc.moveDown(1);
 
         if (analysis.story.businessSummary) {
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
+          doc.font('Segoe-Regular').text(safeStringify(analysis.story.businessSummary));
         }
       }
 
@@ -2136,7 +2136,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.addPage();
         
         doc.fontSize(18)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('BUSINESS IMAGES')
            .fillColor('#000000');
@@ -2202,7 +2202,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 
                 // Add section header on new page
                 doc.fontSize(18)
-                   .font('Helvetica-Bold')
+                   .font('Segoe-Bold')
                    .fillColor('#2563eb')
                    .text('BUSINESS IMAGES (continued)')
                    .fillColor('#000000');
@@ -2251,11 +2251,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.addPage();
         
         doc.fontSize(18)
-           .font('Helvetica-Bold')
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('CONTACT INFORMATION')
            .fillColor('#000000')
-           .font('Helvetica')
+           .font('Segoe-Regular')
            .fontSize(12);
         
         doc.moveDown(2);
@@ -2350,27 +2350,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
         
         if (userProfile.name) {
-          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
+          doc.font('Segoe-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.title) {
-          doc.font('Helvetica').text(`Title: ${userProfile.title}`, { align: 'center' });
+          doc.font('Segoe-Regular').text(`Title: ${userProfile.title}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.phoneNumber) {
-          doc.font('Helvetica').text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
+          doc.font('Segoe-Regular').text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.email) {
-          doc.font('Helvetica').text(`Email: ${userProfile.email}`, { align: 'center' });
+          doc.font('Segoe-Regular').text(`Email: ${userProfile.email}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.businessName) {
-          doc.font('Helvetica').text(`Company: ${userProfile.businessName}`, { align: 'center' });
+          doc.font('Segoe-Regular').text(`Company: ${userProfile.businessName}`, { align: 'center' });
           doc.moveDown(1);
         }
         
