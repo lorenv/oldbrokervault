@@ -15,7 +15,8 @@ import {
   X,
   Plus,
   Type,
-  ImageIcon
+  ImageIcon,
+  Upload
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
