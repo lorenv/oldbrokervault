@@ -1024,7 +1024,7 @@ function addFooter(doc: any, pageNumber: number, totalPages: number, documentTit
   
   // Set footer style
   doc.fontSize(9)
-     .font('Segoe-Regular')
+     .font('Helvetica')
      .fillColor('#666666');
   
   // Add document title on left (truncate if too long)
@@ -1644,17 +1644,64 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
-    // Register custom Segoe UI fonts
+    // Register custom Segoe UI fonts with fallback
+    let fontsRegistered = false;
     try {
-      doc.registerFont('Segoe-Regular', path.join(__dirname, 'fonts', 'segoe-ui-regular.ttf'));
-      doc.registerFont('Segoe-Bold', path.join(__dirname, 'fonts', 'segoe-ui-bold.ttf'));
-      doc.registerFont('Segoe-Italic', path.join(__dirname, 'fonts', 'segoe-ui-italic.ttf'));
-      doc.registerFont('Segoe-Light', path.join(__dirname, 'fonts', 'segoe-ui-light.ttf'));
-      console.log("Successfully registered Segoe UI fonts");
+      const fontsDir = path.resolve(process.cwd(), 'server', 'fonts');
+      console.log("Attempting to register fonts from:", fontsDir);
+      
+      // Check if font files exist before registering
+      const fontFiles = [
+        'segoe-ui-regular.ttf',
+        'segoe-ui-bold.ttf', 
+        'segoe-ui-italic.ttf',
+        'segoe-ui-light.ttf'
+      ];
+      
+      const allFontsExist = fontFiles.every(file => {
+        const fontPath = path.join(fontsDir, file);
+        const exists = fs.existsSync(fontPath);
+        console.log(`Font check: ${file} - ${exists ? 'exists' : 'missing'} at ${fontPath}`);
+        return exists;
+      });
+      
+      if (allFontsExist) {
+        doc.registerFont('Segoe-Regular', path.join(fontsDir, 'segoe-ui-regular.ttf'));
+        doc.registerFont('Segoe-Bold', path.join(fontsDir, 'segoe-ui-bold.ttf'));
+        doc.registerFont('Segoe-Italic', path.join(fontsDir, 'segoe-ui-italic.ttf'));
+        doc.registerFont('Segoe-Light', path.join(fontsDir, 'segoe-ui-light.ttf'));
+        fontsRegistered = true;
+        console.log("Successfully registered all Segoe UI fonts");
+      } else {
+        console.log("Some font files missing, will use fallback fonts");
+      }
     } catch (error) {
-      console.error("Failed to register custom fonts, falling back to default:", error);
+      console.error("Failed to register custom fonts:", error);
+      fontsRegistered = false;
     }
     
+    // Helper function to get appropriate font name with fallback
+    const getFont = (style: 'regular' | 'bold' | 'italic' | 'light') => {
+      if (fontsRegistered) {
+        switch (style) {
+          case 'regular': return 'Segoe-Regular';
+          case 'bold': return 'Segoe-Bold';
+          case 'italic': return 'Segoe-Italic';
+          case 'light': return 'Segoe-Light';
+          default: return 'Segoe-Regular';
+        }
+      } else {
+        // Fallback to standard PDF fonts
+        switch (style) {
+          case 'regular': return 'Helvetica';
+          case 'bold': return 'Helvetica-Bold';
+          case 'italic': return 'Helvetica-Oblique';
+          case 'light': return 'Helvetica';
+          default: return 'Helvetica';
+        }
+      }
+    };
+
     // Track page information
     let currentPageNumber = 1;
     
@@ -1776,14 +1823,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)
-           .font('Segoe-Bold')
+           .font(getFont('bold'))
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
         doc.moveDown(0.5);
         
         // Add subtitle text
         doc.fontSize(12)
-           .font('Segoe-Italic')
+           .font(getFont('italic'))
            .fillColor('#6b7280')
            .text('Confidential Memorandum - includes sensitive material', { align: 'center' });
         doc.moveDown(1);
@@ -1877,11 +1924,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (financialData && financialData.enabled) {
         doc.addPage(); // Add page break before Financial Information
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font(getFont('bold'))
            .fillColor('#2563eb')
            .text('FINANCIAL INFORMATION')
            .fillColor('#000000')
-           .font('Segoe-Regular')
+           .font(getFont('regular'))
            .fontSize(12);
         
         doc.moveDown(1);
