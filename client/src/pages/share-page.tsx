@@ -225,7 +225,7 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
-        <div className="relative h-[25vh] md:h-[28vh] overflow-hidden">
+        <div className="relative h-[35vh] md:h-[40vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center transform scale-110"
