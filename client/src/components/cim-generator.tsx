@@ -70,11 +70,17 @@ export function CimGenerator() {
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // New analysis template state
+  // New analysis template state - force reset to valid schema values
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
   const [selectedTone, setSelectedTone] = useState<string>('professional');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
+
+  // Force update to ensure valid values on mount
+  useEffect(() => {
+    setSelectedTone('professional');
+    setSelectedAudience('investors');
+  }, []);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
 
   // Cover image state
@@ -338,6 +344,13 @@ export function CimGenerator() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      // Debug: Log the values being sent
+      console.log('=== FRONTEND DEBUG ===');
+      console.log('selectedTone:', selectedTone);
+      console.log('selectedPurpose:', selectedPurpose);
+      console.log('selectedAudience:', selectedAudience);
+      console.log('=== END DEBUG ===');
+      
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
       
@@ -477,7 +490,7 @@ export function CimGenerator() {
       
       // Redirect to My CIMs page to view the editable version
       setTimeout(() => {
-        window.location.href = `/documents/${data.id}`;
+        window.location.assign(`/documents/${data.id}`);
       }, 1500);
     },
     onError: (error: any) => {
