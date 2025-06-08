@@ -33,16 +33,20 @@ export function SharePage() {
   }, []);
 
   // Validate access token if present
-  const { data: tokenValidation } = useQuery({
+  const { data: tokenValidation, isLoading: isValidatingToken, error: tokenError } = useQuery({
     queryKey: ['/api/nda/validate-token', accessToken],
     queryFn: async () => {
       if (!accessToken) return null;
       const response = await fetch(`/api/nda/validate-token/${accessToken}`);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.error('Token validation failed:', response.status, response.statusText);
+        return { valid: false, error: 'Token validation failed' };
+      }
       return response.json();
     },
     enabled: !!accessToken,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
   });
 
   const { data: shareData, isLoading, error } = useQuery({
@@ -136,6 +140,46 @@ export function SharePage() {
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
   const shouldShowNda = shareData.requiresNda && !hasSignedNda && !hasValidToken;
+
+  // Show loading state while validating token
+  if (accessToken && isValidatingToken) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Validating access...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if token validation failed
+  if (accessToken && tokenValidation?.valid === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 rounded-full bg-red-100">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <CardTitle>Invalid or Expired Access Token</CardTitle>
+              <CardDescription>
+                The access link you used is no longer valid. Please request a new link or sign the NDA again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button onClick={() => window.location.href = `/share/${shareSlug}`}>
+                Return to Document
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (shouldShowNda) {
     return (
