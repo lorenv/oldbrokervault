@@ -1699,58 +1699,81 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
       }
 
-      // Add website extracted logo below title, centered and bigger
+      // Add website extracted logo below title, maintaining aspect ratio
       if (logoUrl) {
         try {
           console.log("Processing logo URL:", logoUrl);
           const logoPath = resolveImagePath(logoUrl);
           console.log("Resolved logo path:", logoPath);
           
+          let logoFound = false;
+          let finalLogoPath = logoPath;
+          
           if (fs.existsSync(logoPath)) {
-            console.log("Logo file exists, adding to PDF");
-            // Center the logo below the title, make it bigger
-            const logoWidth = 150;
-            const logoHeight = 75;
-            const centerX = (doc.page.width - logoWidth) / 2;
-            doc.image(logoPath, centerX, doc.y + 20, {
-              width: logoWidth,
-              height: logoHeight,
-              align: 'center'
-            });
-            doc.moveDown(6); // Account for logo space
-            console.log("Successfully added logo to PDF");
+            logoFound = true;
           } else {
             console.log("Logo file does not exist, checking alternative paths");
-            // Try alternative paths for logo
             const alternativePaths = [
               path.resolve(process.cwd(), 'public', logoUrl.replace(/^\/+/, '')),
               path.resolve(process.cwd(), logoUrl.replace(/^\/+/, '')),
               path.resolve(process.cwd(), 'attached_assets', logoUrl.replace(/^\/+/, ''))
             ];
             
-            let logoFound = false;
             for (const altPath of alternativePaths) {
               console.log("Trying alternative logo path:", altPath);
               if (fs.existsSync(altPath)) {
-                const logoWidth = 150;
-                const logoHeight = 75;
-                const centerX = (doc.page.width - logoWidth) / 2;
-                doc.image(altPath, centerX, doc.y + 20, {
-                  width: logoWidth,
-                  height: logoHeight,
-                  align: 'center'
-                });
-                doc.moveDown(6); // Account for logo space
-                console.log("Successfully added logo from alternative path:", altPath);
+                finalLogoPath = altPath;
                 logoFound = true;
+                console.log("Successfully found logo at alternative path:", altPath);
                 break;
               }
             }
+          }
+          
+          if (logoFound) {
+            console.log("Logo file exists, adding to PDF with proper aspect ratio");
             
-            if (!logoFound) {
-              console.log("Logo file not found in any location:", logoPath);
-              doc.moveDown(1);
+            // Read image dimensions to maintain aspect ratio
+            const imageBuffer = fs.readFileSync(finalLogoPath);
+            let originalWidth = 200;
+            let originalHeight = 100;
+            
+            // Try to get actual image dimensions
+            const jpegDims = getJpegDimensions(imageBuffer);
+            const pngDims = getPngDimensions(imageBuffer);
+            
+            if (jpegDims) {
+              originalWidth = jpegDims.width;
+              originalHeight = jpegDims.height;
+            } else if (pngDims) {
+              originalWidth = pngDims.width;
+              originalHeight = pngDims.height;
             }
+            
+            // Calculate scaled dimensions maintaining aspect ratio
+            const maxWidth = 180;
+            const maxHeight = 120;
+            const aspectRatio = originalWidth / originalHeight;
+            
+            let logoWidth = maxWidth;
+            let logoHeight = maxWidth / aspectRatio;
+            
+            if (logoHeight > maxHeight) {
+              logoHeight = maxHeight;
+              logoWidth = maxHeight * aspectRatio;
+            }
+            
+            const centerX = (doc.page.width - logoWidth) / 2;
+            doc.image(finalLogoPath, centerX, doc.y + 20, {
+              width: logoWidth,
+              height: logoHeight,
+              align: 'center'
+            });
+            doc.moveDown(Math.ceil(logoHeight / 12) + 1); // Account for logo space dynamically
+            console.log("Successfully added logo to PDF with dimensions:", logoWidth, "x", logoHeight);
+          } else {
+            console.log("Logo file not found in any location:", logoPath);
+            doc.moveDown(1);
           }
         } catch (error) {
           console.error("Failed to add logo to PDF:", error);
@@ -1801,26 +1824,48 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         // Add financial files section with hyperlinks
         if (financialFiles && financialFiles.length > 0) {
+          console.log("Processing financial files for PDF:", financialFiles);
           const includedFiles = financialFiles.filter(file => file.included !== false);
+          console.log("Included financial files:", includedFiles);
+          
           if (includedFiles.length > 0) {
             doc.moveDown(1);
-            doc.font('Helvetica-Bold').text('Additional Financial Documents:');
+            doc.font('Helvetica-Bold')
+               .fillColor('#000000')
+               .text('Additional Financial Documents:');
             doc.moveDown(0.5);
             
             includedFiles.forEach((file: any) => {
+              console.log("Adding financial file to PDF:", file.originalName);
               // Use the dynamic base URL for file downloads
               const domain = baseUrl || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev';
               const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+              
+              // Add file name as clickable link
               doc.font('Helvetica')
                  .fillColor('#2563eb')
-                 .text(file.originalName, {
+                 .text(`• ${file.originalName}`, {
                    link: downloadUrl,
                    underline: true
                  });
-              doc.fillColor('#000000');
-              doc.moveDown(0.3);
+              
+              // Add file size and type information  
+              doc.font('Helvetica')
+                 .fillColor('#666666')
+                 .fontSize(10)
+                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB | Type: ${file.mimeType || 'Unknown'}`, {
+                   indent: 20
+                 });
+              
+              doc.fillColor('#000000').fontSize(12);
+              doc.moveDown(0.4);
             });
+            console.log("Successfully added all financial files to PDF");
+          } else {
+            console.log("No included financial files found");
           }
+        } else {
+          console.log("No financial files provided to PDF generation");
         }
         
         doc.moveDown(2);
@@ -2118,49 +2163,69 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
             console.log("Resolved profile photo path:", profilePhotoPath);
             
+            let photoFound = false;
+            let finalPhotoPath = profilePhotoPath;
+            
             if (fs.existsSync(profilePhotoPath)) {
-              console.log("Profile photo file exists, adding to PDF");
-              const photoWidth = 100;
-              const photoHeight = 100;
-              const centerX = (doc.page.width - photoWidth) / 2;
-              doc.image(profilePhotoPath, centerX, doc.y, {
-                width: photoWidth,
-                height: photoHeight,
-                align: 'center'
-              });
-              doc.moveDown(7); // Account for photo space
-              console.log("Successfully added profile photo to PDF");
+              photoFound = true;
             } else {
               console.log("Profile photo file does not exist, checking alternative paths");
               // Try alternative paths for profile photo
               const alternativePaths = [
                 path.resolve(process.cwd(), 'public', userProfile.profilePhoto.replace(/^\/+/, '')),
                 path.resolve(process.cwd(), userProfile.profilePhoto.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', userProfile.profilePhoto.replace(/^\/+/, ''))
+                path.resolve(process.cwd(), 'attached_assets', userProfile.profilePhoto.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.profilePhoto))
               ];
               
-              let photoFound = false;
               for (const altPath of alternativePaths) {
                 console.log("Trying alternative profile photo path:", altPath);
                 if (fs.existsSync(altPath)) {
-                  const photoWidth = 100;
-                  const photoHeight = 100;
-                  const centerX = (doc.page.width - photoWidth) / 2;
-                  doc.image(altPath, centerX, doc.y, {
-                    width: photoWidth,
-                    height: photoHeight,
-                    align: 'center'
-                  });
-                  doc.moveDown(7); // Account for photo space
-                  console.log("Successfully added profile photo from alternative path:", altPath);
+                  finalPhotoPath = altPath;
                   photoFound = true;
+                  console.log("Successfully found profile photo at alternative path:", altPath);
                   break;
                 }
               }
+            }
+            
+            if (photoFound) {
+              console.log("Profile photo file exists, adding to PDF with proper aspect ratio");
               
-              if (!photoFound) {
-                console.log("Profile photo file not found in any location:", profilePhotoPath);
+              // Read image dimensions to maintain aspect ratio
+              const imageBuffer = fs.readFileSync(finalPhotoPath);
+              let originalWidth = 100;
+              let originalHeight = 100;
+              
+              // Try to get actual image dimensions
+              const jpegDims = getJpegDimensions(imageBuffer);
+              const pngDims = getPngDimensions(imageBuffer);
+              
+              if (jpegDims) {
+                originalWidth = jpegDims.width;
+                originalHeight = jpegDims.height;
+              } else if (pngDims) {
+                originalWidth = pngDims.width;
+                originalHeight = pngDims.height;
               }
+              
+              // Calculate scaled dimensions maintaining aspect ratio for circular crop
+              const targetSize = 100;
+              const aspectRatio = originalWidth / originalHeight;
+              
+              let photoWidth = targetSize;
+              let photoHeight = targetSize;
+              
+              // For profile photos, we want a square crop
+              const centerX = (doc.page.width - photoWidth) / 2;
+              doc.image(finalPhotoPath, centerX, doc.y, {
+                fit: [photoWidth, photoHeight],
+                align: 'center'
+              });
+              doc.moveDown(Math.ceil(photoHeight / 12) + 1);
+              console.log("Successfully added profile photo to PDF with dimensions:", photoWidth, "x", photoHeight);
+            } else {
+              console.log("Profile photo file not found in any location:", profilePhotoPath);
             }
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
@@ -2199,47 +2264,74 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const businessLogoPath = resolveImagePath(userProfile.businessLogo);
             console.log("Resolved business logo path:", businessLogoPath);
             
+            let logoFound = false;
+            let finalLogoPath = businessLogoPath;
+            
             if (fs.existsSync(businessLogoPath)) {
-              console.log("Business logo file exists, adding to PDF");
-              const logoWidth = 120;
-              const logoHeight = 60;
-              const centerX = (doc.page.width - logoWidth) / 2;
-              doc.image(businessLogoPath, centerX, doc.y + 10, {
-                width: logoWidth,
-                height: logoHeight,
-                align: 'center'
-              });
-              console.log("Successfully added business logo to PDF");
+              logoFound = true;
             } else {
               console.log("Business logo file does not exist, checking alternative paths");
               // Try alternative paths for business logo
               const alternativePaths = [
                 path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
                 path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, ''))
+                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
               ];
               
-              let logoFound = false;
               for (const altPath of alternativePaths) {
                 console.log("Trying alternative business logo path:", altPath);
                 if (fs.existsSync(altPath)) {
-                  const logoWidth = 120;
-                  const logoHeight = 60;
-                  const centerX = (doc.page.width - logoWidth) / 2;
-                  doc.image(altPath, centerX, doc.y + 10, {
-                    width: logoWidth,
-                    height: logoHeight,
-                    align: 'center'
-                  });
-                  console.log("Successfully added business logo from alternative path:", altPath);
+                  finalLogoPath = altPath;
                   logoFound = true;
+                  console.log("Successfully found business logo at alternative path:", altPath);
                   break;
                 }
               }
+            }
+            
+            if (logoFound) {
+              console.log("Business logo file exists, adding to PDF with proper aspect ratio");
               
-              if (!logoFound) {
-                console.log("Business logo file not found in any location:", businessLogoPath);
+              // Read image dimensions to maintain aspect ratio
+              const imageBuffer = fs.readFileSync(finalLogoPath);
+              let originalWidth = 120;
+              let originalHeight = 60;
+              
+              // Try to get actual image dimensions
+              const jpegDims = getJpegDimensions(imageBuffer);
+              const pngDims = getPngDimensions(imageBuffer);
+              
+              if (jpegDims) {
+                originalWidth = jpegDims.width;
+                originalHeight = jpegDims.height;
+              } else if (pngDims) {
+                originalWidth = pngDims.width;
+                originalHeight = pngDims.height;
               }
+              
+              // Calculate scaled dimensions maintaining aspect ratio
+              const maxWidth = 120;
+              const maxHeight = 80;
+              const aspectRatio = originalWidth / originalHeight;
+              
+              let logoWidth = maxWidth;
+              let logoHeight = maxWidth / aspectRatio;
+              
+              if (logoHeight > maxHeight) {
+                logoHeight = maxHeight;
+                logoWidth = maxHeight * aspectRatio;
+              }
+              
+              const centerX = (doc.page.width - logoWidth) / 2;
+              doc.image(finalLogoPath, centerX, doc.y + 10, {
+                width: logoWidth,
+                height: logoHeight,
+                align: 'center'
+              });
+              console.log("Successfully added business logo to PDF with dimensions:", logoWidth, "x", logoHeight);
+            } else {
+              console.log("Business logo file not found in any location:", businessLogoPath);
             }
           } catch (error) {
             console.error("Failed to add business logo to PDF:", error);
