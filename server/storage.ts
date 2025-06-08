@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -118,6 +118,11 @@ export interface IStorage {
   createCustomTag(userId: number, name: string, color: string): Promise<any>;
   getCustomTags(userId: number): Promise<any[]>;
   deleteCustomTag(id: number, userId: number): Promise<void>;
+  // Analysis Templates
+  createAnalysisTemplate(userId: number, template: any): Promise<any>;
+  getAnalysisTemplates(userId: number): Promise<any[]>;
+  updateAnalysisTemplate(id: number, template: any): Promise<any>;
+  deleteAnalysisTemplate(id: number, userId: number): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -244,6 +249,9 @@ export class DatabaseStorage implements IStorage {
       revenueIncluded: doc.revenueIncluded || false,
       ebitda: doc.ebitda || null,
       ebitdaIncluded: doc.ebitdaIncluded || false,
+      coverImageUrl: doc.coverImageUrl || null,
+      coverImagePosition: doc.coverImagePosition || null,
+      coverImageAttribution: doc.coverImageAttribution || null,
     };
 
     console.log("Data being inserted into database:", insertData);
@@ -947,6 +955,46 @@ export class DatabaseStorage implements IStorage {
   async deleteCustomTag(id: number, userId: number): Promise<void> {
     await db.delete(customTags)
       .where(sql`${customTags.id} = ${id} AND ${customTags.userId} = ${userId}`);
+  }
+
+  // Analysis Templates methods
+  async createAnalysisTemplate(userId: number, template: InsertAnalysisTemplate): Promise<AnalysisTemplate> {
+    const [newTemplate] = await db.insert(analysisTemplates)
+      .values({
+        ...template,
+        userId
+      })
+      .returning();
+
+    return newTemplate;
+  }
+
+  async getAnalysisTemplates(userId: number): Promise<AnalysisTemplate[]> {
+    return await db.select()
+      .from(analysisTemplates)
+      .where(eq(analysisTemplates.userId, userId))
+      .orderBy(desc(analysisTemplates.createdAt));
+  }
+
+  async updateAnalysisTemplate(id: number, template: Partial<AnalysisTemplate>): Promise<AnalysisTemplate> {
+    const [updatedTemplate] = await db.update(analysisTemplates)
+      .set({
+        ...template,
+        updatedAt: new Date()
+      })
+      .where(eq(analysisTemplates.id, id))
+      .returning();
+
+    if (!updatedTemplate) {
+      throw new Error("Template not found");
+    }
+
+    return updatedTemplate;
+  }
+
+  async deleteAnalysisTemplate(id: number, userId: number): Promise<void> {
+    await db.delete(analysisTemplates)
+      .where(sql`${analysisTemplates.id} = ${id} AND ${analysisTemplates.userId} = ${userId}`);
   }
 }
 

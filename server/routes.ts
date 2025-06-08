@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, captureWebsiteScreenshot, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
