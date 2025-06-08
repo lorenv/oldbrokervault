@@ -540,5 +540,86 @@ export const insertAnalysisTemplateSchema = createInsertSchema(analysisTemplates
 export type AnalysisTemplate = typeof analysisTemplates.$inferSelect;
 export type InsertAnalysisTemplate = z.infer<typeof insertAnalysisTemplateSchema>;
 
+// Export template system for customizable branding and layouts
+export const exportTemplates = pgTable("export_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Template layout and structure
+  layout: text("layout").notNull().default("standard"), // 'standard', 'executive', 'detailed', 'minimal'
+  
+  // Branding options
+  primaryColor: text("primary_color").default("#1e40af").notNull(),
+  secondaryColor: text("secondary_color").default("#64748b").notNull(),
+  accentColor: text("accent_color").default("#dc2626").notNull(),
+  
+  // Typography
+  headerFont: text("header_font").default("Inter").notNull(),
+  bodyFont: text("body_font").default("Inter").notNull(),
+  fontSize: integer("font_size").default(11).notNull(),
+  
+  // Logo and branding
+  logoUrl: text("logo_url"),
+  logoPosition: text("logo_position").default("header-left").notNull(), // 'header-left', 'header-center', 'header-right', 'footer'
+  logoSize: text("logo_size").default("medium").notNull(), // 'small', 'medium', 'large'
+  
+  // Header and footer customization
+  headerText: text("header_text"),
+  footerText: text("footer_text"),
+  showPageNumbers: boolean("show_page_numbers").default(true).notNull(),
+  showDate: boolean("show_date").default(true).notNull(),
+  
+  // Document structure options
+  includeCoverPage: boolean("include_cover_page").default(true).notNull(),
+  includeTableOfContents: boolean("include_table_of_contents").default(true).notNull(),
+  includeExecutiveSummary: boolean("include_executive_summary").default(true).notNull(),
+  includeFinancials: boolean("include_financials").default(true).notNull(),
+  includeAppendices: boolean("include_appendices").default(true).notNull(),
+  
+  // Page layout
+  pageSize: text("page_size").default("letter").notNull(), // 'letter', 'a4', 'legal'
+  margins: jsonb("margins").default({top: 72, bottom: 72, left: 54, right: 54}).notNull(),
+  
+  // Content styling
+  sectionSpacing: integer("section_spacing").default(24).notNull(),
+  paragraphSpacing: integer("paragraph_spacing").default(12).notNull(),
+  
+  // Watermark and confidentiality
+  watermarkText: text("watermark_text"),
+  confidentialityNotice: text("confidentiality_notice"),
+  
+  // Template metadata
+  isDefault: boolean("is_default").default(false).notNull(),
+  isPublic: boolean("is_public").default(false).notNull(),
+  usageCount: integer("usage_count").default(0).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertExportTemplateSchema = createInsertSchema(exportTemplates).omit({
+  id: true,
+  usageCount: true,
+  createdAt: true,
+  updatedAt: true
+}).extend({
+  name: z.string().min(1, "Template name is required"),
+  layout: z.enum(["standard", "executive", "detailed", "minimal"]),
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  accentColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+  headerFont: z.string().min(1),
+  bodyFont: z.string().min(1),
+  fontSize: z.number().min(8).max(16),
+  logoPosition: z.enum(["header-left", "header-center", "header-right", "footer"]),
+  logoSize: z.enum(["small", "medium", "large"]),
+  pageSize: z.enum(["letter", "a4", "legal"])
+});
+
+export type ExportTemplate = typeof exportTemplates.$inferSelect;
+export type InsertExportTemplate = z.infer<typeof insertExportTemplateSchema>;
+
 // Default CIM directions for backwards compatibility
 export const DEFAULT_CIM_DIRECTIONS = DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections;
