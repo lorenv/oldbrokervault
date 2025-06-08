@@ -1024,7 +1024,7 @@ function addFooter(doc: any, pageNumber: number, totalPages: number, documentTit
   
   // Set footer style
   doc.fontSize(9)
-     .font('Segoe-Regular')
+     .font('Helvetica')
      .fillColor('#666666');
   
   // Add document title on left (truncate if too long)
@@ -1644,13 +1644,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
-    // Register custom Segoe UI fonts
+    // Use standard PDF fonts (no registration needed)
     try {
-      doc.registerFont('Segoe-Regular', path.join(__dirname, 'fonts', 'segoe-ui-regular.ttf'));
-      doc.registerFont('Segoe-Bold', path.join(__dirname, 'fonts', 'segoe-ui-bold.ttf'));
-      doc.registerFont('Segoe-Italic', path.join(__dirname, 'fonts', 'segoe-ui-italic.ttf'));
-      doc.registerFont('Segoe-Light', path.join(__dirname, 'fonts', 'segoe-ui-light.ttf'));
-      console.log("Successfully registered Segoe UI fonts");
+      console.log("Using standard PDF fonts (Helvetica family)");
     } catch (error) {
       console.error("Failed to register custom fonts, falling back to default:", error);
     }
@@ -1776,14 +1772,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
         doc.moveDown(0.5);
         
         // Add subtitle text
         doc.fontSize(12)
-           .font('Segoe-Italic')
+           .font('Helvetica-Oblique')
            .fillColor('#6b7280')
            .text('Confidential Memorandum - includes sensitive material', { align: 'center' });
         doc.moveDown(1);
