@@ -853,8 +853,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : null;
       const coverImageAttribution = coverImage?.attribution || null;
       
+      console.log("Creating CIM document with directions:", data.directions);
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
+        directions: data.directions, // Explicitly include custom directions
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,
@@ -1165,8 +1168,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const coverImagePosition = req.body.coverImagePosition ? JSON.parse(req.body.coverImagePosition) : null;
       const coverImageAttribution = req.body.coverImageAttribution || null;
       
+      console.log("Creating CIM document from upload with directions:", data.directions);
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
+        directions: data.directions, // Explicitly include custom directions
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,
