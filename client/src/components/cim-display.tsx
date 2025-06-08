@@ -454,6 +454,57 @@ export function CimDisplay({
     }
   };
 
+  // Handle business image upload
+  const handleBusinessImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      for (const file of Array.from(files)) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast({ title: "Invalid File", description: `${file.name} is not an image file.`, variant: "destructive" });
+          continue;
+        }
+
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({ title: "File Too Large", description: `${file.name} is larger than 5MB.`, variant: "destructive" });
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`/api/cim/${docId}/business-image`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // Update local state immediately
+          setLocalSelectedImages(prev => [...prev, result.imagePath]);
+          
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+          
+          toast({ title: "Upload Successful", description: `${file.name} uploaded successfully.` });
+        } else {
+          const error = await response.json();
+          toast({ title: "Upload Failed", description: error.error || `Failed to upload ${file.name}.`, variant: "destructive" });
+        }
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({ title: "Upload Failed", description: "An error occurred during upload.", variant: "destructive" });
+    }
+
+    // Reset the input
+    event.target.value = '';
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -530,30 +581,68 @@ export function CimDisplay({
         )}
         
         {/* Business Images */}
-        {localSelectedImages && localSelectedImages.length > 0 && (
+        {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (
           <div className="mb-6">
-            <h3 className="font-medium mb-3">Business Images</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {localSelectedImages.map((image, index) => (
-                <div key={index} className="relative group">
-                  <img 
-                    src={image} 
-                    alt={`Business image ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg"
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium">Business Images</h3>
+              {!isSharedView && (
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    id="business-image-upload"
+                    onChange={handleBusinessImageUpload}
                   />
-                  {!isSharedView && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
-                      onClick={() => handleDeleteImage(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('business-image-upload')?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Images
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
+            {localSelectedImages && localSelectedImages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {localSelectedImages.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img 
+                      src={image} 
+                      alt={`Business image ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    {!isSharedView && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
+                        onClick={() => handleDeleteImage(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : !isSharedView ? (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500 mb-4">No business images uploaded yet</p>
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('business-image-upload')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload Your First Image
+                </Button>
+              </div>
+            ) : null}
           </div>
         )}
         

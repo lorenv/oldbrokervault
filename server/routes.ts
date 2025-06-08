@@ -14,6 +14,7 @@ import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
+import * as fsSync from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent, createGoogleDoc } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
@@ -1006,8 +1007,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Ensure business images directory exists
-      if (!fs.existsSync(businessImagesDir)) {
-        fs.mkdirSync(businessImagesDir, { recursive: true });
+      if (!fsSync.existsSync(businessImagesDir)) {
+        fsSync.mkdirSync(businessImagesDir, { recursive: true });
       }
 
       // Generate unique filename
@@ -1017,7 +1018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicPath = `/business-images/${fileName}`;
 
       // Save the file
-      fs.writeFileSync(filePath, req.file.buffer);
+      fsSync.writeFileSync(filePath, req.file.buffer);
 
       // Update the CIM document with the new image
       const currentImages = cim.selectedImages || [];
