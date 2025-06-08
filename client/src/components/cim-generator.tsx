@@ -103,39 +103,61 @@ export function CimGenerator() {
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved custom directions from user profile
-  const { data: savedDirections = null, refetch: refetchDirections } = useQuery({
-    queryKey: ['/api/user/custom-directions'],
+  // Load analysis templates from database
+  const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
+    queryKey: ['/api/analysis-templates'],
     enabled: !!user,
   });
 
-  // Load saved directions into state when available
-  useEffect(() => {
-    if (savedDirections?.customDirections) {
-      setCustomDirections(savedDirections.customDirections);
-      form.setValue('directions', savedDirections.customDirections);
-    }
-  }, [savedDirections, form]);
-
-  // Mutation for saving custom directions
-  const saveDirectionsMutation = useMutation({
-    mutationFn: async (customDirections: string) => {
-      return apiRequest('POST', '/api/user/custom-directions', { customDirections });
+  // Mutations for template management
+  const createTemplateMutation = useMutation({
+    mutationFn: async (templateData: any) => {
+      const response = await fetch('/api/analysis-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData),
+      });
+      if (!response.ok) throw new Error('Failed to create template');
+      return response.json();
     },
     onSuccess: () => {
+      refetchTemplates();
       toast({
-        title: "Directions Saved",
-        description: "Your custom directions have been saved to your profile.",
+        title: "Template Saved",
+        description: "Your template has been saved successfully.",
       });
-      refetchDirections();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to save custom directions",
+        description: "Failed to save template. Please try again.",
         variant: "destructive",
       });
-    }
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (templateId: number) => {
+      const response = await fetch(`/api/analysis-templates/${templateId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete template');
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchTemplates();
+      toast({
+        title: "Template Deleted",
+        description: "Template has been removed successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete template. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Handler to update custom directions when presets change
@@ -147,29 +169,37 @@ export function CimGenerator() {
     }
   };
 
-  // Handler to save current directions to user profile
-  const saveCurrentDirections = () => {
-    if (customDirections.trim().length < 10) {
-      toast({
-        title: "Error",
-        description: "Custom directions must be at least 10 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-    saveDirectionsMutation.mutate(customDirections);
+  // Handler to save custom template
+  const saveCustomTemplate = (name: string) => {
+    const templateData = {
+      name: name.trim(),
+      purpose: selectedPurpose,
+      tone: selectedTone,
+      audience: selectedAudience,
+      customDirections: customDirections,
+      isPublic: false
+    };
+    
+    createTemplateMutation.mutate(templateData);
+    setTemplateNameInput('');
   };
 
-  // Handler to load saved directions from user profile
-  const loadSavedDirections = () => {
-    if (savedDirections?.customDirections) {
-      setCustomDirections(savedDirections.customDirections);
-      form.setValue('directions', savedDirections.customDirections);
-      toast({
-        title: "Directions Loaded",
-        description: "Your saved custom directions have been loaded.",
-      });
-    }
+  // Handler to load template with confirmation
+  const loadTemplate = (template: any) => {
+    setCustomDirections(template.customDirections);
+    form.setValue("directions", template.customDirections);
+    setSelectedPurpose(template.purpose);
+    setSelectedTone(template.tone);
+    setSelectedAudience(template.audience);
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" has been loaded successfully.`,
+    });
+  };
+
+  // Handler to delete template
+  const deleteTemplate = (templateId: number) => {
+    deleteTemplateMutation.mutate(templateId);
   };
 
   // Extend the schema with URL validation
@@ -1107,35 +1137,96 @@ ${analysis.team.ownerResponsibilities}
                     Customize how AI analyzes your transcript
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  {savedDirections?.customDirections && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={loadSavedDirections}
-                      className="gap-2"
-                      type="button"
-                    >
-                      <FolderOpen className="h-4 w-4" />
-                      Load Saved
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Settings className="h-4 w-4" />
+                      Templates
                     </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={saveCurrentDirections}
-                    disabled={saveDirectionsMutation.isPending || customDirections.trim().length < 10}
-                    className="gap-2"
-                    type="button"
-                  >
-                    {saveDirectionsMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Save to Profile
-                  </Button>
-                </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Manage Direction Templates</DialogTitle>
+                      <DialogDescription>
+                        Create, save, and load custom analysis direction templates
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Current Directions</Label>
+                        <Textarea
+                          className="min-h-[300px] text-sm"
+                          value={customDirections}
+                          onChange={(e) => {
+                            setCustomDirections(e.target.value);
+                            form.setValue("directions", e.target.value);
+                          }}
+                          placeholder="Enter your custom analysis directions..."
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Template name (e.g., 'Investor Deck Template')"
+                          value={templateNameInput}
+                          onChange={(e) => setTemplateNameInput(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button"
+                          onClick={() => {
+                            if (templateNameInput.trim()) {
+                              saveCustomTemplate(templateNameInput.trim());
+                            }
+                          }}
+                          disabled={!templateNameInput.trim()}
+                          className="gap-2"
+                        >
+                          <Save className="h-4 w-4" />
+                          Save Template
+                        </Button>
+                      </div>
+                      
+                      {analysisTemplates && analysisTemplates.length > 0 && (
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Saved Templates</Label>
+                          <div className="grid grid-cols-1 gap-2">
+                            {analysisTemplates.map((template) => (
+                              <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium">{template.name}</span>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {template.purpose} • {template.tone} • {template.audience}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => loadTemplate(template)}
+                                    className="gap-2"
+                                  >
+                                    <FolderOpen className="h-4 w-4" />
+                                    Load
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteTemplate(template.id)}
+                                    className="gap-2 text-destructive hover:text-destructive"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               
               {/* Simplified preset controls */}
