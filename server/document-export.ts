@@ -16,9 +16,11 @@ function resolveImagePath(imagePath: string): string {
     return imagePath;
   }
   
-  // If it starts with '/', assume it's relative to the project root
+  // If it starts with '/', assume it's relative to the project root public folder
   if (imagePath.startsWith('/')) {
-    return path.resolve(process.cwd(), imagePath.substring(1));
+    const publicPath = path.resolve(process.cwd(), 'public', imagePath.substring(1));
+    console.log(`Resolving path: ${imagePath} -> ${publicPath}`);
+    return publicPath;
   }
   
   // If it starts with 'attached_assets/', resolve relative to project root
@@ -36,8 +38,8 @@ function resolveImagePath(imagePath: string): string {
     return publicPath;
   }
   
-  // Default to attached_assets if file doesn't exist yet
-  return attachedAssetsPath;
+  // Default to public folder if file doesn't exist yet
+  return publicPath;
 }
 
 export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
