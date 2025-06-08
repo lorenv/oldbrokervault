@@ -83,7 +83,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-pink-400 via-purple-500 via-blue-500 via-green-400 to-yellow-400 pt-32 pb-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight pb-2" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight pb-2" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}>
             Structure. Security. Story. In one link.
           </h1>
           <p className="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
