@@ -2180,11 +2180,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const finalX = startX + (col * (imageWidth + horizontalMargin));
               const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
+              // Save the current graphics state
+              doc.save();
+              
+              // Create rounded rectangle clipping path for business images
+              const cornerRadius = 8; // Rounded corner radius
+              doc.roundedRect(finalX, finalY, imageWidth, imageHeight, cornerRadius);
+              doc.clip();
+              
+              // Add the image (will be clipped to rounded rectangle)
               doc.image(finalImagePath, finalX, finalY, {
                 fit: [imageWidth, imageHeight],
                 align: 'center'
               });
-              console.log(`Successfully added business image ${i} at ${finalX}, ${finalY}`);
+              
+              // Restore the graphics state
+              doc.restore();
+              
+              console.log(`Successfully added business image ${i} with rounded corners at ${finalX}, ${finalY}`);
             } else {
               console.log(`Business image file not found in any location: ${selectedImages[i]}`);
             }
@@ -2379,12 +2392,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               }
               
               const centerX = (doc.page.width - logoWidth) / 2;
-              doc.image(finalLogoPath, centerX, doc.y + 10, {
+              const logoY = doc.y + 10;
+              
+              // Save the current graphics state
+              doc.save();
+              
+              // Create rounded rectangle clipping path for business logo
+              const cornerRadius = 8; // Rounded corner radius
+              doc.roundedRect(centerX, logoY, logoWidth, logoHeight, cornerRadius);
+              doc.clip();
+              
+              // Add the business logo (will be clipped to rounded rectangle)
+              doc.image(finalLogoPath, centerX, logoY, {
                 width: logoWidth,
                 height: logoHeight,
                 align: 'center'
               });
-              console.log("Successfully added business logo to PDF with dimensions:", logoWidth, "x", logoHeight);
+              
+              // Restore the graphics state
+              doc.restore();
+              
+              console.log("Successfully added business logo to PDF with rounded corners and dimensions:", logoWidth, "x", logoHeight);
             } else {
               console.log("Business logo file not found in any location:", businessLogoPath);
             }
