@@ -1546,13 +1546,30 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   // Add profile photo if available
   if (userProfile?.profilePhoto) {
     try {
-      const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-      if (fs.existsSync(profilePhotoPath)) {
+      let imageData: Buffer;
+      let photoFound = false;
+      
+      // Check if it's a base64 data URL
+      if (userProfile.profilePhoto.startsWith('data:image/')) {
+        console.log("Profile photo is base64 data URL for Word document");
+        const base64Data = userProfile.profilePhoto.split(',')[1];
+        imageData = Buffer.from(base64Data, 'base64');
+        photoFound = true;
+      } else {
+        // Try to resolve as file path
+        const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+        if (fs.existsSync(profilePhotoPath)) {
+          imageData = fs.readFileSync(profilePhotoPath);
+          photoFound = true;
+        }
+      }
+      
+      if (photoFound && imageData) {
         paragraphs.push(
           new docx.Paragraph({
             children: [
               new docx.ImageRun({
-                data: fs.readFileSync(profilePhotoPath),
+                data: imageData,
                 transformation: {
                   width: 120,
                   height: 120
@@ -2227,41 +2244,55 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add profile picture if available
         if (userProfile.profilePhoto) {
           try {
-            console.log("Processing profile photo:", userProfile.profilePhoto);
-            const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
-            console.log("Resolved profile photo path:", profilePhotoPath);
+            console.log("Processing profile photo:", userProfile.profilePhoto.substring(0, 50) + "...");
             
+            let imageBuffer: Buffer;
             let photoFound = false;
-            let finalPhotoPath = profilePhotoPath;
             
-            if (fs.existsSync(profilePhotoPath)) {
+            // Check if it's a base64 data URL
+            if (userProfile.profilePhoto.startsWith('data:image/')) {
+              console.log("Profile photo is base64 data URL, converting to buffer");
+              const base64Data = userProfile.profilePhoto.split(',')[1];
+              imageBuffer = Buffer.from(base64Data, 'base64');
               photoFound = true;
             } else {
-              console.log("Profile photo file does not exist, checking alternative paths");
-              // Try alternative paths for profile photo
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', userProfile.profilePhoto.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), userProfile.profilePhoto.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', userProfile.profilePhoto.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.profilePhoto))
-              ];
+              // Try to resolve as file path
+              const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+              console.log("Resolved profile photo path:", profilePhotoPath);
               
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative profile photo path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalPhotoPath = altPath;
-                  photoFound = true;
-                  console.log("Successfully found profile photo at alternative path:", altPath);
-                  break;
+              let finalPhotoPath = profilePhotoPath;
+              
+              if (fs.existsSync(profilePhotoPath)) {
+                photoFound = true;
+              } else {
+                console.log("Profile photo file does not exist, checking alternative paths");
+                // Try alternative paths for profile photo
+                const alternativePaths = [
+                  path.resolve(process.cwd(), 'public', userProfile.profilePhoto.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), userProfile.profilePhoto.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'attached_assets', userProfile.profilePhoto.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.profilePhoto))
+                ];
+                
+                for (const altPath of alternativePaths) {
+                  console.log("Trying alternative profile photo path:", altPath);
+                  if (fs.existsSync(altPath)) {
+                    finalPhotoPath = altPath;
+                    photoFound = true;
+                    console.log("Successfully found profile photo at alternative path:", altPath);
+                    break;
+                  }
                 }
+              }
+              
+              if (photoFound) {
+                imageBuffer = fs.readFileSync(finalPhotoPath);
               }
             }
             
-            if (photoFound) {
-              console.log("Profile photo file exists, adding to PDF with proper aspect ratio");
+            if (photoFound && imageBuffer) {
+              console.log("Profile photo found, adding to PDF with proper aspect ratio");
               
-              // Read image dimensions to maintain aspect ratio
-              const imageBuffer = fs.readFileSync(finalPhotoPath);
               let originalWidth = 100;
               let originalHeight = 100;
               
@@ -2279,21 +2310,20 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               
               // Calculate scaled dimensions maintaining aspect ratio for circular crop
               const targetSize = 100;
-              const aspectRatio = originalWidth / originalHeight;
               
               let photoWidth = targetSize;
               let photoHeight = targetSize;
               
               // For profile photos, we want a square crop
               const centerX = (doc.page.width - photoWidth) / 2;
-              doc.image(finalPhotoPath, centerX, doc.y, {
+              doc.image(imageBuffer, centerX, doc.y, {
                 fit: [photoWidth, photoHeight],
                 align: 'center'
               });
               doc.moveDown(Math.ceil(photoHeight / 12) + 1);
               console.log("Successfully added profile photo to PDF with dimensions:", photoWidth, "x", photoHeight);
             } else {
-              console.log("Profile photo file not found in any location:", profilePhotoPath);
+              console.log("Profile photo not found or could not be processed");
             }
           } catch (error) {
             console.error("Failed to add profile photo to PDF:", error);
@@ -2328,41 +2358,55 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Add business logo if available
         if (userProfile.businessLogo) {
           try {
-            console.log("Processing business logo:", userProfile.businessLogo);
-            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
-            console.log("Resolved business logo path:", businessLogoPath);
+            console.log("Processing business logo:", userProfile.businessLogo.substring(0, 50) + "...");
             
+            let imageBuffer: Buffer;
             let logoFound = false;
-            let finalLogoPath = businessLogoPath;
             
-            if (fs.existsSync(businessLogoPath)) {
+            // Check if it's a base64 data URL
+            if (userProfile.businessLogo.startsWith('data:image/')) {
+              console.log("Business logo is base64 data URL, converting to buffer");
+              const base64Data = userProfile.businessLogo.split(',')[1];
+              imageBuffer = Buffer.from(base64Data, 'base64');
               logoFound = true;
             } else {
-              console.log("Business logo file does not exist, checking alternative paths");
-              // Try alternative paths for business logo
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
-              ];
+              // Try to resolve as file path
+              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+              console.log("Resolved business logo path:", businessLogoPath);
               
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative business logo path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalLogoPath = altPath;
-                  logoFound = true;
-                  console.log("Successfully found business logo at alternative path:", altPath);
-                  break;
+              let finalLogoPath = businessLogoPath;
+              
+              if (fs.existsSync(businessLogoPath)) {
+                logoFound = true;
+              } else {
+                console.log("Business logo file does not exist, checking alternative paths");
+                // Try alternative paths for business logo
+                const alternativePaths = [
+                  path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
+                ];
+                
+                for (const altPath of alternativePaths) {
+                  console.log("Trying alternative business logo path:", altPath);
+                  if (fs.existsSync(altPath)) {
+                    finalLogoPath = altPath;
+                    logoFound = true;
+                    console.log("Successfully found business logo at alternative path:", altPath);
+                    break;
+                  }
                 }
+              }
+              
+              if (logoFound) {
+                imageBuffer = fs.readFileSync(finalLogoPath);
               }
             }
             
-            if (logoFound) {
-              console.log("Business logo file exists, adding to PDF with proper aspect ratio");
+            if (logoFound && imageBuffer) {
+              console.log("Business logo found, adding to PDF with proper aspect ratio");
               
-              // Read image dimensions to maintain aspect ratio
-              const imageBuffer = fs.readFileSync(finalLogoPath);
               let originalWidth = 120;
               let originalHeight = 60;
               
@@ -2403,7 +2447,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               doc.clip();
               
               // Add the business logo (will be clipped to rounded rectangle)
-              doc.image(finalLogoPath, centerX, logoY, {
+              doc.image(imageBuffer, centerX, logoY, {
                 width: logoWidth,
                 height: logoHeight,
                 align: 'center'
@@ -2414,7 +2458,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               
               console.log("Successfully added business logo to PDF with rounded corners and dimensions:", logoWidth, "x", logoHeight);
             } else {
-              console.log("Business logo file not found in any location:", businessLogoPath);
+              console.log("Business logo not found or could not be processed");
             }
           } catch (error) {
             console.error("Failed to add business logo to PDF:", error);
