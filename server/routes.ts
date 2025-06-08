@@ -854,10 +854,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (selectedImageUrls.length > 0) {
         try {
           console.log(`Processing ${selectedImageUrls.length} selected images for CIM ${doc.id}...`);
+          console.log(`Selected image URLs:`, selectedImageUrls);
           
-          const imagePromises = selectedImageUrls.map(async (imageUrl: string) => {
+          const imagePromises = selectedImageUrls.map(async (imageUrl: string, index: number) => {
             try {
+              console.log(`Downloading image ${index + 1}/${selectedImageUrls.length}: ${imageUrl}`);
               const metadata = await imageManager.downloadImageFromUrl(imageUrl, doc.id);
+              console.log(`Successfully downloaded image ${index + 1}: ${metadata.publicPath}`);
               return metadata.publicPath;
             } catch (error) {
               console.error(`Failed to download image ${imageUrl}:`, error);
@@ -870,11 +873,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .filter(result => result.status === 'fulfilled' && result.value !== null)
             .map(result => (result as PromiseFulfilledResult<string>).value);
           
+          console.log(`Download results: ${downloadedImages.length}/${selectedImageUrls.length} images downloaded successfully`);
+          console.log(`Downloaded image paths:`, downloadedImages);
+          
           // Update the CIM document with the downloaded image paths
           if (downloadedImages.length > 0) {
             await storage.updateCimImages(doc.id, downloadedImages);
             doc.selectedImages = downloadedImages; // Update the response object
-            console.log(`Successfully downloaded and stored ${downloadedImages.length} images for CIM ${doc.id}`);
+            console.log(`Successfully updated CIM ${doc.id} with ${downloadedImages.length} images`);
+          } else {
+            console.log(`No images were successfully downloaded for CIM ${doc.id}`);
           }
         } catch (imageError) {
           console.error("Error processing selected images:", imageError);
