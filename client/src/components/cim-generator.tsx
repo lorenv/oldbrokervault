@@ -72,7 +72,7 @@ export function CimGenerator() {
   
   // New analysis template state
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
-  const [selectedTone, setSelectedTone] = useState<string>('balanced');
+  const [selectedTone, setSelectedTone] = useState<string>('professional');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
@@ -1233,7 +1233,7 @@ ${analysis.team.ownerResponsibilities}
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Length</Label>
+                  <Label className="text-xs text-muted-foreground">Tone</Label>
                   <Select
                     value={selectedTone}
                     onValueChange={(value) => {
@@ -1244,9 +1244,9 @@ ${analysis.team.ownerResponsibilities}
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="robust">Robust</SelectItem>
-                      <SelectItem value="balanced">Balanced</SelectItem>
-                      <SelectItem value="memo">Memo</SelectItem>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="conversational">Conversational</SelectItem>
+                      <SelectItem value="executive_summary">Executive Summary</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1264,8 +1264,9 @@ ${analysis.team.ownerResponsibilities}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="investors">Investors</SelectItem>
-                      <SelectItem value="colleagues">Colleagues</SelectItem>
-                      <SelectItem value="friends">Friends</SelectItem>
+                      <SelectItem value="partners">Partners</SelectItem>
+                      <SelectItem value="internal_team">Internal Team</SelectItem>
+                      <SelectItem value="potential_buyers">Potential Buyers</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
