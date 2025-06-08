@@ -28,7 +28,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
       from: params.from,
       subject: params.subject,
-      text: params.text,
+      text: params.text || '',
       replyTo: params.replyTo,
       html: params.html,
       attachments: params.attachments,
@@ -59,7 +59,7 @@ export async function sendNdaSignedEmail(
   const viewerSuccess = await sendEmail({
     to: viewerEmail,
     from: 'rob@cimshare.com', // Use verified sender
-    replyTo: ownerEmail, // Allow replies to go to owner
+    replyTo: 'rob@cimshare.com', // Use verified reply-to address
     subject: `NDA Signed - Access to ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
