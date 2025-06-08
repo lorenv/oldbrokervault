@@ -1823,14 +1823,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)
-           .font(getFont('bold'))
+           .font('Segoe-Bold')
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
         doc.moveDown(0.5);
         
         // Add subtitle text
         doc.fontSize(12)
-           .font(getFont('italic'))
+           .font('Segoe-Italic')
            .fillColor('#6b7280')
            .text('Confidential Memorandum - includes sensitive material', { align: 'center' });
         doc.moveDown(1);
@@ -1924,11 +1924,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (financialData && financialData.enabled) {
         doc.addPage(); // Add page break before Financial Information
         doc.fontSize(18)
-           .font(getFont('bold'))
+           .font('Segoe-Bold')
            .fillColor('#2563eb')
            .text('FINANCIAL INFORMATION')
            .fillColor('#000000')
-           .font(getFont('regular'))
+           .font('Segoe-Regular')
            .fontSize(12);
         
         doc.moveDown(1);
