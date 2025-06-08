@@ -236,12 +236,7 @@ export function EnhancedCimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {/* Larger Logo */}
-        {logoUrl && (
-          <div className="flex justify-center mb-6">
-            <img src={logoUrl} alt="Company Logo" className="h-32" />
-          </div>
-        )}
+
 
         {/* Financial Information Section at Top */}
         {!isSharedView && cimDocument && (
@@ -253,6 +248,16 @@ export function EnhancedCimDisplay({
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Website extracted logo inside financial box */}
+              {logoUrl && (
+                <div className="flex justify-center mb-6 pb-4 border-b border-gray-200">
+                  <img 
+                    src={logoUrl} 
+                    alt="Company Logo" 
+                    className="h-24 object-contain"
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {cimDocument.askingPriceIncluded && (
                   <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">

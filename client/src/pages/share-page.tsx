@@ -446,7 +446,16 @@ export function SharePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8">
-
+                      {/* Website extracted logo inside financial box */}
+                      {shareData.logoUrl && (
+                        <div className="flex justify-center mb-8 pb-6 border-b border-gray-200">
+                          <img 
+                            src={shareData.logoUrl} 
+                            alt="Company Logo" 
+                            className="h-24 md:h-36 object-contain"
+                          />
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {shareData.cim.askingPrice && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
