@@ -51,17 +51,30 @@ export function addSignatureToNda(
             size: 12,
           });
           
-          // Add signer name (signature style) - enhanced handwriting appearance
-          const signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanBoldItalic);
+          // Add signer name with custom Handwritania font
+          let signatureFont;
+          try {
+            // Try to load the custom Handwritania font
+            const fs = await import('fs');
+            const path = await import('path');
+            const fontPath = path.join(process.cwd(), 'public/fonts/Handwritania.ttf');
+            const fontBytes = fs.readFileSync(fontPath);
+            signatureFont = await pdfDoc.embedFont(fontBytes);
+            console.log('✅ Custom Handwritania font loaded successfully');
+          } catch (error) {
+            console.warn('⚠️ Failed to load custom font, using fallback:', error);
+            // Fallback to Times Roman Italic if custom font fails
+            signatureFont = await pdfDoc.embedFont(pdfLib.StandardFonts.TimesRomanItalic);
+          }
           
-          // Create a more signature-like appearance with rotation and styling
+          // Create signature with custom font - no rotation for clean appearance
           signaturePage.drawText(signerName, {
             x: 60,
             y: height - 230,
-            size: 28,
+            size: 32,
             font: signatureFont,
             color: pdfLib.rgb(0.1, 0.1, 0.4),
-            rotate: pdfLib.degrees(-2), // Slight rotation for handwritten effect
+            // Removed rotation as requested
           });
           
           // Add a subtle underline for signature authenticity
