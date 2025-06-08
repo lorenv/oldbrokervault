@@ -404,9 +404,7 @@ export function CimGenerator() {
 
 
         try {
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('analyzing');
-          }
+          // Website analysis stage removed - we no longer do expensive website analysis
           
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
@@ -419,9 +417,7 @@ export function CimGenerator() {
             throw new Error(error.error || "Failed to generate CIM");
           }
           
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('enhancing');
-          }
+          // Website analysis stage removed - we no longer do expensive website analysis
           
           return res.json();
         } catch (error) {

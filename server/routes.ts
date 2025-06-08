@@ -781,6 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Audience:", audience);
       console.log("Custom directions:", data.directions);
       
+      console.time("AI CIM Generation");
       let analysis = await generateFlexibleCimDocument(
         data.transcript,
         data.directions,
@@ -788,8 +789,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         req.body.financials,
-        null // websiteData - will add later if needed
+        null // websiteData - no longer doing expensive website analysis
       );
+      console.timeEnd("AI CIM Generation");
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
       console.log("Analysis type:", typeof analysis);
@@ -812,20 +814,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
       
-      // If website URL is provided, extract logo and images in parallel
+      // If website URL is provided, extract logo and images (but skip heavy analysis)
       let logoUrl = null;
       let extractedImages: string[] = [];
       
       if (data.websiteUrl) {
         try {
           const normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("Starting parallel website processing...");
+          console.log("Starting efficient website processing (logo + images only)...");
           
+          console.time("Website Processing (Logo + Images)");
           // Run logo extraction and image extraction in parallel for efficiency
           const [logoResult, imagesResult] = await Promise.allSettled([
             extractLogoFromWebsite(normalizedUrl),
             extractWebsiteImages(normalizedUrl)
           ]);
+          console.timeEnd("Website Processing (Logo + Images)");
           
           // Handle logo extraction result
           if (logoResult.status === 'fulfilled' && logoResult.value) {
