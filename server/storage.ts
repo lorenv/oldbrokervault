@@ -761,11 +761,7 @@ export class DatabaseStorage implements IStorage {
       .from(ndaAccessTokens)
       .where(and(
         eq(ndaAccessTokens.token, token),
-        eq(ndaAccessTokens.isActive, true),
-        or(
-          sql`${ndaAccessTokens.expiresAt} IS NULL`,
-          sql`${ndaAccessTokens.expiresAt} > NOW()`
-        )
+        eq(ndaAccessTokens.isActive, true)
       ));
     return accessToken;
   }

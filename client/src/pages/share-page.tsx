@@ -40,13 +40,16 @@ export function SharePage() {
       const response = await fetch(`/api/nda/validate-token/${accessToken}`);
       if (!response.ok) {
         console.error('Token validation failed:', response.status, response.statusText);
-        return { valid: false, error: 'Token validation failed' };
+        // Don't return invalid here - let the query error handling take care of it
+        throw new Error(`Token validation failed: ${response.status}`);
       }
       return response.json();
     },
     enabled: !!accessToken,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: false, // Don't retry token validation to avoid race conditions
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false // Don't refetch on component remount
   });
 
   const { data: shareData, isLoading, error } = useQuery({
@@ -62,7 +65,7 @@ export function SharePage() {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Share API error:', errorText);
+        console.error('Share API error:', response.status, errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
       
@@ -70,8 +73,11 @@ export function SharePage() {
       return data;
     },
     enabled: !!shareSlug,
-    staleTime: 0,
-    gcTime: 0
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 1, // Only retry once to avoid excessive requests
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false // Don't refetch on component remount
   }) as { data: any, isLoading: boolean, error: any };
 
   // Fetch uploaded files for the shared document
@@ -155,8 +161,8 @@ export function SharePage() {
     );
   }
 
-  // Show error if token validation failed
-  if (accessToken && tokenValidation?.valid === false) {
+  // Show error if token validation failed with an actual error (not just missing token)
+  if (accessToken && tokenError && !isValidatingToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
