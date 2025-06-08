@@ -25,16 +25,20 @@ export function Navbar() {
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
             <a className="flex items-center space-x-2">
-              <img src="/cim-share-logo.png" alt="CIM Share" className="h-12" />
+              <img 
+                src="/cim-share-logo.png" 
+                alt="CIM Share" 
+                className={`h-12 ${isHomePage ? "brightness-0 invert" : ""}`}
+              />
             </a>
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/pricing">
-                <a className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
+                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</a>
               </Link>
               <Link href="/contact">
-                <a className="text-sm font-medium hover:text-primary transition-colors">Contact</a>
+                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</a>
               </Link>
             </div>
           )}
@@ -46,7 +50,7 @@ export function Navbar() {
               <Button 
                 variant="outline"
                 size="sm" 
-                className={isHomePage ? "bg-transparent border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors" : ""}
+                className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}
               >
                 Login / Sign Up
               </Button>
