@@ -145,7 +145,7 @@ export function SharePage() {
 
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
-  const shouldShowNda = shareData.requiresNda && !hasSignedNda && !hasValidToken;
+  const shouldShowNda = shareData?.requiresNda && !hasSignedNda && !hasValidToken;
 
   // Show loading state while validating token
   if (accessToken && isValidatingToken) {
