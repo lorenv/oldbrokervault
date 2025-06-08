@@ -4813,6 +4813,59 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Analysis Templates API
+  app.get("/api/analysis-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templates = await storage.getAnalysisTemplates(req.user.id);
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching analysis templates:', error);
+      res.status(500).json({ error: "Failed to fetch analysis templates" });
+    }
+  });
+
+  app.post("/api/analysis-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateData = insertAnalysisTemplateSchema.parse(req.body);
+      const newTemplate = await storage.createAnalysisTemplate(req.user.id, templateData);
+      res.json(newTemplate);
+    } catch (error) {
+      console.error('Error creating analysis template:', error);
+      res.status(500).json({ error: "Failed to create analysis template" });
+    }
+  });
+
+  app.put("/api/analysis-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateId = parseInt(req.params.id);
+      const templateData = insertAnalysisTemplateSchema.partial().parse(req.body);
+      const updatedTemplate = await storage.updateAnalysisTemplate(templateId, templateData);
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error('Error updating analysis template:', error);
+      res.status(500).json({ error: "Failed to update analysis template" });
+    }
+  });
+
+  app.delete("/api/analysis-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateId = parseInt(req.params.id);
+      await storage.deleteAnalysisTemplate(templateId, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting analysis template:', error);
+      res.status(500).json({ error: "Failed to delete analysis template" });
+    }
+  });
+
   // Cover Image Management API
   app.post("/api/cim/:id/cover-image", upload.single('coverImage'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

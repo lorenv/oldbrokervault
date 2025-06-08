@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,7 +75,6 @@ export function CimGenerator() {
   const [selectedTone, setSelectedTone] = useState<string>('balanced');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
-  const [savedTemplates, setSavedTemplates] = useState<Array<{name: string, directions: string}>>([]);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
 
   // Cover image state
@@ -89,23 +88,53 @@ export function CimGenerator() {
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved templates from localStorage on component mount
-  useEffect(() => {
-    const savedTemplatesFromStorage = localStorage.getItem('cim-custom-templates');
-    if (savedTemplatesFromStorage) {
-      try {
-        const templates = JSON.parse(savedTemplatesFromStorage);
-        setSavedTemplates(templates);
-      } catch (error) {
-        console.error('Error loading saved templates:', error);
-      }
-    }
-  }, []);
+  // Load analysis templates from database
+  const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
+    queryKey: ['/api/analysis-templates'],
+    enabled: !!user,
+  });
 
-  // Save templates to localStorage whenever savedTemplates changes
-  useEffect(() => {
-    localStorage.setItem('cim-custom-templates', JSON.stringify(savedTemplates));
-  }, [savedTemplates]);
+  // Mutations for template management
+  const createTemplateMutation = useMutation({
+    mutationFn: (templateData: any) => apiRequest('/api/analysis-templates', {
+      method: 'POST',
+      body: JSON.stringify(templateData),
+    }),
+    onSuccess: () => {
+      refetchTemplates();
+      toast({
+        title: "Template Saved",
+        description: "Your template has been saved successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save template. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (templateId: number) => apiRequest(`/api/analysis-templates/${templateId}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      refetchTemplates();
+      toast({
+        title: "Template Deleted",
+        description: "Template has been removed successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete template. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Handler to update custom directions when presets change
   const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
@@ -118,19 +147,26 @@ export function CimGenerator() {
 
   // Handler to save custom template
   const saveCustomTemplate = (name: string) => {
-    const newTemplate = { name, directions: customDirections };
-    setSavedTemplates(prev => [...prev, newTemplate]);
+    const templateData = {
+      name: name.trim(),
+      purpose: selectedPurpose,
+      tone: selectedTone,
+      audience: selectedAudience,
+      customDirections: customDirections,
+      isPublic: false
+    };
+    
+    createTemplateMutation.mutate(templateData);
     setTemplateNameInput('');
-    toast({
-      title: "Template Saved",
-      description: `"${name}" has been saved to your templates.`,
-    });
   };
 
   // Handler to load template with confirmation
-  const loadTemplate = (template: {name: string, directions: string}) => {
-    setCustomDirections(template.directions);
-    form.setValue("directions", template.directions);
+  const loadTemplate = (template: any) => {
+    setCustomDirections(template.customDirections);
+    form.setValue("directions", template.customDirections);
+    setSelectedPurpose(template.purpose);
+    setSelectedTone(template.tone);
+    setSelectedAudience(template.audience);
     toast({
       title: "Template Loaded",
       description: `"${template.name}" has been loaded successfully.`,
@@ -138,12 +174,8 @@ export function CimGenerator() {
   };
 
   // Handler to delete template
-  const deleteTemplate = (index: number) => {
-    setSavedTemplates(prev => prev.filter((_, i) => i !== index));
-    toast({
-      title: "Template Deleted",
-      description: "Template has been removed from your saved templates.",
-    });
+  const deleteTemplate = (templateId: number) => {
+    deleteTemplateMutation.mutate(templateId);
   };
 
   // Extend the schema with URL validation
