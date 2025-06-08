@@ -1622,7 +1622,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[]): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1651,32 +1651,54 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("===========================");
       
       // Add cover image at the top of the first page if available
-      if (selectedImages && selectedImages.length > 0) {
+      if (coverImageUrl) {
         try {
-          const firstImage = selectedImages[0];
-          console.log("Adding cover image:", firstImage);
+          console.log("Adding cover image from coverImageUrl:", coverImageUrl);
           
-          if (firstImage.startsWith('data:')) {
+          if (coverImageUrl.startsWith('data:')) {
             // Handle base64 data URI
-            const base64Data = firstImage.split(',')[1];
+            const base64Data = coverImageUrl.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
             doc.image(imageBuffer, 50, 50, {
-              width: doc.page.width - 100,
-              height: 80,
+              fit: [doc.page.width - 100, 200],
               align: 'center'
             });
-            doc.moveDown(8);
+            doc.moveDown(12);
             console.log("Successfully added base64 cover image");
           } else {
             // Handle file path
-            const imagePath = resolveImagePath(firstImage);
+            const imagePath = resolveImagePath(coverImageUrl);
+            
+            let coverImageFound = false;
+            let finalCoverImagePath = imagePath;
+            
             if (fs.existsSync(imagePath)) {
-              doc.image(imagePath, 50, 50, {
-                width: doc.page.width - 100,
-                height: 80,
+              coverImageFound = true;
+            } else {
+              console.log("Cover image not found at primary path, trying alternatives");
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', coverImageUrl.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), coverImageUrl.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', coverImageUrl.replace(/^\/+/, ''))
+              ];
+              
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative cover image path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  finalCoverImagePath = altPath;
+                  coverImageFound = true;
+                  console.log("Found cover image at alternative path:", altPath);
+                  break;
+                }
+              }
+            }
+            
+            if (coverImageFound) {
+              doc.image(finalCoverImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
                 align: 'center'
               });
-              doc.moveDown(8);
+              doc.moveDown(12);
               console.log("Successfully added file-based cover image");
             } else {
               console.log("Cover image file does not exist:", imagePath);
@@ -1684,6 +1706,39 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           }
         } catch (error) {
           console.error("Failed to add cover image:", error);
+        }
+      } else if (selectedImages && selectedImages.length > 0) {
+        // Fallback to first selected image if no specific cover image
+        try {
+          const firstImage = selectedImages[0];
+          console.log("Adding fallback cover image from selectedImages:", firstImage);
+          
+          if (firstImage.startsWith('data:')) {
+            // Handle base64 data URI
+            const base64Data = firstImage.split(',')[1];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            doc.image(imageBuffer, 50, 50, {
+              fit: [doc.page.width - 100, 200],
+              align: 'center'
+            });
+            doc.moveDown(12);
+            console.log("Successfully added base64 fallback cover image");
+          } else {
+            // Handle file path
+            const imagePath = resolveImagePath(firstImage);
+            if (fs.existsSync(imagePath)) {
+              doc.image(imagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
+              });
+              doc.moveDown(12);
+              console.log("Successfully added file-based fallback cover image");
+            } else {
+              console.log("Fallback cover image file does not exist:", imagePath);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to add fallback cover image:", error);
         }
       }
       
