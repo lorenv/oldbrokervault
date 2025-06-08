@@ -823,6 +823,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract financial data from request
       const financials = req.body.financials;
       
+      // Extract cover image data from request (handling nested object structure)
+      const coverImage = req.body.coverImage;
+      const coverImageUrl = coverImage?.url || null;
+      const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : null;
+      const coverImageAttribution = coverImage?.attribution || null;
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         websiteUrl: data.websiteUrl,
@@ -830,6 +836,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         analysis,
         selectedImages: savedImagePaths,
         regenerationCount: 0,
+        // Add cover image data
+        coverImageUrl,
+        coverImagePosition,
+        coverImageAttribution,
         // Add financial data directly to the document
         financialsEnabled: financials?.enabled || false,
         askingPrice: financials?.askingPrice || null,
