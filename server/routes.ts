@@ -426,7 +426,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
-        customSections
+        customSections,
+        cimDoc.coverImageUrl
       );
       
       console.log("PDF generation completed, buffer length:", pdfBuffer.length);
@@ -2395,8 +2396,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get custom sections for the document
       const customSections = await storage.getCustomSections(docId);
       
+      // Get financial files for the document
+      const documentFinancialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, docId));
+      
+      // Get the base URL from the request
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host || 'cimshare.com';
+      const baseUrl = `${protocol}://${host}`;
+      
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, [], undefined, doc.title, customSections);
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
