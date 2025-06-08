@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, exportTemplates, ExportTemplate, InsertExportTemplate } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -995,66 +995,6 @@ export class DatabaseStorage implements IStorage {
   async deleteAnalysisTemplate(id: number, userId: number): Promise<void> {
     await db.delete(analysisTemplates)
       .where(sql`${analysisTemplates.id} = ${id} AND ${analysisTemplates.userId} = ${userId}`);
-  }
-
-  // Export Templates methods
-  async createExportTemplate(userId: number, template: any): Promise<any> {
-    const [newTemplate] = await db.insert(exportTemplates)
-      .values({
-        ...template,
-        userId
-      })
-      .returning();
-
-    return newTemplate;
-  }
-
-  async getExportTemplates(userId: number): Promise<any[]> {
-    return await db.select()
-      .from(exportTemplates)
-      .where(eq(exportTemplates.userId, userId))
-      .orderBy(desc(exportTemplates.createdAt));
-  }
-
-  async getExportTemplate(id: number): Promise<any | undefined> {
-    const [template] = await db.select()
-      .from(exportTemplates)
-      .where(eq(exportTemplates.id, id));
-    
-    return template;
-  }
-
-  async updateExportTemplate(id: number, template: Partial<any>): Promise<any> {
-    const [updatedTemplate] = await db.update(exportTemplates)
-      .set({
-        ...template,
-        updatedAt: new Date()
-      })
-      .where(eq(exportTemplates.id, id))
-      .returning();
-
-    if (!updatedTemplate) {
-      throw new Error("Export template not found");
-    }
-
-    return updatedTemplate;
-  }
-
-  async deleteExportTemplate(id: number, userId: number): Promise<void> {
-    await db.delete(exportTemplates)
-      .where(sql`${exportTemplates.id} = ${id} AND ${exportTemplates.userId} = ${userId}`);
-  }
-
-  async setDefaultExportTemplate(userId: number, templateId: number): Promise<void> {
-    // First, unset any existing default templates for this user
-    await db.update(exportTemplates)
-      .set({ isDefault: false })
-      .where(eq(exportTemplates.userId, userId));
-
-    // Then set the new default template
-    await db.update(exportTemplates)
-      .set({ isDefault: true })
-      .where(sql`${exportTemplates.id} = ${templateId} AND ${exportTemplates.userId} = ${userId}`);
   }
 }
 
