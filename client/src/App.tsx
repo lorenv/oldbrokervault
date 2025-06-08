@@ -29,7 +29,7 @@ import EnhancedCimPage from "@/pages/enhanced-cim-page";
 
 function Router() {
   const [location] = useLocation();
-  const isSharePage = location.startsWith('/share/');
+  const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
 
   return (
     <>
@@ -56,6 +56,7 @@ function Router() {
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
+            <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <Route component={NotFound} />
           </Switch>
