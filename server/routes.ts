@@ -413,6 +413,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("- logoUrl:", cimDoc.logoUrl);
       console.log("- websiteUrl:", cimDoc.websiteUrl);
       console.log("- selectedImages:", cimDoc.selectedImages);
+      console.log("- coverImageUrl:", cimDoc.coverImageUrl);
+      console.log("- coverImagePosition:", cimDoc.coverImagePosition);
+      console.log("- coverImageAttribution:", cimDoc.coverImageAttribution);
       console.log("- userProfile:", JSON.stringify(userProfile, null, 2));
       console.log("- financialData:", JSON.stringify(financialData, null, 2));
       console.log("- customSections:", JSON.stringify(customSections, null, 2));
@@ -2458,6 +2461,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
+      
+      // Debug cover image data before PDF generation
+      console.log("Cover image data for PDF generation:");
+      console.log("- coverImageUrl:", doc.coverImageUrl);
+      console.log("- coverImagePosition:", doc.coverImagePosition);
+      console.log("- coverImageAttribution:", doc.coverImageAttribution);
       
       // Pass all document data to the PDF generator
       const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl);
