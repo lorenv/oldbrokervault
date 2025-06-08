@@ -1663,7 +1663,7 @@ export function DocumentExport({
                           .map((signature) => (
                           <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
                             <div className="flex-1">
-                              <p className="font-medium">{signature.signerName}</p>
+                              <div className="signature-handwriting text-lg mb-1">{signature.signerName}</div>
                               <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Signed: {new Date(signature.signedAt).toLocaleDateString()} • IP: {signature.signerIpAddress}
