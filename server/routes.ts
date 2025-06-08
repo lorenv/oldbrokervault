@@ -2392,8 +2392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/cim/export/pdf/:id", async (req, res) => {
-    console.log("PDF export request received for document ID:", req.params.id);
+  // Template-based PDF export route  
+  app.get("/api/cim/:id/pdf", async (req, res) => {
+    console.log("Template PDF export request received for document ID:", req.params.id);
     
     if (!req.isAuthenticated()) {
       console.log("PDF export authentication error - User not authenticated");
@@ -2403,6 +2404,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("User authenticated, retrieving document");
       const docId = parseInt(req.params.id);
+      const templateId = req.query.templateId ? parseInt(req.query.templateId as string) : undefined;
+      console.log("Template ID:", templateId);
+      
       const doc = await storage.getCimDocument(docId);
       
       if (!doc) {
@@ -2419,6 +2423,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
       
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
+        console.log("Permission error: User does not have premium/admin access");
+        return res.status(403).json({ error: "Premium subscription required" });
+      }
+
+      // Get template if specified
+      let template = null;
+      if (templateId) {
+        try {
+          template = await storage.getExportTemplate(templateId);
+          console.log("Using export template:", template?.name);
+          
+          // Update template usage count
+          if (template) {
+            await storage.updateExportTemplate(templateId, { usageCount: template.usageCount + 1 });
+          }
+        } catch (error) {
+          console.warn("Failed to load export template:", error);
+        }
+      }
+
+      const user2 = await storage.getUser(req.user!.id);
+      console.log(`User subscription status: ${user2?.subscriptionStatus}, isAdmin: ${user2?.isAdmin}`);
+      
+      if (!user2?.isAdmin && user2?.subscriptionStatus !== "premium" && user2?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
         return res.status(403).json({ error: "Premium subscription required" });
       }
