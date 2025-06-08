@@ -44,8 +44,9 @@ export function Navbar() {
           <div className="flex items-center ml-8">
             <Link href="/login">
               <Button 
+                variant="outline"
                 size="sm" 
-                className={isHomePage ? "bg-transparent border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-colors" : ""}
+                className={isHomePage ? "bg-transparent border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white transition-colors" : ""}
               >
                 Login / Sign Up
               </Button>

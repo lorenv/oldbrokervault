@@ -79,6 +79,7 @@ export function DocumentExport({
   });
   const [shareUrl, setShareUrl] = useState('');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
+  const [isLoadingShareSettings, setIsLoadingShareSettings] = useState(false);
   
   // NDA related state
   const [ndaTemplates, setNdaTemplates] = useState<any[]>([]);
@@ -397,6 +398,7 @@ export function DocumentExport({
     }
     
     console.log('🔍 Fetching share settings for document:', docId);
+    setIsLoadingShareSettings(true);
     
     try {
       const response = await apiRequest('GET', `/api/cim/${docId}`);
@@ -439,6 +441,8 @@ export function DocumentExport({
       }
     } catch (error) {
       console.error('❌ Error fetching share settings:', error);
+    } finally {
+      setIsLoadingShareSettings(false);
     }
   };
 
@@ -452,6 +456,8 @@ export function DocumentExport({
   // Load additional data when dialog opens
   useEffect(() => {
     if (isShareDialogOpen) {
+      // Always refetch share settings when dialog opens to ensure current state
+      fetchShareSettings();
       fetchNdaTemplates();
       fetchNdaSignatures();
     }
@@ -1182,19 +1188,23 @@ export function DocumentExport({
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="share-enabled">Enable Sharing</Label>
-                    <Switch
-                      id="share-enabled"
-                      checked={shareSettings.shareEnabled}
-                      onCheckedChange={(checked) => {
-                        setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
-                        if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
-                          const randomId = Math.random().toString(36).substring(2, 8);
-                          const newSlug = `cim-${randomId}`;
-                          setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
-                          setShareUrl(`${window.location.origin}/share/${newSlug}`);
-                        }
-                      }}
-                    />
+                    {isLoadingShareSettings ? (
+                      <div className="w-11 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                    ) : (
+                      <Switch
+                        id="share-enabled"
+                        checked={shareSettings.shareEnabled}
+                        onCheckedChange={(checked) => {
+                          setShareSettings(prev => ({ ...prev, shareEnabled: checked }));
+                          if (checked && !shareSettings.shareSlug && !shareSettings.customSlug) {
+                            const randomId = Math.random().toString(36).substring(2, 8);
+                            const newSlug = `cim-${randomId}`;
+                            setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
+                            setShareUrl(`${window.location.origin}/share/${newSlug}`);
+                          }
+                        }}
+                      />
+                    )}
                   </div>
             
             {shareSettings.shareEnabled && (
@@ -1273,13 +1283,17 @@ export function DocumentExport({
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="nda-enabled">Require NDA Signature</Label>
-                      <Switch
-                        id="nda-enabled"
-                        checked={shareSettings.ndaProtected}
-                        onCheckedChange={(checked) => 
-                          setShareSettings(prev => ({ ...prev, ndaProtected: checked }))
-                        }
-                      />
+                      {isLoadingShareSettings ? (
+                        <div className="w-11 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                      ) : (
+                        <Switch
+                          id="nda-enabled"
+                          checked={shareSettings.ndaProtected}
+                          onCheckedChange={(checked) => 
+                            setShareSettings(prev => ({ ...prev, ndaProtected: checked }))
+                          }
+                        />
+                      )}
                     </div>
 
                     {shareSettings.ndaProtected && (
