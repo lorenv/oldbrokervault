@@ -2453,7 +2453,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Include logo URL, user profile, financial data, and files
-      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile, doc.websiteUrl, doc.selectedImages, financialData, financialFilesList);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile, doc.websiteUrl, doc.selectedImages, financialData, financialFilesList, baseUrl);
       
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });

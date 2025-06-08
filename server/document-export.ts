@@ -104,7 +104,7 @@ function safeStringify(value: any): string {
   return String(value);
 }
 
-export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[], financialData?: any, financialFiles?: any[]): string {
+export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[], financialData?: any, financialFiles?: any[], baseUrl?: string): string {
   const title = analysis.title || 'CONFIDENTIAL INFORMATION MEMORANDUM';
   
   let html = `
@@ -244,7 +244,12 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
         <div class="header">`;
 
   if (logoUrl) {
-    html += `<img src="${logoUrl}" alt="Company Logo" class="logo">`;
+    // Convert relative paths to absolute for HTML export
+    let logoSrc = logoUrl;
+    if (logoUrl.startsWith('/')) {
+      logoSrc = `${baseUrl || ''}${logoUrl}`;
+    }
+    html += `<img src="${logoSrc}" alt="Company Logo" class="logo">`;
   }
 
   html += `
@@ -746,7 +751,12 @@ export function generateHtml(analysis: any, logoUrl?: string | null, userProfile
             <div class="image-grid">`;
     
     selectedImages.forEach(imagePath => {
-      html += `<img src="${imagePath}" alt="Business Image" class="business-image">`;
+      // Convert relative paths to absolute for HTML export
+      let imageSrc = imagePath;
+      if (imagePath.startsWith('/')) {
+        imageSrc = `${baseUrl || ''}${imagePath}`;
+      }
+      html += `<img src="${imageSrc}" alt="Business Image" class="business-image">`;
     });
     
     html += `
@@ -1875,20 +1885,46 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const imagePath = resolveImagePath(imageUrl);
                 console.log(`Trying to add custom section image: ${imageUrl} -> ${imagePath}`);
                 
+                let imageFound = false;
+                let finalImagePath = imagePath;
+                
                 if (fs.existsSync(imagePath)) {
+                  imageFound = true;
+                } else {
+                  // Try alternative paths for custom images
+                  console.log(`Custom image not found at ${imagePath}, trying alternatives`);
+                  const alternativePaths = [
+                    path.resolve(process.cwd(), 'public', imageUrl.replace(/^\/+/, '')),
+                    path.resolve(process.cwd(), imageUrl.replace(/^\/+/, '')),
+                    path.resolve(process.cwd(), 'attached_assets', imageUrl.replace(/^\/+/, '')),
+                    path.resolve(process.cwd(), 'public', 'business-images', path.basename(imageUrl))
+                  ];
+                  
+                  for (const altPath of alternativePaths) {
+                    console.log("Trying alternative custom image path:", altPath);
+                    if (fs.existsSync(altPath)) {
+                      finalImagePath = altPath;
+                      imageFound = true;
+                      console.log("Found custom image at alternative path:", altPath);
+                      break;
+                    }
+                  }
+                }
+                
+                if (imageFound) {
                   const col = index % imagesPerRow;
                   const row = Math.floor(index / imagesPerRow);
                   
                   const finalX = startX + (col * (imageWidth + horizontalMargin));
                   const finalY = currentY + (row * (imageHeight + verticalMargin));
                   
-                  doc.image(imagePath, finalX, finalY, {
+                  doc.image(finalImagePath, finalX, finalY, {
                     fit: [imageWidth, imageHeight],
                     align: 'center'
                   });
                   console.log(`Successfully added custom section image at ${finalX}, ${finalY}`);
                 } else {
-                  console.log(`Custom section image file does not exist: ${imagePath}`);
+                  console.log(`Custom section image file not found in any location: ${imageUrl}`);
                 }
               } catch (error) {
                 console.error(`Failed to add custom section image ${imageUrl} to PDF:`, error);
