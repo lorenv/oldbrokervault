@@ -3466,6 +3466,68 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Support contact form
+  app.post("/api/support", upload.single('attachment'), async (req, res) => {
+    try {
+      const { subject, message, email } = req.body;
+      
+      if (!subject || !message || !email) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Prepare email content
+      let emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Support Request from CIM Share</h2>
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>From:</strong> ${email}</p>
+            <p><strong>Subject:</strong> ${subject}</p>
+          </div>
+          <div style="background-color: white; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3>Message:</h3>
+            <p style="white-space: pre-wrap;">${message}</p>
+          </div>
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          <p style="color: #666; font-size: 12px;">
+            This message was sent through the CIM Share support form.
+          </p>
+        </div>
+      `;
+
+      // Prepare attachments if file was uploaded
+      let attachments: any[] = [];
+      if (req.file) {
+        attachments.push({
+          content: req.file.buffer.toString('base64'),
+          filename: req.file.originalname,
+          type: req.file.mimetype,
+          disposition: 'attachment'
+        });
+      }
+
+      // Send email using existing email service
+      const { sendEmail } = await import("./email");
+      const emailSent = await sendEmail({
+        to: 'rob@cimshare.com',
+        from: 'rob@cimshare.com', // Verified sender
+        replyTo: email, // User's email as reply-to
+        subject: `Support Request: ${subject}`,
+        html: emailHtml,
+        text: `Support Request from ${email}\n\nSubject: ${subject}\n\nMessage:\n${message}`,
+        attachments: attachments.length > 0 ? attachments : undefined
+      });
+
+      if (emailSent) {
+        res.json({ message: "Support message sent successfully" });
+      } else {
+        throw new Error("Failed to send email");
+      }
+    } catch (error) {
+      console.error("Support form error:", error);
+      res.status(500).json({ error: "Failed to send support message" });
+    }
+  });
+
   // Get current Stripe pricing
   app.get("/api/pricing", async (req, res) => {
     try {
