@@ -36,166 +36,49 @@ export default function EnhancedCimPage() {
 
   // Helper functions for sharing
   const copyShareUrl = async () => {
-    if (cimDocument?.shareEnabled && cimDocument?.shareSlug) {
-      const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
-      await navigator.clipboard.writeText(shareUrl);
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
       toast({
-        title: "Share Link Copied",
-        description: "The share link has been copied to your clipboard"
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
       });
-    } else {
-      // Auto-enable sharing and copy the link
-      try {
-        const randomId = Math.random().toString(36).substring(2, 8);
-        const newSlug = `cim-${randomId}`;
-        const newShareUrl = `${window.location.origin}/share/${newSlug}`;
-        
-        const response = await fetch(`/api/cim/${id}/share`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            shareEnabled: true,
-            shareSlug: newSlug,
-            sharePassword: null,
-            shareExpiresAt: null,
-            ndaProtected: false,
-            ndaTemplateId: null
-          }),
-        });
-        
-        if (response.ok) {
-          await navigator.clipboard.writeText(newShareUrl);
-          toast({
-            title: "Sharing enabled and link copied",
-            description: "Your document is now shareable and the link has been copied to your clipboard"
-          });
-        } else {
-          toast({
-            title: "Failed to enable sharing",
-            description: "Please try again or enable sharing manually",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        toast({
-          title: "Failed to enable sharing",
-          description: "Please try again or enable sharing manually",
-          variant: "destructive"
-        });
-      }
+      return;
     }
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    await navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Share Link Copied",
+      description: "The share link has been copied to your clipboard"
+    });
   };
 
-  const openSharePage = async () => {
-    if (cimDocument?.shareEnabled && cimDocument?.shareSlug) {
-      const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
-      window.open(shareUrl, '_blank');
-    } else {
-      // Auto-enable sharing and open the link
-      try {
-        const randomId = Math.random().toString(36).substring(2, 8);
-        const newSlug = `cim-${randomId}`;
-        const newShareUrl = `${window.location.origin}/share/${newSlug}`;
-        
-        const response = await fetch(`/api/cim/${id}/share`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            shareEnabled: true,
-            shareSlug: newSlug,
-            sharePassword: null,
-            shareExpiresAt: null,
-            ndaProtected: false,
-            ndaTemplateId: null
-          }),
-        });
-        
-        if (response.ok) {
-          // Open the share link
-          window.open(newShareUrl, '_blank');
-          
-          toast({
-            title: "Sharing enabled and link opened",
-            description: "Your document is now shareable and the link has been opened in a new tab"
-          });
-        } else {
-          toast({
-            title: "Failed to enable sharing",
-            description: "Please try again or enable sharing manually",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        toast({
-          title: "Failed to enable sharing",
-          description: "Please try again or enable sharing manually",
-          variant: "destructive"
-        });
-      }
+  const openSharePage = () => {
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
+      });
+      return;
     }
+    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    window.open(shareUrl, '_blank');
   };
 
-  const handleEmailShare = async () => {
-    if (cimDocument?.shareEnabled && cimDocument?.shareSlug) {
-      setEmailShareDialog({
-        open: true,
-        documentTitle: cimDocument?.title || `CIM Document #${id}`,
-        shareToken: cimDocument.shareSlug
+  const handleEmailShare = () => {
+    if (!cimDocument?.shareEnabled || !cimDocument?.shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing in the share settings first.",
+        variant: "destructive"
       });
-    } else {
-      // Auto-enable sharing and open email dialog
-      try {
-        const randomId = Math.random().toString(36).substring(2, 8);
-        const newSlug = `cim-${randomId}`;
-        
-        const response = await fetch(`/api/cim/${id}/share`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            shareEnabled: true,
-            shareSlug: newSlug,
-            sharePassword: null,
-            shareExpiresAt: null,
-            ndaProtected: false,
-            ndaTemplateId: null
-          }),
-        });
-        
-        if (response.ok) {
-          setEmailShareDialog({
-            open: true,
-            documentTitle: cimDocument?.title || `CIM Document #${id}`,
-            shareToken: newSlug
-          });
-          
-          toast({
-            title: "Sharing enabled",
-            description: "Your document is now shareable. You can now send the email invitation."
-          });
-        } else {
-          toast({
-            title: "Failed to enable sharing",
-            description: "Please try again or enable sharing manually",
-            variant: "destructive"
-          });
-        }
-      } catch (error) {
-        toast({
-          title: "Failed to enable sharing",
-          description: "Please try again or enable sharing manually",
-          variant: "destructive"
-        });
-      }
+      return;
     }
+    setEmailShareDialog({
+      open: true,
+      documentTitle: cimDocument?.title || `CIM Document #${id}`,
+      shareToken: cimDocument.shareSlug
+    });
   };
 
   const downloadPdf = async () => {
