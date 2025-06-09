@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -12,17 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Copy, RefreshCw, ExternalLink } from "lucide-react";
+import { Copy, RefreshCw } from "lucide-react";
 
 interface ShareSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   docId: number;
-  autoEnableAndOpen?: boolean;
-  onAutoComplete?: () => void;
 }
 
-export function ShareSettingsDialog({ open, onOpenChange, docId, autoEnableAndOpen, onAutoComplete }: ShareSettingsDialogProps) {
+export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettingsDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -42,35 +40,13 @@ export function ShareSettingsDialog({ open, onOpenChange, docId, autoEnableAndOp
     mutationFn: async (settings: any) => {
       return apiRequest("PATCH", `/api/cim/${docId}/share-settings`, settings);
     },
-    onSuccess: (data) => {
-      console.log('Share settings update successful:', data);
-      
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/share-settings`] });
       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-      
-      // If this was an auto-enable action, open the share link
-      if (autoEnableAndOpen && data?.shareSlug) {
-        const shareUrl = `${window.location.origin}/share/${data.shareSlug}`;
-        
-        console.log('Opening share link after auto-enable:', shareUrl);
-        
-        // Delay slightly to ensure the backend is ready
-        setTimeout(() => {
-          window.open(shareUrl, '_blank');
-          
-          toast({
-            title: "Sharing enabled and link opened",
-            description: "Your document is now shareable and the link has been opened in a new tab"
-          });
-          
-          onAutoComplete?.();
-        }, 1000);
-      } else {
-        toast({
-          title: "Share Settings Updated",
-          description: "Your share settings have been saved successfully"
-        });
-      }
+      toast({
+        title: "Share Settings Updated",
+        description: "Your share settings have been saved successfully"
+      });
     }
   });
 
@@ -101,21 +77,6 @@ export function ShareSettingsDialog({ open, onOpenChange, docId, autoEnableAndOp
   const handleSaveSettings = (field: string, value: any) => {
     updateShareMutation.mutate({ [field]: value });
   };
-
-  // Auto-enable sharing when autoEnableAndOpen is true
-  useEffect(() => {
-    if (autoEnableAndOpen && shareSettings && !shareSettings.isPublic && !updateShareMutation.isPending) {
-      console.log('Auto-enabling sharing for document:', docId);
-      
-      // Enable sharing - the API will generate a slug automatically
-      updateShareMutation.mutate({ 
-        isPublic: true,
-        requireNda: false,
-        password: null,
-        expiresAt: null
-      });
-    }
-  }, [autoEnableAndOpen, shareSettings, docId]);
 
   const shareUrl = shareSettings?.shareSlug ? `${window.location.origin}/share/${shareSettings.shareSlug}` : '';
 

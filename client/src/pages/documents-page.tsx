@@ -821,18 +821,61 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                   <Button 
                     variant="default" 
                     size="sm" 
-                    onClick={() => {
+                    onClick={async () => {
                       if (selectedDoc.shareSlug) {
                         const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
                         window.open(shareUrl, '_blank');
                       } else {
-                        // Guide user to existing share modal and auto-enable sharing
-                        setAutoTriggerShare(true);
-                        setShouldOpenShareDialog(true);
-                        toast({
-                          title: "Setting up sharing",
-                          description: "Opening share settings to enable your link"
-                        });
+                        // Auto-enable sharing and open the link
+                        try {
+                          const randomId = Math.random().toString(36).substring(2, 8);
+                          const newSlug = `cim-${randomId}`;
+                          const newShareUrl = `${window.location.origin}/share/${newSlug}`;
+                          
+                          const response = await fetch(`/api/cim/${selectedDoc.id}/share`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              shareEnabled: true,
+                              shareSlug: newSlug,
+                              sharePassword: null,
+                              shareExpiresAt: null,
+                              ndaProtected: false,
+                              ndaTemplateId: null
+                            }),
+                          });
+                          
+                          if (response.ok) {
+                            // Update the document in our local state
+                            setSelectedDoc(prev => prev ? { ...prev, shareSlug: newSlug } : null);
+                            
+                            // Invalidate queries to refresh the documents list
+                            queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+                            
+                            // Open the share link
+                            window.open(newShareUrl, '_blank');
+                            
+                            toast({
+                              title: "Sharing enabled and link opened",
+                              description: "Your document is now shareable and the link has been opened in a new tab"
+                            });
+                          } else {
+                            toast({
+                              title: "Failed to enable sharing",
+                              description: "Please try again or enable sharing manually",
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Failed to enable sharing",
+                            description: "Please try again or enable sharing manually",
+                            variant: "destructive"
+                          });
+                        }
                       }
                     }}
                   >
@@ -851,10 +894,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               title={selectedDoc.title}
               cimDocument={selectedDoc}
               autoTriggerShare={autoTriggerShare}
-              onShareTriggered={() => {
-                setAutoTriggerShare(false);
-                setShouldOpenShareDialog(false);
-              }}
+              onShareTriggered={() => setAutoTriggerShare(false)}
             />
           </DialogContent>
         </Dialog>
@@ -870,8 +910,6 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         documentTitle={emailShareDialog.documentTitle || ''}
         senderName={user?.name}
       />
-
-
     </div>
   );
 }
