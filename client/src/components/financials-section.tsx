@@ -25,7 +25,9 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
   // Fetch CIM document with financial data (only if not provided as prop)
   const { data: fetchedCimDocument } = useQuery({
     queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId && !propCimDocument
+    enabled: !!docId && !propCimDocument,
+    staleTime: 60000,
+    refetchOnWindowFocus: false
   });
 
   // Use prop data if available, otherwise use fetched data
@@ -42,19 +44,12 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
     ebitdaIncluded: (cimDocument as any).ebitdaIncluded || (cimDocument as any).ebitda_included || false,
   } : null;
 
-  // Debug financial data
-  // console.log("=== FINANCIALS SECTION DEBUG ===");
-  // console.log("Prop CIM Document:", propCimDocument);
-  // console.log("Fetched CIM Document:", fetchedCimDocument);
-  // console.log("Final CIM Document:", cimDocument);
-  // console.log("Extracted financials:", financials);
-  // console.log("Is shared view:", isSharedView);
-  // console.log("Should render section:", (financials?.enabled || isSharedView));
-
-  // Fetch financial files
+  // Fetch financial files with optimized caching
   const { data: files = [] } = useQuery<FinancialFile[]>({
     queryKey: [`/api/cim/${docId}/financial-files`],
-    enabled: !!docId
+    enabled: !!docId,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
   // Update financials mutation

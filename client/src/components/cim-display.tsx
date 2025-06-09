@@ -202,9 +202,8 @@ export function CimDisplay({
   const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
 
-  // Share settings dialog state with transition management
+  // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [isDialogTransitioning, setIsDialogTransitioning] = useState(false);
 
   // Update local state when props change with debouncing
   useEffect(() => {
@@ -217,25 +216,15 @@ export function CimDisplay({
     return () => clearTimeout(timer);
   }, [logoUrl, selectedImages, cimDocument?.title]);
 
-  // Handle auto-trigger share settings with improved state management
+  // Handle auto-trigger share settings with simplified approach
   useEffect(() => {
-    if (autoTriggerShare && !isSharedView && !isDialogTransitioning) {
-      setIsDialogTransitioning(true);
-      
-      const timer = setTimeout(() => {
-        setShareDialogOpen(true);
-        setIsDialogTransitioning(false);
-        if (onShareTriggered) {
-          onShareTriggered();
-        }
-      }, 250);
-      
-      return () => {
-        clearTimeout(timer);
-        setIsDialogTransitioning(false);
-      };
+    if (autoTriggerShare && !isSharedView) {
+      setShareDialogOpen(true);
+      if (onShareTriggered) {
+        onShareTriggered();
+      }
     }
-  }, [autoTriggerShare, isSharedView, onShareTriggered, isDialogTransitioning]);
+  }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
   // Fetch custom sections with React Query to prevent duplicate requests
   const { data: customSectionsData } = useQuery({
@@ -1066,10 +1055,7 @@ export function CimDisplay({
           analysis={analysis}
           docId={docId}
           autoTriggerShare={shareDialogOpen}
-          onShareTriggered={() => {
-            setShareDialogOpen(false);
-            setIsDialogTransitioning(false);
-          }}
+          onShareTriggered={() => setShareDialogOpen(false)}
           isSharedView={false}
           logoUrl={localLogoUrl}
           selectedImages={localSelectedImages}
