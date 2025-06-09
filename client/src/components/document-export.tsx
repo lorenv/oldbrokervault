@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,6 +60,7 @@ export function DocumentExport({
   onShareTriggered?: () => void;
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [internalIsWordPressDialogOpen, internalSetIsWordPressDialogOpen] = useState(false);
   const [isWordPressExporting, setIsWordPressExporting] = useState(false);
   const [isFetchingTemplates, setIsFetchingTemplates] = useState(false);
@@ -82,7 +84,7 @@ export function DocumentExport({
   const [isLoadingShareSettings, setIsLoadingShareSettings] = useState(false);
   
   // NDA related state
-  const [ndaTemplates, setNdaTemplates] = useState<any[]>([]);
+  // Using React Query data instead of local state
   const [isUploadingNda, setIsUploadingNda] = useState(false);
   const [newNdaTemplate, setNewNdaTemplate] = useState({
     name: '',
@@ -268,7 +270,7 @@ export function DocumentExport({
           description: "Your NDA template has been saved successfully"
         });
         setNewNdaTemplate({ name: '', file: null, isDefault: false });
-        fetchNdaTemplates();
+        queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
       } else {
         throw new Error('Upload failed');
       }
@@ -291,7 +293,7 @@ export function DocumentExport({
           title: "Template deleted",
           description: "NDA template has been removed"
         });
-        fetchNdaTemplates();
+        queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
         // Reset selected template if it was deleted
         if (shareSettings.ndaTemplateId === templateId) {
           setShareSettings(prev => ({ ...prev, ndaTemplateId: null }));
@@ -458,8 +460,7 @@ export function DocumentExport({
     if (isShareDialogOpen) {
       // Always refetch share settings when dialog opens to ensure current state
       fetchShareSettings();
-      fetchNdaTemplates();
-      fetchNdaSignatures();
+      // React Query will automatically fetch the data when needed
     }
   }, [isShareDialogOpen]);
 
