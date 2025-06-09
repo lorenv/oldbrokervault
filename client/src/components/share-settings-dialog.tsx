@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCimDocument } from "@/hooks/use-cim-document";
 import {
   Dialog,
   DialogContent,
@@ -24,25 +25,27 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: shareSettings, isLoading } = useQuery({
-    queryKey: [`/api/cim/${docId}/share-settings`],
-    queryFn: async () => {
-      const response = await fetch(`/api/cim/${docId}/share-settings`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch share settings');
-      return response.json();
-    },
-    enabled: open
-  });
+  // Use centralized CIM document data instead of separate share settings query
+  const { data: cimDocument } = useCimDocument(docId, open);
+  
+  // Extract share settings from CIM document to avoid duplicate API calls
+  const shareSettings = cimDocument ? {
+    isPublic: cimDocument.isPublic || false,
+    shareSlug: cimDocument.shareSlug || '',
+    requireNDA: cimDocument.requireNDA || false,
+    passwordProtected: cimDocument.passwordProtected || false,
+    sharePassword: cimDocument.sharePassword || ''
+  } : null;
+  
+  const isLoading = !cimDocument && open;
 
   const updateShareMutation = useMutation({
     mutationFn: async (settings: any) => {
       return apiRequest("PATCH", `/api/cim/${docId}/share-settings`, settings);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/share-settings`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
       toast({
         title: "Share Settings Updated",
         description: "Your share settings have been saved successfully"
@@ -150,7 +153,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
                 <p className="text-sm text-gray-500">Viewers must agree to NDA before accessing</p>
               </div>
               <Switch
-                checked={shareSettings.requireNda}
+                checked={shareSettings.requireNDA}
                 onCheckedChange={(checked) => handleSaveSettings('requireNda', checked)}
               />
             </div>
@@ -161,7 +164,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
                 <p className="text-sm text-gray-500">Require password to access document</p>
               </div>
               <Switch
-                checked={!!shareSettings.password}
+                checked={!!shareSettings.sharePassword}
                 onCheckedChange={(checked) => {
                   if (!checked) {
                     handleSaveSettings('password', null);
@@ -170,12 +173,12 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
               />
             </div>
 
-            {shareSettings.password !== null && (
+            {shareSettings.passwordProtected && (
               <div className="space-y-2">
                 <Label>Password</Label>
                 <Input
                   type="password"
-                  value={shareSettings.password || ''}
+                  value={shareSettings.sharePassword || ''}
                   onChange={(e) => handleSaveSettings('password', e.target.value)}
                   placeholder="Enter password"
                 />
