@@ -633,7 +633,18 @@ export default function AccountPage() {
 
         {/* Admin Tools Tab */}
         {user?.isAdmin && (
-          <TabsContent value="admin">
+          <TabsContent value="admin" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Admin Dashboard
+                </CardTitle>
+                <CardDescription>
+                  System administration and security monitoring tools
+                </CardDescription>
+              </CardHeader>
+            </Card>
             <SecurityDashboard />
           </TabsContent>
         )}
