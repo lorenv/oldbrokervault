@@ -415,8 +415,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               key={doc.id} 
               className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
               onClick={() => {
-                // Use setTimeout to prevent flickering from rapid state updates
-                setTimeout(() => setSelectedDoc(doc), 50);
+                setSelectedDoc(doc);
               }}
             >
               <CardHeader className="pb-3">
@@ -464,11 +463,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Use setTimeout to prevent state update conflicts
-                          setTimeout(() => {
-                            setSelectedDoc(doc);
-                            setTimeout(() => setAutoTriggerShare(true), 100);
-                          }, 50);
+                          setSelectedDoc(doc);
+                          setAutoTriggerShare(true);
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
@@ -675,11 +671,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           open={!!selectedDoc} 
           onOpenChange={(open) => {
             if (!open) {
-              // Use setTimeout to prevent rapid state changes that cause flickering
-              setTimeout(() => {
-                setSelectedDoc(null);
-                setAutoTriggerShare(false);
-              }, 50);
+              setSelectedDoc(null);
+              setAutoTriggerShare(false);
             }
           }}
         >
@@ -703,10 +696,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
-                        // Prevent rapid state changes that cause flickering
-                        if (!autoTriggerShare) {
-                          setTimeout(() => setAutoTriggerShare(true), 200);
-                        }
+                        setAutoTriggerShare(true);
                       }}>
                         <Settings className="h-4 w-4 mr-2" />
                         Share Link Settings
