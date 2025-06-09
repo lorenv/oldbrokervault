@@ -2468,7 +2468,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               doc.save();
               
               // Create rounded rectangle clipping path for business images
-              const cornerRadius = 8; // Rounded corner radius
+              const cornerRadius = 30; // Rounded corner radius
               doc.roundedRect(finalX, finalY, imageWidth, imageHeight, cornerRadius);
               doc.clip();
               
@@ -2709,7 +2709,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               doc.save();
               
               // Create rounded rectangle clipping path for business logo
-              const cornerRadius = 8; // Rounded corner radius
+              const cornerRadius = 30; // Rounded corner radius
               doc.roundedRect(centerX, logoY, logoWidth, logoHeight, cornerRadius);
               doc.clip();
               
