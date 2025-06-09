@@ -123,6 +123,9 @@ export interface IStorage {
   getAnalysisTemplates(userId: number): Promise<any[]>;
   updateAnalysisTemplate(id: number, template: any): Promise<any>;
   deleteAnalysisTemplate(id: number, userId: number): Promise<void>;
+  // Custom Directions Storage
+  updateUserCustomDirections(userId: number, customDirections: string): Promise<void>;
+  getUserCustomDirections(userId: number): Promise<string | null>;
   sessionStore: session.Store;
 }
 

@@ -5012,6 +5012,39 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Save custom directions for user
+  app.post('/api/user/custom-directions', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { customDirections } = req.body;
+      
+      if (!customDirections || typeof customDirections !== 'string') {
+        return res.status(400).json({ error: "Custom directions text is required" });
+      }
+      
+      await storage.updateUserCustomDirections(req.user!.id, customDirections);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving custom directions:', error);
+      res.status(500).json({ error: 'Failed to save custom directions' });
+    }
+  });
+
+  // Get user's saved custom directions
+  app.get('/api/user/custom-directions', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const directions = await storage.getUserCustomDirections(req.user!.id);
+      res.json({ customDirections: directions });
+    } catch (error) {
+      console.error('Error retrieving custom directions:', error);
+      res.status(500).json({ error: 'Failed to retrieve custom directions' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
