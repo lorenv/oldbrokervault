@@ -58,7 +58,7 @@ async function createCroppedImageBuffer(imagePath: string, position: { x: number
     // Create cropped and resized buffer
     const croppedBuffer = await sharp(imageBuffer)
       .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
-      .resize(bannerWidth, bannerHeight)
+      .resize(Math.round(bannerWidth), Math.round(bannerHeight))
       .jpeg({ quality: 90 })
       .toBuffer();
     
