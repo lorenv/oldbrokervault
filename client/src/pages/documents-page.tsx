@@ -478,84 +478,17 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         onClick={async (e) => {
                           e.stopPropagation();
                           
-                          // If document doesn't have a share token, automatically enable sharing
-                          if (!doc.shareToken) {
-                            try {
-                              // Generate a new share slug
-                              const randomId = Math.random().toString(36).substring(2, 8);
-                              const newSlug = `cim-${randomId}`;
-                              const newShareUrl = `${window.location.origin}/share/${newSlug}`;
-                              
-                              // Save to server
-                              const response = await fetch(`/api/cim/${doc.id}/share`, {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                credentials: 'include',
-                                body: JSON.stringify({
-                                  shareEnabled: true,
-                                  shareSlug: newSlug,
-                                  sharePassword: null,
-                                  shareExpiresAt: null,
-                                  ndaProtected: false,
-                                  ndaTemplateId: null
-                                }),
-                              });
-                              
-                              if (!response.ok) {
-                                throw new Error('Failed to enable sharing');
-                              }
-                              
-                              // Copy the new URL with error handling
-                              try {
-                                await navigator.clipboard.writeText(newShareUrl);
-                                toast({
-                                  title: "Sharing enabled and link copied!",
-                                  description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
-                                });
-                              } catch (clipboardError) {
-                                console.warn('Clipboard API failed, falling back to manual selection:', clipboardError);
-                                // Fallback: Create a temporary input element for manual copy
-                                const textArea = document.createElement('textarea');
-                                textArea.value = newShareUrl;
-                                textArea.style.position = 'fixed';
-                                textArea.style.left = '-999999px';
-                                textArea.style.top = '-999999px';
-                                document.body.appendChild(textArea);
-                                textArea.focus();
-                                textArea.select();
-                                try {
-                                  document.execCommand('copy');
-                                  toast({
-                                    title: "Sharing enabled and link copied!",
-                                    description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
-                                  });
-                                } catch (fallbackError) {
-                                  toast({
-                                    title: "Sharing enabled!",
-                                    description: `Sharing has been enabled. Please copy this link manually: ${newShareUrl}`,
-                                  });
-                                }
-                                document.body.removeChild(textArea);
-                              }
-                              
-                              // Refresh the documents list to show updated share status
-                              queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
-                            } catch (error) {
-                              console.error('Failed to enable sharing:', error);
-                              toast({
-                                title: "Error enabling sharing",
-                                description: "Failed to enable sharing. Please try again.",
-                                variant: "destructive"
-                              });
-                            }
-                          } else {
-                            // Normal copy operation when sharing is already enabled
+                          if (doc.shareToken) {
                             navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
                             toast({
                               title: "Share link copied",
                               description: "The share link has been copied to your clipboard"
+                            });
+                          } else {
+                            toast({
+                              title: "No Share Link Available",
+                              description: "This document doesn't have sharing enabled",
+                              variant: "destructive"
                             });
                           }
                         }}
@@ -779,47 +712,18 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Share Link Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
-                        if (!selectedDoc.shareSlug) {
-                          // Auto-enable sharing if not already enabled
-                          const randomId = Math.random().toString(36).substring(2, 8);
-                          const newSlug = `cim-${randomId}`;
-                          const newShareUrl = `${window.location.origin}/share/${newSlug}`;
-                          
-                          try {
-                            const response = await fetch(`/api/cim/${selectedDoc.id}/share`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              credentials: 'include',
-                              body: JSON.stringify({
-                                shareEnabled: true,
-                                shareSlug: newSlug,
-                                sharePassword: null,
-                                shareExpiresAt: null,
-                                ndaProtected: false,
-                                ndaTemplateId: null
-                              }),
-                            });
-                            
-                            if (response.ok) {
-                              await navigator.clipboard.writeText(newShareUrl);
-                              toast({
-                                title: "Sharing enabled and link copied!",
-                                description: "Share link has been copied to clipboard"
-                              });
-                              queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
-                            }
-                          } catch (error) {
-                            toast({
-                              title: "Failed to enable sharing",
-                              variant: "destructive"
-                            });
-                          }
-                        } else {
+                        if (selectedDoc.shareSlug) {
                           const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
                           await navigator.clipboard.writeText(shareUrl);
                           toast({
                             title: "Share Link Copied",
                             description: "The share link has been copied to your clipboard"
+                          });
+                        } else {
+                          toast({
+                            title: "No Share Link Available",
+                            description: "This document doesn't have sharing enabled",
+                            variant: "destructive"
                           });
                         }
                       }}>
