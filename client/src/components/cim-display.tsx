@@ -218,10 +218,11 @@ export function CimDisplay({
       // Use a small delay to prevent rapid state updates that cause flickering
       const timer = setTimeout(() => {
         setShareDialogOpen(true);
+        // Reset the trigger immediately to prevent repeated calls
         if (onShareTriggered) {
           onShareTriggered();
         }
-      }, 100);
+      }, 150);
       
       return () => clearTimeout(timer);
     }

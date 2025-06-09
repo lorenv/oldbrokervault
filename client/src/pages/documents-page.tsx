@@ -167,8 +167,8 @@ export default function DocumentsPage() {
       if (!response.ok) throw new Error('Failed to fetch documents');
       return response.json();
     },
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: false
+    staleTime: 60000, // Cache for 60 seconds to reduce refetches
+    refetchOnWindowFocus: false // Prevent automatic refetches that cause flickering
   });
   
   const documents = paginatedData?.documents || [];
@@ -731,7 +731,18 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
 
       {/* Interactive CIM Editor Dialog */}
       {selectedDoc && (
-        <Dialog open={!!selectedDoc} onOpenChange={(open) => !open && setSelectedDoc(null)}>
+        <Dialog 
+          open={!!selectedDoc} 
+          onOpenChange={(open) => {
+            if (!open) {
+              // Use setTimeout to prevent rapid state changes that cause flickering
+              setTimeout(() => {
+                setSelectedDoc(null);
+                setAutoTriggerShare(false);
+              }, 50);
+            }
+          }}
+        >
           <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between pr-8">
@@ -752,8 +763,10 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
-                        // Prevent duplicate state setting and use controlled timing
-                        setTimeout(() => setAutoTriggerShare(true), 100);
+                        // Prevent rapid state changes that cause flickering
+                        if (!autoTriggerShare) {
+                          setTimeout(() => setAutoTriggerShare(true), 200);
+                        }
                       }}>
                         <Settings className="h-4 w-4 mr-2" />
                         Share Link Settings
