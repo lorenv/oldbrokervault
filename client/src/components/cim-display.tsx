@@ -202,31 +202,40 @@ export function CimDisplay({
   const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
 
-  // Share settings dialog state
+  // Share settings dialog state with transition management
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [isDialogTransitioning, setIsDialogTransitioning] = useState(false);
 
-  // Update local state when props change
+  // Update local state when props change with debouncing
   useEffect(() => {
-    setLocalLogoUrl(logoUrl);
-    setLocalSelectedImages(selectedImages || []);
-    setLocalTitle(cimDocument?.title || "");
+    const timer = setTimeout(() => {
+      setLocalLogoUrl(logoUrl);
+      setLocalSelectedImages(selectedImages || []);
+      setLocalTitle(cimDocument?.title || "");
+    }, 50);
+    
+    return () => clearTimeout(timer);
   }, [logoUrl, selectedImages, cimDocument?.title]);
 
-  // Handle auto-trigger share settings with debouncing to prevent flickering
+  // Handle auto-trigger share settings with improved state management
   useEffect(() => {
-    if (autoTriggerShare && !isSharedView) {
-      // Use a small delay to prevent rapid state updates that cause flickering
+    if (autoTriggerShare && !isSharedView && !isDialogTransitioning) {
+      setIsDialogTransitioning(true);
+      
       const timer = setTimeout(() => {
         setShareDialogOpen(true);
-        // Reset the trigger immediately to prevent repeated calls
+        setIsDialogTransitioning(false);
         if (onShareTriggered) {
           onShareTriggered();
         }
-      }, 150);
+      }, 250);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        setIsDialogTransitioning(false);
+      };
     }
-  }, [autoTriggerShare, isSharedView, onShareTriggered]);
+  }, [autoTriggerShare, isSharedView, onShareTriggered, isDialogTransitioning]);
 
   // Fetch custom sections
   useEffect(() => {
@@ -1055,7 +1064,10 @@ export function CimDisplay({
           analysis={analysis}
           docId={docId}
           autoTriggerShare={shareDialogOpen}
-          onShareTriggered={() => setShareDialogOpen(false)}
+          onShareTriggered={() => {
+            setShareDialogOpen(false);
+            setIsDialogTransitioning(false);
+          }}
           isSharedView={false}
           logoUrl={localLogoUrl}
           selectedImages={localSelectedImages}
