@@ -4,7 +4,7 @@ import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Settings, ExternalLink } from "lucide-react";
-import { Link, useRoute } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -201,15 +201,19 @@ export default function DocumentsPage() {
   
   // Get the document ID from URL if present
   const [matched, params] = useRoute('/documents/:id');
+  const [location, setLocation] = useLocation();
   
   // Effect to set the selected document based on URL parameter
   useEffect(() => {
     if (matched && params?.id && documents) {
       const docId = parseInt(params.id);
       const doc = documents.find(d => d.id === docId);
-      if (doc) {
+      if (doc && !selectedDoc) {
         setSelectedDoc(doc);
       }
+    } else if (!matched && selectedDoc) {
+      // Only clear selectedDoc if we're not on a document URL
+      setSelectedDoc(null);
     }
   }, [matched, params, documents]);
   
@@ -673,6 +677,10 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
             if (!open) {
               setSelectedDoc(null);
               setAutoTriggerShare(false);
+              // Clear URL to prevent reopening cycle
+              if (location.startsWith('/documents/')) {
+                setLocation('/documents');
+              }
             }
           }}
           modal={true}
