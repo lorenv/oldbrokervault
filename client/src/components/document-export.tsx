@@ -396,9 +396,45 @@ export function DocumentExport({
   };
 
   // Fetch current share settings for the document
+  // Add React Query for CIM document data to eliminate duplicate API calls
+  const { data: cimDocumentData = {} } = useQuery({
+    queryKey: [`/api/cim/${docId}`],
+    enabled: !!docId && isShareDialogOpen,
+    staleTime: 60000,
+    refetchOnWindowFocus: false
+  });
+
   const fetchShareSettings = async () => {
     if (!docId) {
       console.log('❌ fetchShareSettings: No docId provided');
+      return;
+    }
+    
+    // Use cached data if available, otherwise make API call
+    if (cimDocumentData && Object.keys(cimDocumentData).length > 0) {
+      const doc = cimDocumentData as any;
+      console.log('📋 Using cached document data');
+      
+      const newSettings = {
+        shareEnabled: doc.shareEnabled || false,
+        shareSlug: doc.shareSlug || '',
+        sharePassword: doc.sharePassword || '',
+        shareExpiresAt: doc.shareExpiresAt || '',
+        customSlug: doc.shareSlug || '',
+        ndaProtected: doc.ndaProtected || false,
+        ndaTemplateId: doc.ndaTemplateId || null
+      };
+      
+      setShareSettings(newSettings);
+      
+      // Set share URL if sharing is enabled
+      if (doc.shareEnabled && doc.shareSlug) {
+        const baseUrl = window.location.origin;
+        const url = `${baseUrl}/share/${doc.shareSlug}`;
+        setShareUrl(url);
+      } else {
+        setShareUrl('');
+      }
       return;
     }
     

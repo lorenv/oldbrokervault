@@ -7,13 +7,11 @@ interface FinancialDocumentsDisplayProps {
 }
 
 export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayProps) {
-  const { data: financialFiles, isLoading } = useQuery({
+  const { data: financialFiles = [], isLoading } = useQuery({
     queryKey: [`/api/cim/${cimId}/financial-files`],
-    queryFn: async () => {
-      const response = await fetch(`/api/cim/${cimId}/financial-files`);
-      if (!response.ok) throw new Error('Failed to fetch financial files');
-      return response.json();
-    }
+    staleTime: 30000, // Cache for 30 seconds to prevent duplicate requests
+    refetchOnWindowFocus: false, // Prevent automatic refetches
+    refetchOnMount: false // Use cached data when available
   });
 
   if (isLoading) {
@@ -25,7 +23,7 @@ export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayPr
     );
   }
 
-  if (!financialFiles || financialFiles.length === 0) {
+  if (!financialFiles || (financialFiles as any[]).length === 0) {
     return (
       <div className="mt-8 p-6 bg-slate-50 rounded-xl">
         <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
@@ -38,7 +36,7 @@ export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayPr
     <div className="mt-8 p-6 bg-slate-50 rounded-xl">
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
       <div className="space-y-3">
-        {financialFiles
+        {(financialFiles as any[])
           .filter((file: any) => file.included !== false)
           .map((file: any) => (
             <Button
