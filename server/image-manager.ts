@@ -128,7 +128,7 @@ export class ImageManager {
       .toBuffer();
     
     // Apply rounded corners consistently to all business images
-    optimizedBuffer = await addRoundedCorners(optimizedBuffer, 12);
+    optimizedBuffer = await addRoundedCorners(optimizedBuffer, 30);
 
     const localPath = path.join(cimDir, fileName);
     await fs.writeFile(localPath, optimizedBuffer);
