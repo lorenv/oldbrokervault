@@ -80,19 +80,18 @@ export function Navbar() {
                   size="sm"
                   className={`flex items-center gap-2 ${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
                 >
+                  Menu
                   {(profile as any)?.profilePhoto ? (
                     <img 
                       src={(profile as any).profilePhoto} 
                       alt="Profile" 
-                      className="w-5 h-5 rounded-full object-cover border border-border"
+                      className="w-6 h-6 rounded-full object-cover border border-border"
                     />
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center">
-                      <User className="h-3 w-3 text-muted-foreground" />
+                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center">
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
-                  <Menu className="h-4 w-4" />
-                  Menu
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
