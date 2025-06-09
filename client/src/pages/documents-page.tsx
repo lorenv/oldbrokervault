@@ -675,6 +675,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               setAutoTriggerShare(false);
             }
           }}
+          modal={true}
         >
           <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

@@ -889,7 +889,7 @@ export function CimDisplay({
         {/* Add Custom Section Button - Only in Edit View */}
         {!isSharedView && (
           <div className="flex justify-center py-4">
-            <Dialog open={addSectionDialogOpen} onOpenChange={setAddSectionDialogOpen}>
+            <Dialog open={addSectionDialogOpen} onOpenChange={setAddSectionDialogOpen} modal={false}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -1013,7 +1013,7 @@ export function CimDisplay({
 
         {/* Delete Confirmation Dialog */}
         {confirmDeleteSectionId && (
-          <Dialog open={!!confirmDeleteSectionId} onOpenChange={() => setConfirmDeleteSectionId(null)}>
+          <Dialog open={!!confirmDeleteSectionId} onOpenChange={() => setConfirmDeleteSectionId(null)} modal={false}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Delete Section</DialogTitle>
