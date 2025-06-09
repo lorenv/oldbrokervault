@@ -35,10 +35,10 @@ export function Navbar() {
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/pricing">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</a>
+                <span className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
               </Link>
               <Link href="/contact">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</a>
+                <span className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
               </Link>
             </div>
           )}
@@ -62,7 +62,7 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {user.isAdmin && (
               <Link href="/admin">
-                <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
+                <span className="text-sm font-medium hover:text-primary">Admin Dashboard</span>
               </Link>
             )}
             <DropdownMenu>
@@ -79,38 +79,38 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/dashboard">
-                    <a className="flex items-center">
+                    <div className="flex items-center">
                       <Zap className="h-4 w-4 mr-2" />
                       Create New CIM
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/documents">
-                    <a className="flex items-center">
+                    <div className="flex items-center">
                       <FileText className="h-4 w-4 mr-2" />
                       My CIMs
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
-                  <DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/investor-database">
-                      <a className="flex items-center">
+                      <div className="flex items-center">
                         <Database className="h-4 w-4 mr-2" />
                         Investor Database
-                      </a>
+                      </div>
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/account">
-                    <a className="flex items-center">
+                    <div className="flex items-center">
                       <Settings className="h-4 w-4 mr-2" />
                       My Account
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
