@@ -499,11 +499,19 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!doc.shareSlug) {
+                            toast({
+                              title: "Sharing Not Enabled",
+                              description: "Please enable sharing for this document first",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
                           setEmailShareDialog({
                             open: true,
                             documentId: doc.id,
                             documentTitle: doc.title,
-                            shareSlug: doc.shareSlug
+                            shareToken: doc.shareSlug
                           });
                         }}
                       >
@@ -730,10 +738,18 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Copy Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
+                        if (!selectedDoc.shareSlug) {
+                          toast({
+                            title: "Sharing Not Enabled",
+                            description: "Please enable sharing for this document first",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
                         setEmailShareDialog({
                           open: true,
                           documentTitle: selectedDoc.title,
-                          shareSlug: selectedDoc.shareSlug || ""
+                          shareToken: selectedDoc.shareSlug
                         });
                       }}>
                         <Mail className="h-4 w-4 mr-2" />
