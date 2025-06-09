@@ -3400,6 +3400,52 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // User account update route (email and password)
+  app.post("/api/user/update", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { email, currentPassword, newPassword } = req.body;
+      const userId = req.user!.id;
+      
+      // Verify current password
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const { comparePasswords } = await import("./auth");
+      const isValidPassword = await comparePasswords(currentPassword, user.password);
+      
+      if (!isValidPassword) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      // Update email if provided
+      if (email && email !== user.email) {
+        // Check if email already exists
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+        
+        await storage.updateUserEmail(userId, email);
+      }
+      
+      // Update password if provided
+      if (newPassword) {
+        const { hashPassword } = await import("./auth");
+        const hashedPassword = await hashPassword(newPassword);
+        await storage.updateUserPassword(userId, hashedPassword);
+      }
+      
+      res.json({ message: "Account updated successfully" });
+    } catch (error) {
+      console.error("Error updating user account:", error);
+      res.status(500).json({ error: "Failed to update account" });
+    }
+  });
+
   app.post("/api/reset-password", async (req, res) => {
     try {
       const { token, password } = req.body;
