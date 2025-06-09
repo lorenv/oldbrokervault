@@ -22,6 +22,7 @@ import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
 import { DocumentExport } from "./document-export";
+import { useCustomSections } from "@/hooks/use-cim-document";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -226,19 +227,8 @@ export function CimDisplay({
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
-  // Fetch custom sections with React Query to prevent duplicate requests
-  const { data: customSectionsData } = useQuery({
-    queryKey: [`/api/cim/${docId}/custom-sections`],
-    queryFn: async () => {
-      if (!docId) return [];
-      const response = await fetch(`/api/cim/${docId}/custom-sections`);
-      if (!response.ok) throw new Error('Failed to fetch custom sections');
-      return response.json();
-    },
-    enabled: !!docId,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
-  });
+  // Use centralized hook for custom sections to eliminate duplicate requests
+  const { data: customSectionsData } = useCustomSections(docId);
 
   // Update custom sections when data changes
   useEffect(() => {
