@@ -1,6 +1,7 @@
 import { useState, useEffect, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1163,7 +1164,7 @@ export function CimDisplay({
       
       {/* Image Lightbox Dialog */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 border-0">
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 border-0 bg-black [&>button]:hidden">
           <div className="relative">
             {localSelectedImages.length > 0 && (
               <>
@@ -1199,7 +1200,7 @@ export function CimDisplay({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white z-10"
                   onClick={() => setLightboxOpen(false)}
                 >
                   <X className="h-6 w-6" />
