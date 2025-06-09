@@ -47,8 +47,10 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes for better performance
-      cacheTime: 1000 * 60 * 30, // 30 minutes cache retention
+      refetchOnMount: false, // Prevent refetch on component mount
+      refetchOnReconnect: false,
+      staleTime: 1000 * 60 * 10, // 10 minutes - much longer to prevent refetches
+      gcTime: 1000 * 60 * 30, // 30 minutes cache retention (v5 syntax)
       retry: (failureCount, error: any) => {
         if (error?.message?.includes('401') || error?.message?.includes('404')) {
           return false;
