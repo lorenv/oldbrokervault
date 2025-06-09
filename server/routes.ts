@@ -2618,12 +2618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Email sharing endpoint
   app.post("/api/share/email", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session?.userId) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
+    if (!req.isAuthenticated()) return res.sendStatus(401);
 
+    try {
       const { recipientEmail, shareUrl, documentTitle, customMessage, senderName } = req.body;
 
       // Input validation
@@ -2642,13 +2639,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get sender information
-      const [sender] = await db.select().from(users).where(eq(users.id, req.session.userId));
+      const [sender] = await db.select().from(users).where(eq(users.id, req.user!.id));
       if (!sender) {
         return res.status(404).json({ error: "User not found" });
       }
 
       const fromName = senderName || sender.name || sender.email;
-      const fromEmail = sender.email;
+      const fromEmail = 'noreply@cimshare.com'; // Use verified sender email
 
       // Prepare email content
       const subject = `Confidential Information Memorandum - ${documentTitle}`;
@@ -2711,14 +2708,22 @@ This document contains confidential information. Please do not share this link w
 Professional CIM Generation Platform`;
 
       // Send email
+      console.log('=== EMAIL SHARE DEBUG ===');
+      console.log('Sending email to:', recipientEmail.trim());
+      console.log('From:', fromEmail);
+      console.log('Reply-to:', sender.email);
+      console.log('Subject:', subject);
+      
       const emailSent = await sendEmail({
         to: recipientEmail.trim(),
         from: fromEmail,
         subject,
         text: textContent,
         html: htmlContent,
-        replyTo: fromEmail
+        replyTo: sender.email
       });
+
+      console.log('Email sent result:', emailSent);
 
       if (emailSent) {
         res.json({ 

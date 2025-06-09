@@ -52,7 +52,7 @@ export function EmailShareDialog({
     setIsLoading(true);
 
     try {
-      const response = await apiRequest("POST", "/api/share/email", {
+      await apiRequest("POST", "/api/share/email", {
         recipientEmail: recipientEmail.trim(),
         shareUrl,
         documentTitle,
@@ -60,20 +60,15 @@ export function EmailShareDialog({
         senderName
       });
 
-      if (response.ok) {
-        toast({
-          title: "Email Sent",
-          description: `Share link sent successfully to ${recipientEmail}`
-        });
-        
-        // Reset form and close dialog
-        setRecipientEmail("");
-        setCustomMessage("");
-        onOpenChange(false);
-      } else {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to send email");
-      }
+      toast({
+        title: "Email Sent",
+        description: `Share link sent successfully to ${recipientEmail}`
+      });
+      
+      // Reset form and close dialog
+      setRecipientEmail("");
+      setCustomMessage("");
+      onOpenChange(false);
     } catch (error) {
       console.error("Email sharing error:", error);
       toast({
