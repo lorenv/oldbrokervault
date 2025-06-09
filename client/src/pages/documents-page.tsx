@@ -14,6 +14,7 @@ import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { EmailShareDialog } from "@/components/email-share-dialog";
+import { ShareSettingsDialog } from "@/components/share-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,6 +189,8 @@ export default function DocumentsPage() {
   }>({ open: false });
   const [shouldOpenShareDialog, setShouldOpenShareDialog] = useState(false);
   const [autoTriggerShare, setAutoTriggerShare] = useState(false);
+  const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
+  const [autoEnableAndOpen, setAutoEnableAndOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -827,7 +830,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         window.open(shareUrl, '_blank');
                       } else {
                         // Guide user to share settings to enable sharing
-                        setAutoTriggerShare(true);
+                        setAutoEnableAndOpen(true);
+                        setIsShareSettingsOpen(true);
                         toast({
                           title: "Setting up sharing",
                           description: "Opening share settings to enable your link"
