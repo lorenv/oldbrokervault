@@ -1330,7 +1330,7 @@ ${analysis.team.ownerResponsibilities}
                       "Validating website URL format...",
                       "Connecting to website...",
                       "Analyzing website content...",
-                      "Enhancing CIM with website data..."
+                      "Enhancing CIM with website images..."
                     ]}
                   />
                 </div>
