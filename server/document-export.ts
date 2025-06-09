@@ -1939,8 +1939,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 height: bannerHeight
               });
               
-              // Move cursor below the banner image
-              doc.y = bannerHeight + 20; // Add small margin below banner
+              // Move cursor below the banner image with increased spacing
+              doc.y = bannerHeight + 60; // Increased margin below banner from 20 to 60
               console.log("Successfully added file-based cover image banner");
             } else {
               console.log("Cover image file does not exist:", imagePath);
