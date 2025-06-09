@@ -4,6 +4,8 @@ import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
 import { eq, sql, desc, count, and, or, ilike } from "drizzle-orm";
 import { asc } from "drizzle-orm";
+import * as fs from 'fs';
+import * as path from 'path';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -157,6 +159,10 @@ export class DatabaseStorage implements IStorage {
         subscriptionStatus: insertUser.isAdmin ? "admin" : "free",
       })
       .returning();
+    
+    // Add default NDA template for new users
+    await this.createDefaultNdaTemplate(user.id);
+    
     return user;
   }
 
@@ -547,6 +553,36 @@ export class DatabaseStorage implements IStorage {
         resetTokenExpiry: null
       })
       .where(eq(users.id, userId));
+  }
+
+  async createDefaultNdaTemplate(userId: number): Promise<void> {
+    try {
+      // Read the default NDA template file
+      const defaultTemplatePath = path.join(__dirname, 'default-nda-template.pdf');
+      const templateBuffer = fs.readFileSync(defaultTemplatePath);
+      
+      // Convert to base64 as expected by the schema
+      const templateContent = templateBuffer.toString('base64');
+      
+      // Check if user already has a default template
+      const existingDefault = await db.select().from(ndaTemplates)
+        .where(and(eq(ndaTemplates.userId, userId), eq(ndaTemplates.isDefault, true)));
+      
+      if (existingDefault.length === 0) {
+        // Create the default NDA template for the user
+        await db.insert(ndaTemplates).values({
+          userId,
+          name: 'Default NDA Template',
+          fileContent: templateContent,
+          isDefault: true
+        });
+      }
+      
+      console.log(`Created default NDA template for user ${userId}`);
+    } catch (error) {
+      console.error(`Failed to create default NDA template for user ${userId}:`, error);
+      // Don't throw error to avoid blocking user creation
+    }
   }
 
   async updateCimShareSettings(id: number, settings: {
