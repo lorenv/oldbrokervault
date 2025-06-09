@@ -2464,22 +2464,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const finalX = startX + (col * (imageWidth + horizontalMargin));
               const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
-              // Save the current graphics state
-              doc.save();
-              
-              // Create rounded rectangle clipping path for business images
-              const cornerRadius = 30; // Rounded corner radius
-              doc.roundedRect(finalX, finalY, imageWidth, imageHeight, cornerRadius);
-              doc.clip();
-              
-              // Add the image (will be clipped to rounded rectangle)
+              // Add the image directly (already has rounded corners from processing)
               doc.image(finalImagePath, finalX, finalY, {
                 fit: [imageWidth, imageHeight],
                 align: 'center'
               });
-              
-              // Restore the graphics state
-              doc.restore();
               
               console.log(`Successfully added business image ${i} with rounded corners at ${finalX}, ${finalY}`);
             } else {
@@ -2705,23 +2694,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const centerX = (doc.page.width - logoWidth) / 2;
               const logoY = doc.y + 10;
               
-              // Save the current graphics state
-              doc.save();
-              
-              // Create rounded rectangle clipping path for business logo
-              const cornerRadius = 30; // Rounded corner radius
-              doc.roundedRect(centerX, logoY, logoWidth, logoHeight, cornerRadius);
-              doc.clip();
-              
-              // Add the business logo (will be clipped to rounded rectangle)
+              // Add the business logo directly (already has rounded corners from processing)
               doc.image(imageBuffer, centerX, logoY, {
                 width: logoWidth,
                 height: logoHeight,
                 align: 'center'
               });
-              
-              // Restore the graphics state
-              doc.restore();
               
               console.log("Successfully added business logo to PDF with rounded corners and dimensions:", logoWidth, "x", logoHeight);
             } else {
