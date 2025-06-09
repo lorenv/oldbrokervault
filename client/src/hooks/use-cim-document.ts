@@ -13,9 +13,12 @@ export function useCimDocument(docId: number | undefined, enabled = true) {
       return response.json();
     },
     enabled: !!docId && enabled,
-    staleTime: 60000, // Cache for 60 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after unmount
     refetchOnWindowFocus: false,
-    refetchOnMount: false // Use cached data when available
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false
   });
 }
 
@@ -32,9 +35,12 @@ export function useFinancialFiles(docId: number | undefined, enabled = true) {
       return response.json();
     },
     enabled: !!docId && enabled,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after unmount
     refetchOnWindowFocus: false,
-    refetchOnMount: false // Use cached data when available
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false
   });
 }
 
@@ -51,9 +57,12 @@ export function useCustomSections(docId: number | undefined, enabled = true) {
       return response.json();
     },
     enabled: !!docId && enabled,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after unmount
     refetchOnWindowFocus: false,
-    refetchOnMount: false // Use cached data when available
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false
   });
 }
 
@@ -70,8 +79,11 @@ export function useNdaSignatures(docId: number | undefined, enabled = true) {
       return response.json();
     },
     enabled: !!docId && enabled,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after unmount
     refetchOnWindowFocus: false,
-    refetchOnMount: false // Use cached data when available
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false
   });
 }
