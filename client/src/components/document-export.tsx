@@ -1460,10 +1460,19 @@ export function DocumentExport({
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="nda-file">NDA Document File</Label>
-                    <div className="relative">
-                      <Input
+                    <div className="flex items-center gap-3">
+                      <label
+                        htmlFor="nda-file"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <Upload className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">
+                          Choose File
+                        </span>
+                      </label>
+                      <input
                         id="nda-file"
                         type="file"
                         accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
@@ -1471,9 +1480,36 @@ export function DocumentExport({
                           const file = e.target.files?.[0] || null;
                           setNewNdaTemplate(prev => ({ ...prev, file }));
                         }}
-                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                        className="hidden"
                       />
+                      <span className="text-sm text-muted-foreground">
+                        {newNdaTemplate.file ? newNdaTemplate.file.name : "No file chosen"}
+                      </span>
                     </div>
+                    
+                    {newNdaTemplate.file && (
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          <File className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium truncate max-w-[200px]">
+                            {newNdaTemplate.file.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({(newNdaTemplate.file.size / 1024 / 1024).toFixed(1)}MB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewNdaTemplate(prev => ({ ...prev, file: null }))}
+                          className="h-6 w-6 p-0 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    )}
+                    
                     <p className="text-xs text-muted-foreground">
                       Supported formats: PDF, Word (.docx, .doc). Word documents will be converted to PDF automatically.
                     </p>

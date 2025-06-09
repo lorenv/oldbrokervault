@@ -3467,7 +3467,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   });
 
   // Support contact form
-  app.post("/api/support", upload.single('attachment'), async (req, res) => {
+  app.post("/api/support", upload.fields([
+    { name: 'attachment_0', maxCount: 1 },
+    { name: 'attachment_1', maxCount: 1 },
+    { name: 'attachment_2', maxCount: 1 },
+    { name: 'attachment_3', maxCount: 1 },
+    { name: 'attachment_4', maxCount: 1 }
+  ]), async (req, res) => {
     try {
       const { subject, message, email } = req.body;
       
@@ -3494,15 +3500,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         </div>
       `;
 
-      // Prepare attachments if file was uploaded
+      // Prepare attachments from multiple file uploads
       let attachments: any[] = [];
-      if (req.file) {
-        attachments.push({
-          content: req.file.buffer.toString('base64'),
-          filename: req.file.originalname,
-          type: req.file.mimetype,
-          disposition: 'attachment'
-        });
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (files) {
+        for (let i = 0; i < 5; i++) {
+          const fieldName = `attachment_${i}`;
+          if (files[fieldName] && files[fieldName][0]) {
+            const file = files[fieldName][0];
+            attachments.push({
+              content: file.buffer.toString('base64'),
+              filename: file.originalname,
+              type: file.mimetype,
+              disposition: 'attachment'
+            });
+          }
+        }
       }
 
       // Send email using existing email service
