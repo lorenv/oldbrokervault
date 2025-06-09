@@ -197,14 +197,14 @@ export default function DocumentsPage() {
   
   // Effect to set the selected document based on URL parameter
   useEffect(() => {
-    if (matched && params?.id && documents) {
+    if (matched && params?.id && documents && documents.length > 0) {
       const docId = parseInt(params.id);
       const doc = documents.find(d => d.id === docId);
-      if (doc) {
+      if (doc && (!selectedDoc || selectedDoc.id !== doc.id)) {
         setSelectedDoc(doc);
       }
     }
-  }, [matched, params, documents]);
+  }, [matched, params, documents, selectedDoc?.id]);
   
   // Documents are already filtered and sorted by the backend
   const filteredDocuments = documents;
