@@ -7,6 +7,7 @@ import { Readable } from "stream";
 import path from 'path';
 import fs from 'fs';
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 // Helper function to download and cache external images
 async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
@@ -20,7 +21,7 @@ async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
     }
     
     // Generate cache filename based on URL hash
-    const hash = require('crypto').createHash('md5').update(imageUrl).digest('hex');
+    const hash = crypto.createHash('md5').update(imageUrl).digest('hex');
     const extension = imageUrl.includes('.jpg') || imageUrl.includes('jpg') ? '.jpg' : 
                      imageUrl.includes('.png') || imageUrl.includes('png') ? '.png' : '.jpg';
     const cachedPath = path.join(cacheDir, `${hash}${extension}`);
@@ -43,7 +44,7 @@ async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
       return null;
     }
     
-    const buffer = await response.buffer();
+    const buffer = Buffer.from(await response.arrayBuffer());
     fs.writeFileSync(cachedPath, buffer);
     console.log("Successfully cached image:", cachedPath);
     
