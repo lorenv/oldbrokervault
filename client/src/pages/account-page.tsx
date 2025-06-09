@@ -26,6 +26,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { SecurityDashboard } from "@/components/security-dashboard";
+import { UserManagement } from "@/components/user-management";
 import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -645,6 +646,7 @@ export default function AccountPage() {
                 </CardDescription>
               </CardHeader>
             </Card>
+            <UserManagement />
             <SecurityDashboard />
           </TabsContent>
         )}
