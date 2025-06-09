@@ -59,6 +59,7 @@ export function CoverImageManager({
     return { x: 50, y: 50 };
   });
   const [attribution, setAttribution] = useState(currentAttribution || "");
+  const [hasUserMadeChanges, setHasUserMadeChanges] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -201,23 +202,17 @@ export function CoverImageManager({
   const handlePositionChange = (axis: 'x' | 'y', value: number[]) => {
     const newPosition = { ...imagePosition, [axis]: value[0] };
     setImagePosition(newPosition);
-    
-    if (selectedImage) {
-      updateCoverImageMutation.mutate({
-        coverImageUrl: selectedImage,
-        coverImagePosition: JSON.stringify(newPosition),
-        coverImageAttribution: attribution,
-      });
-    }
+    setHasUserMadeChanges(true); // Mark that user has made changes
   };
 
   const handleDragPositionChange = useCallback((newPosition: { x: number; y: number }) => {
     setImagePosition(newPosition);
+    setHasUserMadeChanges(true); // Mark that user has made changes
   }, []);
 
-  // Debounced API call to prevent excessive requests
+  // Debounced API call to prevent excessive requests - only when user has made changes
   useEffect(() => {
-    if (!selectedImage) return;
+    if (!selectedImage || !hasUserMadeChanges) return;
     
     const timeoutId = setTimeout(() => {
       updateCoverImageMutation.mutate({
@@ -225,10 +220,11 @@ export function CoverImageManager({
         coverImagePosition: JSON.stringify(imagePosition),
         coverImageAttribution: attribution,
       });
+      setHasUserMadeChanges(false); // Reset the flag after saving
     }, 1000); // Wait 1 second after user stops dragging
 
     return () => clearTimeout(timeoutId);
-  }, [imagePosition, selectedImage, attribution]);
+  }, [imagePosition, selectedImage, attribution, hasUserMadeChanges]);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
