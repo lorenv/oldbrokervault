@@ -205,6 +205,10 @@ export function CimDisplay({
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  
+  // Lightbox state for business images
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Update local state when props change with debouncing
   useEffect(() => {
@@ -450,6 +454,52 @@ export function CimDisplay({
     }
   };
 
+  // Handle logo upload/replacement
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Invalid File", description: "Please select an image file.", variant: "destructive" });
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "File Too Large", description: "Image must be smaller than 5MB.", variant: "destructive" });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await fetch(`/api/cim/${docId}/logo`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLocalLogoUrl(result.logoUrl);
+        
+        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        
+        toast({ title: "Logo Updated", description: "Logo uploaded successfully." });
+      } else {
+        const error = await response.json();
+        toast({ title: "Upload Failed", description: error.error || "Failed to upload logo.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast({ title: "Upload Failed", description: "An error occurred during upload.", variant: "destructive" });
+    }
+
+    event.target.value = '';
+  };
+
   // Handle business image upload
   const handleBusinessImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -499,6 +549,25 @@ export function CimDisplay({
 
     // Reset the input
     event.target.value = '';
+  };
+
+  // Handle opening lightbox
+  const openLightbox = (imageIndex: number) => {
+    setCurrentImageIndex(imageIndex);
+    setLightboxOpen(true);
+  };
+
+  // Navigate lightbox
+  const navigateLightbox = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setCurrentImageIndex(prev => 
+        prev === 0 ? localSelectedImages.length - 1 : prev - 1
+      );
+    } else {
+      setCurrentImageIndex(prev => 
+        prev === localSelectedImages.length - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   return (
