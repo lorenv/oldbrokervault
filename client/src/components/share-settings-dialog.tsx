@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -12,15 +12,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, RefreshCw, ExternalLink } from "lucide-react";
 
 interface ShareSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   docId: number;
+  autoEnableAndOpen?: boolean;
+  onAutoComplete?: () => void;
 }
 
-export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettingsDialogProps) {
+export function ShareSettingsDialog({ open, onOpenChange, docId, autoEnableAndOpen, onAutoComplete }: ShareSettingsDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -77,6 +79,33 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   const handleSaveSettings = (field: string, value: any) => {
     updateShareMutation.mutate({ [field]: value });
   };
+
+  // Auto-enable sharing when autoEnableAndOpen is true
+  useEffect(() => {
+    if (autoEnableAndOpen && shareSettings && !shareSettings.shareEnabled) {
+      // Enable sharing and generate a slug if needed
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const newSlug = shareSettings.shareSlug || `cim-${randomId}`;
+      
+      updateShareMutation.mutate({ 
+        shareEnabled: true,
+        shareSlug: newSlug
+      });
+      
+      // Delay opening the link to allow the UI to update
+      setTimeout(() => {
+        const shareUrl = `${window.location.origin}/share/${newSlug}`;
+        window.open(shareUrl, '_blank');
+        
+        toast({
+          title: "Sharing enabled and link opened",
+          description: "Your document is now shareable and the link has been opened in a new tab"
+        });
+        
+        onAutoComplete?.();
+      }, 1500);
+    }
+  }, [autoEnableAndOpen, shareSettings, updateShareMutation, toast, onAutoComplete]);
 
   const shareUrl = shareSettings?.shareSlug ? `${window.location.origin}/share/${shareSettings.shareSlug}` : '';
 
