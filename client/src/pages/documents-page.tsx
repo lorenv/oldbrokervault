@@ -14,7 +14,6 @@ import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { EmailShareDialog } from "@/components/email-share-dialog";
-import { ShareSettingsDialog } from "@/components/share-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -189,8 +188,6 @@ export default function DocumentsPage() {
   }>({ open: false });
   const [shouldOpenShareDialog, setShouldOpenShareDialog] = useState(false);
   const [autoTriggerShare, setAutoTriggerShare] = useState(false);
-  const [isShareSettingsOpen, setIsShareSettingsOpen] = useState(false);
-  const [autoEnableAndOpen, setAutoEnableAndOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -829,9 +826,9 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
                         window.open(shareUrl, '_blank');
                       } else {
-                        // Guide user to share settings to enable sharing
-                        setAutoEnableAndOpen(true);
-                        setIsShareSettingsOpen(true);
+                        // Guide user to existing share modal and auto-enable sharing
+                        setAutoTriggerShare(true);
+                        setShouldOpenShareDialog(true);
                         toast({
                           title: "Setting up sharing",
                           description: "Opening share settings to enable your link"
@@ -871,19 +868,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         senderName={user?.name}
       />
 
-      {/* Share Settings Dialog */}
-      {selectedDoc && (
-        <ShareSettingsDialog
-          open={isShareSettingsOpen}
-          onOpenChange={setIsShareSettingsOpen}
-          docId={selectedDoc.id}
-          autoEnableAndOpen={autoEnableAndOpen}
-          onAutoComplete={() => {
-            setAutoEnableAndOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
-          }}
-        />
-      )}
+
     </div>
   );
 }

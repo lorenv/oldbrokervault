@@ -188,6 +188,18 @@ export function DocumentExport({
           const url = `${window.location.origin}/share/${result.shareSlug}`;
           console.log('🔗 Setting share URL:', url);
           setShareUrl(url);
+          
+          // If this was an auto-trigger action, open the link in a new tab
+          if (autoTriggerShare && shareSettings.shareEnabled) {
+            setTimeout(() => {
+              window.open(url, '_blank');
+              toast({
+                title: "Sharing enabled and link opened",
+                description: "Your document is now shareable and the link has been opened in a new tab"
+              });
+            }, 1000);
+            return; // Skip the normal toast
+          }
         }
         toast({
           title: "Share settings updated",
@@ -879,6 +891,26 @@ export function DocumentExport({
       onShareTriggered?.();
     }
   }, [autoTriggerShare, isSharedView]);
+
+  // Auto-enable sharing when dialog opens and autoTriggerShare is true
+  useEffect(() => {
+    if (autoTriggerShare && isShareDialogOpen && !shareSettings.shareEnabled && !isUpdatingShare) {
+      console.log('Auto-enabling sharing for document:', docId);
+      
+      // Enable sharing automatically
+      const newSettings = {
+        ...shareSettings,
+        shareEnabled: true,
+        shareSlug: shareSettings.shareSlug || generateShareSlug()
+      };
+      setShareSettings(newSettings);
+      
+      // Trigger the update
+      setTimeout(() => {
+        updateShareSettings();
+      }, 500);
+    }
+  }, [autoTriggerShare, isShareDialogOpen, shareSettings.shareEnabled, isUpdatingShare]);
 
   return (
     <>
