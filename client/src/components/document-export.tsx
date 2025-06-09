@@ -871,8 +871,13 @@ export function DocumentExport({
   // Auto-trigger share dialog when autoTriggerShare is true
   useEffect(() => {
     if (autoTriggerShare && !isSharedView) {
-      setIsShareDialogOpen(true);
-      onShareTriggered?.();
+      // Add slight delay to ensure proper state transition
+      const timer = setTimeout(() => {
+        setIsShareDialogOpen(true);
+        onShareTriggered?.();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
 

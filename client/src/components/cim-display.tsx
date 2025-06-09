@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   DollarSign, 
   Banknote, 
@@ -237,24 +237,26 @@ export function CimDisplay({
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered, isDialogTransitioning]);
 
-  // Fetch custom sections
-  useEffect(() => {
-    const fetchCustomSections = async () => {
-      if (!docId) return;
-      
-      try {
-        const response = await fetch(`/api/cim/${docId}/custom-sections`);
-        if (response.ok) {
-          const sections = await response.json();
-          setCustomSections(sections);
-        }
-      } catch (error) {
-        console.error('Failed to fetch custom sections:', error);
-      }
-    };
+  // Fetch custom sections with React Query to prevent duplicate requests
+  const { data: customSectionsData } = useQuery({
+    queryKey: [`/api/cim/${docId}/custom-sections`],
+    queryFn: async () => {
+      if (!docId) return [];
+      const response = await fetch(`/api/cim/${docId}/custom-sections`);
+      if (!response.ok) throw new Error('Failed to fetch custom sections');
+      return response.json();
+    },
+    enabled: !!docId,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
+  });
 
-    fetchCustomSections();
-  }, [docId]);
+  // Update custom sections when data changes
+  useEffect(() => {
+    if (customSectionsData) {
+      setCustomSections(customSectionsData);
+    }
+  }, [customSectionsData]);
 
   // DnD sensors
   const sensors = useSensors(
