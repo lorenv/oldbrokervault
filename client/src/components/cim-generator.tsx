@@ -90,14 +90,6 @@ export function CimGenerator() {
       setSelectedTone('professional');
     }, 100);
   }, []);
-
-  // Load saved custom directions when available
-  useEffect(() => {
-    if (savedDirections?.customDirections) {
-      setCustomDirections(savedDirections.customDirections);
-      form.setValue('directions', savedDirections.customDirections);
-    }
-  }, [savedDirections, form]);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
 
   // Cover image state
@@ -114,12 +106,6 @@ export function CimGenerator() {
   // Load analysis templates from database
   const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
     queryKey: ['/api/analysis-templates'],
-    enabled: !!user,
-  });
-
-  // Load user's saved custom directions
-  const { data: savedDirections, refetch: refetchDirections } = useQuery({
-    queryKey: ['/api/user/custom-directions'],
     enabled: !!user,
   });
 
@@ -169,33 +155,6 @@ export function CimGenerator() {
       toast({
         title: "Error",
         description: "Failed to delete template. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Mutation for saving custom directions
-  const saveDirectionsMutation = useMutation({
-    mutationFn: async (customDirections: string) => {
-      const response = await fetch('/api/user/custom-directions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customDirections }),
-      });
-      if (!response.ok) throw new Error('Failed to save custom directions');
-      return response.json();
-    },
-    onSuccess: () => {
-      refetchDirections();
-      toast({
-        title: "Directions Saved",
-        description: "Your custom directions have been saved successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to save directions. Please try again.",
         variant: "destructive",
       });
     },
@@ -445,7 +404,9 @@ export function CimGenerator() {
 
 
         try {
-          // Website analysis stage removed - we no longer do expensive website analysis
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('analyzing');
+          }
           
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
@@ -458,7 +419,9 @@ export function CimGenerator() {
             throw new Error(error.error || "Failed to generate CIM");
           }
           
-          // Website analysis stage removed - we no longer do expensive website analysis
+          if (hasWebsiteUrl) {
+            setWebsiteAnalysisStage('enhancing');
+          }
           
           return res.json();
         } catch (error) {
@@ -1333,55 +1296,6 @@ ${analysis.team.ownerResponsibilities}
 
               {/* Compact custom directions field */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Custom Directions</Label>
-                  <div className="flex gap-1">
-                    {savedDirections?.customDirections && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setCustomDirections(savedDirections.customDirections);
-                          form.setValue("directions", savedDirections.customDirections);
-                          toast({
-                            title: "Directions Loaded",
-                            description: "Your saved directions have been loaded.",
-                          });
-                        }}
-                        className="h-7 px-2 text-xs gap-1"
-                      >
-                        <FolderOpen className="h-3 w-3" />
-                        Load
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (customDirections.trim()) {
-                          saveDirectionsMutation.mutate(customDirections);
-                        } else {
-                          toast({
-                            title: "Error",
-                            description: "Please enter custom directions before saving.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={saveDirectionsMutation.isPending}
-                      className="h-7 px-2 text-xs gap-1"
-                    >
-                      {saveDirectionsMutation.isPending ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Save className="h-3 w-3" />
-                      )}
-                      Save
-                    </Button>
-                  </div>
-                </div>
                 <Textarea
                   className="min-h-[80px] text-xs resize-y"
                   value={customDirections}
@@ -1389,7 +1303,7 @@ ${analysis.team.ownerResponsibilities}
                     setCustomDirections(e.target.value);
                     form.setValue("directions", e.target.value);
                   }}
-                  placeholder="Enter your custom analysis directions..."
+                  placeholder="Custom directions will appear here..."
                 />
               </div>
               

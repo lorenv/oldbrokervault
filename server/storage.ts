@@ -123,9 +123,6 @@ export interface IStorage {
   getAnalysisTemplates(userId: number): Promise<any[]>;
   updateAnalysisTemplate(id: number, template: any): Promise<any>;
   deleteAnalysisTemplate(id: number, userId: number): Promise<void>;
-  // Custom Directions Storage
-  updateUserCustomDirections(userId: number, customDirections: string): Promise<void>;
-  getUserCustomDirections(userId: number): Promise<string | null>;
   sessionStore: session.Store;
 }
 
@@ -998,23 +995,6 @@ export class DatabaseStorage implements IStorage {
   async deleteAnalysisTemplate(id: number, userId: number): Promise<void> {
     await db.delete(analysisTemplates)
       .where(sql`${analysisTemplates.id} = ${id} AND ${analysisTemplates.userId} = ${userId}`);
-  }
-
-  // Custom Directions Storage methods
-  async updateUserCustomDirections(userId: number, customDirections: string): Promise<void> {
-    await db
-      .update(users)
-      .set({ savedCustomDirections: customDirections })
-      .where(eq(users.id, userId));
-  }
-
-  async getUserCustomDirections(userId: number): Promise<string | null> {
-    const [user] = await db
-      .select({ savedCustomDirections: users.savedCustomDirections })
-      .from(users)
-      .where(eq(users.id, userId));
-    
-    return user?.savedCustomDirections || null;
   }
 }
 

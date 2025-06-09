@@ -1725,44 +1725,21 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("Selected Images data:", selectedImages);
       console.log("===========================");
       
-      // Add cover image at the top of the first page if available - full width with zero margins
+      // Add cover image at the top of the first page if available
       if (coverImageUrl) {
         try {
-          console.log("Adding full-width cover image from coverImageUrl:", coverImageUrl);
+          console.log("Adding cover image from coverImageUrl:", coverImageUrl);
           
           if (coverImageUrl.startsWith('data:')) {
             // Handle base64 data URI
             const base64Data = coverImageUrl.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            
-            // Get image dimensions to calculate proper scaling
-            let originalWidth = 800;
-            let originalHeight = 400;
-            
-            const jpegDims = getJpegDimensions(imageBuffer);
-            const pngDims = getPngDimensions(imageBuffer);
-            
-            if (jpegDims) {
-              originalWidth = jpegDims.width;
-              originalHeight = jpegDims.height;
-            } else if (pngDims) {
-              originalWidth = pngDims.width;
-              originalHeight = pngDims.height;
-            }
-            
-            // Calculate height to maintain aspect ratio while spanning full page width
-            const pageWidth = doc.page.width;
-            const scaledHeight = (originalHeight * pageWidth) / originalWidth;
-            
-            // Position at top-left corner (0, 0) and scale to full page width
-            doc.image(imageBuffer, 0, 0, {
-              width: pageWidth,
-              height: Math.min(scaledHeight, 300) // Cap height at 300pt to leave room for content
+            doc.image(imageBuffer, 50, 50, {
+              fit: [doc.page.width - 100, 200],
+              align: 'center'
             });
-            
-            // Move cursor below the image
-            doc.y = Math.min(scaledHeight, 300) + 20;
-            console.log("Successfully added full-width base64 cover image");
+            doc.moveDown(12);
+            console.log("Successfully added base64 cover image");
           } else {
             // Handle file path
             const imagePath = resolveImagePath(coverImageUrl);
@@ -1792,35 +1769,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
             
             if (coverImageFound) {
-              // Read image to get dimensions for proper scaling
-              const imageBuffer = fs.readFileSync(finalCoverImagePath);
-              let originalWidth = 800;
-              let originalHeight = 400;
-              
-              const jpegDims = getJpegDimensions(imageBuffer);
-              const pngDims = getPngDimensions(imageBuffer);
-              
-              if (jpegDims) {
-                originalWidth = jpegDims.width;
-                originalHeight = jpegDims.height;
-              } else if (pngDims) {
-                originalWidth = pngDims.width;
-                originalHeight = pngDims.height;
-              }
-              
-              // Calculate height to maintain aspect ratio while spanning full page width
-              const pageWidth = doc.page.width;
-              const scaledHeight = (originalHeight * pageWidth) / originalWidth;
-              
-              // Position at top-left corner (0, 0) and scale to full page width
-              doc.image(finalCoverImagePath, 0, 0, {
-                width: pageWidth,
-                height: Math.min(scaledHeight, 300) // Cap height at 300pt to leave room for content
+              doc.image(finalCoverImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
               });
-              
-              // Move cursor below the image
-              doc.y = Math.min(scaledHeight, 300) + 20;
-              console.log("Successfully added full-width file-based cover image");
+              doc.moveDown(12);
+              console.log("Successfully added file-based cover image");
             } else {
               console.log("Cover image file does not exist:", imagePath);
             }
@@ -1829,73 +1783,31 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           console.error("Failed to add cover image:", error);
         }
       } else if (selectedImages && selectedImages.length > 0) {
-        // Fallback to first selected image if no specific cover image - also full width
+        // Fallback to first selected image if no specific cover image
         try {
           const firstImage = selectedImages[0];
-          console.log("Adding full-width fallback cover image from selectedImages:", firstImage);
+          console.log("Adding fallback cover image from selectedImages:", firstImage);
           
           if (firstImage.startsWith('data:')) {
             // Handle base64 data URI
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            
-            // Get image dimensions
-            let originalWidth = 800;
-            let originalHeight = 400;
-            
-            const jpegDims = getJpegDimensions(imageBuffer);
-            const pngDims = getPngDimensions(imageBuffer);
-            
-            if (jpegDims) {
-              originalWidth = jpegDims.width;
-              originalHeight = jpegDims.height;
-            } else if (pngDims) {
-              originalWidth = pngDims.width;
-              originalHeight = pngDims.height;
-            }
-            
-            // Calculate height to maintain aspect ratio
-            const pageWidth = doc.page.width;
-            const scaledHeight = (originalHeight * pageWidth) / originalWidth;
-            
-            doc.image(imageBuffer, 0, 0, {
-              width: pageWidth,
-              height: Math.min(scaledHeight, 300)
+            doc.image(imageBuffer, 50, 50, {
+              fit: [doc.page.width - 100, 200],
+              align: 'center'
             });
-            
-            doc.y = Math.min(scaledHeight, 300) + 20;
-            console.log("Successfully added full-width base64 fallback cover image");
+            doc.moveDown(12);
+            console.log("Successfully added base64 fallback cover image");
           } else {
             // Handle file path
             const imagePath = resolveImagePath(firstImage);
             if (fs.existsSync(imagePath)) {
-              // Read image to get dimensions
-              const imageBuffer = fs.readFileSync(imagePath);
-              let originalWidth = 800;
-              let originalHeight = 400;
-              
-              const jpegDims = getJpegDimensions(imageBuffer);
-              const pngDims = getPngDimensions(imageBuffer);
-              
-              if (jpegDims) {
-                originalWidth = jpegDims.width;
-                originalHeight = jpegDims.height;
-              } else if (pngDims) {
-                originalWidth = pngDims.width;
-                originalHeight = pngDims.height;
-              }
-              
-              // Calculate height to maintain aspect ratio
-              const pageWidth = doc.page.width;
-              const scaledHeight = (originalHeight * pageWidth) / originalWidth;
-              
-              doc.image(imagePath, 0, 0, {
-                width: pageWidth,
-                height: Math.min(scaledHeight, 300)
+              doc.image(imagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
               });
-              
-              doc.y = Math.min(scaledHeight, 300) + 20;
-              console.log("Successfully added full-width file-based fallback cover image");
+              doc.moveDown(12);
+              console.log("Successfully added file-based fallback cover image");
             } else {
               console.log("Fallback cover image file does not exist:", imagePath);
             }
