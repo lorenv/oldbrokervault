@@ -25,23 +25,6 @@ import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 
-// Helper function to generate automatic share link for new documents
-async function generateAutoShareLink(docId: number): Promise<{ shareSlug: string, shareEnabled: boolean }> {
-  const randomId = Math.random().toString(36).substring(2, 8);
-  const shareSlug = `cim-${randomId}`;
-  
-  // Update the document with share settings
-  await storage.updateCimDocument(docId, {
-    shareEnabled: true,
-    shareSlug: shareSlug,
-    sharePassword: null,
-    shareExpiresAt: null,
-    ndaProtected: false,
-    ndaTemplateId: null
-  });
-  
-  return { shareSlug, shareEnabled: true };
-}
 
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -876,6 +859,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating CIM document with directions:", data.directions);
       
+      // Generate automatic share link for new document
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const shareSlug = `cim-${randomId}`;
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         directions: data.directions, // Explicitly include custom directions
@@ -895,7 +882,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         revenue: financials?.revenue || null,
         revenueIncluded: financials?.revenueIncluded || false,
         ebitda: financials?.ebitda || null,
-        ebitdaIncluded: financials?.ebitdaIncluded || false
+        ebitdaIncluded: financials?.ebitdaIncluded || false,
+        // Enable sharing by default with generated slug
+        shareEnabled: true,
+        shareSlug: shareSlug,
+        sharePassword: null,
+        shareExpiresAt: null,
+        ndaProtected: false,
+        ndaTemplateId: null
       });
 
       // Process only the user-selected images (selectedImageUrls already contains the user's choices)
@@ -1186,6 +1180,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating CIM document from upload with directions:", data.directions);
       
+      // Generate automatic share link for new document
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const shareSlug = `cim-${randomId}`;
+      
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         directions: data.directions, // Explicitly include custom directions
@@ -1205,7 +1203,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         revenue: financials?.revenue || null,
         revenueIncluded: financials?.revenueIncluded || false,
         ebitda: financials?.ebitda || null,
-        ebitdaIncluded: financials?.ebitdaIncluded || false
+        ebitdaIncluded: financials?.ebitdaIncluded || false,
+        // Enable sharing by default with generated slug
+        shareEnabled: true,
+        shareSlug: shareSlug,
+        sharePassword: null,
+        shareExpiresAt: null,
+        ndaProtected: false,
+        ndaTemplateId: null
       });
 
       res.json(doc);
