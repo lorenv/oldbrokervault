@@ -568,7 +568,7 @@ export function CimDisplay({
 
         {/* Financial Information Section at Top */}
         {!isSharedView && cimDocument && (
-          <OwnerFinancialsSection docId={docId} />
+          <OwnerFinancialsSection docId={docId} cimDocument={cimDocument} />
         )}
 
         {/* Logo only in edit view, not share view (header handles it there) */}

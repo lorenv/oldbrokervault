@@ -32,20 +32,24 @@ interface FinancialFile {
 
 interface OwnerFinancialsSectionProps {
   docId: number;
+  cimDocument?: any;
 }
 
-export function OwnerFinancialsSection({ docId }: OwnerFinancialsSectionProps) {
+export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: OwnerFinancialsSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch CIM document with financial data
-  const { data: cimDocument, isLoading: cimLoading } = useQuery({
+  // Fetch CIM document only if not provided as prop (eliminates duplicate API calls)
+  const { data: fetchedCimDocument, isLoading: cimLoading } = useQuery({
     queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId,
+    enabled: !!docId && !propCimDocument,
     refetchOnWindowFocus: false,
-    staleTime: 0 // Ensure fresh data
+    staleTime: 60000 // Use cached data when available
   });
+
+  // Use prop data if available, otherwise use fetched data
+  const cimDocument = propCimDocument || fetchedCimDocument;
 
   // Extract financial data from main CIM document - make it reactive to updates
   const getFinancials = (): Financials => {
