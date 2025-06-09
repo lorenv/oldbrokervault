@@ -302,54 +302,17 @@ export function DocumentExport({
   };
 
   const copyShareUrl = async () => {
-    // If sharing is not enabled, automatically enable it
-    if (!shareSettings.shareEnabled) {
-      try {
-        // Generate a new share slug
-        const randomId = Math.random().toString(36).substring(2, 8);
-        const newSlug = `cim-${randomId}`;
-        const newShareUrl = `${window.location.origin}/share/${newSlug}`;
-        
-        // Update local state
-        setShareSettings(prev => ({
-          ...prev,
-          shareEnabled: true,
-          shareSlug: newSlug
-        }));
-        setShareUrl(newShareUrl);
-        
-        // Save to server
-        if (docId) {
-          await apiRequest('POST', `/api/cim/${docId}/share`, {
-            shareEnabled: true,
-            shareSlug: newSlug,
-            sharePassword: shareSettings.sharePassword || null,
-            shareExpiresAt: shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null,
-            ndaProtected: shareSettings.ndaProtected,
-            ndaTemplateId: shareSettings.ndaTemplateId
-          });
-        }
-        
-        // Copy the new URL
-        navigator.clipboard.writeText(newShareUrl);
-        toast({
-          title: "Sharing enabled and link copied!",
-          description: "Sharing has been automatically enabled and the link has been copied to your clipboard",
-        });
-      } catch (error) {
-        console.error('Failed to enable sharing:', error);
-        toast({
-          title: "Error enabling sharing",
-          description: "Failed to enable sharing. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // Normal copy operation when sharing is already enabled
+    if (shareSettings.shareEnabled && shareUrl) {
       navigator.clipboard.writeText(shareUrl);
       toast({
         title: "Share link copied!",
         description: "The link has been copied to your clipboard",
+      });
+    } else {
+      toast({
+        title: "No Share Link Available",
+        description: "This document doesn't have sharing enabled",
+        variant: "destructive"
       });
     }
   };
