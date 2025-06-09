@@ -8,6 +8,66 @@ import path from 'path';
 import fs from 'fs';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
+import sharp from 'sharp';
+
+// Helper function to create a cropped image based on position data
+async function createCroppedImageBuffer(imagePath: string, position: { x: number; y: number }, bannerWidth: number, bannerHeight: number): Promise<Buffer | null> {
+  try {
+    // Read the original image to get its dimensions
+    const imageBuffer = fs.readFileSync(imagePath);
+    const metadata = await sharp(imageBuffer).metadata();
+    
+    if (!metadata.width || !metadata.height) {
+      console.log("Could not get image dimensions for cropping");
+      return null;
+    }
+    
+    // Calculate the crop area based on the position (x, y are percentages)
+    // We want to create a banner with the specified aspect ratio
+    const targetAspectRatio = bannerWidth / bannerHeight;
+    const originalAspectRatio = metadata.width / metadata.height;
+    
+    let cropWidth, cropHeight, cropLeft, cropTop;
+    
+    if (originalAspectRatio > targetAspectRatio) {
+      // Image is wider than target ratio - crop horizontally
+      cropHeight = metadata.height;
+      cropWidth = Math.round(cropHeight * targetAspectRatio);
+      
+      // Use x position to determine horizontal crop position
+      const maxLeft = metadata.width - cropWidth;
+      cropLeft = Math.round((position.x / 100) * maxLeft);
+      cropTop = Math.round((position.y / 100) * (metadata.height - cropHeight));
+    } else {
+      // Image is taller than target ratio - crop vertically
+      cropWidth = metadata.width;
+      cropHeight = Math.round(cropWidth / targetAspectRatio);
+      
+      // Use y position to determine vertical crop position
+      const maxTop = metadata.height - cropHeight;
+      cropTop = Math.round((position.y / 100) * maxTop);
+      cropLeft = Math.round((position.x / 100) * (metadata.width - cropWidth));
+    }
+    
+    // Ensure crop values are within bounds
+    cropLeft = Math.max(0, Math.min(cropLeft, metadata.width - cropWidth));
+    cropTop = Math.max(0, Math.min(cropTop, metadata.height - cropHeight));
+    
+    console.log(`Cropping image: ${cropWidth}x${cropHeight} at ${cropLeft},${cropTop} from ${metadata.width}x${metadata.height}`);
+    
+    // Create cropped and resized buffer
+    const croppedBuffer = await sharp(imageBuffer)
+      .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
+      .resize(bannerWidth, bannerHeight)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    
+    return croppedBuffer;
+  } catch (error) {
+    console.error("Error creating cropped image:", error);
+    return null;
+  }
+}
 
 // Helper function to download and cache external images
 async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
@@ -1687,7 +1747,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1773,6 +1833,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("Selected Images data:", selectedImages);
       console.log("===========================");
       
+      // Parse cover image position data
+      let imagePosition = { x: 50, y: 50 }; // Default center position
+      if (coverImagePosition) {
+        try {
+          imagePosition = JSON.parse(coverImagePosition);
+          console.log("Using cover image position:", imagePosition);
+        } catch (error) {
+          console.log("Failed to parse cover image position, using default:", error);
+        }
+      }
+
       // Add cover image at the top of the first page if available
       if (coverImageUrl) {
         try {
