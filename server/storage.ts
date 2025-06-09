@@ -68,6 +68,7 @@ export interface IStorage {
     businessLogo?: string;
     profilePhoto?: string;
   }): Promise<User>;
+  updateUserEmail(userId: number, email: string): Promise<void>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<void>;
   updateCimImages(cimId: number, imagePaths: string[]): Promise<void>;
   createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
@@ -532,6 +533,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async updateUserEmail(userId: number, email: string): Promise<void> {
+    await db.update(users)
+      .set({ email: email })
+      .where(eq(users.id, userId));
   }
 
   async updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
