@@ -91,7 +91,6 @@ export function DocumentExport({
     file: null as File | null,
     isDefault: false
   });
-  const [ndaSignatures, setNdaSignatures] = useState<any[]>([]);
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   
   // Email sharing state
@@ -241,6 +240,10 @@ export function DocumentExport({
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
+
+  // Use React Query data directly instead of local state
+  const ndaTemplates = ndaTemplatesData || [];
+  const ndaSignatures = ndaSignaturesData || [];
 
   const uploadNdaTemplate = async () => {
     if (!newNdaTemplate.name || !newNdaTemplate.file) {
@@ -1320,7 +1323,7 @@ export function DocumentExport({
                             <SelectValue placeholder="Choose an NDA template (Required)" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ndaTemplates.map((template) => (
+                            {ndaTemplates.map((template: any) => (
                               <SelectItem key={template.id} value={template.id.toString()}>
                                 {template.name} {template.isDefault && "(Default)"}
                               </SelectItem>
@@ -1555,7 +1558,7 @@ export function DocumentExport({
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {ndaTemplates.map((template) => (
+                      {ndaTemplates.map((template: any) => (
                         <div key={template.id} className="flex items-center justify-between p-3 border rounded">
                           <div>
                             <p className="font-medium">{template.name}</p>
