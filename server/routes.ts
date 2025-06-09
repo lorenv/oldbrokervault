@@ -3348,9 +3348,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
   // Populate default NDA templates for all users  
   app.post("/api/populate-default-nda", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+
     try {
-      const { populateDefaultNDAForAllUsers } = await import("./populate-default-nda");
-      const result = await populateDefaultNDAForAllUsers();
+      const result = await storage.addDefaultNdaTemplateToAllUsers();
       res.json(result);
     } catch (error) {
       console.error('Error populating default NDA templates:', error);
