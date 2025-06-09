@@ -169,28 +169,21 @@ export function CimGenerator() {
     }
   };
 
-  // Handler to save custom template
+  // Handler to save custom template - simplified to only save directions text
   const saveCustomTemplate = (name: string) => {
     const templateData = {
       name: name.trim(),
-      purpose: selectedPurpose,
-      tone: selectedTone,
-      audience: selectedAudience,
-      customDirections: customDirections,
-      isPublic: false
+      customDirections: customDirections
     };
     
     createTemplateMutation.mutate(templateData);
     setTemplateNameInput('');
   };
 
-  // Handler to load template with confirmation
+  // Handler to load template - simplified to only load directions text
   const loadTemplate = (template: any) => {
     setCustomDirections(template.customDirections);
     form.setValue("directions", template.customDirections);
-    setSelectedPurpose(template.purpose);
-    setSelectedTone(template.tone);
-    setSelectedAudience(template.audience);
     toast({
       title: "Template Loaded",
       description: `"${template.name}" has been loaded successfully.`,

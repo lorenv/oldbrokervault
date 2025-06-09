@@ -449,18 +449,12 @@ export type DocumentVersion = typeof documentVersions.$inferSelect;
 export type DocumentAnalytics = typeof documentAnalytics.$inferSelect;
 export type SearchIndex = typeof searchIndex.$inferSelect;
 
-// Analysis template system for flexible CIM generation
+// Simplified analysis templates - only save name and directions text
 export const analysisTemplates = pgTable("analysis_templates", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
-  purpose: text("purpose").notNull(), // 'business_overview', 'equity_raise', 'acquisition_summary', 'partnership_brief'
-  tone: text("tone").notNull(), // 'professional', 'conversational', 'executive_summary'
-  audience: text("audience").notNull(), // 'investors', 'partners', 'internal_team', 'potential_buyers'
   customDirections: text("custom_directions").notNull(),
-  isDefault: boolean("is_default").default(false).notNull(),
-  isPublic: boolean("is_public").default(false).notNull(),
-  usageCount: integer("usage_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -521,18 +515,11 @@ Be thorough and factual, providing all information a buyer would need for due di
   }
 };
 
-// Schema for inserting analysis templates
+// Schema for inserting analysis templates - simplified to only name and directions
 export const insertAnalysisTemplateSchema = createInsertSchema(analysisTemplates).pick({
   name: true,
-  purpose: true,
-  tone: true,
-  audience: true,
-  customDirections: true,
-  isPublic: true
+  customDirections: true
 }).extend({
-  purpose: z.enum(['business_overview', 'equity_raise', 'acquisition_summary', 'partnership_brief']),
-  tone: z.enum(['professional', 'conversational', 'executive_summary']),
-  audience: z.enum(['investors', 'partners', 'internal_team', 'potential_buyers']),
   name: z.string().min(1, "Template name is required"),
   customDirections: z.string().min(10, "Custom directions must be at least 10 characters")
 });
