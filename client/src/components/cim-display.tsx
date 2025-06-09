@@ -456,6 +456,8 @@ export function CimDisplay({
     }
   };
 
+
+
   // Handle logo upload/replacement
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1161,7 +1163,7 @@ export function CimDisplay({
       
       {/* Image Lightbox Dialog */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0">
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 border-0">
           <div className="relative">
             {localSelectedImages.length > 0 && (
               <>
