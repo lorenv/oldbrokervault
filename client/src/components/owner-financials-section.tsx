@@ -101,13 +101,13 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // console.log("Financials object:", financials);
   // console.log("CIM Loading:", cimLoading);
 
-  // Fetch financial files
+  // Fetch financial files with optimized caching to prevent flickering
   const { data: files = [] } = useQuery<FinancialFile[]>({
     queryKey: [`/api/cim/${docId}/financial-files`],
     enabled: !!docId,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchOnMount: true // Always refetch on mount
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Prevent automatic refetches
+    refetchOnMount: false // Use cached data when available
   });
 
   // Debug logging for files
