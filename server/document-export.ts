@@ -1876,14 +1876,28 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const bannerHeight = doc.page.height * 0.2; // 20% of page height
               const bannerWidth = doc.page.width; // Full page width
               
-              doc.image(cachedImagePath, 0, 0, {
-                width: bannerWidth,
-                height: bannerHeight
-              });
+              // Create cropped image buffer based on position
+              console.log("Attempting to crop image with position:", imagePosition);
+              const croppedBuffer = await createCroppedImageBuffer(cachedImagePath, imagePosition, bannerWidth, bannerHeight);
+              
+              if (croppedBuffer) {
+                doc.image(croppedBuffer, 0, 0, {
+                  width: bannerWidth,
+                  height: bannerHeight
+                });
+                console.log("Successfully added cropped external cover image banner");
+              } else {
+                // Fallback to original stretching if cropping fails
+                console.log("Cropping failed, falling back to stretch");
+                doc.image(cachedImagePath, 0, 0, {
+                  width: bannerWidth,
+                  height: bannerHeight
+                });
+                console.log("Added external cover image banner (fallback to stretch)");
+              }
               
               // Move cursor below the banner image
               doc.y = bannerHeight + 20; // Add small margin below banner
-              console.log("Successfully added external cover image banner:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external cover image");
             }
