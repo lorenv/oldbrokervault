@@ -1019,13 +1019,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure the logos directory exists
       const logosDir = path.join(process.cwd(), 'public', 'logos');
-      if (!fs.existsSync(logosDir)) {
-        fs.mkdirSync(logosDir, { recursive: true });
+      if (!fsSync.existsSync(logosDir)) {
+        fsSync.mkdirSync(logosDir, { recursive: true });
       }
 
       // Save the file
       const filepath = path.join(logosDir, filename);
-      fs.writeFileSync(filepath, req.file.buffer);
+      fsSync.writeFileSync(filepath, req.file.buffer);
       
       const logoUrl = `/logos/${filename}`;
       console.log(`Logo saved to: ${logoUrl}`);
