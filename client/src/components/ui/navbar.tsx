@@ -24,7 +24,7 @@ export function Navbar() {
       isHomePage 
         ? "absolute top-0 left-0 right-0 z-50" 
         : user 
-          ? "border-b bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50" 
+          ? "border-b bg-gradient-to-r from-blue-100 via-purple-100 via-pink-100 to-orange-100" 
           : "border-b"
     }>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
