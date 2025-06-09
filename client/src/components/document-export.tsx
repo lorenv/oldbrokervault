@@ -887,16 +887,8 @@ export function DocumentExport({
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {isSharedView ? (
-              // Shared view: Only show Word and PDF export options
+              // Shared view: Only show PDF export option
               <>
-                <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
-                  {isWordLoading ? (
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                  ) : (
-                    <File className="h-4 w-4 mr-2 text-blue-600" />
-                  )}
-                  {isWordLoading ? "Generating Word..." : "Export to Word"}
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadPdf} disabled={isPdfLoading}>
                   {isPdfLoading ? (
                     <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
@@ -935,14 +927,6 @@ export function DocumentExport({
 
                 {canAccessPremiumFeatures && (
                   <>
-                    <DropdownMenuItem onClick={downloadWord} disabled={isWordLoading}>
-                      {isWordLoading ? (
-                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                      ) : (
-                        <File className="h-4 w-4 mr-2 text-blue-600" />
-                      )}
-                      {isWordLoading ? "Generating Word..." : "Export to Word"}
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={downloadPdf} disabled={isPdfLoading}>
                       {isPdfLoading ? (
                         <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
@@ -951,7 +935,6 @@ export function DocumentExport({
                       )}
                       {isPdfLoading ? "Generating PDF..." : "Export to PDF"}
                     </DropdownMenuItem>
-
                   </>
                 )}
               </>

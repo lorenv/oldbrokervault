@@ -524,12 +524,6 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'word');}}
-                          >
-                            <File className="mr-2 h-4 w-4 text-blue-600" />
-                            Export to Word
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
                             onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'pdf');}}
                           >
                             <FileDown className="mr-2 h-4 w-4 text-red-600" />
