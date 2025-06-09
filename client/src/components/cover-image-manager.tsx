@@ -59,6 +59,7 @@ export function CoverImageManager({
     return { x: 50, y: 50 };
   });
   const [attribution, setAttribution] = useState(currentAttribution || "");
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -156,6 +157,7 @@ export function CoverImageManager({
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setHasUserInteracted(true);
       updateCoverImageMutation.mutate({
         file,
         coverImagePosition: JSON.stringify(imagePosition),
@@ -190,6 +192,7 @@ export function CoverImageManager({
   };
 
   const handleUnsplashImageSelect = (image: UnsplashImage) => {
+    setHasUserInteracted(true);
     updateCoverImageMutation.mutate({
       coverImageUrl: image.urls.regular,
       coverImagePosition: JSON.stringify(imagePosition),
@@ -199,6 +202,7 @@ export function CoverImageManager({
   };
 
   const handlePositionChange = (axis: 'x' | 'y', value: number[]) => {
+    setHasUserInteracted(true);
     const newPosition = { ...imagePosition, [axis]: value[0] };
     setImagePosition(newPosition);
     
@@ -212,12 +216,13 @@ export function CoverImageManager({
   };
 
   const handleDragPositionChange = useCallback((newPosition: { x: number; y: number }) => {
+    setHasUserInteracted(true);
     setImagePosition(newPosition);
   }, []);
 
-  // Debounced API call to prevent excessive requests
+  // Debounced API call to prevent excessive requests - only after user interaction
   useEffect(() => {
-    if (!selectedImage) return;
+    if (!selectedImage || !hasUserInteracted) return;
     
     const timeoutId = setTimeout(() => {
       updateCoverImageMutation.mutate({
@@ -228,7 +233,7 @@ export function CoverImageManager({
     }, 1000); // Wait 1 second after user stops dragging
 
     return () => clearTimeout(timeoutId);
-  }, [imagePosition, selectedImage, attribution]);
+  }, [imagePosition, selectedImage, attribution, hasUserInteracted]);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
