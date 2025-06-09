@@ -1193,9 +1193,6 @@ ${analysis.team.ownerResponsibilities}
                               <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
                                 <div className="flex-1">
                                   <span className="text-sm font-medium">{template.name}</span>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {template.purpose} • {template.tone} • {template.audience}
-                                  </div>
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
