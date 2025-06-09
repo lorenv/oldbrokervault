@@ -999,6 +999,23 @@ export class DatabaseStorage implements IStorage {
     await db.delete(analysisTemplates)
       .where(sql`${analysisTemplates.id} = ${id} AND ${analysisTemplates.userId} = ${userId}`);
   }
+
+  // Custom Directions Storage methods
+  async updateUserCustomDirections(userId: number, customDirections: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ savedCustomDirections: customDirections })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserCustomDirections(userId: number): Promise<string | null> {
+    const [user] = await db
+      .select({ savedCustomDirections: users.savedCustomDirections })
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    return user?.savedCustomDirections || null;
+  }
 }
 
 export const storage = new DatabaseStorage();
