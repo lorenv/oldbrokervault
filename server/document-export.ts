@@ -1782,63 +1782,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle base64 data URI
             const base64Data = coverImageUrl.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            
-            // Calculate center position for the image
-            const imageWidth = doc.page.width - 100;
-            const imageHeight = 200;
-            const centerX = (doc.page.width - imageWidth) / 2;
-            
-            // Save current graphics state
-            doc.save();
-            
-            // Create rounded rectangle clipping path
-            const cornerRadius = 15;
-            doc.roundedRect(centerX, 50, imageWidth, imageHeight, cornerRadius);
-            doc.clip();
-            
-            // Add the image within the clipped area
-            doc.image(imageBuffer, centerX, 50, {
-              width: imageWidth,
-              height: imageHeight
+            doc.image(imageBuffer, 50, 50, {
+              fit: [doc.page.width - 100, 200],
+              align: 'center'
             });
-            
-            // Restore graphics state
-            doc.restore();
-            
-            // Add generous spacing after the cover image
-            doc.moveDown(18);
-            console.log("Successfully added base64 cover image with rounded corners");
+            doc.moveDown(12);
+            console.log("Successfully added base64 cover image");
           } else if (coverImageUrl.startsWith('http://') || coverImageUrl.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external cover image:", coverImageUrl);
             const cachedImagePath = await downloadAndCacheImage(coverImageUrl);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              // Calculate center position for the image
-              const imageWidth = doc.page.width - 100;
-              const imageHeight = 200;
-              const centerX = (doc.page.width - imageWidth) / 2;
-              
-              // Save current graphics state
-              doc.save();
-              
-              // Create rounded rectangle clipping path
-              const cornerRadius = 15;
-              doc.roundedRect(centerX, 50, imageWidth, imageHeight, cornerRadius);
-              doc.clip();
-              
-              // Add the image within the clipped area
-              doc.image(cachedImagePath, centerX, 50, {
-                width: imageWidth,
-                height: imageHeight
+              doc.image(cachedImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
               });
-              
-              // Restore graphics state
-              doc.restore();
-              
-              // Add generous spacing after the cover image
-              doc.moveDown(18);
-              console.log("Successfully added external cover image from cache with rounded corners:", cachedImagePath);
+              doc.moveDown(12);
+              console.log("Successfully added external cover image from cache:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external cover image");
             }
@@ -1871,31 +1832,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
             
             if (coverImageFound) {
-              // Calculate center position for the image
-              const imageWidth = doc.page.width - 100;
-              const imageHeight = 200;
-              const centerX = (doc.page.width - imageWidth) / 2;
-              
-              // Save current graphics state
-              doc.save();
-              
-              // Create rounded rectangle clipping path
-              const cornerRadius = 15;
-              doc.roundedRect(centerX, 50, imageWidth, imageHeight, cornerRadius);
-              doc.clip();
-              
-              // Add the image within the clipped area
-              doc.image(finalCoverImagePath, centerX, 50, {
-                width: imageWidth,
-                height: imageHeight
+              doc.image(finalCoverImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
               });
-              
-              // Restore graphics state
-              doc.restore();
-              
-              // Add generous spacing after the cover image
-              doc.moveDown(18);
-              console.log("Successfully added file-based cover image with rounded corners");
+              doc.moveDown(12);
+              console.log("Successfully added file-based cover image");
             } else {
               console.log("Cover image file does not exist:", imagePath);
             }
@@ -1913,32 +1855,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle base64 data URI
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            
-            // Calculate center position for the image
-            const imageWidth = doc.page.width - 100;
-            const imageHeight = 200;
-            const centerX = (doc.page.width - imageWidth) / 2;
-            
-            // Save current graphics state
-            doc.save();
-            
-            // Create rounded rectangle clipping path
-            const cornerRadius = 15;
-            doc.roundedRect(centerX, 50, imageWidth, imageHeight, cornerRadius);
-            doc.clip();
-            
-            // Add the image within the clipped area
-            doc.image(imageBuffer, centerX, 50, {
-              width: imageWidth,
-              height: imageHeight
+            doc.image(imageBuffer, 50, 50, {
+              fit: [doc.page.width - 100, 200],
+              align: 'center'
             });
-            
-            // Restore graphics state
-            doc.restore();
-            
-            // Add generous spacing after the cover image
-            doc.moveDown(18);
-            console.log("Successfully added base64 fallback cover image with rounded corners");
+            doc.moveDown(12);
+            console.log("Successfully added base64 fallback cover image");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external fallback cover image:", firstImage);
