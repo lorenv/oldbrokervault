@@ -733,8 +733,8 @@ export function CimDisplay({
                                   });
                                   
                                   if (response.ok) {
+                                    // Only invalidate the specific document to prevent unnecessary refetches
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                                     toast({ title: "Content Updated", description: "Section content saved successfully." });
                                   }
                                 } catch (error) {
@@ -927,8 +927,8 @@ export function CimDisplay({
                               const sections = await sectionsResponse.json();
                               setCustomSections(sections);
                             }
+                            // Only invalidate the specific document to prevent unnecessary refetches
                             queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({
                               title: "Text Section Added",
                               description: "Your new text section has been added to the document.",
