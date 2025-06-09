@@ -99,8 +99,8 @@ export function CoverImageManager({
       return response.json();
     },
     onSuccess: (data) => {
+      // Only invalidate the specific document to prevent unnecessary refetches
       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
       
       // Update local state to show the image immediately
       setSelectedImage(data.coverImageUrl);
