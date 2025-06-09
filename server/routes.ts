@@ -413,9 +413,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("- logoUrl:", cimDoc.logoUrl);
       console.log("- websiteUrl:", cimDoc.websiteUrl);
       console.log("- selectedImages:", cimDoc.selectedImages);
-      console.log("- coverImageUrl:", cimDoc.coverImageUrl);
-      console.log("- coverImagePosition:", cimDoc.coverImagePosition);
-      console.log("- coverImageAttribution:", cimDoc.coverImageAttribution);
       console.log("- userProfile:", JSON.stringify(userProfile, null, 2));
       console.log("- financialData:", JSON.stringify(financialData, null, 2));
       console.log("- customSections:", JSON.stringify(customSections, null, 2));
@@ -781,7 +778,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Audience:", audience);
       console.log("Custom directions:", data.directions);
       
-      console.time("AI CIM Generation");
       let analysis = await generateFlexibleCimDocument(
         data.transcript,
         data.directions,
@@ -789,9 +785,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         req.body.financials,
-        null // websiteData - no longer doing expensive website analysis
+        null // websiteData - will add later if needed
       );
-      console.timeEnd("AI CIM Generation");
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
       console.log("Analysis type:", typeof analysis);
@@ -814,22 +809,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
       
-      // If website URL is provided, extract logo and images (but skip heavy analysis)
+      // If website URL is provided, extract logo and images in parallel
       let logoUrl = null;
       let extractedImages: string[] = [];
       
       if (data.websiteUrl) {
         try {
           const normalizedUrl = normalizeUrl(data.websiteUrl);
-          console.log("Starting efficient website processing (logo + images only)...");
+          console.log("Starting parallel website processing...");
           
-          console.time("Website Processing (Logo + Images)");
           // Run logo extraction and image extraction in parallel for efficiency
           const [logoResult, imagesResult] = await Promise.allSettled([
             extractLogoFromWebsite(normalizedUrl),
             extractWebsiteImages(normalizedUrl)
           ]);
-          console.timeEnd("Website Processing (Logo + Images)");
           
           // Handle logo extraction result
           if (logoResult.status === 'fulfilled' && logoResult.value) {
@@ -2465,12 +2458,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
-      
-      // Debug cover image data before PDF generation
-      console.log("Cover image data for PDF generation:");
-      console.log("- coverImageUrl:", doc.coverImageUrl);
-      console.log("- coverImagePosition:", doc.coverImagePosition);
-      console.log("- coverImageAttribution:", doc.coverImageAttribution);
       
       // Pass all document data to the PDF generator
       const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl);
@@ -5009,39 +4996,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error('Error removing cover image:', error);
       res.status(500).json({ error: "Failed to remove cover image" });
-    }
-  });
-
-  // Save custom directions for user
-  app.post('/api/user/custom-directions', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const { customDirections } = req.body;
-      
-      if (!customDirections || typeof customDirections !== 'string') {
-        return res.status(400).json({ error: "Custom directions text is required" });
-      }
-      
-      await storage.updateUserCustomDirections(req.user!.id, customDirections);
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error saving custom directions:', error);
-      res.status(500).json({ error: 'Failed to save custom directions' });
-    }
-  });
-
-  // Get user's saved custom directions
-  app.get('/api/user/custom-directions', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    try {
-      const directions = await storage.getUserCustomDirections(req.user!.id);
-      res.json({ customDirections: directions });
-    } catch (error) {
-      console.error('Error retrieving custom directions:', error);
-      res.status(500).json({ error: 'Failed to retrieve custom directions' });
     }
   });
 
