@@ -134,80 +134,140 @@ export default function LoginPage() {
 
   if (showResetPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Reset Your Password</CardTitle>
-            <CardDescription>
-              Enter your new password below.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResetPasswordForm mutation={resetPasswordMutation} />
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24 min-h-screen">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">
+                Reset Your Password
+              </h1>
+              <p className="text-gray-600">
+                Enter your new password below.
+              </p>
+            </div>
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <ResetPasswordForm mutation={resetPasswordMutation} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Reset Password</CardTitle>
-            <CardDescription>
-              Enter your email address and we'll send you a link to reset your password.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ForgotPasswordForm mutation={forgotPasswordMutation} />
-            <div className="mt-4 text-center">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setShowForgotPassword(false)}
-              >
-                Back to login
-              </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24 min-h-screen">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">
+                Reset Password
+              </h1>
+              <p className="text-gray-600">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <ForgotPasswordForm mutation={forgotPasswordMutation} />
+                <div className="mt-6 text-center">
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="text-sm"
+                  >
+                    Back to login
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome to CIM Share</CardTitle>
-          <CardDescription>
-            The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
-            <br /><br />
-            <strong>Create a free CIM today!</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        {/* Left side - Welcome Section */}
+        <div className="hidden lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-24 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+          <div className="max-w-md">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-6">
+              Welcome to CIM Share
+            </h1>
+            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
+            </p>
+            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <h3 className="font-semibold text-gray-900 mb-3">Key Features:</h3>
+              <ul className="space-y-2 text-gray-600">
+                <li className="flex items-center">
+                  <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
+                  Professional document generation
+                </li>
+                <li className="flex items-center">
+                  <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
+                  NDA protection & secure sharing
+                </li>
+                <li className="flex items-center">
+                  <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
+                  Multiple export formats
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-            <TabsContent value="login" className="mt-4">
-              <LoginForm 
-                mutation={loginMutation} 
-                onForgotPassword={() => setShowForgotPassword(true)}
-              />
-            </TabsContent>
+        {/* Right side - Form Section */}
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="lg:hidden mb-8">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-4">
+                Welcome to CIM Share
+              </h1>
+              <p className="text-gray-600">
+                Create professional CIMs with ease
+              </p>
+            </div>
 
-            <TabsContent value="register" className="mt-4">
-              <RegisterForm mutation={registerMutation} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-8">
+                <Tabs defaultValue="login">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="login" className="text-sm font-medium">Login</TabsTrigger>
+                    <TabsTrigger value="register" className="text-sm font-medium">Register</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="login" className="mt-0">
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">Sign in to your account</h2>
+                      <p className="text-sm text-gray-600">Welcome back! Please enter your details.</p>
+                    </div>
+                    <LoginForm 
+                      mutation={loginMutation} 
+                      onForgotPassword={() => setShowForgotPassword(true)}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="register" className="mt-0">
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">Create your account</h2>
+                      <p className="text-sm text-gray-600">Start creating professional CIMs today!</p>
+                    </div>
+                    <RegisterForm mutation={registerMutation} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
