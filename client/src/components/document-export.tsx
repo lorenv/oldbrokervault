@@ -1160,7 +1160,7 @@ export function DocumentExport({
           <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1 min-h-0">
             <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
               <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
-              <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
+              <TabsTrigger value="nda-templates">NDA Settings</TabsTrigger>
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
               <TabsTrigger value="embed-code">Embed Code</TabsTrigger>
             </TabsList>
@@ -1261,72 +1261,6 @@ export function DocumentExport({
                     }
                   />
                 </div>
-
-                {/* NDA Protection Section */}
-                <Card className="border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700">
-                      <Users className="h-5 w-5" />
-                      NDA Protection
-                    </CardTitle>
-                    <CardDescription>
-                      Require viewers to sign an NDA before accessing the CIM
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="nda-enabled">Require NDA Signature</Label>
-                      {isLoadingShareSettings ? (
-                        <div className="w-11 h-6 bg-gray-200 rounded-full animate-pulse"></div>
-                      ) : (
-                        <Switch
-                          id="nda-enabled"
-                          checked={shareSettings.ndaProtected}
-                          onCheckedChange={(checked) => 
-                            setShareSettings(prev => ({ ...prev, ndaProtected: checked }))
-                          }
-                        />
-                      )}
-                    </div>
-
-                    {shareSettings.ndaProtected && (
-                      <div className="space-y-2">
-                        <Label htmlFor="nda-template" className="text-red-600">
-                          Select NDA Template *
-                        </Label>
-                        <Select
-                          value={shareSettings.ndaTemplateId?.toString() || ""}
-                          onValueChange={(value) => 
-                            setShareSettings(prev => ({ 
-                              ...prev, 
-                              ndaTemplateId: value ? parseInt(value) : null 
-                            }))
-                          }
-                        >
-                          <SelectTrigger className={!shareSettings.ndaTemplateId ? "border-red-300" : ""}>
-                            <SelectValue placeholder="Choose an NDA template (Required)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ndaTemplates.map((template: any) => (
-                              <SelectItem key={template.id} value={template.id.toString()}>
-                                {template.name} {template.isDefault && "(Default)"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {ndaTemplates.length === 0 ? (
-                          <p className="text-sm text-red-600">
-                            No NDA templates found. Create one in the NDA Templates tab before enabling NDA protection.
-                          </p>
-                        ) : !shareSettings.ndaTemplateId ? (
-                          <p className="text-sm text-red-600">
-                            Please select an NDA template to enable NDA protection.
-                          </p>
-                        ) : null}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </>
             )}
                 </CardContent>
@@ -1455,8 +1389,74 @@ export function DocumentExport({
               </Card>
             </TabsContent>
 
-            {/* NDA Templates Tab */}
+            {/* NDA Settings Tab */}
             <TabsContent value="nda-templates" className="space-y-6">
+              {/* NDA Protection Section - Moved to top */}
+              <Card className="border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-700">
+                    <Users className="h-5 w-5" />
+                    NDA Protection
+                  </CardTitle>
+                  <CardDescription>
+                    Require viewers to sign an NDA before accessing the CIM
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="nda-enabled">Require NDA Signature</Label>
+                    {isLoadingShareSettings ? (
+                      <div className="w-11 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                    ) : (
+                      <Switch
+                        id="nda-enabled"
+                        checked={shareSettings.ndaProtected}
+                        onCheckedChange={(checked) => 
+                          setShareSettings(prev => ({ ...prev, ndaProtected: checked }))
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {shareSettings.ndaProtected && (
+                    <div className="space-y-2">
+                      <Label htmlFor="nda-template" className="text-red-600">
+                        Select NDA Template *
+                      </Label>
+                      <Select
+                        value={shareSettings.ndaTemplateId?.toString() || ""}
+                        onValueChange={(value) => 
+                          setShareSettings(prev => ({ 
+                            ...prev, 
+                            ndaTemplateId: value ? parseInt(value) : null 
+                          }))
+                        }
+                      >
+                        <SelectTrigger className={!shareSettings.ndaTemplateId ? "border-red-300" : ""}>
+                          <SelectValue placeholder="Choose an NDA template (Required)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ndaTemplates.map((template: any) => (
+                            <SelectItem key={template.id} value={template.id.toString()}>
+                              {template.name} {template.isDefault && "(Default)"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {ndaTemplates.length === 0 ? (
+                        <p className="text-sm text-red-600">
+                          No NDA templates found. Create one below before enabling NDA protection.
+                        </p>
+                      ) : !shareSettings.ndaTemplateId ? (
+                        <p className="text-sm text-red-600">
+                          Please select an NDA template to enable NDA protection.
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Upload New NDA Template</CardTitle>
