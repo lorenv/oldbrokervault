@@ -9,6 +9,7 @@ import { Upload, X, Download, FileText, DollarSign, TrendingUp, BarChart3, Eye }
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useFinancialFiles } from '@/hooks/use-cim-document';
 import type { Financials, FinancialFile } from '@shared/schema';
 
 interface FinancialsSectionProps {
@@ -44,13 +45,8 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
     ebitdaIncluded: (cimDocument as any).ebitdaIncluded || (cimDocument as any).ebitda_included || false,
   } : null;
 
-  // Fetch financial files with optimized caching
-  const { data: files = [] } = useQuery<FinancialFile[]>({
-    queryKey: [`/api/cim/${docId}/financial-files`],
-    enabled: !!docId,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
-  });
+  // Use centralized hook for financial files to eliminate duplicate API calls
+  const { data: files = [] } = useFinancialFiles(docId);
 
   // Update financials mutation
   const updateFinancialsMutation = useMutation({

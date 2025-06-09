@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
+import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Lock, Copy, Globe, Search, Trash2, Code, File, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Settings, ExternalLink } from "lucide-react";
@@ -191,6 +192,12 @@ export default function DocumentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Pre-load data for selected document to prevent duplicate API calls
+  const { data: preLoadedCimDocument } = useCimDocument(selectedDoc?.id, !!selectedDoc);
+  const { data: preLoadedFinancialFiles } = useFinancialFiles(selectedDoc?.id, !!selectedDoc);
+  const { data: preLoadedCustomSections } = useCustomSections(selectedDoc?.id, !!selectedDoc);
+  const { data: preLoadedNdaSignatures } = useNdaSignatures(selectedDoc?.id, !!selectedDoc);
   
   // Get the document ID from URL if present
   const [matched, params] = useRoute('/documents/:id');

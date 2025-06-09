@@ -918,12 +918,8 @@ export function CimDisplay({
                           });
 
                           if (response.ok) {
-                            // Refresh custom sections
-                            const sectionsResponse = await fetch(`/api/cim/${docId}/custom-sections`);
-                            if (sectionsResponse.ok) {
-                              const sections = await sectionsResponse.json();
-                              setCustomSections(sections);
-                            }
+                            // Invalidate custom sections query to refresh via centralized hook
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
                             queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                             queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({
@@ -977,12 +973,8 @@ export function CimDisplay({
                             });
 
                             if (response.ok) {
-                              // Refresh custom sections
-                              const sectionsResponse = await fetch(`/api/cim/${docId}/custom-sections`);
-                              if (sectionsResponse.ok) {
-                                const sections = await sectionsResponse.json();
-                                setCustomSections(sections);
-                              }
+                              // Invalidate custom sections query to refresh via centralized hook
+                              queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
                               queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                               queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                               toast({
