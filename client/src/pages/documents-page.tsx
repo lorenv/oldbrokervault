@@ -851,7 +851,10 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               title={selectedDoc.title}
               cimDocument={selectedDoc}
               autoTriggerShare={autoTriggerShare}
-              onShareTriggered={() => setAutoTriggerShare(false)}
+              onShareTriggered={() => {
+                setAutoTriggerShare(false);
+                setShouldOpenShareDialog(false);
+              }}
             />
           </DialogContent>
         </Dialog>

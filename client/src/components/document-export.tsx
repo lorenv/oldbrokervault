@@ -197,6 +197,8 @@ export function DocumentExport({
                 title: "Sharing enabled and link opened",
                 description: "Your document is now shareable and the link has been opened in a new tab"
               });
+              // Reset autoTriggerShare flag
+              onShareTriggered?.();
             }, 1000);
             return; // Skip the normal toast
           }
@@ -895,22 +897,28 @@ export function DocumentExport({
   // Auto-enable sharing when dialog opens and autoTriggerShare is true
   useEffect(() => {
     if (autoTriggerShare && isShareDialogOpen && !shareSettings.shareEnabled && !isUpdatingShare) {
-      console.log('Auto-enabling sharing for document:', docId);
+      console.log('Auto-enabling sharing for document:', docId, 'Current settings:', shareSettings);
       
-      // Enable sharing automatically
+      // Enable sharing automatically and update UI immediately
+      const newSlug = shareSettings.shareSlug || generateShareSlug();
       const newSettings = {
         ...shareSettings,
         shareEnabled: true,
-        shareSlug: shareSettings.shareSlug || generateShareSlug()
+        shareSlug: newSlug
       };
-      setShareSettings(newSettings);
       
-      // Trigger the update
-      setTimeout(() => {
-        updateShareSettings();
-      }, 500);
+      console.log('Setting new share settings:', newSettings);
+      setShareSettings(newSettings);
     }
   }, [autoTriggerShare, isShareDialogOpen, shareSettings.shareEnabled, isUpdatingShare]);
+
+  // Trigger API update when shareSettings change from auto-enable
+  useEffect(() => {
+    if (autoTriggerShare && shareSettings.shareEnabled && shareSettings.shareSlug && !isUpdatingShare) {
+      console.log('Triggering share settings update for auto-enabled sharing');
+      updateShareSettings();
+    }
+  }, [shareSettings.shareEnabled, shareSettings.shareSlug, autoTriggerShare, isUpdatingShare]);
 
   return (
     <>
