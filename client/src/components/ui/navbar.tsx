@@ -24,13 +24,13 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
-            <a className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <img 
                 src="/cim-share-logo.png" 
                 alt="CIM Share" 
                 className={`h-12 ${isHomePage ? "brightness-0 invert" : ""}`}
               />
-            </a>
+            </div>
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
