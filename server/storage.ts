@@ -27,6 +27,12 @@ export interface IStorage {
     revenueIncluded?: boolean;
     ebitda?: string | null;
     ebitdaIncluded?: boolean;
+    shareEnabled?: boolean;
+    shareSlug?: string | null;
+    sharePassword?: string | null;
+    shareExpiresAt?: Date | null;
+    ndaProtected?: boolean;
+    ndaTemplateId?: number | null;
   }): Promise<CimDocument>;
   createUploadedCimDocument(userId: number, data: {
     title: string;
@@ -258,6 +264,13 @@ export class DatabaseStorage implements IStorage {
       coverImageUrl: doc.coverImageUrl || null,
       coverImagePosition: doc.coverImagePosition || null,
       coverImageAttribution: doc.coverImageAttribution || null,
+      // Share settings - enable by default
+      shareEnabled: doc.shareEnabled || false,
+      shareSlug: doc.shareSlug || null,
+      sharePassword: doc.sharePassword || null,
+      shareExpiresAt: doc.shareExpiresAt || null,
+      ndaProtected: doc.ndaProtected || false,
+      ndaTemplateId: doc.ndaTemplateId || null,
     };
 
     console.log("Data being inserted into database:", insertData);
@@ -285,6 +298,10 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Monthly CIM generation limit reached");
     }
 
+    // Generate automatic share link for uploaded document
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const shareSlug = `cim-${randomId}`;
+
     const [cimDoc] = await db
       .insert(cimDocuments)
       .values({
@@ -299,6 +316,13 @@ export class DatabaseStorage implements IStorage {
         uploadedFilePath: data.filePath,
         uploadedFileSize: data.fileSize,
         uploadedFileMimeType: data.mimeType,
+        // Enable sharing by default with generated slug
+        shareEnabled: true,
+        shareSlug: shareSlug,
+        sharePassword: null,
+        shareExpiresAt: null,
+        ndaProtected: false,
+        ndaTemplateId: null,
       })
       .returning();
 
