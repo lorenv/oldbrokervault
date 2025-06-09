@@ -585,6 +585,32 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async addDefaultNdaTemplateToAllUsers(): Promise<{ processed: number; created: number }> {
+    try {
+      const allUsers = await db.select().from(users);
+      let processed = 0;
+      let created = 0;
+
+      for (const user of allUsers) {
+        await this.createDefaultNdaTemplate(user.id);
+        processed++;
+        
+        // Check if template was actually created (not skipped due to existing default)
+        const hasDefault = await db.select().from(ndaTemplates)
+          .where(and(eq(ndaTemplates.userId, user.id), eq(ndaTemplates.isDefault, true)));
+        if (hasDefault.length > 0) {
+          created++;
+        }
+      }
+
+      console.log(`Processed ${processed} users, created ${created} default NDA templates`);
+      return { processed, created };
+    } catch (error) {
+      console.error('Failed to add default NDA templates to all users:', error);
+      throw error;
+    }
+  }
+
   async updateCimShareSettings(id: number, settings: {
     shareEnabled: boolean;
     shareSlug?: string;
