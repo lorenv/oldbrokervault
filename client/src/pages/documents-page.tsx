@@ -478,8 +478,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         onClick={async (e) => {
                           e.stopPropagation();
                           
-                          if (doc.shareToken) {
-                            navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareToken}`);
+                          if (doc.shareSlug) {
+                            navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareSlug}`);
                             toast({
                               title: "Share link copied",
                               description: "The share link has been copied to your clipboard"
@@ -503,7 +503,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                             open: true,
                             documentId: doc.id,
                             documentTitle: doc.title,
-                            shareToken: doc.shareToken
+                            shareSlug: doc.shareSlug
                           });
                         }}
                       >
