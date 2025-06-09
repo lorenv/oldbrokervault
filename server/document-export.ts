@@ -1782,24 +1782,37 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle base64 data URI
             const base64Data = coverImageUrl.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            doc.image(imageBuffer, 50, 50, {
-              fit: [doc.page.width - 100, 200],
-              align: 'center'
+            
+            // Calculate banner dimensions - 20% of page height, full width
+            const bannerHeight = doc.page.height * 0.2; // 20% of page height
+            const bannerWidth = doc.page.width; // Full page width
+            
+            doc.image(imageBuffer, 0, 0, {
+              width: bannerWidth,
+              height: bannerHeight
             });
-            doc.moveDown(12);
-            console.log("Successfully added base64 cover image");
+            
+            // Move cursor below the banner image
+            doc.y = bannerHeight + 20; // Add small margin below banner
+            console.log("Successfully added base64 cover image banner");
           } else if (coverImageUrl.startsWith('http://') || coverImageUrl.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external cover image:", coverImageUrl);
             const cachedImagePath = await downloadAndCacheImage(coverImageUrl);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              doc.image(cachedImagePath, 50, 50, {
-                fit: [doc.page.width - 100, 200],
-                align: 'center'
+              // Calculate banner dimensions - 20% of page height, full width
+              const bannerHeight = doc.page.height * 0.2; // 20% of page height
+              const bannerWidth = doc.page.width; // Full page width
+              
+              doc.image(cachedImagePath, 0, 0, {
+                width: bannerWidth,
+                height: bannerHeight
               });
-              doc.moveDown(12);
-              console.log("Successfully added external cover image from cache:", cachedImagePath);
+              
+              // Move cursor below the banner image
+              doc.y = bannerHeight + 20; // Add small margin below banner
+              console.log("Successfully added external cover image banner:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external cover image");
             }
@@ -1832,12 +1845,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
             
             if (coverImageFound) {
-              doc.image(finalCoverImagePath, 50, 50, {
-                fit: [doc.page.width - 100, 200],
-                align: 'center'
+              // Calculate banner dimensions - 20% of page height, full width
+              const bannerHeight = doc.page.height * 0.2; // 20% of page height
+              const bannerWidth = doc.page.width; // Full page width
+              
+              doc.image(finalCoverImagePath, 0, 0, {
+                width: bannerWidth,
+                height: bannerHeight
               });
-              doc.moveDown(12);
-              console.log("Successfully added file-based cover image");
+              
+              // Move cursor below the banner image
+              doc.y = bannerHeight + 20; // Add small margin below banner
+              console.log("Successfully added file-based cover image banner");
             } else {
               console.log("Cover image file does not exist:", imagePath);
             }
@@ -1855,24 +1874,37 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle base64 data URI
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
-            doc.image(imageBuffer, 50, 50, {
-              fit: [doc.page.width - 100, 200],
-              align: 'center'
+            
+            // Calculate banner dimensions - 20% of page height, full width
+            const bannerHeight = doc.page.height * 0.2; // 20% of page height
+            const bannerWidth = doc.page.width; // Full page width
+            
+            doc.image(imageBuffer, 0, 0, {
+              width: bannerWidth,
+              height: bannerHeight
             });
-            doc.moveDown(12);
-            console.log("Successfully added base64 fallback cover image");
+            
+            // Move cursor below the banner image
+            doc.y = bannerHeight + 20; // Add small margin below banner
+            console.log("Successfully added base64 fallback cover image banner");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external fallback cover image:", firstImage);
             const cachedImagePath = await downloadAndCacheImage(firstImage);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              doc.image(cachedImagePath, 50, 50, {
-                fit: [doc.page.width - 100, 200],
-                align: 'center'
+              // Calculate banner dimensions - 20% of page height, full width
+              const bannerHeight = doc.page.height * 0.2; // 20% of page height
+              const bannerWidth = doc.page.width; // Full page width
+              
+              doc.image(cachedImagePath, 0, 0, {
+                width: bannerWidth,
+                height: bannerHeight
               });
-              doc.moveDown(12);
-              console.log("Successfully added external fallback cover image from cache:", cachedImagePath);
+              
+              // Move cursor below the banner image
+              doc.y = bannerHeight + 20; // Add small margin below banner
+              console.log("Successfully added external fallback cover image banner from cache:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external fallback cover image");
             }
@@ -1880,12 +1912,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle local file path
             const imagePath = resolveImagePath(firstImage);
             if (fs.existsSync(imagePath)) {
-              doc.image(imagePath, 50, 50, {
-                fit: [doc.page.width - 100, 200],
-                align: 'center'
+              // Calculate banner dimensions - 20% of page height, full width
+              const bannerHeight = doc.page.height * 0.2; // 20% of page height
+              const bannerWidth = doc.page.width; // Full page width
+              
+              doc.image(imagePath, 0, 0, {
+                width: bannerWidth,
+                height: bannerHeight
               });
-              doc.moveDown(12);
-              console.log("Successfully added file-based fallback cover image");
+              
+              // Move cursor below the banner image
+              doc.y = bannerHeight + 20; // Add small margin below banner
+              console.log("Successfully added file-based fallback cover image banner");
             } else {
               console.log("Fallback cover image file does not exist:", imagePath);
             }
