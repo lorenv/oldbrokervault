@@ -220,12 +220,19 @@ export default function AccountPage() {
   const form = useForm({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      email: user?.email || "",
+      email: "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
   });
+
+  // Update form when user data loads
+  useEffect(() => {
+    if (user?.email) {
+      form.setValue("email", user.email);
+    }
+  }, [user, form]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     setIsUpdating(true);
@@ -300,21 +307,50 @@ export default function AccountPage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" placeholder="Enter current password to confirm changes" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="pt-4 border-t">
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
-                    onClick={() => {
-                      // Add password reset functionality here
-                      toast({
-                        title: "Password Reset",
-                        description: "Password reset functionality will be available soon.",
-                      });
-                    }}
-                  >
-                    Reset Password
-                  </Button>
+                  <h4 className="text-sm font-medium mb-3">Change Password (Optional)</h4>
+                  
+                  <FormField
+                    control={form.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" placeholder="Leave blank to keep current password" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" placeholder="Confirm new password" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <Button type="submit" disabled={isUpdating}>
