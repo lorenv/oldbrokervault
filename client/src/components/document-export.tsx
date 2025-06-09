@@ -453,19 +453,15 @@ export function DocumentExport({
     }
   }, [docId]);
 
-  // Load additional data when dialog opens - only if not already loaded
+  // Load additional data when dialog opens
   useEffect(() => {
     if (isShareDialogOpen) {
-      // Only fetch NDA data if not already loaded
-      if (ndaTemplates.length === 0) {
-        fetchNdaTemplates();
-      }
-      if (ndaSignatures.length === 0) {
-        fetchNdaSignatures();
-      }
-      // Don't refetch share settings as they're already loaded when component mounts
+      // Always refetch share settings when dialog opens to ensure current state
+      fetchShareSettings();
+      fetchNdaTemplates();
+      fetchNdaSignatures();
     }
-  }, [isShareDialogOpen, ndaTemplates.length, ndaSignatures.length]);
+  }, [isShareDialogOpen]);
 
   // Auto-open share dialog when shouldOpenShareDialog is true
   useEffect(() => {
@@ -878,7 +874,7 @@ export function DocumentExport({
       setIsShareDialogOpen(true);
       onShareTriggered?.();
     }
-  }, [autoTriggerShare, isSharedView]);
+  }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
   return (
     <>

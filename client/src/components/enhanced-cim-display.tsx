@@ -199,8 +199,8 @@ export function EnhancedCimDisplay({
         });
         
         if (response.ok) {
-          // Only invalidate the specific document to prevent unnecessary refetches
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
           toast({ title: "Sections Reordered", description: "Section order saved successfully." });
         }
       } catch (error) {
@@ -222,8 +222,8 @@ export function EnhancedCimDisplay({
       });
       
       if (response.ok) {
-        // Only invalidate the specific document to prevent unnecessary refetches
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Section Deleted", description: "Section removed successfully." });
       }
     } catch (error) {
@@ -356,8 +356,8 @@ export function EnhancedCimDisplay({
                                 });
                                 
                                 if (response.ok) {
-                                  // Only invalidate the specific document to prevent unnecessary refetches
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                                   toast({ title: "Title Updated", description: "Section title saved successfully." });
                                 }
                               } catch (error) {
@@ -394,8 +394,8 @@ export function EnhancedCimDisplay({
                                 });
                                 
                                 if (response.ok) {
-                                  // Only invalidate the specific document to prevent unnecessary refetches
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                                   toast({ title: "Content Updated", description: "Section content saved successfully." });
                                 }
                               } catch (error) {

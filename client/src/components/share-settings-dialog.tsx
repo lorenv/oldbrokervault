@@ -78,7 +78,26 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
     updateShareMutation.mutate({ [field]: value });
   };
 
-  const shareUrl = shareSettings?.shareSlug ? `${window.location.origin}/share/${shareSettings.shareSlug}` : '';
+  if (isLoading || !shareSettings) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Link Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const shareUrl = `${window.location.origin}/share/${shareSettings.shareSlug}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,101 +106,89 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
           <DialogTitle>Share Link Settings</DialogTitle>
         </DialogHeader>
         
-        {isLoading || !shareSettings ? (
+        <div className="space-y-6">
+          {/* Share URL */}
+          <div className="space-y-2">
+            <Label>Share URL</Label>
+            <div className="flex gap-2">
+              <Input 
+                value={shareUrl} 
+                readOnly 
+                className="flex-1"
+              />
+              <Button variant="outline" size="sm" onClick={copyShareUrl}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => regenerateSlugMutation.mutate()}
+              disabled={regenerateSlugMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${regenerateSlugMutation.isPending ? 'animate-spin' : ''}`} />
+              Generate New Link
+            </Button>
+          </div>
+
+          {/* Share Settings */}
           <div className="space-y-4">
-            <div className="animate-pulse space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-              <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Enable Public Sharing</Label>
+                <p className="text-sm text-gray-500">Allow anyone with the link to view this document</p>
+              </div>
+              <Switch
+                checked={shareSettings.isPublic}
+                onCheckedChange={(checked) => handleSaveSettings('isPublic', checked)}
+              />
             </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Require NDA Agreement</Label>
+                <p className="text-sm text-gray-500">Viewers must agree to NDA before accessing</p>
+              </div>
+              <Switch
+                checked={shareSettings.requireNda}
+                onCheckedChange={(checked) => handleSaveSettings('requireNda', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Password Protection</Label>
+                <p className="text-sm text-gray-500">Require password to access document</p>
+              </div>
+              <Switch
+                checked={!!shareSettings.password}
+                onCheckedChange={(checked) => {
+                  if (!checked) {
+                    handleSaveSettings('password', null);
+                  }
+                }}
+              />
+            </div>
+
+            {shareSettings.password !== null && (
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={shareSettings.password || ''}
+                  onChange={(e) => handleSaveSettings('password', e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Share URL */}
-            <div className="space-y-2">
-              <Label>Share URL</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={shareUrl} 
-                  readOnly 
-                  className="flex-1"
-                />
-                <Button variant="outline" size="sm" onClick={copyShareUrl}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => regenerateSlugMutation.mutate()}
-                disabled={regenerateSlugMutation.isPending}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${regenerateSlugMutation.isPending ? 'animate-spin' : ''}`} />
-                Generate New Link
-              </Button>
-            </div>
 
-            {/* Share Settings */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Public Sharing</Label>
-                  <p className="text-sm text-gray-500">Allow anyone with the link to view this document</p>
-                </div>
-                <Switch
-                  checked={shareSettings.isPublic}
-                  onCheckedChange={(checked) => handleSaveSettings('isPublic', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Require NDA Agreement</Label>
-                  <p className="text-sm text-gray-500">Viewers must agree to NDA before accessing</p>
-                </div>
-                <Switch
-                  checked={shareSettings.requireNda}
-                  onCheckedChange={(checked) => handleSaveSettings('requireNda', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Password Protection</Label>
-                  <p className="text-sm text-gray-500">Require password to access document</p>
-                </div>
-                <Switch
-                  checked={!!shareSettings.password}
-                  onCheckedChange={(checked) => {
-                    if (!checked) {
-                      handleSaveSettings('password', null);
-                    }
-                  }}
-                />
-              </div>
-
-              {shareSettings.password !== null && (
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input
-                    type="password"
-                    value={shareSettings.password || ''}
-                    onChange={(e) => handleSaveSettings('password', e.target.value)}
-                    placeholder="Enter password"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={() => onOpenChange(false)}>
-                Done
-              </Button>
-            </div>
+          <div className="flex justify-end">
+            <Button onClick={() => onOpenChange(false)}>
+              Done
+            </Button>
           </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   );

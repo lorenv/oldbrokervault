@@ -24,21 +24,21 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
-            <div className="flex items-center space-x-2">
+            <a className="flex items-center space-x-2">
               <img 
                 src="/cim-share-logo.png" 
                 alt="CIM Share" 
                 className={`h-12 ${isHomePage ? "brightness-0 invert" : ""}`}
               />
-            </div>
+            </a>
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/pricing">
-                <span className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
+                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</a>
               </Link>
               <Link href="/contact">
-                <span className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
+                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</a>
               </Link>
             </div>
           )}
@@ -62,7 +62,7 @@ export function Navbar() {
           <div className="flex items-center space-x-4">
             {user.isAdmin && (
               <Link href="/admin">
-                <span className="text-sm font-medium hover:text-primary">Admin Dashboard</span>
+                <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
               </Link>
             )}
             <DropdownMenu>
@@ -79,38 +79,38 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/dashboard">
-                    <div className="flex items-center">
+                    <a className="flex items-center">
                       <Zap className="h-4 w-4 mr-2" />
                       Create New CIM
-                    </div>
+                    </a>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/documents">
-                    <div className="flex items-center">
+                    <a className="flex items-center">
                       <FileText className="h-4 w-4 mr-2" />
                       My CIMs
-                    </div>
+                    </a>
                   </Link>
                 </DropdownMenuItem>
                 {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem>
                     <Link href="/investor-database">
-                      <div className="flex items-center">
+                      <a className="flex items-center">
                         <Database className="h-4 w-4 mr-2" />
                         Investor Database
-                      </div>
+                      </a>
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/account">
-                    <div className="flex items-center">
+                    <a className="flex items-center">
                       <Settings className="h-4 w-4 mr-2" />
                       My Account
-                    </div>
+                    </a>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
