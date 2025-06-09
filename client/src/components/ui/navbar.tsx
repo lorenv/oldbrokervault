@@ -9,15 +9,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
+import { useQuery } from "@tanstack/react-query";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [location] = useLocation();
   const isHomePage = location === '/';
+
+  // Fetch profile data for profile picture
+  const { data: profile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+  });
 
   return (
     <nav className={
@@ -66,24 +73,30 @@ export function Navbar() {
 
         {user && (
           <div className="flex items-center space-x-4">
-            {user.isAdmin && (
-              <Link href="/admin">
-                <a className="text-sm font-medium hover:text-primary">Admin Dashboard</a>
-              </Link>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}
+                  className={`flex items-center gap-2 ${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
                 >
-                  <User className="h-4 w-4 mr-2" />
-                  My Account
+                  {(profile as any)?.profilePhoto ? (
+                    <img 
+                      src={(profile as any).profilePhoto} 
+                      alt="Profile" 
+                      className="w-5 h-5 rounded-full object-cover border border-border"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+                  <Menu className="h-4 w-4" />
+                  Menu
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>Menu</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link href="/dashboard">
