@@ -23,7 +23,7 @@ export function UserManagement() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch all users
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
   });
 
@@ -299,7 +299,7 @@ export function UserManagement() {
                 </Table>
               </div>
               
-              {users?.length === 0 && (
+              {users.length === 0 && (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No Users Found</h3>
