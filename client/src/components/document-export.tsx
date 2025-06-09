@@ -1663,13 +1663,13 @@ export function DocumentExport({
                       
                       <div className="space-y-2">
                         {ndaSignatures
-                          .filter((signature) => {
+                          .filter((signature: any) => {
                             if (!signatureSearchTerm) return true;
                             const searchLower = signatureSearchTerm.toLowerCase();
                             return signature.signerName.toLowerCase().includes(searchLower) || 
                                    signature.signerEmail.toLowerCase().includes(searchLower);
                           })
-                          .map((signature) => (
+                          .map((signature: any) => (
                           <div key={signature.id} className="flex items-center justify-between p-3 border rounded">
                             <div className="flex-1">
                               <div className="signature-handwriting text-lg mb-1">{signature.signerName}</div>
