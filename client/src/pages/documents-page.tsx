@@ -870,6 +870,20 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         documentTitle={emailShareDialog.documentTitle || ''}
         senderName={user?.name}
       />
+
+      {/* Share Settings Dialog */}
+      {selectedDoc && (
+        <ShareSettingsDialog
+          open={isShareSettingsOpen}
+          onOpenChange={setIsShareSettingsOpen}
+          docId={selectedDoc.id}
+          autoEnableAndOpen={autoEnableAndOpen}
+          onAutoComplete={() => {
+            setAutoEnableAndOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+          }}
+        />
+      )}
     </div>
   );
 }
