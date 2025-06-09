@@ -8,6 +8,7 @@ import {
 import { Copy, Download, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useCimDocument, useNdaSignatures } from "@/hooks/use-cim-document";
 import { EmailShareDialog } from "./email-share-dialog";
 import {
   Dialog,
@@ -227,19 +228,8 @@ export function DocumentExport({
     refetchOnWindowFocus: false
   });
 
-  // NDA Signatures Query - optimized to prevent duplicate requests
-  const { data: ndaSignaturesData } = useQuery({
-    queryKey: [`/api/cim/${docId}/nda-signatures`],
-    queryFn: async () => {
-      if (!docId) return [];
-      const response = await apiRequest('GET', `/api/cim/${docId}/nda-signatures`);
-      if (!response.ok) throw new Error('Failed to fetch NDA signatures');
-      return response.json();
-    },
-    enabled: !!docId,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
-  });
+  // Use centralized hook for NDA signatures to eliminate duplicate requests
+  const { data: ndaSignaturesData } = useNdaSignatures(docId);
 
   // Use React Query data directly instead of local state
   const ndaTemplates = ndaTemplatesData || [];
@@ -396,13 +386,8 @@ export function DocumentExport({
   };
 
   // Fetch current share settings for the document
-  // Add React Query for CIM document data to eliminate duplicate API calls
-  const { data: cimDocumentData = {} } = useQuery({
-    queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId && isShareDialogOpen,
-    staleTime: 60000,
-    refetchOnWindowFocus: false
-  });
+  // Use centralized hook for CIM document data to eliminate duplicate API calls
+  const { data: cimDocumentData = {} } = useCimDocument(docId, isShareDialogOpen);
 
   const fetchShareSettings = async () => {
     if (!docId) {
