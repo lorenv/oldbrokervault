@@ -417,8 +417,8 @@ export function CimDisplay({
       
       const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
       if (response.ok) {
+        // Only invalidate the specific document to prevent unnecessary refetches
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Logo Deleted", description: "Website logo removed successfully." });
       } else {
         // Revert on error
@@ -440,8 +440,8 @@ export function CimDisplay({
       
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
       if (response.ok) {
+        // Only invalidate the specific document to prevent unnecessary refetches
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Image Deleted", description: "Business image removed successfully." });
       } else {
         // Revert on error
@@ -552,8 +552,8 @@ export function CimDisplay({
             currentPosition={cimDocument.coverImagePosition}
             currentAttribution={cimDocument.coverImageAttribution}
             onUpdate={() => {
+              // Only invalidate the specific document to prevent unnecessary refetches
               queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-              queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
             }}
           />
         )}
