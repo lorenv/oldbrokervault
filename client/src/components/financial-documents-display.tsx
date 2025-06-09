@@ -1,20 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
+import { useFinancialFiles } from "@/hooks/use-cim-document";
 
 interface FinancialDocumentsDisplayProps {
   cimId: number;
 }
 
 export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayProps) {
-  const { data: financialFiles, isLoading } = useQuery<any[]>({
-    queryKey: [`/api/cim/${cimId}/financial-files`],
-    staleTime: 30000, // Cache for 30 seconds to prevent duplicate requests
-    refetchOnWindowFocus: false, // Prevent automatic refetches
-    refetchOnMount: false // Use cached data when available
-  });
-
-  const files = financialFiles || [];
+  const { data: files = [], isLoading } = useFinancialFiles(cimId);
 
   if (isLoading) {
     return (

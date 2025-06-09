@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, X, Download, CheckCircle, Loader2, BarChart3, DollarSign, TrendingUp, Banknote } from "lucide-react";
+import { useCimDocument, useFinancialFiles } from "@/hooks/use-cim-document";
 
 interface Financials {
   enabled: boolean;
@@ -40,14 +41,9 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch CIM document only if not provided as prop (eliminates duplicate API calls)
-  const { data: fetchedCimDocument, isLoading: cimLoading } = useQuery({
-    queryKey: [`/api/cim/${docId}`],
-    enabled: !!docId && !propCimDocument,
-    refetchOnWindowFocus: false,
-    staleTime: 60000 // Use cached data when available
-  });
-
+  // Use centralized hook to eliminate duplicate API calls
+  const { data: fetchedCimDocument, isLoading: cimLoading } = useCimDocument(docId, !propCimDocument);
+  
   // Use prop data if available, otherwise use fetched data
   const cimDocument = propCimDocument || fetchedCimDocument;
 
@@ -101,14 +97,8 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // console.log("Financials object:", financials);
   // console.log("CIM Loading:", cimLoading);
 
-  // Fetch financial files with optimized caching to prevent flickering
-  const { data: files = [] } = useQuery<FinancialFile[]>({
-    queryKey: [`/api/cim/${docId}/financial-files`],
-    enabled: !!docId,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: false, // Prevent automatic refetches
-    refetchOnMount: false // Use cached data when available
-  });
+  // Use centralized hook for financial files to eliminate duplicate requests
+  const { data: files = [] } = useFinancialFiles(docId);
 
   // Debug logging for files
   // console.log("=== OWNER FINANCIALS FILES DEBUG ===");
