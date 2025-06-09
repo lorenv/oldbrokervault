@@ -2464,6 +2464,28 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const finalX = startX + (col * (imageWidth + horizontalMargin));
               const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
+              // Add subtle drop shadow effect
+              const shadowOffset = 3;
+              const shadowBlur = 6;
+              
+              // Draw multiple shadow layers for blur effect
+              for (let i = 0; i < 3; i++) {
+                const shadowOpacity = 0.03 - (i * 0.01); // Decreasing opacity for blur
+                const currentOffset = shadowOffset + i;
+                
+                doc.save();
+                doc.fillColor('#000000').fillOpacity(shadowOpacity);
+                doc.roundedRect(
+                  finalX + currentOffset, 
+                  finalY + currentOffset, 
+                  imageWidth, 
+                  imageHeight, 
+                  30
+                );
+                doc.fill();
+                doc.restore();
+              }
+              
               // Add the image directly (already has rounded corners from processing)
               doc.image(finalImagePath, finalX, finalY, {
                 fit: [imageWidth, imageHeight],
