@@ -6,6 +6,53 @@ import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import path from 'path';
 import fs from 'fs';
+import fetch from 'node-fetch';
+
+// Helper function to download and cache external images
+async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
+  try {
+    console.log("Downloading external image:", imageUrl);
+    
+    // Create cache directory if it doesn't exist
+    const cacheDir = path.resolve(process.cwd(), 'private', 'image-cache');
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    
+    // Generate cache filename based on URL hash
+    const hash = require('crypto').createHash('md5').update(imageUrl).digest('hex');
+    const extension = imageUrl.includes('.jpg') || imageUrl.includes('jpg') ? '.jpg' : 
+                     imageUrl.includes('.png') || imageUrl.includes('png') ? '.png' : '.jpg';
+    const cachedPath = path.join(cacheDir, `${hash}${extension}`);
+    
+    // Check if already cached
+    if (fs.existsSync(cachedPath)) {
+      console.log("Using cached image:", cachedPath);
+      return cachedPath;
+    }
+    
+    // Download the image
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error("Failed to download image:", response.status, response.statusText);
+      return null;
+    }
+    
+    const buffer = await response.buffer();
+    fs.writeFileSync(cachedPath, buffer);
+    console.log("Successfully cached image:", cachedPath);
+    
+    return cachedPath;
+  } catch (error) {
+    console.error("Error downloading image:", error);
+    return null;
+  }
+}
 
 // Helper function to resolve image paths correctly
 function resolveImagePath(imagePath: string): string {
@@ -1640,7 +1687,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 }
 
 export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
@@ -1740,8 +1787,23 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             });
             doc.moveDown(12);
             console.log("Successfully added base64 cover image");
+          } else if (coverImageUrl.startsWith('http://') || coverImageUrl.startsWith('https://')) {
+            // Handle external URL - download and cache first
+            console.log("Downloading external cover image:", coverImageUrl);
+            const cachedImagePath = await downloadAndCacheImage(coverImageUrl);
+            
+            if (cachedImagePath && fs.existsSync(cachedImagePath)) {
+              doc.image(cachedImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
+              });
+              doc.moveDown(12);
+              console.log("Successfully added external cover image from cache:", cachedImagePath);
+            } else {
+              console.log("Failed to download or cache external cover image");
+            }
           } else {
-            // Handle file path
+            // Handle local file path
             const imagePath = resolveImagePath(coverImageUrl);
             
             let coverImageFound = false;
@@ -1798,8 +1860,23 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             });
             doc.moveDown(12);
             console.log("Successfully added base64 fallback cover image");
+          } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+            // Handle external URL - download and cache first
+            console.log("Downloading external fallback cover image:", firstImage);
+            const cachedImagePath = await downloadAndCacheImage(firstImage);
+            
+            if (cachedImagePath && fs.existsSync(cachedImagePath)) {
+              doc.image(cachedImagePath, 50, 50, {
+                fit: [doc.page.width - 100, 200],
+                align: 'center'
+              });
+              doc.moveDown(12);
+              console.log("Successfully added external fallback cover image from cache:", cachedImagePath);
+            } else {
+              console.log("Failed to download or cache external fallback cover image");
+            }
           } else {
-            // Handle file path
+            // Handle local file path
             const imagePath = resolveImagePath(firstImage);
             if (fs.existsSync(imagePath)) {
               doc.image(imagePath, 50, 50, {
