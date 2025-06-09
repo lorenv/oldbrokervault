@@ -1167,9 +1167,9 @@ export function DocumentExport({
           <Tabs defaultValue="share-settings" className="w-full flex flex-col flex-1 min-h-0">
             <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
               <TabsTrigger value="share-settings">Share Link Settings</TabsTrigger>
-              <TabsTrigger value="embed-code">Embed Code</TabsTrigger>
               <TabsTrigger value="nda-templates">NDA Templates</TabsTrigger>
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
+              <TabsTrigger value="embed-code">Embed Code</TabsTrigger>
             </TabsList>
             <div className="flex-1 overflow-y-auto mt-4 min-h-0">
 
