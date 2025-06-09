@@ -888,7 +888,9 @@ export function DocumentExport({
 
   // Auto-trigger share dialog when autoTriggerShare is true
   useEffect(() => {
+    console.log('Auto-trigger effect:', { autoTriggerShare, isSharedView, isShareDialogOpen });
     if (autoTriggerShare && !isSharedView) {
+      console.log('Opening share dialog for auto-trigger');
       setIsShareDialogOpen(true);
       onShareTriggered?.();
     }
@@ -896,6 +898,14 @@ export function DocumentExport({
 
   // Auto-enable sharing when dialog opens and autoTriggerShare is true
   useEffect(() => {
+    console.log('Auto-enable effect check:', { 
+      autoTriggerShare, 
+      isShareDialogOpen, 
+      shareEnabled: shareSettings.shareEnabled, 
+      isUpdatingShare,
+      docId 
+    });
+    
     if (autoTriggerShare && isShareDialogOpen && !shareSettings.shareEnabled && !isUpdatingShare) {
       console.log('Auto-enabling sharing for document:', docId, 'Current settings:', shareSettings);
       
@@ -910,7 +920,7 @@ export function DocumentExport({
       console.log('Setting new share settings:', newSettings);
       setShareSettings(newSettings);
     }
-  }, [autoTriggerShare, isShareDialogOpen, shareSettings.shareEnabled, isUpdatingShare]);
+  }, [autoTriggerShare, isShareDialogOpen, shareSettings.shareEnabled, isUpdatingShare, docId]);
 
   // Trigger API update when shareSettings change from auto-enable
   useEffect(() => {
