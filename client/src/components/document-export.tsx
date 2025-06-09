@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Download, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
+import { Copy, FileText, File, Globe, FileDown, Link, Share2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useCimDocument, useNdaSignatures } from "@/hooks/use-cim-document";
@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
 import { Switch } from "@/components/ui/switch";
-import { Upload, Trash2, Users, Calendar } from "lucide-react";
+import { Upload, Trash2, Users, Calendar, Eye, Download } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -275,6 +275,47 @@ export function DocumentExport({
       });
     } finally {
       setIsUploadingNda(false);
+    }
+  };
+
+  const previewNdaTemplate = async (templateId: number, templateName: string) => {
+    try {
+      const url = `/api/nda-templates/${templateId}/download`;
+      window.open(url, '_blank');
+    } catch (error) {
+      toast({
+        title: "Preview failed",
+        description: "Unable to preview the NDA template",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const downloadNdaTemplate = async (templateId: number, templateName: string) => {
+    try {
+      const response = await fetch(`/api/nda-templates/${templateId}/download`);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${templateName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Download started",
+        description: "Your NDA template is being downloaded"
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Unable to download the NDA template",
+        variant: "destructive"
+      });
     }
   };
 
@@ -1570,13 +1611,29 @@ export function DocumentExport({
                               {template.isDefault && " • Default"}
                             </p>
                           </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteNdaTemplate(template.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => previewNdaTemplate(template.id, template.name)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadNdaTemplate(template.id, template.name)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteNdaTemplate(template.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
