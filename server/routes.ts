@@ -25,6 +25,24 @@ import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 
+// Helper function to generate automatic share link for new documents
+async function generateAutoShareLink(docId: number): Promise<{ shareSlug: string, shareEnabled: boolean }> {
+  const randomId = Math.random().toString(36).substring(2, 8);
+  const shareSlug = `cim-${randomId}`;
+  
+  // Update the document with share settings
+  await storage.updateCimDocument(docId, {
+    shareEnabled: true,
+    shareSlug: shareSlug,
+    sharePassword: null,
+    shareExpiresAt: null,
+    ndaProtected: false,
+    ndaTemplateId: null
+  });
+  
+  return { shareSlug, shareEnabled: true };
+}
+
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
