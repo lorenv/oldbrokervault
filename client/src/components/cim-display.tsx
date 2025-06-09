@@ -16,7 +16,9 @@ import {
   Plus,
   Type,
   ImageIcon,
-  Upload
+  Upload,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -630,18 +632,56 @@ export function CimDisplay({
           <OwnerFinancialsSection docId={docId} cimDocument={cimDocument} />
         )}
 
-        {/* Logo only in edit view, not share view (header handles it there) */}
-        {!isSharedView && localLogoUrl && (
-          <div className="flex justify-center mb-6 relative group">
-            <img src={localLogoUrl} alt="Company Logo" className="h-32" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
-              onClick={handleDeleteLogo}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        {/* Logo section - only in edit view */}
+        {!isSharedView && (
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium">Company Logo</h3>
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="logo-upload"
+                  onChange={handleLogoUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {localLogoUrl ? 'Replace Logo' : 'Upload Logo'}
+                </Button>
+              </div>
+            </div>
+            {localLogoUrl ? (
+              <div className="flex justify-center relative group">
+                <img src={localLogoUrl} alt="Company Logo" className="h-32" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
+                  onClick={handleDeleteLogo}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500 mb-4">No logo uploaded yet</p>
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload Your Logo
+                </Button>
+              </div>
+            )}
           </div>
         )}
         
@@ -679,14 +719,18 @@ export function CimDisplay({
                     <img 
                       src={image} 
                       alt={`Business image ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openLightbox(index)}
                     />
                     {!isSharedView && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
-                        onClick={() => handleDeleteImage(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteImage(index);
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -1114,6 +1158,62 @@ export function CimDisplay({
       )}
 
       </div>
+      
+      {/* Image Lightbox Dialog */}
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0">
+          <div className="relative">
+            {localSelectedImages.length > 0 && (
+              <>
+                <img
+                  src={localSelectedImages[currentImageIndex]}
+                  alt={`Business image ${currentImageIndex + 1}`}
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                />
+                
+                {/* Navigation buttons */}
+                {localSelectedImages.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      onClick={() => navigateLightbox('prev')}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      onClick={() => navigateLightbox('next')}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </>
+                )}
+                
+                {/* Close button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={() => setLightboxOpen(false)}
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+                
+                {/* Image counter */}
+                {localSelectedImages.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                    {currentImageIndex + 1} of {localSelectedImages.length}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Markdown Reference Guide - Only in Edit View - Bottom of Interface */}
       {!isSharedView && (

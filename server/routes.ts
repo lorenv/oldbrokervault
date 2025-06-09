@@ -982,6 +982,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload logo endpoint
+  app.post("/api/cim/:id/logo", upload.single('logo'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const cimId = parseInt(req.params.id);
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No logo file uploaded" });
+      }
+
+      console.log(`Logo upload request - CIM ID: ${cimId}`);
+
+      const cim = await storage.getCimDocument(cimId);
+      if (!cim) {
+        console.log("CIM document not found");
+        return res.status(404).json({ error: "CIM not found" });
+      }
+
+      if (cim.userId !== req.user!.id) {
+        console.log("Unauthorized access attempt");
+        return res.sendStatus(403);
+      }
+
+      // Validate file type
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: "File must be an image" });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const extension = path.extname(req.file.originalname);
+      const filename = `${timestamp}_${randomId}${extension}`;
+      
+      // Ensure the logos directory exists
+      const logosDir = path.join(process.cwd(), 'public', 'logos');
+      if (!fs.existsSync(logosDir)) {
+        fs.mkdirSync(logosDir, { recursive: true });
+      }
+
+      // Save the file
+      const filepath = path.join(logosDir, filename);
+      fs.writeFileSync(filepath, req.file.buffer);
+      
+      const logoUrl = `/logos/${filename}`;
+      console.log(`Logo saved to: ${logoUrl}`);
+
+      // Update the CIM document with the new logo URL
+      await storage.updateCimDocument(cimId, { logoUrl });
+
+      res.json({ 
+        success: true, 
+        logoUrl,
+        message: "Logo uploaded successfully" 
+      });
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      res.status(500).json({ error: "Failed to upload logo" });
+    }
+  });
+
   // Delete website logo endpoint
   app.delete("/api/cim/:id/logo", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
