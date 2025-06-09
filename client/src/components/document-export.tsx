@@ -214,31 +214,31 @@ export function DocumentExport({
     }
   };
 
-  // NDA Functions
-  const fetchNdaTemplates = async () => {
-    try {
+  // NDA Templates Query - optimized to prevent duplicate requests
+  const { data: ndaTemplatesData } = useQuery({
+    queryKey: ['/api/nda-templates'],
+    queryFn: async () => {
       const response = await apiRequest('GET', '/api/nda-templates');
-      if (response.ok) {
-        const templates = await response.json();
-        setNdaTemplates(templates);
-      }
-    } catch (error) {
-      console.error('Failed to fetch NDA templates:', error);
-    }
-  };
+      if (!response.ok) throw new Error('Failed to fetch NDA templates');
+      return response.json();
+    },
+    staleTime: 60000,
+    refetchOnWindowFocus: false
+  });
 
-  const fetchNdaSignatures = async () => {
-    if (!docId) return;
-    try {
+  // NDA Signatures Query - optimized to prevent duplicate requests
+  const { data: ndaSignaturesData } = useQuery({
+    queryKey: [`/api/cim/${docId}/nda-signatures`],
+    queryFn: async () => {
+      if (!docId) return [];
       const response = await apiRequest('GET', `/api/cim/${docId}/nda-signatures`);
-      if (response.ok) {
-        const signatures = await response.json();
-        setNdaSignatures(signatures);
-      }
-    } catch (error) {
-      console.error('Failed to fetch NDA signatures:', error);
-    }
-  };
+      if (!response.ok) throw new Error('Failed to fetch NDA signatures');
+      return response.json();
+    },
+    enabled: !!docId,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
+  });
 
   const uploadNdaTemplate = async () => {
     if (!newNdaTemplate.name || !newNdaTemplate.file) {
