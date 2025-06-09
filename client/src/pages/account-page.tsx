@@ -238,6 +238,10 @@ export default function AccountPage() {
         description: "Your profile has been updated successfully",
       });
 
+      // Invalidate user and profile queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      
       form.reset({
         email: values.email,
         currentPassword: "",
