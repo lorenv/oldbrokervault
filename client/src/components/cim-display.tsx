@@ -212,13 +212,18 @@ export function CimDisplay({
     setLocalTitle(cimDocument?.title || "");
   }, [logoUrl, selectedImages, cimDocument?.title]);
 
-  // Handle auto-trigger share settings
+  // Handle auto-trigger share settings with debouncing to prevent flickering
   useEffect(() => {
     if (autoTriggerShare && !isSharedView) {
-      setShareDialogOpen(true);
-      if (onShareTriggered) {
-        onShareTriggered();
-      }
+      // Use a small delay to prevent rapid state updates that cause flickering
+      const timer = setTimeout(() => {
+        setShareDialogOpen(true);
+        if (onShareTriggered) {
+          onShareTriggered();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
 

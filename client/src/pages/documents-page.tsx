@@ -407,7 +407,10 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
             <Card 
               key={doc.id} 
               className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
-              onClick={() => setSelectedDoc(doc)}
+              onClick={() => {
+                // Use setTimeout to prevent flickering from rapid state updates
+                setTimeout(() => setSelectedDoc(doc), 50);
+              }}
             >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start gap-3">
@@ -454,8 +457,11 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       <DropdownMenuItem 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedDoc(doc);
-                          setAutoTriggerShare(true);
+                          // Use setTimeout to prevent state update conflicts
+                          setTimeout(() => {
+                            setSelectedDoc(doc);
+                            setTimeout(() => setAutoTriggerShare(true), 100);
+                          }, 50);
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
@@ -746,8 +752,8 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
-                        setSelectedDoc(selectedDoc);
-                        setAutoTriggerShare(true);
+                        // Prevent duplicate state setting and use controlled timing
+                        setTimeout(() => setAutoTriggerShare(true), 100);
                       }}>
                         <Settings className="h-4 w-4 mr-2" />
                         Share Link Settings
