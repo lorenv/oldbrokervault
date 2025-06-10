@@ -26,12 +26,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { subscriptionPlans } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 
+// Define authorized admin emails
+const AUTHORIZED_ADMIN_EMAILS = [
+  'robertkale20@gmail.com',
+  'robertkale20+cimshare@gmail.com'
+];
+
+function isAuthorizedAdmin(user: any): boolean {
+  if (!user) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
 
-  // Redirect non-admin users
-  if (user && !user.isAdmin) {
+  // Redirect non-authorized users
+  if (user && !isAuthorizedAdmin(user)) {
     return <Redirect to="/" />;
   }
 
