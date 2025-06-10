@@ -44,7 +44,7 @@ export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayPr
               <div className="text-left flex-1">
                 <div className="font-medium">{file.originalName}</div>
                 <div className="text-sm text-gray-500">
-                  {(file.fileSize / (1024 * 1024)).toFixed(2)} MB • {file.mimeType}
+                  {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
                 </div>
               </div>
               <Download className="h-4 w-4 text-gray-400 flex-shrink-0" />
