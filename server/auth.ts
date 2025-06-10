@@ -18,14 +18,17 @@ const scryptAsync = promisify(scrypt);
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  // Reduced key length for better performance while maintaining security
+  const buf = (await scryptAsync(password, salt, 32)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  // Use appropriate key length based on stored hash length
+  const keyLength = hashedBuf.length;
+  const suppliedBuf = (await scryptAsync(supplied, salt, keyLength)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
