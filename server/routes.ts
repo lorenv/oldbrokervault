@@ -332,7 +332,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           coverImagePosition: cimDoc.coverImagePosition,
           coverImageAttribution: cimDoc.coverImageAttribution,
           createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
-          updatedAt: cimDoc.updatedAt ? cimDoc.updatedAt.toISOString() : null,
           userProfile: userProfile ? {
             name: userProfile.name,
             title: userProfile.title,
