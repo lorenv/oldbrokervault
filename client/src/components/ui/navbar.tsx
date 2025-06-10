@@ -37,21 +37,21 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center justify-between w-full">
           <Link href={user ? "/dashboard" : "/"}>
-            <a className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 cursor-pointer">
               <img 
                 src="/cim-share-logo.png" 
                 alt="CIM Share" 
                 className={`h-8 ${isHomePage ? "brightness-0 invert" : ""}`}
               />
-            </a>
+            </div>
           </Link>
           {!user && (
             <div className="hidden md:flex items-center space-x-6">
               <Link href="/pricing">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</a>
+                <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
               </Link>
               <Link href="/contact">
-                <a className={`text-sm font-medium transition-colors ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</a>
+                <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
               </Link>
             </div>
           )}
@@ -99,36 +99,36 @@ export function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link href="/dashboard">
-                    <a className="flex items-center">
+                    <div className="flex items-center cursor-pointer w-full">
                       <Zap className="h-4 w-4 mr-2" />
                       Create New CIM
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Link href="/documents">
-                    <a className="flex items-center">
+                    <div className="flex items-center cursor-pointer w-full">
                       <FileText className="h-4 w-4 mr-2" />
                       My CIMs
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
                   <DropdownMenuItem>
                     <Link href="/investor-database">
-                      <a className="flex items-center">
+                      <div className="flex items-center cursor-pointer w-full">
                         <Database className="h-4 w-4 mr-2" />
                         Investor Database
-                      </a>
+                      </div>
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem>
                   <Link href="/account">
-                    <a className="flex items-center">
+                    <div className="flex items-center cursor-pointer w-full">
                       <Settings className="h-4 w-4 mr-2" />
                       My Account
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
