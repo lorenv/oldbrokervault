@@ -3320,7 +3320,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
+      console.log('=== PROFILE UPDATE REQUEST ===');
+      console.log('User ID:', req.user!.id);
+      console.log('Request body keys:', Object.keys(req.body));
+      
       const { name, title, phoneNumber, businessName, businessLogo, profilePhoto } = req.body;
+      
+      console.log('Profile data received:', {
+        name: name ? 'provided' : 'empty',
+        title: title ? 'provided' : 'empty',
+        phoneNumber: phoneNumber ? 'provided' : 'empty',
+        businessName: businessName ? 'provided' : 'empty',
+        businessLogo: businessLogo ? `${businessLogo.substring(0, 50)}...` : 'empty',
+        profilePhoto: profilePhoto ? `${profilePhoto.substring(0, 50)}...` : 'empty'
+      });
       
       // Process images with rounded corners if they're provided as base64 data URLs
       let processedBusinessLogo = businessLogo;
@@ -3329,13 +3342,16 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Process business logo if it's a new upload (starts with data:)
       if (businessLogo && businessLogo.startsWith('data:image/')) {
         try {
+          console.log('Processing business logo...');
           const base64Data = businessLogo.split(',')[1];
           const imageBuffer = Buffer.from(base64Data, 'base64');
+          console.log('Business logo buffer size:', imageBuffer.length);
           const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
           processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
-          console.log('Applied rounded corners to business logo');
+          console.log('Applied rounded corners to business logo - final size:', processedBusinessLogo.length);
         } catch (error) {
           console.error('Error processing business logo:', error);
+          console.error('Business logo error stack:', error.stack);
           // Keep original if processing fails
         }
       }
@@ -3343,17 +3359,21 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Process profile photo if it's a new upload (starts with data:)
       if (profilePhoto && profilePhoto.startsWith('data:image/')) {
         try {
+          console.log('Processing profile photo...');
           const base64Data = profilePhoto.split(',')[1];
           const imageBuffer = Buffer.from(base64Data, 'base64');
+          console.log('Profile photo buffer size:', imageBuffer.length);
           const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
           processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
-          console.log('Applied rounded corners to profile photo');
+          console.log('Applied rounded corners to profile photo - final size:', processedProfilePhoto.length);
         } catch (error) {
           console.error('Error processing profile photo:', error);
+          console.error('Profile photo error stack:', error.stack);
           // Keep original if processing fails
         }
       }
       
+      console.log('Calling storage.updateUserProfile...');
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
         name,
         title,
@@ -3363,6 +3383,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         profilePhoto: processedProfilePhoto
       });
       
+      console.log('Profile update successful, sending response...');
       res.json({
         name: updatedUser.name,
         title: updatedUser.title,
@@ -3373,7 +3394,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         email: updatedUser.email
       });
     } catch (error) {
-      console.error('Profile update error:', error);
+      console.error('=== PROFILE UPDATE ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      console.error('Error details:', error);
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
