@@ -2383,7 +2383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin Routes
   app.get("/api/admin/users", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
     const users = await storage.getAllUsers();
@@ -2391,7 +2391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/subscription", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
 
@@ -2404,7 +2404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/grant-admin", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+    if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
 

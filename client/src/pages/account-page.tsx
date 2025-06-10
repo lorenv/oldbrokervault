@@ -31,6 +31,17 @@ import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settin
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Define authorized admin emails
+const AUTHORIZED_ADMIN_EMAILS = [
+  'robertkale20@gmail.com',
+  'robertkale20+cimshare@gmail.com'
+];
+
+function isAuthorizedAdmin(user: any): boolean {
+  if (!user) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
+}
+
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
   currentPassword: z.string().min(1, "Current password is required"),
@@ -285,7 +296,7 @@ export default function AccountPage() {
             <CreditCard className="h-4 w-4" />
             Subscription
           </TabsTrigger>
-          {user?.isAdmin && (
+          {isAuthorizedAdmin(user) && (
             <TabsTrigger value="admin" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Admin Tools
@@ -633,7 +644,7 @@ export default function AccountPage() {
         </TabsContent>
 
         {/* Admin Tools Tab */}
-        {user?.isAdmin && (
+        {isAuthorizedAdmin(user) && (
           <TabsContent value="admin" className="space-y-6">
             <UserManagement />
             <SecurityDashboard />
