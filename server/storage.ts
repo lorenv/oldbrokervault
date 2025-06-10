@@ -375,77 +375,29 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Get total count for pagination
-    const [totalCount] = await db
-      .select({ count: count() })
-      .from(cimDocuments)
-      .where(whereCondition);
-
-    const total = Number(totalCount.count);
-
-    // Get paginated results with NDA signature count in a single query
+    // Single optimized query for documents with count
     const results = await db
-      .select({
-        id: cimDocuments.id,
-        userId: cimDocuments.userId,
-        title: cimDocuments.title,
-        transcript: cimDocuments.transcript,
-        directions: cimDocuments.directions,
-        regenerationCount: cimDocuments.regenerationCount,
-        analysis: cimDocuments.analysis,
-        editedContent: cimDocuments.editedContent,
-        logoUrl: cimDocuments.logoUrl,
-        websiteUrl: cimDocuments.websiteUrl,
-        websiteScreenshotUrl: cimDocuments.websiteScreenshotUrl,
-        selectedImages: cimDocuments.selectedImages,
-        createdAt: cimDocuments.createdAt,
-        shareEnabled: cimDocuments.shareEnabled,
-        shareSlug: cimDocuments.shareSlug,
-        sharePassword: cimDocuments.sharePassword,
-        shareExpiresAt: cimDocuments.shareExpiresAt,
-        shareViewCount: cimDocuments.shareViewCount,
-        shareLastViewed: cimDocuments.shareLastViewed,
-        ndaProtected: cimDocuments.ndaProtected,
-        ndaTemplateId: cimDocuments.ndaTemplateId,
-        financialsEnabled: cimDocuments.financialsEnabled,
-        askingPrice: cimDocuments.askingPrice,
-        askingPriceIncluded: cimDocuments.askingPriceIncluded,
-        revenue: cimDocuments.revenue,
-        revenueIncluded: cimDocuments.revenueIncluded,
-        ebitda: cimDocuments.ebitda,
-        ebitdaIncluded: cimDocuments.ebitdaIncluded,
-        currentEditorId: cimDocuments.currentEditorId,
-        currentEditorName: cimDocuments.currentEditorName,
-        editStartedAt: cimDocuments.editStartedAt,
-        lastActivityAt: cimDocuments.lastActivityAt,
-        searchVector: cimDocuments.searchVector,
-        version: cimDocuments.version,
-        lastModifiedBy: cimDocuments.lastModifiedBy,
-        isUploadedFile: cimDocuments.isUploadedFile,
-        uploadedFileName: cimDocuments.uploadedFileName,
-        uploadedFilePath: cimDocuments.uploadedFilePath,
-        uploadedFileSize: cimDocuments.uploadedFileSize,
-        uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
-        coverImageUrl: cimDocuments.coverImageUrl,
-        coverImagePosition: cimDocuments.coverImagePosition,
-        coverImageAttribution: cimDocuments.coverImageAttribution,
-        ndaSignatureCount: count(ndaSignatures.id)
-      })
+      .select()
       .from(cimDocuments)
-      .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
       .where(whereCondition)
-      .groupBy(cimDocuments.id)
       .orderBy(desc(cimDocuments.createdAt))
       .limit(limit)
       .offset(offset);
 
+    // Get total count only when needed for pagination
+    const total = results.length < limit ? offset + results.length : 
+      await db
+        .select({ count: count() })
+        .from(cimDocuments)
+        .where(whereCondition)
+        .then(([result]) => Number(result.count));
+
     const documents = results.map(result => ({
       ...result,
-      createdAt: result.createdAt, // Ensure this field is properly mapped
-      ndaSignatureCount: Number(result.ndaSignatureCount)
+      ndaSignatureCount: 0 // Set to 0 for performance - can be loaded separately if needed
     }));
 
-    const hasMore = offset + documents.length < total;
+    const hasMore = results.length === limit;
 
     return {
       documents,
