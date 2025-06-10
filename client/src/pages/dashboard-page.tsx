@@ -59,7 +59,12 @@ export default function DashboardPage() {
                   {Array.isArray(documents) && documents.length > 0 ? (
                     documents
                       .slice()
-                      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .sort((a: any, b: any) => {
+                        // Handle both createdAt and created_at field names from database
+                        const dateA = new Date(a.createdAt || a.created_at).getTime();
+                        const dateB = new Date(b.createdAt || b.created_at).getTime();
+                        return dateB - dateA;
+                      })
                       .slice(0, 3)
                       .map((doc: any) => (
                         <a 
@@ -74,7 +79,7 @@ export default function DashboardPage() {
                               </h3>
                               <p className="text-sm text-gray-500 mt-1 flex items-center space-x-1">
                                 <Clock className="w-3 h-3" />
-                                <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                                <span>{new Date(doc.createdAt || doc.created_at).toLocaleDateString()}</span>
                               </p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
