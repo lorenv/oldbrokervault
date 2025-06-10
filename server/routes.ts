@@ -305,12 +305,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       });
       
+      // Create optimized response to avoid massive JSON transfer
+      const optimizedAnalysis = cimDoc.analysis ? {
+        title: cimDoc.analysis.title,
+        metadata: cimDoc.analysis.metadata,
+        sections: cimDoc.analysis.sections || []
+      } : null;
+
       res.json({
         cim: {
           id: cimDoc.id,
           userId: cimDoc.userId,
           title: cimDoc.title,
-          analysis: cimDoc.analysis,
+          analysis: optimizedAnalysis,
           logoUrl: cimDoc.logoUrl,
           websiteUrl: cimDoc.websiteUrl,
           selectedImages: cimDoc.selectedImages,
