@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.analysis,
         cimDoc.logoUrl || undefined,
         cimDoc.websiteUrl || undefined,
-        cimDoc.selectedImages || undefined,
+        cimDoc.selectedImages ? cimDoc.selectedImages : undefined,
         userProfile,
         financialData,
         documentFinancialFiles,
@@ -495,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.analysis,
         cimDoc.logoUrl || undefined,
         cimDoc.websiteUrl || undefined,
-        cimDoc.selectedImages || undefined,
+        cimDoc.selectedImages ? cimDoc.selectedImages : undefined,
         userProfile,
         financialData
       );
@@ -738,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tone,
           audience,
           req.body.financials,
-          null // websiteData - will add later if needed
+          undefined // websiteData - will add later if needed
         );
         
         // If website URL is provided, extract logo in parallel
@@ -790,7 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         req.body.financials,
-        null // websiteData - will add later if needed
+        undefined // websiteData - will add later if needed
       );
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
@@ -1195,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         req.body.financials ? JSON.parse(req.body.financials) : undefined,
-        null
+        undefined
       );
       
       // Handle selected images early in the process - always download if provided
@@ -2467,7 +2467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: doc.ebitdaIncluded || false
       };
       
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData);
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
@@ -2551,7 +2551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = `${protocol}://${host}`;
       
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.logoUrl, doc.websiteUrl, doc.selectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl, doc.coverImagePosition);
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
@@ -2631,7 +2631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Include logo URL, user profile, financial data, and files
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const html = generateHtml(doc.analysis, doc.logoUrl, userProfile, doc.websiteUrl, doc.selectedImages, financialData, financialFilesList, baseUrl);
+      const html = generateHtml(doc.analysis, doc.logoUrl || undefined, userProfile, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, financialData, financialFilesList, baseUrl);
       
       if (!html) {
         return res.status(500).json({ error: "Failed to generate HTML content" });
