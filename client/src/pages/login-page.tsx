@@ -23,11 +23,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type LoginFormData = z.infer<typeof insertUserSchema>;
 
@@ -202,6 +203,13 @@ export default function LoginPage() {
             </TabsList>
 
             <TabsContent value="login" className="mt-4">
+              <Alert className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Note:</strong> Please do not use incognito/private browsing mode when logging in. 
+                  Incognito mode blocks the secure cookies required for authentication.
+                </AlertDescription>
+              </Alert>
               <LoginForm 
                 mutation={loginMutation} 
                 onForgotPassword={() => setShowForgotPassword(true)}
@@ -209,6 +217,13 @@ export default function LoginPage() {
             </TabsContent>
 
             <TabsContent value="register" className="mt-4">
+              <Alert className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Note:</strong> Please do not use incognito/private browsing mode when registering. 
+                  Incognito mode blocks the secure cookies required for authentication.
+                </AlertDescription>
+              </Alert>
               <RegisterForm mutation={registerMutation} />
             </TabsContent>
           </Tabs>
