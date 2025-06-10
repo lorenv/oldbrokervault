@@ -45,6 +45,18 @@ fs.mkdir(uploadedCimsDir, { recursive: true }).catch(console.error);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Define authorized admin emails
+const AUTHORIZED_ADMIN_EMAILS = [
+  'robertkale20@gmail.com',
+  'robertkale20+cimshare@gmail.com'
+];
+
+// Helper function to check if user is an authorized admin
+function isAuthorizedAdmin(user: any): boolean {
+  if (!user) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
+}
+
 // Function to add rounded corners to images using Sharp
 async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
   try {
