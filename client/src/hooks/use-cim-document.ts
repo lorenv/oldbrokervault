@@ -13,8 +13,8 @@ export function useCimDocument(docId: number | undefined, enabled = true) {
       return response.json();
     },
     enabled: !!docId && enabled,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes after unmount
+    staleTime: 0, // Always consider data fresh for immediate UI updates
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes after unmount
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
