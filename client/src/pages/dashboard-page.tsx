@@ -19,7 +19,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Welcome back, {user?.email?.split('@')[0]}
+                Welcome back!
               </h1>
               <p className="text-gray-600 mt-1">Create professional CIM documents with AI-powered analysis</p>
             </div>
