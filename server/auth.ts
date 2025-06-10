@@ -122,21 +122,31 @@ export function setupAuth(app: Express) {
   app.post("/api/login", loginValidation, handleValidationErrors, auditLogger('LOGIN'), (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
+        console.error("Passport authentication error:", err);
+        console.error("Error stack:", err.stack);
         return res.status(500).json({
-          message: "Authentication error occurred"
+          message: "Authentication error occurred",
+          error: process.env.NODE_ENV === 'development' ? err.message : undefined
         });
       }
       if (!user) {
+        console.log("Authentication failed for:", req.body.email, "Info:", info);
         return res.status(401).json({
           message: info?.message || "Invalid email or password"
         });
       }
+      
+      console.log("User authenticated successfully:", user.email);
       req.login(user, (err) => {
         if (err) {
+          console.error("Session establishment error:", err);
+          console.error("Session error stack:", err.stack);
           return res.status(500).json({
-            message: "Failed to establish session"
+            message: "Failed to establish session",
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
           });
         }
+        console.log("Session established successfully for:", user.email);
         return res.json(user);
       });
     })(req, res, next);
