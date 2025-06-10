@@ -8,7 +8,7 @@ import { Express, Request, Response, NextFunction } from "express";
 // Rate limiting configurations
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs for auth endpoints
+  max: 20, // Increased from 5 to 20 for better usability
   message: {
     error: "Too many authentication attempts, please try again later.",
     retryAfter: "15 minutes"
@@ -50,7 +50,6 @@ const speedLimiter = slowDown({
 export const loginValidation = [
   body('email')
     .isEmail()
-    .normalizeEmail()
     .trim()
     .isLength({ max: 254 })
     .withMessage('Invalid email address'),

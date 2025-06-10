@@ -63,24 +63,12 @@ export function setupAuth(app: Express) {
       { usernameField: "email" },
       async (email, password, done) => {
         try {
-          console.log(`Authentication attempt for email: ${email}`);
           const user = await storage.getUserByEmail(email);
-          console.log(`User found:`, !!user);
-          if (!user) {
-            console.log(`No user found for email: ${email}`);
+          if (!user || !(await comparePasswords(password, user.password))) {
             return done(null, false, { message: "Invalid email or password" });
           }
-          console.log(`Stored password hash: ${user.password}`);
-          const passwordMatch = await comparePasswords(password, user.password);
-          console.log(`Password match result: ${passwordMatch}`);
-          if (!passwordMatch) {
-            console.log(`Password verification failed for email: ${email}`);
-            return done(null, false, { message: "Invalid email or password" });
-          }
-          console.log(`Authentication successful for email: ${email}`);
           return done(null, user);
         } catch (error) {
-          console.error(`Authentication error for email: ${email}`, error);
           return done(error);
         }
       }
