@@ -27,7 +27,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
   const { data: fetchedCimDocument } = useQuery({
     queryKey: [`/api/cim/${docId}`],
     enabled: !!docId && !propCimDocument,
-    staleTime: 60000,
+    staleTime: 0, // Always consider data fresh to ensure UI updates immediately
     refetchOnWindowFocus: false
   });
 
