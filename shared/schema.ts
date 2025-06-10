@@ -193,19 +193,7 @@ export const ndaRedirectLinks = pgTable("nda_redirect_links", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const financials = pgTable("financials", {
-  id: serial("id").primaryKey(),
-  cimDocumentId: integer("cim_document_id").notNull(),
-  enabled: boolean("enabled").default(false).notNull(),
-  askingPrice: text("asking_price"),
-  askingPriceIncluded: boolean("asking_price_included").default(false).notNull(),
-  revenue: text("revenue"),
-  revenueIncluded: boolean("revenue_included").default(false).notNull(),
-  ebitda: text("ebitda"),
-  ebitdaIncluded: boolean("ebitda_included").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
-});
+
 
 export const financialFiles = pgTable("financial_files", {
   id: serial("id").primaryKey(),
@@ -373,16 +361,7 @@ export const insertNdaRedirectLinkSchema = createInsertSchema(ndaRedirectLinks).
   signerEmail: true
 });
 
-export const insertFinancialsSchema = createInsertSchema(financials).pick({
-  cimDocumentId: true,
-  enabled: true,
-  askingPrice: true,
-  askingPriceIncluded: true,
-  revenue: true,
-  revenueIncluded: true,
-  ebitda: true,
-  ebitdaIncluded: true
-});
+
 
 export const insertFinancialFileSchema = createInsertSchema(financialFiles).pick({
   cimDocumentId: true,
@@ -428,8 +407,6 @@ export type InsertNdaAccessToken = z.infer<typeof insertNdaAccessTokenSchema>;
 export type NdaRedirectLink = typeof ndaRedirectLinks.$inferSelect;
 export type InsertNdaRedirectLink = z.infer<typeof insertNdaRedirectLinkSchema>;
 export type CustomSection = typeof customSections.$inferSelect;
-export type Financials = typeof financials.$inferSelect;
-export type InsertFinancials = z.infer<typeof insertFinancialsSchema>;
 export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InvestorContact = typeof investorContacts.$inferSelect;
 

@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financials, financialFiles, insertFinancialsSchema, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
+import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -4207,126 +4207,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Financials API routes
-  
-  // Get financials for a CIM document
-  app.get("/api/cim/:id/financials", async (req, res) => {
-    try {
-      const cimId = parseInt(req.params.id);
-      const [result] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
-      
-      if (!result) {
-        // Return default financials structure if none exists
-        return res.json({
-          enabled: false,
-          askingPrice: null,
-          askingPriceIncluded: false,
-          revenue: null,
-          revenueIncluded: false,
-          ebitda: null,
-          ebitdaIncluded: false
-        });
-      }
-      
-      res.json(result);
-    } catch (error) {
-      console.error('Error fetching financials:', error);
-      res.status(500).json({ error: "Failed to fetch financials" });
-    }
-  });
 
-  // Update or create financials for a CIM document
-  app.put("/api/cim/:id/financials", async (req, res) => {
-    console.log("=== FINANCIALS PUT REQUEST ===");
-    console.log("Request headers:", req.headers);
-    console.log("Request user:", req.user);
-    console.log("Request body:", req.body);
-    console.log("Request params:", req.params);
-    
-    if (!req.user) {
-      console.log("Authentication failed - no user");
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const cimId = parseInt(req.params.id);
-      console.log("Parsed CIM ID:", cimId);
-      
-      // Check if CIM belongs to user
-      console.log("Fetching CIM document for ID:", cimId);
-      const cim = await storage.getCimDocument(cimId);
-      console.log("CIM document found:", cim);
-      
-      if (!cim || cim.userId !== req.user.id) {
-        console.log("Authorization failed:", { cim, userId: req.user.id });
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      // Check if financials record exists
-      console.log("Checking for existing financials record...");
-      const [existing] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
-      console.log("Existing financials record:", existing);
-      
-      let financialResult;
-      
-      if (existing) {
-        // Update existing record
-        console.log("Updating existing financials record...");
-        const updateData = { 
-          ...req.body, 
-          updatedAt: new Date(),
-          cimDocumentId: cimId 
-        };
-        console.log("Update data:", updateData);
-        
-        const [updated] = await db
-          .update(financials)
-          .set(updateData)
-          .where(eq(financials.cimDocumentId, cimId))
-          .returning();
-        
-        console.log("Updated financials record:", updated);
-        financialResult = updated;
-      } else {
-        // Create new record
-        console.log("Creating new financials record...");
-        const createData = {
-          cimDocumentId: cimId,
-          ...req.body
-        };
-        console.log("Create data:", createData);
-        
-        const [created] = await db
-          .insert(financials)
-          .values(createData)
-          .returning();
-        
-        console.log("Created financials record:", created);
-        financialResult = created;
-      }
-      
-      // Also update the main CIM document to keep data in sync
-      console.log("Syncing financial data to main CIM document...");
-      const cimUpdateData: any = {};
-      if (req.body.enabled !== undefined) cimUpdateData.financialsEnabled = req.body.enabled;
-      if (req.body.askingPrice !== undefined) cimUpdateData.askingPrice = req.body.askingPrice;
-      if (req.body.askingPriceIncluded !== undefined) cimUpdateData.askingPriceIncluded = req.body.askingPriceIncluded;
-      if (req.body.revenue !== undefined) cimUpdateData.revenue = req.body.revenue;
-      if (req.body.revenueIncluded !== undefined) cimUpdateData.revenueIncluded = req.body.revenueIncluded;
-      if (req.body.ebitda !== undefined) cimUpdateData.ebitda = req.body.ebitda;
-      if (req.body.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = req.body.ebitdaIncluded;
-      
-      console.log("CIM update data:", cimUpdateData);
-      await storage.updateCimDocument(cimId, cimUpdateData);
-      console.log("Successfully synced financial data to main CIM document");
-      
-      res.json(financialResult);
-    } catch (error) {
-      console.error('Error updating financials - Full error:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
-      res.status(500).json({ error: "Failed to update financials", details: error instanceof Error ? error.message : String(error) });
-    }
-  });
 
   // Get uploaded files for a CIM document (authenticated)
   app.get("/api/cim/:id/uploaded-files", async (req, res) => {
