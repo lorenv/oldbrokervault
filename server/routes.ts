@@ -423,16 +423,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const pdfBuffer = await generatePDF(
         cimDoc.analysis,
-        cimDoc.logoUrl,
-        cimDoc.websiteUrl,
-        cimDoc.selectedImages,
+        cimDoc.logoUrl || undefined,
+        cimDoc.websiteUrl || undefined,
+        cimDoc.selectedImages || undefined,
         userProfile,
         financialData,
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
         customSections,
-        cimDoc.coverImageUrl,
+        cimDoc.coverImageUrl || undefined,
         cimDoc.coverImagePosition
       );
       
@@ -493,9 +493,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wordBuffer = await generateWordDocument(
         cimDoc.analysis,
-        cimDoc.logoUrl,
-        cimDoc.websiteUrl,
-        cimDoc.selectedImages,
+        cimDoc.logoUrl || undefined,
+        cimDoc.websiteUrl || undefined,
+        cimDoc.selectedImages || undefined,
         userProfile,
         financialData
       );
