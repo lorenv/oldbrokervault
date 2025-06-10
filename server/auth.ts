@@ -103,6 +103,16 @@ export function setupAuth(app: Express) {
         isAdmin,
       });
 
+      // Create default NDA template for the new user
+      try {
+        const { populateDefaultNDAForUser } = await import("./populate-default-nda");
+        await populateDefaultNDAForUser(user.id);
+        console.log(`Created default NDA template for new user ${user.id}`);
+      } catch (ndaError) {
+        console.error(`Failed to create default NDA template for user ${user.id}:`, ndaError);
+        // Don't fail registration if NDA template creation fails
+      }
+
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({
