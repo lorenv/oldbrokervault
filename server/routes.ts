@@ -1209,8 +1209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
             console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
             
-            // Add selected images to the analysis object so they show in the CIM
-            analysis.selectedImages = savedImagePaths;
+            // Store selected images in analysis object
+            if (typeof analysis === 'object' && analysis !== null) {
+              (analysis as any).selectedImages = savedImagePaths;
+            }
           }
         } catch (imageError) {
           console.error("Selected images processing error:", imageError);

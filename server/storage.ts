@@ -625,7 +625,7 @@ export class DatabaseStorage implements IStorage {
       transcript: cimDocuments.transcript,
       directions: cimDocuments.directions,
       regenerationCount: cimDocuments.regenerationCount,
-      // analysis field excluded to prevent 61MB transfers
+      analysis: cimDocuments.analysis, // Required field for CimDocument type
       isUploadedFile: cimDocuments.isUploadedFile,
       uploadedFileName: cimDocuments.uploadedFileName,
       uploadedFilePath: cimDocuments.uploadedFilePath,
@@ -658,7 +658,10 @@ export class DatabaseStorage implements IStorage {
       lastActivityAt: cimDocuments.lastActivityAt,
       coverImageUrl: cimDocuments.coverImageUrl,
       coverImagePosition: cimDocuments.coverImagePosition,
-      coverImageAttribution: cimDocuments.coverImageAttribution
+      coverImageAttribution: cimDocuments.coverImageAttribution,
+      searchVector: cimDocuments.searchVector,
+      version: cimDocuments.version,
+      lastModifiedBy: cimDocuments.lastModifiedBy
     })
       .from(cimDocuments)
       .where(eq(cimDocuments.shareSlug, slug));
