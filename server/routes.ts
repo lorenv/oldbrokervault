@@ -103,6 +103,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication first, before any other routes
+  setupAuth(app);
+
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
     res.json({
@@ -509,10 +512,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to generate Word document" });
     }
   });
-
-
-
-  setupAuth(app);
 
   // Download individual NDA signature
   app.get("/api/cim/:docId/nda-signatures/:signatureId/download", async (req, res) => {
