@@ -62,7 +62,9 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate both the financials cache and the main CIM document cache
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
     onError: () => {

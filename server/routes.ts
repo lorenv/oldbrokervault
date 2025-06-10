@@ -4267,6 +4267,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const [existing] = await db.select().from(financials).where(eq(financials.cimDocumentId, cimId));
       console.log("Existing financials record:", existing);
       
+      let financialResult;
+      
       if (existing) {
         // Update existing record
         console.log("Updating existing financials record...");
@@ -4284,7 +4286,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           .returning();
         
         console.log("Updated financials record:", updated);
-        res.json(updated);
+        financialResult = updated;
       } else {
         // Create new record
         console.log("Creating new financials record...");
@@ -4300,8 +4302,25 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           .returning();
         
         console.log("Created financials record:", created);
-        res.json(created);
+        financialResult = created;
       }
+      
+      // Also update the main CIM document to keep data in sync
+      console.log("Syncing financial data to main CIM document...");
+      const cimUpdateData: any = {};
+      if (req.body.enabled !== undefined) cimUpdateData.financialsEnabled = req.body.enabled;
+      if (req.body.askingPrice !== undefined) cimUpdateData.askingPrice = req.body.askingPrice;
+      if (req.body.askingPriceIncluded !== undefined) cimUpdateData.askingPriceIncluded = req.body.askingPriceIncluded;
+      if (req.body.revenue !== undefined) cimUpdateData.revenue = req.body.revenue;
+      if (req.body.revenueIncluded !== undefined) cimUpdateData.revenueIncluded = req.body.revenueIncluded;
+      if (req.body.ebitda !== undefined) cimUpdateData.ebitda = req.body.ebitda;
+      if (req.body.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = req.body.ebitdaIncluded;
+      
+      console.log("CIM update data:", cimUpdateData);
+      await storage.updateCimDocument(cimId, cimUpdateData);
+      console.log("Successfully synced financial data to main CIM document");
+      
+      res.json(financialResult);
     } catch (error) {
       console.error('Error updating financials - Full error:', error);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
