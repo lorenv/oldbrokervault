@@ -1173,7 +1173,7 @@ export function DocumentExport({
 
       {/* Enhanced Share Dialog with NDA Protection */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] min-h-[500px] flex flex-col">
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Share Your CIM</DialogTitle>
             <DialogDescription>
@@ -1188,9 +1188,9 @@ export function DocumentExport({
               <TabsTrigger value="signatures">View Signatures</TabsTrigger>
               <TabsTrigger value="embed-code">Embed Code</TabsTrigger>
             </TabsList>
-            <div className="flex-1 overflow-y-auto mt-4 min-h-0">
+            <div className="flex-1 overflow-y-auto mt-4 min-h-0 max-h-[calc(80vh-200px)]">
 
-            <TabsContent value="share-settings" className="space-y-6">
+            <TabsContent value="share-settings" className="space-y-6 h-full overflow-y-auto pr-2">
               {/* Basic Share Settings - Moved to Top */}
               <Card>
                 <CardHeader>
@@ -1292,7 +1292,7 @@ export function DocumentExport({
             </TabsContent>
 
             {/* Embed Code Tab */}
-            <TabsContent value="embed-code" className="space-y-6">
+            <TabsContent value="embed-code" className="space-y-6 h-full overflow-y-auto pr-2">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1414,7 +1414,7 @@ export function DocumentExport({
             </TabsContent>
 
             {/* NDA Settings Tab */}
-            <TabsContent value="nda-templates" className="space-y-6">
+            <TabsContent value="nda-templates" className="space-y-6 h-full overflow-y-auto pr-2">
               {/* NDA Protection Section - Moved to top */}
               <Card className="border-blue-200">
                 <CardHeader>
@@ -1643,7 +1643,7 @@ export function DocumentExport({
             </TabsContent>
 
             {/* Signatures Tab */}
-            <TabsContent value="signatures" className="space-y-6">
+            <TabsContent value="signatures" className="space-y-6 h-full overflow-y-auto pr-2">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
