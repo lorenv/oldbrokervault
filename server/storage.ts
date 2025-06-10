@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financials, financialFiles, documentVersions, documentAnalytics } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -469,7 +469,23 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Document not found");
     }
     
-    // Delete the document
+    // Note: We intentionally do NOT decrement monthlyUsage to preserve accurate 
+    // generation counts for subscription billing purposes
+    
+    // Delete related records in proper order to avoid foreign key constraints
+    await db.delete(customSections).where(eq(customSections.cimDocumentId, id));
+    await db.delete(uploadedFiles).where(eq(uploadedFiles.cimDocumentId, id));
+    await db.delete(ndaSignatures).where(eq(ndaSignatures.cimDocumentId, id));
+    await db.delete(ndaAccessTokens).where(eq(ndaAccessTokens.cimDocumentId, id));
+    await db.delete(ndaRedirectLinks).where(eq(ndaRedirectLinks.cimDocumentId, id));
+    await db.delete(shareLinks).where(eq(shareLinks.cimDocumentId, id));
+    await db.delete(financials).where(eq(financials.cimDocumentId, id));
+    await db.delete(financialFiles).where(eq(financialFiles.cimDocumentId, id));
+    await db.delete(collaborators).where(eq(collaborators.cimDocumentId, id));
+    await db.delete(documentVersions).where(eq(documentVersions.cimDocumentId, id));
+    await db.delete(documentAnalytics).where(eq(documentAnalytics.cimDocumentId, id));
+    
+    // Delete the main document last
     await db.delete(cimDocuments).where(eq(cimDocuments.id, id));
   }
 
