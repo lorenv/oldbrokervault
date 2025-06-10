@@ -9,6 +9,65 @@ import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
+// Function to detect incognito/private browsing mode
+async function detectIncognitoMode(): Promise<boolean> {
+  try {
+    // Test localStorage availability (blocked in incognito in some browsers)
+    if (!window.localStorage) {
+      return true;
+    }
+
+    // Test sessionStorage availability
+    if (!window.sessionStorage) {
+      return true;
+    }
+
+    // Test if we can write to localStorage
+    const testKey = '__incognito_test__';
+    try {
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+    } catch (e) {
+      return true;
+    }
+
+    // Chrome/Edge specific test using quota estimation
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        // In incognito mode, quota is typically much smaller (around 10MB vs 100GB+)
+        if (estimate.quota && estimate.quota < 50 * 1024 * 1024) { // Less than 50MB
+          return true;
+        }
+      } catch (e) {
+        // Storage estimation failed, might be incognito
+        return true;
+      }
+    }
+
+    // Firefox specific test using indexedDB
+    if ('indexedDB' in window) {
+      try {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open('__incognito_test__');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+        });
+        // @ts-ignore
+        db.close();
+        return false;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (e) {
+    // If any test fails, assume incognito mode for safety
+    return true;
+  }
+}
+
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
@@ -35,9 +94,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      // Check if user is in incognito/private mode
+      try {
+        const isIncognito = await detectIncognitoMode();
+        if (isIncognito) {
+          throw new Error("Please disable incognito/private browsing mode to log in. Incognito mode blocks the secure cookies needed for authentication.");
+        }
+      } catch (e) {
+        // If incognito detection fails, proceed with login attempt
+        console.warn("Could not detect incognito mode:", e);
+      }
+
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
         const error = await res.json();
+        // Check for specific authentication errors that might indicate incognito mode
+        if (res.status === 500 && error.message?.includes("session")) {
+          throw new Error("Authentication failed. Please ensure you're not using incognito/private browsing mode and try again.");
+        }
         throw new Error(error.message || "Invalid email or password");
       }
       return await res.json();
@@ -62,9 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
+      // Check if user is in incognito/private mode
+      try {
+        const isIncognito = await detectIncognitoMode();
+        if (isIncognito) {
+          throw new Error("Please disable incognito/private browsing mode to register. Incognito mode blocks the secure cookies needed for authentication.");
+        }
+      } catch (e) {
+        console.warn("Could not detect incognito mode during registration:", e);
+      }
+
       const res = await apiRequest("POST", "/api/register", credentials);
       if (!res.ok) {
         const error = await res.json();
+        // Check for specific authentication errors that might indicate incognito mode
+        if (res.status === 500 && error.message?.includes("session")) {
+          throw new Error("Registration failed. Please ensure you're not using incognito/private browsing mode and try again.");
+        }
         throw new Error(error.message || "Registration failed");
       }
       return await res.json();
