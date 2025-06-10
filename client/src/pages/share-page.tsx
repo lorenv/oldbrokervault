@@ -56,6 +56,7 @@ export function SharePage() {
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug],
     queryFn: async () => {
+      console.log('🔍 Fetching share data for:', shareSlug);
       const response = await fetch(`/api/share/${shareSlug}`, {
         method: 'GET',
         headers: {
@@ -64,13 +65,16 @@ export function SharePage() {
         credentials: 'include'
       });
       
+      console.log('📡 Share API response:', response.status, response.ok);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Share API error:', response.status, errorText);
+        console.error('❌ Share API error:', response.status, errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('✅ Share data received:', data);
       return data;
     },
     enabled: !!shareSlug,
@@ -99,10 +103,11 @@ export function SharePage() {
   });
 
   useEffect(() => {
+    console.log('🔄 Share page effect - shareData:', shareData, 'error:', error, 'isLoading:', isLoading);
     if (shareData?.cim?.requiresNda && !hasSignedNda) {
       setShowNdaDialog(true);
     }
-  }, [shareData, hasSignedNda]);
+  }, [shareData, hasSignedNda, error, isLoading]);
 
   if (isLoading) {
     return (
