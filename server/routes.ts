@@ -291,33 +291,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user profile for contact information
       const userProfile = await storage.getUser(cimDoc.userId);
       
-      console.log("Sending share data successfully:", {
-        websiteUrl: cimDoc.websiteUrl,
-        selectedImages: cimDoc.selectedImages,
-        logoUrl: cimDoc.logoUrl,
-        hasUserProfile: !!userProfile,
-        userProfileData: userProfile ? {
-          name: userProfile.name,
-          title: userProfile.title,
-          email: userProfile.email,
-          phoneNumber: userProfile.phoneNumber,
-          businessName: userProfile.businessName
-        } : null
-      });
+      console.log("Preparing optimized share response for document:", cimDoc.id);
       
-      // Create optimized response to avoid massive JSON transfer
-      const optimizedAnalysis = cimDoc.analysis ? {
-        title: cimDoc.analysis.title,
-        metadata: cimDoc.analysis.metadata,
-        sections: cimDoc.analysis.sections || []
-      } : null;
+      // Create optimized response by excluding the massive analysis field
+      console.log("Creating optimized response without analysis field");
 
       res.json({
         cim: {
           id: cimDoc.id,
           userId: cimDoc.userId,
           title: cimDoc.title,
-          analysis: optimizedAnalysis,
+          // analysis field excluded to avoid 61MB transfer
           logoUrl: cimDoc.logoUrl,
           websiteUrl: cimDoc.websiteUrl,
           selectedImages: cimDoc.selectedImages,
@@ -366,7 +350,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error fetching share data:", error);
-      res.status(500).json({ error: "Failed to fetch shared document" });
+      console.error("Stack trace:", error);
+      res.status(500).json({ error: "Failed to fetch shared document", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
