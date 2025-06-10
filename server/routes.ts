@@ -3416,14 +3416,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const success = await storage.createPasswordResetToken(email, resetToken, expiry);
       
       if (success) {
-        // In a real app, you'd send an email here
-        console.log(`Password reset token for ${email}: ${resetToken}`);
+        // Send password reset email using SendGrid
+        const { sendPasswordResetEmail } = await import("./email");
+        const emailSent = await sendPasswordResetEmail(email, resetToken);
+        
+        console.log(`Password reset email sent to ${email}: ${emailSent}`);
+        console.log(`Reset token: ${resetToken}`); // Keep for debugging
+        
         res.json({ message: "If an account with that email exists, a reset link has been sent." });
       } else {
         // Don't reveal if email exists or not for security
         res.json({ message: "If an account with that email exists, a reset link has been sent." });
       }
     } catch (error) {
+      console.error("Password reset error:", error);
       res.status(500).json({ error: "Failed to process password reset request" });
     }
   });
