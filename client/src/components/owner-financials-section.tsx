@@ -170,6 +170,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
       
       return { previousCim };
     },
+    onSuccess: () => {
+      // Only show success toast on actual success
+      toast({ title: "Financials updated successfully" });
+    },
     onError: (err, newData, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       queryClient.setQueryData([`/api/cim/${docId}`], context?.previousCim);
@@ -178,7 +182,6 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
     onSettled: () => {
       // Always refetch after error or success to ensure server state
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-      toast({ title: "Financials updated successfully" });
     }
   });
 
