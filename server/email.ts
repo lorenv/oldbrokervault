@@ -136,3 +136,55 @@ export async function sendNdaSignedEmail(
 
   return viewerSuccess && ownerSuccess;
 }
+
+export async function sendPasswordResetEmail(
+  userEmail: string,
+  resetToken: string
+): Promise<boolean> {
+  const resetLink = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+
+  return await sendEmail({
+    to: userEmail,
+    from: 'rob@cimshare.com', // Use verified sender
+    subject: 'Reset Your CIM Share Password',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Password Reset Request</h2>
+        <p>You recently requested to reset your password for your CIM Share account.</p>
+        
+        <p>Click the button below to reset your password:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetLink}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        
+        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;">${resetLink}</p>
+        
+        <p><strong>This link will expire in 1 hour.</strong></p>
+        
+        <p>If you didn't request this password reset, you can safely ignore this email.</p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated email from CIM Share. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+    text: `
+      Password Reset Request
+      
+      You recently requested to reset your password for your CIM Share account.
+      
+      Click the link below to reset your password:
+      ${resetLink}
+      
+      This link will expire in 1 hour.
+      
+      If you didn't request this password reset, you can safely ignore this email.
+    `
+  });
+}
