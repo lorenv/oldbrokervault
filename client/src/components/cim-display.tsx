@@ -731,13 +731,33 @@ export function CimDisplay({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {localSelectedImages.map((image, index) => (
                   <div key={index} className="relative group">
-                    <img 
-                      src={image} 
-                      alt={`Business image ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => openLightbox(index)}
-                    />
-                    {!isSharedView && (
+                    {!brokenImages.has(index) ? (
+                      <img 
+                        src={image} 
+                        alt={`Business image ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => openLightbox(index)}
+                        onError={() => {
+                          setBrokenImages(prev => new Set([...prev, index]));
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-100 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+                        <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500 mb-2">Image not found</p>
+                        {!isSharedView && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById('business-image-upload')?.click()}
+                            className="text-xs"
+                          >
+                            Re-upload
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    {!isSharedView && !brokenImages.has(index) && (
                       <Button
                         variant="ghost"
                         size="sm"
