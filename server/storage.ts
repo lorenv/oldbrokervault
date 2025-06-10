@@ -441,6 +441,7 @@ export class DatabaseStorage implements IStorage {
 
     const documents = results.map(result => ({
       ...result,
+      createdAt: result.createdAt, // Ensure this field is properly mapped
       ndaSignatureCount: Number(result.ndaSignatureCount)
     }));
 
