@@ -3051,7 +3051,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
-        shareSlug: shareSlug,
+        shareSlug: shareSlug || undefined,
         sharePassword: password,
         shareExpiresAt: expiresAt,
         ndaProtected: requireNda,
