@@ -205,6 +205,10 @@ export function CimDisplay({
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(logoUrl || undefined);
   const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
+  
+  // State for tracking broken images
+  const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
+  const [logoError, setLogoError] = useState(false);
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -219,6 +223,9 @@ export function CimDisplay({
       setLocalLogoUrl(logoUrl);
       setLocalSelectedImages(selectedImages || []);
       setLocalTitle(cimDocument?.title || "");
+      // Reset error states when images change
+      setLogoError(false);
+      setBrokenImages(new Set());
     }, 50);
     
     return () => clearTimeout(timer);
@@ -659,9 +666,14 @@ export function CimDisplay({
                 </Button>
               </div>
             </div>
-            {localLogoUrl ? (
+            {localLogoUrl && !logoError ? (
               <div className="flex justify-center relative group">
-                <img src={localLogoUrl} alt="Company Logo" className="h-32" />
+                <img 
+                  src={localLogoUrl} 
+                  alt="Company Logo" 
+                  className="h-32" 
+                  onError={() => setLogoError(true)}
+                />
                 <Button
                   variant="ghost"
                   size="sm"
