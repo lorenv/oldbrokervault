@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useFinancialFiles } from '@/hooks/use-cim-document';
-import type { Financials, FinancialFile } from '@shared/schema';
+import type { FinancialFile } from '@shared/schema';
 
 interface FinancialsSectionProps {
   docId: number;
@@ -48,22 +48,31 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
   // Use centralized hook for financial files to eliminate duplicate API calls
   const { data: files = [] } = useFinancialFiles(docId);
 
-  // Update financials mutation
+  // Update financials mutation - now updates main CIM document directly
   const updateFinancialsMutation = useMutation({
-    mutationFn: async (data: Partial<Financials>) => {
-      const response = await fetch(`/api/cim/${docId}/financials`, {
-        method: 'PUT',
+    mutationFn: async (data: any) => {
+      // Convert to CIM document format
+      const cimUpdateData: any = {};
+      if (data.enabled !== undefined) cimUpdateData.financialsEnabled = data.enabled;
+      if (data.askingPrice !== undefined) cimUpdateData.askingPrice = data.askingPrice;
+      if (data.askingPriceIncluded !== undefined) cimUpdateData.askingPriceIncluded = data.askingPriceIncluded;
+      if (data.revenue !== undefined) cimUpdateData.revenue = data.revenue;
+      if (data.revenueIncluded !== undefined) cimUpdateData.revenueIncluded = data.revenueIncluded;
+      if (data.ebitda !== undefined) cimUpdateData.ebitda = data.ebitda;
+      if (data.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = data.ebitdaIncluded;
+
+      const response = await fetch(`/api/cim/${docId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(cimUpdateData),
       });
       if (!response.ok) throw new Error('Failed to update financials');
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate both the financials cache and the main CIM document cache
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financials`] });
+      // Only invalidate the main CIM document cache
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       toast({ title: "Financials updated successfully" });
     },
