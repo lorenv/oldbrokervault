@@ -45,7 +45,14 @@ function isAuthorizedAdmin(user: any): boolean {
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be less than 128 characters")
+    .regex(/(?=.*[a-z])/, "Password must contain at least one lowercase letter")
+    .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
+    .regex(/(?=.*\d)/, "Password must contain at least one number")
+    .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character")
+    .optional(),
   confirmPassword: z.string().optional(),
 }).refine((data) => {
   if (data.newPassword && data.newPassword !== data.confirmPassword) {
