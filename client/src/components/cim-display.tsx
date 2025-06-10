@@ -638,8 +638,8 @@ export function CimDisplay({
 
 
         {/* Financial Information Section at Top */}
-        {!isSharedView && cimDocument && (
-          <OwnerFinancialsSection docId={docId} cimDocument={cimDocument} />
+        {!isSharedView && (
+          <OwnerFinancialsSection docId={docId} />
         )}
 
         {/* Logo section - only in edit view */}
