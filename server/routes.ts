@@ -3434,6 +3434,32 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Direct password reset endpoint (for admin/debugging purposes)
+  app.post("/api/direct-password-reset", async (req, res) => {
+    try {
+      const { email, newPassword } = req.body;
+      
+      if (!email || !newPassword) {
+        return res.status(400).json({ error: "Email and new password are required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { hashPassword } = await import("./auth");
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUserPassword(user.id, hashedPassword);
+      
+      console.log(`Password reset directly for ${email}`);
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Direct password reset error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   // User account update route (email and password)
   app.post("/api/user/update", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
