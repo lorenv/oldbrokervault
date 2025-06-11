@@ -418,7 +418,7 @@ export function DocumentExport({
       
       // Set share URL if sharing is enabled
       if (doc.shareEnabled && doc.shareSlug) {
-        const baseUrl = window.location.origin;
+        const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
         const url = `${baseUrl}/share/${doc.shareSlug}`;
         setShareUrl(url);
       } else {

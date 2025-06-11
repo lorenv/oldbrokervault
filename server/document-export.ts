@@ -2176,7 +2176,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             includedFiles.forEach((file: any) => {
               console.log("Adding financial file to PDF:", file.originalName);
               // Use the dynamic base URL for file downloads
-              const domain = baseUrl || 'https://cb1f9736-4a0a-4a40-80bd-c08d8761dbaa-00-1y6o4mf3nu2bh.riker.replit.dev';
+              const domain = baseUrl || 'https://cimshare.com';
               const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
               // Add file name as clickable link
