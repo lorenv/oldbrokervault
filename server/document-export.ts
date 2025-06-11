@@ -1,6 +1,5 @@
 import { CimDocument } from "@shared/schema";
 import { storage } from "./storage";
-import { google } from "googleapis";
 import * as docx from "docx";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
