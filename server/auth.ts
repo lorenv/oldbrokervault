@@ -63,24 +63,49 @@ export function setupAuth(app: Express) {
       { usernameField: "email" },
       async (email, password, done) => {
         try {
+          console.log(`Authentication attempt for email: ${email}`);
           const user = await storage.getUserByEmail(email);
-          if (!user || !(await comparePasswords(password, user.password))) {
+          
+          if (!user) {
+            console.log(`No user found for email: ${email}`);
             return done(null, false, { message: "Invalid email or password" });
           }
+          
+          console.log(`User found for ${email}, checking password`);
+          const passwordMatch = await comparePasswords(password, user.password);
+          
+          if (!passwordMatch) {
+            console.log(`Password mismatch for user: ${email}`);
+            return done(null, false, { message: "Invalid email or password" });
+          }
+          
+          console.log(`Authentication successful for user: ${email}`);
           return done(null, user);
         } catch (error) {
+          console.error(`Authentication error for ${email}:`, error);
           return done(error);
         }
       }
     )
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log(`Serializing user: ${user.id}`);
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log(`Deserializing user: ${id}`);
       const user = await storage.getUser(id);
+      if (!user) {
+        console.log(`No user found during deserialization for ID: ${id}`);
+        return done(null, false);
+      }
+      console.log(`Successfully deserialized user: ${user.email}`);
       done(null, user);
     } catch (error) {
+      console.error(`Deserialization error for user ${id}:`, error);
       done(error);
     }
   });
@@ -130,36 +155,86 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", loginValidation, handleValidationErrors, auditLogger('LOGIN'), (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) {
-        console.error("Passport authentication error:", err);
-        console.error("Error stack:", err.stack);
-        return res.status(500).json({
-          message: "Authentication error occurred",
-          error: process.env.NODE_ENV === 'development' ? err.message : undefined
-        });
+    console.log(`Login attempt for email: ${req.body.email}`);
+    console.log(`Session ID: ${req.sessionID}`);
+    console.log(`Session store type: ${storage.sessionStore.constructor.name}`);
+    
+    // Add request timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`Login timeout for ${req.body.email}`);
+        res.status(504).json({ message: "Login request timeout" });
       }
-      if (!user) {
-        console.log("Authentication failed for:", req.body.email, "Info:", info);
-        return res.status(401).json({
-          message: info?.message || "Invalid email or password"
-        });
-      }
-      
-      console.log("User authenticated successfully:", user.email);
-      req.login(user, (err) => {
+    }, 30000);
+
+    try {
+      passport.authenticate("local", (err, user, info) => {
+        clearTimeout(timeout);
+        
         if (err) {
-          console.error("Session establishment error:", err);
-          console.error("Session error stack:", err.stack);
+          console.error("Passport authentication error:", err);
+          console.error("Error type:", err.constructor.name);
+          console.error("Error code:", err.code);
+          console.error("Error stack:", err.stack);
+          
+          // Check if it's a database connection error
+          if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.message.includes('pool')) {
+            return res.status(503).json({
+              message: "Database connection error",
+              error: process.env.NODE_ENV === 'development' ? err.message : "Service temporarily unavailable"
+            });
+          }
+          
           return res.status(500).json({
-            message: "Failed to establish session",
-            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+            message: "Authentication system error",
+            error: process.env.NODE_ENV === 'development' ? err.message : "Internal server error"
           });
         }
-        console.log("Session established successfully for:", user.email);
-        return res.json(user);
+        
+        if (!user) {
+          console.log("Authentication failed for:", req.body.email, "Info:", info);
+          return res.status(401).json({
+            message: info?.message || "Invalid email or password"
+          });
+        }
+        
+        console.log("User authenticated successfully:", user.email);
+        console.log(`Attempting to establish session for user ${user.id}`);
+        
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Session establishment error:", err);
+            console.error("Session error type:", err.constructor.name);
+            console.error("Session error code:", err.code);
+            console.error("Session error stack:", err.stack);
+            
+            // Check if it's a session store error
+            if (err.message.includes('session') || err.message.includes('store')) {
+              return res.status(503).json({
+                message: "Session store error",
+                error: process.env.NODE_ENV === 'development' ? err.message : "Session service unavailable"
+              });
+            }
+            
+            return res.status(500).json({
+              message: "Failed to establish session",
+              error: process.env.NODE_ENV === 'development' ? err.message : "Session creation failed"
+            });
+          }
+          
+          console.log("Session established successfully for:", user.email);
+          console.log(`Final session ID: ${req.sessionID}`);
+          return res.json(user);
+        });
+      })(req, res, next);
+    } catch (error) {
+      clearTimeout(timeout);
+      console.error("Unexpected login error:", error);
+      return res.status(500).json({
+        message: "Unexpected authentication error",
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : "Internal server error"
       });
-    })(req, res, next);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
