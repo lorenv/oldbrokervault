@@ -237,6 +237,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }, 30000); // 30 second timeout
 
     try {
+      // Enhanced error handling for production environment
+      process.on('uncaughtException', (error) => {
+        console.error('Uncaught Exception in share endpoint:', error);
+        if (!res.headersSent) {
+          clearTimeout(timeout);
+          res.status(500).json({ error: "Internal server error", details: error.message });
+        }
+      });
+
+      process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection in share endpoint:', reason);
+        if (!res.headersSent) {
+          clearTimeout(timeout);
+          res.status(500).json({ error: "Internal server error", details: String(reason) });
+        }
+      });
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
       console.log("Environment:", process.env.NODE_ENV);
