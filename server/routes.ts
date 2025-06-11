@@ -1162,7 +1162,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique filename
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(2, 8);
-      const extension = path.extname(req.file.originalname);
+      
+      // Determine the correct extension based on whether we're preserving transparency
+      let extension = '.jpg'; // default
+      try {
+        const sharp = require('sharp');
+        const metadata = await sharp(req.file.buffer).metadata();
+        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
+        if (hasAlpha || req.file.mimetype === 'image/png') {
+          extension = '.png';
+        }
+      } catch (error) {
+        // Fall back to original extension if metadata reading fails
+        extension = path.extname(req.file.originalname) || '.jpg';
+      }
+      
       const filename = `${timestamp}_${randomId}${extension}`;
       
       // Ensure the logos directory exists
@@ -1177,15 +1191,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Use sharp to resize and optimize the image
         const sharp = require('sharp');
-        processedBuffer = await sharp(req.file.buffer)
-          .resize(800, 600, { 
-            fit: 'inside', 
-            withoutEnlargement: true 
-          })
-          .jpeg({ quality: 85 })
-          .png({ quality: 85 })
-          .webp({ quality: 85 })
-          .toBuffer();
+        const image = sharp(req.file.buffer);
+        
+        // Check if the original image has transparency
+        const metadata = await image.metadata();
+        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
+        
+        if (hasAlpha || req.file.mimetype === 'image/png') {
+          // Preserve transparency for PNG images
+          processedBuffer = await image
+            .resize(800, 600, { 
+              fit: 'inside', 
+              withoutEnlargement: true 
+            })
+            .png({ quality: 85 })
+            .toBuffer();
+        } else {
+          // Use JPEG for images without transparency
+          processedBuffer = await image
+            .resize(800, 600, { 
+              fit: 'inside', 
+              withoutEnlargement: true 
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+        }
       } catch (sharpError) {
         console.log('Sharp optimization failed, using original:', sharpError.message);
         // Fall back to original buffer if sharp fails
