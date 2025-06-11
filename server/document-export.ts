@@ -149,7 +149,7 @@ function resolveImagePath(imagePath: string): string {
   return publicPath;
 }
 
-export { createGoogleDoc, getGoogleAuthUrl, handleGoogleCallback } from './google-auth';
+
 
 // Simple helper functions to read image dimensions from file headers
 function getJpegDimensions(buffer: Buffer): { width: number; height: number } | null {
@@ -2717,7 +2717,3 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
   });
 }
 
-export async function exportToGoogleDocs(analysis: any, title: string): Promise<string> {
-  // This is a placeholder - the actual implementation is in google-auth.ts
-  throw new Error("Google Docs export not implemented in this file");
-}
