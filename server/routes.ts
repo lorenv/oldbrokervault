@@ -294,17 +294,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user profile for contact information
       const userProfile = await storage.getUser(cimDoc.userId);
       
-      console.log("Preparing optimized share response for document:", cimDoc.id);
+      // Get custom sections for this document
+      const customSections = await storage.getCustomSections(cimDoc.id);
+      console.log("Custom sections found:", customSections.length);
       
-      // Create optimized response by excluding the massive analysis field
-      console.log("Creating optimized response without analysis field");
+      console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
+      
+      // Create streamlined analysis that includes content sections but excludes heavy data
+      let streamlinedAnalysis = null;
+      if (cimDoc.analysis) {
+        try {
+          const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
+          streamlinedAnalysis = {
+            sections: fullAnalysis.sections || {},
+            // Exclude heavy data like embeddings, raw transcripts, etc.
+            businessOverview: fullAnalysis.businessOverview,
+            executiveSummary: fullAnalysis.executiveSummary,
+            marketAnalysis: fullAnalysis.marketAnalysis,
+            financialHighlights: fullAnalysis.financialHighlights,
+            investmentOpportunity: fullAnalysis.investmentOpportunity
+          };
+          console.log("Created streamlined analysis with", Object.keys(streamlinedAnalysis.sections || {}).length, "sections");
+        } catch (e) {
+          console.error("Error parsing analysis for share:", e);
+        }
+      }
 
       res.json({
         cim: {
           id: cimDoc.id,
           userId: cimDoc.userId,
           title: cimDoc.title,
-          // analysis field excluded to avoid 61MB transfer
+          analysis: streamlinedAnalysis,
           logoUrl: cimDoc.logoUrl,
           websiteUrl: cimDoc.websiteUrl,
           selectedImages: cimDoc.selectedImages,
@@ -349,7 +370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           profilePhoto: userProfile.profilePhoto
         } : null,
         requiresNda: cimDoc.ndaProtected || false,
-        ndaUrl
+        ndaUrl,
+        customSections: customSections || []
       });
     } catch (error) {
       console.error("=== SHARE ROUTE ERROR ===");
