@@ -45,4 +45,7 @@ pool.on('connect', (client) => {
 //   console.log('Database connection removed from pool');
 // });
 
+// Set max listeners to prevent warnings
+pool.setMaxListeners(100);
+
 export const db = drizzle({ client: pool, schema });
