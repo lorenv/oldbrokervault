@@ -291,11 +291,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get user profile for contact information
-      const userProfile = await storage.getUser(cimDoc.userId);
-      
-      // Get custom sections for this document
-      const customSections = await storage.getCustomSections(cimDoc.id);
+      // Parallel fetch for better performance
+      const [userProfile, customSections] = await Promise.all([
+        storage.getUser(cimDoc.userId),
+        storage.getCustomSections(cimDoc.id)
+      ]);
       console.log("Custom sections found:", customSections.length);
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
@@ -305,15 +305,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (cimDoc.analysis) {
         try {
           const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
-          streamlinedAnalysis = {
-            sections: fullAnalysis.sections || {},
-            // Exclude heavy data like embeddings, raw transcripts, etc.
-            businessOverview: fullAnalysis.businessOverview,
-            executiveSummary: fullAnalysis.executiveSummary,
-            marketAnalysis: fullAnalysis.marketAnalysis,
-            financialHighlights: fullAnalysis.financialHighlights,
-            investmentOpportunity: fullAnalysis.investmentOpportunity
-          };
+          
+          // Only include essential fields to reduce processing time
+          streamlinedAnalysis = {};
+          
+          if (fullAnalysis.sections) {
+            streamlinedAnalysis.sections = fullAnalysis.sections;
+          }
+          
+          // Include key analysis sections if they exist and are small
+          const lightweightFields = ['businessOverview', 'executiveSummary', 'marketAnalysis', 'financialHighlights', 'investmentOpportunity'];
+          lightweightFields.forEach(field => {
+            if (fullAnalysis[field] && typeof fullAnalysis[field] === 'string' && fullAnalysis[field].length < 10000) {
+              streamlinedAnalysis[field] = fullAnalysis[field];
+            }
+          });
+          
           console.log("Created streamlined analysis with", Object.keys(streamlinedAnalysis.sections || {}).length, "sections");
         } catch (e) {
           console.error("Error parsing analysis for share:", e);
@@ -1078,9 +1085,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fsSync.mkdirSync(logosDir, { recursive: true });
       }
 
-      // Save the file
+      // Optimize image before saving
+      let processedBuffer = req.file.buffer;
+      
+      try {
+        // Use sharp to resize and optimize the image
+        const sharp = require('sharp');
+        processedBuffer = await sharp(req.file.buffer)
+          .resize(800, 600, { 
+            fit: 'inside', 
+            withoutEnlargement: true 
+          })
+          .jpeg({ quality: 85 })
+          .png({ quality: 85 })
+          .webp({ quality: 85 })
+          .toBuffer();
+      } catch (sharpError) {
+        console.log('Sharp optimization failed, using original:', sharpError.message);
+        // Fall back to original buffer if sharp fails
+      }
+
+      // Save the optimized file
       const filepath = path.join(logosDir, filename);
-      fsSync.writeFileSync(filepath, req.file.buffer);
+      fsSync.writeFileSync(filepath, processedBuffer);
       
       const logoUrl = `/logos/${filename}`;
       console.log(`Logo saved to: ${logoUrl}`);
