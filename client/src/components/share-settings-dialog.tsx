@@ -101,7 +101,8 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
     );
   }
 
-  const shareUrl = `${window.location.origin}/share/${shareSettings.shareSlug}`;
+  const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+  const shareUrl = `${baseUrl}/share/${shareSettings.shareSlug}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

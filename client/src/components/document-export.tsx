@@ -187,7 +187,8 @@ export function DocumentExport({
         console.log('✅ Share settings updated successfully:', result);
         
         if (result.shareSlug) {
-          const url = `${window.location.origin}/share/${result.shareSlug}`;
+          const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+          const url = `${baseUrl}/share/${result.shareSlug}`;
           console.log('🔗 Setting share URL:', url);
           setShareUrl(url);
         }
@@ -458,7 +459,7 @@ export function DocumentExport({
         
         // Set share URL if sharing is enabled
         if (doc.shareEnabled && doc.shareSlug) {
-          const baseUrl = window.location.origin;
+          const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
           const url = `${baseUrl}/share/${doc.shareSlug}`;
           console.log('🔗 Setting share URL:', url);
           setShareUrl(url);
@@ -1217,7 +1218,8 @@ export function DocumentExport({
                             const randomId = Math.random().toString(36).substring(2, 8);
                             const newSlug = `cim-${randomId}`;
                             setShareSettings(prev => ({ ...prev, shareSlug: newSlug }));
-                            setShareUrl(`${window.location.origin}/share/${newSlug}`);
+                            const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+                            setShareUrl(`${baseUrl}/share/${newSlug}`);
                           }
                         }}
                       />
@@ -1809,7 +1811,7 @@ export function DocumentExport({
       <EmailShareDialog
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog({ open })}
-        shareUrl={emailShareDialog.shareToken ? `${window.location.origin}/share/${emailShareDialog.shareToken}` : shareUrl}
+        shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com'}/share/${emailShareDialog.shareToken}` : shareUrl}
         documentTitle={emailShareDialog.documentTitle || `CIM Document #${docId}`}
         senderName={user?.name}
       />
