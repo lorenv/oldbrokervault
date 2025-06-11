@@ -36,7 +36,9 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false).notNull(),
   subscriptionStatus: text("subscription_status").default("free").notNull(),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
-  monthlyUsage: integer("monthly_usage").default(0).notNull(),
+  monthlyUsage: integer("monthly_usage").default(0).notNull(), // Legacy field, keep for backward compatibility
+  monthlyDocumentsCreated: integer("monthly_documents_created").default(0).notNull(),
+  monthlyRegenerationsUsed: integer("monthly_regenerations_used").default(0).notNull(),
   lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull(),
   stripeCustomerId: text("stripe_customer_id").unique(),
   googleAccessToken: text("google_access_token"),
@@ -252,6 +254,22 @@ export const searchIndex = pgTable("search_index", {
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
+// Document baseline for regeneration validation
+export const documentBaselines = pgTable("document_baselines", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull().unique(),
+  originalTranscript: text("original_transcript").notNull(),
+  originalDirections: text("original_directions").notNull(),
+  companyName: text("company_name"),
+  industry: text("industry"),
+  businessModel: text("business_model"),
+  primaryMarket: text("primary_market"),
+  originalRevenue: text("original_revenue"),
+  originalEbitda: text("original_ebitda"),
+  originalEmployeeCount: integer("original_employee_count"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
 // Investor contact management for premium users
 export const investorContacts = pgTable("investor_contacts", {
   id: serial("id").primaryKey(),
@@ -389,6 +407,19 @@ export const insertCollaboratorSchema = createInsertSchema(collaborators).pick({
   email: z.string().email("Please enter a valid email address")
 });
 
+export const insertDocumentBaselineSchema = createInsertSchema(documentBaselines).pick({
+  cimDocumentId: true,
+  originalTranscript: true,
+  originalDirections: true,
+  companyName: true,
+  industry: true,
+  businessModel: true,
+  primaryMarket: true,
+  originalRevenue: true,
+  originalEbitda: true,
+  originalEmployeeCount: true
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type CimDocument = typeof cimDocuments.$inferSelect;
@@ -409,6 +440,8 @@ export type InsertNdaRedirectLink = z.infer<typeof insertNdaRedirectLinkSchema>;
 export type CustomSection = typeof customSections.$inferSelect;
 export type FinancialFile = typeof financialFiles.$inferSelect;
 export type InvestorContact = typeof investorContacts.$inferSelect;
+export type DocumentBaseline = typeof documentBaselines.$inferSelect;
+export type InsertDocumentBaseline = z.infer<typeof insertDocumentBaselineSchema>;
 
 export const insertInvestorContactSchema = createInsertSchema(investorContacts).pick({
   email: true,
