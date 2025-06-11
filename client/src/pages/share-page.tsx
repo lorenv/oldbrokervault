@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,10 @@ export function SharePage() {
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  
+  // Parallax effect state
+  const [scrollY, setScrollY] = useState(0);
+  const coverImageRef = useRef<HTMLDivElement>(null);
 
   // Check for access token in URL params
   useEffect(() => {
@@ -31,6 +35,24 @@ export function SharePage() {
       // Remove token from URL for security
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+  }, []);
+
+  // Parallax scroll effect with performance optimization
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Validate access token if present
@@ -230,14 +252,14 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
-        <div className="relative h-[35vh] md:h-[40vh] overflow-hidden">
+        <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transform scale-110"
+            className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: `url(${shareData.cim.coverImageUrl})`,
               backgroundPosition: shareData.cim.coverImagePosition || 'center',
-              transform: 'scale(1.1) translateZ(0)',
+              transform: `translate3d(0, ${scrollY * 0.5}px, 0) scale(1.1)`,
               willChange: 'transform'
             }}
           />
@@ -246,7 +268,12 @@ export function SharePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
           
           {/* Header Content Overlay - Bottom Positioned */}
-          <div className="absolute inset-x-0 bottom-0 pb-16 px-6">
+          <div 
+            className="absolute inset-x-0 bottom-0 pb-16 px-6 transition-opacity duration-300"
+            style={{
+              opacity: Math.max(0, 1 - (scrollY / 400))
+            }}
+          >
             <div className="max-w-6xl mx-auto text-center">
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight"
                   style={{
