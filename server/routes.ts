@@ -93,16 +93,18 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
       </svg>`
     );
 
-    // Apply the mask with memory-optimized processing
+    // Apply the mask with memory-optimized processing and preserve transparency
     const processedImage = await sharpInstance
       .resize(width, height, {
         fit: 'inside',
-        withoutEnlargement: true
+        withoutEnlargement: true,
+        background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
       })
       .png({
         quality: 85,
         compressionLevel: 6,
-        progressive: false
+        progressive: false,
+        force: true // Force PNG to preserve transparency
       })
       .composite([
         {
@@ -1198,22 +1200,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
         
         if (hasAlpha || req.file.mimetype === 'image/png') {
-          // Preserve transparency for PNG images
+          // Preserve transparency for PNG images with transparent background
           processedBuffer = await image
             .resize(800, 600, { 
               fit: 'inside', 
-              withoutEnlargement: true 
+              withoutEnlargement: true,
+              background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
             })
-            .png({ quality: 85 })
+            .png({ 
+              quality: 85,
+              force: true // Force PNG output
+            })
             .toBuffer();
         } else {
-          // Use JPEG for images without transparency
+          // Use PNG with white background for images without transparency
           processedBuffer = await image
             .resize(800, 600, { 
               fit: 'inside', 
-              withoutEnlargement: true 
+              withoutEnlargement: true,
+              background: { r: 255, g: 255, b: 255, alpha: 1 } // White background
             })
-            .jpeg({ quality: 85 })
+            .png({ 
+              quality: 85,
+              force: true
+            })
             .toBuffer();
         }
       } catch (sharpError) {
