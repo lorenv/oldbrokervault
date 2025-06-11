@@ -21,8 +21,10 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   const words1 = new Set(text1.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/));
   const words2 = new Set(text2.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/));
   
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  const union = new Set([...words1, ...words2]);
+  const words1Array = Array.from(words1);
+  const words2Array = Array.from(words2);
+  const intersection = new Set(words1Array.filter(x => words2.has(x)));
+  const union = new Set([...words1Array, ...words2Array]);
   
   return union.size === 0 ? 0 : intersection.size / union.size;
 }

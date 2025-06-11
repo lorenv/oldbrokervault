@@ -9,10 +9,19 @@ interface SubscriptionCardProps {
   status?: string;
   endsAt?: string | null;
   monthlyUsage?: number;
+  monthlyDocumentsCreated?: number;
+  monthlyRegenerationsUsed?: number;
   subtle?: boolean;
 }
 
-export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = false }: SubscriptionCardProps) {
+export function SubscriptionCard({ 
+  status, 
+  endsAt, 
+  monthlyUsage = 0, 
+  monthlyDocumentsCreated = 0, 
+  monthlyRegenerationsUsed = 0, 
+  subtle = false 
+}: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
   const isStandard = status === "standard";
@@ -25,6 +34,17 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = fa
         return 10;
       default:
         return 1;
+    }
+  };
+
+  const getRegenerationLimit = () => {
+    switch (status) {
+      case "premium":
+        return "Unlimited";
+      case "standard":
+        return 5;
+      default:
+        return 2;
     }
   };
 
@@ -64,19 +84,36 @@ export function SubscriptionCard({ status, endsAt, monthlyUsage = 0, subtle = fa
             )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Usage This Month</p>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="bg-primary rounded-full h-2"
-                style={{
-                  width: `${Math.min((monthlyUsage / getLimit()) * 100, 100)}%`,
-                }}
-              />
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Documents Created This Month</p>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary rounded-full h-2"
+                  style={{
+                    width: `${Math.min((monthlyDocumentsCreated / getLimit()) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {monthlyDocumentsCreated} / {getLimit()} documents created
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {monthlyUsage} / {getLimit()} CIMs generated
-            </p>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Regenerations Used This Month</p>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-secondary rounded-full h-2"
+                  style={{
+                    width: `${status === "premium" ? 0 : Math.min((monthlyRegenerationsUsed / (typeof getRegenerationLimit() === 'number' ? getRegenerationLimit() as number : 100)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {monthlyRegenerationsUsed} / {getRegenerationLimit()} regenerations used
+              </p>
+            </div>
           </div>
 
           {!isPremium && (
