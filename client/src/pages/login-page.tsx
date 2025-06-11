@@ -30,7 +30,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-type LoginFormData = z.infer<typeof insertUserSchema>;
+// Schema for login form - only email and password
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -221,7 +227,7 @@ export default function LoginPage() {
 
 function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPassword: () => void }) {
   const form = useForm<LoginFormData>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
