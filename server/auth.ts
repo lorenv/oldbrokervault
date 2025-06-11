@@ -110,13 +110,28 @@ export function setupAuth(app: Express) {
         try {
           console.log(`Authentication attempt for email: ${email}`);
           
-          const userStart = Date.now();
-          const user = await storage.getUserByEmail(email);
-          console.log(`User lookup took: ${Date.now() - userStart}ms`);
+          // Check email cache first
+          const cacheStart = Date.now();
+          let user = getCachedUserByEmail(email);
+          console.log(`Email cache lookup took: ${Date.now() - cacheStart}ms`);
           
           if (!user) {
-            console.log(`No user found for email: ${email}`);
-            return done(null, false, { message: "Invalid email or password" });
+            console.log(`User not in cache, fetching from database`);
+            const userStart = Date.now();
+            const dbUser = await storage.getUserByEmail(email);
+            console.log(`Database lookup took: ${Date.now() - userStart}ms`);
+            
+            if (!dbUser) {
+              console.log(`No user found for email: ${email}`);
+              return done(null, false, { message: "Invalid email or password" });
+            }
+            
+            user = dbUser;
+            // Cache the user for future requests
+            console.log(`Caching user ${user.id} for email ${email}`);
+            setCachedUser(user);
+          } else {
+            console.log(`User found in email cache: ${user.id}`);
           }
           
           console.log(`User found for ${email}, checking password`);
