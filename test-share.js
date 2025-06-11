@@ -1,5 +1,5 @@
 // Test script to check share endpoint
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function testShare() {
   try {

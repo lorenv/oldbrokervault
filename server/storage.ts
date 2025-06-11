@@ -726,51 +726,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
-    const [doc] = await db.select({
-      id: cimDocuments.id,
-      userId: cimDocuments.userId,
-      title: cimDocuments.title,
-      transcript: cimDocuments.transcript,
-      directions: cimDocuments.directions,
-      regenerationCount: cimDocuments.regenerationCount,
-      analysis: cimDocuments.analysis, // Required field for CimDocument type
-      isUploadedFile: cimDocuments.isUploadedFile,
-      uploadedFileName: cimDocuments.uploadedFileName,
-      uploadedFilePath: cimDocuments.uploadedFilePath,
-      uploadedFileSize: cimDocuments.uploadedFileSize,
-      uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
-      editedContent: cimDocuments.editedContent,
-      logoUrl: cimDocuments.logoUrl,
-      websiteUrl: cimDocuments.websiteUrl,
-      websiteScreenshotUrl: cimDocuments.websiteScreenshotUrl,
-      selectedImages: cimDocuments.selectedImages,
-      createdAt: cimDocuments.createdAt,
-      shareEnabled: cimDocuments.shareEnabled,
-      shareSlug: cimDocuments.shareSlug,
-      sharePassword: cimDocuments.sharePassword,
-      shareExpiresAt: cimDocuments.shareExpiresAt,
-      shareViewCount: cimDocuments.shareViewCount,
-      shareLastViewed: cimDocuments.shareLastViewed,
-      ndaProtected: cimDocuments.ndaProtected,
-      ndaTemplateId: cimDocuments.ndaTemplateId,
-      financialsEnabled: cimDocuments.financialsEnabled,
-      askingPrice: cimDocuments.askingPrice,
-      askingPriceIncluded: cimDocuments.askingPriceIncluded,
-      revenue: cimDocuments.revenue,
-      revenueIncluded: cimDocuments.revenueIncluded,
-      ebitda: cimDocuments.ebitda,
-      ebitdaIncluded: cimDocuments.ebitdaIncluded,
-      currentEditorId: cimDocuments.currentEditorId,
-      currentEditorName: cimDocuments.currentEditorName,
-      editStartedAt: cimDocuments.editStartedAt,
-      lastActivityAt: cimDocuments.lastActivityAt,
-      coverImageUrl: cimDocuments.coverImageUrl,
-      coverImagePosition: cimDocuments.coverImagePosition,
-      coverImageAttribution: cimDocuments.coverImageAttribution,
-      searchVector: cimDocuments.searchVector,
-      version: cimDocuments.version,
-      lastModifiedBy: cimDocuments.lastModifiedBy
-    })
+    const [doc] = await db.select()
       .from(cimDocuments)
       .where(eq(cimDocuments.shareSlug, slug));
     return doc || undefined;
