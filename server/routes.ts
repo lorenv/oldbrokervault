@@ -8,7 +8,7 @@ import { imageManager } from "./image-manager";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
@@ -231,6 +231,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
+      console.log("Environment:", process.env.NODE_ENV);
+      console.log("Database URL exists:", !!process.env.DATABASE_URL);
       console.log("Fetching share data for slug:", shareSlug);
       
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
@@ -291,12 +293,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Parallel fetch for better performance
-      const [userProfile, customSections] = await Promise.all([
-        storage.getUser(cimDoc.userId),
-        storage.getCustomSections(cimDoc.id)
-      ]);
-      console.log("Custom sections found:", customSections.length);
+      // Parallel fetch for better performance with error handling
+      let userProfile = null;
+      let customSections = [];
+      
+      try {
+        [userProfile, customSections] = await Promise.all([
+          storage.getUser(cimDoc.userId),
+          storage.getCustomSections(cimDoc.id)
+        ]);
+        console.log("Custom sections found:", customSections.length);
+      } catch (fetchError) {
+        console.error("Error fetching related data:", fetchError);
+        // Continue with null/empty values rather than failing completely
+        try {
+          userProfile = await storage.getUser(cimDoc.userId);
+        } catch (userError) {
+          console.error("Error fetching user profile:", userError);
+        }
+        try {
+          customSections = await storage.getCustomSections(cimDoc.id);
+        } catch (sectionsError) {
+          console.error("Error fetching custom sections:", sectionsError);
+          customSections = [];
+        }
+      }
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
       

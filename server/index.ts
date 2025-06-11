@@ -70,28 +70,46 @@ app.use((req, res, next) => {
 app.get('/api/security/health', securityHealthCheck);
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    console.error("Error:", err);
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error("=== GLOBAL ERROR HANDLER ===");
+      console.error("Error:", err);
+      console.error("Stack:", err.stack);
+      console.error("Environment:", process.env.NODE_ENV);
 
-    res.status(status).json({ message });
-  });
+      res.status(status).json({ 
+        message,
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message,
+        timestamp: new Date().toISOString()
+      });
+    });
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+      console.log("=== SERVER STARTUP ===");
+      console.log("Environment:", process.env.NODE_ENV);
+      console.log("Database URL set:", !!process.env.DATABASE_URL);
+      console.log("Port:", port);
+    });
+  } catch (startupError) {
+    console.error("=== STARTUP ERROR ===");
+    console.error("Failed to start server:", startupError);
+    console.error("Stack:", (startupError as Error).stack);
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();
