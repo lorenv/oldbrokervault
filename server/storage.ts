@@ -18,7 +18,7 @@ sessionStoreInstance = new PostgresSessionStore({
   tableName: 'session',
   createTableIfMissing: true,
   ttl: 24 * 60 * 60,
-  disableTouch: true,
+  disableTouch: false, // Enable touch to prevent excessive deserializations
   schemaName: 'public',
   pruneSessionInterval: 3600,
   errorLog: () => {},

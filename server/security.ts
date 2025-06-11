@@ -272,7 +272,7 @@ export const getSessionConfig = (isPublicRoute: boolean = false) => ({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: isPublicRoute ? 'lax' as const : 'strict' as const, // Allow cross-site for public routes
   },
-  rolling: true, // Reset expiry on each request
+  rolling: false, // Disable session rolling to prevent excessive deserializations
 });
 
 // Legacy export for backwards compatibility
