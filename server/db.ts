@@ -23,8 +23,8 @@ export const pool = new Pool({
   connectionTimeoutMillis: 10000, // Increased connection timeout
 });
 
-// Set max listeners to prevent warnings
-pool.setMaxListeners(50);
+// Set max listeners to prevent warnings - increased for session store
+pool.setMaxListeners(100);
 
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
