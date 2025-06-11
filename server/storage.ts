@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -15,8 +15,13 @@ export interface IStorage {
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
+  updateDocumentCreationUsage(userId: number): Promise<void>;
+  updateRegenerationUsage(userId: number): Promise<void>;
   resetMonthlyUsage(userId: number): Promise<void>;
   checkUserLimit(userId: number): Promise<boolean>;
+  checkRegenerationLimit(userId: number): Promise<boolean>;
+  createDocumentBaseline(baseline: InsertDocumentBaseline): Promise<DocumentBaseline>;
+  getDocumentBaseline(cimDocumentId: number): Promise<DocumentBaseline | undefined>;
   createCimDocument(userId: number, doc: InsertCimDocument & { 
     analysis: any; 
     regenerationCount: number;
@@ -184,6 +189,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserUsage(userId: number): Promise<void> {
+    // Legacy method - kept for backward compatibility
+    await this.updateDocumentCreationUsage(userId);
+  }
+
+  async updateDocumentCreationUsage(userId: number): Promise<void> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
 
@@ -199,6 +209,27 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({
         monthlyUsage: user.monthlyUsage + 1,
+        monthlyDocumentsCreated: user.monthlyDocumentsCreated + 1,
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async updateRegenerationUsage(userId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    // Reset usage if it's a new month
+    const now = new Date();
+    const lastReset = new Date(user.lastUsageReset);
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+      await this.resetMonthlyUsage(userId);
+      return;
+    }
+
+    await db
+      .update(users)
+      .set({
+        monthlyRegenerationsUsed: user.monthlyRegenerationsUsed + 1,
       })
       .where(eq(users.id, userId));
   }
@@ -208,6 +239,8 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({
         monthlyUsage: 0,
+        monthlyDocumentsCreated: 0,
+        monthlyRegenerationsUsed: 0,
         lastUsageReset: new Date(),
       })
       .where(eq(users.id, userId));
