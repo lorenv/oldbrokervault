@@ -728,7 +728,8 @@ export class DatabaseStorage implements IStorage {
   async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
     const [doc] = await db.select()
       .from(cimDocuments)
-      .where(eq(cimDocuments.shareSlug, slug));
+      .where(eq(cimDocuments.shareSlug, slug))
+      .limit(1);
     return doc || undefined;
   }
 
