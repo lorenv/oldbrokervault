@@ -36,12 +36,13 @@ pool.on('connect', (client) => {
   console.log('Database pool connected');
 });
 
-pool.on('acquire', (client) => {
-  console.log('Database connection acquired from pool');
-});
+// Remove verbose logging to reduce noise
+// pool.on('acquire', (client) => {
+//   console.log('Database connection acquired from pool');
+// });
 
-pool.on('remove', (client) => {
-  console.log('Database connection removed from pool');
-});
+// pool.on('remove', (client) => {
+//   console.log('Database connection removed from pool');
+// });
 
 export const db = drizzle({ client: pool, schema });
