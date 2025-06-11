@@ -30,7 +30,13 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import type { z as ztype } from "zod";
 
-type LoginFormData = ztype.infer<typeof insertUserSchema>;
+// Schema for login form - only email and password
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = ztype.infer<typeof loginSchema>;
 
 // Schema for forgot password form
 const forgotPasswordSchema = z.object({
@@ -211,7 +217,7 @@ export default function AuthPage() {
 
 function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPassword: () => void }) {
   const form = useForm<LoginFormData>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
