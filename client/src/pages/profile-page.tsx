@@ -73,19 +73,37 @@ export default function ProfilePage() {
     setProfileForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "businessLogo" | "profilePhoto") => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "Please choose a file smaller than 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -98,13 +116,30 @@ export default function ProfilePage() {
     }
 
     try {
-      // Convert file to base64 data URL for preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        handleInputChange(field, dataUrl);
-      };
-      reader.readAsDataURL(file);
+      // Compress image before uploading
+      const compressedDataUrl = await compressImage(file, 800, 0.8);
+      
+      // Check compressed size (should be under 2MB base64)
+      if (compressedDataUrl.length > 2 * 1024 * 1024) {
+        // Try with higher compression
+        const moreCompressed = await compressImage(file, 600, 0.6);
+        if (moreCompressed.length > 2 * 1024 * 1024) {
+          toast({
+            title: "Image Too Large",
+            description: "Please choose a smaller image or reduce the image quality.",
+            variant: "destructive",
+          });
+          return;
+        }
+        handleInputChange(field, moreCompressed);
+      } else {
+        handleInputChange(field, compressedDataUrl);
+      }
+      
+      toast({
+        title: "Image Processed",
+        description: "Image has been compressed and optimized for upload.",
+      });
     } catch (error) {
       toast({
         title: "Upload Failed",
