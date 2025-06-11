@@ -15,22 +15,18 @@ let sessionStoreInstance: session.Store | null = null;
 function getSessionStore(): session.Store {
   if (!sessionStoreInstance) {
     // Set max listeners to prevent warnings
-    pool.setMaxListeners(25);
+    pool.setMaxListeners(50);
     
     sessionStoreInstance = new PostgresSessionStore({
       pool,
       tableName: 'session',
       createTableIfMissing: true,
       ttl: 24 * 60 * 60, // 24 hours in seconds
-      disableTouch: false,
+      disableTouch: true, // Reduce database writes
       schemaName: 'public',
-      pruneSessionInterval: 900 // Clean up expired sessions every 15 minutes
+      pruneSessionInterval: 1800, // Clean up every 30 minutes instead of 15
+      errorLog: () => {} // Disable error logging to reduce noise
     });
-    
-    // Set max listeners on the session store too
-    if (sessionStoreInstance.setMaxListeners) {
-      (sessionStoreInstance as any).setMaxListeners(25);
-    }
   }
   return sessionStoreInstance;
 }
