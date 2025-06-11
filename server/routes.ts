@@ -719,10 +719,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Document not found" });
         }
 
-        // Check regeneration limit
-        const plan = subscriptionPlans[req.user!.subscriptionStatus as keyof typeof subscriptionPlans];
-        if (existingDoc.regenerationCount >= plan.regenerationLimit) {
-          return res.status(403).json({ error: "Regeneration limit reached" });
+        // Check global regeneration limit using new tracking system
+        const canRegenerate = await storage.checkRegenerationLimit(req.user!.id);
+        if (!canRegenerate) {
+          return res.status(403).json({ error: "Monthly regeneration limit reached" });
+        }
+
+        // Validate content changes to prevent abuse
+        const baseline = await storage.getDocumentBaseline(docId);
+        if (baseline) {
+          const { ContentValidationService } = await import('./content-validation');
+          const validation = ContentValidationService.validateRegenerationContent(
+            baseline,
+            data.transcript,
+            data.directions,
+            req.body.financials
+          );
+
+          if (!validation.isValid) {
+            return res.status(400).json({ 
+              error: "Content validation failed",
+              reason: validation.reason,
+              similarityScore: validation.similarityScore,
+              suggestion: "These changes appear to represent a different business. Please create a new document instead."
+            });
+          }
         }
 
         // Generate flexible CIM with new directions and customizations
@@ -767,6 +788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           analysis,
           regenerationCount: existingDoc.regenerationCount + 1
         });
+
+        // Track regeneration usage using new system
+        await storage.updateRegenerationUsage(req.user!.id);
 
         return res.json(updatedDoc);
       }
