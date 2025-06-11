@@ -255,8 +255,53 @@ export class DatabaseStorage implements IStorage {
       return true;
     }
 
+    // Reset usage if it's a new month
+    const now = new Date();
+    const lastReset = new Date(user.lastUsageReset);
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+      await this.resetMonthlyUsage(userId);
+      return true; // After reset, user can create documents
+    }
+
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    return user.monthlyUsage < plan.limit;
+    return user.monthlyDocumentsCreated < plan.limit;
+  }
+
+  async checkRegenerationLimit(userId: number): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    // Admin users bypass all limits
+    if (user.isAdmin || user.subscriptionStatus === "admin") {
+      return true;
+    }
+
+    // Reset usage if it's a new month
+    const now = new Date();
+    const lastReset = new Date(user.lastUsageReset);
+    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+      await this.resetMonthlyUsage(userId);
+      return true; // After reset, user can regenerate
+    }
+
+    const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
+    return user.monthlyRegenerationsUsed < plan.regenerationLimit;
+  }
+
+  async createDocumentBaseline(baseline: InsertDocumentBaseline): Promise<DocumentBaseline> {
+    const [created] = await db
+      .insert(documentBaselines)
+      .values(baseline)
+      .returning();
+    return created;
+  }
+
+  async getDocumentBaseline(cimDocumentId: number): Promise<DocumentBaseline | undefined> {
+    const [baseline] = await db
+      .select()
+      .from(documentBaselines)
+      .where(eq(documentBaselines.cimDocumentId, cimDocumentId));
+    return baseline;
   }
 
   async createCimDocument(userId: number, doc: any): Promise<CimDocument> {
@@ -315,7 +360,20 @@ export class DatabaseStorage implements IStorage {
       .values(insertData)
       .returning();
 
-    await this.updateUserUsage(userId);
+    // Create baseline for content validation
+    const { ContentValidationService } = await import('./content-validation');
+    const baseline = ContentValidationService.createBaseline(
+      cimDoc.id,
+      doc.transcript,
+      doc.directions,
+      {
+        revenue: doc.revenue,
+        ebitda: doc.ebitda
+      }
+    );
+    await this.createDocumentBaseline(baseline);
+
+    await this.updateDocumentCreationUsage(userId);
     return cimDoc;
   }
 
@@ -360,7 +418,7 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    await this.updateUserUsage(userId);
+    await this.updateDocumentCreationUsage(userId);
     return cimDoc;
   }
 
