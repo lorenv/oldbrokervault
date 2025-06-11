@@ -8,9 +8,10 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
 
-// User cache to reduce database hits during session deserialization
+// Enhanced user cache for authentication optimization
 const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const emailCache = new Map<string, { user: SelectUser; timestamp: number }>();
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes for better performance
 
 function getCachedUser(id: number): SelectUser | null {
   const cached = userCache.get(id);
@@ -23,12 +24,29 @@ function getCachedUser(id: number): SelectUser | null {
   return null;
 }
 
+function getCachedUserByEmail(email: string): SelectUser | null {
+  const cached = emailCache.get(email);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.user;
+  }
+  if (cached) {
+    emailCache.delete(email);
+  }
+  return null;
+}
+
 function setCachedUser(user: SelectUser): void {
-  userCache.set(user.id, { user, timestamp: Date.now() });
+  const timestamp = Date.now();
+  userCache.set(user.id, { user, timestamp });
+  emailCache.set(user.email, { user, timestamp });
 }
 
 function invalidateUserCache(userId: number): void {
-  userCache.delete(userId);
+  const cached = userCache.get(userId);
+  if (cached) {
+    emailCache.delete(cached.user.email);
+    userCache.delete(userId);
+  }
 }
 
 // Export for use in other modules
