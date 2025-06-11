@@ -479,7 +479,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                           e.stopPropagation();
                           
                           if (doc.shareSlug) {
-                            navigator.clipboard.writeText(`${window.location.origin}/share/${doc.shareSlug}`);
+                            navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
                             toast({
                               title: "Share link copied",
                               description: "The share link has been copied to your clipboard"
@@ -714,7 +714,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={async () => {
                         if (selectedDoc.shareSlug) {
-                          const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
+                          const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${selectedDoc.shareSlug}`;
                           await navigator.clipboard.writeText(shareUrl);
                           toast({
                             title: "Share Link Copied",
@@ -762,7 +762,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     size="sm" 
                     onClick={() => {
                       if (selectedDoc.shareSlug) {
-                        const shareUrl = `${window.location.origin}/share/${selectedDoc.shareSlug}`;
+                        const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${selectedDoc.shareSlug}`;
                         window.open(shareUrl, '_blank');
                       } else {
                         toast({
@@ -799,7 +799,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
       <EmailShareDialog
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog({ open })}
-        shareUrl={emailShareDialog.shareToken ? `${window.location.origin}/share/${emailShareDialog.shareToken}` : ''}
+        shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${emailShareDialog.shareToken}` : ''}
         documentTitle={emailShareDialog.documentTitle || ''}
         senderName={user?.name}
       />
