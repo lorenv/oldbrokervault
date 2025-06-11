@@ -131,33 +131,22 @@ export function setupAuth(app: Express) {
   });
   
   passport.deserializeUser(async (id: number, done) => {
-    const deserializeStart = Date.now();
     try {
-      console.log(`Deserializing user: ${id}`);
-      
       // Check cache first to reduce database hits
-      const cacheStart = Date.now();
       const cachedUser = getCachedUser(id);
-      console.log(`Cache lookup took: ${Date.now() - cacheStart}ms`);
       
       if (cachedUser) {
-        console.log(`User ${id} found in cache (total: ${Date.now() - deserializeStart}ms)`);
         return done(null, cachedUser);
       }
 
-      console.log(`User ${id} not in cache, fetching from database`);
-      const dbStart = Date.now();
       const user = await storage.getUser(id);
-      console.log(`Database lookup took: ${Date.now() - dbStart}ms`);
       
       if (!user) {
-        console.log(`No user found during deserialization for ID: ${id} (total: ${Date.now() - deserializeStart}ms)`);
         return done(null, false);
       }
       
       // Cache the user for future requests
       setCachedUser(user);
-      console.log(`User ${id} fetched and cached successfully (total: ${Date.now() - deserializeStart}ms)`);
       done(null, user);
     } catch (error) {
       console.error(`Deserialization error for user ${id}:`, error);
