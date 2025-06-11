@@ -57,27 +57,53 @@ function isAuthorizedAdmin(user: any): boolean {
   return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
 }
 
-// Function to add rounded corners to images using Sharp
+// Function to add rounded corners to images using Sharp with memory optimization
 async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
+  let sharpInstance: sharp.Sharp | null = null;
+  
   try {
+    // Create Sharp instance with memory optimization
+    sharpInstance = sharp(imageBuffer, {
+      limitInputPixels: 268402689, // ~16k x 16k limit
+      sequentialRead: true,
+      density: 72 // Lower DPI for web use
+    });
+    
     // Get image metadata
-    const image = sharp(imageBuffer);
-    const metadata = await image.metadata();
+    const metadata = await sharpInstance.metadata();
     
     if (!metadata.width || !metadata.height) {
       throw new Error('Could not determine image dimensions');
     }
 
-    // Create rounded rectangle mask
+    // Limit maximum dimensions to prevent memory issues
+    const maxDimension = 2048;
+    let { width, height } = metadata;
+    
+    if (width > maxDimension || height > maxDimension) {
+      const scale = Math.min(maxDimension / width, maxDimension / height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+
+    // Create rounded rectangle mask with optimized dimensions
     const roundedCorners = Buffer.from(
-      `<svg width="${metadata.width}" height="${metadata.height}">
-        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
+      `<svg width="${width}" height="${height}">
+        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="white"/>
       </svg>`
     );
 
-    // Apply the mask to create rounded corners with transparent background
-    const processedImage = await sharp(imageBuffer)
-      .png() // Convert to PNG to support transparency
+    // Apply the mask with memory-optimized processing
+    const processedImage = await sharpInstance
+      .resize(width, height, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .png({
+        quality: 85,
+        compressionLevel: 6,
+        progressive: false
+      })
       .composite([
         {
           input: roundedCorners,
@@ -91,6 +117,11 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
     console.error('Error adding rounded corners:', error);
     // Return original buffer if processing fails
     return imageBuffer;
+  } finally {
+    // Clean up Sharp instance to free memory
+    if (sharpInstance) {
+      sharpInstance.destroy();
+    }
   }
 }
 
@@ -3430,61 +3461,83 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   app.put("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
+    // Add request timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`Profile update timeout for user ${req.user!.id}`);
+        res.status(504).json({ error: "Profile update request timeout" });
+      }
+    }, 30000);
+
     try {
-      console.log('=== PROFILE UPDATE REQUEST ===');
-      console.log('User ID:', req.user!.id);
-      console.log('Request body keys:', Object.keys(req.body));
-      
       const { name, title, phoneNumber, businessName, businessLogo, profilePhoto } = req.body;
       
-      console.log('Profile data received:', {
-        name: name ? 'provided' : 'empty',
-        title: title ? 'provided' : 'empty',
-        phoneNumber: phoneNumber ? 'provided' : 'empty',
-        businessName: businessName ? 'provided' : 'empty',
-        businessLogo: businessLogo ? `${businessLogo.substring(0, 50)}...` : 'empty',
-        profilePhoto: profilePhoto ? `${profilePhoto.substring(0, 50)}...` : 'empty'
-      });
+      // Validate input data
+      if (typeof name !== 'string' && name !== undefined ||
+          typeof title !== 'string' && title !== undefined ||
+          typeof phoneNumber !== 'string' && phoneNumber !== undefined ||
+          typeof businessName !== 'string' && businessName !== undefined) {
+        clearTimeout(timeout);
+        return res.status(400).json({ error: "Invalid input data types" });
+      }
       
-      // Process images with rounded corners if they're provided as base64 data URLs
+      // Process images with size limits and better error handling
       let processedBusinessLogo = businessLogo;
       let processedProfilePhoto = profilePhoto;
       
-      // Process business logo if it's a new upload (starts with data:)
+      // Process business logo if it's a new upload
       if (businessLogo && businessLogo.startsWith('data:image/')) {
         try {
-          console.log('Processing business logo...');
+          // Check size limit (5MB base64 ~ 3.75MB original)
+          if (businessLogo.length > 5 * 1024 * 1024) {
+            clearTimeout(timeout);
+            return res.status(400).json({ error: "Business logo file too large (max 5MB)" });
+          }
+          
           const base64Data = businessLogo.split(',')[1];
+          if (!base64Data) {
+            throw new Error("Invalid base64 data format");
+          }
+          
           const imageBuffer = Buffer.from(base64Data, 'base64');
-          console.log('Business logo buffer size:', imageBuffer.length);
-          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
+          
+          // Use smaller radius and optimize processing
+          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
           processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
-          console.log('Applied rounded corners to business logo - final size:', processedBusinessLogo.length);
         } catch (error) {
-          console.error('Error processing business logo:', error);
-          console.error('Business logo error stack:', error.stack);
-          // Keep original if processing fails
+          console.error('Business logo processing error:', error);
+          // Use original image if processing fails
+          processedBusinessLogo = businessLogo;
         }
       }
       
-      // Process profile photo if it's a new upload (starts with data:)
+      // Process profile photo if it's a new upload
       if (profilePhoto && profilePhoto.startsWith('data:image/')) {
         try {
-          console.log('Processing profile photo...');
+          // Check size limit
+          if (profilePhoto.length > 5 * 1024 * 1024) {
+            clearTimeout(timeout);
+            return res.status(400).json({ error: "Profile photo file too large (max 5MB)" });
+          }
+          
           const base64Data = profilePhoto.split(',')[1];
+          if (!base64Data) {
+            throw new Error("Invalid base64 data format");
+          }
+          
           const imageBuffer = Buffer.from(base64Data, 'base64');
-          console.log('Profile photo buffer size:', imageBuffer.length);
-          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 30);
+          
+          // Use smaller radius and optimize processing
+          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
           processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
-          console.log('Applied rounded corners to profile photo - final size:', processedProfilePhoto.length);
         } catch (error) {
-          console.error('Error processing profile photo:', error);
-          console.error('Profile photo error stack:', error.stack);
-          // Keep original if processing fails
+          console.error('Profile photo processing error:', error);
+          // Use original image if processing fails
+          processedProfilePhoto = profilePhoto;
         }
       }
       
-      console.log('Calling storage.updateUserProfile...');
+      // Update user profile in database
       const updatedUser = await storage.updateUserProfile(req.user!.id, {
         name,
         title,
@@ -3494,7 +3547,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         profilePhoto: processedProfilePhoto
       });
       
-      console.log('Profile update successful, sending response...');
+      // Invalidate user cache to ensure fresh data on next request
+      const { invalidateUserCache } = await import("./auth");
+      invalidateUserCache(req.user!.id);
+      
+      clearTimeout(timeout);
+      
+      // Return sanitized response
       res.json({
         name: updatedUser.name,
         title: updatedUser.title,
@@ -3505,12 +3564,38 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         email: updatedUser.email
       });
     } catch (error) {
-      console.error('=== PROFILE UPDATE ERROR ===');
-      console.error('Error type:', error.constructor.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      console.error('Error details:', error);
-      res.status(500).json({ error: "Failed to update profile" });
+      clearTimeout(timeout);
+      
+      console.error('Profile update error:', error);
+      
+      // Check for specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('pool') || error.message.includes('connection')) {
+          return res.status(503).json({ 
+            error: "Database connection error",
+            message: "Service temporarily unavailable"
+          });
+        }
+        
+        if (error.message.includes('timeout')) {
+          return res.status(504).json({ 
+            error: "Request timeout",
+            message: "Profile update took too long"
+          });
+        }
+        
+        if (error.message.includes('size') || error.message.includes('large')) {
+          return res.status(400).json({ 
+            error: "File too large",
+            message: "Please use smaller images"
+          });
+        }
+      }
+      
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        message: "Please try again later"
+      });
     }
   });
 

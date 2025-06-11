@@ -8,6 +8,32 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
 
+// User cache to reduce database hits during session deserialization
+const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedUser(id: number): SelectUser | null {
+  const cached = userCache.get(id);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.user;
+  }
+  if (cached) {
+    userCache.delete(id); // Remove expired entry
+  }
+  return null;
+}
+
+function setCachedUser(user: SelectUser): void {
+  userCache.set(user.id, { user, timestamp: Date.now() });
+}
+
+function invalidateUserCache(userId: number): void {
+  userCache.delete(userId);
+}
+
+// Export for use in other modules
+export { invalidateUserCache };
+
 declare global {
   namespace Express {
     interface User extends SelectUser {}
@@ -80,6 +106,8 @@ export function setupAuth(app: Express) {
           }
           
           console.log(`Authentication successful for user: ${email}`);
+          // Cache the authenticated user
+          setCachedUser(user);
           return done(null, user);
         } catch (error) {
           console.error(`Authentication error for ${email}:`, error);
@@ -96,13 +124,20 @@ export function setupAuth(app: Express) {
   
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log(`Deserializing user: ${id}`);
+      // Check cache first to reduce database hits
+      const cachedUser = getCachedUser(id);
+      if (cachedUser) {
+        return done(null, cachedUser);
+      }
+
       const user = await storage.getUser(id);
       if (!user) {
         console.log(`No user found during deserialization for ID: ${id}`);
         return done(null, false);
       }
-      console.log(`Successfully deserialized user: ${user.email}`);
+      
+      // Cache the user for future requests
+      setCachedUser(user);
       done(null, user);
     } catch (error) {
       console.error(`Deserialization error for user ${id}:`, error);
