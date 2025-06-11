@@ -301,13 +301,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
       
       // Create streamlined analysis that includes content sections but excludes heavy data
-      let streamlinedAnalysis = null;
+      let streamlinedAnalysis: any = null;
       if (cimDoc.analysis) {
         try {
           const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
           
           // Only include essential fields to reduce processing time
-          streamlinedAnalysis = {};
+          streamlinedAnalysis = {} as any;
           
           if (fullAnalysis.sections) {
             streamlinedAnalysis.sections = fullAnalysis.sections;
@@ -386,10 +386,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error name:", error instanceof Error ? error.name : typeof error);
       console.error("Error message:", error instanceof Error ? error.message : String(error));
       console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Environment info:", {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
+        requestHeaders: req.headers,
+        requestParams: req.params,
+        requestUrl: req.url
+      });
+      
+      // Enhanced error response for debugging
       res.status(500).json({ 
         error: "Failed to fetch shared document", 
         details: error instanceof Error ? error.message : String(error),
-        name: error instanceof Error ? error.name : typeof error
+        name: error instanceof Error ? error.name : typeof error,
+        environment: process.env.NODE_ENV || 'unknown',
+        timestamp: new Date().toISOString()
       });
     }
   });
