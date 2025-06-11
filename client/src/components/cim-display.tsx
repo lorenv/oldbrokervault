@@ -194,9 +194,35 @@ export function CimDisplay({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // State for section management
-  const [sections, setSections] = useState(analysis?.sections || []);
+  // State for section management - convert sections object to array if needed
+  const initializeSections = () => {
+    if (!analysis?.sections) return [];
+    
+    // If sections is already an array, use it directly
+    if (Array.isArray(analysis.sections)) {
+      return analysis.sections;
+    }
+    
+    // If sections is an object, convert to array format
+    if (typeof analysis.sections === 'object') {
+      return Object.entries(analysis.sections).map(([key, value]: [string, any]) => ({
+        id: key,
+        title: value.title || key,
+        content: value.content || value,
+        ...value
+      }));
+    }
+    
+    return [];
+  };
+  
+  const [sections, setSections] = useState(initializeSections());
   const [customSections, setCustomSections] = useState<any[]>([]);
+  
+  // Update sections when analysis changes (e.g., when switching documents)
+  useEffect(() => {
+    setSections(initializeSections());
+  }, [analysis]);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
