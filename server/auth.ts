@@ -88,9 +88,13 @@ export function setupAuth(app: Express) {
     new LocalStrategy(
       { usernameField: "email" },
       async (email, password, done) => {
+        const authStart = Date.now();
         try {
           console.log(`Authentication attempt for email: ${email}`);
+          
+          const userStart = Date.now();
           const user = await storage.getUserByEmail(email);
+          console.log(`User lookup took: ${Date.now() - userStart}ms`);
           
           if (!user) {
             console.log(`No user found for email: ${email}`);
@@ -98,14 +102,16 @@ export function setupAuth(app: Express) {
           }
           
           console.log(`User found for ${email}, checking password`);
+          const passwordStart = Date.now();
           const passwordMatch = await comparePasswords(password, user.password);
+          console.log(`Password check took: ${Date.now() - passwordStart}ms`);
           
           if (!passwordMatch) {
             console.log(`Password mismatch for user: ${email}`);
             return done(null, false, { message: "Invalid email or password" });
           }
           
-          console.log(`Authentication successful for user: ${email}`);
+          console.log(`Authentication successful for user: ${email} (total: ${Date.now() - authStart}ms)`);
           // Cache the authenticated user
           setCachedUser(user);
           return done(null, user);
@@ -118,26 +124,40 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user, done) => {
+    const serializeStart = Date.now();
     console.log(`Serializing user: ${user.id}`);
     done(null, user.id);
+    console.log(`User serialization took: ${Date.now() - serializeStart}ms`);
   });
   
   passport.deserializeUser(async (id: number, done) => {
+    const deserializeStart = Date.now();
     try {
+      console.log(`Deserializing user: ${id}`);
+      
       // Check cache first to reduce database hits
+      const cacheStart = Date.now();
       const cachedUser = getCachedUser(id);
+      console.log(`Cache lookup took: ${Date.now() - cacheStart}ms`);
+      
       if (cachedUser) {
+        console.log(`User ${id} found in cache (total: ${Date.now() - deserializeStart}ms)`);
         return done(null, cachedUser);
       }
 
+      console.log(`User ${id} not in cache, fetching from database`);
+      const dbStart = Date.now();
       const user = await storage.getUser(id);
+      console.log(`Database lookup took: ${Date.now() - dbStart}ms`);
+      
       if (!user) {
-        console.log(`No user found during deserialization for ID: ${id}`);
+        console.log(`No user found during deserialization for ID: ${id} (total: ${Date.now() - deserializeStart}ms)`);
         return done(null, false);
       }
       
       // Cache the user for future requests
       setCachedUser(user);
+      console.log(`User ${id} fetched and cached successfully (total: ${Date.now() - deserializeStart}ms)`);
       done(null, user);
     } catch (error) {
       console.error(`Deserialization error for user ${id}:`, error);
@@ -190,6 +210,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", loginValidation, handleValidationErrors, auditLogger('LOGIN'), (req, res, next) => {
+    const loginStart = Date.now();
     console.log(`Login attempt for email: ${req.body.email}`);
     console.log(`Session ID: ${req.sessionID}`);
     console.log(`Session store type: ${storage.sessionStore.constructor.name}`);
@@ -203,7 +224,11 @@ export function setupAuth(app: Express) {
     }, 30000);
 
     try {
+      const passportStart = Date.now();
       passport.authenticate("local", (err, user, info) => {
+        const passportEnd = Date.now();
+        console.log(`Passport authentication took: ${passportEnd - passportStart}ms`);
+        
         clearTimeout(timeout);
         
         if (err) {
@@ -236,7 +261,11 @@ export function setupAuth(app: Express) {
         console.log("User authenticated successfully:", user.email);
         console.log(`Attempting to establish session for user ${user.id}`);
         
+        const sessionStart = Date.now();
         req.login(user, (err) => {
+          const sessionEnd = Date.now();
+          console.log(`Session establishment took: ${sessionEnd - sessionStart}ms`);
+          
           if (err) {
             console.error("Session establishment error:", err);
             console.error("Session error type:", err.constructor.name);
@@ -259,6 +288,7 @@ export function setupAuth(app: Express) {
           
           console.log("Session established successfully for:", user.email);
           console.log(`Final session ID: ${req.sessionID}`);
+          console.log(`Total login process took: ${Date.now() - loginStart}ms`);
           return res.json(user);
         });
       })(req, res, next);
