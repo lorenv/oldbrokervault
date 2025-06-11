@@ -14,13 +14,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool for production stability
+// Optimize connection pool for fast authentication
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 5, // Reduced from 10 to prevent connection exhaustion
-  min: 1, // Maintain minimum connections
-  idleTimeoutMillis: 20000, // Reduced idle timeout
-  connectionTimeoutMillis: 10000, // Increased connection timeout
+  max: 10, // Increased for better concurrency
+  min: 2, // More minimum connections for faster access
+  idleTimeoutMillis: 30000, // Increased to keep connections alive longer
+  connectionTimeoutMillis: 5000, // Reduced for faster failure detection
 });
 
 // Set max listeners to prevent warnings - increased for session store
