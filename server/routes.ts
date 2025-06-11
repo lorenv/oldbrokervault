@@ -235,8 +235,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Database URL exists:", !!process.env.DATABASE_URL);
       console.log("Fetching share data for slug:", shareSlug);
       
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
-      console.log("Found document:", !!cimDoc, cimDoc?.id);
+      // Retry database operations for production stability
+      let cimDoc = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !cimDoc) {
+        try {
+          cimDoc = await storage.getCimByShareSlug(shareSlug);
+          console.log("Found document:", !!cimDoc, cimDoc?.id);
+          break;
+        } catch (dbError) {
+          retryCount++;
+          console.error(`Database retry ${retryCount}/${maxRetries} for slug ${shareSlug}:`, dbError);
+          
+          if (retryCount >= maxRetries) {
+            throw dbError;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
+        }
+      }
       
       if (!cimDoc) {
         console.log("Document not found for share slug:", shareSlug);
