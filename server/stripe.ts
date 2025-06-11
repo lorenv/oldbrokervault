@@ -95,8 +95,8 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const user = await storage.getUser(userId);
   const customerId = await getOrCreateCustomer(userId, user.email);
 
-  // Use the actual request host if provided, otherwise fallback
-  const baseUrl = requestHost ? `https://${requestHost}` : `https://${process.env.REPL_SLUG}.replit.dev`;
+  // Use the actual request host if provided, otherwise fallback to production domain
+  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
   console.log("Using base URL for redirects:", baseUrl);
 
   try {
