@@ -228,12 +228,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public share endpoints (must be before authentication setup)
   app.get("/api/share/:shareSlug", async (req, res) => {
+    // Set timeout to prevent hanging requests
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error("Share endpoint timeout for slug:", req.params.shareSlug);
+        res.status(504).json({ error: "Request timeout" });
+      }
+    }, 30000); // 30 second timeout
+
     try {
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
       console.log("Environment:", process.env.NODE_ENV);
       console.log("Database URL exists:", !!process.env.DATABASE_URL);
       console.log("Fetching share data for slug:", shareSlug);
+      
+      // Immediate validation
+      if (!shareSlug || shareSlug.length < 3) {
+        clearTimeout(timeout);
+        return res.status(400).json({ error: "Invalid share slug" });
+      }
       
       // Retry database operations for production stability
       let cimDoc = null;
