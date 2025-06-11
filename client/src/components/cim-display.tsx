@@ -427,8 +427,7 @@ export function CimDisplay({
       
       const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         toast({ title: "Logo Deleted", description: "Website logo removed successfully." });
       } else {
         // Revert on error
@@ -450,8 +449,7 @@ export function CimDisplay({
       
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         toast({ title: "Image Deleted", description: "Business image removed successfully." });
       } else {
         // Revert on error
@@ -496,8 +494,8 @@ export function CimDisplay({
         const result = await response.json();
         setLocalLogoUrl(result.logoUrl);
         
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        // Invalidate specific query only to avoid affecting modal state
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         
         toast({ title: "Logo Updated", description: "Logo uploaded successfully." });
       } else {
@@ -544,9 +542,8 @@ export function CimDisplay({
           // Update local state immediately
           setLocalSelectedImages(prev => [...prev, result.imagePath]);
           
-          // Invalidate queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-          queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+          // Invalidate specific query only to avoid affecting modal state
+          queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
           
           toast({ title: "Upload Successful", description: `${file.name} uploaded successfully.` });
         } else {
