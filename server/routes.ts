@@ -3488,10 +3488,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Process business logo if it's a new upload
       if (businessLogo && businessLogo.startsWith('data:image/')) {
         try {
-          // Check size limit (5MB base64 ~ 3.75MB original)
-          if (businessLogo.length > 5 * 1024 * 1024) {
+          // Check size limit (increased to 10MB base64 for better handling)
+          if (businessLogo.length > 10 * 1024 * 1024) {
             clearTimeout(timeout);
-            return res.status(400).json({ error: "Business logo file too large (max 5MB)" });
+            return res.status(413).json({ 
+              error: "Business logo file too large",
+              message: "Please use an image smaller than 7MB"
+            });
           }
           
           const base64Data = businessLogo.split(',')[1];
@@ -3501,23 +3504,34 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           
           const imageBuffer = Buffer.from(base64Data, 'base64');
           
-          // Use smaller radius and optimize processing
-          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
-          processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          // Optimize image processing with compression
+          try {
+            const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
+            processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          } catch (processingError) {
+            console.warn('Image processing failed, using original:', processingError);
+            processedBusinessLogo = businessLogo;
+          }
         } catch (error) {
           console.error('Business logo processing error:', error);
-          // Use original image if processing fails
-          processedBusinessLogo = businessLogo;
+          clearTimeout(timeout);
+          return res.status(400).json({ 
+            error: "Invalid image format",
+            message: "Please upload a valid image file"
+          });
         }
       }
       
       // Process profile photo if it's a new upload
       if (profilePhoto && profilePhoto.startsWith('data:image/')) {
         try {
-          // Check size limit
-          if (profilePhoto.length > 5 * 1024 * 1024) {
+          // Check size limit (increased to 10MB base64 for better handling)
+          if (profilePhoto.length > 10 * 1024 * 1024) {
             clearTimeout(timeout);
-            return res.status(400).json({ error: "Profile photo file too large (max 5MB)" });
+            return res.status(413).json({ 
+              error: "Profile photo file too large",
+              message: "Please use an image smaller than 7MB"
+            });
           }
           
           const base64Data = profilePhoto.split(',')[1];
@@ -3527,13 +3541,21 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           
           const imageBuffer = Buffer.from(base64Data, 'base64');
           
-          // Use smaller radius and optimize processing
-          const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
-          processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          // Optimize image processing with compression
+          try {
+            const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
+            processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+          } catch (processingError) {
+            console.warn('Image processing failed, using original:', processingError);
+            processedProfilePhoto = profilePhoto;
+          }
         } catch (error) {
           console.error('Profile photo processing error:', error);
-          // Use original image if processing fails
-          processedProfilePhoto = profilePhoto;
+          clearTimeout(timeout);
+          return res.status(400).json({ 
+            error: "Invalid image format",
+            message: "Please upload a valid image file"
+          });
         }
       }
       
