@@ -19,7 +19,8 @@ import {
   ImageIcon,
   Upload,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -235,6 +236,8 @@ export function CimDisplay({
   // State for tracking broken images
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
   const [logoError, setLogoError] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [isBusinessImagesUploading, setIsBusinessImagesUploading] = useState(false);
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -508,6 +511,8 @@ export function CimDisplay({
         return;
       }
 
+      setIsLogoUploading(true);
+      
       const formData = new FormData();
       formData.append('logo', file);
 
@@ -531,6 +536,8 @@ export function CimDisplay({
     } catch (error) {
       console.error('Logo upload error:', error);
       toast({ title: "Upload Failed", description: "An error occurred during upload.", variant: "destructive" });
+    } finally {
+      setIsLogoUploading(false);
     }
 
     event.target.value = '';
@@ -683,9 +690,14 @@ export function CimDisplay({
                   size="sm"
                   onClick={() => document.getElementById('logo-upload')?.click()}
                   className="flex items-center gap-2"
+                  disabled={isLogoUploading}
                 >
-                  <Upload className="h-4 w-4" />
-                  {localLogoUrl ? 'Replace Logo' : 'Upload Logo'}
+                  {isLogoUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {isLogoUploading ? 'Uploading...' : (localLogoUrl ? 'Replace Logo' : 'Upload Logo')}
                 </Button>
               </div>
             </div>
@@ -714,9 +726,14 @@ export function CimDisplay({
                   variant="outline"
                   onClick={() => document.getElementById('logo-upload')?.click()}
                   className="flex items-center gap-2"
+                  disabled={isLogoUploading}
                 >
-                  <Upload className="h-4 w-4" />
-                  Upload Your Logo
+                  {isLogoUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {isLogoUploading ? 'Uploading...' : 'Upload Your Logo'}
                 </Button>
               </div>
             )}
