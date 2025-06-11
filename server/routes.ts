@@ -352,9 +352,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaUrl
       });
     } catch (error) {
+      console.error("=== SHARE ROUTE ERROR ===");
       console.error("Error fetching share data:", error);
-      console.error("Stack trace:", error);
-      res.status(500).json({ error: "Failed to fetch shared document", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error name:", error instanceof Error ? error.name : typeof error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
+      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        error: "Failed to fetch shared document", 
+        details: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : typeof error
+      });
     }
   });
 
