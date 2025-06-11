@@ -90,9 +90,21 @@ export default function ProfilePage() {
         canvas.width = width;
         canvas.height = height;
         
-        // Draw and compress
+        // Check if image has transparency by examining the original file type
+        const hasTransparency = file.type === 'image/png' || file.type === 'image/gif';
+        
+        if (!hasTransparency) {
+          // For non-transparent images, fill with white background
+          ctx!.fillStyle = 'white';
+          ctx!.fillRect(0, 0, width, height);
+        }
+        
+        // Draw the image
         ctx?.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        
+        // Use PNG for transparent images, JPEG for others
+        const outputFormat = hasTransparency ? 'image/png' : 'image/jpeg';
+        const compressedDataUrl = canvas.toDataURL(outputFormat, quality);
         resolve(compressedDataUrl);
       };
       
