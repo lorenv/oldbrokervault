@@ -14,18 +14,27 @@ let sessionStoreInstance: session.Store | null = null;
 
 function getSessionStore(): session.Store {
   if (!sessionStoreInstance) {
-    // Set max listeners to prevent warnings
-    pool.setMaxListeners(50);
+    console.log('Creating new session store instance');
     
     sessionStoreInstance = new PostgresSessionStore({
       pool,
       tableName: 'session',
       createTableIfMissing: true,
-      ttl: 24 * 60 * 60, // 24 hours in seconds
-      disableTouch: true, // Reduce database writes
+      ttl: 24 * 60 * 60,
+      disableTouch: true,
       schemaName: 'public',
-      pruneSessionInterval: 1800, // Clean up every 30 minutes instead of 15
-      errorLog: () => {} // Disable error logging to reduce noise
+      pruneSessionInterval: 3600, // Clean up every hour
+      errorLog: () => {}, // Suppress session store errors
+    });
+
+    // Set up proper event handling
+    sessionStoreInstance.setMaxListeners(20);
+    
+    // Handle cleanup on exit
+    process.on('SIGTERM', () => {
+      if (sessionStoreInstance && typeof (sessionStoreInstance as any).close === 'function') {
+        (sessionStoreInstance as any).close();
+      }
     });
   }
   return sessionStoreInstance;
