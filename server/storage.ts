@@ -9,6 +9,23 @@ import * as path from 'path';
 
 const PostgresSessionStore = connectPg(session);
 
+// Create a single session store instance to avoid multiple pool connections
+let sessionStoreInstance: session.Store | null = null;
+
+function getSessionStore(): session.Store {
+  if (!sessionStoreInstance) {
+    sessionStoreInstance = new PostgresSessionStore({
+      pool,
+      tableName: 'session', // Explicit table name
+      createTableIfMissing: true,
+      ttl: 24 * 60 * 60, // 24 hours in seconds
+      disableTouch: false,
+      schemaName: 'public'
+    });
+  }
+  return sessionStoreInstance;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -144,10 +161,7 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-    });
+    this.sessionStore = getSessionStore();
   }
 
   async getUser(id: number): Promise<User | undefined> {

@@ -5,8 +5,7 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Enhanced connection configuration for production stability
-neonConfig.fetchConnectionCache = true;
+// Remove deprecated fetchConnectionCache option and optimize for production
 neonConfig.pipelineConnect = false;
 
 if (!process.env.DATABASE_URL) {
@@ -15,21 +14,34 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure connection pool with better error handling and retries
+// Optimize connection pool for production stability
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: 5, // Reduced from 10 to prevent connection exhaustion
+  min: 1, // Maintain minimum connections
+  idleTimeoutMillis: 20000, // Reduced idle timeout
+  connectionTimeoutMillis: 10000, // Increased connection timeout
 });
+
+// Set max listeners to prevent warnings
+pool.setMaxListeners(20);
 
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
   console.error('Database pool error:', err);
+  // Don't exit process on pool errors in production
 });
 
-pool.on('connect', () => {
+pool.on('connect', (client) => {
   console.log('Database pool connected');
+});
+
+pool.on('acquire', (client) => {
+  console.log('Database connection acquired from pool');
+});
+
+pool.on('remove', (client) => {
+  console.log('Database connection removed from pool');
 });
 
 export const db = drizzle({ client: pool, schema });
