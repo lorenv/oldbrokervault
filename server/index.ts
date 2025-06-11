@@ -11,8 +11,8 @@ setupSecurity(app);
 // Important: Raw body parser for Stripe webhooks must come before JSON parser
 app.use('/api/webhook/stripe', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '10mb' })); // Reduced for security
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' })); // Increased for profile image uploads
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Serve static files for logos and images
 app.use('/logos', express.static('public/logos'));
