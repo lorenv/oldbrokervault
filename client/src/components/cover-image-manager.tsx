@@ -112,7 +112,7 @@ export function CoverImageManager({
         title: "Cover image updated",
         description: "Your cover image has been successfully updated.",
       });
-      onUpdate?.();
+      // Removed onUpdate?.() to prevent modal from closing
     },
     onError: () => {
       toast({
@@ -143,7 +143,7 @@ export function CoverImageManager({
         title: "Cover image removed",
         description: "The cover image has been successfully removed.",
       });
-      onUpdate?.();
+      // Removed onUpdate?.() to prevent modal from closing
     },
     onError: () => {
       toast({
