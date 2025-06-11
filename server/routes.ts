@@ -274,6 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!cimDoc) {
         console.log("Document not found for share slug:", shareSlug);
+        clearTimeout(timeout);
         return res.status(404).json({ error: "Document not found" });
       }
       
@@ -287,6 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!cimDoc.shareEnabled) {
         console.log("ERROR: Sharing disabled for document:", cimDoc.id);
+        clearTimeout(timeout);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
@@ -302,6 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (now > expirationDate) {
           console.log("ERROR: Document has expired");
+          clearTimeout(timeout);
           return res.status(410).json({ error: "This shared link has expired" });
         }
       } else {
@@ -382,6 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      clearTimeout(timeout);
       res.json({
         cim: {
           id: cimDoc.id,
@@ -436,6 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customSections: customSections || []
       });
     } catch (error) {
+      clearTimeout(timeout);
       console.error("=== SHARE ROUTE ERROR ===");
       console.error("Error fetching share data:", error);
       console.error("Error name:", error instanceof Error ? error.name : typeof error);
@@ -450,13 +455,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Enhanced error response for debugging
-      res.status(500).json({ 
-        error: "Failed to fetch shared document", 
-        details: error instanceof Error ? error.message : String(error),
-        name: error instanceof Error ? error.name : typeof error,
-        environment: process.env.NODE_ENV || 'unknown',
-        timestamp: new Date().toISOString()
-      });
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: "Failed to fetch shared document", 
+          details: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : typeof error,
+          environment: process.env.NODE_ENV || 'unknown',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   });
 
