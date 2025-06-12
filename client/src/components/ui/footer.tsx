@@ -20,13 +20,13 @@ export function Footer() {
             <h3 className="text-lg font-semibold">Product</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/pricing">
-                  <a className="text-gray-400 hover:text-white transition-colors">Pricing</a>
+                <Link href="/pricing" className="text-gray-400 hover:text-white transition-colors">
+                  Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/login">
-                  <a className="text-gray-400 hover:text-white transition-colors">Get Started</a>
+                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                  Get Started
                 </Link>
               </li>
             </ul>
