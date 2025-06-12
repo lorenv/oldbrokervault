@@ -196,7 +196,7 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle>Welcome to CIM Share</CardTitle>
           <CardDescription>
-            The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
+            The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and PDF export capability.
             <br /><br />
             <strong>Create a free CIM today!</strong>
           </CardDescription>
