@@ -434,6 +434,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Convert image paths to absolute URLs for share links
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : `${req.protocol}://${req.get('host')}`;
+      
+      const convertImagePaths = (images: string[] | null): string[] => {
+        if (!images) return [];
+        return images.map(imagePath => {
+          if (imagePath.startsWith('http')) {
+            return imagePath; // Already absolute URL
+          }
+          return `${baseUrl}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
+        });
+      };
+      
+      const absoluteSelectedImages = convertImagePaths(cimDoc.selectedImages);
+      const absoluteLogoUrl = cimDoc.logoUrl && !cimDoc.logoUrl.startsWith('http') 
+        ? `${baseUrl}${cimDoc.logoUrl.startsWith('/') ? cimDoc.logoUrl : '/' + cimDoc.logoUrl}`
+        : cimDoc.logoUrl;
+      
+      console.log("Converted image paths:", { 
+        original: cimDoc.selectedImages, 
+        converted: absoluteSelectedImages,
+        baseUrl 
+      });
+
       clearTimeout(timeout);
       res.json({
         cim: {
@@ -441,9 +467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: cimDoc.userId,
           title: cimDoc.title,
           analysis: streamlinedAnalysis,
-          logoUrl: cimDoc.logoUrl,
+          logoUrl: absoluteLogoUrl,
           websiteUrl: cimDoc.websiteUrl,
-          selectedImages: cimDoc.selectedImages,
+          selectedImages: absoluteSelectedImages,
           shareEnabled: cimDoc.shareEnabled,
           shareSlug: cimDoc.shareSlug,
           sharePassword: cimDoc.sharePassword,
@@ -473,8 +499,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : null
         },
         websiteUrl: cimDoc.websiteUrl || '',
-        selectedImages: cimDoc.selectedImages || [],
-        logoUrl: cimDoc.logoUrl || null,
+        selectedImages: absoluteSelectedImages,
+        logoUrl: absoluteLogoUrl,
         userProfileData: userProfile ? {
           name: userProfile.name,
           title: userProfile.title,
