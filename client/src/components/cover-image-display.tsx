@@ -43,9 +43,10 @@ export function CoverImageDisplay({
       
       {/* Attribution */}
       {coverImageAttribution && (
-        <div className="mt-2 text-xs text-gray-500 text-right px-6">
-          {coverImageAttribution}
-        </div>
+        <div 
+          className="mt-2 text-xs text-gray-500 text-right px-6"
+          dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+        />
       )}
     </div>
   );

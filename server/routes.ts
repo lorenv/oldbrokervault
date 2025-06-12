@@ -3128,6 +3128,41 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Unsplash download tracking endpoint
+  app.post("/api/unsplash/download", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { downloadUrl } = req.body;
+      
+      if (!downloadUrl || typeof downloadUrl !== 'string') {
+        return res.status(400).json({ error: "Download URL is required" });
+      }
+
+      const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+      if (!accessKey) {
+        return res.status(500).json({ error: "Unsplash API key not configured" });
+      }
+
+      // Trigger the download event as required by Unsplash API guidelines
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Authorization': `Client-ID ${accessKey}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Unsplash download tracking error: ${response.status}`);
+      }
+
+      res.json({ success: true });
+
+    } catch (error) {
+      console.error("Unsplash download tracking error:", error);
+      res.status(500).json({ error: "Failed to track download" });
+    }
+  });
+
   // Add endpoint to fetch Beaver Builder templates
   app.post("/api/wordpress/fetch-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
