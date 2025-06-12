@@ -180,7 +180,22 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
     }
   };
 
-  const addUnsplashImage = (image: any) => {
+  const addUnsplashImage = async (image: any) => {
+    // Trigger Unsplash download event
+    try {
+      await fetch('/api/unsplash/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          downloadUrl: image.links.download_location
+        })
+      });
+    } catch (error) {
+      console.error('Failed to trigger Unsplash download event:', error);
+    }
+    
     const imageUrl = image.urls?.regular || image.urls?.small;
     if (imageUrl && !selectedImages.includes(imageUrl)) {
       setSelectedImages(prev => [...prev, imageUrl]);

@@ -28,9 +28,15 @@ interface UnsplashImage {
     regular: string;
     full: string;
   };
+  links: {
+    download_location: string;
+  };
   user: {
     name: string;
     username: string;
+    links: {
+      html: string;
+    };
   };
   description?: string;
 }
@@ -191,12 +197,33 @@ export function CoverImageManager({
     }
   };
 
-  const handleUnsplashImageSelect = (image: UnsplashImage) => {
+  const handleUnsplashImageSelect = async (image: UnsplashImage) => {
     setHasUserInteracted(true);
+    
+    // Trigger Unsplash download event
+    try {
+      await fetch('/api/unsplash/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          downloadUrl: image.links.download_location
+        })
+      });
+    } catch (error) {
+      console.error('Failed to trigger Unsplash download event:', error);
+    }
+    
+    // Create attribution with UTM parameters
+    const photographerUrl = `${image.user.links.html}?utm_source=CIM_Generator&utm_medium=referral`;
+    const unsplashUrl = `https://unsplash.com/?utm_source=CIM_Generator&utm_medium=referral`;
+    const attribution = `Photo by <a href="${photographerUrl}" target="_blank" rel="noopener noreferrer">${image.user.name}</a> on <a href="${unsplashUrl}" target="_blank" rel="noopener noreferrer">Unsplash</a>`;
+    
     updateCoverImageMutation.mutate({
       coverImageUrl: image.urls.regular,
       coverImagePosition: JSON.stringify(imagePosition),
-      coverImageAttribution: `Photo by ${image.user.name} on Unsplash`,
+      coverImageAttribution: attribution,
     });
     setIsUnsplashDialogOpen(false);
   };
