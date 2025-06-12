@@ -3134,17 +3134,21 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
     try {
       const { downloadUrl } = req.body;
+      console.log("Unsplash download request received for:", downloadUrl);
       
       if (!downloadUrl || typeof downloadUrl !== 'string') {
+        console.log("Invalid download URL provided");
         return res.status(400).json({ error: "Download URL is required" });
       }
 
       const accessKey = process.env.UNSPLASH_ACCESS_KEY;
       if (!accessKey) {
+        console.log("Unsplash API key not configured");
         return res.status(500).json({ error: "Unsplash API key not configured" });
       }
 
       // Trigger the download event as required by Unsplash API guidelines
+      console.log("Sending download request to Unsplash API");
       const response = await fetch(downloadUrl, {
         headers: {
           'Authorization': `Client-ID ${accessKey}`
@@ -3152,9 +3156,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       });
 
       if (!response.ok) {
+        console.log("Unsplash download request failed:", response.status, response.statusText);
         throw new Error(`Unsplash download tracking error: ${response.status}`);
       }
 
+      console.log("Unsplash download tracking successful");
       res.json({ success: true });
 
     } catch (error) {
