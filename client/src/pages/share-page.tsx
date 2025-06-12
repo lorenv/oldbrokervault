@@ -343,9 +343,10 @@ export function SharePage() {
           
           {/* Cover Image Attribution */}
           {shareData.cim.coverImageAttribution && (
-            <div className="absolute bottom-2 right-2 text-white/70 text-xs bg-black/20 px-2 py-1 rounded backdrop-blur-sm">
-              {shareData.cim.coverImageAttribution}
-            </div>
+            <div 
+              className="absolute bottom-2 right-2 text-white/70 text-xs bg-black/20 px-2 py-1 rounded backdrop-blur-sm"
+              dangerouslySetInnerHTML={{ __html: shareData.cim.coverImageAttribution }}
+            />
           )}
         </div>
       ) : (
