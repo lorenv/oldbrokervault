@@ -291,9 +291,10 @@ export function CoverImageManager({
                 />
                 
                 {attribution && (
-                  <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                    {attribution}
-                  </div>
+                  <div 
+                    className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
+                    dangerouslySetInnerHTML={{ __html: attribution }}
+                  />
                 )}
                 
                 <Button 
