@@ -30,8 +30,8 @@ export default function FeaturesPage() {
     },
     {
       icon: Download,
-      title: "Multiple Export Formats",
-      description: "Export to Word, PDF, HTML, and Google Docs with professional formatting that maintains your brand identity.",
+      title: "PDF Export",
+      description: "Export to professional PDF format with formatting that maintains your brand identity.",
       color: "text-purple-500"
     },
     {
