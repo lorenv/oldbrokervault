@@ -25,9 +25,12 @@ export function SubscriptionCard({
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
   const isStandard = status === "standard";
+  const isAdmin = status === "admin";
 
   const getLimit = () => {
     switch (status) {
+      case "admin":
+        return "Unlimited";
       case "premium":
         return 100;
       case "standard":
@@ -39,6 +42,8 @@ export function SubscriptionCard({
 
   const getRegenerationLimit = () => {
     switch (status) {
+      case "admin":
+        return "Unlimited";
       case "premium":
         return "Unlimited";
       case "standard":
@@ -57,7 +62,7 @@ export function SubscriptionCard({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Subscription Status
-          <Badge variant={isPremium ? "default" : isStandard ? "secondary" : "outline"}>
+          <Badge variant={isAdmin ? "destructive" : isPremium ? "default" : isStandard ? "secondary" : "outline"}>
             {status?.toUpperCase() || "FREE"}
           </Badge>
         </CardTitle>
@@ -91,7 +96,7 @@ export function SubscriptionCard({
                 <div
                   className="bg-primary rounded-full h-2"
                   style={{
-                    width: `${Math.min((monthlyDocumentsCreated / getLimit()) * 100, 100)}%`,
+                    width: `${getLimit() === "Unlimited" ? 0 : Math.min((monthlyDocumentsCreated / (getLimit() as number)) * 100, 100)}%`,
                   }}
                 />
               </div>
@@ -106,7 +111,7 @@ export function SubscriptionCard({
                 <div
                   className="bg-secondary rounded-full h-2"
                   style={{
-                    width: `${status === "premium" ? 0 : Math.min((monthlyRegenerationsUsed / (typeof getRegenerationLimit() === 'number' ? getRegenerationLimit() as number : 100)) * 100, 100)}%`,
+                    width: `${getRegenerationLimit() === "Unlimited" ? 0 : Math.min((monthlyRegenerationsUsed / (getRegenerationLimit() as number)) * 100, 100)}%`,
                   }}
                 />
               </div>
@@ -116,7 +121,7 @@ export function SubscriptionCard({
             </div>
           </div>
 
-          {!isPremium && (
+          {!isPremium && !isAdmin && (
             <Button
               className="w-full"
               variant={subtle ? "outline" : "default"}
