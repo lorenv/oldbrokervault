@@ -694,6 +694,8 @@ export default function AccountPage() {
             status={user?.subscriptionStatus} 
             endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
             monthlyUsage={user?.monthlyUsage}
+            monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
+            monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
           />
         </TabsContent>
 
