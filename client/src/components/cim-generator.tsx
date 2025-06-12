@@ -765,9 +765,10 @@ ${analysis.team.ownerResponsibilities}
                             />
                             
                             {coverImageAttribution && (
-                              <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                                {coverImageAttribution}
-                              </div>
+                              <div 
+                                className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
+                                dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+                              />
                             )}
                             
                             <Button 
