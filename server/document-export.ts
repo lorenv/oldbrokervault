@@ -1863,7 +1863,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             });
             
             // Move cursor below the banner image
-            doc.y = bannerHeight + 20; // Add small margin below banner
+            doc.y = bannerHeight + 60; // Add larger margin below banner
             console.log("Successfully added base64 cover image banner");
           } else if (coverImageUrl.startsWith('http://') || coverImageUrl.startsWith('https://')) {
             // Handle external URL - download and cache first
@@ -1896,7 +1896,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               }
               
               // Move cursor below the banner image
-              doc.y = bannerHeight + 20; // Add small margin below banner
+              doc.y = bannerHeight + 60; // Add larger margin below banner
             } else {
               console.log("Failed to download or cache external cover image");
             }
@@ -2191,7 +2191,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               doc.font('Segoe-Regular')
                  .fillColor('#666666')
                  .fontSize(10)
-                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB | ${file.mimeType || 'Unknown'}`, {
+                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB`, {
                    indent: 20
                  });
               
