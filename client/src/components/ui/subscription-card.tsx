@@ -70,7 +70,11 @@ export function SubscriptionCard({
       <CardContent>
         <div className="space-y-4">
           <div>
-            {status !== "free" ? (
+            {status === "admin" ? (
+              <div className="text-sm text-muted-foreground">
+                <p>Administrator account with unlimited access to all features</p>
+              </div>
+            ) : status !== "free" ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   Your {status} subscription is active until:

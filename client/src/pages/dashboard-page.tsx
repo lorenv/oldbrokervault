@@ -109,8 +109,10 @@ export default function DashboardPage() {
             <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50">
               <SubscriptionCard 
                 status={user?.subscriptionStatus} 
-                endsAt={user?.subscriptionEndsAt} 
+                endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
                 monthlyUsage={user?.monthlyUsage}
+                monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
+                monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
                 subtle={true}
               />
             </div>
