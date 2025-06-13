@@ -442,15 +442,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const convertImagePaths = (images: string[] | null): string[] => {
         if (!images) return [];
         return images.map(imagePath => {
-          if (imagePath.startsWith('http')) {
-            return imagePath; // Already absolute URL
+          if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+            return imagePath; // Already absolute URL or base64 data URI
           }
           return `${baseUrl}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
         });
       };
       
       const absoluteSelectedImages = convertImagePaths(cimDoc.selectedImages);
-      const absoluteLogoUrl = cimDoc.logoUrl && !cimDoc.logoUrl.startsWith('http') 
+      const absoluteLogoUrl = cimDoc.logoUrl && !cimDoc.logoUrl.startsWith('http') && !cimDoc.logoUrl.startsWith('data:')
         ? `${baseUrl}${cimDoc.logoUrl.startsWith('/') ? cimDoc.logoUrl : '/' + cimDoc.logoUrl}`
         : cimDoc.logoUrl;
       

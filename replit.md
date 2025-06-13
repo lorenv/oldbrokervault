@@ -117,8 +117,9 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
-Changelog:
-- June 13, 2025. Initial setup
+- June 13, 2025: Fixed share link image serving - base64 images now display correctly on external domains
+- June 13, 2025: Enhanced CIM generation error logging for better debugging
+- June 13, 2025: Initial setup
 
 ## User Preferences
 
