@@ -196,8 +196,10 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // Special admin code check
-      const isAdmin = req.body.adminCode === process.env.ADMIN_CODE;
+      // Special admin code check - only grant admin if both adminCode is provided and matches env var
+      const isAdmin = req.body.adminCode && 
+                     process.env.ADMIN_CODE && 
+                     req.body.adminCode === process.env.ADMIN_CODE;
 
       const user = await storage.createUser({
         email: req.body.email,
