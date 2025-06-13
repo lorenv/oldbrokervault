@@ -32,13 +32,13 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
 
   const handleFileDownload = async (fileUrl: string, fileName: string) => {
     setIsDownloading(true);
-    
+
     try {
       const response = await fetch(fileUrl, {
         method: 'GET',
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -64,16 +64,16 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
     }
 
     setIsBulkDownloading(true);
-    
+
     try {
       const zip = new JSZip();
-      
+
       for (const file of uploadedFiles) {
         const response = await fetch(file.url, { credentials: 'include' });
         const blob = await response.blob();
         zip.file(file.name, blob);
       }
-      
+
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(zipBlob);
@@ -304,7 +304,7 @@ function ContactCard({ userProfile, logoUrl }: { userProfile: any; logoUrl?: str
           <User className="h-5 w-5" />
           Contact Information
         </h3>
-        
+
         <div className="flex items-start gap-6">
           {/* Profile Photo */}
           {userProfile.profilePhotoUrl && (
@@ -314,7 +314,7 @@ function ContactCard({ userProfile, logoUrl }: { userProfile: any; logoUrl?: str
               className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
             />
           )}
-          
+
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -355,14 +355,14 @@ function ContactCard({ userProfile, logoUrl }: { userProfile: any; logoUrl?: str
                   </p>
                 )}
               </div>
-              
+
               {/* Business Logo */}
               {logoUrl && (
                 <div className="flex justify-end">
                   <img 
                     src={logoUrl} 
                     alt="Company Logo" 
-                    className="max-w-32 max-h-20 object-contain"
+                    className="max-w-20 max-h-12 object-contain"
                   />
                 </div>
               )}
