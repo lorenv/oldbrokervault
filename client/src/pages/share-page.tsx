@@ -16,12 +16,12 @@ export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
   const [matchCims, paramsCims] = useRoute("/cims/:shareSlug");
   const shareSlug = paramsShare?.shareSlug || paramsCims?.shareSlug;
-  
+
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  
+
   // Parallax effect state
   const [scrollY, setScrollY] = useState(0);
   const coverImageRef = useRef<HTMLDivElement>(null);
@@ -86,15 +86,15 @@ export function SharePage() {
         },
         credentials: 'include'
       });
-      
+
       console.log('📡 Share API response:', response.status, response.ok);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Share API error:', response.status, errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('✅ Share data received:', data);
       return data;
@@ -236,7 +236,7 @@ export function SharePage() {
             </CardContent>
           </Card>
         </div>
-        
+
         <NdaDialog
           isOpen={showNdaDialog}
           onClose={() => setShowNdaDialog(false)}
@@ -249,7 +249,7 @@ export function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
         <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden">
@@ -263,10 +263,10 @@ export function SharePage() {
               willChange: 'transform'
             }}
           />
-          
+
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
-          
+
           {/* Header Content Overlay - Bottom Positioned */}
           <div 
             className="absolute inset-x-0 bottom-0 pb-16 px-6 transition-opacity duration-300"
@@ -289,7 +289,7 @@ export function SharePage() {
                   {shareData.cim.description}
                 </p>
               )}
-              
+
               {/* Export Button */}
               <div className="mt-8">
                 <Button
@@ -301,7 +301,7 @@ export function SharePage() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                       });
-                      
+
                       if (response.ok) {
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
@@ -340,7 +340,7 @@ export function SharePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Cover Image Attribution */}
           {shareData.cim.coverImageAttribution && (
             <div 
@@ -368,7 +368,7 @@ export function SharePage() {
                   {shareData.cim.description}
                 </p>
               )}
-              
+
               {/* Export Button */}
               <div className="mt-8">
                 <Button
@@ -380,7 +380,7 @@ export function SharePage() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                       });
-                      
+
                       if (response.ok) {
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
@@ -418,7 +418,7 @@ export function SharePage() {
           </div>
         </div>
       )}
-      
+
       {/* Content section with sidebar layout */}
       <div className="max-w-[90rem] mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -485,7 +485,7 @@ export function SharePage() {
                           </div>
                         ))}
                       </div>
-                      
+
                       {uploadedFiles.length > 1 && (
                         <div className="pt-6 border-t border-gray-200/50">
                           <Button
@@ -575,7 +575,7 @@ export function SharePage() {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Financial Documents Download Section */}
                       <FinancialDocumentsDisplay cimId={shareData.cim.id} />
                     </CardContent>
