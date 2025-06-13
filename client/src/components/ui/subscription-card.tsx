@@ -138,16 +138,11 @@ export function SubscriptionCard({
 
           <ul className="space-y-2 text-sm">
             <li className="flex items-center">
-              ✓ {status === "premium" ? "Unlimited exports" : "PDF & Word exports"}
+              ✓ {status === "premium" ? "Unlimited exports" : "PDF exports"}
             </li>
             <li className="flex items-center">
               ✓ {status === "premium" ? "Priority support" : "Standard support"}
             </li>
-            {status === "premium" && (
-              <li className="flex items-center">
-                ✓ Custom branding options
-              </li>
-            )}
           </ul>
 
           {status === "free" && (
@@ -155,7 +150,6 @@ export function SubscriptionCard({
               <p>Upgrade to Premium for:</p>
               <ul className="list-disc pl-4 mt-2">
                 <li>Generate up to 100 CIMs per month</li>
-                <li>Custom branding options</li>
                 <li>Priority support</li>
               </ul>
             </div>
