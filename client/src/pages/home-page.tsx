@@ -125,6 +125,94 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Example Documents Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">See CIM Share in Action</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Explore real examples of professional CIM documents created with our platform
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Tony's Transmissions Card */}
+            <Card 
+              className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
+              onClick={() => window.open('https://cimshare.com/share/cim-g05o0y', '_blank')}
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold text-gray-900">Tony's Transmissions</CardTitle>
+                  <div className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full">
+                    Live Example
+                  </div>
+                </div>
+                <p className="text-gray-600 text-sm">Automotive transmission repair and service business</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Asking Price</span>
+                    <span className="font-semibold text-blue-600">$5,000,000</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Annual Revenue</span>
+                    <span className="font-semibold text-green-600">$5,500,000</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">EBITDA</span>
+                    <span className="font-semibold text-purple-600">$1,600,000</span>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors">
+                      Click to view full CIM document →
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Premier Tree Trimming Card */}
+            <Card 
+              className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
+              onClick={() => window.open('https://cimshare.com/share/cim-svaq1p', '_blank')}
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold text-gray-900">Premier Tree Trimming</CardTitle>
+                  <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full">
+                    Live Example
+                  </div>
+                </div>
+                <p className="text-gray-600 text-sm">Professional tree care and landscaping services</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Asking Price</span>
+                    <span className="font-semibold text-blue-600">$4,500,000</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">Annual Revenue</span>
+                    <span className="font-semibold text-green-600">$1,400,000</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500">EBITDA</span>
+                    <span className="font-semibold text-purple-600">$8,500,000</span>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500 group-hover:text-green-600 transition-colors">
+                      Click to view full CIM document →
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
         <div className="container mx-auto px-4 text-center">
