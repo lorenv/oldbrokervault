@@ -1113,6 +1113,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(doc);
     } catch (error) {
+      console.error("=== CIM GENERATION ERROR ===");
+      console.error("Error type:", typeof error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Request body keys:", Object.keys(req.body));
+      console.error("User ID:", req.user?.id);
+      console.error("=== END CIM GENERATION ERROR ===");
+      
       res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
