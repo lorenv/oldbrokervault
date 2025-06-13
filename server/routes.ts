@@ -3371,6 +3371,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
+        customSlug: null,
         sharePassword: password,
         shareExpiresAt: expiresAt,
         ndaProtected: requireNda,
@@ -3408,6 +3409,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: doc.shareEnabled,
         shareSlug: newSlug,
+        customSlug: null,
         sharePassword: doc.sharePassword,
         shareExpiresAt: doc.shareExpiresAt,
         ndaProtected: doc.ndaProtected,
@@ -3437,9 +3439,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
     try {
       const docId = parseInt(req.params.id);
-      const { shareEnabled, shareSlug, sharePassword, shareExpiresAt, ndaProtected, ndaTemplateId } = req.body;
+      const { shareEnabled, shareSlug, customSlug, sharePassword, shareExpiresAt, ndaProtected, ndaTemplateId } = req.body;
       
-      console.log("Share settings update:", { docId, shareEnabled, shareSlug, ndaProtected, ndaTemplateId, userId: req.user!.id });
+      console.log("Share settings update:", { docId, shareEnabled, shareSlug, customSlug, ndaProtected, ndaTemplateId, userId: req.user!.id });
 
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
@@ -3455,6 +3457,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled,
         shareSlug,
+        customSlug,
         sharePassword,
         shareExpiresAt,
         ndaProtected,
