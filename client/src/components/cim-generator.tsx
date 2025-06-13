@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 
 import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { OptimizedLoading } from "@/components/ui/optimized-loading";
 import { DocumentExport } from './document-export';  // Fixed import path
 import { CimDisplay } from './cim-display';
 import { CimFileUpload } from './cim-file-upload';
@@ -75,6 +76,19 @@ export function CimGenerator() {
   const [selectedTone, setSelectedTone] = useState<string>('professional');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
+  const [templateNameInput, setTemplateNameInput] = useState<string>('');
+
+  // Cover image state
+  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
+  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
+  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
+  const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Debounced search effect for Unsplash
   useEffect(() => {
@@ -99,19 +113,6 @@ export function CimGenerator() {
       setSelectedTone('professional');
     }, 100);
   }, []);
-  const [templateNameInput, setTemplateNameInput] = useState<string>('');
-
-  // Cover image state
-  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
-  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
-  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
-  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
-  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
-  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
-  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
-  const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load analysis templates from database
   const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
