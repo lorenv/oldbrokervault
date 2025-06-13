@@ -171,6 +171,40 @@ export function CimGenerator() {
     },
   });
 
+  // Form schema and setup first
+  const formSchema = insertCimDocumentSchema.extend({
+    websiteUrl: z
+      .string()
+      .trim()
+      .optional()
+      .refine(
+        (val) => {
+          if (!val) return true;
+          try {
+            const url = val.startsWith('http') ? val : `https://${val}`;
+            new URL(url);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        {
+          message: "Please enter a valid website URL (e.g., example.com or https://example.com)",
+        }
+      ),
+    directions: z.string().min(1, "Analysis directions are required"),
+  });
+  
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      transcript: "",
+      directions: DEFAULT_CIM_DIRECTIONS,
+      websiteUrl: ""
+    }
+  });
+
   // Memoized handlers for better performance
   const handlePresetChange = useCallback((purpose: string, tone?: string, audience?: string) => {
     const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
@@ -203,33 +237,6 @@ export function CimGenerator() {
     deleteTemplateMutation.mutate(templateId);
   }, [deleteTemplateMutation]);
 
-  // Extend the schema with URL validation
-  const formSchema = insertCimDocumentSchema.extend({
-    websiteUrl: z
-      .string()
-      .trim()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val) return true; // Optional field
-          try {
-            // Basic URL validation
-            // Allow URLs without protocol for user convenience
-            const url = val.startsWith('http') ? val : `https://${val}`;
-            new URL(url);
-            
-            // Validate domain is reasonable (has at least one dot and no spaces)
-            return url.includes('.') && !url.includes(' ');
-          } catch (error) {
-            return false;
-          }
-        },
-        { 
-          message: "Please enter a valid website URL (e.g., example.com or https://example.com)" 
-        }
-      )
-  });
-
   // Define the form values type
   type FormValues = {
     title: string;
@@ -237,16 +244,6 @@ export function CimGenerator() {
     directions: string;
     websiteUrl?: string;
   };
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      transcript: "",
-      directions: DEFAULT_CIM_DIRECTIONS,
-      websiteUrl: ""
-    }
-  });
 
   // Function to extract images from website
   const extractImages = async (websiteUrl: string) => {
