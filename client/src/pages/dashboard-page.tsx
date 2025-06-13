@@ -7,14 +7,12 @@ import { FileText, Clock, ArrowRight } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: documents } = useQuery({
+  const { data: documentsResponse } = useQuery({
     queryKey: ["/api/cim"],
   });
 
-  // Debug logging to understand the data structure
-  console.log("Documents data:", documents);
-  console.log("Documents type:", typeof documents);
-  console.log("Is array:", Array.isArray(documents));
+  // Extract documents array from the response
+  const documents = documentsResponse?.documents || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
@@ -31,7 +29,7 @@ export default function DashboardPage() {
             <div className="hidden md:flex items-center space-x-4 text-sm text-gray-500">
               <div className="flex items-center space-x-2">
                 <FileText className="w-4 h-4" />
-                <span>{Array.isArray(documents) ? documents.length : 0} documents</span>
+                <span>{documents.length} documents</span>
               </div>
             </div>
           </div>
@@ -61,7 +59,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {Array.isArray(documents) && documents.length > 0 ? (
+                  {documents.length > 0 ? (
                     documents
                       .slice()
                       .sort((a: any, b: any) => {
@@ -98,7 +96,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-400 mt-1">Create your first CIM document above</p>
                     </div>
                   )}
-                  {Array.isArray(documents) && documents.length > 3 && (
+                  {documents.length > 3 && (
                     <a 
                       href="/documents" 
                       className="block text-sm text-blue-600 hover:text-blue-700 font-medium text-center mt-4 p-2 rounded-lg hover:bg-blue-50 transition-colors"
