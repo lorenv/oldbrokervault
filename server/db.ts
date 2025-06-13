@@ -14,38 +14,35 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool for fast authentication
+// Optimize connection pool for better performance and reduced warnings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Increased for better concurrency
-  min: 2, // More minimum connections for faster access
-  idleTimeoutMillis: 30000, // Increased to keep connections alive longer
-  connectionTimeoutMillis: 5000, // Reduced for faster failure detection
+  max: 8, // Reduced to prevent over-allocation
+  min: 1, // Reduced minimum to save resources
+  idleTimeoutMillis: 60000, // Keep connections alive longer
+  connectionTimeoutMillis: 10000, // Increased timeout for stability
+  allowExitOnIdle: false, // Keep pool alive
 });
 
-// Set max listeners to prevent warnings - increased for session store
-pool.setMaxListeners(100);
+// Set max listeners high enough for session store and other components
+pool.setMaxListeners(500);
 
-// Enhanced error handling for database connections
+// Minimal error handling to reduce noise
 pool.on('error', (err) => {
-  console.error('Database pool error:', err);
-  // Don't exit process on pool errors in production
+  // Only log critical database errors
+  if (err.message && !err.message.includes('Connection terminated')) {
+    console.error('Database pool error:', err.message);
+  }
 });
 
-pool.on('connect', (client) => {
-  console.log('Database pool connected');
+// Remove the 'connect' event listener that was causing excessive logging
+// Only log connection pool startup once
+let connectionLogged = false;
+pool.on('connect', () => {
+  if (!connectionLogged) {
+    console.log('Database pool initialized');
+    connectionLogged = true;
+  }
 });
-
-// Remove verbose logging to reduce noise
-// pool.on('acquire', (client) => {
-//   console.log('Database connection acquired from pool');
-// });
-
-// pool.on('remove', (client) => {
-//   console.log('Database connection removed from pool');
-// });
-
-// Set max listeners to prevent warnings
-pool.setMaxListeners(100);
 
 export const db = drizzle({ client: pool, schema });
