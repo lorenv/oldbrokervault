@@ -34,8 +34,8 @@ function initializeSessionStore() {
     },
   });
 
-  // Set max listeners to prevent warnings
-  sessionStoreInstance.setMaxListeners(200);
+  // Set max listeners to prevent warnings - increase limit for high-traffic scenarios
+  sessionStoreInstance.setMaxListeners(500);
   
   return sessionStoreInstance;
 }

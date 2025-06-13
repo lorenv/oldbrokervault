@@ -25,6 +25,46 @@ import { sendNdaSignedEmail, sendEmail } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 
+// In-memory cache for API responses to improve performance
+const responseCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+// Cache middleware for frequently accessed endpoints
+function cacheMiddleware(ttlMinutes: number = 5) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const cacheKey = `${req.method}:${req.originalUrl}:${req.user?.id || 'anonymous'}`;
+    const cached = responseCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      return res.json(cached.data);
+    }
+    
+    // Override res.json to cache the response
+    const originalJson = res.json;
+    res.json = function(data: any) {
+      responseCache.set(cacheKey, {
+        data,
+        timestamp: Date.now(),
+        ttl: ttlMinutes * 60 * 1000
+      });
+      
+      // Clean up old cache entries periodically
+      if (responseCache.size > 1000) {
+        const now = Date.now();
+        const keysToDelete: string[] = [];
+        responseCache.forEach((value, key) => {
+          if (now - value.timestamp > value.ttl) {
+            keysToDelete.push(key);
+          }
+        });
+        keysToDelete.forEach(key => responseCache.delete(key));
+      }
+      
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  };
+}
 
 // Setup upload directory
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -1812,7 +1852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/cim", async (req, res) => {
+  app.get("/api/cim", cacheMiddleware(1), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     const page = parseInt(req.query.page as string) || 1;
@@ -3627,8 +3667,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Profile management routes
-  app.get("/api/profile", async (req, res) => {
+  // Profile management routes with caching for performance
+  app.get("/api/profile", cacheMiddleware(2), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     const user = await storage.getUser(req.user!.id);
