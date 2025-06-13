@@ -166,6 +166,7 @@ export function DocumentExport({
       const payload = {
         shareEnabled: shareSettings.shareEnabled,
         shareSlug: slug,
+        customSlug: shareSettings.customSlug || null,
         sharePassword: shareSettings.sharePassword || null,
         shareExpiresAt: expiresAt,
         ndaProtected: shareSettings.ndaProtected,

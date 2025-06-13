@@ -730,15 +730,19 @@ export class DatabaseStorage implements IStorage {
   async updateCimShareSettings(id: number, settings: {
     shareEnabled: boolean;
     shareSlug?: string;
+    customSlug?: string | null;
     sharePassword?: string | null;
     shareExpiresAt?: Date | null;
     ndaProtected?: boolean;
     ndaTemplateId?: number | null;
   }): Promise<CimDocument> {
+    // If customSlug is provided, use it as the shareSlug
+    const finalShareSlug = settings.customSlug || settings.shareSlug;
+    
     const [doc] = await db.update(cimDocuments)
       .set({
         shareEnabled: settings.shareEnabled,
-        shareSlug: settings.shareSlug,
+        shareSlug: finalShareSlug,
         sharePassword: settings.sharePassword,
         shareExpiresAt: settings.shareExpiresAt,
         ndaProtected: settings.ndaProtected,
