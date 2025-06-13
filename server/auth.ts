@@ -11,7 +11,7 @@ import { getSessionConfig, loginValidation, registerValidation, handleValidation
 // Enhanced user cache for authentication optimization
 const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
 const emailCache = new Map<string, { user: SelectUser; timestamp: number }>();
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes for better performance
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes to balance performance and freshness
 
 function getCachedUser(id: number): SelectUser | null {
   const cached = userCache.get(id);

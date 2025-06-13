@@ -12,23 +12,36 @@ const PostgresSessionStore = connectPg(session);
 // Create a single session store instance to avoid multiple pool connections
 let sessionStoreInstance: session.Store | null = null;
 
-// Initialize session store immediately to prevent multiple creations
-sessionStoreInstance = new PostgresSessionStore({
-  pool,
-  tableName: 'session',
-  createTableIfMissing: true,
-  ttl: 24 * 60 * 60,
-  disableTouch: false, // Enable touch to prevent excessive deserializations
-  schemaName: 'public',
-  pruneSessionInterval: 3600,
-  errorLog: () => {},
-});
+// Initialize session store with optimized configuration
+function initializeSessionStore() {
+  if (sessionStoreInstance) {
+    return sessionStoreInstance;
+  }
 
-// Set up proper event handling once
-sessionStoreInstance.setMaxListeners(100);
+  sessionStoreInstance = new PostgresSessionStore({
+    pool,
+    tableName: 'session',
+    createTableIfMissing: true,
+    ttl: 24 * 60 * 60, // 24 hours
+    disableTouch: true, // Disable touch to reduce database writes
+    schemaName: 'public',
+    pruneSessionInterval: 60 * 60, // 1 hour instead of default
+    errorLog: (error) => {
+      // Only log actual errors, not routine cleanup
+      if (error && !error.message?.includes('relation "session" does not exist')) {
+        console.error('Session store error:', error);
+      }
+    },
+  });
+
+  // Set max listeners to prevent warnings
+  sessionStoreInstance.setMaxListeners(200);
+  
+  return sessionStoreInstance;
+}
 
 function getSessionStore(): session.Store {
-  return sessionStoreInstance!;
+  return initializeSessionStore();
 }
 
 export interface IStorage {
