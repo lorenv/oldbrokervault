@@ -14,35 +14,38 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool for better performance and reduced warnings
+// Optimize connection pool for fast authentication
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 5, // Further reduced to prevent over-allocation
-  min: 0, // Start with no idle connections
-  idleTimeoutMillis: 30000, // Shorter idle timeout to release connections faster
-  connectionTimeoutMillis: 8000, // Reasonable timeout
-  allowExitOnIdle: true, // Allow pool to exit when idle
+  max: 10, // Increased for better concurrency
+  min: 2, // More minimum connections for faster access
+  idleTimeoutMillis: 30000, // Increased to keep connections alive longer
+  connectionTimeoutMillis: 5000, // Reduced for faster failure detection
 });
 
-// Set max listeners to prevent warnings with buffer for high traffic
-pool.setMaxListeners(1000);
+// Set max listeners to prevent warnings - increased for session store
+pool.setMaxListeners(100);
 
-// Minimal error handling to reduce noise
+// Enhanced error handling for database connections
 pool.on('error', (err) => {
-  // Only log critical database errors
-  if (err.message && !err.message.includes('Connection terminated')) {
-    console.error('Database pool error:', err.message);
-  }
+  console.error('Database pool error:', err);
+  // Don't exit process on pool errors in production
 });
 
-// Remove the 'connect' event listener that was causing excessive logging
-// Only log connection pool startup once
-let connectionLogged = false;
-pool.on('connect', () => {
-  if (!connectionLogged) {
-    console.log('Database pool initialized');
-    connectionLogged = true;
-  }
+pool.on('connect', (client) => {
+  console.log('Database pool connected');
 });
+
+// Remove verbose logging to reduce noise
+// pool.on('acquire', (client) => {
+//   console.log('Database connection acquired from pool');
+// });
+
+// pool.on('remove', (client) => {
+//   console.log('Database connection removed from pool');
+// });
+
+// Set max listeners to prevent warnings
+pool.setMaxListeners(100);
 
 export const db = drizzle({ client: pool, schema });

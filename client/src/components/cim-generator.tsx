@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/select";
 
 import { LoadingAnimation } from "@/components/ui/loading-animation";
-import { OptimizedLoading } from "@/components/ui/optimized-loading";
 import { DocumentExport } from './document-export';  // Fixed import path
 import { CimDisplay } from './cim-display';
 import { CimFileUpload } from './cim-file-upload';
@@ -76,28 +75,6 @@ export function CimGenerator() {
   const [selectedTone, setSelectedTone] = useState<string>('professional');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
-  const [templateNameInput, setTemplateNameInput] = useState<string>('');
-
-  // Cover image state
-  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
-  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
-  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
-  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
-  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
-  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
-  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
-  const coverImageFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Debounced search effect for Unsplash
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(unsplashSearchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [unsplashSearchQuery]);
 
   // Force update to ensure valid values on mount and clear any cached invalid values
   useEffect(() => {
@@ -113,6 +90,18 @@ export function CimGenerator() {
       setSelectedTone('professional');
     }, 100);
   }, []);
+  const [templateNameInput, setTemplateNameInput] = useState<string>('');
+
+  // Cover image state
+  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
+  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
+  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
+  const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load analysis templates from database
   const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
@@ -171,7 +160,42 @@ export function CimGenerator() {
     },
   });
 
-  // Form schema and setup first
+  // Handler to update custom directions when presets change
+  const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
+    const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
+    if (template) {
+      setCustomDirections(template.customDirections);
+      form.setValue('directions', template.customDirections);
+    }
+  };
+
+  // Handler to save custom template - simplified to only save directions text
+  const saveCustomTemplate = (name: string) => {
+    const templateData = {
+      name: name.trim(),
+      customDirections: customDirections
+    };
+    
+    createTemplateMutation.mutate(templateData);
+    setTemplateNameInput('');
+  };
+
+  // Handler to load template - simplified to only load directions text
+  const loadTemplate = (template: any) => {
+    setCustomDirections(template.customDirections);
+    form.setValue("directions", template.customDirections);
+    toast({
+      title: "Template Loaded",
+      description: `"${template.name}" has been loaded successfully.`,
+    });
+  };
+
+  // Handler to delete template
+  const deleteTemplate = (templateId: number) => {
+    deleteTemplateMutation.mutate(templateId);
+  };
+
+  // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
     websiteUrl: z
       .string()
@@ -179,21 +203,32 @@ export function CimGenerator() {
       .optional()
       .refine(
         (val) => {
-          if (!val) return true;
+          if (!val) return true; // Optional field
           try {
+            // Basic URL validation
+            // Allow URLs without protocol for user convenience
             const url = val.startsWith('http') ? val : `https://${val}`;
             new URL(url);
-            return true;
-          } catch {
+            
+            // Validate domain is reasonable (has at least one dot and no spaces)
+            return url.includes('.') && !url.includes(' ');
+          } catch (error) {
             return false;
           }
         },
-        {
-          message: "Please enter a valid website URL (e.g., example.com or https://example.com)",
+        { 
+          message: "Please enter a valid website URL (e.g., example.com or https://example.com)" 
         }
-      ),
-    directions: z.string().min(1, "Analysis directions are required"),
+      )
   });
+
+  // Define the form values type
+  type FormValues = {
+    title: string;
+    transcript: string;
+    directions: string;
+    websiteUrl?: string;
+  };
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -204,46 +239,6 @@ export function CimGenerator() {
       websiteUrl: ""
     }
   });
-
-  // Memoized handlers for better performance
-  const handlePresetChange = useCallback((purpose: string, tone?: string, audience?: string) => {
-    const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
-    if (template) {
-      setCustomDirections(template.customDirections);
-      form.setValue('directions', template.customDirections);
-    }
-  }, [form]);
-
-  const saveCustomTemplate = useCallback((name: string) => {
-    const templateData = {
-      name: name.trim(),
-      customDirections: customDirections
-    };
-    
-    createTemplateMutation.mutate(templateData);
-    setTemplateNameInput('');
-  }, [customDirections, createTemplateMutation]);
-
-  const loadTemplate = useCallback((template: any) => {
-    setCustomDirections(template.customDirections);
-    form.setValue("directions", template.customDirections);
-    toast({
-      title: "Template Loaded",
-      description: `"${template.name}" has been loaded successfully.`,
-    });
-  }, [form, toast]);
-
-  const deleteTemplate = useCallback((templateId: number) => {
-    deleteTemplateMutation.mutate(templateId);
-  }, [deleteTemplateMutation]);
-
-  // Define the form values type
-  type FormValues = {
-    title: string;
-    transcript: string;
-    directions: string;
-    websiteUrl?: string;
-  };
 
   // Function to extract images from website
   const extractImages = async (websiteUrl: string) => {
@@ -280,16 +275,17 @@ export function CimGenerator() {
     }
   };
 
-  // Optimized image and file handlers with useCallback
-  const toggleImageSelection = useCallback((imageUrl: string) => {
+  // Toggle image selection
+  const toggleImageSelection = (imageUrl: string) => {
     setSelectedImages(prev => 
       prev.includes(imageUrl)
         ? prev.filter(url => url !== imageUrl)
         : [...prev, imageUrl]
     );
-  }, []);
+  };
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  // File handling functions
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       setFinancialFiles(prev => [...prev, ...Array.from(files)]);
@@ -297,11 +293,11 @@ export function CimGenerator() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  };
 
-  const removeFile = useCallback((index: number) => {
+  const removeFile = (index: number) => {
     setFinancialFiles(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  };
 
   // Cover image handlers
   const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
