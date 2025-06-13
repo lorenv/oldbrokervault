@@ -117,6 +117,12 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 13, 2025: Implemented comprehensive performance optimizations
+  - Optimized database connection pool (reduced max connections to 5, increased listener limit to 1000)
+  - Added response caching middleware for API endpoints (2-minute cache for profile, 1-minute for documents)
+  - Enhanced CIM generator with memoized callbacks and debounced search functionality
+  - Added skeleton loading states and intelligent pagination prefetching
+  - Created comprehensive error boundary system for better crash prevention
 - June 13, 2025: Fixed share link image serving - base64 images now display correctly on external domains
 - June 13, 2025: Enhanced CIM generation error logging for better debugging
 - June 13, 2025: Initial setup
