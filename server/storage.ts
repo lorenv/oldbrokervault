@@ -503,7 +503,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Single optimized query for documents with count
+    // Single optimized query for documents - select all fields to maintain compatibility
     const results = await db
       .select()
       .from(cimDocuments)
@@ -512,13 +512,22 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
 
-    // Get total count only when needed for pagination
-    const total = results.length < limit ? offset + results.length : 
-      await db
+    // Optimize total count calculation - avoid counting when not needed
+    let total: number;
+    if (results.length < limit) {
+      // If we got fewer results than requested, we're on the last page
+      total = offset + results.length;
+    } else if (page === 1) {
+      // Only calculate exact count on first page for better performance
+      total = await db
         .select({ count: count() })
         .from(cimDocuments)
         .where(whereCondition)
         .then(([result]) => Number(result.count));
+    } else {
+      // For subsequent pages, estimate based on full page
+      total = offset + limit + 1; // +1 to indicate more pages exist
+    }
 
     const documents = results.map(result => ({
       ...result,
