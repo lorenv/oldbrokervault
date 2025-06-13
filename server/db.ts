@@ -17,15 +17,15 @@ if (!process.env.DATABASE_URL) {
 // Optimize connection pool for better performance and reduced warnings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 8, // Reduced to prevent over-allocation
-  min: 1, // Reduced minimum to save resources
-  idleTimeoutMillis: 60000, // Keep connections alive longer
-  connectionTimeoutMillis: 10000, // Increased timeout for stability
-  allowExitOnIdle: false, // Keep pool alive
+  max: 5, // Further reduced to prevent over-allocation
+  min: 0, // Start with no idle connections
+  idleTimeoutMillis: 30000, // Shorter idle timeout to release connections faster
+  connectionTimeoutMillis: 8000, // Reasonable timeout
+  allowExitOnIdle: true, // Allow pool to exit when idle
 });
 
-// Set max listeners high enough for session store and other components
-pool.setMaxListeners(500);
+// Set max listeners to prevent warnings with buffer for high traffic
+pool.setMaxListeners(1000);
 
 // Minimal error handling to reduce noise
 pool.on('error', (err) => {
