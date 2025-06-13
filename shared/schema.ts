@@ -49,8 +49,8 @@ export const users = pgTable("users", {
   title: text("title"),
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
-  businessLogo: text("business_logo"), // File path for business logo
-  profilePhoto: text("profile_photo"), // File path for profile photo
+  businessLogo: text("business_logo"), // Base64 encoded business logo or file path (legacy)
+  profilePhoto: text("profile_photo"), // Base64 encoded profile photo or file path (legacy)
   // Password reset fields
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
@@ -71,10 +71,10 @@ export const cimDocuments = pgTable("cim_documents", {
   uploadedFileSize: integer("uploaded_file_size"),
   uploadedFileMimeType: text("uploaded_file_mime_type"),
   editedContent: jsonb("edited_content"),
-  logoUrl: text("logo_url"),
+  logoUrl: text("logo_url"), // Base64 encoded logo or file path (legacy)
   websiteUrl: text("website_url"),
   websiteScreenshotUrl: text("website_screenshot_url"),
-  selectedImages: text("selected_images").array(),
+  selectedImages: text("selected_images").array(), // Base64 encoded images or file paths (legacy)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // Sharing functionality
   shareEnabled: boolean("share_enabled").default(false).notNull(),
