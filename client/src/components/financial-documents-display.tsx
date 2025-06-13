@@ -28,7 +28,7 @@ export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayPr
   }
 
   return (
-    <div className="mt-8 p-6 bg-slate-50 rounded-xl">
+    <div className="mt-8 p-4 md:p-6 bg-slate-50 rounded-xl">
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
       <div className="space-y-3">
         {files
@@ -37,12 +37,12 @@ export function FinancialDocumentsDisplay({ cimId }: FinancialDocumentsDisplayPr
             <Button
               key={file.id}
               variant="outline"
-              className="flex items-center gap-3 justify-start h-auto p-4 w-full"
+              className="flex items-center gap-2 md:gap-3 justify-start h-auto p-3 md:p-4 w-full"
               onClick={() => window.open(`/api/cim/${cimId}/financial-files/${file.id}/download`, '_blank')}
             >
               <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
-              <div className="text-left flex-1">
-                <div className="font-medium">{file.originalName}</div>
+              <div className="text-left flex-1 min-w-0">
+                <div className="font-medium truncate">{file.originalName}</div>
                 <div className="text-sm text-gray-500">
                   {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
                 </div>
