@@ -1187,31 +1187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "File must be an image" });
       }
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 8);
-      
-      // Determine the correct extension based on whether we're preserving transparency
-      let extension = '.jpg'; // default
-      try {
-        const sharp = require('sharp');
-        const metadata = await sharp(req.file.buffer).metadata();
-        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
-        if (hasAlpha || req.file.mimetype === 'image/png') {
-          extension = '.png';
-        }
-      } catch (error) {
-        // Fall back to original extension if metadata reading fails
-        extension = path.extname(req.file.originalname) || '.jpg';
-      }
-      
-      const filename = `${timestamp}_${randomId}${extension}`;
-      
-      // Ensure the logos directory exists
-      const logosDir = path.join(process.cwd(), 'public', 'logos');
-      if (!fsSync.existsSync(logosDir)) {
-        fsSync.mkdirSync(logosDir, { recursive: true });
-      }
+      // No need for file system operations - storing as base64
 
       // Optimize image before saving
       let processedBuffer = req.file.buffer;
@@ -1257,14 +1233,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Fall back to original buffer if sharp fails
       }
 
-      // Save the optimized file
-      const filepath = path.join(logosDir, filename);
-      fsSync.writeFileSync(filepath, processedBuffer);
+      // Convert to base64 data URL for persistent storage
+      let mimeType = 'image/png'; // Since we're always converting to PNG
+      const base64Data = processedBuffer.toString('base64');
+      const logoUrl = `data:${mimeType};base64,${base64Data}`;
       
-      const logoUrl = `/logos/${filename}`;
-      console.log(`Logo saved to: ${logoUrl}`);
+      console.log(`Logo converted to base64 (${base64Data.length} characters)`);
 
-      // Update the CIM document with the new logo URL
+      // Update the CIM document with the base64 logo
       await storage.updateCimDocument(cimId, { logoUrl });
 
       res.json({ 
