@@ -375,35 +375,21 @@ export default function AccountPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Email Section */}
-                  <div className="space-y-4">
-                    <div className="border-b border-gray-200 pb-2">
-                      <h4 className="text-sm font-medium text-gray-900">Email Address</h4>
-                      <p className="text-xs text-gray-500">Update your account email address</p>
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Email Address</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" placeholder="Enter your email address" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  {/* Password Section */}
-                  <div className="space-y-4">
-                    <div className="border-b border-gray-200 pb-2">
-                      <h4 className="text-sm font-medium text-gray-900">Change Password (Optional)</h4>
-                      <p className="text-xs text-gray-500">Leave blank to keep your current password</p>
-                    </div>
-                    
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="newPassword"
@@ -411,7 +397,7 @@ export default function AccountPage() {
                         <FormItem>
                           <FormLabel>New Password (Optional)</FormLabel>
                           <FormControl>
-                            <Input {...field} type="password" placeholder="Leave blank to keep current password" />
+                            <Input {...field} type="password" placeholder="Leave blank to keep current" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -425,7 +411,7 @@ export default function AccountPage() {
                         <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
                           <FormControl>
-                            <Input {...field} type="password" placeholder="Confirm new password if changing" />
+                            <Input {...field} type="password" placeholder="Confirm new password" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -433,46 +419,6 @@ export default function AccountPage() {
                     />
                   </div>
 
-                  {/* Verification Section */}
-                  <div className="space-y-4">
-                    <div className="border-b border-gray-200 pb-2">
-                      <h4 className="text-sm font-medium text-gray-900">Verification Required</h4>
-                      <p className="text-xs text-gray-500">Enter your current password to confirm changes</p>
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="password" placeholder="Enter your current password" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <Button type="submit" disabled={isUpdating} className="w-full">
-                    {isUpdating ? "Updating Account..." : "Update Account"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="currentPassword"
@@ -480,35 +426,7 @@ export default function AccountPage() {
                       <FormItem>
                         <FormLabel>Current Password</FormLabel>
                         <FormControl>
-                          <Input {...field} type="password" placeholder="Enter your current password" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Must be at least 8 characters" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Re-enter your new password" />
+                          <Input {...field} type="password" placeholder="Required to save any changes" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -516,7 +434,7 @@ export default function AccountPage() {
                   />
 
                   <Button type="submit" disabled={isUpdating} className="w-full">
-                    {isUpdating ? "Updating..." : "Change Password"}
+                    {isUpdating ? "Updating..." : "Save Changes"}
                   </Button>
                 </form>
               </Form>
