@@ -11,6 +11,11 @@ export default function DashboardPage() {
     queryKey: ["/api/cim"],
   });
 
+  // Debug logging to understand the data structure
+  console.log("Documents data:", documents);
+  console.log("Documents type:", typeof documents);
+  console.log("Is array:", Array.isArray(documents));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Welcome Header */}
