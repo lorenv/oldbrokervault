@@ -12,36 +12,23 @@ const PostgresSessionStore = connectPg(session);
 // Create a single session store instance to avoid multiple pool connections
 let sessionStoreInstance: session.Store | null = null;
 
-// Initialize session store with optimized configuration
-function initializeSessionStore() {
-  if (sessionStoreInstance) {
-    return sessionStoreInstance;
-  }
+// Initialize session store immediately to prevent multiple creations
+sessionStoreInstance = new PostgresSessionStore({
+  pool,
+  tableName: 'session',
+  createTableIfMissing: true,
+  ttl: 24 * 60 * 60,
+  disableTouch: false, // Enable touch to prevent excessive deserializations
+  schemaName: 'public',
+  pruneSessionInterval: 3600,
+  errorLog: () => {},
+});
 
-  sessionStoreInstance = new PostgresSessionStore({
-    pool,
-    tableName: 'session',
-    createTableIfMissing: true,
-    ttl: 24 * 60 * 60, // 24 hours
-    disableTouch: true, // Disable touch to reduce database writes
-    schemaName: 'public',
-    pruneSessionInterval: 60 * 60, // 1 hour instead of default
-    errorLog: (error) => {
-      // Only log actual errors, not routine cleanup
-      if (error && !error.message?.includes('relation "session" does not exist')) {
-        console.error('Session store error:', error);
-      }
-    },
-  });
-
-  // Set max listeners to prevent warnings - increase limit for high-traffic scenarios
-  sessionStoreInstance.setMaxListeners(500);
-  
-  return sessionStoreInstance;
-}
+// Set up proper event handling once
+sessionStoreInstance.setMaxListeners(100);
 
 function getSessionStore(): session.Store {
-  return initializeSessionStore();
+  return sessionStoreInstance!;
 }
 
 export interface IStorage {
@@ -503,7 +490,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Single optimized query for documents - select all fields to maintain compatibility
+    // Single optimized query for documents with count
     const results = await db
       .select()
       .from(cimDocuments)
@@ -512,22 +499,13 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
 
-    // Optimize total count calculation - avoid counting when not needed
-    let total: number;
-    if (results.length < limit) {
-      // If we got fewer results than requested, we're on the last page
-      total = offset + results.length;
-    } else if (page === 1) {
-      // Only calculate exact count on first page for better performance
-      total = await db
+    // Get total count only when needed for pagination
+    const total = results.length < limit ? offset + results.length : 
+      await db
         .select({ count: count() })
         .from(cimDocuments)
         .where(whereCondition)
         .then(([result]) => Number(result.count));
-    } else {
-      // For subsequent pages, estimate based on full page
-      total = offset + limit + 1; // +1 to indicate more pages exist
-    }
 
     const documents = results.map(result => ({
       ...result,

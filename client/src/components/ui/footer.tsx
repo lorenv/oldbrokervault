@@ -37,8 +37,8 @@ export function Footer() {
             <h3 className="text-lg font-semibold">Support</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
-                  Contact Us
+                <Link href="/contact">
+                  <a className="text-gray-400 hover:text-white transition-colors">Contact Us</a>
                 </Link>
               </li>
               <li>
@@ -59,18 +59,24 @@ export function Footer() {
             <h3 className="text-lg font-semibold">Legal</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors">
-                  Privacy Policy
+                <Link href="/privacy-policy">
+                  <a className="text-gray-400 hover:text-white transition-colors">
+                    Privacy Policy
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/terms-of-service" className="text-gray-400 hover:text-white transition-colors">
-                  Terms of Service
+                <Link href="/terms-of-service">
+                  <a className="text-gray-400 hover:text-white transition-colors">
+                    Terms of Service
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/cookie-policy" className="text-gray-400 hover:text-white transition-colors">
-                  Cookie Policy
+                <Link href="/cookie-policy">
+                  <a className="text-gray-400 hover:text-white transition-colors">
+                    Cookie Policy
+                  </a>
                 </Link>
               </li>
             </ul>

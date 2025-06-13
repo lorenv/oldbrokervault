@@ -99,31 +99,9 @@ export function prefetchCimDocument(docId: number) {
   });
 }
 
-export function prefetchUserDocuments(page: number = 1, search?: string) {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: "12"
-  });
-  if (search) {
-    params.append("search", search);
-  }
-  
+export function prefetchUserDocuments() {
   return queryClient.prefetchQuery({
-    queryKey: ["/api/cim", page, search],
-    queryFn: async () => {
-      const response = await fetch(`/api/cim?${params}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch documents');
-      return response.json();
-    },
+    queryKey: ["/api/cim"],
     staleTime: 1000 * 60 * 5,
   });
-}
-
-// Prefetch next page for pagination
-export function prefetchNextPage(currentPage: number, search?: string, totalPages?: number) {
-  if (totalPages && currentPage < totalPages) {
-    prefetchUserDocuments(currentPage + 1, search);
-  }
 }
