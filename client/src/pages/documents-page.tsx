@@ -203,6 +203,9 @@ export default function DocumentsPage() {
   const [matched, params] = useRoute('/documents/:id');
   const [location, setLocation] = useLocation();
   
+  // Fetch full document data when editing
+  const { data: fullSelectedDoc } = useCimDocument(selectedDoc?.id, !!selectedDoc);
+  
   // Effect to set the selected document based on URL parameter
   useEffect(() => {
     if (matched && params?.id && documents) {
@@ -779,13 +782,13 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
               </div>
             </DialogHeader>
             <CimDisplay 
-              analysis={selectedDoc.analysis} 
+              analysis={fullSelectedDoc?.analysis || selectedDoc.analysis} 
               docId={selectedDoc.id}
-              websiteUrl={selectedDoc.websiteUrl || undefined}
-              logoUrl={selectedDoc.logoUrl || undefined}
-              selectedImages={selectedDoc.selectedImages || undefined}
-              title={selectedDoc.title}
-              cimDocument={selectedDoc}
+              websiteUrl={fullSelectedDoc?.websiteUrl || selectedDoc.websiteUrl || undefined}
+              logoUrl={fullSelectedDoc?.logoUrl || selectedDoc.logoUrl || undefined}
+              selectedImages={fullSelectedDoc?.selectedImages || selectedDoc.selectedImages || undefined}
+              title={fullSelectedDoc?.title || selectedDoc.title}
+              cimDocument={fullSelectedDoc || selectedDoc}
               autoTriggerShare={autoTriggerShare}
               onShareTriggered={() => setAutoTriggerShare(false)}
             />
