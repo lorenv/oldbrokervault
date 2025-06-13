@@ -598,28 +598,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
+      // Convert images to base64 for PDF generation (same as share page display)
+      const convertImageToBase64 = async (imagePath: string): Promise<string | null> => {
+        try {
+          if (imagePath.startsWith('data:')) {
+            return imagePath; // Already base64
+          }
+          
+          if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+            return imagePath; // External URLs - let PDF handler download them
+          }
+          
+          // Handle local file paths
+          const resolvedPath = path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, ''));
+          
+          if (fs.existsSync(resolvedPath)) {
+            const imageBuffer = await fs.promises.readFile(resolvedPath);
+            const ext = path.extname(resolvedPath).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' : 
+                           ext === '.gif' ? 'image/gif' : 'image/jpeg';
+            return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+          }
+          
+          console.log(`Image file not found for PDF: ${resolvedPath}`);
+          return null;
+        } catch (error) {
+          console.error(`Failed to convert image to base64: ${imagePath}`, error);
+          return null;
+        }
+      };
+
+      // Convert logo to base64
+      let logoBase64: string | undefined = undefined;
+      if (cimDoc.logoUrl) {
+        console.log("Converting logo to base64 for PDF:", cimDoc.logoUrl);
+        logoBase64 = await convertImageToBase64(cimDoc.logoUrl) || undefined;
+        console.log("Logo conversion result:", logoBase64 ? "success" : "failed");
+      }
+
+      // Convert selected images to base64
+      let selectedImagesBase64: string[] | undefined = undefined;
+      if (cimDoc.selectedImages && cimDoc.selectedImages.length > 0) {
+        console.log("Converting selected images to base64 for PDF, count:", cimDoc.selectedImages.length);
+        const converted = await Promise.all(
+          cimDoc.selectedImages.map(async (imagePath: string) => {
+            const base64 = await convertImageToBase64(imagePath);
+            return base64;
+          })
+        );
+        selectedImagesBase64 = converted.filter((img): img is string => img !== null);
+        console.log("Selected images conversion result:", selectedImagesBase64.length, "successful");
+      }
+
+      // Convert cover image to base64
+      let coverImageBase64: string | undefined = undefined;
+      if (cimDoc.coverImageUrl) {
+        console.log("Converting cover image to base64 for PDF:", cimDoc.coverImageUrl);
+        coverImageBase64 = await convertImageToBase64(cimDoc.coverImageUrl) || undefined;
+        console.log("Cover image conversion result:", coverImageBase64 ? "success" : "failed");
+      }
+
       console.log("About to call generatePDF function...");
       console.log("Parameters being passed to generatePDF:");
       console.log("- analysis:", !!cimDoc.analysis ? "present" : "missing");
-      console.log("- logoUrl:", cimDoc.logoUrl);
+      console.log("- logoUrl (base64):", logoBase64 ? "converted" : "none");
       console.log("- websiteUrl:", cimDoc.websiteUrl);
-      console.log("- selectedImages:", cimDoc.selectedImages);
+      console.log("- selectedImages (base64):", selectedImagesBase64?.length || 0);
       console.log("- userProfile:", JSON.stringify(userProfile, null, 2));
       console.log("- financialData:", JSON.stringify(financialData, null, 2));
       console.log("- customSections:", JSON.stringify(customSections, null, 2));
+      console.log("- coverImage (base64):", coverImageBase64 ? "converted" : "none");
       
       const pdfBuffer = await generatePDF(
         cimDoc.analysis,
-        cimDoc.logoUrl || undefined,
+        logoBase64,
         cimDoc.websiteUrl || undefined,
-        cimDoc.selectedImages ? cimDoc.selectedImages : undefined,
+        selectedImagesBase64,
         userProfile,
         financialData,
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
         customSections,
-        cimDoc.coverImageUrl || undefined,
+        coverImageBase64,
         cimDoc.coverImagePosition
       );
       
