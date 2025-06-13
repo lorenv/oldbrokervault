@@ -420,8 +420,8 @@ export function SharePage() {
       )}
       
       {/* Content section with sidebar layout */}
-      <div className="max-w-[90rem] mx-auto px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main content area */}
           <div className="flex-1 min-w-0 space-y-6">
             {shareData.cim.isUploadedFile ? (
@@ -599,10 +599,10 @@ export function SharePage() {
                           href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-2xl font-semibold text-green-600 hover:text-green-700 transition-colors duration-200 hover:underline"
+                          className="inline-flex items-center gap-2 text-xl md:text-2xl font-semibold text-green-600 hover:text-green-700 transition-colors duration-200 hover:underline break-all"
                         >
-                          {shareData.websiteUrl.replace(/^https?:\/\//, '')}
-                          <ExternalLink className="h-5 w-5" />
+                          <span className="break-all">{shareData.websiteUrl.replace(/^https?:\/\//, '')}</span>
+                          <ExternalLink className="h-5 w-5 flex-shrink-0" />
                         </a>
                         <p className="text-gray-600 mt-3 text-lg">
                           Visit the company website to learn more
