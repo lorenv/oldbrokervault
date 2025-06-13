@@ -362,7 +362,7 @@ function ContactCard({ userProfile, logoUrl }: { userProfile: any; logoUrl?: str
                   <img 
                     src={logoUrl} 
                     alt="Company Logo" 
-                    className="max-w-32 max-h-20 object-contain"
+                    className="max-w-20 max-h-12 object-contain"
                   />
                 </div>
               )}
