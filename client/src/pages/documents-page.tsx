@@ -11,9 +11,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentExport } from "@/components/document-export";
 import { CimDisplay } from "@/components/cim-display";
-import { DocumentSkeleton } from "@/components/ui/skeleton";
+import { DocumentSkeleton } from "@/components/ui/document-skeleton";
 import { Input } from "@/components/ui/input";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, prefetchNextPage } from "@/lib/queryClient";
 import { EmailShareDialog } from "@/components/email-share-dialog";
 import {
   DropdownMenu,
@@ -184,6 +184,13 @@ export default function DocumentsPage() {
   const totalDocuments = paginatedData?.total || 0;
   const hasMore = paginatedData?.hasMore || false;
   const totalPages = Math.ceil(totalDocuments / 12);
+
+  // Prefetch next page when current page loads successfully
+  React.useEffect(() => {
+    if (!documentsLoading && paginatedData && hasMore) {
+      prefetchNextPage(currentPage, debouncedSearchQuery, totalPages);
+    }
+  }, [documentsLoading, paginatedData, hasMore, currentPage, debouncedSearchQuery, totalPages]);
   
   const [selectedDoc, setSelectedDoc] = useState<CimDocumentWithAnalysis | null>(null);
   const [isWordPressDialogOpen, setIsWordPressDialogOpen] = useState(false);
