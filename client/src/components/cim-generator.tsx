@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -76,6 +76,15 @@ export function CimGenerator() {
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
 
+  // Debounced search effect for Unsplash
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(unsplashSearchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [unsplashSearchQuery]);
+
   // Force update to ensure valid values on mount and clear any cached invalid values
   useEffect(() => {
     // Clear any potential cached invalid values
@@ -100,6 +109,7 @@ export function CimGenerator() {
   const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
   const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
   const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -160,17 +170,16 @@ export function CimGenerator() {
     },
   });
 
-  // Handler to update custom directions when presets change
-  const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
+  // Memoized handlers for better performance
+  const handlePresetChange = useCallback((purpose: string, tone?: string, audience?: string) => {
     const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
     if (template) {
       setCustomDirections(template.customDirections);
       form.setValue('directions', template.customDirections);
     }
-  };
+  }, [form]);
 
-  // Handler to save custom template - simplified to only save directions text
-  const saveCustomTemplate = (name: string) => {
+  const saveCustomTemplate = useCallback((name: string) => {
     const templateData = {
       name: name.trim(),
       customDirections: customDirections
@@ -178,22 +187,20 @@ export function CimGenerator() {
     
     createTemplateMutation.mutate(templateData);
     setTemplateNameInput('');
-  };
+  }, [customDirections, createTemplateMutation]);
 
-  // Handler to load template - simplified to only load directions text
-  const loadTemplate = (template: any) => {
+  const loadTemplate = useCallback((template: any) => {
     setCustomDirections(template.customDirections);
     form.setValue("directions", template.customDirections);
     toast({
       title: "Template Loaded",
       description: `"${template.name}" has been loaded successfully.`,
     });
-  };
+  }, [form, toast]);
 
-  // Handler to delete template
-  const deleteTemplate = (templateId: number) => {
+  const deleteTemplate = useCallback((templateId: number) => {
     deleteTemplateMutation.mutate(templateId);
-  };
+  }, [deleteTemplateMutation]);
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -275,17 +282,16 @@ export function CimGenerator() {
     }
   };
 
-  // Toggle image selection
-  const toggleImageSelection = (imageUrl: string) => {
+  // Optimized image and file handlers with useCallback
+  const toggleImageSelection = useCallback((imageUrl: string) => {
     setSelectedImages(prev => 
       prev.includes(imageUrl)
         ? prev.filter(url => url !== imageUrl)
         : [...prev, imageUrl]
     );
-  };
+  }, []);
 
-  // File handling functions
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       setFinancialFiles(prev => [...prev, ...Array.from(files)]);
@@ -293,11 +299,11 @@ export function CimGenerator() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     setFinancialFiles(prev => prev.filter((_, i) => i !== index));
-  };
+  }, []);
 
   // Cover image handlers
   const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
