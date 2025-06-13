@@ -135,80 +135,52 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Tony's Transmissions Card */}
-            <Card 
-              className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Tony's Transmissions Image Card */}
+            <div 
+              className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
               onClick={() => window.open('https://cimshare.com/share/cim-g05o0y', '_blank')}
             >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-semibold text-gray-900">Tony's Transmissions</CardTitle>
-                  <div className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full">
-                    Live Example
-                  </div>
+              <img 
+                src="/tonys-transmissions-preview.png" 
+                alt="Tony's Transmissions CIM Document Preview"
+                className="w-full h-auto object-cover"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-blue-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
                 </div>
-                <p className="text-gray-600 text-sm">Automotive transmission repair and service business</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Asking Price</span>
-                    <span className="font-semibold text-blue-600">$5,000,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Annual Revenue</span>
-                    <span className="font-semibold text-green-600">$5,500,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">EBITDA</span>
-                    <span className="font-semibold text-purple-600">$1,600,000</span>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors">
-                      Click to view full CIM document →
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
 
-            {/* Premier Tree Trimming Card */}
-            <Card 
-              className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
+            {/* Premier Tree Trimming Image Card */}
+            <div 
+              className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
               onClick={() => window.open('https://cimshare.com/share/cim-svaq1p', '_blank')}
             >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-semibold text-gray-900">Premier Tree Trimming</CardTitle>
-                  <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full">
-                    Live Example
-                  </div>
+              <img 
+                src="/premier-tree-trimming-preview.png" 
+                alt="Premier Tree Trimming CIM Document Preview"
+                className="w-full h-auto object-cover"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-green-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                  Live Example
                 </div>
-                <p className="text-gray-600 text-sm">Professional tree care and landscaping services</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Asking Price</span>
-                    <span className="font-semibold text-blue-600">$4,500,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Annual Revenue</span>
-                    <span className="font-semibold text-green-600">$1,400,000</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">EBITDA</span>
-                    <span className="font-semibold text-purple-600">$8,500,000</span>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-gray-500 group-hover:text-green-600 transition-colors">
-                      Click to view full CIM document →
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

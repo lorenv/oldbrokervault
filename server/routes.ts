@@ -612,8 +612,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Handle local file paths
           const resolvedPath = path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, ''));
           
-          if (fs.existsSync(resolvedPath)) {
-            const imageBuffer = await fs.promises.readFile(resolvedPath);
+          if (fsSync.existsSync(resolvedPath)) {
+            const imageBuffer = await fs.readFile(resolvedPath);
             const ext = path.extname(resolvedPath).toLowerCase();
             const mimeType = ext === '.png' ? 'image/png' : 
                            ext === '.gif' ? 'image/gif' : 'image/jpeg';
