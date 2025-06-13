@@ -1300,27 +1300,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(403);
       }
 
-      // Ensure business images directory exists
-      if (!fsSync.existsSync(businessImagesDir)) {
-        fsSync.mkdirSync(businessImagesDir, { recursive: true });
+      // Optimize and convert image to base64 for persistent storage
+      let processedBuffer = req.file.buffer;
+      let mimeType = req.file.mimetype;
+      
+      try {
+        // Use sharp to resize and optimize the image
+        const sharp = require('sharp');
+        const image = sharp(req.file.buffer);
+        
+        // Check if the original image has transparency
+        const metadata = await image.metadata();
+        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
+        
+        if (hasAlpha || req.file.mimetype === 'image/png') {
+          // Preserve transparency for PNG images
+          processedBuffer = await image
+            .resize(1200, 800, { 
+              fit: 'inside', 
+              withoutEnlargement: true,
+              background: { r: 0, g: 0, b: 0, alpha: 0 }
+            })
+            .png({ quality: 85, force: true })
+            .toBuffer();
+          mimeType = 'image/png';
+        } else {
+          // Convert to JPEG for photos without transparency
+          processedBuffer = await image
+            .resize(1200, 800, { 
+              fit: 'inside', 
+              withoutEnlargement: true,
+              background: { r: 255, g: 255, b: 255, alpha: 1 }
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          mimeType = 'image/jpeg';
+        }
+      } catch (sharpError) {
+        console.log('Sharp optimization failed, using original:', sharpError.message);
       }
 
-      // Generate unique filename
-      const fileExtension = path.extname(req.file.originalname);
-      const fileName = `business-${cimId}-${Date.now()}${fileExtension}`;
-      const filePath = path.join(businessImagesDir, fileName);
-      const publicPath = `/business-images/${fileName}`;
-
-      // Save the file
-      fsSync.writeFileSync(filePath, req.file.buffer);
-
-      // Update the CIM document with the new image
+      // Convert to base64 data URL for persistent storage
+      const base64Data = processedBuffer.toString('base64');
+      const imageDataUrl = `data:${mimeType};base64,${base64Data}`;
+      
+      // Update the CIM document with the new base64 image
       const currentImages = cim.selectedImages || [];
-      const updatedImages = [...currentImages, publicPath];
+      const updatedImages = [...currentImages, imageDataUrl];
       await storage.updateCimImages(cimId, updatedImages);
 
-      console.log(`Successfully uploaded business image: ${publicPath}`);
-      res.json({ success: true, imagePath: publicPath });
+      console.log(`Successfully uploaded business image as base64 (${base64Data.length} characters)`);
+      res.json({ success: true, imagePath: imageDataUrl });
     } catch (error) {
       console.error("Business image upload error:", error);
       res.status(500).json({ error: "Failed to upload business image" });
