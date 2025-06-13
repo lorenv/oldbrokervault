@@ -148,7 +148,7 @@ export default function DocumentsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: paginatedData, isLoading: documentsLoading } = useQuery<{
+  const { data: paginatedData, isLoading: documentsLoading, error } = useQuery<{
     documents: CimDocumentWithAnalysis[];
     total: number;
     hasMore: boolean;
@@ -168,8 +168,16 @@ export default function DocumentsPage() {
       if (!response.ok) throw new Error('Failed to fetch documents');
       return response.json();
     },
-    staleTime: 60000, // Cache for 60 seconds to reduce refetches
-    refetchOnWindowFocus: false // Prevent automatic refetches that cause flickering
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch on component mount if we have cached data
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('401')) return false;
+      return failureCount < 2;
+    },
+    enabled: true // Always enabled since we have pagination
   });
   
   const documents = paginatedData?.documents || [];
@@ -406,25 +414,35 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
           </div>
         </div>
 
-        {/* Loading Animation */}
-        {documentsLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-            <p className="text-gray-600">Loading your CIM documents...</p>
-          </div>
-        )}
-
-        {/* Documents Grid */}
-        {!documentsLoading && (
+        {/* Loading State - Show skeletons on initial load, keep existing content during page changes */}
+        {documentsLoading && documents.length === 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredDocuments?.map((doc) => (
-            <Card 
-              key={doc.id} 
-              className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
-              onClick={() => {
-                setSelectedDoc(doc);
-              }}
-            >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <DocumentSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Documents Grid */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 relative">
+              {/* Loading overlay for pagination */}
+              {documentsLoading && documents.length > 0 && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                  <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-lg">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    <span className="text-sm text-gray-600">Loading...</span>
+                  </div>
+                </div>
+              )}
+              
+              {documents?.map((doc) => (
+                <Card 
+                  key={doc.id} 
+                  className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
+                  onClick={() => {
+                    setSelectedDoc(doc);
+                  }}
+                >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0">
@@ -563,12 +581,13 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                 </div>
               </CardContent>
             </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+            </>
         )}
 
         {/* Empty States */}
-        {!documentsLoading && filteredDocuments?.length === 0 && documents?.length !== 0 && (
+        {!documentsLoading && documents?.length === 0 && debouncedSearchQuery && (
           <div className="text-center py-8 text-muted-foreground">
             No documents match your search. Try a different search term.
           </div>
