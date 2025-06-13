@@ -44,7 +44,7 @@ function isAuthorizedAdmin(user: any): boolean {
 
 const profileSchema = z.object({
   email: z.string().email("Invalid email address"),
-  currentPassword: z.string().min(1, "Current password is required"),
+  currentPassword: z.string().min(1, "Current password is required to save changes"),
   newPassword: z.string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be less than 128 characters")
@@ -52,10 +52,12 @@ const profileSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
     .regex(/(?=.*\d)/, "Password must contain at least one number")
     .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character")
-    .optional(),
-  confirmPassword: z.string().optional(),
+    .optional()
+    .or(z.literal("")),
+  confirmPassword: z.string().optional().or(z.literal("")),
 }).refine((data) => {
-  if (data.newPassword && data.newPassword !== data.confirmPassword) {
+  // If new password is provided and not empty, confirm password must match
+  if (data.newPassword && data.newPassword.length > 0 && data.newPassword !== data.confirmPassword) {
     return false;
   }
   return true;
@@ -372,37 +374,89 @@ export default function AccountPage() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Email Section */}
+                  <div className="space-y-4">
+                    <div className="border-b border-gray-200 pb-2">
+                      <h4 className="text-sm font-medium text-gray-900">Email Address</h4>
+                      <p className="text-xs text-gray-500">Update your account email address</p>
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Email Address</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="password" placeholder="Required to save any changes" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Password Section */}
+                  <div className="space-y-4">
+                    <div className="border-b border-gray-200 pb-2">
+                      <h4 className="text-sm font-medium text-gray-900">Change Password (Optional)</h4>
+                      <p className="text-xs text-gray-500">Leave blank to keep your current password</p>
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="password" placeholder="Leave blank to keep current password" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm New Password</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="password" placeholder="Confirm new password if changing" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Verification Section */}
+                  <div className="space-y-4">
+                    <div className="border-b border-gray-200 pb-2">
+                      <h4 className="text-sm font-medium text-gray-900">Verification Required</h4>
+                      <p className="text-xs text-gray-500">Enter your current password to confirm changes</p>
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="password" placeholder="Enter your current password" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <Button type="submit" disabled={isUpdating} className="w-full">
-                    {isUpdating ? "Updating..." : "Update Email"}
+                    {isUpdating ? "Updating Account..." : "Update Account"}
                   </Button>
                 </form>
               </Form>

@@ -3790,12 +3790,18 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const { email, currentPassword, newPassword } = req.body;
       const userId = req.user!.id;
       
-      // Verify current password
+      // Verify current password is provided
+      if (!currentPassword) {
+        return res.status(400).json({ error: "Current password is required for account changes" });
+      }
+      
+      // Get current user
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
       
+      // Verify current password
       const { comparePasswords } = await import("./auth");
       const isValidPassword = await comparePasswords(currentPassword, user.password);
       
@@ -3803,25 +3809,38 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(400).json({ error: "Current password is incorrect" });
       }
       
-      // Update email if provided
+      let changes = [];
+      
+      // Update email if provided and different
       if (email && email !== user.email) {
         // Check if email already exists
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser && existingUser.id !== userId) {
-          return res.status(400).json({ error: "Email already in use" });
+          return res.status(400).json({ error: "Email address is already in use by another account" });
         }
         
         await storage.updateUserEmail(userId, email);
+        changes.push("email address");
       }
       
-      // Update password if provided
-      if (newPassword) {
+      // Update password if provided and not empty
+      if (newPassword && newPassword.trim().length > 0) {
         const { hashPassword } = await import("./auth");
         const hashedPassword = await hashPassword(newPassword);
         await storage.updateUserPassword(userId, hashedPassword);
+        changes.push("password");
       }
       
-      res.json({ message: "Account updated successfully" });
+      // Return appropriate message based on what was changed
+      if (changes.length === 0) {
+        return res.status(400).json({ error: "No changes were made. Please update your email or password." });
+      }
+      
+      const message = changes.length === 1 
+        ? `Your ${changes[0]} has been updated successfully`
+        : `Your ${changes.join(' and ')} have been updated successfully`;
+      
+      res.json({ message });
     } catch (error) {
       console.error("Error updating user account:", error);
       res.status(500).json({ error: "Failed to update account" });
