@@ -1823,6 +1823,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(result);
   });
 
+  // Check user document creation limits
+  app.get("/api/user/limits", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const canCreate = await storage.checkUserLimit(req.user!.id);
+      const canRegenerate = await storage.checkRegenerationLimit(req.user!.id);
+      const user = await storage.getUser(req.user!.id);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const subscriptionStatus = user.subscriptionStatus || 'free';
+      const plan = subscriptionPlans[subscriptionStatus as keyof typeof subscriptionPlans];
+      
+      res.json({
+        canCreateDocument: canCreate,
+        canRegenerate: canRegenerate,
+        documentsCreated: user.monthlyDocumentsCreated || 0,
+        documentLimit: plan.limit,
+        regenerationsUsed: user.monthlyRegenerationsUsed || 0,
+        regenerationLimit: plan.regenerationLimit,
+        subscriptionStatus: subscriptionStatus
+      });
+    } catch (error) {
+      console.error("Error checking user limits:", error);
+      res.status(500).json({ error: "Failed to check limits" });
+    }
+  });
+
   // Get individual CIM document
   app.get("/api/cim/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
