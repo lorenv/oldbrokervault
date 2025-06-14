@@ -117,6 +117,9 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 14, 2025: Fixed deployment health check issues - added proper /health and /api/health endpoints that respond with 200 status before middleware registration
+- June 14, 2025: Enhanced server startup with graceful port retry logic to handle EADDRINUSE errors
+- June 14, 2025: Improved error handling to prevent startup failures from crashing the application
 - June 13, 2025: Fixed share link image serving - base64 images now display correctly on external domains
 - June 13, 2025: Enhanced CIM generation error logging for better debugging
 - June 13, 2025: Initial setup

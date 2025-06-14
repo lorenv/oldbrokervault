@@ -5,7 +5,27 @@ import { setupSecurity, securityHealthCheck } from "./security";
 
 const app = express();
 
-// Setup security first
+// Add health check endpoint for deployment monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Add API health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'CIM Share API'
+  });
+});
+
+// Setup security after health checks
 setupSecurity(app);
 
 // Important: Raw body parser for Stripe webhooks must come before JSON parser
@@ -94,18 +114,39 @@ app.get('/api/security/health', securityHealthCheck);
       serveStatic(app);
     }
 
-    const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${port}`);
-      console.log("=== SERVER STARTUP ===");
-      console.log("Environment:", process.env.NODE_ENV);
-      console.log("Database URL set:", !!process.env.DATABASE_URL);
-      console.log("Port:", port);
-    });
+    const port = process.env.PORT || 5000;
+    
+    // Graceful startup with port retry logic
+    const startServer = (portToTry: number, retries = 3): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const attemptStart = () => {
+          server.listen(portToTry, "0.0.0.0", () => {
+            log(`serving on port ${portToTry}`);
+            console.log("=== SERVER STARTUP ===");
+            console.log("Environment:", process.env.NODE_ENV);
+            console.log("Database URL set:", !!process.env.DATABASE_URL);
+            console.log("Port:", portToTry);
+            resolve();
+          });
+        };
+
+        server.on('error', (err: any) => {
+          if (err.code === 'EADDRINUSE' && retries > 0) {
+            console.log(`Port ${portToTry} in use, trying port ${portToTry + 1}...`);
+            server.removeAllListeners('error');
+            startServer(portToTry + 1, retries - 1).then(resolve).catch(reject);
+          } else {
+            console.error("=== SERVER ERROR ===");
+            console.error("Failed to start server:", err);
+            reject(err);
+          }
+        });
+
+        attemptStart();
+      });
+    };
+
+    await startServer(typeof port === 'string' ? parseInt(port) : port);
   } catch (startupError) {
     console.error("=== STARTUP ERROR ===");
     console.error("Failed to start server:", startupError);
