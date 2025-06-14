@@ -51,6 +51,12 @@ export function CimGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
+  
+  // Fetch user limits
+  const { data: userLimits, isLoading: limitsLoading } = useQuery({
+    queryKey: ["/api/user/limits"],
+    staleTime: 1000 * 30, // 30 seconds
+  });
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -675,20 +681,49 @@ ${analysis.team.ownerResponsibilities}
     return stringValue === "N/A" ? "[NOT ANSWERED]" : stringValue;
   };
 
+  const isLimitReached = userLimits && !userLimits.canCreateDocument;
+  const documentsUsed = userLimits?.documentsCreated || 0;
+  const documentLimit = userLimits?.documentLimit || 1;
+
   return (
     <div className="space-y-6">
       {cimMode === 'choice' && (
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/50"
-                    onClick={() => setCimMode('generate')}>
+              <Card className={`border-2 transition-shadow ${
+                isLimitReached 
+                  ? 'border-gray-300 bg-gray-50 cursor-not-allowed' 
+                  : 'cursor-pointer hover:shadow-md hover:border-primary/50'
+              }`}
+                    onClick={() => !isLimitReached && setCimMode('generate')}>
                 <CardContent className="p-6 text-center space-y-3">
-                  <FileText className="w-12 h-12 text-primary mx-auto" />
-                  <h3 className="font-semibold">Generate New CIM</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Transform your meeting transcript into a professional CIM using AI
+                  <FileText className={`w-12 h-12 mx-auto ${
+                    isLimitReached ? 'text-gray-400' : 'text-primary'
+                  }`} />
+                  <h3 className={`font-semibold ${
+                    isLimitReached ? 'text-gray-500' : ''
+                  }`}>Generate New CIM</h3>
+                  <p className={`text-sm ${
+                    isLimitReached ? 'text-gray-400' : 'text-muted-foreground'
+                  }`}>
+                    {isLimitReached 
+                      ? `Monthly limit reached (${documentsUsed}/${documentLimit}). Upgrade your plan to create more CIMs.`
+                      : 'Transform your meeting transcript into a professional CIM using AI'
+                    }
                   </p>
+                  {isLimitReached && (
+                    <Button 
+                      size="sm" 
+                      className="mt-3"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = '/pricing';
+                      }}
+                    >
+                      Upgrade Plan
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
               
@@ -1336,7 +1371,7 @@ ${analysis.team.ownerResponsibilities}
             <div className="space-y-3">
               <Button
                 type="submit"
-                disabled={generateMutation.isPending}
+                disabled={generateMutation.isPending || (!currentDocId && isLimitReached) || (currentDocId && !userLimits?.canRegenerate)}
                 className="w-full h-10 flex items-center justify-center"
               >
                 {generateMutation.isPending ? (
@@ -1344,6 +1379,21 @@ ${analysis.team.ownerResponsibilities}
                 ) : null}
                 {generateMutation.isPending ? "Processing..." : currentDocId ? "Regenerate CIM" : "Generate CIM"}
               </Button>
+              
+              {/* Show limit warning below button */}
+              {!currentDocId && isLimitReached && (
+                <div className="text-xs text-red-600 text-center mt-2">
+                  Monthly limit reached ({documentsUsed}/{documentLimit}). 
+                  <a href="/pricing" className="underline ml-1">Upgrade your plan</a> to create more CIMs.
+                </div>
+              )}
+              
+              {currentDocId && userLimits && !userLimits.canRegenerate && (
+                <div className="text-xs text-red-600 text-center mt-2">
+                  Regeneration limit reached ({userLimits.regenerationsUsed}/{userLimits.regenerationLimit}). 
+                  <a href="/pricing" className="underline ml-1">Upgrade your plan</a> for more regenerations.
+                </div>
+              )}
               
               {/* Show loading animation below the button in black text */}
               {generateMutation.isPending && (
