@@ -492,42 +492,7 @@ export class DatabaseStorage implements IStorage {
 
     // Optimized query: get one extra record to check if there are more
     const results = await db
-      .select({
-        id: cimDocuments.id,
-        userId: cimDocuments.userId,
-        title: cimDocuments.title,
-        directions: cimDocuments.directions,
-        transcript: cimDocuments.transcript,
-        analysis: cimDocuments.analysis,
-        logoUrl: cimDocuments.logoUrl,
-        websiteUrl: cimDocuments.websiteUrl,
-        selectedImages: cimDocuments.selectedImages,
-        shareEnabled: cimDocuments.shareEnabled,
-        shareSlug: cimDocuments.shareSlug,
-        sharePassword: cimDocuments.sharePassword,
-        shareExpiresAt: cimDocuments.shareExpiresAt,
-        shareViewCount: cimDocuments.shareViewCount,
-        ndaProtected: cimDocuments.ndaProtected,
-        ndaTemplateId: cimDocuments.ndaTemplateId,
-        financialsEnabled: cimDocuments.financialsEnabled,
-        askingPrice: cimDocuments.askingPrice,
-        askingPriceIncluded: cimDocuments.askingPriceIncluded,
-        revenue: cimDocuments.revenue,
-        revenueIncluded: cimDocuments.revenueIncluded,
-        ebitda: cimDocuments.ebitda,
-        ebitdaIncluded: cimDocuments.ebitdaIncluded,
-        coverImageUrl: cimDocuments.coverImageUrl,
-        coverImagePosition: cimDocuments.coverImagePosition,
-        coverImageAttribution: cimDocuments.coverImageAttribution,
-        createdAt: cimDocuments.createdAt,
-        updatedAt: cimDocuments.updatedAt,
-        isUploadedFile: cimDocuments.isUploadedFile,
-        uploadedFileName: cimDocuments.uploadedFileName,
-        uploadedFilePath: cimDocuments.uploadedFilePath,
-        uploadedFileSize: cimDocuments.uploadedFileSize,
-        uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
-        regenerationCount: cimDocuments.regenerationCount
-      })
+      .select()
       .from(cimDocuments)
       .where(whereCondition)
       .orderBy(desc(cimDocuments.createdAt))
