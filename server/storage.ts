@@ -490,9 +490,20 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Optimized query: get one extra record to check if there are more
+    // For dashboard, only select essential fields to minimize data transfer
     const results = await db
-      .select()
+      .select({
+        id: cimDocuments.id,
+        userId: cimDocuments.userId,
+        title: cimDocuments.title,
+        createdAt: cimDocuments.createdAt,
+        shareEnabled: cimDocuments.shareEnabled,
+        shareSlug: cimDocuments.shareSlug,
+        isUploadedFile: cimDocuments.isUploadedFile,
+        uploadedFileName: cimDocuments.uploadedFileName,
+        // Minimal fields for recent documents display
+        regenerationCount: cimDocuments.regenerationCount
+      })
       .from(cimDocuments)
       .where(whereCondition)
       .orderBy(desc(cimDocuments.createdAt))
@@ -501,7 +512,42 @@ export class DatabaseStorage implements IStorage {
     const hasMore = results.length > limit;
     const documents = results.slice(0, limit).map(result => ({
       ...result,
-      ndaSignatureCount: 0 // Set to 0 for performance - can be loaded separately if needed
+      // Add missing required fields with minimal defaults for dashboard display
+      version: 1,
+      transcript: '',
+      directions: '',
+      analysis: {},
+      logoUrl: null,
+      websiteUrl: null,
+      selectedImages: null,
+      sharePassword: null,
+      shareExpiresAt: null,
+      shareViewCount: 0,
+      ndaProtected: false,
+      ndaTemplateId: null,
+      financialsEnabled: false,
+      askingPrice: null,
+      askingPriceIncluded: false,
+      revenue: null,
+      revenueIncluded: false,
+      ebitda: null,
+      ebitdaIncluded: false,
+      coverImageUrl: null,
+      coverImagePosition: null,
+      coverImageAttribution: null,
+      updatedAt: result.createdAt,
+      uploadedFilePath: null,
+      uploadedFileSize: null,
+      uploadedFileMimeType: null,
+      editedContent: null,
+      websiteScreenshotUrl: null,
+      shareLastViewed: null,
+      currentEditorId: null,
+      currentEditorName: null,
+      lastEditAt: null,
+      editorsHeartbeat: {},
+      lastModifiedBy: null,
+      ndaSignatureCount: 0
     }));
 
     // For dashboard, we don't need exact total count - just use estimated

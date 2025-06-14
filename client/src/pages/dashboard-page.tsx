@@ -8,9 +8,12 @@ import { FileText, Clock, ArrowRight } from "lucide-react";
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
-    queryKey: ["/api/cim"],
-    staleTime: 1000 * 60 * 5, // 5 minutes before considering stale
-    gcTime: 1000 * 60 * 15, // 15 minutes cache retention
+    queryKey: ["/api/dashboard/recent"],
+    staleTime: 1000 * 60 * 10, // 10 minutes - very aggressive caching
+    gcTime: 1000 * 60 * 30, // 30 minutes cache retention
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Extract documents array from the response
