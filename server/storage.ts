@@ -490,29 +490,57 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Single optimized query for documents with count
+    // Optimized query: get one extra record to check if there are more
     const results = await db
-      .select()
+      .select({
+        id: cimDocuments.id,
+        userId: cimDocuments.userId,
+        title: cimDocuments.title,
+        directions: cimDocuments.directions,
+        transcript: cimDocuments.transcript,
+        analysis: cimDocuments.analysis,
+        logoUrl: cimDocuments.logoUrl,
+        websiteUrl: cimDocuments.websiteUrl,
+        selectedImages: cimDocuments.selectedImages,
+        shareEnabled: cimDocuments.shareEnabled,
+        shareSlug: cimDocuments.shareSlug,
+        sharePassword: cimDocuments.sharePassword,
+        shareExpiresAt: cimDocuments.shareExpiresAt,
+        shareViewCount: cimDocuments.shareViewCount,
+        ndaProtected: cimDocuments.ndaProtected,
+        ndaTemplateId: cimDocuments.ndaTemplateId,
+        financialsEnabled: cimDocuments.financialsEnabled,
+        askingPrice: cimDocuments.askingPrice,
+        askingPriceIncluded: cimDocuments.askingPriceIncluded,
+        revenue: cimDocuments.revenue,
+        revenueIncluded: cimDocuments.revenueIncluded,
+        ebitda: cimDocuments.ebitda,
+        ebitdaIncluded: cimDocuments.ebitdaIncluded,
+        coverImageUrl: cimDocuments.coverImageUrl,
+        coverImagePosition: cimDocuments.coverImagePosition,
+        coverImageAttribution: cimDocuments.coverImageAttribution,
+        createdAt: cimDocuments.createdAt,
+        updatedAt: cimDocuments.updatedAt,
+        isUploadedFile: cimDocuments.isUploadedFile,
+        uploadedFileName: cimDocuments.uploadedFileName,
+        uploadedFilePath: cimDocuments.uploadedFilePath,
+        uploadedFileSize: cimDocuments.uploadedFileSize,
+        uploadedFileMimeType: cimDocuments.uploadedFileMimeType,
+        regenerationCount: cimDocuments.regenerationCount
+      })
       .from(cimDocuments)
       .where(whereCondition)
       .orderBy(desc(cimDocuments.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .limit(limit + 1); // Get one extra to check for more
 
-    // Get total count only when needed for pagination
-    const total = results.length < limit ? offset + results.length : 
-      await db
-        .select({ count: count() })
-        .from(cimDocuments)
-        .where(whereCondition)
-        .then(([result]) => Number(result.count));
-
-    const documents = results.map(result => ({
+    const hasMore = results.length > limit;
+    const documents = results.slice(0, limit).map(result => ({
       ...result,
       ndaSignatureCount: 0 // Set to 0 for performance - can be loaded separately if needed
     }));
 
-    const hasMore = results.length === limit;
+    // For dashboard, we don't need exact total count - just use estimated
+    const total = hasMore ? offset + limit + 1 : offset + documents.length;
 
     return {
       documents,

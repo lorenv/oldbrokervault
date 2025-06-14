@@ -7,8 +7,10 @@ import { FileText, Clock, ArrowRight } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: documentsResponse } = useQuery({
+  const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
     queryKey: ["/api/cim"],
+    staleTime: 1000 * 60 * 5, // 5 minutes before considering stale
+    gcTime: 1000 * 60 * 15, // 15 minutes cache retention
   });
 
   // Extract documents array from the response
@@ -59,7 +61,16 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {documents.length > 0 ? (
+                  {documentsLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="animate-pulse flex space-x-4">
+                        <div className="flex-1 space-y-3">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : documents.length > 0 ? (
                     documents
                       .slice()
                       .sort((a: any, b: any) => {
