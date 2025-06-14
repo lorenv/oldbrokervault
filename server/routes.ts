@@ -1823,6 +1823,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(result);
   });
 
+  // Fast dashboard endpoint - minimal data for recent documents
+  app.get("/api/dashboard/recent", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Get only the last 3 documents with minimal fields
+      const results = await storage.getCimDocuments(req.user!.id, { limit: 3 });
+      
+      // Return just the documents with minimal fields for dashboard
+      const minimalDocs = results.documents.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        createdAt: doc.createdAt,
+        isUploadedFile: doc.isUploadedFile,
+        uploadedFileName: doc.uploadedFileName
+      }));
+
+      res.json({ documents: minimalDocs });
+    } catch (error) {
+      console.error("Error fetching recent documents:", error);
+      res.status(500).json({ error: "Failed to fetch recent documents" });
+    }
+  });
+
   // Check user document creation limits
   app.get("/api/user/limits", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
