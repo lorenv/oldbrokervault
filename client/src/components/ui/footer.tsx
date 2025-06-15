@@ -41,16 +41,6 @@ export function Footer() {
                   <a className="text-gray-400 hover:text-white transition-colors">Contact Us</a>
                 </Link>
               </li>
-              <li>
-                <a href="mailto:support@cimgod.com" className="text-gray-400 hover:text-white transition-colors">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="mailto:support@cimgod.com" className="text-gray-400 hover:text-white transition-colors">
-                  Email Support
-                </a>
-              </li>
             </ul>
           </div>
 

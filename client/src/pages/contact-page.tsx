@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -167,21 +167,12 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Email Support</h3>
-                    <p className="text-gray-600">support@cimgod.com</p>
+                    <p className="text-gray-600">support@cimshare.com</p>
                     <p className="text-sm text-gray-500">Response within 24 hours</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Phone Support</h3>
-                    <p className="text-gray-600">+1 (555) 123-4567</p>
-                    <p className="text-sm text-gray-500">Monday - Friday, 9 AM - 6 PM EST</p>
-                  </div>
-                </div>
+                
 
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -190,46 +181,13 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-lg">Office Address</h3>
                     <p className="text-gray-600">
-                      123 Business District<br />
-                      Suite 456<br />
-                      New York, NY 10001
+                      606 Venice Blvd<br />
+                      Los Angeles, CA
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Business Hours</h3>
-                    <p className="text-gray-600">
-                      Monday - Friday: 9:00 AM - 6:00 PM EST<br />
-                      Saturday: 10:00 AM - 4:00 PM EST<br />
-                      Sunday: Closed
-                    </p>
-                  </div>
                 </div>
-              </div>
-
-              {/* FAQ Quick Links */}
-              <Card className="bg-gray-50">
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Help</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Looking for immediate answers? Check out our most common questions:
-                  </p>
-                  <ul className="space-y-2 text-sm">
-                    <li>• How to create your first CIM document</li>
-                    <li>• Understanding subscription plans and billing</li>
-                    <li>• Setting up NDA protection for shared documents</li>
-                    <li>• Exporting documents in different formats</li>
-                    <li>• Managing team access and permissions</li>
-                  </ul>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
