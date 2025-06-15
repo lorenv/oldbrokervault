@@ -106,7 +106,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Objection:</strong> Object to certain processing of your information</li>
               <li><strong>Restriction:</strong> Request restriction of processing in certain circumstances</li>
             </ul>
-            <p className="mt-3">To exercise these rights, please contact us at privacy@cimgod.com.</p>
+            <p className="mt-3">To exercise these rights, please contact us at privacy@cimshare.com.</p>
           </section>
 
           <section>
@@ -143,7 +143,7 @@ export default function PrivacyPolicyPage() {
               If you have questions about this Privacy Policy or our privacy practices, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> privacy@cimgod.com<br />
+              <strong>Email:</strong> privacy@cimshare.com<br />
               <strong>Mail:</strong> Dealve Inc., Privacy Department, 123 Business District, Suite 456, New York, NY 10001<br />
               <strong>Phone:</strong> +1 (555) 123-4567
             </p>

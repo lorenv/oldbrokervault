@@ -142,7 +142,7 @@ export default function TermsOfServicePage() {
               If you have questions about these Terms, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> legal@cimgod.com<br />
+              <strong>Email:</strong> legal@cimshare.com<br />
               <strong>Mail:</strong> Dealve Inc., Legal Department, 123 Business District, Suite 456, New York, NY 10001<br />
               <strong>Phone:</strong> +1 (555) 123-4567
             </p>
