@@ -31,11 +31,28 @@ function Router() {
   const [location] = useLocation();
   const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
 
+  if (isSharePage) {
+    return (
+      <Switch>
+        <Route path="/share/:shareSlug" component={SharePage} />
+        <Route path="/cims/:shareSlug" component={SharePage} />
+        <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
   return (
-    <>
-      {!isSharePage && <Navbar />}
-      <div className={isSharePage ? "" : "min-h-screen flex flex-col"}>
-        <div className={isSharePage ? "" : "flex-1"}>
+    <div className="relative min-h-screen">
+      {/* Fixed parallax footer at the bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-0">
+        <Footer />
+      </div>
+      
+      {/* Main content that slides over the footer */}
+      <div className="relative z-10 min-h-screen bg-white">
+        <Navbar />
+        <div className="pb-96"> {/* Add padding to ensure content can scroll over footer */}
           <Switch>
             <Route path="/" component={HomePage} />
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
@@ -55,15 +72,11 @@ function Router() {
             <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
-            <Route path="/share/:shareSlug" component={SharePage} />
-            <Route path="/cims/:shareSlug" component={SharePage} />
-            <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <Route component={NotFound} />
           </Switch>
         </div>
-        {!isSharePage && <Footer />}
       </div>
-    </>
+    </div>
   );
 }
 
