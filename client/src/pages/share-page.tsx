@@ -275,14 +275,14 @@ export function SharePage() {
             }}
           >
             <div className="max-w-6xl mx-auto text-center">
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 tracking-tight"
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 tracking-tight break-words px-4"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
                   }}>
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
-                <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8"
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4"
                    style={{
                      textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2)'
                    }}>
@@ -357,14 +357,14 @@ export function SharePage() {
               {/* Website extracted logo above title - only when no cover image */}
               {shareData.logoUrl && (
                 <div className="flex justify-center mb-6">
-                  <img src={shareData.logoUrl} alt="Company Logo" className="h-32 md:h-40" />
+                  <img src={shareData.logoUrl} alt="Company Logo" className="h-16 md:h-20 max-w-[200px] object-contain" />
                 </div>
               )}
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4">
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
-                <p className="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8">
+                <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4">
                   {shareData.cim.description}
                 </p>
               )}
@@ -458,9 +458,9 @@ export function SharePage() {
                               <div className="p-3 bg-blue-50 rounded-lg">
                                 <FileText className="h-6 w-6 text-blue-600" />
                               </div>
-                              <div>
-                                <p className="font-semibold text-lg text-slate-900">{file.fileName}</p>
-                                <p className="text-sm text-slate-500 mt-1">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-lg text-slate-900 break-words">{file.fileName}</p>
+                                <p className="text-sm text-slate-500 mt-1 break-words">
                                   {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {file.mimeType.split('/').pop()?.toUpperCase()}
                                 </p>
                               </div>
