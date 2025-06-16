@@ -32,6 +32,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   const shareSettings = cimDocument ? {
     isPublic: cimDocument.isPublic || false,
     shareSlug: cimDocument.shareSlug || '',
+    customSlug: cimDocument.customSlug || '',
     requireNDA: cimDocument.requireNDA || false,
     passwordProtected: cimDocument.passwordProtected || false,
     sharePassword: cimDocument.sharePassword || ''
@@ -134,6 +135,23 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
               <RefreshCw className={`h-4 w-4 mr-2 ${regenerateSlugMutation.isPending ? 'animate-spin' : ''}`} />
               Generate New Link
             </Button>
+          </div>
+
+          {/* Custom URL */}
+          <div className="space-y-2">
+            <Label htmlFor="custom-slug">Custom URL (optional)</Label>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">cimshare.com/share/</span>
+              <Input
+                id="custom-slug"
+                placeholder="my-business-name"
+                value={shareSettings.customSlug || ''}
+                onChange={(e) => handleSaveSettings('customSlug', e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-gray-500">
+              Use letters, numbers, hyphens, and underscores only
+            </p>
           </div>
 
           {/* Share Settings */}
