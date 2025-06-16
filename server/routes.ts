@@ -609,21 +609,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return imagePath; // External URLs - let PDF handler download them
           }
           
-          // Handle local file paths - try multiple possible locations
+          // Handle local file paths - try multiple possible locations including document-specific subdirectories
           const possiblePaths = [
-            // Business images and logos are typically in public folder
+            // Direct path resolution first
             path.resolve(process.cwd(), 'public', imagePath.replace(/^\/+/, '')),
-            // Also try private folder for uploaded files
+            // Try with document ID subdirectory for business images
+            path.resolve(process.cwd(), 'public', 'business-images', cimDoc.id.toString(), path.basename(imagePath)),
+            // Try private folder for uploaded files
             path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, '')),
             // Try attached_assets folder
             path.resolve(process.cwd(), 'attached_assets', imagePath.replace(/^\/+/, '')),
-            // Try business-images subfolder
+            // Try business-images subfolder without document ID
             path.resolve(process.cwd(), 'public', 'business-images', imagePath.replace(/^\/+/, '')),
             // Try images subfolder
             path.resolve(process.cwd(), 'public', 'images', imagePath.replace(/^\/+/, '')),
             // Try logos subfolder
-            path.resolve(process.cwd(), 'public', 'logos', imagePath.replace(/^\/+/, ''))
+            path.resolve(process.cwd(), 'public', 'logos', imagePath.replace(/^\/+/, '')),
+            // Try with just the filename in business-images
+            path.resolve(process.cwd(), 'public', 'business-images', path.basename(imagePath)),
+            // Try with just the filename in logos
+            path.resolve(process.cwd(), 'public', 'logos', path.basename(imagePath))
           ];
+          
+          console.log(`Converting image to base64: ${imagePath}`);
+          console.log(`Document ID: ${cimDoc.id}`);
           
           for (const resolvedPath of possiblePaths) {
             if (fsSync.existsSync(resolvedPath)) {
