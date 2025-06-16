@@ -1,9 +1,102 @@
 import { Link } from "wouter";
+import { useEffect, useState } from "react";
 
 export function Footer() {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
+    <footer className="relative bg-gray-900 text-white overflow-hidden">
+      {/* Parallax Background */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black opacity-90"
+        style={{
+          transform: `translateY(${scrollY * 0.3}px)`,
+        }}
+      />
+      
+      {/* Animated Background Elements */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          transform: `translateY(${scrollY * 0.5}px)`,
+        }}
+      >
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Grid Pattern Background */}
+      <div 
+        className="absolute inset-0 opacity-10"
+        style={{
+          transform: `translateY(${scrollY * 0.1}px)`,
+          backgroundImage: `
+            linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}
+      />
+
+      {/* Floating Geometric Shapes */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          transform: `translateY(${scrollY * 0.2}px)`,
+        }}
+      >
+        {/* Small floating dots */}
+        <div className="absolute top-1/4 left-1/3 w-2 h-2 bg-blue-400/20 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-purple-400/30 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+        <div className="absolute bottom-1/3 left-1/2 w-3 h-3 bg-indigo-400/15 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '5s' }} />
+        <div className="absolute top-2/3 right-1/3 w-2 h-2 bg-cyan-400/20 rounded-full animate-bounce" style={{ animationDelay: '3s', animationDuration: '3.5s' }} />
+        <div className="absolute bottom-1/4 left-1/5 w-1.5 h-1.5 bg-blue-300/25 rounded-full animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '4.5s' }} />
+        
+        {/* Geometric shapes */}
+        <div className="absolute top-16 right-16 w-8 h-8 border border-blue-400/20 rotate-45 animate-spin" style={{ animationDuration: '20s' }} />
+        <div className="absolute bottom-20 left-20 w-6 h-6 border border-purple-400/20 animate-pulse" />
+        <div className="absolute top-32 left-32 w-4 h-8 bg-indigo-400/10 animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      {/* Wave Animation */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-24 overflow-hidden"
+        style={{
+          transform: `translateY(${scrollY * 0.4}px)`,
+        }}
+      >
+        <svg
+          className="absolute bottom-0 w-full h-24"
+          viewBox="0 0 1200 120"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+            opacity="0.25"
+            fill="rgba(59, 130, 246, 0.1)"
+          >
+            <animate
+              attributeName="d"
+              dur="10s"
+              repeatCount="indefinite"
+              values="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z;M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z;M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+            />
+          </path>
+        </svg>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
