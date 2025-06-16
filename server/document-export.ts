@@ -1764,7 +1764,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
@@ -1920,7 +1920,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
           } else {
             // Handle local file path
-            const imagePath = resolveImagePath(coverImageUrl);
+            const imagePath = resolveImagePath(coverImageUrl, documentId);
             
             let coverImageFound = false;
             let finalCoverImagePath = imagePath;
@@ -2012,7 +2012,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
           } else {
             // Handle local file path
-            const imagePath = resolveImagePath(firstImage);
+            const imagePath = resolveImagePath(firstImage, documentId);
             if (fs.existsSync(imagePath)) {
               // Calculate banner dimensions - 20% of page height, full width
               const bannerHeight = doc.page.height * 0.2; // 20% of page height
@@ -2058,7 +2058,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (logoUrl) {
         try {
           console.log("Processing logo URL:", logoUrl);
-          const logoPath = resolveImagePath(logoUrl);
+          const logoPath = resolveImagePath(logoUrl, documentId);
           console.log("Resolved logo path:", logoPath);
           
           let logoFound = false;
@@ -2426,7 +2426,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         for (let i = 0; i < selectedImages.length; i++) {
           try {
-            const imagePath = resolveImagePath(selectedImages[i]);
+            const imagePath = resolveImagePath(selectedImages[i], documentId);
             console.log(`Processing business image ${i}: ${selectedImages[i]} -> ${imagePath}`);
             
             let imageFound = false;
