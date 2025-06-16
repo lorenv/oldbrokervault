@@ -2125,7 +2125,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.addPage(); // Add page break before Financial Information
         doc.fontSize(18)
            .font('Segoe-Bold')
-           .fillColor('#2563eb')
+           .fillColor('#1e3a8a')
            .text('FINANCIAL INFORMATION')
            .fillColor('#000000')
            .font('Segoe-Regular')
@@ -2213,7 +2213,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       if (websiteUrl) {
         doc.fontSize(18)
            .font('Segoe-Bold')
-           .fillColor('#2563eb')
+           .fillColor('#1e3a8a')
            .text('Website')
            .fillColor('#000000')
            .font('Segoe-Regular')
@@ -2239,7 +2239,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         sortedCustomSections.forEach((customSection) => {
           doc.fontSize(18)
              .font('Segoe-Bold')
-             .fillColor('#2563eb')
+             .fillColor('#1e3a8a')
              .text(customSection.title || 'Custom Section')
              .fillColor('#000000')
              .font('Segoe-Regular')
@@ -2336,7 +2336,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         analysis.sections.forEach((section: any, index: number) => {
           doc.fontSize(18)
              .font('Segoe-Bold')
-             .fillColor('#2563eb')
+             .fillColor('#1e3a8a')
              .text(section.title || `Section ${index + 1}`)
              .fillColor('#000000')
              .font('Segoe-Regular')
@@ -2365,7 +2365,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Fallback to old format if no sections
         doc.fontSize(18)
            .font('Segoe-Bold')
-           .fillColor('#2563eb')
+           .fillColor('#1e3a8a')
            .text('Business Summary')
            .fillColor('#000000')
            .font('Segoe-Regular')
@@ -2384,7 +2384,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.fontSize(18)
            .font('Segoe-Bold')
-           .fillColor('#2563eb')
+           .fillColor('#1e3a8a')
            .text('BUSINESS IMAGES')
            .fillColor('#000000');
         
@@ -2450,7 +2450,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 // Add section header on new page
                 doc.fontSize(18)
                    .font('Segoe-Bold')
-                   .fillColor('#2563eb')
+                   .fillColor('#1e3a8a')
                    .text('BUSINESS IMAGES (continued)')
                    .fillColor('#000000');
                 
@@ -2488,7 +2488,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.fontSize(18)
            .font('Segoe-Bold')
-           .fillColor('#2563eb')
+           .fillColor('#1e3a8a')
            .text('CONTACT INFORMATION')
            .fillColor('#000000')
            .font('Segoe-Regular')

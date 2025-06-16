@@ -609,18 +609,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return imagePath; // External URLs - let PDF handler download them
           }
           
-          // Handle local file paths
-          const resolvedPath = path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, ''));
+          // Handle local file paths - try multiple possible locations
+          const possiblePaths = [
+            // Business images and logos are typically in public folder
+            path.resolve(process.cwd(), 'public', imagePath.replace(/^\/+/, '')),
+            // Also try private folder for uploaded files
+            path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, '')),
+            // Try attached_assets folder
+            path.resolve(process.cwd(), 'attached_assets', imagePath.replace(/^\/+/, '')),
+            // Try business-images subfolder
+            path.resolve(process.cwd(), 'public', 'business-images', imagePath.replace(/^\/+/, '')),
+            // Try images subfolder
+            path.resolve(process.cwd(), 'public', 'images', imagePath.replace(/^\/+/, '')),
+            // Try logos subfolder
+            path.resolve(process.cwd(), 'public', 'logos', imagePath.replace(/^\/+/, ''))
+          ];
           
-          if (fsSync.existsSync(resolvedPath)) {
-            const imageBuffer = await fs.readFile(resolvedPath);
-            const ext = path.extname(resolvedPath).toLowerCase();
-            const mimeType = ext === '.png' ? 'image/png' : 
-                           ext === '.gif' ? 'image/gif' : 'image/jpeg';
-            return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+          for (const resolvedPath of possiblePaths) {
+            if (fsSync.existsSync(resolvedPath)) {
+              console.log(`Found image at: ${resolvedPath}`);
+              const imageBuffer = await fs.readFile(resolvedPath);
+              const ext = path.extname(resolvedPath).toLowerCase();
+              const mimeType = ext === '.png' ? 'image/png' : 
+                             ext === '.gif' ? 'image/gif' : 'image/jpeg';
+              return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+            }
           }
           
-          console.log(`Image file not found for PDF: ${resolvedPath}`);
+          console.log(`Image file not found for PDF at any of these paths:`, possiblePaths);
           return null;
         } catch (error) {
           console.error(`Failed to convert image to base64: ${imagePath}`, error);

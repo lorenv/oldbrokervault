@@ -139,7 +139,7 @@ export default function HomePage() {
             {/* Tony's Transmissions Image Card */}
             <div 
               className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
-              onClick={() => window.open('https://cimshare.com/share/cim-g05o0y', '_blank')}
+              onClick={() => window.open('https://cimshare.com/share/cim-5nc3yu', '_blank')}
             >
               <img 
                 src="/tonys-transmissions-preview.png" 
