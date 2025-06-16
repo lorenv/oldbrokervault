@@ -128,17 +128,17 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 {/* Name and Title */}
                 <div className="text-center space-y-2">
                   {userProfile.name && (
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-bold text-slate-900 break-words">
                       {userProfile.name}
                     </h3>
                   )}
                   {userProfile.title && (
-                    <p className="text-sm text-blue-600 font-medium">{userProfile.title}</p>
+                    <p className="text-sm text-blue-600 font-medium break-words">{userProfile.title}</p>
                   )}
                   {userProfile.businessName && (
-                    <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1">
-                      <Building2 className="h-3 w-3" />
-                      {userProfile.businessName}
+                    <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1 break-words">
+                      <Building2 className="h-3 w-3 flex-shrink-0" />
+                      <span className="break-words">{userProfile.businessName}</span>
                     </p>
                   )}
 
