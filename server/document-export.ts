@@ -115,7 +115,7 @@ async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
 }
 
 // Helper function to resolve image paths correctly
-function resolveImagePath(imagePath: string): string {
+function resolveImagePath(imagePath: string, documentId?: number): string {
   if (!imagePath) return '';
   
   // If it's already an absolute path, return as is
@@ -135,18 +135,36 @@ function resolveImagePath(imagePath: string): string {
     return path.resolve(process.cwd(), imagePath);
   }
   
-  // For other cases, try both attached_assets and public directories
-  const attachedAssetsPath = path.resolve(process.cwd(), 'attached_assets', imagePath);
-  const publicPath = path.resolve(process.cwd(), 'public', imagePath);
+  // For other cases, try multiple locations including document-specific subdirectories
+  const possiblePaths = [
+    // Try attached_assets folder first
+    path.resolve(process.cwd(), 'attached_assets', imagePath),
+    // Try public folder directly
+    path.resolve(process.cwd(), 'public', imagePath),
+    // Try business-images with document ID subdirectory
+    documentId ? path.resolve(process.cwd(), 'public', 'business-images', documentId.toString(), path.basename(imagePath)) : null,
+    // Try business-images without document ID
+    path.resolve(process.cwd(), 'public', 'business-images', imagePath),
+    // Try logos folder
+    path.resolve(process.cwd(), 'public', 'logos', imagePath),
+    // Try images folder
+    path.resolve(process.cwd(), 'public', 'images', imagePath),
+    // Try with just the filename in business-images
+    path.resolve(process.cwd(), 'public', 'business-images', path.basename(imagePath)),
+    // Try with just the filename in logos
+    path.resolve(process.cwd(), 'public', 'logos', path.basename(imagePath))
+  ].filter(Boolean);
   
-  if (fs.existsSync(attachedAssetsPath)) {
-    return attachedAssetsPath;
-  } else if (fs.existsSync(publicPath)) {
-    return publicPath;
+  for (const possiblePath of possiblePaths) {
+    if (fs.existsSync(possiblePath)) {
+      console.log(`Found image at: ${possiblePath}`);
+      return possiblePath;
+    }
   }
   
+  console.log(`Image not found in any location: ${imagePath}`);
   // Default to public folder if file doesn't exist yet
-  return publicPath;
+  return path.resolve(process.cwd(), 'public', imagePath);
 }
 
 
