@@ -3407,6 +3407,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       res.json({
         shareSlug: doc.shareSlug,
+        customSlug: doc.customSlug,
         isPublic: doc.shareEnabled,
         requireNda: doc.ndaProtected,
         password: doc.sharePassword,
@@ -3431,7 +3432,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const { isPublic, requireNda, password, expiresAt } = req.body;
+      const { isPublic, requireNda, password, expiresAt, customSlug } = req.body;
       
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
@@ -3439,10 +3440,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         shareSlug = Math.random().toString(36).substring(2, 15);
       }
 
+      // Validate custom slug if provided
+      let validatedCustomSlug = customSlug;
+      if (customSlug && customSlug.trim()) {
+        // Basic validation for custom slug
+        const slugRegex = /^[a-zA-Z0-9-_]+$/;
+        if (!slugRegex.test(customSlug.trim())) {
+          return res.status(400).json({ error: "Custom URL can only contain letters, numbers, hyphens, and underscores" });
+        }
+        validatedCustomSlug = customSlug.trim();
+      } else {
+        validatedCustomSlug = null;
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
-        customSlug: null,
+        customSlug: validatedCustomSlug,
         sharePassword: password,
         shareExpiresAt: expiresAt,
         ndaProtected: requireNda,
@@ -3451,6 +3465,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       res.json({
         shareSlug: updatedDoc.shareSlug,
+        customSlug: updatedDoc.customSlug,
         isPublic: updatedDoc.shareEnabled,
         requireNda: updatedDoc.ndaProtected,
         password: updatedDoc.sharePassword,
