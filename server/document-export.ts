@@ -2408,7 +2408,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         doc.moveDown(2);
         
+        console.log("=== PDF BUSINESS IMAGES DEBUG ===");
         console.log(`Processing ${selectedImages.length} business images for PDF`);
+        console.log("Document ID for path resolution:", documentId);
+        console.log("Selected images preview:", selectedImages.map(img => ({ 
+          type: img.startsWith('data:') ? 'base64' : 'path',
+          preview: img.substring(0, 50) + "..."
+        })));
         
         // Calculate layout parameters
         const pageMargin = 50;
@@ -2426,8 +2432,63 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         for (let i = 0; i < selectedImages.length; i++) {
           try {
+            console.log(`\n--- Processing business image ${i} ---`);
+            console.log(`Original image data: ${selectedImages[i].substring(0, 100)}...`);
+            console.log(`Image type: ${selectedImages[i].startsWith('data:') ? 'base64' : 'file path'}`);
+            
+            // Handle base64 images directly
+            if (selectedImages[i].startsWith('data:')) {
+              console.log(`Image ${i} is base64, processing directly`);
+              
+              try {
+                const base64Data = selectedImages[i].split(',')[1];
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                console.log(`Image ${i} buffer created, size: ${imageBuffer.length} bytes`);
+                
+                // Calculate position in grid
+                const col = i % imagesPerRow;
+                const row = Math.floor(i / imagesPerRow);
+                
+                // Check if we need a new page
+                const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
+                if (imageY + imageHeight > doc.page.height - pageMargin) {
+                  doc.addPage();
+                  
+                  // Add section header on new page
+                  doc.fontSize(18)
+                     .font('Segoe-Bold')
+                     .fillColor('#1e3a8a')
+                     .text('BUSINESS IMAGES (continued)')
+                     .fillColor('#000000');
+                  
+                  doc.moveDown(2);
+                  currentY = doc.y;
+                  currentRow = row;
+                }
+                
+                // Calculate final position
+                const finalX = startX + (col * (imageWidth + horizontalMargin));
+                const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
+                
+                console.log(`Adding base64 image ${i} at position ${finalX}, ${finalY}`);
+                
+                // Add the image directly from buffer
+                doc.image(imageBuffer, finalX, finalY, {
+                  fit: [imageWidth, imageHeight],
+                  align: 'center'
+                });
+                
+                console.log(`Successfully added base64 business image ${i}`);
+                continue; // Skip the file path processing below
+              } catch (base64Error) {
+                console.error(`Failed to process base64 image ${i}:`, base64Error);
+                continue;
+              }
+            }
+            
+            // Handle file path images
             const imagePath = resolveImagePath(selectedImages[i], documentId);
-            console.log(`Processing business image ${i}: ${selectedImages[i]} -> ${imagePath}`);
+            console.log(`Processing file path image ${i}: ${selectedImages[i]} -> ${imagePath}`);
             
             let imageFound = false;
             let finalImagePath = imagePath;

@@ -602,6 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const convertImageToBase64 = async (imagePath: string): Promise<string | null> => {
         try {
           if (imagePath.startsWith('data:')) {
+            console.log(`Image is already base64, returning as-is: ${imagePath.substring(0, 50)}...`);
             return imagePath; // Already base64
           }
           
@@ -664,15 +665,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert selected images to base64
       let selectedImagesBase64: string[] | undefined = undefined;
       if (cimDoc.selectedImages && cimDoc.selectedImages.length > 0) {
+        console.log("=== SHARE ROUTE IMAGE DEBUG ===");
         console.log("Converting selected images to base64 for PDF, count:", cimDoc.selectedImages.length);
+        console.log("Raw selectedImages data:", JSON.stringify(cimDoc.selectedImages.slice(0, 2), null, 2));
+        
         const converted = await Promise.all(
-          cimDoc.selectedImages.map(async (imagePath: string) => {
+          cimDoc.selectedImages.map(async (imagePath: string, index: number) => {
+            console.log(`Processing image ${index}: ${imagePath.substring(0, 50)}...`);
             const base64 = await convertImageToBase64(imagePath);
+            console.log(`Image ${index} conversion result: ${base64 ? 'SUCCESS' : 'FAILED'}`);
             return base64;
           })
         );
         selectedImagesBase64 = converted.filter((img): img is string => img !== null);
-        console.log("Selected images conversion result:", selectedImagesBase64.length, "successful");
+        console.log("Selected images conversion result:", selectedImagesBase64.length, "successful out of", converted.length, "total");
+        console.log("Final selectedImagesBase64 preview:", selectedImagesBase64.map(img => img.substring(0, 50) + "..."));
+        console.log("=== END SHARE ROUTE IMAGE DEBUG ===");
       }
 
       // Convert cover image to base64
