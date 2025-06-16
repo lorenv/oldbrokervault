@@ -208,6 +208,82 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Additional Content Section to ensure scrolling */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
+              Trusted by Business Professionals Worldwide
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">10,000+</div>
+                <div className="text-gray-600">CIMs Created</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-600 mb-2">95%</div>
+                <div className="text-gray-600">Client Satisfaction</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-purple-600 mb-2">24/7</div>
+                <div className="text-gray-600">Support Available</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-lg p-8 mb-16">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Why Choose CIM Share?</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Enterprise Security</h4>
+                      <p className="text-gray-600 text-sm">Bank-level encryption and secure document sharing</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">AI-Powered Efficiency</h4>
+                      <p className="text-gray-600 text-sm">Reduce document creation time by 80%</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Professional Templates</h4>
+                      <p className="text-gray-600 text-sm">Industry-standard formatting and layouts</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Expert Support</h4>
+                      <p className="text-gray-600 text-sm">Dedicated team to help with your documents</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to Get Started?</h3>
+              <p className="text-gray-600 mb-8">Create your first professional CIM in minutes</p>
+              <Link href="/login">
+                <Button size="lg" className="text-lg px-8 py-3">
+                  Start Creating Now
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Extra spacing to ensure footer visibility */}
+      <div className="h-32"></div>
     </div>
   );
 }

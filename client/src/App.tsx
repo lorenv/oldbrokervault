@@ -43,16 +43,16 @@ function Router() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      {/* Fixed parallax footer at the bottom */}
+    <div className="relative">
+      {/* Fixed parallax footer at the bottom of viewport */}
       <div className="fixed bottom-0 left-0 right-0 z-0">
         <Footer />
       </div>
       
-      {/* Main content that slides over the footer */}
-      <div className="relative z-10 min-h-screen bg-white">
+      {/* Main content wrapper with parallax effect */}
+      <div className="relative z-10 bg-white min-h-screen">
         <Navbar />
-        <div className="pb-96"> {/* Add padding to ensure content can scroll over footer */}
+        <main>
           <Switch>
             <Route path="/" component={HomePage} />
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
@@ -74,7 +74,9 @@ function Router() {
             <Route path="/auth" component={LoginPage} />
             <Route component={NotFound} />
           </Switch>
-        </div>
+        </main>
+        {/* Spacer to ensure footer is visible when scrolling to bottom */}
+        <div className="h-96"></div>
       </div>
     </div>
   );
