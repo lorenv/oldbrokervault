@@ -17,9 +17,17 @@ export function Footer() {
     <footer className="relative bg-gray-900 text-white overflow-hidden">
       {/* Parallax Background */}
       <div 
-        className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black opacity-90"
+        className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-purple-900/40 to-gray-900 opacity-95"
         style={{
           transform: `translateY(${scrollY * 0.3}px)`,
+        }}
+      />
+      
+      {/* Additional gradient overlay for depth */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-blue-900/20"
+        style={{
+          transform: `translateY(${scrollY * 0.2}px)`,
         }}
       />
       
@@ -30,9 +38,11 @@ export function Footer() {
           transform: `translateY(${scrollY * 0.5}px)`,
         }}
       >
-        <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-500/30 rounded-full blur-2xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/25 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-20 right-32 w-32 h-32 bg-cyan-400/25 rounded-full blur-xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute bottom-32 left-16 w-48 h-48 bg-pink-500/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1.5s' }} />
       </div>
 
       {/* Grid Pattern Background */}
@@ -55,17 +65,24 @@ export function Footer() {
           transform: `translateY(${scrollY * 0.2}px)`,
         }}
       >
-        {/* Small floating dots */}
-        <div className="absolute top-1/4 left-1/3 w-2 h-2 bg-blue-400/20 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
-        <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-purple-400/30 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
-        <div className="absolute bottom-1/3 left-1/2 w-3 h-3 bg-indigo-400/15 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '5s' }} />
-        <div className="absolute top-2/3 right-1/3 w-2 h-2 bg-cyan-400/20 rounded-full animate-bounce" style={{ animationDelay: '3s', animationDuration: '3.5s' }} />
-        <div className="absolute bottom-1/4 left-1/5 w-1.5 h-1.5 bg-blue-300/25 rounded-full animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '4.5s' }} />
+        {/* Bright floating particles */}
+        <div className="absolute top-1/4 left-1/3 w-3 h-3 bg-blue-400/60 rounded-full animate-bounce shadow-lg shadow-blue-400/30" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <div className="absolute top-1/3 right-1/4 w-2 h-2 bg-purple-400/70 rounded-full animate-bounce shadow-lg shadow-purple-400/40" style={{ animationDelay: '1s', animationDuration: '4s' }} />
+        <div className="absolute bottom-1/3 left-1/2 w-4 h-4 bg-indigo-400/50 rounded-full animate-bounce shadow-lg shadow-indigo-400/30" style={{ animationDelay: '2s', animationDuration: '5s' }} />
+        <div className="absolute top-2/3 right-1/3 w-3 h-3 bg-cyan-400/60 rounded-full animate-bounce shadow-lg shadow-cyan-400/30" style={{ animationDelay: '3s', animationDuration: '3.5s' }} />
+        <div className="absolute bottom-1/4 left-1/5 w-2.5 h-2.5 bg-blue-300/70 rounded-full animate-bounce shadow-lg shadow-blue-300/40" style={{ animationDelay: '1.5s', animationDuration: '4.5s' }} />
+        
+        {/* Sparkling stars */}
+        <div className="absolute top-20 left-20 w-1 h-1 bg-white/80 rounded-full animate-ping" style={{ animationDelay: '0s', animationDuration: '2s' }} />
+        <div className="absolute top-40 right-40 w-1 h-1 bg-white/80 rounded-full animate-ping" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }} />
+        <div className="absolute bottom-40 left-40 w-1 h-1 bg-white/80 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '3s' }} />
+        <div className="absolute bottom-20 right-20 w-1 h-1 bg-white/80 rounded-full animate-ping" style={{ animationDelay: '1.5s', animationDuration: '2s' }} />
         
         {/* Geometric shapes */}
-        <div className="absolute top-16 right-16 w-8 h-8 border border-blue-400/20 rotate-45 animate-spin" style={{ animationDuration: '20s' }} />
-        <div className="absolute bottom-20 left-20 w-6 h-6 border border-purple-400/20 animate-pulse" />
-        <div className="absolute top-32 left-32 w-4 h-8 bg-indigo-400/10 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-16 right-16 w-8 h-8 border-2 border-blue-400/40 rotate-45 animate-spin shadow-lg shadow-blue-400/20" style={{ animationDuration: '20s' }} />
+        <div className="absolute bottom-20 left-20 w-6 h-6 border-2 border-purple-400/40 animate-pulse shadow-lg shadow-purple-400/20" />
+        <div className="absolute top-32 left-32 w-4 h-8 bg-indigo-400/30 animate-pulse shadow-lg shadow-indigo-400/20" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-60 right-60 w-6 h-6 bg-gradient-to-r from-pink-400/40 to-purple-400/40 rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
       {/* Wave Animation */}
