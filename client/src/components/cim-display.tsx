@@ -897,7 +897,7 @@ export function CimDisplay({
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="prose prose-sm max-w-none">
+                        <div className="prose prose-sm max-w-none break-words overflow-hidden">
                           {!isSharedView ? (
                             <FlexibleSectionEditor
                               value={section.content}
@@ -930,7 +930,7 @@ export function CimDisplay({
                               multiline={true}
                             />
                           ) : (
-                            <div className="prose prose-sm max-w-none">
+                            <div className="prose prose-sm max-w-none break-words overflow-hidden">
                               <ReactMarkdown 
                                 components={{
                                   ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
@@ -1005,7 +1005,7 @@ export function CimDisplay({
                       </CardHeader>
                       <CardContent>
                         {customSection.type === 'text' ? (
-                          <div className="prose prose-sm max-w-none">
+                          <div className="prose prose-sm max-w-none break-words overflow-hidden">
                             {!isSharedView ? (
                               <FlexibleSectionEditor
                                 value={customSection.content}
@@ -1029,7 +1029,7 @@ export function CimDisplay({
                                 multiline={true}
                               />
                             ) : (
-                              <div className="prose prose-sm max-w-none">
+                              <div className="prose prose-sm max-w-none break-words overflow-hidden">
                                 <ReactMarkdown 
                                   components={{
                                     ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
