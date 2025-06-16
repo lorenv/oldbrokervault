@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 14, 2025: Fixed business images and logos not displaying in PDF exports from share links - updated image path resolution to check multiple directories including public/business-images, public/logos, and public/images
 - June 14, 2025: Fixed deployment health check issues - added proper /health and /api/health endpoints that respond with 200 status before middleware registration
 - June 14, 2025: Enhanced server startup with graceful port retry logic to handle EADDRINUSE errors
 - June 14, 2025: Improved error handling to prevent startup failures from crashing the application
