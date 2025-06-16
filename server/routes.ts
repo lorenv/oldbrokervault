@@ -706,7 +706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.title,
         customSections,
         coverImageBase64,
-        cimDoc.coverImagePosition
+        cimDoc.coverImagePosition,
+        cimDoc.id
       );
       
       console.log("PDF generation completed, buffer length:", pdfBuffer.length);
@@ -2937,7 +2938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = `${protocol}://${host}`;
       
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition);
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition, doc.id);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
