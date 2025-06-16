@@ -2430,6 +2430,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         let currentRow = 0;
         let currentY = doc.y;
         
+        console.log(`Page layout debug:`);
+        console.log(`  Page width: ${doc.page.width}, height: ${doc.page.height}`);
+        console.log(`  Current Y position: ${currentY}`);
+        console.log(`  Start X position: ${startX}`);
+        console.log(`  Image dimensions: ${imageWidth} x ${imageHeight}`);
+        console.log(`  Total image width: ${totalImageWidth}`);
+        
         for (let i = 0; i < selectedImages.length; i++) {
           try {
             console.log(`\n--- Processing business image ${i} ---`);
@@ -2441,9 +2448,26 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log(`Image ${i} is base64, processing directly`);
               
               try {
+                // Validate base64 data
+                if (!selectedImages[i].includes(',')) {
+                  console.error(`Image ${i} invalid base64 format - no comma separator`);
+                  continue;
+                }
+                
                 const base64Data = selectedImages[i].split(',')[1];
+                if (!base64Data || base64Data.length < 100) {
+                  console.error(`Image ${i} invalid or too small base64 data`);
+                  continue;
+                }
+                
                 const imageBuffer = Buffer.from(base64Data, 'base64');
                 console.log(`Image ${i} buffer created, size: ${imageBuffer.length} bytes`);
+                
+                // Verify buffer is valid image data
+                if (imageBuffer.length < 1000) {
+                  console.error(`Image ${i} buffer too small, likely invalid data`);
+                  continue;
+                }
                 
                 // Calculate position in grid
                 const col = i % imagesPerRow;
@@ -2471,14 +2495,58 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
                 console.log(`Adding base64 image ${i} at position ${finalX}, ${finalY}`);
+                console.log(`Image dimensions: width=${imageWidth}, height=${imageHeight}`);
                 
-                // Add the image directly from buffer
-                doc.image(imageBuffer, finalX, finalY, {
-                  fit: [imageWidth, imageHeight],
-                  align: 'center'
-                });
+                // Create temporary file approach for better PDFKit compatibility
+                try {
+                  const fs = require('fs');
+                  const path = require('path');
+                  const os = require('os');
+                  
+                  // Create a temporary file for the image
+                  const tempDir = os.tmpdir();
+                  const tempFilename = `temp_image_${Date.now()}_${i}.jpg`;
+                  const tempFilePath = path.join(tempDir, tempFilename);
+                  
+                  console.log(`Creating temporary file for image ${i}: ${tempFilePath}`);
+                  
+                  // Write buffer to temporary file
+                  fs.writeFileSync(tempFilePath, imageBuffer);
+                  
+                  // Add image from temporary file (PDFKit handles files better than buffers)
+                  doc.image(tempFilePath, finalX, finalY, {
+                    width: imageWidth,
+                    height: imageHeight
+                  });
+                  
+                  console.log(`Successfully added base64 business image ${i} using temporary file method`);
+                  
+                  // Clean up temporary file after a short delay
+                  setTimeout(() => {
+                    try {
+                      if (fs.existsSync(tempFilePath)) {
+                        fs.unlinkSync(tempFilePath);
+                        console.log(`Cleaned up temporary file: ${tempFilePath}`);
+                      }
+                    } catch (cleanupError) {
+                      console.log(`Warning: Could not clean up temporary file ${tempFilePath}:`, cleanupError);
+                    }
+                  }, 5000);
+                  
+                } catch (tempFileError) {
+                  console.log(`Temporary file method failed for image ${i}, trying direct buffer:`, tempFileError);
+                  // Fallback to direct buffer method
+                  try {
+                    doc.image(imageBuffer, finalX, finalY, {
+                      fit: [imageWidth, imageHeight],
+                      align: 'center'
+                    });
+                    console.log(`Successfully added base64 business image ${i} using fallback buffer method`);
+                  } catch (bufferError) {
+                    console.error(`All methods failed for image ${i}:`, bufferError);
+                  }
+                }
                 
-                console.log(`Successfully added base64 business image ${i}`);
                 continue; // Skip the file path processing below
               } catch (base64Error) {
                 console.error(`Failed to process base64 image ${i}:`, base64Error);
