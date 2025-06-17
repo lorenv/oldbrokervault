@@ -2473,18 +2473,25 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Use the most basic PDFKit image syntax for maximum compatibility
-                try {
-                  doc.image(imageBuffer, finalX, finalY);
-                  console.log(`Added business image ${i} at ${finalX}, ${finalY} using basic syntax`);
-                } catch (basicError) {
-                  // Fallback to explicit dimensions if basic syntax fails
-                  doc.image(imageBuffer, finalX, finalY, {
-                    width: imageWidth,
-                    height: imageHeight
-                  });
-                  console.log(`Added business image ${i} at ${finalX}, ${finalY} using fallback dimensions`);
-                }
+                // Force PDF to create new image object with proper scaling
+                doc.save();
+                
+                // Add a subtle background rectangle to ensure image layer exists
+                doc.rect(finalX, finalY, imageWidth, imageHeight)
+                   .fillOpacity(0.01)
+                   .fill('#ffffff')
+                   .fillOpacity(1);
+                
+                // Use the most compatible image insertion method
+                doc.image(imageBuffer, finalX, finalY, {
+                  width: imageWidth,
+                  height: imageHeight,
+                  fit: [imageWidth, imageHeight]
+                });
+                
+                doc.restore();
+                
+                console.log(`Added business image ${i} at ${finalX}, ${finalY} with background layer and fit constraints`);
                 continue;
               } catch (error) {
                 console.error(`Failed to add business image ${i}:`, error);
