@@ -2151,103 +2151,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
       }
 
-      // Add business logo to first page if available
-      if (userProfile?.businessLogo) {
-        try {
-          console.log("Processing business logo for first page:", userProfile.businessLogo.substring(0, 50) + "...");
-          
-          let imageBuffer: Buffer;
-          let logoFound = false;
-          
-          // Check if it's a base64 data URL
-          if (userProfile.businessLogo.startsWith('data:image/')) {
-            console.log("Business logo is base64 data URL, converting to buffer");
-            const base64Data = userProfile.businessLogo.split(',')[1];
-            imageBuffer = Buffer.from(base64Data, 'base64');
-            logoFound = true;
-          } else {
-            // Try to resolve as file path
-            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
-            console.log("Resolved business logo path:", businessLogoPath);
-            
-            let finalLogoPath = businessLogoPath;
-            
-            if (fs.existsSync(businessLogoPath)) {
-              logoFound = true;
-            } else {
-              console.log("Business logo file does not exist, checking alternative paths");
-              // Try alternative paths for business logo
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
-              ];
-              
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative business logo path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalLogoPath = altPath;
-                  logoFound = true;
-                  console.log("Successfully found business logo at alternative path:", altPath);
-                  break;
-                }
-              }
-            }
-            
-            if (logoFound) {
-              imageBuffer = fs.readFileSync(finalLogoPath);
-            }
-          }
-          
-          if (logoFound && imageBuffer) {
-            console.log("Business logo found, adding to first page with proper aspect ratio");
-            
-            let originalWidth = 120;
-            let originalHeight = 60;
-            
-            // Try to get actual image dimensions
-            const jpegDims = getJpegDimensions(imageBuffer);
-            const pngDims = getPngDimensions(imageBuffer);
-            
-            if (jpegDims) {
-              originalWidth = jpegDims.width;
-              originalHeight = jpegDims.height;
-            } else if (pngDims) {
-              originalWidth = pngDims.width;
-              originalHeight = pngDims.height;
-            }
-            
-            // Calculate scaled dimensions maintaining aspect ratio
-            const maxWidth = 150;
-            const maxHeight = 100;
-            const aspectRatio = originalWidth / originalHeight;
-            
-            let logoWidth = maxWidth;
-            let logoHeight = maxWidth / aspectRatio;
-            
-            if (logoHeight > maxHeight) {
-              logoHeight = maxHeight;
-              logoWidth = maxHeight * aspectRatio;
-            }
-            
-            const centerX = (doc.page.width - logoWidth) / 2;
-            
-            // Add the business logo centered on first page
-            doc.image(imageBuffer, centerX, doc.y + 20, {
-              width: logoWidth,
-              height: logoHeight
-            });
-            
-            doc.moveDown(Math.ceil(logoHeight / 12) + 2);
-            console.log("Successfully added business logo to first page with dimensions:", logoWidth, "x", logoHeight);
-          } else {
-            console.log("Business logo not found or could not be processed");
-          }
-        } catch (error) {
-          console.error("Failed to add business logo to first page:", error);
-        }
-      }
+
 
       // Add page break before generated content to create proper cover page
       doc.addPage();
@@ -2884,6 +2788,103 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           doc.moveDown(1);
         }
         
+        // Add business logo to contact information section if available
+        if (userProfile.businessLogo) {
+          try {
+            console.log("Processing business logo for contact section:", userProfile.businessLogo.substring(0, 50) + "...");
+            
+            let imageBuffer: Buffer;
+            let logoFound = false;
+            
+            // Check if it's a base64 data URL
+            if (userProfile.businessLogo.startsWith('data:image/')) {
+              console.log("Business logo is base64 data URL, converting to buffer");
+              const base64Data = userProfile.businessLogo.split(',')[1];
+              imageBuffer = Buffer.from(base64Data, 'base64');
+              logoFound = true;
+            } else {
+              // Try to resolve as file path
+              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+              console.log("Resolved business logo path:", businessLogoPath);
+              
+              let finalLogoPath = businessLogoPath;
+              
+              if (fs.existsSync(businessLogoPath)) {
+                logoFound = true;
+              } else {
+                console.log("Business logo file does not exist, checking alternative paths");
+                // Try alternative paths for business logo
+                const alternativePaths = [
+                  path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
+                  path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
+                ];
+                
+                for (const altPath of alternativePaths) {
+                  console.log("Trying alternative business logo path:", altPath);
+                  if (fs.existsSync(altPath)) {
+                    finalLogoPath = altPath;
+                    logoFound = true;
+                    console.log("Successfully found business logo at alternative path:", altPath);
+                    break;
+                  }
+                }
+              }
+              
+              if (logoFound) {
+                imageBuffer = fs.readFileSync(finalLogoPath);
+              }
+            }
+            
+            if (logoFound && imageBuffer) {
+              console.log("Business logo found, adding to contact section with proper aspect ratio");
+              
+              let originalWidth = 120;
+              let originalHeight = 60;
+              
+              // Try to get actual image dimensions
+              const jpegDims = getJpegDimensions(imageBuffer);
+              const pngDims = getPngDimensions(imageBuffer);
+              
+              if (jpegDims) {
+                originalWidth = jpegDims.width;
+                originalHeight = jpegDims.height;
+              } else if (pngDims) {
+                originalWidth = pngDims.width;
+                originalHeight = pngDims.height;
+              }
+              
+              // Calculate scaled dimensions maintaining aspect ratio
+              const maxWidth = 120;
+              const maxHeight = 80;
+              const aspectRatio = originalWidth / originalHeight;
+              
+              let logoWidth = maxWidth;
+              let logoHeight = maxWidth / aspectRatio;
+              
+              if (logoHeight > maxHeight) {
+                logoHeight = maxHeight;
+                logoWidth = maxHeight * aspectRatio;
+              }
+              
+              const centerX = (doc.page.width - logoWidth) / 2;
+              
+              // Add the business logo centered in contact section
+              doc.image(imageBuffer, centerX, doc.y + 10, {
+                width: logoWidth,
+                height: logoHeight
+              });
+              
+              doc.moveDown(Math.ceil(logoHeight / 12) + 1);
+              console.log("Successfully added business logo to contact section with dimensions:", logoWidth, "x", logoHeight);
+            } else {
+              console.log("Business logo not found or could not be processed");
+            }
+          } catch (error) {
+            console.error("Failed to add business logo to contact section:", error);
+          }
+        }
 
       }
 
