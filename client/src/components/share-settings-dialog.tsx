@@ -69,9 +69,10 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   });
 
   const copyShareUrl = async () => {
-    if (!shareSettings?.shareSlug) return;
+    const effectiveSlug = shareSettings?.customSlug || shareSettings?.shareSlug;
+    if (!effectiveSlug) return;
     const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
-    const shareUrl = `${baseUrl}/share/${shareSettings.shareSlug}`;
+    const shareUrl = `${baseUrl}/share/${effectiveSlug}`;
     await navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Share Link Copied",
@@ -103,7 +104,8 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   }
 
   const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
-  const shareUrl = `${baseUrl}/share/${shareSettings.shareSlug}`;
+  const effectiveSlug = shareSettings.customSlug || shareSettings.shareSlug;
+  const shareUrl = `${baseUrl}/share/${effectiveSlug}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
