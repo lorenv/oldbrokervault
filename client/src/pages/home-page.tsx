@@ -139,7 +139,7 @@ export default function HomePage() {
             {/* Tony's Transmissions Image Card */}
             <div 
               className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
-              onClick={() => window.open('https://cimshare.com/share/cim-5nc3yu', '_blank')}
+              onClick={() => window.open('https://cimshare.com/share/cim-q94wn4', '_blank')}
             >
               <img 
                 src="/tonys-transmissions-preview.png" 
@@ -159,14 +159,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Premier Tree Trimming Image Card */}
+            {/* Arbor Partners Image Card */}
             <div 
               className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
-              onClick={() => window.open('https://cimshare.com/share/cim-svaq1p', '_blank')}
+              onClick={() => window.open('https://cimshare.com/share/cim-wwkz3j', '_blank')}
             >
               <img 
-                src="/premier-tree-trimming-preview.png" 
-                alt="Premier Tree Trimming CIM Document Preview"
+                src="/arbor-partners-preview.png" 
+                alt="Arbor Partners CIM Document Preview"
                 className="w-full h-auto object-cover"
               />
               <div className="absolute top-4 right-4">
