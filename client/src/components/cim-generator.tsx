@@ -75,6 +75,7 @@ export function CimGenerator() {
   });
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isFinancialsSectionOpen, setIsFinancialsSectionOpen] = useState(true); // Default to open
   
   // New analysis template state - force reset to valid schema values
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
@@ -1031,34 +1032,45 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
 
-            {/* Financial Information - Cleaner styling */}
-            <div className="space-y-4 p-4 border rounded-lg bg-background">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium">Financial Information</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Add key financial metrics to enhance the CIM
-                  </p>
-                </div>
-                <Switch
-                  id="financials-enabled"
-                  checked={financialsEnabled}
-                  onCheckedChange={(checked) => {
-                    setFinancialsEnabled(checked);
-                    // When enabling financials for the first time, auto-check all three fields
-                    if (checked && !financialsEnabled) {
-                      setFinancialData(prev => ({
-                        ...prev,
-                        askingPriceIncluded: true,
-                        revenueIncluded: true,
-                        ebitdaIncluded: true
-                      }));
-                    }
-                  }}
-                />
-              </div>
-              
-              {financialsEnabled && (
+            {/* Financial Information - Collapsible with default expanded */}
+            <Collapsible open={isFinancialsSectionOpen} onOpenChange={setIsFinancialsSectionOpen}>
+              <div className="space-y-4 p-4 border rounded-lg bg-background">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h3 className="text-sm font-medium">Financial Information</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Add key financial metrics to enhance the CIM
+                        </p>
+                      </div>
+                      {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="financials-enabled"
+                        checked={financialsEnabled}
+                        onCheckedChange={(checked) => {
+                          setFinancialsEnabled(checked);
+                          // When enabling financials for the first time, auto-check all three fields
+                          if (checked && !financialsEnabled) {
+                            setFinancialData(prev => ({
+                              ...prev,
+                              askingPriceIncluded: true,
+                              revenueIncluded: true,
+                              ebitdaIncluded: true
+                            }));
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()} // Prevent collapsible toggle when clicking switch
+                      />
+                      {isFinancialsSectionOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-4">
+                  {financialsEnabled && (
                 <div className="space-y-6">
                   <div className="grid md:grid-cols-3 gap-4">
                   {/* Asking Price */}
@@ -1186,7 +1198,9 @@ ${analysis.team.ownerResponsibilities}
                 </div>
                 </div>
               )}
-            </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
 
             {/* Analysis Directions - Cleaner, less busy interface */}
             <div className="space-y-4 p-4 border rounded-lg bg-background">
