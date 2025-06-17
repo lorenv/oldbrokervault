@@ -2057,39 +2057,53 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Add website extracted logo below title, maintaining aspect ratio
       if (logoUrl) {
         try {
-          console.log("Processing logo URL:", logoUrl);
-          const logoPath = resolveImagePath(logoUrl, documentId);
-          console.log("Resolved logo path:", logoPath);
+          console.log("Processing website logo URL:", logoUrl);
           
           let logoFound = false;
-          let finalLogoPath = logoPath;
+          let imageBuffer: Buffer;
           
-          if (fs.existsSync(logoPath)) {
+          // Check if it's a base64 data URL first
+          if (logoUrl.startsWith('data:image/')) {
+            console.log("Website logo is base64 data URL, converting to buffer");
+            const base64Data = logoUrl.split(',')[1];
+            imageBuffer = Buffer.from(base64Data, 'base64');
             logoFound = true;
           } else {
-            console.log("Logo file does not exist, checking alternative paths");
-            const alternativePaths = [
-              path.resolve(process.cwd(), 'public', logoUrl.replace(/^\/+/, '')),
-              path.resolve(process.cwd(), logoUrl.replace(/^\/+/, '')),
-              path.resolve(process.cwd(), 'attached_assets', logoUrl.replace(/^\/+/, ''))
-            ];
+            // Try to resolve as file path
+            const logoPath = resolveImagePath(logoUrl, documentId);
+            console.log("Resolved website logo path:", logoPath);
             
-            for (const altPath of alternativePaths) {
-              console.log("Trying alternative logo path:", altPath);
-              if (fs.existsSync(altPath)) {
-                finalLogoPath = altPath;
-                logoFound = true;
-                console.log("Successfully found logo at alternative path:", altPath);
-                break;
+            let finalLogoPath = logoPath;
+            
+            if (fs.existsSync(logoPath)) {
+              logoFound = true;
+            } else {
+              console.log("Website logo file does not exist, checking alternative paths");
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', logoUrl.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), logoUrl.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', logoUrl.replace(/^\/+/, ''))
+              ];
+              
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative website logo path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  finalLogoPath = altPath;
+                  logoFound = true;
+                  console.log("Successfully found website logo at alternative path:", altPath);
+                  break;
+                }
               }
+            }
+            
+            if (logoFound) {
+              imageBuffer = fs.readFileSync(finalLogoPath);
             }
           }
           
-          if (logoFound) {
-            console.log("Logo file exists, adding to PDF with proper aspect ratio");
+          if (logoFound && imageBuffer) {
+            console.log("Website logo found, adding to first page with proper aspect ratio");
             
-            // Read image dimensions to maintain aspect ratio
-            const imageBuffer = fs.readFileSync(finalLogoPath);
             let originalWidth = 200;
             let originalHeight = 100;
             
@@ -2119,19 +2133,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
             
             const centerX = (doc.page.width - logoWidth) / 2;
-            doc.image(finalLogoPath, centerX, doc.y + 20, {
+            doc.image(imageBuffer, centerX, doc.y + 20, {
               width: logoWidth,
-              height: logoHeight,
-              align: 'center'
+              height: logoHeight
             });
             doc.moveDown(Math.ceil(logoHeight / 12) + 1); // Account for logo space dynamically
-            console.log("Successfully added logo to PDF with dimensions:", logoWidth, "x", logoHeight);
+            console.log("Successfully added website logo to first page with dimensions:", logoWidth, "x", logoHeight);
           } else {
-            console.log("Logo file not found in any location:", logoPath);
+            console.log("Website logo not found or could not be processed");
             doc.moveDown(1);
           }
         } catch (error) {
-          console.error("Failed to add logo to PDF:", error);
+          console.error("Failed to add website logo to PDF:", error);
           doc.moveDown(1);
         }
       } else {
@@ -2236,9 +2249,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
       }
 
+      // Add page break before generated content to create proper cover page
+      doc.addPage();
+
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
-        doc.addPage(); // Add page break before Financial Information
         doc.fontSize(18)
            .font('Segoe-Bold')
            .fillColor('#1e3a8a')
