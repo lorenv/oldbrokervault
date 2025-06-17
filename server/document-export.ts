@@ -2138,6 +2138,104 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(1);
       }
 
+      // Add business logo to first page if available
+      if (userProfile?.businessLogo) {
+        try {
+          console.log("Processing business logo for first page:", userProfile.businessLogo.substring(0, 50) + "...");
+          
+          let imageBuffer: Buffer;
+          let logoFound = false;
+          
+          // Check if it's a base64 data URL
+          if (userProfile.businessLogo.startsWith('data:image/')) {
+            console.log("Business logo is base64 data URL, converting to buffer");
+            const base64Data = userProfile.businessLogo.split(',')[1];
+            imageBuffer = Buffer.from(base64Data, 'base64');
+            logoFound = true;
+          } else {
+            // Try to resolve as file path
+            const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+            console.log("Resolved business logo path:", businessLogoPath);
+            
+            let finalLogoPath = businessLogoPath;
+            
+            if (fs.existsSync(businessLogoPath)) {
+              logoFound = true;
+            } else {
+              console.log("Business logo file does not exist, checking alternative paths");
+              // Try alternative paths for business logo
+              const alternativePaths = [
+                path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
+                path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
+              ];
+              
+              for (const altPath of alternativePaths) {
+                console.log("Trying alternative business logo path:", altPath);
+                if (fs.existsSync(altPath)) {
+                  finalLogoPath = altPath;
+                  logoFound = true;
+                  console.log("Successfully found business logo at alternative path:", altPath);
+                  break;
+                }
+              }
+            }
+            
+            if (logoFound) {
+              imageBuffer = fs.readFileSync(finalLogoPath);
+            }
+          }
+          
+          if (logoFound && imageBuffer) {
+            console.log("Business logo found, adding to first page with proper aspect ratio");
+            
+            let originalWidth = 120;
+            let originalHeight = 60;
+            
+            // Try to get actual image dimensions
+            const jpegDims = getJpegDimensions(imageBuffer);
+            const pngDims = getPngDimensions(imageBuffer);
+            
+            if (jpegDims) {
+              originalWidth = jpegDims.width;
+              originalHeight = jpegDims.height;
+            } else if (pngDims) {
+              originalWidth = pngDims.width;
+              originalHeight = pngDims.height;
+            }
+            
+            // Calculate scaled dimensions maintaining aspect ratio
+            const maxWidth = 150;
+            const maxHeight = 100;
+            const aspectRatio = originalWidth / originalHeight;
+            
+            let logoWidth = maxWidth;
+            let logoHeight = maxWidth / aspectRatio;
+            
+            if (logoHeight > maxHeight) {
+              logoHeight = maxHeight;
+              logoWidth = maxHeight * aspectRatio;
+            }
+            
+            const centerX = (doc.page.width - logoWidth) / 2;
+            
+            // Add the business logo centered on first page
+            doc.image(imageBuffer, centerX, doc.y + 20, {
+              width: logoWidth,
+              height: logoHeight
+            });
+            
+            doc.moveDown(Math.ceil(logoHeight / 12) + 2);
+            console.log("Successfully added business logo to first page with dimensions:", logoWidth, "x", logoHeight);
+          } else {
+            console.log("Business logo not found or could not be processed");
+          }
+        } catch (error) {
+          console.error("Failed to add business logo to first page:", error);
+        }
+      }
+
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
         doc.addPage(); // Add page break before Financial Information
@@ -2352,6 +2450,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       } else if (analysis.sections && Array.isArray(analysis.sections)) {
         // Only render analysis sections if no custom sections exist
         analysis.sections.forEach((section: any, index: number) => {
+          // Add page break before Executive Summary section
+          if (section.title && section.title.toLowerCase().includes('executive summary')) {
+            doc.addPage();
+          }
+          
           doc.fontSize(18)
              .font('Segoe-Bold')
              .fillColor('#1e3a8a')
@@ -2492,7 +2595,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                     finalWidth = imageHeight * aspectRatio;
                   }
                   
-                  // Add image with explicit dimensions
+                  // Add image with explicit dimensions maintaining aspect ratio
                   doc.image(imageBuffer, finalX, finalY, {
                     width: finalWidth,
                     height: finalHeight
@@ -2500,12 +2603,36 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                   
                   console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
                 } catch (sharpError) {
-                  // Fallback without Sharp
+                  // Fallback without Sharp - calculate aspect ratio from buffer
+                  let fallbackWidth = imageWidth;
+                  let fallbackHeight = imageHeight;
+                  
+                  try {
+                    // Try to get dimensions from buffer
+                    const jpegDims = getJpegDimensions(imageBuffer);
+                    const pngDims = getPngDimensions(imageBuffer);
+                    
+                    if (jpegDims || pngDims) {
+                      const dims = jpegDims || pngDims;
+                      const aspectRatio = dims.width / dims.height;
+                      
+                      if (aspectRatio > 1) {
+                        // Landscape image
+                        fallbackHeight = imageWidth / aspectRatio;
+                      } else {
+                        // Portrait image  
+                        fallbackWidth = imageHeight * aspectRatio;
+                      }
+                    }
+                  } catch (dimError) {
+                    console.log("Could not determine image dimensions, using default");
+                  }
+                  
                   doc.image(imageBuffer, finalX, finalY, {
-                    width: imageWidth,
-                    height: imageHeight
+                    width: fallbackWidth,
+                    height: fallbackHeight
                   });
-                  console.log(`Added business image ${i} without Sharp (${imageWidth}x${imageHeight})`);
+                  console.log(`Added business image ${i} without Sharp (${fallbackWidth}x${fallbackHeight})`);
                 }
                 continue;
               } catch (error) {
@@ -2570,10 +2697,35 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const finalX = startX + (col * (imageWidth + horizontalMargin));
               const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               
-              // Add the image directly (already has rounded corners from processing)
+              // Get image dimensions and maintain aspect ratio
+              let actualWidth = imageWidth;
+              let actualHeight = imageHeight;
+              
+              try {
+                const imageBuffer = fs.readFileSync(finalImagePath);
+                const jpegDims = getJpegDimensions(imageBuffer);
+                const pngDims = getPngDimensions(imageBuffer);
+                
+                if (jpegDims || pngDims) {
+                  const dims = jpegDims || pngDims;
+                  const aspectRatio = dims.width / dims.height;
+                  
+                  if (aspectRatio > 1) {
+                    // Landscape image
+                    actualHeight = imageWidth / aspectRatio;
+                  } else {
+                    // Portrait image  
+                    actualWidth = imageHeight * aspectRatio;
+                  }
+                }
+              } catch (dimError) {
+                console.log("Could not determine file image dimensions, using default");
+              }
+              
+              // Add the image with proper aspect ratio
               doc.image(finalImagePath, finalX, finalY, {
-                fit: [imageWidth, imageHeight],
-                align: 'center'
+                width: actualWidth,
+                height: actualHeight
               });
               
               console.log(`Successfully added business image ${i} with rounded corners at ${finalX}, ${finalY}`);
@@ -2717,103 +2869,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           doc.moveDown(1);
         }
         
-        // Add business logo if available
-        if (userProfile.businessLogo) {
-          try {
-            console.log("Processing business logo:", userProfile.businessLogo.substring(0, 50) + "...");
-            
-            let imageBuffer: Buffer;
-            let logoFound = false;
-            
-            // Check if it's a base64 data URL
-            if (userProfile.businessLogo.startsWith('data:image/')) {
-              console.log("Business logo is base64 data URL, converting to buffer");
-              const base64Data = userProfile.businessLogo.split(',')[1];
-              imageBuffer = Buffer.from(base64Data, 'base64');
-              logoFound = true;
-            } else {
-              // Try to resolve as file path
-              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
-              console.log("Resolved business logo path:", businessLogoPath);
-              
-              let finalLogoPath = businessLogoPath;
-              
-              if (fs.existsSync(businessLogoPath)) {
-                logoFound = true;
-              } else {
-                console.log("Business logo file does not exist, checking alternative paths");
-                // Try alternative paths for business logo
-                const alternativePaths = [
-                  path.resolve(process.cwd(), 'public', userProfile.businessLogo.replace(/^\/+/, '')),
-                  path.resolve(process.cwd(), userProfile.businessLogo.replace(/^\/+/, '')),
-                  path.resolve(process.cwd(), 'attached_assets', userProfile.businessLogo.replace(/^\/+/, '')),
-                  path.resolve(process.cwd(), 'public', 'uploads', path.basename(userProfile.businessLogo))
-                ];
-                
-                for (const altPath of alternativePaths) {
-                  console.log("Trying alternative business logo path:", altPath);
-                  if (fs.existsSync(altPath)) {
-                    finalLogoPath = altPath;
-                    logoFound = true;
-                    console.log("Successfully found business logo at alternative path:", altPath);
-                    break;
-                  }
-                }
-              }
-              
-              if (logoFound) {
-                imageBuffer = fs.readFileSync(finalLogoPath);
-              }
-            }
-            
-            if (logoFound && imageBuffer) {
-              console.log("Business logo found, adding to PDF with proper aspect ratio");
-              
-              let originalWidth = 120;
-              let originalHeight = 60;
-              
-              // Try to get actual image dimensions
-              const jpegDims = getJpegDimensions(imageBuffer);
-              const pngDims = getPngDimensions(imageBuffer);
-              
-              if (jpegDims) {
-                originalWidth = jpegDims.width;
-                originalHeight = jpegDims.height;
-              } else if (pngDims) {
-                originalWidth = pngDims.width;
-                originalHeight = pngDims.height;
-              }
-              
-              // Calculate scaled dimensions maintaining aspect ratio
-              const maxWidth = 120;
-              const maxHeight = 80;
-              const aspectRatio = originalWidth / originalHeight;
-              
-              let logoWidth = maxWidth;
-              let logoHeight = maxWidth / aspectRatio;
-              
-              if (logoHeight > maxHeight) {
-                logoHeight = maxHeight;
-                logoWidth = maxHeight * aspectRatio;
-              }
-              
-              const centerX = (doc.page.width - logoWidth) / 2;
-              const logoY = doc.y + 10;
-              
-              // Add the business logo with explicit dimensions
-              doc.image(imageBuffer, centerX, logoY, {
-                width: logoWidth,
-                height: logoHeight
-              });
-              
-              console.log("Successfully added business logo to PDF with rounded corners and dimensions:", logoWidth, "x", logoHeight);
-            } else {
-              console.log("Business logo not found or could not be processed");
-            }
-          } catch (error) {
-            console.error("Failed to add business logo to PDF:", error);
-          }
-        }
+
       }
 
       doc.end();
