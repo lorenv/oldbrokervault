@@ -77,6 +77,11 @@ export function CimGenerator() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isFinancialsSectionOpen, setIsFinancialsSectionOpen] = useState(true); // Default to open
   
+  // Ensure financials section starts open
+  useEffect(() => {
+    setIsFinancialsSectionOpen(true);
+  }, []);
+  
   // New analysis template state - force reset to valid schema values
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
   const [selectedTone, setSelectedTone] = useState<string>('professional');
