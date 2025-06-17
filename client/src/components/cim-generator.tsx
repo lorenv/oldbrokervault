@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useReducer } from "react";
+import { useState, useRef, useEffect, useReducer, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPLATES, subscriptionPlans } from "@shared/schema";
@@ -47,157 +47,6 @@ import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
 
-// State types for reducers
-interface ImageState {
-  extractedImages: string[];
-  selectedImages: string[];
-  isExtractingImages: boolean;
-  selectedCoverImage: string | null;
-  coverImagePosition: { x: number; y: number };
-  coverImageAttribution: string;
-  isUnsplashDialogOpen: boolean;
-  unsplashSearchQuery: string;
-  unsplashResults: any[];
-  isSearchingUnsplash: boolean;
-  isCoverImageSectionOpen: boolean;
-}
-
-interface FinancialState {
-  enabled: boolean;
-  data: {
-    askingPrice: string;
-    revenue: string;
-    ebitda: string;
-    askingPriceIncluded: boolean;
-    revenueIncluded: boolean;
-    ebitdaIncluded: boolean;
-  };
-  files: File[];
-}
-
-interface AnalysisState {
-  purpose: string;
-  tone: string;
-  audience: string;
-  customDirections: string;
-  templateNameInput: string;
-}
-
-interface UIState {
-  isDirectionsOpen: boolean;
-  websiteAnalysisStage: string | null;
-}
-
-// Action types
-type ImageAction = 
-  | { type: 'SET_EXTRACTED_IMAGES'; payload: string[] }
-  | { type: 'SET_SELECTED_IMAGES'; payload: string[] }
-  | { type: 'SET_IS_EXTRACTING'; payload: boolean }
-  | { type: 'SET_COVER_IMAGE'; payload: string | null }
-  | { type: 'SET_COVER_POSITION'; payload: { x: number; y: number } }
-  | { type: 'SET_COVER_ATTRIBUTION'; payload: string }
-  | { type: 'SET_UNSPLASH_DIALOG'; payload: boolean }
-  | { type: 'SET_SEARCH_QUERY'; payload: string }
-  | { type: 'SET_UNSPLASH_RESULTS'; payload: any[] }
-  | { type: 'SET_IS_SEARCHING'; payload: boolean }
-  | { type: 'SET_COVER_SECTION_OPEN'; payload: boolean };
-
-type FinancialAction = 
-  | { type: 'SET_ENABLED'; payload: boolean }
-  | { type: 'UPDATE_DATA'; payload: Partial<FinancialState['data']> }
-  | { type: 'SET_FILES'; payload: File[] };
-
-type AnalysisAction = 
-  | { type: 'SET_PURPOSE'; payload: string }
-  | { type: 'SET_TONE'; payload: string }
-  | { type: 'SET_AUDIENCE'; payload: string }
-  | { type: 'SET_DIRECTIONS'; payload: string }
-  | { type: 'SET_TEMPLATE_INPUT'; payload: string }
-  | { type: 'LOAD_TEMPLATE'; payload: { purpose: string; tone: string; audience: string; directions: string } };
-
-type UIAction = 
-  | { type: 'SET_DIRECTIONS_OPEN'; payload: boolean }
-  | { type: 'SET_WEBSITE_STAGE'; payload: string | null };
-
-// Reducers
-function imageReducer(state: ImageState, action: ImageAction): ImageState {
-  switch (action.type) {
-    case 'SET_EXTRACTED_IMAGES':
-      return { ...state, extractedImages: action.payload };
-    case 'SET_SELECTED_IMAGES':
-      return { ...state, selectedImages: action.payload };
-    case 'SET_IS_EXTRACTING':
-      return { ...state, isExtractingImages: action.payload };
-    case 'SET_COVER_IMAGE':
-      return { ...state, selectedCoverImage: action.payload };
-    case 'SET_COVER_POSITION':
-      return { ...state, coverImagePosition: action.payload };
-    case 'SET_COVER_ATTRIBUTION':
-      return { ...state, coverImageAttribution: action.payload };
-    case 'SET_UNSPLASH_DIALOG':
-      return { ...state, isUnsplashDialogOpen: action.payload };
-    case 'SET_SEARCH_QUERY':
-      return { ...state, unsplashSearchQuery: action.payload };
-    case 'SET_UNSPLASH_RESULTS':
-      return { ...state, unsplashResults: action.payload };
-    case 'SET_IS_SEARCHING':
-      return { ...state, isSearchingUnsplash: action.payload };
-    case 'SET_COVER_SECTION_OPEN':
-      return { ...state, isCoverImageSectionOpen: action.payload };
-    default:
-      return state;
-  }
-}
-
-function financialReducer(state: FinancialState, action: FinancialAction): FinancialState {
-  switch (action.type) {
-    case 'SET_ENABLED':
-      return { ...state, enabled: action.payload };
-    case 'UPDATE_DATA':
-      return { ...state, data: { ...state.data, ...action.payload } };
-    case 'SET_FILES':
-      return { ...state, files: action.payload };
-    default:
-      return state;
-  }
-}
-
-function analysisReducer(state: AnalysisState, action: AnalysisAction): AnalysisState {
-  switch (action.type) {
-    case 'SET_PURPOSE':
-      return { ...state, purpose: action.payload };
-    case 'SET_TONE':
-      return { ...state, tone: action.payload };
-    case 'SET_AUDIENCE':
-      return { ...state, audience: action.payload };
-    case 'SET_DIRECTIONS':
-      return { ...state, customDirections: action.payload };
-    case 'SET_TEMPLATE_INPUT':
-      return { ...state, templateNameInput: action.payload };
-    case 'LOAD_TEMPLATE':
-      return { 
-        ...state, 
-        purpose: action.payload.purpose,
-        tone: action.payload.tone,
-        audience: action.payload.audience,
-        customDirections: action.payload.directions
-      };
-    default:
-      return state;
-  }
-}
-
-function uiReducer(state: UIState, action: UIAction): UIState {
-  switch (action.type) {
-    case 'SET_DIRECTIONS_OPEN':
-      return { ...state, isDirectionsOpen: action.payload };
-    case 'SET_WEBSITE_STAGE':
-      return { ...state, websiteAnalysisStage: action.payload };
-    default:
-      return state;
-  }
-}
-
 export function CimGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -211,58 +60,47 @@ export function CimGenerator() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   
-  // Consolidated state using reducers
-  const [imageState, dispatchImage] = useReducer(imageReducer, {
-    extractedImages: [],
-    selectedImages: [],
-    isExtractingImages: false,
-    selectedCoverImage: null,
-    coverImagePosition: { x: 50, y: 50 },
-    coverImageAttribution: '',
-    isUnsplashDialogOpen: false,
-    unsplashSearchQuery: '',
-    unsplashResults: [],
-    isSearchingUnsplash: false,
-    isCoverImageSectionOpen: false,
+  const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
+  const [websiteAnalysisStage, setWebsiteAnalysisStage] = useState<string | null>(null);
+  const [extractedImages, setExtractedImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isExtractingImages, setIsExtractingImages] = useState(false);
+  const [financialsEnabled, setFinancialsEnabled] = useState(false);
+  const [financialData, setFinancialData] = useState({
+    askingPrice: '',
+    revenue: '',
+    ebitda: '',
+    askingPriceIncluded: false,
+    revenueIncluded: false,
+    ebitdaIncluded: false,
   });
-
-  const [financialState, dispatchFinancial] = useReducer(financialReducer, {
-    enabled: false,
-    data: {
-      askingPrice: '',
-      revenue: '',
-      ebitda: '',
-      askingPriceIncluded: false,
-      revenueIncluded: false,
-      ebitdaIncluded: false,
-    },
-    files: [],
-  });
-
-  const [analysisState, dispatchAnalysis] = useReducer(analysisReducer, {
-    purpose: 'business_overview',
-    tone: 'professional',
-    audience: 'investors',
-    customDirections: DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections,
-    templateNameInput: '',
-  });
-
-  const [uiState, dispatchUI] = useReducer(uiReducer, {
-    isDirectionsOpen: false,
-    websiteAnalysisStage: null,
-  });
-
+  const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Analysis template state
+  const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
+  const [selectedTone, setSelectedTone] = useState<string>('professional');
+  const [selectedAudience, setSelectedAudience] = useState<string>('investors');
+  const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
+  const [templateNameInput, setTemplateNameInput] = useState<string>('');
+
+  // Cover image state
+  const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
+  const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
+  const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
+  const [unsplashSearchQuery, setUnsplashSearchQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<any[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+  const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize analysis state on mount
+  // Initialize analysis state on mount with performance optimization
   useEffect(() => {
-    // Clear any potential cached invalid values
     localStorage.removeItem('selectedTone');
     localStorage.removeItem('selectedAudience');
-    
-    dispatchAnalysis({ type: 'SET_TONE', payload: 'professional' });
-    dispatchAnalysis({ type: 'SET_AUDIENCE', payload: 'investors' });
+    setSelectedTone('professional');
+    setSelectedAudience('investors');
   }, []);
 
   // Load analysis templates from database
@@ -322,35 +160,35 @@ export function CimGenerator() {
     },
   });
 
-  // Handler to update custom directions when presets change
-  const handlePresetChange = (purpose: string, tone?: string, audience?: string) => {
+  // Handler to update custom directions when presets change - optimized with useCallback
+  const handlePresetChange = useCallback((purpose: string, tone?: string, audience?: string) => {
     const template = DEFAULT_ANALYSIS_TEMPLATES[purpose as keyof typeof DEFAULT_ANALYSIS_TEMPLATES];
     if (template) {
-      dispatchAnalysis({ type: 'SET_DIRECTIONS', payload: template.customDirections });
+      setCustomDirections(template.customDirections);
       form.setValue('directions', template.customDirections);
     }
-  };
+  }, [form]);
 
-  // Handler to save custom template - simplified to only save directions text
-  const saveCustomTemplate = (name: string) => {
+  // Handler to save custom template - optimized with useCallback
+  const saveCustomTemplate = useCallback((name: string) => {
     const templateData = {
       name: name.trim(),
-      customDirections: analysisState.customDirections
+      customDirections: customDirections
     };
     
     createTemplateMutation.mutate(templateData);
-    dispatchAnalysis({ type: 'SET_TEMPLATE_INPUT', payload: '' });
-  };
+    setTemplateNameInput('');
+  }, [customDirections, createTemplateMutation]);
 
-  // Handler to load template - simplified to only load directions text
-  const loadTemplate = (template: any) => {
-    dispatchAnalysis({ type: 'SET_DIRECTIONS', payload: template.customDirections });
+  // Handler to load template - optimized with useCallback
+  const loadTemplate = useCallback((template: any) => {
+    setCustomDirections(template.customDirections);
     form.setValue("directions", template.customDirections);
     toast({
       title: "Template Loaded",
       description: `"${template.name}" has been loaded successfully.`,
     });
-  };
+  }, [form, toast]);
 
   // Handler to delete template
   const deleteTemplate = (templateId: number) => {
@@ -402,18 +240,18 @@ export function CimGenerator() {
     }
   });
 
-  // Function to extract images from website
-  const extractImages = async (websiteUrl: string) => {
+  // Function to extract images from website - optimized with useCallback
+  const extractImages = useCallback(async (websiteUrl: string) => {
     if (!websiteUrl.trim()) return;
     
-    dispatchImage({ type: 'SET_IS_EXTRACTING', payload: true });
+    setIsExtractingImages(true);
     try {
       const encodedUrl = encodeURIComponent(websiteUrl);
       const response = await apiRequest("GET", `/api/website-images/${encodedUrl}`);
       const data = await response.json();
       
       if (data.images && data.images.length > 0) {
-        dispatchImage({ type: 'SET_EXTRACTED_IMAGES', payload: data.images });
+        setExtractedImages(data.images);
         toast({
           title: "Images Found!",
           description: `Found ${data.images.length} images from the website`,
@@ -433,55 +271,55 @@ export function CimGenerator() {
         variant: "destructive",
       });
     } finally {
-      dispatchImage({ type: 'SET_IS_EXTRACTING', payload: false });
+      setIsExtractingImages(false);
     }
-  };
+  }, [toast]);
 
-  // Toggle image selection
-  const toggleImageSelection = (imageUrl: string) => {
-    const newSelected = imageState.selectedImages.includes(imageUrl)
-      ? imageState.selectedImages.filter(url => url !== imageUrl)
-      : [...imageState.selectedImages, imageUrl];
-    dispatchImage({ type: 'SET_SELECTED_IMAGES', payload: newSelected });
-  };
+  // Toggle image selection - optimized with useCallback
+  const toggleImageSelection = useCallback((imageUrl: string) => {
+    setSelectedImages(prev => 
+      prev.includes(imageUrl)
+        ? prev.filter(url => url !== imageUrl)
+        : [...prev, imageUrl]
+    );
+  }, []);
 
-  // File handling functions
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // File handling functions - optimized with useCallback
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      dispatchFinancial({ type: 'SET_FILES', payload: [...financialState.files, ...Array.from(files)] });
+      setFinancialFiles(prev => [...prev, ...Array.from(files)]);
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const removeFile = (index: number) => {
-    const newFiles = financialState.files.filter((_, i) => i !== index);
-    dispatchFinancial({ type: 'SET_FILES', payload: newFiles });
-  };
+  const removeFile = useCallback((index: number) => {
+    setFinancialFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  // Cover image handlers
-  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Cover image handlers - optimized with useCallback
+  const handleCoverImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      dispatchImage({ type: 'SET_COVER_IMAGE', payload: url });
-      dispatchImage({ type: 'SET_COVER_ATTRIBUTION', payload: '' });
+      setSelectedCoverImage(url);
+      setCoverImageAttribution('');
     }
     if (coverImageFileInputRef.current) {
       coverImageFileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const searchUnsplash = async () => {
-    if (!imageState.unsplashSearchQuery.trim()) return;
+  const searchUnsplash = useCallback(async () => {
+    if (!unsplashSearchQuery.trim()) return;
     
-    dispatchImage({ type: 'SET_IS_SEARCHING', payload: true });
+    setIsSearchingUnsplash(true);
     try {
-      const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(imageState.unsplashSearchQuery)}`);
+      const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(unsplashSearchQuery)}`);
       const data = await response.json();
-      dispatchImage({ type: 'SET_UNSPLASH_RESULTS', payload: data.results || [] });
+      setUnsplashResults(data.results || []);
     } catch (error) {
       toast({
         title: "Search Error",
@@ -489,9 +327,9 @@ export function CimGenerator() {
         variant: "destructive",
       });
     } finally {
-      dispatchImage({ type: 'SET_IS_SEARCHING', payload: false });
+      setIsSearchingUnsplash(false);
     }
-  };
+  }, [unsplashSearchQuery, toast]);
 
   const selectUnsplashImage = async (image: any) => {
     // Trigger Unsplash download event
