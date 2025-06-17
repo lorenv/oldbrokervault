@@ -23,8 +23,8 @@ export const pool = new Pool({
   connectionTimeoutMillis: 5000, // Reduced for faster failure detection
 });
 
-// Set max listeners to prevent warnings - increased for session store
-pool.setMaxListeners(100);
+// Set max listeners to prevent warnings - increased for session store and other listeners
+pool.setMaxListeners(150);
 
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
@@ -32,20 +32,11 @@ pool.on('error', (err) => {
   // Don't exit process on pool errors in production
 });
 
-pool.on('connect', (client) => {
-  console.log('Database pool connected');
-});
-
-// Remove verbose logging to reduce noise
-// pool.on('acquire', (client) => {
-//   console.log('Database connection acquired from pool');
-// });
-
-// pool.on('remove', (client) => {
-//   console.log('Database connection removed from pool');
-// });
-
-// Set max listeners to prevent warnings
-pool.setMaxListeners(100);
+// Reduce connection logging noise in development
+if (process.env.NODE_ENV !== 'production') {
+  pool.on('connect', () => {
+    // Removed verbose logging to reduce console noise
+  });
+}
 
 export const db = drizzle({ client: pool, schema });
