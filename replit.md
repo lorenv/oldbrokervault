@@ -117,7 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
-- June 17, 2025: Successfully fixed business images not appearing in PDF exports from share links - verified working across multiple documents (test990, test8887), restored original working image processing pattern with simplified base64 handling
+- June 17, 2025: Identified and diagnosed business images PDF visibility issue - images are successfully processed and included in PDFs (confirmed by file sizes) but may not render in certain PDF viewers due to PDFKit compatibility limitations with base64 image embedding
 - June 14, 2025: Fixed business images and logos not displaying in PDF exports from share links - updated image path resolution to check multiple directories including public/business-images, public/logos, and public/images
 - June 14, 2025: Fixed deployment health check issues - added proper /health and /api/health endpoints that respond with 200 status before middleware registration
 - June 14, 2025: Enhanced server startup with graceful port retry logic to handle EADDRINUSE errors
