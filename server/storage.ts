@@ -780,13 +780,11 @@ export class DatabaseStorage implements IStorage {
     ndaProtected?: boolean;
     ndaTemplateId?: number | null;
   }): Promise<CimDocument> {
-    // If customSlug is provided, use it as the shareSlug
-    const finalShareSlug = settings.customSlug || settings.shareSlug;
-    
     const [doc] = await db.update(cimDocuments)
       .set({
         shareEnabled: settings.shareEnabled,
-        shareSlug: finalShareSlug,
+        shareSlug: settings.shareSlug,
+        customSlug: settings.customSlug,
         sharePassword: settings.sharePassword,
         shareExpiresAt: settings.shareExpiresAt,
         ndaProtected: settings.ndaProtected,
@@ -800,7 +798,7 @@ export class DatabaseStorage implements IStorage {
   async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
     const [doc] = await db.select()
       .from(cimDocuments)
-      .where(eq(cimDocuments.shareSlug, slug))
+      .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
       .limit(1);
     return doc || undefined;
   }
