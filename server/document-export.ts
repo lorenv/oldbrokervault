@@ -2473,41 +2473,39 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Save image to actual file for maximum PDF compatibility
-                const fs = await import('fs');
-                const path = await import('path');
-                const os = await import('os');
-                
-                const tempDir = os.tmpdir();
-                const fileName = `biz_img_${documentId}_${i}_${Date.now()}.jpg`;
-                const filePath = path.join(tempDir, fileName);
-                
+                // Use direct buffer method with width/height specification
                 try {
-                  // Write image buffer to temporary file
-                  fs.writeFileSync(filePath, imageBuffer);
+                  // Get image dimensions first to ensure proper scaling
+                  const sharp = require('sharp');
+                  const metadata = await sharp(imageBuffer).metadata();
                   
-                  // Use file path for PDFKit (most reliable method)
-                  doc.image(filePath, finalX, finalY, {
-                    fit: [imageWidth, imageHeight],
-                    align: 'center'
-                  });
+                  // Calculate aspect ratio and ensure image fits
+                  const aspectRatio = metadata.width / metadata.height;
+                  let finalWidth = imageWidth;
+                  let finalHeight = imageHeight;
                   
-                  // Clean up file immediately after use
-                  try {
-                    fs.unlinkSync(filePath);
-                  } catch (unlinkError) {
-                    // File cleanup failed but PDF generation succeeded
+                  if (aspectRatio > 1) {
+                    // Landscape image
+                    finalHeight = imageWidth / aspectRatio;
+                  } else {
+                    // Portrait image  
+                    finalWidth = imageHeight * aspectRatio;
                   }
                   
-                  console.log(`Successfully added business image ${i} using temp file method`);
-                } catch (fileError) {
-                  console.log(`Temp file failed for image ${i}, using buffer: ${fileError}`);
-                  // Fallback to direct buffer method
+                  // Add image with explicit dimensions
                   doc.image(imageBuffer, finalX, finalY, {
-                    fit: [imageWidth, imageHeight],
-                    align: 'center'
+                    width: finalWidth,
+                    height: finalHeight
                   });
-                  console.log(`Successfully added business image ${i} using buffer fallback`);
+                  
+                  console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
+                } catch (sharpError) {
+                  // Fallback without Sharp
+                  doc.image(imageBuffer, finalX, finalY, {
+                    width: imageWidth,
+                    height: imageHeight
+                  });
+                  console.log(`Added business image ${i} without Sharp (${imageWidth}x${imageHeight})`);
                 }
                 continue;
               } catch (error) {
@@ -2802,11 +2800,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const centerX = (doc.page.width - logoWidth) / 2;
               const logoY = doc.y + 10;
               
-              // Add the business logo directly (already has rounded corners from processing)
+              // Add the business logo with explicit dimensions
               doc.image(imageBuffer, centerX, logoY, {
                 width: logoWidth,
-                height: logoHeight,
-                align: 'center'
+                height: logoHeight
               });
               
               console.log("Successfully added business logo to PDF with rounded corners and dimensions:", logoWidth, "x", logoHeight);
