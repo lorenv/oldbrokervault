@@ -3471,6 +3471,14 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         validatedCustomSlug = null;
       }
 
+      // Check if custom slug is already taken by another document
+      if (validatedCustomSlug) {
+        const existingDoc = await storage.getCimByShareSlug(validatedCustomSlug);
+        if (existingDoc && existingDoc.id !== docId) {
+          return res.status(400).json({ error: "This custom URL is already taken. Please choose a different one." });
+        }
+      }
+
       const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
@@ -3492,6 +3500,17 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       });
     } catch (error) {
       console.error("Error updating share settings:", error);
+      
+      // Handle duplicate key constraint violation
+      if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+        if (error.message.includes('cim_documents_custom_slug_key')) {
+          return res.status(400).json({ error: "This custom URL is already taken. Please choose a different one." });
+        }
+        if (error.message.includes('cim_documents_share_slug_key')) {
+          return res.status(400).json({ error: "Share slug conflict. Please try again." });
+        }
+      }
+      
       res.status(500).json({ error: "Failed to update share settings" });
     }
   });
