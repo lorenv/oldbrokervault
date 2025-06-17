@@ -2473,25 +2473,42 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Force PDF to create new image object with proper scaling
-                doc.save();
+                // Save image to actual file for maximum PDF compatibility
+                const fs = await import('fs');
+                const path = await import('path');
+                const os = await import('os');
                 
-                // Add a subtle background rectangle to ensure image layer exists
-                doc.rect(finalX, finalY, imageWidth, imageHeight)
-                   .fillOpacity(0.01)
-                   .fill('#ffffff')
-                   .fillOpacity(1);
+                const tempDir = os.tmpdir();
+                const fileName = `biz_img_${documentId}_${i}_${Date.now()}.jpg`;
+                const filePath = path.join(tempDir, fileName);
                 
-                // Use the most compatible image insertion method
-                doc.image(imageBuffer, finalX, finalY, {
-                  width: imageWidth,
-                  height: imageHeight,
-                  fit: [imageWidth, imageHeight]
-                });
-                
-                doc.restore();
-                
-                console.log(`Added business image ${i} at ${finalX}, ${finalY} with background layer and fit constraints`);
+                try {
+                  // Write image buffer to temporary file
+                  fs.writeFileSync(filePath, imageBuffer);
+                  
+                  // Use file path for PDFKit (most reliable method)
+                  doc.image(filePath, finalX, finalY, {
+                    fit: [imageWidth, imageHeight],
+                    align: 'center'
+                  });
+                  
+                  // Clean up file immediately after use
+                  try {
+                    fs.unlinkSync(filePath);
+                  } catch (unlinkError) {
+                    // File cleanup failed but PDF generation succeeded
+                  }
+                  
+                  console.log(`Successfully added business image ${i} using temp file method`);
+                } catch (fileError) {
+                  console.log(`Temp file failed for image ${i}, using buffer: ${fileError}`);
+                  // Fallback to direct buffer method
+                  doc.image(imageBuffer, finalX, finalY, {
+                    fit: [imageWidth, imageHeight],
+                    align: 'center'
+                  });
+                  console.log(`Successfully added business image ${i} using buffer fallback`);
+                }
                 continue;
               } catch (error) {
                 console.error(`Failed to add business image ${i}:`, error);
