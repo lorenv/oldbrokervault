@@ -2473,13 +2473,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Use the original working approach that worked before
-                doc.image(imageBuffer, finalX, finalY, {
-                  fit: [imageWidth, imageHeight],
-                  align: 'center'
-                });
-                
-                console.log(`Added business image ${i} at ${finalX}, ${finalY}`);
+                // Use the most basic PDFKit image syntax for maximum compatibility
+                try {
+                  doc.image(imageBuffer, finalX, finalY);
+                  console.log(`Added business image ${i} at ${finalX}, ${finalY} using basic syntax`);
+                } catch (basicError) {
+                  // Fallback to explicit dimensions if basic syntax fails
+                  doc.image(imageBuffer, finalX, finalY, {
+                    width: imageWidth,
+                    height: imageHeight
+                  });
+                  console.log(`Added business image ${i} at ${finalX}, ${finalY} using fallback dimensions`);
+                }
                 continue;
               } catch (error) {
                 console.error(`Failed to add business image ${i}:`, error);
