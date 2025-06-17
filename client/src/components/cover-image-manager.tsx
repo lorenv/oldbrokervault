@@ -66,6 +66,30 @@ export function CoverImageManager({
   });
   const [attribution, setAttribution] = useState(currentAttribution || "");
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
+  // Update local state when props change (e.g., after document generation)
+  useEffect(() => {
+    if (currentCoverImage !== selectedImage && !hasUserInteracted) {
+      setSelectedImage(currentCoverImage);
+    }
+  }, [currentCoverImage, selectedImage, hasUserInteracted]);
+
+  useEffect(() => {
+    if (currentPosition && !hasUserInteracted) {
+      try {
+        const newPosition = JSON.parse(currentPosition);
+        setImagePosition(newPosition);
+      } catch {
+        // Keep current position if parsing fails
+      }
+    }
+  }, [currentPosition, hasUserInteracted]);
+
+  useEffect(() => {
+    if (currentAttribution !== attribution && !hasUserInteracted) {
+      setAttribution(currentAttribution || "");
+    }
+  }, [currentAttribution, attribution, hasUserInteracted]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
