@@ -721,20 +721,7 @@ export function CimDisplay({
             ) : (
               <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                 <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 mb-4">No logo uploaded yet</p>
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('logo-upload')?.click()}
-                  className="flex items-center gap-2"
-                  disabled={isLogoUploading}
-                >
-                  {isLogoUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                  {isLogoUploading ? 'Uploading...' : 'Upload Your Logo'}
-                </Button>
+                <p className="text-gray-500">No logo uploaded yet</p>
               </div>
             )}
           </div>
@@ -816,15 +803,7 @@ export function CimDisplay({
             ) : !isSharedView ? (
               <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                 <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 mb-4">No business images uploaded yet</p>
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('business-image-upload')?.click()}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Your First Image
-                </Button>
+                <p className="text-gray-500">No business images uploaded yet</p>
               </div>
             ) : null}
           </div>

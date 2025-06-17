@@ -117,6 +117,8 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 17, 2025: Removed duplicate upload buttons from CIM edit interface - cleaned up left-side "Upload Your Logo" and "Upload Your First Image" buttons while preserving right-side upload functionality
+- June 17, 2025: Fixed database connection pool warnings by increasing max listeners to 150 and improving session store initialization to prevent multiple instances
 - June 17, 2025: Fixed PDF export layout from share links - website logo now displays on first page (handles base64 data), business images maintain aspect ratios, company logo centered on first page, and added page break before generated content for proper cover page structure
 - June 17, 2025: Fixed business images and logos not appearing in PDF exports from share links - replaced PDFKit fit/align parameters with explicit width/height parameters to ensure proper rendering across all PDF viewers
 - June 17, 2025: Removed parallax effects, particles, and animations from footer component for cleaner appearance
