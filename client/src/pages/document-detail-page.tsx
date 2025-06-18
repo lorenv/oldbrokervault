@@ -151,37 +151,44 @@ export function DocumentDetailPage() {
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
             <Link href="/documents">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Documents
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{cimDocument.title}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={cimDocument.shareEnabled ? "default" : "secondary"}>
+          </div>
+          
+          <div className="flex items-start justify-between">
+            <div className="space-y-3">
+              <h1 className="text-3xl font-bold tracking-tight">{cimDocument.title}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge 
+                  variant={cimDocument.shareEnabled ? "default" : "secondary"}
+                  className={`${cimDocument.shareEnabled ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                >
                   {cimDocument.shareEnabled ? "Shared" : "Private"}
                 </Badge>
                 {cimDocument.ndaProtected && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
                     <FileSignature className="h-3 w-3 mr-1" />
                     NDA Protected
                   </Badge>
                 )}
                 {ndaSignatures && ndaSignatures.length > 0 && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
                     <Users className="h-3 w-3 mr-1" />
                     {ndaSignatures.length} Signature{ndaSignatures.length !== 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>
             </div>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Created {new Date(cimDocument.createdAt).toLocaleDateString()}
+            <div className="text-right text-sm text-muted-foreground">
+              <div>Created</div>
+              <div className="font-medium">{new Date(cimDocument.createdAt).toLocaleDateString()}</div>
+            </div>
           </div>
         </div>
         
