@@ -4913,8 +4913,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
           });
         } else {
-          // Send immediate access email (existing behavior)
-          console.log("Sending confirmation emails with redirect link...");
+          // Get owner's complete profile information for CIM link email
+          console.log("Fetching owner profile information...");
+          const ownerProfile = await storage.getUserProfile(cimDoc.userId);
+          
+          // Prepare owner profile data for email
+          const ownerProfileData = {
+            name: owner.name || owner.email,
+            email: owner.email,
+            phone: ownerProfile?.phoneNumber || undefined,
+            title: ownerProfile?.title || undefined,
+            businessName: ownerProfile?.businessName || undefined,
+            profilePhotoUrl: ownerProfile?.profilePhotoUrl || undefined,
+            businessLogoUrl: ownerProfile?.businessLogoUrl || undefined
+          };
+
+          // Send immediate access email with separate NDA confirmation and CIM link emails
+          console.log("Sending separate NDA confirmation and CIM access emails...");
           const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
           const finalEmailSent = await sendNdaSignedEmail(
             signerEmail,
@@ -4922,7 +4937,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             owner.name || owner.email,
             cimDoc.title,
             redirectUrl,
-            signedNdaContent
+            signedNdaContent,
+            signerName,
+            ownerProfileData
           );
 
           if (!finalEmailSent) {

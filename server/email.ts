@@ -40,12 +40,11 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
-async function sendNdaSignedEmail(
+// Send NDA confirmation email with attachment (separate from CIM link)
+async function sendNdaConfirmationEmail(
   viewerEmail: string,
-  ownerEmail: string,
-  ownerName: string,
+  viewerName: string,
   cimTitle: string,
-  shareLink: string,
   signedNdaBase64: string
 ): Promise<boolean> {
   const attachment = {
@@ -55,27 +54,21 @@ async function sendNdaSignedEmail(
     disposition: 'attachment'
   };
 
-  // Email to viewer
-  const viewerSuccess = await sendEmail({
+  return await sendEmail({
     to: viewerEmail,
-    from: 'rob@cimshare.com', // Use verified sender
-    replyTo: 'rob@cimshare.com', // Use verified reply-to address
-    subject: `NDA Signed - Access to ${cimTitle}`,
+    from: 'rob@cimshare.com',
+    replyTo: 'rob@cimshare.com',
+    subject: `NDA Confirmation - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>NDA Successfully Signed</h2>
+        <p>Hello ${viewerName},</p>
+        
         <p>Thank you for signing the Non-Disclosure Agreement for <strong>${cimTitle}</strong>.</p>
         
-        <p>You can now access the confidential information memorandum using the link below:</p>
+        <p>Your signed NDA has been recorded and a copy is attached to this email for your records.</p>
         
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${shareLink}" 
-             style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            View CIM Document
-          </a>
-        </div>
-        
-        <p>A copy of the signed NDA is attached to this email for your records.</p>
+        <p>You will receive a separate email with access to the confidential information memorandum shortly.</p>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
@@ -86,33 +79,152 @@ async function sendNdaSignedEmail(
     text: `
       NDA Successfully Signed
       
+      Hello ${viewerName},
+      
       Thank you for signing the Non-Disclosure Agreement for ${cimTitle}.
       
-      You can now access the confidential information memorandum at: ${shareLink}
+      Your signed NDA has been recorded and a copy is attached to this email for your records.
       
-      A copy of the signed NDA is attached to this email for your records.
+      You will receive a separate email with access to the confidential information memorandum shortly.
     `,
     attachments: [attachment]
   });
+}
 
-  // Email to owner
-  const ownerSuccess = await sendEmail({
+// Send CIM link email with complete contact information
+async function sendCimLinkEmail(
+  viewerEmail: string,
+  viewerName: string,
+  cimTitle: string,
+  shareLink: string,
+  ownerProfile: {
+    name: string;
+    email: string;
+    phone?: string;
+    title?: string;
+    businessName?: string;
+    profilePhotoUrl?: string;
+    businessLogoUrl?: string;
+  }
+): Promise<boolean> {
+  const profilePhotoHtml = ownerProfile.profilePhotoUrl 
+    ? `<img src="${ownerProfile.profilePhotoUrl}" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">` 
+    : '';
+    
+  const businessLogoHtml = ownerProfile.businessLogoUrl 
+    ? `<img src="${ownerProfile.businessLogoUrl}" alt="Business Logo" style="max-width: 150px; max-height: 60px; margin-bottom: 15px;">` 
+    : '';
+
+  return await sendEmail({
+    to: viewerEmail,
+    from: 'rob@cimshare.com',
+    replyTo: ownerProfile.email,
+    subject: `Access to ${cimTitle} - CIM Document`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Access to Confidential Information Memorandum</h2>
+        <p>Hello ${viewerName},</p>
+        
+        <p>You now have access to the confidential information memorandum for <strong>${cimTitle}</strong>.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${shareLink}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            View CIM Document
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Your Contact Information</h3>
+          
+          <div style="text-align: center; margin-bottom: 20px;">
+            ${profilePhotoHtml}
+            ${businessLogoHtml}
+          </div>
+          
+          <div style="text-align: center;">
+            <h4 style="margin: 10px 0; font-size: 18px; color: #333;">${ownerProfile.name}</h4>
+            ${ownerProfile.title ? `<p style="margin: 5px 0; color: #666; font-style: italic;">${ownerProfile.title}</p>` : ''}
+            ${ownerProfile.businessName ? `<p style="margin: 5px 0; color: #666; font-weight: bold;">${ownerProfile.businessName}</p>` : ''}
+            
+            <div style="margin-top: 15px;">
+              <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:${ownerProfile.email}">${ownerProfile.email}</a></p>
+              ${ownerProfile.phone ? `<p style="margin: 5px 0;"><strong>Phone:</strong> <a href="tel:${ownerProfile.phone}">${ownerProfile.phone}</a></p>` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <p style="color: #666; text-align: center;">
+          Please feel free to reach out if you have any questions about the opportunity.
+        </p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This email contains confidential information. Please handle accordingly.
+        </p>
+      </div>
+    `,
+    text: `
+      Access to Confidential Information Memorandum
+      
+      Hello ${viewerName},
+      
+      You now have access to the confidential information memorandum for ${cimTitle}.
+      
+      View CIM Document: ${shareLink}
+      
+      Your Contact Information:
+      Name: ${ownerProfile.name}
+      ${ownerProfile.title ? `Title: ${ownerProfile.title}` : ''}
+      ${ownerProfile.businessName ? `Business: ${ownerProfile.businessName}` : ''}
+      Email: ${ownerProfile.email}
+      ${ownerProfile.phone ? `Phone: ${ownerProfile.phone}` : ''}
+      
+      Please feel free to reach out if you have any questions about the opportunity.
+    `
+  });
+}
+
+// Send owner notification email (unchanged)
+async function sendOwnerNdaNotification(
+  ownerEmail: string,
+  ownerName: string,
+  cimTitle: string,
+  viewerEmail: string,
+  viewerName: string,
+  shareLink: string,
+  signedNdaBase64: string
+): Promise<boolean> {
+  const attachment = {
+    content: signedNdaBase64,
+    filename: `signed-nda-${cimTitle.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+    type: 'application/pdf',
+    disposition: 'attachment'
+  };
+
+  return await sendEmail({
     to: ownerEmail,
-    from: 'rob@cimshare.com', // Use verified sender
+    from: 'rob@cimshare.com',
     subject: `NDA Signed by ${viewerEmail} - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>NDA Signature Notification</h2>
+        <p>Hello ${ownerName},</p>
+        
         <p>A new user has signed the NDA for your CIM document: <strong>${cimTitle}</strong></p>
         
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Signer Details:</h3>
+          <p><strong>Name:</strong> ${viewerName}</p>
           <p><strong>Email:</strong> ${viewerEmail}</p>
           <p><strong>Signed:</strong> ${new Date().toLocaleString()}</p>
           <p><strong>Share Link:</strong> <a href="${shareLink}">${shareLink}</a></p>
         </div>
         
         <p>A copy of the signed NDA is attached to this email.</p>
+        <p>The signer will receive separate emails with NDA confirmation and CIM access.</p>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
@@ -123,18 +235,66 @@ async function sendNdaSignedEmail(
     text: `
       NDA Signature Notification
       
+      Hello ${ownerName},
+      
       A new user has signed the NDA for your CIM document: ${cimTitle}
       
-      Signer Email: ${viewerEmail}
+      Signer Details:
+      Name: ${viewerName}
+      Email: ${viewerEmail}
       Signed: ${new Date().toLocaleString()}
       Share Link: ${shareLink}
       
       A copy of the signed NDA is attached to this email.
+      The signer will receive separate emails with NDA confirmation and CIM access.
     `,
     attachments: [attachment]
   });
+}
 
-  return viewerSuccess && ownerSuccess;
+// Legacy function - now calls separate email functions
+async function sendNdaSignedEmail(
+  viewerEmail: string,
+  ownerEmail: string,
+  ownerName: string,
+  cimTitle: string,
+  shareLink: string,
+  signedNdaBase64: string,
+  viewerName?: string,
+  ownerProfile?: any
+): Promise<boolean> {
+  // Send NDA confirmation email first
+  const ndaConfirmationSuccess = await sendNdaConfirmationEmail(
+    viewerEmail,
+    viewerName || 'Valued Investor',
+    cimTitle,
+    signedNdaBase64
+  );
+
+  // Send CIM link email with contact information
+  const cimLinkSuccess = await sendCimLinkEmail(
+    viewerEmail,
+    viewerName || 'Valued Investor',
+    cimTitle,
+    shareLink,
+    ownerProfile || {
+      name: ownerName,
+      email: ownerEmail
+    }
+  );
+
+  // Send owner notification
+  const ownerNotificationSuccess = await sendOwnerNdaNotification(
+    ownerEmail,
+    ownerName,
+    cimTitle,
+    viewerEmail,
+    viewerName || 'Unknown',
+    shareLink,
+    signedNdaBase64
+  );
+
+  return ndaConfirmationSuccess && cimLinkSuccess && ownerNotificationSuccess;
 }
 
 async function sendPasswordResetEmail(
@@ -191,7 +351,8 @@ async function sendPasswordResetEmail(
 
 async function sendApprovalEmail(
   signature: any,
-  cimDoc: any
+  cimDoc: any,
+  ownerProfile?: any
 ): Promise<boolean> {
   const { signerEmail, signerName, accessToken } = signature;
   const { title, shareSlug } = cimDoc;
@@ -199,6 +360,18 @@ async function sendApprovalEmail(
   // Create direct share URL with access token
   const shareUrl = `https://cimshare.com/share/${shareSlug}?token=${accessToken}`;
   
+  // Use the new CIM link email function if owner profile is provided
+  if (ownerProfile) {
+    return await sendCimLinkEmail(
+      signerEmail,
+      signerName,
+      title,
+      shareUrl,
+      ownerProfile
+    );
+  }
+  
+  // Fallback to basic approval email
   return await sendEmail({
     to: signerEmail,
     from: 'rob@cimshare.com',
