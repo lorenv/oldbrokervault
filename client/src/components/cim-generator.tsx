@@ -1066,74 +1066,75 @@ ${analysis.team.ownerResponsibilities}
               {financialsEnabled && (
                 <div className="space-y-6">
                   <div className="grid md:grid-cols-3 gap-4">
-                  {/* Asking Price */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.askingPriceIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
+                    {/* Asking Price */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.askingPriceIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">Asking Price</Label>
+                      </div>
+                      <Input
+                        placeholder="$1,000,000"
+                        value={financialData.askingPrice}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
                         }
-                        className="h-4 w-4"
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">Asking Price</Label>
-                    </div>
-                    <Input
-                      placeholder="$1,000,000"
-                      value={financialData.askingPrice}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
-                      }
-                      className="h-9"
-                    />
                   </div>
 
-                  {/* Annual Revenue */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.revenueIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
+                    {/* Annual Revenue */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.revenueIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
+                      </div>
+                      <Input
+                        placeholder="$500,000"
+                        value={financialData.revenue}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
                         }
-                        className="h-4 w-4"
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
                     </div>
-                    <Input
-                      placeholder="$500,000"
-                      value={financialData.revenue}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
-                      }
-                      className="h-9"
-                    />
-                  </div>
 
-                  {/* EBITDA */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.ebitdaIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
-                        }
+                    {/* EBITDA */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.ebitdaIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
+                          }
                         className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">EBITDA</Label>
+                      </div>
+                      <Input
+                        placeholder="$150,000"
+                        value={financialData.ebitda}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
+                        }
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">EBITDA</Label>
                     </div>
-                    <Input
-                      placeholder="$150,000"
-                      value={financialData.ebitda}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
-                      }
-                      className="h-9"
-                    />
                   </div>
-                </div>
-                
-                <div className="space-y-3 mt-4">
+                  
+                  {/* Financial Documents (Optional) */}
+                  <div className="space-y-3">
                   <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
                   <div className="border-2 border-dashed border-muted rounded-lg p-4">
                     <div className="text-center">
@@ -1189,7 +1190,6 @@ ${analysis.team.ownerResponsibilities}
                     </div>
                   )}
                 </div>
-                )}
               )}
             </div>
 
