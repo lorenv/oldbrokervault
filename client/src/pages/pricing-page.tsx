@@ -58,6 +58,16 @@ export default function PricingPage() {
         return;
       }
       
+      if (planId === 'standard') {
+        // For Standard plan, create a checkout session
+        const response = await apiRequest("POST", "/api/create-checkout-session", {
+          planType: 'standard'
+        });
+        const { url } = await response.json();
+        window.location.href = url;
+        return;
+      }
+      
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
