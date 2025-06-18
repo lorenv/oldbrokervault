@@ -4460,6 +4460,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           signerName,
           signerEmail,
           signerIpAddress,
+          signerLocation,
           signedNdaContent
         };
         
@@ -4468,6 +4469,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           signerName: signatureData.signerName,
           signerEmail: signatureData.signerEmail,
           signerIpAddress: signatureData.signerIpAddress,
+          signerLocation: signatureData.signerLocation,
           contentLength: signatureData.signedNdaContent.length
         });
 
@@ -4512,18 +4514,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             ));
           
           if (existingContact) {
-            // Update existing contact with latest activity
+            // Update existing contact with latest activity and location info
             await db
               .update(investorContacts)
               .set({
                 totalDocumentViews: existingContact.totalDocumentViews + 1,
                 lastSeenAt: new Date(),
+                ipAddress: signerIpAddress,
+                location: signerLocation,
                 updatedAt: new Date()
               })
               .where(eq(investorContacts.id, existingContact.id));
-            console.log("Updated existing investor contact:", signerEmail);
+            console.log("Updated existing investor contact with location:", signerEmail, signerLocation);
           } else {
-            // Create new contact
+            // Create new contact with location info
             await db
               .insert(investorContacts)
               .values({
@@ -4534,9 +4538,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                 totalDocumentViews: 1,
                 firstSeenAt: new Date(),
                 lastSeenAt: new Date(),
+                ipAddress: signerIpAddress,
+                location: signerLocation,
                 tags: []
               });
-            console.log("Created new investor contact:", signerEmail);
+            console.log("Created new investor contact with location:", signerEmail, signerLocation);
           }
         } catch (syncError) {
           console.error('Auto-sync to investor database failed:', syncError);
