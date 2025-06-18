@@ -51,7 +51,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const [emailShareDialog, setEmailShareDialog] = useState<{
     open: boolean;
     documentTitle?: string;
-    shareToken?: string;
+    shareUrl?: string;
   }>({ open: false });
   
   // Embed settings state
@@ -411,7 +411,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             onClick={() => setEmailShareDialog({
               open: true,
               documentTitle: cimDocument.title,
-              shareToken: shareUrl
+              shareUrl: shareUrl
             })}
             disabled={!shareSettings.shareEnabled}
           >
