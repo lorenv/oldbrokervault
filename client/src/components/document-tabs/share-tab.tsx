@@ -537,7 +537,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         open={emailShareDialog.open}
         onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
         documentTitle={emailShareDialog.documentTitle || ''}
-        shareUrl={shareUrl}
+        shareUrl={emailShareDialog.shareUrl || shareUrl}
       />
     </div>
   );
