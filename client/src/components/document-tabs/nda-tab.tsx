@@ -21,7 +21,8 @@ import {
   Clock,
   Check,
   Copy,
-  Link2Off
+  Link2Off,
+  Loader2
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [isUploadingNda, setIsUploadingNda] = useState(false);
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
+  const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -96,6 +98,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Approve signer mutation
   const approveSignerMutation = useMutation({
     mutationFn: async (signatureId: number) => {
+      setApprovingSignatureId(signatureId);
       const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/${signatureId}/approve`);
       if (!response.ok) throw new Error('Failed to approve signer');
       return response.json();
@@ -106,6 +109,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         description: "The signer has been approved and will receive access to the document."
       });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+      setApprovingSignatureId(null);
     },
     onError: () => {
       toast({
@@ -113,6 +118,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         description: "Failed to approve signer. Please try again.",
         variant: "destructive"
       });
+      setApprovingSignatureId(null);
     }
   });
 
@@ -756,10 +762,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                             variant="default"
                             size="sm"
                             onClick={() => handleApproveSignature(signature.id)}
-                            disabled={approveSignerMutation.isPending}
+                            disabled={approvingSignatureId === signature.id}
                             title="Approve signer"
                           >
-                            <Check className="h-3 w-3" />
+                            {approvingSignatureId === signature.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
                           </Button>
                         )}
                         <Button
