@@ -1739,6 +1739,7 @@ export function DocumentExport({
                               <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Signed: {new Date(signature.signedAt).toLocaleDateString()} • IP: {signature.signerIpAddress}
+                                {signature.signerLocation && ` • ${signature.signerLocation}`}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
