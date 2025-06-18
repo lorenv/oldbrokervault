@@ -13,10 +13,10 @@ import { CimDisplay } from "@/components/cim-display";
 import { DocumentExport } from "@/components/document-export";
 
 // Tab Components
-import { DocumentAnalyticsTab } from "../components/document-tabs/analytics-tab";
-import { DocumentEditTab } from "../components/document-tabs/edit-tab";
-import { DocumentNdaTab } from "../components/document-tabs/nda-tab";
-import { DocumentShareTab } from "../components/document-tabs/share-tab";
+import { DocumentAnalyticsTab } from "@/components/document-tabs/analytics-tab";
+import { DocumentEditTab } from "@/components/document-tabs/edit-tab";
+import { DocumentNdaTab } from "@/components/document-tabs/nda-tab";
+import { DocumentShareTab } from "@/components/document-tabs/share-tab";
 
 export function DocumentDetailPage() {
   const [matched, params] = useRoute('/documents/:id');

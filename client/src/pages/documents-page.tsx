@@ -418,69 +418,83 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
         {!documentsLoading && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredDocuments?.map((doc) => (
-            <Card 
-              key={doc.id} 
-              className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm"
-              onClick={() => {
-                setSelectedDoc(doc);
-              }}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {doc.logoUrl && (
-                        <div className="flex-shrink-0">
-                          <img 
-                            src={doc.logoUrl} 
-                            alt="Company logo" 
-                            className="w-6 h-6 rounded-full object-cover border border-gray-200"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
+              <div key={doc.id} className="relative">
+                <Link href={`/documents/${doc.id}`}>
+                  <Card className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {doc.logoUrl && (
+                              <div className="flex-shrink-0">
+                                <img 
+                                  src={doc.logoUrl} 
+                                  alt="Company logo" 
+                                  className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                            <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
+                              {doc.title}
+                            </CardTitle>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(doc.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <PenTool className="h-3 w-3" />
+                              {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
-                        {doc.title}
-                      </CardTitle>
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(doc.createdAt).toLocaleDateString()}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <PenTool className="h-3 w-3" />
-                        {doc.ndaSignatureCount || 0} NDA{(doc.ndaSignatureCount || 0) !== 1 ? 's' : ''}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        {doc.shareEnabled ? (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
+                            <Globe className="h-3 w-3" />
+                            Shared
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
+                            <Lock className="h-3 w-3" />
+                            Private
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                
+                {/* Dropdown Menu positioned absolutely to avoid Link nesting */}
+                <div className="absolute top-3 right-3 z-10">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-60 hover:opacity-100 transition-opacity">
                         <Share2 className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDoc(doc);
-                          setAutoTriggerShare(true);
+                        onClick={() => {
+                          window.location.href = `/documents/${doc.id}?tab=share`;
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
                         Share Link Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          
+                        onClick={async () => {
                           if (doc.shareSlug) {
                             navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
                             toast({
@@ -500,8 +514,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         Copy Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           if (!doc.shareSlug) {
                             toast({
                               title: "Sharing Not Enabled",
@@ -527,7 +540,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={(e) => {e.stopPropagation(); handleExport(doc.id, 'pdf');}}
+                            onClick={() => handleExport(doc.id, 'pdf')}
                           >
                             <FileDown className="mr-2 h-4 w-4 text-red-600" />
                             Export to PDF
@@ -537,7 +550,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                       
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
-                        onClick={(e) => {e.stopPropagation(); setConfirmDelete(doc.id);}} 
+                        onClick={() => setConfirmDelete(doc.id)} 
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -546,23 +559,7 @@ ${analysis.team?.ownerResponsibilities || 'N/A'}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  {doc.shareEnabled ? (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
-                      <Globe className="h-3 w-3" />
-                      Shared
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
-                      <Lock className="h-3 w-3" />
-                      Private
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
             ))}
           </div>
         )}
