@@ -30,26 +30,20 @@ export function SubscriptionCard({
   const getLimit = () => {
     switch (status) {
       case "admin":
+      case "enterprise":
         return "Unlimited";
-      case "premium":
-        return 100;
-      case "standard":
-        return 10;
       default:
-        return 1;
+        return 3;
     }
   };
 
   const getRegenerationLimit = () => {
     switch (status) {
       case "admin":
+      case "enterprise":
         return "Unlimited";
-      case "premium":
-        return "Unlimited";
-      case "standard":
-        return 5;
       default:
-        return 2;
+        return 9;
     }
   };
 

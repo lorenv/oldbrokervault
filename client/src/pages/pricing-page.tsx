@@ -52,49 +52,23 @@ export default function PricingPage() {
 
   const handleSubscriptionAction = async (planId?: string) => {
     try {
-      // console.log("=== CHECKOUT ACTION START ===");
-      // console.log("Plan ID:", planId);
-      // console.log("User subscription status:", user?.subscriptionStatus);
-      // console.log("Current pricing data being used:", pricing);
-      // console.log("Premium price ID from current data:", pricing?.premium?.priceId);
+      if (planId === 'enterprise') {
+        // For Enterprise plan, open contact form
+        window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
+        return;
+      }
       
       if (user?.subscriptionStatus !== "free") {
         // For existing subscribers, create a Customer Portal session
-        // console.log("Creating portal session for existing subscriber");
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
         window.location.href = url;
-      } else if (planId) {
-        // For new subscriptions, create a checkout session with the plan
-        // console.log("Creating checkout session for plan:", planId);
-        // Use the fresh pricing data we fetched to ensure correct price ID
-        const checkoutPayload = { 
-          plan: planId,
-          priceId: planId === 'premium' ? pricing?.premium?.priceId : pricing?.standard?.priceId
-        };
-        // console.log("Sending checkout payload with fresh price ID:", checkoutPayload);
-        
-        const response = await apiRequest("POST", "/api/subscription/create-checkout", checkoutPayload);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("=== CHECKOUT ERROR DETAILS ===");
-          console.error("Status:", response.status);
-          console.error("Error data:", errorData);
-          throw new Error(errorData.error || `HTTP ${response.status}`);
-        }
-        
-        const { url } = await response.json();
-        // console.log("Checkout session created successfully, redirecting to:", url);
-        window.location.href = url;
       }
     } catch (error) {
-      console.error("=== SUBSCRIPTION ACTION ERROR ===");
-      console.error("Full error:", error);
-      console.error("Error message:", error.message);
+      console.error("Subscription action error:", error);
       toast({
-        title: "Checkout Error",
-        description: error.message || "Failed to process subscription request. Please try again.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process subscription action",
         variant: "destructive",
       });
     }
@@ -142,43 +116,32 @@ export default function PricingPage() {
     {
       name: "Free",
       price: "$0",
-      description: "Basic CIM generation",
+      description: "Professional CIM generation",
       features: [
         "Generate up to 3 CIMs per month",
-        "Basic export options",
-        "Standard analysis",
+        "Up to 9 regenerations per month",
+        "Export to PDF and Word",
+        "Professional analysis",
         "Email support",
       ],
       current: user?.subscriptionStatus === "free",
     },
     {
-      name: "Standard", 
-      price: `$${pricing.standard?.amount || 'Error'}`,
-      description: "Professional CIM creation",
-      features: [
-        "Generate up to 10 CIMs per month",
-        "Export to Word and PDF",
-        "Advanced analysis",
-        "Priority support",
-        "Unlimited regenerations",
-      ],
-      current: user?.subscriptionStatus === "standard",
-      planId: "standard"
-    },
-    {
-      name: "Premium",
-      price: pricing?.premium?.amount ? `$${pricing.premium.amount}` : '$950',
-      description: "Enterprise-grade solution",
+      name: "Enterprise",
+      price: "Contact Us",
+      description: "Unlimited enterprise solution",
       features: [
         "Unlimited CIM generation",
+        "Unlimited regenerations",
         "Custom branding options",
         "Advanced export formats",
         "Dedicated support",
         "API access",
         "Team collaboration",
+        "Custom integrations",
       ],
-      current: user?.subscriptionStatus === "premium",
-      planId: "premium"
+      current: user?.subscriptionStatus === "enterprise",
+      isEnterprise: true
     },
   ];
 
@@ -251,9 +214,9 @@ export default function PricingPage() {
               ) : (
                 <Button 
                   className="w-full"
-                  onClick={() => handleSubscriptionAction(plan.planId)}
+                  onClick={() => handleSubscriptionAction(plan.isEnterprise ? 'enterprise' : undefined)}
                 >
-                  Upgrade
+                  {plan.isEnterprise ? 'Contact Us' : 'Get Started'}
                 </Button>
               )}
             </CardFooter>
