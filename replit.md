@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 18, 2025: Implemented authentic geolocation tracking for NDA signatures - system now captures real IP addresses via x-forwarded-for headers and displays accurate location data (e.g., "Los Angeles, CA, US") in NDA signatures and investor contacts for legal compliance and audit trails
 - June 18, 2025: Updated subscription plans to Free Trial (1 document, 2 regenerations), CIM Share Standard Plan ($99/month, 3 documents, 20 regenerations), and Enterprise (unlimited, contact for pricing) model
 - June 17, 2025: Updated homepage live examples to Tony's Transmissions (https://cimshare.com/share/cim-q94wn4) and Arbor Partners (https://cimshare.com/share/cim-wwkz3j) with new preview images
 - June 17, 2025: Fixed financials section in CIM generator to start expanded by default instead of collapsed
