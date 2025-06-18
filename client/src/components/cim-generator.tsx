@@ -1135,10 +1135,8 @@ ${analysis.team.ownerResponsibilities}
                   
                   {/* Financial Documents (Optional) */}
                   <div className="space-y-3">
-                  <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
-                  <div className="border-2 border-dashed border-muted rounded-lg p-4">
-                    <div className="text-center">
-                      <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+                    <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
+                    <div className="border-2 border-dashed border-muted rounded-lg p-4 text-center space-y-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -1146,6 +1144,69 @@ ${analysis.team.ownerResponsibilities}
                         onClick={() => fileInputRef.current?.click()}
                         className="gap-2"
                       >
+                        <File className="h-4 w-4" />
+                        Upload Files
+                      </Button>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Financial statements, tax returns, or other documents
+                      </p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      multiple={true}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    />
+                  </div>
+                  
+                  {financialFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Uploaded Files:</Label>
+                      <div className="space-y-2">
+                        {financialFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
+                            <div className="flex items-center space-x-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{file.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Analysis Directions - Cleaner, less busy interface */}
+            <div className="space-y-4 p-4 border rounded-lg bg-background">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium">Analysis Directions</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Customize how AI analyzes your transcript
+                  </p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Settings className="h-4 w-4" />
+                      Templates
+                    </Button>
+                  </DialogTrigger>
                         <File className="h-4 w-4" />
                         Upload Files
                       </Button>
