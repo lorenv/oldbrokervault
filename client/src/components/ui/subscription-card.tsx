@@ -45,7 +45,7 @@ export function SubscriptionCard({
       case "enterprise":
         return "Unlimited";
       case "standard":
-        return 9;
+        return 20;
       default:
         return 2; // Free trial
     }

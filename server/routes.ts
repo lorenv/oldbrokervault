@@ -884,10 +884,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         regenerationLimit: 2
       },
       standard: {
-        amount: 29,
+        amount: 100,
         currency: 'usd',
         limit: 3,
-        regenerationLimit: 9
+        regenerationLimit: 20
       },
       enterprise: {
         amount: 'Contact Us',

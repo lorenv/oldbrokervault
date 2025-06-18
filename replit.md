@@ -44,7 +44,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ### Subscription Management
 - **Payment Processor**: Stripe integration for subscription billing
-- **Plans**: Free Trial (1 document, 2 regenerations), Standard ($29/month, 3 documents, 9 regenerations), Enterprise (unlimited, contact for pricing), Admin (unlimited)
+- **Plans**: Free Trial (1 document, 2 regenerations), Standard ($100/month, 3 documents, 20 regenerations), Enterprise (unlimited, contact for pricing), Admin (unlimited)
 - **Features**: Usage tracking, Stripe checkout integration, customer portal access
 
 ### Document Export System
@@ -117,7 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
-- June 18, 2025: Updated subscription plans to Free Trial (1 document, 2 regenerations), Standard ($29/month, 3 documents, 9 regenerations), and Enterprise (unlimited, contact for pricing) model
+- June 18, 2025: Updated subscription plans to Free Trial (1 document, 2 regenerations), Standard ($100/month, 3 documents, 20 regenerations), and Enterprise (unlimited, contact for pricing) model
 - June 17, 2025: Updated homepage live examples to Tony's Transmissions (https://cimshare.com/share/cim-q94wn4) and Arbor Partners (https://cimshare.com/share/cim-wwkz3j) with new preview images
 - June 17, 2025: Fixed financials section in CIM generator to start expanded by default instead of collapsed
 - June 17, 2025: Enhanced cover image display in edit interface with reactive state updates to show images after document generation
