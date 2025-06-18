@@ -2036,6 +2036,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoint for document statistics
+  app.get("/api/cim/:id/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const docId = parseInt(req.params.id);
+      const cim = await storage.getCimDocument(docId);
+      
+      if (!cim || cim.userId !== req.user!.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // For now, return basic analytics structure
+      // This can be enhanced with actual view tracking later
+      const analytics = {
+        totalViews: 0,
+        uniqueViewers: 0,
+        dailyViews: {}
+      };
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
   // Subscription Routes
   app.get("/api/subscription/verify-session", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
