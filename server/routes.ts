@@ -8,7 +8,7 @@ import { imageManager } from "./image-manager";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
@@ -4476,6 +4476,192 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error('Error batch approving NDA signatures:', error);
       res.status(500).json({ error: "Failed to approve signatures" });
+    }
+  });
+
+  // Resend share link email to NDA signer
+  app.post("/api/cim/:docId/nda-signatures/:signatureId/resend-email", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signatureId = parseInt(req.params.signatureId);
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get the signature with access token
+      const signatures = await storage.getNdaSignatures(docId);
+      const signature = signatures.find(s => s.id === signatureId);
+      
+      if (!signature) {
+        return res.status(404).json({ error: "Signature not found" });
+      }
+
+      // Get access token for this signature
+      const [accessToken] = await db
+        .select()
+        .from(ndaAccessTokens)
+        .where(eq(ndaAccessTokens.ndaSignatureId, signatureId));
+
+      const signatureWithToken = {
+        ...signature,
+        accessToken: accessToken?.token || ''
+      };
+
+      // Send the appropriate email based on approval status
+      let emailSent = false;
+      if (doc.ndaApprovalRequired && !signature.approved) {
+        // Send "pending approval" email
+        emailSent = await sendEmail({
+          to: signature.signerEmail,
+          from: 'rob@cimshare.com',
+          replyTo: 'rob@cimshare.com',
+          subject: `NDA Signature Received - ${doc.title}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>NDA Signature Received</h2>
+              <p>Hello ${signature.signerName},</p>
+              
+              <p>Thank you for signing the NDA for <strong>${doc.title}</strong>.</p>
+              
+              <p>Your signature has been received and is currently pending approval. You will receive another email with document access once your signature is approved.</p>
+              
+              <p>Thank you for your patience.</p>
+              
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+              <p style="color: #666; font-size: 12px;">
+                This email contains confidential information. Please handle accordingly.
+              </p>
+            </div>
+          `,
+          text: `
+            NDA Signature Received
+            
+            Hello ${signature.signerName},
+            
+            Thank you for signing the NDA for ${doc.title}.
+            
+            Your signature has been received and is currently pending approval. You will receive another email with document access once your signature is approved.
+            
+            Thank you for your patience.
+          `
+        });
+      } else {
+        // Send access email (approved or no approval required)
+        emailSent = await sendApprovalEmail(signatureWithToken, doc);
+      }
+
+      if (emailSent) {
+        res.json({ 
+          success: true, 
+          message: "Email sent successfully"
+        });
+      } else {
+        res.status(500).json({ error: "Failed to send email" });
+      }
+    } catch (error) {
+      console.error('Error resending email:', error);
+      res.status(500).json({ error: "Failed to resend email" });
+    }
+  });
+
+  // Bulk resend emails to NDA signers
+  app.post("/api/cim/:docId/nda-signatures/resend-batch", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const { signatureIds } = req.body;
+
+      if (!Array.isArray(signatureIds) || signatureIds.length === 0) {
+        return res.status(400).json({ error: "Invalid signature IDs" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get signatures with access tokens
+      const signatures = await storage.getNdaSignatures(docId);
+      const selectedSignatures = signatures.filter(s => signatureIds.includes(s.id));
+
+      // Get access tokens for all signatures
+      const tokensResult = await db
+        .select()
+        .from(ndaAccessTokens)
+        .where(inArray(ndaAccessTokens.ndaSignatureId, signatureIds));
+
+      const tokenMap = new Map(tokensResult.map(t => [t.ndaSignatureId, t.token]));
+
+      // Send emails
+      const emailPromises = selectedSignatures.map(async (signature) => {
+        const signatureWithToken = {
+          ...signature,
+          accessToken: tokenMap.get(signature.id) || ''
+        };
+
+        if (doc.ndaApprovalRequired && !signature.approved) {
+          // Send "pending approval" email
+          return await sendEmail({
+            to: signature.signerEmail,
+            from: 'rob@cimshare.com',
+            replyTo: 'rob@cimshare.com',
+            subject: `NDA Signature Received - ${doc.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>NDA Signature Received</h2>
+                <p>Hello ${signature.signerName},</p>
+                
+                <p>Thank you for signing the NDA for <strong>${doc.title}</strong>.</p>
+                
+                <p>Your signature has been received and is currently pending approval. You will receive another email with document access once your signature is approved.</p>
+                
+                <p>Thank you for your patience.</p>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                <p style="color: #666; font-size: 12px;">
+                  This email contains confidential information. Please handle accordingly.
+                </p>
+              </div>
+            `,
+            text: `
+              NDA Signature Received
+              
+              Hello ${signature.signerName},
+              
+              Thank you for signing the NDA for ${doc.title}.
+              
+              Your signature has been received and is currently pending approval. You will receive another email with document access once your signature is approved.
+              
+              Thank you for your patience.
+            `
+          });
+        } else {
+          // Send access email
+          return await sendApprovalEmail(signatureWithToken, doc);
+        }
+      });
+
+      const results = await Promise.allSettled(emailPromises);
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+
+      res.json({ 
+        success: true, 
+        message: `${successCount} of ${selectedSignatures.length} emails sent successfully`
+      });
+    } catch (error) {
+      console.error('Error bulk resending emails:', error);
+      res.status(500).json({ error: "Failed to resend emails" });
     }
   });
 
