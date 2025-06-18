@@ -475,14 +475,26 @@ export default function InvestorDatabasePage() {
     }
   });
 
-  // Handle selection
+  // Handle select all functionality
   useEffect(() => {
     if (selectAll) {
       setSelectedContacts(contacts.map(c => c.id));
-    } else {
-      setSelectedContacts([]);
     }
   }, [selectAll, contacts]);
+
+  // Update selectAll state based on individual selections
+  useEffect(() => {
+    if (contacts.length > 0) {
+      const allSelected = contacts.every(contact => selectedContacts.includes(contact.id));
+      const noneSelected = selectedContacts.length === 0;
+      
+      if (allSelected && !selectAll) {
+        setSelectAll(true);
+      } else if (!allSelected && selectAll) {
+        setSelectAll(false);
+      }
+    }
+  }, [selectedContacts, contacts, selectAll]);
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -922,7 +934,12 @@ export default function InvestorDatabasePage() {
                   <TableHead className="w-12">
                     <Checkbox
                       checked={selectAll}
-                      onCheckedChange={(checked) => setSelectAll(checked === true)}
+                      onCheckedChange={(checked) => {
+                        setSelectAll(checked === true);
+                        if (!checked) {
+                          setSelectedContacts([]);
+                        }
+                      }}
                     />
                   </TableHead>
                   <TableHead 
