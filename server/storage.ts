@@ -40,6 +40,7 @@ function getSessionStore(): session.Store {
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
@@ -191,6 +192,11 @@ export class DatabaseStorage implements IStorage {
       console.error('Error in getUserByEmail:', error);
       throw error;
     }
+  }
+
+  async getUserProfile(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async createUser(insertUser: InsertUser & { isAdmin: boolean }): Promise<User> {
