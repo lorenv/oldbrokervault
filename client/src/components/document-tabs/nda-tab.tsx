@@ -125,19 +125,21 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Batch approve signers mutation
   const batchApproveSignersMutation = useMutation({
     mutationFn: async (signatureIds: number[]) => {
-      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/batch-approve`, {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/approve-batch`, {
         signatureIds
       });
       if (!response.ok) throw new Error('Failed to approve signers');
       return response.json();
     },
     onSuccess: (data) => {
+      const approvedCount = data.signatures?.length || data.approved || 0;
       toast({
         title: "Signers Approved",
-        description: `${data.approved} signers have been approved and will receive access to the document.`
+        description: `${approvedCount} signers have been approved and will receive access to the document.`
       });
       setSelectedSignatures([]);
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
     },
     onError: () => {
       toast({
