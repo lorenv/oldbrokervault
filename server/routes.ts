@@ -2079,9 +2079,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { plan, priceId } = req.body;
+    const { plan } = req.body;
     console.log("Plan requested:", plan);
-    console.log("Fresh price ID received:", priceId);
     
     if (!subscriptionPlans[plan as keyof typeof subscriptionPlans]) {
       console.log("Invalid plan:", plan);
@@ -2091,13 +2090,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const hostHeader = req.get('host');
       console.log("Creating Stripe session with host:", hostHeader);
-      console.log("Using fresh price ID for checkout:", priceId);
       
       const session = await createSubscriptionSession(
         plan as keyof typeof subscriptionPlans,
         req.user!.id,
-        hostHeader,
-        priceId // Pass the fresh price ID
+        hostHeader
       );
       res.json({ url: session.url });
     } catch (error) {

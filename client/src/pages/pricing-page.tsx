@@ -60,8 +60,8 @@ export default function PricingPage() {
       
       if (planId === 'standard') {
         // For Standard plan, create a checkout session
-        const response = await apiRequest("POST", "/api/create-checkout-session", {
-          planType: 'standard'
+        const response = await apiRequest("POST", "/api/subscription/create-checkout", {
+          plan: 'standard'
         });
         const { url } = await response.json();
         window.location.href = url;
