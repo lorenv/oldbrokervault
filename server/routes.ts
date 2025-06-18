@@ -4373,7 +4373,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                              'unknown';
 
       // Get location information from IP address
-      const geoip = require('geoip-lite');
+      const geoip = await import('geoip-lite');
       const geo = geoip.lookup(signerIpAddress);
       const signerLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown Location';
 
