@@ -56,8 +56,8 @@ async function sendNdaConfirmationEmail(
 
   return await sendEmail({
     to: viewerEmail,
-    from: 'rob@cimshare.com',
-    replyTo: 'rob@cimshare.com', // Keep generic for NDA confirmation
+    from: 'system@cimshare.com',
+    replyTo: 'system@cimshare.com', // Keep generic for NDA confirmation
     subject: `NDA Confirmation - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -117,7 +117,7 @@ async function sendCimLinkEmail(
 
   return await sendEmail({
     to: viewerEmail,
-    from: 'rob@cimshare.com',
+    from: 'system@cimshare.com',
     replyTo: ownerProfile.email,
     subject: `Access to ${cimTitle} - CIM Document`,
     html: `
@@ -206,7 +206,7 @@ async function sendOwnerNdaNotification(
 
   return await sendEmail({
     to: ownerEmail,
-    from: 'rob@cimshare.com',
+    from: 'system@cimshare.com',
     subject: `NDA Signed by ${viewerEmail} - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -305,7 +305,7 @@ async function sendPasswordResetEmail(
 
   return await sendEmail({
     to: userEmail,
-    from: 'rob@cimshare.com', // Use verified sender
+    from: 'system@cimshare.com', // Use verified sender
     subject: 'Reset Your CIM Share Password',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -374,8 +374,8 @@ async function sendApprovalEmail(
   // Fallback to basic approval email
   return await sendEmail({
     to: signerEmail,
-    from: 'rob@cimshare.com',
-    replyTo: 'rob@cimshare.com',
+    from: 'system@cimshare.com',
+    replyTo: 'system@cimshare.com',
     subject: `Access Approved - ${title}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -424,7 +424,7 @@ async function sendOwnerApprovalNotification(
 ): Promise<boolean> {
   return await sendEmail({
     to: ownerEmail,
-    from: 'rob@cimshare.com',
+    from: 'system@cimshare.com',
     subject: `NDA Signature Awaiting Approval - ${cimTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
