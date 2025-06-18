@@ -12,8 +12,8 @@ export const subscriptionPlans = {
   standard: {
     name: "Standard",
     limit: 3,
-    regenerationLimit: 9,
-    price: 29
+    regenerationLimit: 20,
+    price: 100
   },
   enterprise: {
     name: "Enterprise",
