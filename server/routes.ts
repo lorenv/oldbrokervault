@@ -18,7 +18,7 @@ import * as fsSync from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
-import * as geoip from 'geoip-lite';
+// Geoip will be imported dynamically in the function where it's used
 
 import JSZip from 'jszip';
 import sharp from 'sharp';
@@ -4378,15 +4378,17 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       let geo = null;
       
       try {
-        geo = geoip.lookup(signerIpAddress);
+        const geoipModule = await import('geoip-lite');
+        const geoipLib = geoipModule.default || geoipModule;
+        geo = geoipLib.lookup(signerIpAddress);
         if (geo && geo.city && geo.region && geo.country) {
           signerLocation = `${geo.city}, ${geo.region}, ${geo.country}`;
         } else if (geo && geo.country) {
           signerLocation = `${geo.country}`;
         }
         console.log('Geolocation lookup successful:', geo);
-      } catch (geoError) {
-        console.log('Geolocation lookup failed, using Unknown Location');
+      } catch (geoError: any) {
+        console.log('Geolocation lookup failed:', geoError?.message || 'Unknown error');
       }
 
       console.log("=== NDA SIGNING DEBUG ===");
