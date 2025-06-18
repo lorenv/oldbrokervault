@@ -66,18 +66,7 @@ const tagColors = [
   'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500', 'bg-rose-500'
 ];
 
-const filterFields = [
-  { value: 'name', label: 'Name', type: 'text' },
-  { value: 'email', label: 'Email', type: 'text' },
-  { value: 'inferred_company', label: 'Inferred Company', type: 'text' },
-  { value: 'location', label: 'Location', type: 'text' },
-  { value: 'status', label: 'Status', type: 'select', options: statusOptions },
-  { value: 'tags', label: 'Tags', type: 'text' },
-  { value: 'associated_document', label: 'Associated Document', type: 'text' },
-  { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
-  { value: 'last_activity', label: 'Last Activity', type: 'date' },
-  { value: 'first_seen', label: 'First Seen', type: 'date' }
-];
+// Filter fields will be defined inside the component
 
 const operatorsByType = {
   text: [
@@ -235,6 +224,11 @@ export default function InvestorDatabasePage() {
       case 'last_nda_signed': return contact.lastNdaSigned || null;
       case 'first_seen': return contact.firstSeenAt || null;
       case 'last_activity': return contact.lastSeenAt || null;
+      case 'cim_document': {
+        // Get the CIM document titles for this contact
+        const documentTitles = contact.documents?.map(doc => doc.documentTitle).join(', ') || '';
+        return documentTitles;
+      }
       default: return '';
     }
   };
@@ -288,9 +282,35 @@ export default function InvestorDatabasePage() {
     return domain;
   };
 
+  // Fetch CIM documents for filtering
+  const { data: cimDocuments = [] } = useQuery({
+    queryKey: ['/api/investor-contacts/cim-documents'],
+    queryFn: async () => {
+      const response = await fetch('/api/investor-contacts/cim-documents', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch CIM documents');
+      return response.json();
+    }
+  });
+
+  // Filter fields configuration
+  const filterFields = [
+    { value: 'name', label: 'Name', type: 'text' },
+    { value: 'email', label: 'Email', type: 'text' },
+    { value: 'inferred_company', label: 'Inferred Company', type: 'text' },
+    { value: 'location', label: 'Location', type: 'text' },
+    { value: 'status', label: 'Status', type: 'select', options: statusOptions },
+    { value: 'tags', label: 'Tags', type: 'text' },
+    { value: 'cim_document', label: 'CIM', type: 'select', options: cimDocuments?.map((doc: any) => ({ value: doc.id.toString(), label: doc.title })) || [] },
+    { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
+    { value: 'last_activity', label: 'Last Activity', type: 'date' },
+    { value: 'first_seen', label: 'First Seen', type: 'date' }
+  ];
+
   // Fetch contacts with pagination
   const { data: contactsResponse, isLoading, refetch } = useQuery({
-    queryKey: ['/api/investor-contacts', currentPage, pageSize, searchTerm, statusFilter, sortBy, sortOrder],
+    queryKey: ['/api/investor-contacts', currentPage, pageSize, searchTerm, statusFilter, cimFilter, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -301,6 +321,7 @@ export default function InvestorDatabasePage() {
       
       if (searchTerm) params.append('search', searchTerm);
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (cimFilter !== 'all') params.append('cimDocumentId', cimFilter);
       
       const response = await fetch(`/api/investor-contacts?${params}`, {
         credentials: 'include'
@@ -752,7 +773,38 @@ export default function InvestorDatabasePage() {
                 />
               </div>
             </div>
-
+            
+            <div className="w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {statusOptions.map(status => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-48">
+              <Select value={cimFilter} onValueChange={setCimFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by CIM" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All CIM Documents</SelectItem>
+                  {cimDocuments?.map((doc: any) => (
+                    <SelectItem key={doc.id} value={doc.id.toString()}>
+                      {doc.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Advanced Filters */}
