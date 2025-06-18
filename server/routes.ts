@@ -4126,8 +4126,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Send email using existing email service
       const { sendEmail } = await import("./email");
       const emailSent = await sendEmail({
-        to: 'rob@cimshare.com',
-        from: 'rob@cimshare.com', // Verified sender
+        to: 'system@cimshare.com',
+        from: 'system@cimshare.com', // Verified sender
         replyTo: email, // User's email as reply-to
         subject: `Support Request: ${subject}`,
         html: emailHtml,
@@ -4520,8 +4520,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         // Send "pending approval" email
         emailSent = await sendEmail({
           to: signature.signerEmail,
-          from: 'rob@cimshare.com',
-          replyTo: 'rob@cimshare.com',
+          from: 'system@cimshare.com',
+          replyTo: 'system@cimshare.com',
           subject: `NDA Signature Received - ${doc.title}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
