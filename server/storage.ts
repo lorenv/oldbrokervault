@@ -978,6 +978,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(ndaSignatures.signedAt));
   }
 
+  async getNdaSignatureById(signatureId: number): Promise<NdaSignature | undefined> {
+    const [signature] = await db.select()
+      .from(ndaSignatures)
+      .where(eq(ndaSignatures.id, signatureId));
+    return signature || undefined;
+  }
+
   async checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined> {
     const [signature] = await db.select()
       .from(ndaSignatures)

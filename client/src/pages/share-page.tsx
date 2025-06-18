@@ -10,7 +10,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
-import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock } from "lucide-react";
 
 export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
@@ -174,6 +174,9 @@ export function SharePage() {
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
   const shouldShowNda = shareData?.requiresNda && !hasSignedNda && !hasValidToken;
+  
+  // Check if manual approval is required and not yet granted
+  const needsApproval = shareData?.ndaApprovalStatus?.requiresApproval && !shareData?.ndaApprovalStatus?.isApproved;
 
   // Show loading state while validating token
   if (accessToken && isValidatingToken) {
@@ -207,6 +210,35 @@ export function SharePage() {
             <CardContent className="text-center">
               <Button onClick={() => window.location.href = `/share/${shareSlug}`}>
                 Return to Document
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show approval pending message if manual approval is required but not granted
+  if (needsApproval) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Card className="max-w-lg">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 p-3 rounded-full bg-orange-100">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <CardTitle>Approval Pending</CardTitle>
+              <CardDescription>
+                {shareData?.ndaApprovalStatus?.message || "Your NDA signature is pending approval before you can view this document."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                You'll receive an email with access once your signature is approved.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Check Status
               </Button>
             </CardContent>
           </Card>
