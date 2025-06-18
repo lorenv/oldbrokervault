@@ -53,7 +53,21 @@ export function DocumentDetailPage() {
   
   if (!matched || !docId) {
     setLocation('/documents');
-    return null;
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-4 mb-6">
+            <Link href="/documents">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Documents
+              </Button>
+            </Link>
+          </div>
+          <div>Redirecting...</div>
+        </main>
+      </div>
+    );
   }
   
   if (docLoading) {
