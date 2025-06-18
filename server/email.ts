@@ -193,11 +193,11 @@ async function sendApprovalEmail(
   signature: any,
   cimDoc: any
 ): Promise<boolean> {
-  const { signerEmail, signerName } = signature;
-  const { title } = cimDoc;
+  const { signerEmail, signerName, accessToken } = signature;
+  const { title, shareSlug } = cimDoc;
   
-  // Create redirect URL for approved access
-  const redirectUrl = `https://cimshare.com/nda/redirect/${signature.id}`;
+  // Create direct share URL with access token
+  const shareUrl = `https://cimshare.com/share/${shareSlug}?token=${accessToken}`;
   
   return await sendEmail({
     to: signerEmail,
@@ -214,7 +214,7 @@ async function sendApprovalEmail(
         <p>You can now access the confidential information memorandum using the link below:</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${redirectUrl}" 
+          <a href="${shareUrl}" 
              style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
             View CIM Document
           </a>
@@ -235,7 +235,7 @@ async function sendApprovalEmail(
       
       Your NDA signature for ${title} has been approved!
       
-      You can now access the confidential information memorandum at: ${redirectUrl}
+      You can now access the confidential information memorandum at: ${shareUrl}
       
       Thank you for your patience during the approval process.
     `
