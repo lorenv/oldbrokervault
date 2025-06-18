@@ -4703,30 +4703,55 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         );
         console.log("Redirect link created:", redirectLink.id);
 
-        // Send updated email with redirect link instead of direct share link
-        console.log("Sending confirmation emails with redirect link...");
-        const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
-        const finalEmailSent = await sendNdaSignedEmail(
-          signerEmail,
-          owner.email,
-          owner.name || owner.email,
-          cimDoc.title,
-          redirectUrl,
-          signedNdaContent
-        );
+        // Check if manual approval is required
+        if (cimDoc.ndaApprovalRequired) {
+          console.log("Manual approval required - not sending immediate access email");
+          
+          // Send notification to owner about new signature requiring approval
+          const ownerNotificationSent = await sendOwnerApprovalNotification(
+            owner.email,
+            owner.name || owner.email,
+            cimDoc.title,
+            signerName,
+            signerEmail
+          );
+          
+          if (!ownerNotificationSent) {
+            console.error('Failed to send owner approval notification');
+          }
 
-        if (!finalEmailSent) {
-          console.error('Failed to send NDA confirmation emails');
+          res.json({ 
+            success: true, 
+            signature,
+            requiresApproval: true,
+            message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
+          });
+        } else {
+          // Send immediate access email (existing behavior)
+          console.log("Sending confirmation emails with redirect link...");
+          const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
+          const finalEmailSent = await sendNdaSignedEmail(
+            signerEmail,
+            owner.email,
+            owner.name || owner.email,
+            cimDoc.title,
+            redirectUrl,
+            signedNdaContent
+          );
+
+          if (!finalEmailSent) {
+            console.error('Failed to send NDA confirmation emails');
+          }
+
+          console.log("NDA signing completed successfully");
+          res.json({ 
+            success: true, 
+            signature,
+            accessToken,
+            redirectUrl,
+            message: "NDA signed successfully. Check your email for confirmation and CIM access."
+          });
         }
-
-        console.log("NDA signing completed successfully");
-        res.json({ 
-          success: true, 
-          signature,
-          accessToken,
-          redirectUrl,
-          message: "NDA signed successfully. Check your email for confirmation and CIM access."
-        });
 
       } catch (innerError) {
         console.error('Inner NDA signing error:', innerError);
