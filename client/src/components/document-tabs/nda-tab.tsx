@@ -291,9 +291,54 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     );
   };
 
-  // Select all pending signatures
-  const selectAllPending = () => {
-    setSelectedSignatures(pendingSignatures.map(sig => sig.id));
+  // Select all signatures
+  const selectAllSignatures = () => {
+    setSelectedSignatures(filteredSignatures.map(sig => sig.id));
+  };
+
+  // Handle bulk resend emails
+  const handleBulkResendEmails = () => {
+    if (selectedSignatures.length === 0) return;
+    bulkResendEmailMutation.mutate(selectedSignatures);
+  };
+
+  // Export to CSV
+  const exportSignaturesToCSV = () => {
+    const selectedSigs = selectedSignatures.length > 0 
+      ? ndaSignatures.filter(sig => selectedSignatures.includes(sig.id))
+      : filteredSignatures;
+
+    const csvData = selectedSigs.map(sig => ({
+      'Signer Name': sig.signerName,
+      'Email': sig.signerEmail,
+      'Location': sig.signerLocation || 'Unknown',
+      'Signed Date': format(new Date(sig.signedAt), 'yyyy-MM-dd HH:mm:ss'),
+      'Status': cimDocument.ndaApprovalRequired 
+        ? (sig.approved ? 'Approved' : 'Pending') 
+        : 'Active',
+      'Views': sig.viewCount || 0
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nda-signatures-${cimDocument.title.replace(/[^a-zA-Z0-9]/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${csvData.length} signatures to CSV`
+    });
   };
 
   // Clear all selections
@@ -317,12 +362,56 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     });
   };
 
-  // Resend share link via email (placeholder for now)
+  // Create mutations for email operations
+  const resendEmailMutation = useMutation({
+    mutationFn: async (signatureId: number) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/${signatureId}/resend-email`);
+      if (!response.ok) throw new Error('Failed to resend email');
+      return response.json();
+    },
+    onSuccess: (data, signatureId) => {
+      const signature = ndaSignatures.find(s => s.id === signatureId);
+      toast({
+        title: "Email Sent",
+        description: `Share link sent to ${signature?.signerEmail}`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Email Failed",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const bulkResendEmailMutation = useMutation({
+    mutationFn: async (signatureIds: number[]) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/resend-batch`, {
+        signatureIds
+      });
+      if (!response.ok) throw new Error('Failed to resend emails');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Emails Sent",
+        description: data.message
+      });
+      setSelectedSignatures([]);
+    },
+    onError: () => {
+      toast({
+        title: "Bulk Email Failed",
+        description: "Failed to send some emails. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Resend share link via email
   const resendShareLink = (signature: any) => {
-    toast({
-      title: "Share Link Sent",
-      description: `Share link resent to ${signature.signerEmail}`
-    });
+    resendEmailMutation.mutate(signature.id);
   };
 
   // Kill/revoke share link (placeholder for now)
