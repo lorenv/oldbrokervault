@@ -30,12 +30,12 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
   
   // Extract share settings from CIM document to avoid duplicate API calls
   const shareSettings = cimDocument ? {
-    isPublic: cimDocument.isPublic || false,
-    shareSlug: cimDocument.shareSlug || '',
-    customSlug: cimDocument.customSlug || '',
-    requireNDA: cimDocument.requireNDA || false,
-    passwordProtected: cimDocument.passwordProtected || false,
-    sharePassword: cimDocument.sharePassword || ''
+    isPublic: cimDocument.is_public || cimDocument.isPublic || false,
+    shareSlug: cimDocument.share_slug || cimDocument.shareSlug || '',
+    customSlug: cimDocument.custom_slug || cimDocument.customSlug || '',
+    requireNDA: cimDocument.require_nda || cimDocument.requireNDA || false,
+    passwordProtected: cimDocument.password_protected || cimDocument.passwordProtected || false,
+    sharePassword: cimDocument.share_password || cimDocument.sharePassword || ''
   } : null;
   
   const isLoading = !cimDocument && open;
