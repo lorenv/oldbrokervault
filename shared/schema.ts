@@ -88,6 +88,7 @@ export const cimDocuments = pgTable("cim_documents", {
   // NDA protection
   ndaProtected: boolean("nda_protected").default(false).notNull(),
   ndaTemplateId: integer("nda_template_id"),
+  ndaApprovalRequired: boolean("nda_approval_required").default(false).notNull(),
   // Financial data fields
   financialsEnabled: boolean("financials_enabled").default(false).notNull(),
   askingPrice: text("asking_price"),
@@ -170,7 +171,10 @@ export const ndaSignatures = pgTable("nda_signatures", {
   signerIpAddress: text("signer_ip_address").notNull(),
   signerLocation: text("signer_location"), // Geographic location from IP
   signedAt: timestamp("signed_at").defaultNow().notNull(),
-  signedNdaContent: text("signed_nda_content").notNull() // Base64 encoded signed PDF
+  signedNdaContent: text("signed_nda_content").notNull(), // Base64 encoded signed PDF
+  approved: boolean("approved").default(false).notNull(),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: integer("approved_by") // User ID who approved
 });
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
