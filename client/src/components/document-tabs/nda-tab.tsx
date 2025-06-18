@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ import {
   Mail, 
   MapPin,
   Calendar,
+  Clock,
+  Check,
   Copy,
   Link2Off
 } from "lucide-react";
@@ -265,6 +267,40 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()))
   );
 
+  // Separate pending and approved signatures
+  const pendingSignatures = filteredSignatures.filter(signature => !signature.approved);
+  const approvedSignatures = filteredSignatures.filter(signature => signature.approved);
+
+  // Handle individual approval
+  const handleApproveSignature = (signatureId: number) => {
+    approveSignerMutation.mutate(signatureId);
+  };
+
+  // Handle batch approval
+  const handleBatchApproval = () => {
+    if (selectedSignatures.length === 0) return;
+    batchApproveSignersMutation.mutate(selectedSignatures);
+  };
+
+  // Toggle signature selection
+  const toggleSignatureSelection = (signatureId: number) => {
+    setSelectedSignatures(prev => 
+      prev.includes(signatureId) 
+        ? prev.filter(id => id !== signatureId)
+        : [...prev, signatureId]
+    );
+  };
+
+  // Select all pending signatures
+  const selectAllPending = () => {
+    setSelectedSignatures(pendingSignatures.map(sig => sig.id));
+  };
+
+  // Clear all selections
+  const clearSelections = () => {
+    setSelectedSignatures([]);
+  };
+
   // Generate share link for a specific signer
   const generateSignerShareLink = (signature: any) => {
     const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
@@ -473,6 +509,79 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         </CardContent>
       </Card>
 
+      {/* Pending Approvals Section */}
+      {cimDocument.ndaApprovalRequired && pendingSignatures.length > 0 && (
+        <Card className="border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <Clock className="h-5 w-5" />
+              Pending Approvals ({pendingSignatures.length})
+            </CardTitle>
+            <CardDescription>
+              These signers have completed NDAs and are waiting for your approval to access the document.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {pendingSignatures.length > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectedSignatures.length === pendingSignatures.length ? clearSelections : selectAllPending}
+                >
+                  {selectedSignatures.length === pendingSignatures.length ? "Deselect All" : "Select All"}
+                </Button>
+                {selectedSignatures.length > 0 && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleBatchApproval}
+                    disabled={batchApproveSignersMutation.isPending}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {batchApproveSignersMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length} Signers`}
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              {pendingSignatures.map((signature) => (
+                <div key={signature.id} className="flex items-center justify-between p-3 border rounded-lg bg-orange-50">
+                  <div className="flex items-center gap-3">
+                    {pendingSignatures.length > 1 && (
+                      <input
+                        type="checkbox"
+                        checked={selectedSignatures.includes(signature.id)}
+                        onChange={() => toggleSignatureSelection(signature.id)}
+                        className="rounded"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{signature.signerName}</p>
+                      <p className="text-sm text-muted-foreground">{signature.signerEmail}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Signed {format(new Date(signature.signedAt), 'MMM dd, yyyy HH:mm')}
+                        {signature.signerLocation && ` • ${signature.signerLocation}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleApproveSignature(signature.id)}
+                    disabled={approveSignerMutation.isPending}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {approveSignerMutation.isPending ? "Approving..." : "Approve"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* NDA Signatures Table */}
       <Card>
         <CardHeader>
@@ -497,6 +606,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   <TableHead>Email</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Signed Date</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Views</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -519,6 +629,26 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                           {format(new Date(signature.signedAt), 'MMM dd, yyyy')}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {cimDocument.ndaApprovalRequired ? (
+                        signature.approved ? (
+                          <Badge variant="default" className="bg-green-100 text-green-800">
+                            <Check className="h-3 w-3 mr-1" />
+                            Approved
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="outline">
+                          <Check className="h-3 w-3 mr-1" />
+                          Active
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
