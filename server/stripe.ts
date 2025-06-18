@@ -60,9 +60,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   let priceId = freshPriceId;
   if (!priceId) {
     const pricing = await getPricing();
-    priceId = planId === 'premium' 
-      ? pricing.premium.priceId
-      : pricing.standard.priceId;
+    priceId = pricing.standard.priceId;
   }
 
   console.log("=== STRIPE SESSION CREATION START ===");
