@@ -4376,9 +4376,19 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       let signerLocation = 'Unknown Location';
       let geo = null;
       
-      // For now, skip geolocation to ensure NDA signing works
-      // TODO: Implement proper geolocation after NDA signing is stable
-      console.log('Skipping geolocation lookup - using IP address only for now');
+      try {
+        // Use CommonJS require for geoip-lite in this context
+        const geoip = eval('require')('geoip-lite');
+        geo = geoip.lookup(signerIpAddress);
+        if (geo && geo.city && geo.region && geo.country) {
+          signerLocation = `${geo.city}, ${geo.region}, ${geo.country}`;
+        } else if (geo && geo.country) {
+          signerLocation = `${geo.country}`;
+        }
+        console.log('Geolocation lookup successful:', geo);
+      } catch (geoError) {
+        console.log('Geolocation lookup failed, using Unknown Location');
+      }
 
       console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
