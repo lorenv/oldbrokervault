@@ -6,7 +6,7 @@ import {
   Palette, 
   Download, 
   Zap, 
-  Users, 
+  Database, 
   FileText, 
   Lock, 
   Sparkles,
@@ -41,9 +41,9 @@ export default function HomePage() {
       color: "text-orange-500"
     },
     {
-      icon: Users,
-      title: "Team Collaboration",
-      description: "Share documents securely with team members and control viewing permissions with expiration dates.",
+      icon: Database,
+      title: "Investor Database",
+      description: "Track and manage investor contacts across all documents with comprehensive NDA signature management.",
       color: "text-indigo-500"
     },
     {
