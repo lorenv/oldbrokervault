@@ -422,12 +422,25 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     resendEmailMutation.mutate(signature.id);
   };
 
-  // Kill/revoke share link (placeholder for now)
-  const revokeShareLink = (signature: any) => {
-    toast({
-      title: "Share Link Revoked",
-      description: `Access revoked for ${signature.signerEmail}`
-    });
+  // Revoke share link for individual signer
+  const revokeShareLink = async (signature: any) => {
+    try {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/${signature.id}/revoke`);
+      if (response.ok) {
+        toast({
+          title: "Access Revoked",
+          description: `Access has been revoked for ${signature.signerEmail}`
+        });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+      }
+    } catch (error) {
+      toast({
+        title: "Revoke Failed",
+        description: "Failed to revoke access. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
