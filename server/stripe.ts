@@ -196,7 +196,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
+        const status = 'standard';
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Subscription details:", { 
@@ -230,7 +230,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
+        const status = 'standard';
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Updated subscription details:", { 
