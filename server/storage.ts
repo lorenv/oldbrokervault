@@ -980,7 +980,7 @@ export class DatabaseStorage implements IStorage {
     return signature || undefined;
   }
 
-  async approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature> {
+  async approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature & { accessToken: string }> {
     const [approvedSignature] = await db.update(ndaSignatures)
       .set({
         approved: true,
@@ -989,10 +989,20 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(ndaSignatures.id, signatureId))
       .returning();
-    return approvedSignature;
+
+    // Get the access token for this signature
+    const [accessToken] = await db
+      .select()
+      .from(ndaAccessTokens)
+      .where(eq(ndaAccessTokens.ndaSignatureId, signatureId));
+
+    return {
+      ...approvedSignature,
+      accessToken: accessToken?.token || ''
+    };
   }
 
-  async approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]> {
+  async approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<(NdaSignature & { accessToken: string })[]> {
     const approvedSignatures = await db.update(ndaSignatures)
       .set({
         approved: true,
@@ -1001,7 +1011,21 @@ export class DatabaseStorage implements IStorage {
       })
       .where(inArray(ndaSignatures.id, signatureIds))
       .returning();
-    return approvedSignatures;
+
+    // Get access tokens for all signatures
+    const tokensResult = await db
+      .select()
+      .from(ndaAccessTokens)
+      .where(inArray(ndaAccessTokens.ndaSignatureId, signatureIds));
+
+    // Create a map of signature ID to access token
+    const tokenMap = new Map(tokensResult.map(t => [t.ndaSignatureId, t.token]));
+
+    // Combine signatures with their access tokens
+    return approvedSignatures.map(signature => ({
+      ...signature,
+      accessToken: tokenMap.get(signature.id) || ''
+    }));
   }
 
   // NDA Access Tokens
