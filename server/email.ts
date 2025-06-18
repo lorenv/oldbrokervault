@@ -36,27 +36,6 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
-    
-    // If using user's email as 'from' fails, try with verified domain
-    if (params.from !== 'rob@cimshare.com' && error?.toString().includes('not verified')) {
-      console.log('Retrying with verified sender due to domain verification issue');
-      try {
-        await mailService.send({
-          to: params.to,
-          from: 'rob@cimshare.com',
-          subject: params.subject,
-          text: params.text || '',
-          replyTo: params.replyTo, // Keep original reply-to
-          html: params.html,
-          attachments: params.attachments,
-        });
-        return true;
-      } catch (retryError) {
-        console.error('SendGrid retry email error:', retryError);
-        return false;
-      }
-    }
-    
     return false;
   }
 }
@@ -138,7 +117,7 @@ async function sendCimLinkEmail(
 
   return await sendEmail({
     to: viewerEmail,
-    from: ownerProfile.email,
+    from: 'rob@cimshare.com',
     replyTo: ownerProfile.email,
     subject: `Access to ${cimTitle} - CIM Document`,
     html: `
