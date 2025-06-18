@@ -5464,6 +5464,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const { 
         search, 
         status, 
+        cimDocumentId,
         sortBy = 'lastSeenAt', 
         sortOrder = 'desc',
         page = '1',
@@ -5474,8 +5475,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const limitNum = parseInt(limit as string);
       const offset = (pageNum - 1) * limitNum;
       
-      // Import investorContacts table
-      const { investorContacts } = await import('@shared/schema');
+      // Import tables
+      const { investorContacts, ndaSignatures: ndaSigs, cimDocuments: cimDocs } = await import('@shared/schema');
       const { and, like, or, desc, asc, count, inArray } = await import('drizzle-orm');
       
       // Build conditions
@@ -5492,6 +5493,38 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       if (status && status !== 'all') {
         conditions.push(eq(investorContacts.status, status as string));
+      }
+
+      // Filter by CIM document if specified
+      let cimFilteredContactEmails: string[] = [];
+      if (cimDocumentId && cimDocumentId !== 'all') {
+        const cimId = parseInt(cimDocumentId as string);
+        
+        // Get all signatures for this specific CIM document
+        const cimSignatures = await db
+          .select({ signerEmail: ndaSigs.signerEmail })
+          .from(ndaSigs)
+          .where(eq(ndaSigs.cimDocumentId, cimId));
+        
+        cimFilteredContactEmails = cimSignatures.map(sig => sig.signerEmail);
+        
+        // If no signatures found for this CIM, return empty results
+        if (cimFilteredContactEmails.length === 0) {
+          return res.json({
+            contacts: [],
+            pagination: {
+              page: pageNum,
+              limit: limitNum,
+              total: 0,
+              totalPages: 0,
+              hasNext: false,
+              hasPrev: false
+            }
+          });
+        }
+        
+        // Add condition to filter contacts by emails that signed this CIM
+        conditions.push(inArray(investorContacts.email, cimFilteredContactEmails));
       }
       
       // Get total count for pagination
@@ -5811,6 +5844,38 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error('Error syncing investor contacts:', error);
       res.status(500).json({ error: "Failed to sync contacts" });
+    }
+  });
+
+  // Get CIM documents for investor contacts filtering
+  app.get("/api/investor-contacts/cim-documents", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (req.user.subscriptionStatus === 'free') {
+      return res.status(403).json({ error: "Premium subscription required" });
+    }
+
+    try {
+      const { cimDocuments } = await import('@shared/schema');
+      const { desc } = await import('drizzle-orm');
+      
+      // Get all CIM documents for this user
+      const userCims = await db
+        .select({
+          id: cimDocuments.id,
+          title: cimDocuments.title,
+          createdAt: cimDocuments.createdAt
+        })
+        .from(cimDocuments)
+        .where(eq(cimDocuments.userId, req.user.id))
+        .orderBy(desc(cimDocuments.createdAt));
+      
+      res.json(userCims);
+    } catch (error) {
+      console.error('Error fetching CIM documents:', error);
+      res.status(500).json({ error: "Failed to fetch CIM documents" });
     }
   });
 
