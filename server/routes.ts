@@ -884,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         regenerationLimit: 2
       },
       standard: {
-        amount: 100,
+        amount: 99,
         currency: 'usd',
         limit: 3,
         regenerationLimit: 20

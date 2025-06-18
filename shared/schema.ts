@@ -10,10 +10,10 @@ export const subscriptionPlans = {
     price: 0
   },
   standard: {
-    name: "Standard",
+    name: "CIM Share Standard Plan",
     limit: 3,
     regenerationLimit: 20,
-    price: 100
+    price: 99
   },
   enterprise: {
     name: "Enterprise",

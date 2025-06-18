@@ -128,7 +128,7 @@ export default function PricingPage() {
     },
     {
       name: "Standard",
-      price: "$100/month",
+      price: "$99/month",
       description: "Perfect for regular business use",
       features: [
         "3 CIM documents per month",
