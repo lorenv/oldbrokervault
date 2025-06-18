@@ -6,28 +6,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Function to get dynamic pricing from Stripe
 export async function getPricing() {
-  console.log("=== RETRIEVING PRICES FROM STRIPE ===");
+  console.log("=== RETRIEVING STANDARD PRICE FROM STRIPE ===");
   console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
   
-  try {
-    const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
-    console.log("Standard price retrieved successfully:", {
-      id: standardPrice.id,
-      active: standardPrice.active,
-      unit_amount: standardPrice.unit_amount
-    });
-    
-    return {
-      standard: {
-        amount: standardPrice.unit_amount! / 100,
-        currency: standardPrice.currency,
-        priceId: standardPrice.id
-      }
-    };
-  } catch (error) {
-    console.error("Failed to retrieve standard price:", error);
-    throw error;
-  }
+  const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
+  console.log("Standard price retrieved successfully:", {
+    id: standardPrice.id,
+    active: standardPrice.active,
+    unit_amount: standardPrice.unit_amount
+  });
+  
+  return {
+    standard: {
+      amount: standardPrice.unit_amount! / 100,
+      currency: standardPrice.currency,
+      priceId: standardPrice.id
+    }
+  };
 }
 
 async function getOrCreateCustomer(userId: number, email: string) {
@@ -54,7 +49,7 @@ async function getOrCreateCustomer(userId: number, email: string) {
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string, freshPriceId?: string) {
   console.log("=== ENVIRONMENT PRICE IDS ===");
   console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
-  console.log("STRIPE_PRICE_ID_PREMIUM:", process.env.STRIPE_PRICE_ID_PREMIUM);
+
   
   // Use fresh price ID if provided, otherwise get dynamic pricing data
   let priceId = freshPriceId;
@@ -149,7 +144,7 @@ export async function verifyCheckoutSession(sessionId: string) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = parseInt(session.client_reference_id!);
       const priceId = subscription.items.data[0].price.id;
-      const status = priceId === process.env.STRIPE_PRICE_ID_PREMIUM ? 'premium' : 'standard';
+      const status = 'standard';
 
       // Important: Both active AND trialing are valid statuses
       if (!['active', 'trialing'].includes(subscription.status)) {
