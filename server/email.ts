@@ -22,7 +22,7 @@ interface EmailParams {
   }>;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
+async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     await mailService.send({
       to: params.to,
@@ -40,7 +40,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
-export async function sendNdaSignedEmail(
+async function sendNdaSignedEmail(
   viewerEmail: string,
   ownerEmail: string,
   ownerName: string,
@@ -188,3 +188,119 @@ export async function sendPasswordResetEmail(
     `
   });
 }
+
+async function sendApprovalEmail(
+  signature: any,
+  cimDoc: any
+): Promise<boolean> {
+  const { signerEmail, signerName } = signature;
+  const { title } = cimDoc;
+  
+  // Create redirect URL for approved access
+  const redirectUrl = `https://cimshare.com/nda/redirect/${signature.id}`;
+  
+  return await sendEmail({
+    to: signerEmail,
+    from: 'rob@cimshare.com',
+    replyTo: 'rob@cimshare.com',
+    subject: `Access Approved - ${title}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Document Access Approved</h2>
+        <p>Hello ${signerName},</p>
+        
+        <p>Your NDA signature for <strong>${title}</strong> has been approved!</p>
+        
+        <p>You can now access the confidential information memorandum using the link below:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${redirectUrl}" 
+             style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            View CIM Document
+          </a>
+        </div>
+        
+        <p>Thank you for your patience during the approval process.</p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This email contains confidential information. Please handle accordingly.
+        </p>
+      </div>
+    `,
+    text: `
+      Document Access Approved
+      
+      Hello ${signerName},
+      
+      Your NDA signature for ${title} has been approved!
+      
+      You can now access the confidential information memorandum at: ${redirectUrl}
+      
+      Thank you for your patience during the approval process.
+    `
+  });
+}
+
+async function sendOwnerApprovalNotification(
+  ownerEmail: string,
+  ownerName: string,
+  cimTitle: string,
+  signerName: string,
+  signerEmail: string
+): Promise<boolean> {
+  return await sendEmail({
+    to: ownerEmail,
+    from: 'rob@cimshare.com',
+    subject: `NDA Signature Awaiting Approval - ${cimTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>New NDA Signature Requires Approval</h2>
+        <p>Hello ${ownerName},</p>
+        
+        <p>A new user has signed the NDA for your CIM document: <strong>${cimTitle}</strong></p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Signer Details:</h3>
+          <p><strong>Name:</strong> ${signerName}</p>
+          <p><strong>Email:</strong> ${signerEmail}</p>
+          <p><strong>Signed:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Status:</strong> Awaiting your approval</p>
+        </div>
+        
+        <p>Please log in to your CIM Share dashboard to review and approve this signer's access to the document.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://cimshare.com/dashboard" 
+             style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Review & Approve
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from your CIM sharing system.
+        </p>
+      </div>
+    `,
+    text: `
+      New NDA Signature Requires Approval
+      
+      Hello ${ownerName},
+      
+      A new user has signed the NDA for your CIM document: ${cimTitle}
+      
+      Signer Details:
+      Name: ${signerName}
+      Email: ${signerEmail}
+      Signed: ${new Date().toLocaleString()}
+      Status: Awaiting your approval
+      
+      Please log in to your CIM Share dashboard to review and approve this signer's access to the document.
+      
+      Dashboard: https://cimshare.com/dashboard
+    `
+  });
+}
+
+export { sendEmail, sendNdaSignedEmail, sendPasswordResetEmail, sendApprovalEmail, sendOwnerApprovalNotification };
