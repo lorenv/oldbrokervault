@@ -236,7 +236,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscriptionId: subscription.id,
           customer: subscription.customer
         });
-        return { userId, status, endsAt };
+        return { userId, status, endsAt, subscriptionId: subscription.id };
       }
 
       case 'customer.subscription.created':
@@ -270,7 +270,7 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscriptionId: subscription.id,
           customer: subscription.customer
         });
-        return { userId, status, endsAt };
+        return { userId, status, endsAt, subscriptionId: subscription.id };
       }
 
       case 'customer.subscription.deleted': {

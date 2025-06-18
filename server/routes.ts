@@ -867,6 +867,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe configuration endpoint for frontend
+  app.get("/api/stripe-config", (req, res) => {
+    res.json({
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+    });
+  });
+
   // API endpoint to fetch dynamic pricing from Stripe
   app.get("/api/pricing", async (req, res) => {
     try {
@@ -2160,10 +2167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await handleStripeWebhook(event);
 
       if (result) {
-        const { userId, status, endsAt } = result;
-        console.log("Updating subscription:", { userId, status, endsAt });
+        const { userId, status, endsAt, subscriptionId } = result;
+        console.log("Updating subscription:", { userId, status, endsAt, subscriptionId });
 
-        await storage.updateSubscription(userId, status, endsAt);
+        await storage.updateSubscription(userId, status, endsAt, subscriptionId);
         console.log(`Successfully updated subscription for user ${userId} to ${status}`);
 
         // Force refresh the user's session if they're currently logged in
