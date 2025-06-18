@@ -18,6 +18,7 @@ import * as fsSync from 'fs';
 import path from 'path';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
+import * as geoip from 'geoip-lite';
 
 import JSZip from 'jszip';
 import sharp from 'sharp';
@@ -4377,8 +4378,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       let geo = null;
       
       try {
-        // Use CommonJS require for geoip-lite in this context
-        const geoip = eval('require')('geoip-lite');
         geo = geoip.lookup(signerIpAddress);
         if (geo && geo.city && geo.region && geo.country) {
           signerLocation = `${geo.city}, ${geo.region}, ${geo.country}`;
