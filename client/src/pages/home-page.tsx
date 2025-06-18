@@ -133,7 +133,7 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Advanced Investor Management</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Advanced Analytics & Controls</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Track every interaction, manage NDAs seamlessly, and build relationships with comprehensive investor analytics
             </p>
