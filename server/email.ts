@@ -137,7 +137,7 @@ async function sendNdaSignedEmail(
   return viewerSuccess && ownerSuccess;
 }
 
-export async function sendPasswordResetEmail(
+async function sendPasswordResetEmail(
   userEmail: string,
   resetToken: string
 ): Promise<boolean> {
