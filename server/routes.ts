@@ -4364,13 +4364,26 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const { shareSlug } = req.params;
       const { signerName, signerEmail } = req.body;
-      const signerIpAddress = req.ip || req.connection.remoteAddress || 'unknown';
+      // Get real client IP address, not proxy IP
+      const signerIpAddress = req.headers['x-forwarded-for']?.toString().split(',')[0] || 
+                             req.headers['x-real-ip']?.toString() ||
+                             req.headers['cf-connecting-ip']?.toString() ||
+                             req.ip || 
+                             req.connection.remoteAddress || 
+                             'unknown';
 
       console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
       console.log("Signer name:", signerName);
       console.log("Signer email:", signerEmail);
-      console.log("IP address:", signerIpAddress);
+      console.log("Headers:", {
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+        'cf-connecting-ip': req.headers['cf-connecting-ip'],
+        'req.ip': req.ip,
+        'remoteAddress': req.connection.remoteAddress
+      });
+      console.log("Final IP address:", signerIpAddress);
 
       // Get CIM document by share slug
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
