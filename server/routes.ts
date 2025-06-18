@@ -4372,17 +4372,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                              req.connection.remoteAddress || 
                              'unknown';
 
-      // Get location information from IP address
+      // Get location information from IP address  
       let signerLocation = 'Unknown Location';
-      try {
-        const geoip = require('geoip-lite');
-        const geo = geoip.lookup(signerIpAddress);
-        if (geo) {
-          signerLocation = `${geo.city || 'Unknown City'}, ${geo.region || 'Unknown Region'}, ${geo.country || 'Unknown Country'}`;
-        }
-      } catch (geoError) {
-        console.log('Geolocation lookup failed:', geoError.message);
-      }
+      let geo = null;
+      
+      // For now, skip geolocation to ensure NDA signing works
+      // TODO: Implement proper geolocation after NDA signing is stable
+      console.log('Skipping geolocation lookup - using IP address only for now');
 
       console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
