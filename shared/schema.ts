@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   monthlyRegenerationsUsed: integer("monthly_regenerations_used").default(0).notNull(),
   lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull(),
   stripeCustomerId: text("stripe_customer_id").unique(),
+  subscriptionId: text("subscription_id").unique(),
   googleAccessToken: text("google_access_token"),
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),

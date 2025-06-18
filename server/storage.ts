@@ -207,12 +207,13 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateSubscription(userId: number, status: string, endsAt: Date): Promise<void> {
+  async updateSubscription(userId: number, status: string, endsAt: Date, subscriptionId?: string): Promise<void> {
     await db
       .update(users)
       .set({
         subscriptionStatus: status,
         subscriptionEndsAt: endsAt,
+        subscriptionId: subscriptionId || null,
       })
       .where(eq(users.id, userId));
   }
