@@ -11,10 +11,14 @@ import {
   Lock, 
   Sparkles,
   Globe,
-  Smartphone
+  Smartphone,
+  BarChart3,
+  X
 } from "lucide-react";
+import { useState } from "react";
 
 export default function HomePage() {
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const features = [
     {
       icon: Shield,
@@ -135,49 +139,75 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Investor Database Feature */}
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+              <div 
+                className="bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-300"
+                onClick={() => setEnlargedImage("/investor-database-preview.png")}
+              >
                 <img 
                   src="/investor-database-preview.png" 
                   alt="Investor Database Interface"
                   className="w-full h-auto object-cover"
                 />
               </div>
-              <div className="text-center lg:text-left">
-                <h3 className="text-2xl font-bold mb-3 text-gray-900">Comprehensive Investor Database</h3>
-                <p className="text-gray-600 text-lg mb-4">
-                  Automatically track investor contacts across all your documents. View engagement analytics, 
-                  manage follow-ups, and export contact lists for targeted outreach campaigns.
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-3 text-gray-900">Investor Database</h3>
+                <p className="text-gray-600 mb-4">
+                  Track investor contacts across all documents with analytics and export capabilities.
                 </p>
-                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">Contact Tracking</span>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Analytics</span>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">Export Tools</span>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">Contact Tracking</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Export Tools</span>
                 </div>
               </div>
             </div>
 
             {/* NDA Signatures Feature */}
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+              <div 
+                className="bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-300"
+                onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
+              >
                 <img 
                   src="/nda-signatures-preview.png" 
                   alt="NDA Signatures Management"
                   className="w-full h-auto object-cover"
                 />
               </div>
-              <div className="text-center lg:text-left">
-                <h3 className="text-2xl font-bold mb-3 text-gray-900">Professional NDA Management</h3>
-                <p className="text-gray-600 text-lg mb-4">
-                  Built-in NDA workflow with digital signatures, approval controls, and comprehensive audit trails. 
-                  Track signature status, manage approvals, and ensure legal compliance effortlessly.
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-3 text-gray-900">NDA Management</h3>
+                <p className="text-gray-600 mb-4">
+                  Digital signatures, approval controls, and comprehensive audit trails for legal compliance.
                 </p>
-                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">Digital Signatures</span>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">Approval Controls</span>
-                  <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">Audit Trails</span>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Digital Signatures</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Approval Controls</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Analytics Feature */}
+            <div className="space-y-6">
+              <div 
+                className="bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-300"
+                onClick={() => setEnlargedImage("/analytics-preview.png")}
+              >
+                <img 
+                  src="/analytics-preview.png" 
+                  alt="Analytics Dashboard"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-3 text-gray-900">Analytics Dashboard</h3>
+                <p className="text-gray-600 mb-4">
+                  Comprehensive analytics with activity tracking, conversion metrics, and detailed reporting.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-medium">Activity Tracking</span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">Conversion Metrics</span>
                 </div>
               </div>
             </div>
@@ -268,6 +298,29 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Image Modal */}
+      {enlargedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            <button
+              onClick={() => setEnlargedImage(null)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <img
+              src={enlargedImage}
+              alt="Enlarged preview"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
