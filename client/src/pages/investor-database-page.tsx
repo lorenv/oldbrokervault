@@ -127,6 +127,7 @@ export default function InvestorDatabasePage() {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [cimFilter, setCimFilter] = useState('all');
   const [sortBy, setSortBy] = useState('lastSeenAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [advancedFilters, setAdvancedFilters] = useState<FilterRule[]>([{
