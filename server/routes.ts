@@ -4924,8 +4924,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             phone: ownerProfile?.phoneNumber || undefined,
             title: ownerProfile?.title || undefined,
             businessName: ownerProfile?.businessName || undefined,
-            profilePhotoUrl: ownerProfile?.profilePhotoUrl || undefined,
-            businessLogoUrl: ownerProfile?.businessLogoUrl || undefined
+            profilePhotoUrl: ownerProfile?.profilePhoto || undefined,
+            businessLogoUrl: ownerProfile?.businessLogo || undefined
           };
 
           // Send immediate access email with separate NDA confirmation and CIM link emails

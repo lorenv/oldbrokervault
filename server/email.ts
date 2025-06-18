@@ -476,4 +476,13 @@ async function sendOwnerApprovalNotification(
   });
 }
 
-export { sendEmail, sendNdaSignedEmail, sendPasswordResetEmail, sendApprovalEmail, sendOwnerApprovalNotification };
+export { 
+  sendEmail, 
+  sendNdaSignedEmail, 
+  sendNdaConfirmationEmail,
+  sendCimLinkEmail,
+  sendOwnerNdaNotification,
+  sendPasswordResetEmail, 
+  sendApprovalEmail, 
+  sendOwnerApprovalNotification 
+};
