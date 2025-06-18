@@ -4407,6 +4407,78 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Approve NDA signature
+  app.post("/api/cim/:docId/nda-signatures/:signatureId/approve", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signatureId = parseInt(req.params.signatureId);
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Approve the signature
+      const approvedSignature = await storage.approveNdaSignature(signatureId, req.user.id);
+
+      // Send approval email to the signer
+      await sendApprovalEmail(approvedSignature, doc);
+
+      res.json({ 
+        success: true, 
+        signature: approvedSignature,
+        message: "Signer approved and notified"
+      });
+    } catch (error) {
+      console.error('Error approving NDA signature:', error);
+      res.status(500).json({ error: "Failed to approve signature" });
+    }
+  });
+
+  // Batch approve NDA signatures
+  app.post("/api/cim/:docId/nda-signatures/approve-batch", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const { signatureIds } = req.body;
+
+      if (!Array.isArray(signatureIds) || signatureIds.length === 0) {
+        return res.status(400).json({ error: "Invalid signature IDs" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Batch approve signatures
+      const approvedSignatures = await storage.approveNdaSignaturesBatch(signatureIds, req.user.id);
+
+      // Send approval emails to all signers
+      await Promise.all(
+        approvedSignatures.map(signature => sendApprovalEmail(signature, doc))
+      );
+
+      res.json({ 
+        success: true, 
+        signatures: approvedSignatures,
+        message: `${approvedSignatures.length} signers approved and notified`
+      });
+    } catch (error) {
+      console.error('Error batch approving NDA signatures:', error);
+      res.status(500).json({ error: "Failed to approve signatures" });
+    }
+  });
+
   app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
     try {
       const { shareSlug } = req.params;

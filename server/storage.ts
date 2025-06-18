@@ -3,6 +3,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
 import { eq, sql, desc, count, and, or, ilike } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { asc } from "drizzle-orm";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -139,6 +140,9 @@ export interface IStorage {
   createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature>;
   getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]>;
   checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined>;
+  // NDA Approval
+  approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature>;
+  approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]>;
   // NDA Access Tokens
   createNdaAccessToken(token: string, cimDocumentId: number, ndaSignatureId: number, signerEmail: string, expiresAt?: Date): Promise<any>;
   getNdaAccessToken(token: string): Promise<any | undefined>;
@@ -974,6 +978,30 @@ export class DatabaseStorage implements IStorage {
         sql`${ndaSignatures.cimDocumentId} = ${cimDocumentId} AND ${ndaSignatures.signerEmail} = ${email}`
       );
     return signature || undefined;
+  }
+
+  async approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature> {
+    const [approvedSignature] = await db.update(ndaSignatures)
+      .set({
+        approved: true,
+        approvedAt: new Date(),
+        approvedBy: userId
+      })
+      .where(eq(ndaSignatures.id, signatureId))
+      .returning();
+    return approvedSignature;
+  }
+
+  async approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]> {
+    const approvedSignatures = await db.update(ndaSignatures)
+      .set({
+        approved: true,
+        approvedAt: new Date(),
+        approvedBy: userId
+      })
+      .where(inArray(ndaSignatures.id, signatureIds))
+      .returning();
+    return approvedSignatures;
   }
 
   // NDA Access Tokens
