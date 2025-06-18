@@ -365,6 +365,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Incrementing view count for document:", cimDoc.id);
       await storage.incrementShareViewCount(cimDoc.id);
 
+      // Check NDA approval status if required
+      let ndaApprovalStatus = null;
+      const { token } = req.query;
+      
+      if (cimDoc.ndaProtected && cimDoc.ndaApprovalRequired) {
+        console.log("Checking NDA approval status for manual approval required document");
+        
+        if (token) {
+          // Check if user has valid approved access token
+          const accessToken = await storage.getNdaAccessToken(token as string);
+          if (accessToken && accessToken.isActive) {
+            // Get the associated signature to check approval status
+            const signature = await storage.getNdaSignatureById(accessToken.ndaSignatureId);
+            if (signature && !signature.approved) {
+              console.log("User has token but signature not approved yet");
+              ndaApprovalStatus = {
+                requiresApproval: true,
+                isApproved: false,
+                message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
+              };
+            } else if (signature && signature.approved) {
+              console.log("User has approved signature");
+              ndaApprovalStatus = { requiresApproval: true, isApproved: true };
+            }
+          }
+        } else {
+          // No token provided, check if this is a request after NDA signing
+          console.log("No token provided for approval-required document");
+          ndaApprovalStatus = {
+            requiresApproval: true,
+            isApproved: false,
+            message: "This document requires NDA approval before viewing."
+          };
+        }
+      }
+
       // Get NDA template if required
       let ndaUrl = null;
       if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
@@ -513,7 +549,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null,
         requiresNda: cimDoc.ndaProtected || false,
         ndaUrl,
-        customSections: customSections || []
+        customSections: customSections || [],
+        ndaApprovalStatus
       });
     } catch (error) {
       clearTimeout(timeout);
