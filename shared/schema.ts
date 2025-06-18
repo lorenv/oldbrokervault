@@ -168,6 +168,7 @@ export const ndaSignatures = pgTable("nda_signatures", {
   signerName: text("signer_name").notNull(),
   signerEmail: text("signer_email").notNull(),
   signerIpAddress: text("signer_ip_address").notNull(),
+  signerLocation: text("signer_location"), // Geographic location from IP
   signedAt: timestamp("signed_at").defaultNow().notNull(),
   signedNdaContent: text("signed_nda_content").notNull() // Base64 encoded signed PDF
 });
@@ -360,6 +361,7 @@ export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
   signerName: true,
   signerEmail: true,
   signerIpAddress: true,
+  signerLocation: true,
   signedNdaContent: true
 }).extend({
   shareSlug: z.string().optional()

@@ -4372,6 +4372,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                              req.connection.remoteAddress || 
                              'unknown';
 
+      // Get location information from IP address
+      const geoip = require('geoip-lite');
+      const geo = geoip.lookup(signerIpAddress);
+      const signerLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown Location';
+
       console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
       console.log("Signer name:", signerName);
@@ -4384,6 +4389,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         'remoteAddress': req.connection.remoteAddress
       });
       console.log("Final IP address:", signerIpAddress);
+      console.log("Geo location:", geo);
+      console.log("Formatted location:", signerLocation);
 
       // Get CIM document by share slug
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
