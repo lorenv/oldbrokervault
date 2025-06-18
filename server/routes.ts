@@ -4381,9 +4381,28 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
     try {
       const cimId = parseInt(req.params.id);
+      
+      // Get basic signature data
       const signatures = await storage.getNdaSignatures(cimId);
-      res.json(signatures);
+      
+      // Enhance signatures with access tokens and view count
+      const enhancedSignatures = await Promise.all(signatures.map(async (signature) => {
+        // Get access token for this signature
+        const [accessToken] = await db
+          .select()
+          .from(ndaAccessTokens)
+          .where(eq(ndaAccessTokens.ndaSignatureId, signature.id));
+        
+        return {
+          ...signature,
+          accessToken: accessToken?.token || null,
+          viewCount: 0 // You can implement view tracking later
+        };
+      }));
+      
+      res.json(enhancedSignatures);
     } catch (error) {
+      console.error('Error fetching NDA signatures:', error);
       res.status(500).json({ error: "Failed to fetch NDA signatures" });
     }
   });
