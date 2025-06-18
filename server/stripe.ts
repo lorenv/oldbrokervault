@@ -8,7 +8,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function getPricing() {
   console.log("=== RETRIEVING PRICES FROM STRIPE ===");
   console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
-  console.log("Premium Price ID:", process.env.STRIPE_PRICE_ID_PREMIUM);
   
   try {
     const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
@@ -17,38 +16,18 @@ export async function getPricing() {
       active: standardPrice.active,
       unit_amount: standardPrice.unit_amount
     });
+    
+    return {
+      standard: {
+        amount: standardPrice.unit_amount! / 100,
+        currency: standardPrice.currency,
+        priceId: standardPrice.id
+      }
+    };
   } catch (error) {
     console.error("Failed to retrieve standard price:", error);
     throw error;
   }
-  
-  try {
-    const premiumPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!);
-    console.log("Premium price retrieved successfully:", {
-      id: premiumPrice.id,
-      active: premiumPrice.active,
-      unit_amount: premiumPrice.unit_amount
-    });
-  } catch (error) {
-    console.error("Failed to retrieve premium price:", error);
-    throw error;
-  }
-  
-  const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
-  const premiumPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_PREMIUM!);
-  
-  return {
-    standard: {
-      amount: standardPrice.unit_amount! / 100,
-      currency: standardPrice.currency,
-      priceId: standardPrice.id
-    },
-    premium: {
-      amount: premiumPrice.unit_amount! / 100,
-      currency: premiumPrice.currency,
-      priceId: premiumPrice.id
-    }
-  };
 }
 
 async function getOrCreateCustomer(userId: number, email: string) {
