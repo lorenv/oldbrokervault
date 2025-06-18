@@ -140,6 +140,7 @@ export interface IStorage {
   // NDA Signatures
   createNdaSignature(signature: InsertNdaSignature): Promise<NdaSignature>;
   getNdaSignatures(cimDocumentId: number): Promise<NdaSignature[]>;
+  getNdaSignatureById(signatureId: number): Promise<NdaSignature | undefined>;
   checkNdaSignature(cimDocumentId: number, email: string): Promise<NdaSignature | undefined>;
   // NDA Approval
   approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature>;
