@@ -4,10 +4,16 @@ import { z } from "zod";
 
 export const subscriptionPlans = {
   free: {
-    name: "Free",
+    name: "Free Trial",
+    limit: 1,
+    regenerationLimit: 2,
+    price: 0
+  },
+  standard: {
+    name: "Standard",
     limit: 3,
     regenerationLimit: 9,
-    price: 0
+    price: 29
   },
   enterprise: {
     name: "Enterprise",
@@ -15,7 +21,7 @@ export const subscriptionPlans = {
     regenerationLimit: Infinity,
     price: 0 // Contact for pricing
   },
-  admin: {  // Added admin plan type
+  admin: {
     name: "Admin",
     limit: Infinity,
     regenerationLimit: Infinity,
