@@ -4373,9 +4373,16 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                              'unknown';
 
       // Get location information from IP address
-      const geoip = await import('geoip-lite');
-      const geo = geoip.lookup(signerIpAddress);
-      const signerLocation = geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown Location';
+      let signerLocation = 'Unknown Location';
+      try {
+        const geoip = require('geoip-lite');
+        const geo = geoip.lookup(signerIpAddress);
+        if (geo) {
+          signerLocation = `${geo.city || 'Unknown City'}, ${geo.region || 'Unknown Region'}, ${geo.country || 'Unknown Country'}`;
+        }
+      } catch (geoError) {
+        console.log('Geolocation lookup failed:', geoError.message);
+      }
 
       console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
