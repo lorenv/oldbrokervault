@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 18, 2025: Updated homepage to remove team collaboration feature and showcase investor database and NDA signatures with new screenshot previews - reorganized layout with dedicated feature showcase section highlighting contact tracking and approval management capabilities
 - June 18, 2025: Fixed checkbox selection functionality in investor database - individual contact checkboxes now work properly, select all functionality corrected, and state synchronization improved between header and individual checkboxes for proper bulk operations
 - June 18, 2025: Updated email sender address from rob@cimshare.com to system@cimshare.com for all platform notifications including NDA emails, CIM access emails, approval notifications, and administrative communications; verified in SendGrid and implemented across all email functions
 - June 18, 2025: Fixed NDA signature approval system - individual approve buttons now show specific loading states, batch approval endpoint corrected, manual approval logic properly prevents automatic redirect to documents, and improved cache invalidation for immediate UI updates

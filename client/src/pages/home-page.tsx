@@ -125,6 +125,66 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Feature Showcase Section */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Advanced Investor Management</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Track every interaction, manage NDAs seamlessly, and build relationships with comprehensive investor analytics
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-7xl mx-auto">
+            {/* Investor Database Feature */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+                <img 
+                  src="/investor-database-preview.png" 
+                  alt="Investor Database Interface"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+              <div className="text-center lg:text-left">
+                <h3 className="text-2xl font-bold mb-3 text-gray-900">Comprehensive Investor Database</h3>
+                <p className="text-gray-600 text-lg mb-4">
+                  Automatically track investor contacts across all your documents. View engagement analytics, 
+                  manage follow-ups, and export contact lists for targeted outreach campaigns.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">Contact Tracking</span>
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Analytics</span>
+                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">Export Tools</span>
+                </div>
+              </div>
+            </div>
+
+            {/* NDA Signatures Feature */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden">
+                <img 
+                  src="/nda-signatures-preview.png" 
+                  alt="NDA Signatures Management"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+              <div className="text-center lg:text-left">
+                <h3 className="text-2xl font-bold mb-3 text-gray-900">Professional NDA Management</h3>
+                <p className="text-gray-600 text-lg mb-4">
+                  Built-in NDA workflow with digital signatures, approval controls, and comprehensive audit trails. 
+                  Track signature status, manage approvals, and ensure legal compliance effortlessly.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">Digital Signatures</span>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">Approval Controls</span>
+                  <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">Audit Trails</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Example Documents Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
