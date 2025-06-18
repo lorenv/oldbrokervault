@@ -2152,7 +2152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.session && req.user?.id === userId) {
           req.session.passport = req.session.passport || {};
           // @ts-ignore - we know the passport property exists now
-          req.session.passport.user = user;
+          req.session.passport.user = userId; // Store only the user ID, not the full object
           await new Promise((resolve) => req.session.save(resolve));
           console.log("Updated session for user:", userId);
         }
