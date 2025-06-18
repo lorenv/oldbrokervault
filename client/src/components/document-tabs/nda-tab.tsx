@@ -38,7 +38,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // State for NDA settings
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
-    ndaTemplateId: cimDocument.ndaTemplateId || null
+    ndaTemplateId: cimDocument.ndaTemplateId || null,
+    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
   
   // State for new NDA template upload
@@ -49,6 +50,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   });
   const [isUploadingNda, setIsUploadingNda] = useState(false);
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
+  const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -67,7 +69,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     mutationFn: async (settings: any) => {
       const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}`, {
         ndaProtected: settings.ndaProtected,
-        ndaTemplateId: settings.ndaTemplateId
+        ndaTemplateId: settings.ndaTemplateId,
+        ndaApprovalRequired: settings.ndaApprovalRequired
       });
       if (!response.ok) throw new Error('Failed to update NDA settings');
       return response.json();
@@ -83,6 +86,55 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       toast({
         title: "Update Failed",
         description: "Failed to update NDA settings. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Approve signer mutation
+  const approveSignerMutation = useMutation({
+    mutationFn: async (signatureId: number) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/${signatureId}/approve`);
+      if (!response.ok) throw new Error('Failed to approve signer');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Signer Approved",
+        description: "The signer has been approved and will receive access to the document."
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+    },
+    onError: () => {
+      toast({
+        title: "Approval Failed",
+        description: "Failed to approve signer. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Batch approve signers mutation
+  const batchApproveSignersMutation = useMutation({
+    mutationFn: async (signatureIds: number[]) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/batch-approve`, {
+        signatureIds
+      });
+      if (!response.ok) throw new Error('Failed to approve signers');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Signers Approved",
+        description: `${data.approved} signers have been approved and will receive access to the document.`
+      });
+      setSelectedSignatures([]);
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+    },
+    onError: () => {
+      toast({
+        title: "Batch Approval Failed",
+        description: "Failed to approve signers. Please try again.",
         variant: "destructive"
       });
     }
@@ -273,26 +325,44 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
           </div>
           
           {ndaSettings.ndaProtected && (
-            <div className="space-y-2">
-              <Label htmlFor="nda-template">NDA Template</Label>
-              <Select
-                value={ndaSettings.ndaTemplateId?.toString() || ""}
-                onValueChange={(value) => 
-                  setNdaSettings(prev => ({ ...prev, ndaTemplateId: parseInt(value) }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an NDA template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ndaTemplates.map((template: any) => (
-                    <SelectItem key={template.id} value={template.id.toString()}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="nda-template">NDA Template</Label>
+                <Select
+                  value={ndaSettings.ndaTemplateId?.toString() || ""}
+                  onValueChange={(value) => 
+                    setNdaSettings(prev => ({ ...prev, ndaTemplateId: parseInt(value) }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an NDA template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ndaTemplates.map((template: any) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="manual-approval">Manually approve each signer</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Signers will need your approval before gaining access to the document
+                  </p>
+                </div>
+                <Switch
+                  id="manual-approval"
+                  checked={ndaSettings.ndaApprovalRequired}
+                  onCheckedChange={(checked) => 
+                    setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }))
+                  }
+                />
+              </div>
+            </>
           )}
           
           <Button 

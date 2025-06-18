@@ -22,7 +22,7 @@ import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates 
 
 import JSZip from 'jszip';
 import sharp from 'sharp';
-import { sendNdaSignedEmail, sendEmail } from "./email";
+import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 
