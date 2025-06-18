@@ -32,8 +32,10 @@ export function SubscriptionCard({
       case "admin":
       case "enterprise":
         return "Unlimited";
-      default:
+      case "standard":
         return 3;
+      default:
+        return 1; // Free trial
     }
   };
 
@@ -42,8 +44,10 @@ export function SubscriptionCard({
       case "admin":
       case "enterprise":
         return "Unlimited";
-      default:
+      case "standard":
         return 9;
+      default:
+        return 2; // Free trial
     }
   };
 

@@ -114,17 +114,30 @@ export default function PricingPage() {
 
   const plans = [
     {
-      name: "Free",
+      name: "Free Trial",
       price: "$0",
-      description: "Professional CIM generation",
+      description: "Try CIM Share with one document",
       features: [
-        "Generate up to 3 CIMs per month",
-        "Up to 9 regenerations per month",
+        "1 CIM document (trial only)",
+        "Basic templates",
         "Export to PDF and Word",
         "Professional analysis",
         "Email support",
       ],
       current: user?.subscriptionStatus === "free",
+    },
+    {
+      name: "Standard",
+      price: "$29/month",
+      description: "Perfect for regular business use",
+      features: [
+        "3 CIM documents per month",
+        "9 regenerations per month",
+        "All templates",
+        "Export to PDF and Word",
+        "Priority support",
+      ],
+      current: user?.subscriptionStatus === "standard",
     },
     {
       name: "Enterprise",
@@ -214,9 +227,9 @@ export default function PricingPage() {
               ) : (
                 <Button 
                   className="w-full"
-                  onClick={() => handleSubscriptionAction(plan.isEnterprise ? 'enterprise' : undefined)}
+                  onClick={() => handleSubscriptionAction(plan.name === 'Standard' ? 'standard' : plan.isEnterprise ? 'enterprise' : undefined)}
                 >
-                  {plan.isEnterprise ? 'Contact Us' : 'Get Started'}
+                  {plan.isEnterprise ? 'Contact Us' : plan.name === 'Standard' ? 'Upgrade to Standard' : 'Get Started'}
                 </Button>
               )}
             </CardFooter>

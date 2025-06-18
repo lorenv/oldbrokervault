@@ -874,11 +874,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Simplified pricing endpoint for Free/Enterprise model
+  // Pricing endpoint for Free Trial/Standard/Enterprise model
   app.get("/api/pricing", async (req, res) => {
     res.json({
       free: {
         amount: 0,
+        currency: 'usd',
+        limit: 1,
+        regenerationLimit: 2
+      },
+      standard: {
+        amount: 29,
         currency: 'usd',
         limit: 3,
         regenerationLimit: 9
