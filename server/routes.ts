@@ -4614,8 +4614,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           // Send "pending approval" email
           return await sendEmail({
             to: signature.signerEmail,
-            from: 'rob@cimshare.com',
-            replyTo: 'rob@cimshare.com',
+            from: 'system@cimshare.com',
+            replyTo: 'system@cimshare.com',
             subject: `NDA Signature Received - ${doc.title}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

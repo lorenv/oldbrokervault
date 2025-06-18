@@ -117,6 +117,8 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 18, 2025: Updated email sender address from rob@cimshare.com to system@cimshare.com for all platform notifications including NDA emails, CIM access emails, approval notifications, and administrative communications; verified in SendGrid and implemented across all email functions
+- June 18, 2025: Fixed NDA signature approval system - individual approve buttons now show specific loading states, batch approval endpoint corrected, manual approval logic properly prevents automatic redirect to documents, and improved cache invalidation for immediate UI updates
 - June 18, 2025: Implemented separate NDA confirmation and CIM link emails - NDA signers now receive two distinct emails: (1) NDA confirmation with signed document attachment, (2) CIM access email with complete owner contact information including profile photo, business logo, phone, email, and business details; configured reply-to as owner's email for direct communication while maintaining verified sender domain
 - June 18, 2025: Fixed resend share link email functionality and restructured NDA signatures interface - integrated manual approval workflow into main signatures table with bulk operations (approve, email, export CSV), removed separate pending approvals section, added multi-select capabilities with approval buttons in actions column for streamlined workflow management
 - June 18, 2025: Implemented authentic geolocation tracking for NDA signatures - system now captures real IP addresses via x-forwarded-for headers and displays accurate location data (e.g., "Los Angeles, CA, US") in NDA signatures and investor contacts for legal compliance and audit trails
