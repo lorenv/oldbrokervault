@@ -260,33 +260,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public share endpoints (must be before authentication setup)
+  // Public share endpoints (optimized for performance)
   app.get("/api/share/:shareSlug", async (req, res) => {
-    // Set timeout to prevent hanging requests
-    const timeout = setTimeout(() => {
-      if (!res.headersSent) {
-        console.error("Share endpoint timeout for slug:", req.params.shareSlug);
-        res.status(504).json({ error: "Request timeout" });
-      }
-    }, 30000); // 30 second timeout
-
     try {
-      // Enhanced error handling for production environment
-      process.on('uncaughtException', (error) => {
-        console.error('Uncaught Exception in share endpoint:', error);
-        if (!res.headersSent) {
-          clearTimeout(timeout);
-          res.status(500).json({ error: "Internal server error", details: error.message });
-        }
-      });
-
-      process.on('unhandledRejection', (reason, promise) => {
-        console.error('Unhandled Rejection in share endpoint:', reason);
-        if (!res.headersSent) {
-          clearTimeout(timeout);
-          res.status(500).json({ error: "Internal server error", details: String(reason) });
-        }
-      });
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
       console.log("Environment:", process.env.NODE_ENV);
@@ -295,7 +271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Immediate validation
       if (!shareSlug || shareSlug.length < 3) {
-        clearTimeout(timeout);
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
@@ -305,7 +280,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!cimDoc) {
         console.log("Document not found for share slug:", shareSlug);
-        clearTimeout(timeout);
         return res.status(404).json({ error: "Document not found" });
       }
       
@@ -319,7 +293,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!cimDoc.shareEnabled) {
         console.log("ERROR: Sharing disabled for document:", cimDoc.id);
-        clearTimeout(timeout);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
@@ -335,7 +308,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (now > expirationDate) {
           console.log("ERROR: Document has expired");
-          clearTimeout(timeout);
           return res.status(410).json({ error: "This shared link has expired" });
         }
       } else {
@@ -477,8 +449,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         converted: absoluteSelectedImages,
         baseUrl 
       });
-
-      clearTimeout(timeout);
       res.json({
         cim: {
           id: cimDoc.id,
@@ -2901,7 +2871,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const user = await storage.getUser(req.user!.id);
+      // Parallel data fetching for better performance
+      const [user, customSections, documentFinancialFiles] = await Promise.all([
+        storage.getUser(req.user!.id),
+        storage.getCustomSections(docId),
+        db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, docId))
+      ]);
+      
       console.log(`User subscription status: ${user?.subscriptionStatus}, isAdmin: ${user?.isAdmin}`);
       
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
@@ -2911,7 +2887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Generating PDF document with complete data...");
       
-      // Get user profile for contact footer (reuse the user object from above)
+      // Prepare user profile and financial data
       const userProfile = {
         name: user?.name,
         title: user?.title,
@@ -2922,7 +2898,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profilePhoto: user?.profilePhoto
       };
       
-      // Get financial data from CIM document
       const financialData = {
         enabled: doc.financialsEnabled || false,
         askingPrice: doc.askingPrice,
@@ -2932,12 +2907,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitda: doc.ebitda,
         ebitdaIncluded: doc.ebitdaIncluded || false
       };
-
-      // Get custom sections for the document
-      const customSections = await storage.getCustomSections(docId);
-      
-      // Get financial files for the document
-      const documentFinancialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, docId));
       
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
