@@ -13,7 +13,7 @@ const PostgresSessionStore = connectPg(session);
 // Create a single session store instance to avoid multiple pool connections
 let sessionStoreInstance: session.Store | null = null;
 
-// Initialize session store with proper configuration
+// Initialize session store with improved error handling and resilience
 function initializeSessionStore() {
   if (!sessionStoreInstance) {
     sessionStoreInstance = new PostgresSessionStore({
@@ -24,11 +24,26 @@ function initializeSessionStore() {
       disableTouch: false,
       schemaName: 'public',
       pruneSessionInterval: 3600,
-      errorLog: () => {}, // Suppress session store errors to reduce noise
+      // Improved error logging with connection resilience
+      errorLog: (err: any) => {
+        // Log only non-connection errors to reduce noise
+        if (!err.message?.includes('Connection terminated') && 
+            !err.message?.includes('connection timeout')) {
+          console.error('Session store error:', err.message);
+        }
+      },
     });
     
     // Set max listeners to handle multiple concurrent sessions
-    sessionStoreInstance.setMaxListeners(150);
+    sessionStoreInstance.setMaxListeners(200);
+    
+    // Add error handling for the session store instance
+    sessionStoreInstance.on?.('error', (err: any) => {
+      // Silently handle connection errors - they will retry automatically
+      if (!err.message?.includes('Connection terminated')) {
+        console.error('Session store instance error:', err.message);
+      }
+    });
   }
   return sessionStoreInstance;
 }
