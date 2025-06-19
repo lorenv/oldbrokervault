@@ -18,19 +18,16 @@ export default function DashboardPage() {
 
   // Extract documents array from the response
   const documents = documentsResponse?.documents || [];
-  
-  // Get first name from user's full name
-  const firstName = user?.name?.split(' ')[0] || 'there';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Welcome Header */}
-      <div className="bg-white/60 backdrop-blur-sm">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Welcome back, {firstName}!
+                Welcome back!
               </h1>
               <p className="text-gray-600 mt-1">Create professional CIM documents with AI-powered analysis</p>
             </div>
@@ -48,7 +45,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-2">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
               <div className="p-6">
                 <CimGenerator />
               </div>
@@ -58,7 +55,7 @@ export default function DashboardPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recent Documents Card */}
-            <Card className="bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-200">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-white/50 hover:shadow-xl transition-all duration-200">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center space-x-2 text-gray-900">
                   <Clock className="w-5 h-5 text-blue-600" />
@@ -90,7 +87,7 @@ export default function DashboardPage() {
                         <a 
                           href={`/documents/${doc.id}`} 
                           key={doc.id} 
-                          className="group block p-3 bg-gray-50/60 rounded-lg hover:bg-blue-50/80 transition-all duration-200 hover:shadow-sm"
+                          className="group block p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-xl hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border border-gray-100 hover:border-blue-200 hover:shadow-md"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -126,7 +123,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Subscription Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50">
               <SubscriptionCard 
                 status={user?.subscriptionStatus} 
                 endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 

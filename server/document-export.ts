@@ -1135,72 +1135,6 @@ export function formatTextContent(analysis: any, userProfile?: any): string {
   return content;
 }
 
-// Function to apply PDF template styling to pages after the first page
-function applyPageTemplate(doc: any, pageNumber: number) {
-  if (pageNumber === 1) return; // Don't apply template to first page
-  
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const margin = 72; // 1 inch margin
-  
-  // Save current state safely
-  const currentY = doc.y;
-  const currentFontSize = doc._fontSize || 12;
-  const currentColor = doc._fillColor;
-  
-  // Add subtle header border/line
-  doc.strokeColor('#E5E7EB')
-     .lineWidth(1)
-     .moveTo(margin, 50)
-     .lineTo(pageWidth - margin, 50)
-     .stroke();
-  
-  // Add professional header styling
-  doc.fontSize(8)
-     .font('Helvetica')
-     .fillColor('#6B7280')
-     .text('CONFIDENTIAL INFORMATION MEMORANDUM', margin, 30, {
-       width: pageWidth - (2 * margin),
-       align: 'center'
-     });
-  
-  // Add footer border/line
-  const footerY = pageHeight - 50;
-  doc.strokeColor('#E5E7EB')
-     .lineWidth(1)
-     .moveTo(margin, footerY)
-     .lineTo(pageWidth - margin, footerY)
-     .stroke();
-  
-  // Add professional footer with page number
-  doc.fontSize(8)
-     .font('Helvetica')
-     .fillColor('#6B7280')
-     .text(`Page ${pageNumber}`, margin, footerY + 10, {
-       width: pageWidth - (2 * margin),
-       align: 'center'
-     });
-  
-  // Add subtle side borders for professional look
-  doc.strokeColor('#F3F4F6')
-     .lineWidth(0.5)
-     .moveTo(margin - 5, 50)
-     .lineTo(margin - 5, footerY)
-     .stroke()
-     .moveTo(pageWidth - margin + 5, 50)
-     .lineTo(pageWidth - margin + 5, footerY)
-     .stroke();
-  
-  // Restore previous state safely
-  doc.y = currentY;
-  
-  // Always use safe font restoration - just set to Helvetica to avoid font errors
-  doc.font('Helvetica');
-  doc.fontSize(currentFontSize);
-  doc.fillColor(currentColor || '#000000');
-  doc.strokeColor('#000000');
-}
-
 // Function to add footer to each page
 function addFooter(doc: any, pageNumber: number, totalPages: number, documentTitle?: string) {
   const pageHeight = doc.page.height;
@@ -1835,11 +1769,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => resolve(Buffer.concat(buffers)));
-    doc.on('error', reject);
-    
-    // IMPORTANT: Register custom Segoe UI fonts FIRST before any template functions
+    // Register custom Segoe UI fonts with fallback
     let fontsRegistered = false;
     try {
       const fontsDir = path.resolve(process.cwd(), 'server', 'fonts');
@@ -2225,8 +2155,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Add page break before generated content to create proper cover page
       doc.addPage();
-      currentPageNumber++;
-      applyPageTemplate(doc, currentPageNumber);
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
@@ -2444,8 +2372,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           // Add page break before Executive Summary section
           if (section.title && section.title.toLowerCase().includes('executive summary')) {
             doc.addPage();
-            currentPageNumber++;
-            applyPageTemplate(doc, currentPageNumber);
           }
           
           doc.fontSize(18)
@@ -2495,8 +2421,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Business Images Section - separate from content sections
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
-        currentPageNumber++;
-        applyPageTemplate(doc, currentPageNumber);
         
         doc.fontSize(18)
            .font('Segoe-Bold')
@@ -2557,8 +2481,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 if (imageY + imageHeight > doc.page.height - pageMargin) {
                   doc.addPage();
-                  currentPageNumber++;
-                  applyPageTemplate(doc, currentPageNumber);
                   doc.fontSize(18)
                      .font('Segoe-Bold')
                      .fillColor('#1e3a8a')
@@ -2573,18 +2495,63 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Optimized image processing - skip expensive Sharp operations
+                // Use direct buffer method with width/height specification
                 try {
-                  // Use built-in PDFKit fit method for performance
+                  // Get image dimensions first to ensure proper scaling
+                  const sharp = require('sharp');
+                  const metadata = await sharp(imageBuffer).metadata();
+                  
+                  // Calculate aspect ratio and ensure image fits
+                  const aspectRatio = metadata.width / metadata.height;
+                  let finalWidth = imageWidth;
+                  let finalHeight = imageHeight;
+                  
+                  if (aspectRatio > 1) {
+                    // Landscape image
+                    finalHeight = imageWidth / aspectRatio;
+                  } else {
+                    // Portrait image  
+                    finalWidth = imageHeight * aspectRatio;
+                  }
+                  
+                  // Add image with explicit dimensions maintaining aspect ratio
                   doc.image(imageBuffer, finalX, finalY, {
-                    fit: [imageWidth, imageHeight],
-                    align: 'center',
-                    valign: 'center'
+                    width: finalWidth,
+                    height: finalHeight
                   });
                   
-                  console.log(`Added business image ${i} with fit dimensions ${imageWidth}x${imageHeight}`);
-                } catch (error) {
-                  console.log(`Skipping problematic business image ${i}:`, error.message);
+                  console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
+                } catch (sharpError) {
+                  // Fallback without Sharp - calculate aspect ratio from buffer
+                  let fallbackWidth = imageWidth;
+                  let fallbackHeight = imageHeight;
+                  
+                  try {
+                    // Try to get dimensions from buffer
+                    const jpegDims = getJpegDimensions(imageBuffer);
+                    const pngDims = getPngDimensions(imageBuffer);
+                    
+                    if (jpegDims || pngDims) {
+                      const dims = jpegDims || pngDims;
+                      const aspectRatio = dims.width / dims.height;
+                      
+                      if (aspectRatio > 1) {
+                        // Landscape image
+                        fallbackHeight = imageWidth / aspectRatio;
+                      } else {
+                        // Portrait image  
+                        fallbackWidth = imageHeight * aspectRatio;
+                      }
+                    }
+                  } catch (dimError) {
+                    console.log("Could not determine image dimensions, using default");
+                  }
+                  
+                  doc.image(imageBuffer, finalX, finalY, {
+                    width: fallbackWidth,
+                    height: fallbackHeight
+                  });
+                  console.log(`Added business image ${i} without Sharp (${fallbackWidth}x${fallbackHeight})`);
                 }
                 continue;
               } catch (error) {
@@ -2632,8 +2599,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               if (imageY + imageHeight > doc.page.height - pageMargin) {
                 doc.addPage();
-                currentPageNumber++;
-                applyPageTemplate(doc, currentPageNumber);
                 
                 // Add section header on new page
                 doc.fontSize(18)
@@ -2698,8 +2663,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Contact Information Footer
       if (userProfile && (userProfile.name || userProfile.email || userProfile.phoneNumber)) {
         doc.addPage();
-        currentPageNumber++;
-        applyPageTemplate(doc, currentPageNumber);
         
         doc.fontSize(18)
            .font('Segoe-Bold')

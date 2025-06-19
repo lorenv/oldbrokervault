@@ -262,92 +262,242 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public share endpoints (must be before authentication setup)
   app.get("/api/share/:shareSlug", async (req, res) => {
+    // Set timeout to prevent hanging requests
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error("Share endpoint timeout for slug:", req.params.shareSlug);
+        res.status(504).json({ error: "Request timeout" });
+      }
+    }, 30000); // 30 second timeout
+
     try {
+      // Enhanced error handling for production environment
+      process.on('uncaughtException', (error) => {
+        console.error('Uncaught Exception in share endpoint:', error);
+        if (!res.headersSent) {
+          clearTimeout(timeout);
+          res.status(500).json({ error: "Internal server error", details: error.message });
+        }
+      });
+
+      process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection in share endpoint:', reason);
+        if (!res.headersSent) {
+          clearTimeout(timeout);
+          res.status(500).json({ error: "Internal server error", details: String(reason) });
+        }
+      });
       const { shareSlug } = req.params;
+      console.log("=== SHARE LINK ACCESS ===");
+      console.log("Environment:", process.env.NODE_ENV);
+      console.log("Database URL exists:", !!process.env.DATABASE_URL);
+      console.log("Fetching share data for slug:", shareSlug);
       
-      // Quick validation
+      // Immediate validation
       if (!shareSlug || shareSlug.length < 3) {
+        clearTimeout(timeout);
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
-      // Single database query - no retry logic for faster response
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      // Retry database operations for production stability
+      let cimDoc = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !cimDoc) {
+        try {
+          cimDoc = await storage.getCimByShareSlug(shareSlug);
+          console.log("Found document:", !!cimDoc, cimDoc?.id);
+          break;
+        } catch (dbError) {
+          retryCount++;
+          console.error(`Database retry ${retryCount}/${maxRetries} for slug ${shareSlug}:`, dbError);
+          
+          if (retryCount >= maxRetries) {
+            throw dbError;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
+        }
+      }
       
       if (!cimDoc) {
+        console.log("Document not found for share slug:", shareSlug);
+        clearTimeout(timeout);
         return res.status(404).json({ error: "Document not found" });
       }
       
+      console.log("Document details:", {
+        id: cimDoc.id,
+        title: cimDoc.title,
+        shareEnabled: cimDoc.shareEnabled,
+        shareExpiresAt: cimDoc.shareExpiresAt,
+        ndaProtected: cimDoc.ndaProtected
+      });
+      
       if (!cimDoc.shareEnabled) {
+        console.log("ERROR: Sharing disabled for document:", cimDoc.id);
+        clearTimeout(timeout);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
-      // Quick expiration check
-      if (cimDoc.shareExpiresAt && new Date() > new Date(cimDoc.shareExpiresAt)) {
-        return res.status(410).json({ error: "This shared link has expired" });
+      // Check expiration with detailed logging
+      if (cimDoc.shareExpiresAt) {
+        const now = new Date();
+        const expirationDate = new Date(cimDoc.shareExpiresAt);
+        console.log("Expiration check:", {
+          now: now.toISOString(),
+          expiresAt: expirationDate.toISOString(),
+          isExpired: now > expirationDate
+        });
+        
+        if (now > expirationDate) {
+          console.log("ERROR: Document has expired");
+          clearTimeout(timeout);
+          return res.status(410).json({ error: "This shared link has expired" });
+        }
+      } else {
+        console.log("No expiration date set - link never expires");
       }
 
-      // Increment view count asynchronously (don't wait for it)
-      storage.incrementShareViewCount(cimDoc.id).catch(() => {});
+      // Increment view count
+      console.log("Incrementing view count for document:", cimDoc.id);
+      await storage.incrementShareViewCount(cimDoc.id);
 
-      // Streamlined NDA check
+      // Check NDA approval status if required
       let ndaApprovalStatus = null;
       const { token } = req.query;
       
-      if (cimDoc.ndaProtected && cimDoc.ndaApprovalRequired && token) {
-        const accessToken = await storage.getNdaAccessToken(token as string);
-        if (accessToken?.isActive) {
-          const signature = await storage.getNdaSignatureById(accessToken.ndaSignatureId);
+      if (cimDoc.ndaProtected && cimDoc.ndaApprovalRequired) {
+        console.log("Checking NDA approval status for manual approval required document");
+        
+        if (token) {
+          // Check if user has valid approved access token
+          const accessToken = await storage.getNdaAccessToken(token as string);
+          if (accessToken && accessToken.isActive) {
+            // Get the associated signature to check approval status
+            const signature = await storage.getNdaSignatureById(accessToken.ndaSignatureId);
+            if (signature && !signature.approved) {
+              console.log("User has token but signature not approved yet");
+              ndaApprovalStatus = {
+                requiresApproval: true,
+                isApproved: false,
+                message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
+              };
+            } else if (signature && signature.approved) {
+              console.log("User has approved signature");
+              ndaApprovalStatus = { requiresApproval: true, isApproved: true };
+            }
+          }
+        } else {
+          // No token provided, check if this is a request after NDA signing
+          console.log("No token provided for approval-required document");
           ndaApprovalStatus = {
             requiresApproval: true,
-            isApproved: !!signature?.approved,
-            message: signature?.approved ? undefined : "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
+            isApproved: false,
+            message: "This document requires NDA approval before viewing."
           };
         }
-      } else if (cimDoc.ndaProtected && cimDoc.ndaApprovalRequired) {
-        ndaApprovalStatus = {
-          requiresApproval: true,
-          isApproved: false,
-          message: "This document requires NDA approval before viewing."
-        };
       }
 
-      // Get NDA template URL if required
+      // Get NDA template if required
       let ndaUrl = null;
       if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
-        ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
-      }
-
-      // Parallel fetch for essential data only
-      const [userProfile, customSections] = await Promise.all([
-        storage.getUser(cimDoc.userId).catch(() => null),
-        storage.getCustomSections(cimDoc.id).catch(() => [])
-      ]);
-      
-      // Lightweight analysis processing
-      let streamlinedAnalysis: any = cimDoc.analysis;
-      if (typeof cimDoc.analysis === 'string') {
+        console.log("Getting NDA template:", cimDoc.ndaTemplateId);
         try {
-          streamlinedAnalysis = JSON.parse(cimDoc.analysis);
-        } catch {
-          streamlinedAnalysis = null;
+          const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
+          if (ndaTemplate?.fileContent) {
+            ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
+          }
+        } catch (ndaError) {
+          console.log("Error fetching NDA template:", ndaError);
+          // Continue without NDA template
         }
       }
 
-      // Fast image path conversion
+      // Parallel fetch for better performance with error handling
+      let userProfile = null;
+      let customSections = [];
+      
+      try {
+        [userProfile, customSections] = await Promise.all([
+          storage.getUser(cimDoc.userId),
+          storage.getCustomSections(cimDoc.id)
+        ]);
+        console.log("Custom sections found:", customSections.length);
+      } catch (fetchError) {
+        console.error("Error fetching related data:", fetchError);
+        // Continue with null/empty values rather than failing completely
+        try {
+          userProfile = await storage.getUser(cimDoc.userId);
+        } catch (userError) {
+          console.error("Error fetching user profile:", userError);
+        }
+        try {
+          customSections = await storage.getCustomSections(cimDoc.id);
+        } catch (sectionsError) {
+          console.error("Error fetching custom sections:", sectionsError);
+          customSections = [];
+        }
+      }
+      
+      console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
+      
+      // Create streamlined analysis that includes content sections but excludes heavy data
+      let streamlinedAnalysis: any = null;
+      if (cimDoc.analysis) {
+        try {
+          const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
+          
+          // Only include essential fields to reduce processing time
+          streamlinedAnalysis = {} as any;
+          
+          if (fullAnalysis.sections) {
+            streamlinedAnalysis.sections = fullAnalysis.sections;
+          }
+          
+          // Include key analysis sections if they exist and are small
+          const lightweightFields = ['businessOverview', 'executiveSummary', 'marketAnalysis', 'financialHighlights', 'investmentOpportunity'];
+          lightweightFields.forEach(field => {
+            if (fullAnalysis[field] && typeof fullAnalysis[field] === 'string' && fullAnalysis[field].length < 10000) {
+              streamlinedAnalysis[field] = fullAnalysis[field];
+            }
+          });
+          
+          console.log("Created streamlined analysis with", Object.keys(streamlinedAnalysis.sections || {}).length, "sections");
+        } catch (e) {
+          console.error("Error parsing analysis for share:", e);
+        }
+      }
+
+      // Convert image paths to absolute URLs for share links
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
         : `${req.protocol}://${req.get('host')}`;
       
-      const absoluteSelectedImages = cimDoc.selectedImages?.map(imagePath => {
-        if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-          return imagePath;
-        }
-        return `${baseUrl}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
-      }) || [];
+      const convertImagePaths = (images: string[] | null): string[] => {
+        if (!images) return [];
+        return images.map(imagePath => {
+          if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+            return imagePath; // Already absolute URL or base64 data URI
+          }
+          return `${baseUrl}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
+        });
+      };
       
+      const absoluteSelectedImages = convertImagePaths(cimDoc.selectedImages);
       const absoluteLogoUrl = cimDoc.logoUrl && !cimDoc.logoUrl.startsWith('http') && !cimDoc.logoUrl.startsWith('data:')
         ? `${baseUrl}${cimDoc.logoUrl.startsWith('/') ? cimDoc.logoUrl : '/' + cimDoc.logoUrl}`
         : cimDoc.logoUrl;
+      
+      console.log("Converted image paths:", { 
+        original: cimDoc.selectedImages, 
+        converted: absoluteSelectedImages,
+        baseUrl 
+      });
+
+      clearTimeout(timeout);
       res.json({
         cim: {
           id: cimDoc.id,
@@ -403,7 +553,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaApprovalStatus
       });
     } catch (error) {
-      console.error("Share route error:", error instanceof Error ? error.message : String(error));
+      clearTimeout(timeout);
+      console.error("=== SHARE ROUTE ERROR ===");
+      console.error("Error fetching share data:", error);
+      console.error("Error name:", error instanceof Error ? error.name : typeof error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
+      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Environment info:", {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
+        requestHeaders: req.headers,
+        requestParams: req.params,
+        requestUrl: req.url
+      });
+      
+      // Enhanced error response for debugging
       if (!res.headersSent) {
         res.status(500).json({ 
           error: "Failed to fetch shared document", 
@@ -576,8 +740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("- customSections:", JSON.stringify(customSections, null, 2));
       console.log("- coverImage (base64):", coverImageBase64 ? "converted" : "none");
       
-      const { generateOptimizedPDF } = await import('./pdf-performance-optimizer');
-      const pdfBuffer = await generateOptimizedPDF(
+      const pdfBuffer = await generatePDF(
         cimDoc.analysis,
         logoBase64,
         cimDoc.websiteUrl || undefined,
