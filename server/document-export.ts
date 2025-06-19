@@ -2216,7 +2216,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           console.log("Processing website logo URL:", logoUrl);
           
           let logoFound = false;
-          let imageBuffer: Buffer;
+          let imageBuffer: Buffer | undefined;
           
           // Check if it's a base64 data URL first
           if (logoUrl.startsWith('data:image/')) {
@@ -2640,7 +2640,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               
               try {
                 const base64Data = selectedImages[i].split(',')[1];
-                const imageBuffer = Buffer.from(base64Data, 'base64');
+                let imageBuffer = Buffer.from(base64Data, 'base64');
                 
                 // Calculate position in grid
                 const col = i % imagesPerRow;
@@ -2710,14 +2710,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                     
                     if (jpegDims || pngDims) {
                       const dims = jpegDims || pngDims;
-                      const aspectRatio = dims.width / dims.height;
+                      if (dims) {
+                        const aspectRatio = dims.width / dims.height;
                       
-                      if (aspectRatio > 1) {
-                        // Landscape image
-                        fallbackHeight = imageWidth / aspectRatio;
-                      } else {
-                        // Portrait image  
-                        fallbackWidth = imageHeight * aspectRatio;
+                        if (aspectRatio > 1) {
+                          // Landscape image
+                          fallbackHeight = imageWidth / aspectRatio;
+                        } else {
+                          // Portrait image  
+                          fallbackWidth = imageHeight * aspectRatio;
+                        }
                       }
                     }
                   } catch (dimError) {
@@ -2856,7 +2858,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           try {
             console.log("Processing profile photo:", userProfile.profilePhoto.substring(0, 50) + "...");
             
-            let imageBuffer: Buffer;
+            let imageBuffer: Buffer | undefined;
             let photoFound = false;
             
             // Check if it's a base64 data URL
@@ -2970,7 +2972,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           try {
             console.log("Processing business logo for contact section:", userProfile.businessLogo.substring(0, 50) + "...");
             
-            let imageBuffer: Buffer;
+            let imageBuffer: Buffer | undefined;
             let logoFound = false;
             
             // Check if it's a base64 data URL
