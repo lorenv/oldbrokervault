@@ -35,6 +35,7 @@ export default function DocumentsPage() {
     documentTitle?: string;
     shareToken?: string;
   }>({ open: false });
+  const [exportingDocId, setExportingDocId] = useState<number | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -109,6 +110,14 @@ export default function DocumentsPage() {
 
   // Handle PDF export
   const handleExport = async (docId: number, format: 'pdf' | 'word') => {
+    setExportingDocId(docId);
+    
+    // Show immediate loading toast
+    toast({
+      title: "Export Starting",
+      description: `Generating ${format.toUpperCase()} document...`
+    });
+    
     try {
       const response = await fetch(`/api/cim/export/${format}/${docId}`, {
         method: 'POST',
@@ -131,8 +140,8 @@ export default function DocumentsPage() {
       document.body.removeChild(a);
       
       toast({
-        title: "Export Started",
-        description: `Your CIM is being downloaded as a ${format.toUpperCase()}`
+        title: "Export Complete",
+        description: `Your CIM has been downloaded as a ${format.toUpperCase()}`
       });
     } catch (error) {
       toast({
@@ -140,6 +149,8 @@ export default function DocumentsPage() {
         description: `Failed to export ${format.toUpperCase()}. Please try again.`,
         variant: "destructive"
       });
+    } finally {
+      setExportingDocId(null);
     }
   };
 
@@ -302,9 +313,14 @@ export default function DocumentsPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={() => handleExport(doc.id, 'pdf')}
+                            disabled={exportingDocId === doc.id}
                           >
-                            <FileDown className="mr-2 h-4 w-4 text-red-600" />
-                            Export to PDF
+                            {exportingDocId === doc.id ? (
+                              <Loader2 className="mr-2 h-4 w-4 text-red-600 animate-spin" />
+                            ) : (
+                              <FileDown className="mr-2 h-4 w-4 text-red-600" />
+                            )}
+                            {exportingDocId === doc.id ? "Generating PDF..." : "Export to PDF"}
                           </DropdownMenuItem>
                         </>
                       )}
