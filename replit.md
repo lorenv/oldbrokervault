@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 19, 2025: Implemented PDF template styling for all pages after the first page in PDF exports - added professional header with "CONFIDENTIAL INFORMATION MEMORANDUM" text, footer with page numbers, subtle borders, and consistent styling applied to all new pages while preserving the original first page cover design
 - June 19, 2025: Enhanced dashboard visual design by simplifying borders and containers - reduced opacity of backgrounds from 90% to 80%, removed excessive border elements, softened shadows, and streamlined document card styling for cleaner appearance while preserving all functionality
 - June 19, 2025: Added personalized welcome message "Welcome back, {firstName}!" to dashboard that extracts the first word from user's full name field in account settings for better user experience
 - June 19, 2025: Improved database connection pool configuration with increased max connections (15), longer idle timeout (60s), and enhanced error handling to prevent connection termination warnings
