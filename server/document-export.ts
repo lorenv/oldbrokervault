@@ -50,11 +50,10 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
       return originalPdfBuffer;
     }
     
-    const backgroundPage = backgroundPages[0]; // Use first page of template
     console.log("Background template loaded with", backgroundPages.length, "pages");
     
     // Create a new PDF document for the final result
-    const finalDoc = pdfLib.PDFDocument.create();
+    const finalDoc = await pdfLib.PDFDocument.create();
     
     // Copy first page without background (title page)
     console.log("Copying first page without background...");
@@ -65,41 +64,50 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
     for (let i = 1; i < originalPages.length; i++) {
       console.log(`Processing page ${i + 1} with background template...`);
       
-      // Copy the background page to the final document
-      const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
-      const newPage = finalDoc.addPage(backgroundPageCopy);
-      
-      // Get the content from the original page
-      const [contentPage] = await finalDoc.copyPages(originalDoc, [i]);
-      
-      // Create content area with 1-inch margins (72 points = 1 inch in PDF)
-      const marginSize = 72; // 1 inch in points
-      const pageWidth = newPage.getWidth();
-      const pageHeight = newPage.getHeight();
-      const contentWidth = pageWidth - (2 * marginSize);
-      const contentHeight = pageHeight - (2 * marginSize);
-      
-      // Extract content from the original page and overlay it on the background
-      // This is a simplified approach - we'll overlay the entire content page
-      // with proper positioning within the margins
       try {
-        // Embed the content page as a form object
-        const contentForm = await finalDoc.embedPage(contentPage);
+        // Copy the background page to the final document
+        const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
+        const newPage = finalDoc.addPage(backgroundPageCopy);
+        
+        // Get the original content page
+        const originalContentPage = originalPages[i];
+        
+        // Create content area with 1-inch margins (72 points = 1 inch in PDF)
+        const marginSize = 72; // 1 inch in points
+        const pageWidth = newPage.getWidth();
+        const pageHeight = newPage.getHeight();
+        const contentWidth = pageWidth - (2 * marginSize);
+        const contentHeight = pageHeight - (2 * marginSize);
+        
+        // Embed the original content page as a form object
+        const contentForm = await finalDoc.embedPage(originalContentPage);
         
         // Draw the content on the background page within the margin boundaries
+        // Scale and position the content to fit within margins
+        const scaleX = contentWidth / originalContentPage.getWidth();
+        const scaleY = contentHeight / originalContentPage.getHeight();
+        const scale = Math.min(scaleX, scaleY); // Maintain aspect ratio
+        
+        const scaledWidth = originalContentPage.getWidth() * scale;
+        const scaledHeight = originalContentPage.getHeight() * scale;
+        
+        // Center the content within the margin area
+        const xOffset = marginSize + (contentWidth - scaledWidth) / 2;
+        const yOffset = marginSize + (contentHeight - scaledHeight) / 2;
+        
         newPage.drawPage(contentForm, {
-          x: marginSize,
-          y: marginSize,
-          width: contentWidth,
-          height: contentHeight
+          x: xOffset,
+          y: yOffset,
+          width: scaledWidth,
+          height: scaledHeight
         });
         
         console.log(`Successfully applied background to page ${i + 1}`);
       } catch (pageError) {
         console.error(`Error applying background to page ${i + 1}:`, pageError);
         // Fallback: just add the original page without background
-        finalDoc.removePage(finalDoc.getPageCount() - 1); // Remove the background page we just added
-        finalDoc.addPage(contentPage);
+        const [originalPage] = await finalDoc.copyPages(originalDoc, [i]);
+        finalDoc.addPage(originalPage);
       }
     }
     
