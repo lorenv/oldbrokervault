@@ -7,6 +7,7 @@ import { inArray } from "drizzle-orm";
 import { asc } from "drizzle-orm";
 import * as fs from 'fs';
 import * as path from 'path';
+import { withRetry } from './db-utils';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -597,8 +598,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
-    const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
-    return doc;
+    return await withRetry(async () => {
+      const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
+      return doc;
+    });
   }
 
   async getCim(id: number): Promise<CimDocument | undefined> {
@@ -823,11 +826,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
-    const [doc] = await db.select()
-      .from(cimDocuments)
-      .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
-      .limit(1);
-    return doc || undefined;
+    return await withRetry(async () => {
+      const [doc] = await db.select()
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
+        .limit(1);
+      return doc || undefined;
+    });
   }
 
   async incrementShareViewCount(id: number): Promise<void> {
