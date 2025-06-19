@@ -157,7 +157,7 @@ export function PdfTemplateSelector() {
                     <img 
                       src={`/template-thumbnails/${template.id}.png`}
                       alt={`${template.name} preview`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       onError={(e) => {
                         // Fallback if thumbnail fails to load
                         (e.target as HTMLImageElement).style.display = 'none';
