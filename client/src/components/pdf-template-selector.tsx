@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Eye, Check, FileImage } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Check, FileImage } from "lucide-react";
 
 interface PdfTemplate {
   id: string;
@@ -24,8 +23,7 @@ interface User {
 
 export function PdfTemplateSelector() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('classic');
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
-  const [previewTemplateId, setPreviewTemplateId] = useState<string>('');
+
   
   const queryClient = useQueryClient();
 
@@ -98,10 +96,7 @@ export function PdfTemplateSelector() {
     updateTemplateMutation.mutate(templateId);
   };
 
-  const handlePreview = (templateId: string) => {
-    setPreviewTemplateId(templateId);
-    setPreviewDialogOpen(true);
-  };
+
 
   if (templatesLoading) {
     return (
@@ -136,7 +131,7 @@ export function PdfTemplateSelector() {
               }`}
               onClick={() => handleTemplateSelect(template.id)}
             >
-              <div className="flex items-start justify-between mb-2">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">{template.name}</h3>
                   {selectedTemplate === template.id && (
@@ -146,27 +141,43 @@ export function PdfTemplateSelector() {
                     </Badge>
                   )}
                 </div>
-                {template.preview && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreview(template.id);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Preview
-                  </Button>
+              </div>
+              
+              {/* Template Preview Image */}
+              <div className="mb-3 flex justify-center">
+                {template.id === 'none' ? (
+                  <div className="w-32 h-40 border-2 border-dashed border-gray-300 rounded bg-white flex items-center justify-center">
+                    <div className="text-center text-gray-400">
+                      <FileImage className="h-8 w-8 mx-auto mb-1" />
+                      <span className="text-xs">No Background</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-32 h-40 border rounded shadow-sm overflow-hidden bg-white">
+                    <img 
+                      src={`/api/pdf-templates/${template.id}/thumbnail`}
+                      alt={`${template.name} preview`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback if thumbnail fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement!.innerHTML = `
+                          <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            <div class="text-center">
+                              <svg class="h-8 w-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                              </svg>
+                              <span class="text-xs">Template</span>
+                            </div>
+                          </div>
+                        `;
+                      }}
+                    />
+                  </div>
                 )}
               </div>
+              
               <p className="text-sm text-gray-600">{template.description}</p>
-              {template.id === 'none' && (
-                <div className="mt-2 flex items-center text-sm text-gray-500">
-                  <FileImage className="h-4 w-4 mr-1" />
-                  Clean pages without background
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -178,59 +189,7 @@ export function PdfTemplateSelector() {
         )}
       </CardContent>
 
-      {/* Preview Dialog */}
-      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>
-              Template Preview: {templates.find(t => t.id === previewTemplateId)?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center">
-            {previewTemplateId && previewTemplateId !== 'none' ? (
-              <div className="w-full space-y-4">
-                <div className="text-center">
-                  <Button
-                    onClick={() => window.open(`/api/pdf-templates/${previewTemplateId}/preview`, '_blank')}
-                    className="mb-4"
-                  >
-                    Open Full Preview in New Tab
-                  </Button>
-                </div>
-                <div className="w-full max-w-lg mx-auto">
-                  <object
-                    data={`/api/pdf-templates/${previewTemplateId}/preview`}
-                    type="application/pdf"
-                    className="w-full h-96 border rounded"
-                  >
-                    <div className="w-full h-96 border rounded bg-gray-50 flex items-center justify-center">
-                      <div className="text-center text-gray-500">
-                        <FileImage className="h-12 w-12 mx-auto mb-2" />
-                        <p className="text-lg font-medium">PDF Preview</p>
-                        <p className="text-sm mb-4">Click the button above to view the template</p>
-                        <Button
-                          variant="outline"
-                          onClick={() => window.open(`/api/pdf-templates/${previewTemplateId}/preview`, '_blank')}
-                        >
-                          Open Preview
-                        </Button>
-                      </div>
-                    </div>
-                  </object>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full max-w-lg h-96 border rounded bg-gray-50 flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <FileImage className="h-12 w-12 mx-auto mb-2" />
-                  <p className="text-lg font-medium">No Background Template</p>
-                  <p className="text-sm">Clean pages without any background design</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </Card>
   );
 }
