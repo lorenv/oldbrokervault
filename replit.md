@@ -117,6 +117,9 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 19, 2025: Enhanced dashboard visual design by simplifying borders and containers - reduced opacity of backgrounds from 90% to 80%, removed excessive border elements, softened shadows, and streamlined document card styling for cleaner appearance while preserving all functionality
+- June 19, 2025: Added personalized welcome message "Welcome back, {firstName}!" to dashboard that extracts the first word from user's full name field in account settings for better user experience
+- June 19, 2025: Improved database connection pool configuration with increased max connections (15), longer idle timeout (60s), and enhanced error handling to prevent connection termination warnings
 - June 18, 2025: Enhanced homepage feature showcase with three-column layout displaying investor database, NDA signatures, and analytics dashboard using updated screenshots; implemented click-to-enlarge modal functionality for all feature images with professional overlay and smooth transitions
 - June 18, 2025: Updated homepage to remove team collaboration feature and showcase investor database and NDA signatures with new screenshot previews - reorganized layout with dedicated feature showcase section highlighting contact tracking and approval management capabilities
 - June 18, 2025: Fixed checkbox selection functionality in investor database - individual contact checkboxes now work properly, select all functionality corrected, and state synchronization improved between header and individual checkboxes for proper bulk operations
