@@ -1902,8 +1902,11 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 
 export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
-    // Load PDF background template once at the beginning
-    const backgroundTemplate = await loadPdfBackgroundTemplate();
+    console.log("⚡ Starting optimized PDF generation with performance enhancements");
+    
+    // Skip background template loading for faster generation
+    const useBackgroundTemplate = process.env.FAST_PDF_MODE !== 'true';
+    const backgroundTemplate = useBackgroundTemplate ? await loadPdfBackgroundTemplate() : null;
     
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
