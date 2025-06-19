@@ -3230,8 +3230,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const { templateId } = req.params;
       
-      console.log(`=== THUMBNAIL REQUEST ===`);
-      console.log(`Template ID: ${templateId}`);
+
       
       if (templateId === 'none') {
         return res.status(404).json({ error: "No thumbnail available for 'No Background' option" });
