@@ -64,7 +64,7 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
-  const [financialsEnabled, setFinancialsEnabled] = useState(false);
+  const [financialsEnabled, setFinancialsEnabled] = useState(true);
   const [financialData, setFinancialData] = useState({
     askingPrice: '',
     revenue: '',
@@ -1037,45 +1037,37 @@ ${analysis.team.ownerResponsibilities}
               )}
             </div>
 
-            {/* Financial Information - Collapsible with default expanded */}
-            <Collapsible open={isFinancialsSectionOpen} onOpenChange={setIsFinancialsSectionOpen}>
-              <div className="space-y-4 p-4 border rounded-lg bg-background">
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center justify-between cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <h3 className="text-sm font-medium">Financial Information</h3>
-                        <p className="text-xs text-muted-foreground">
-                          Add key financial metrics to enhance the CIM
-                        </p>
-                      </div>
-                      {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="financials-enabled"
-                        checked={financialsEnabled}
-                        onCheckedChange={(checked) => {
-                          setFinancialsEnabled(checked);
-                          // When enabling financials for the first time, auto-check all three fields
-                          if (checked && !financialsEnabled) {
-                            setFinancialData(prev => ({
-                              ...prev,
-                              askingPriceIncluded: true,
-                              revenueIncluded: true,
-                              ebitdaIncluded: true
-                            }));
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()} // Prevent collapsible toggle when clicking switch
-                      />
-                      {isFinancialsSectionOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </div>
+            {/* Financial Information - Always visible with toggle enabled by default */}
+            <div className="space-y-4 p-4 border rounded-lg bg-background">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <h3 className="text-sm font-medium">Financial Information</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Add key financial metrics to enhance the CIM
+                    </p>
                   </div>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="mt-4">
-                  {financialsEnabled && (
+                  {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
+                </div>
+                <Switch
+                  id="financials-enabled"
+                  checked={financialsEnabled}
+                  onCheckedChange={(checked) => {
+                    setFinancialsEnabled(checked);
+                    // When enabling financials for the first time, auto-check all three fields
+                    if (checked && !financialsEnabled) {
+                      setFinancialData(prev => ({
+                        ...prev,
+                        askingPriceIncluded: true,
+                        revenueIncluded: true,
+                        ebitdaIncluded: true
+                      }));
+                    }
+                  }}
+                />
+              </div>
+              
+              {financialsEnabled && (
                 <div className="space-y-6">
                   <div className="grid md:grid-cols-3 gap-4">
                   {/* Asking Price */}
@@ -1203,9 +1195,7 @@ ${analysis.team.ownerResponsibilities}
                 </div>
                 </div>
               )}
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+            </div>
 
             {/* Analysis Directions - Cleaner, less busy interface */}
             <div className="space-y-4 p-4 border rounded-lg bg-background">
@@ -1369,7 +1359,7 @@ ${analysis.team.ownerResponsibilities}
               {/* Compact custom directions field */}
               <div className="space-y-2">
                 <Textarea
-                  className="min-h-[80px] text-xs resize-y"
+                  className="min-h-[160px] text-xs resize-y"
                   value={customDirections}
                   onChange={(e) => {
                     setCustomDirections(e.target.value);
