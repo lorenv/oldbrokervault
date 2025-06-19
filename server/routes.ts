@@ -3230,19 +3230,26 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const { templateId } = req.params;
       
+      console.log(`=== THUMBNAIL REQUEST ===`);
+      console.log(`Template ID: ${templateId}`);
+      
       if (templateId === 'none') {
         return res.status(404).json({ error: "No thumbnail available for 'No Background' option" });
       }
 
       // Serve actual PNG thumbnail files
       const thumbnailPath = path.resolve(process.cwd(), 'public', 'template-thumbnails', `${templateId}.png`);
+      console.log(`Thumbnail path: ${thumbnailPath}`);
+      console.log(`File exists: ${fsSync.existsSync(thumbnailPath)}`);
       
       if (fsSync.existsSync(thumbnailPath)) {
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 'public, max-age=86400');
         const thumbnailBuffer = fsSync.readFileSync(thumbnailPath);
+        console.log(`Serving PNG thumbnail, size: ${thumbnailBuffer.length} bytes`);
         res.send(thumbnailBuffer);
       } else {
+        console.log(`PNG not found, serving fallback SVG for ${templateId}`);
         // Fallback SVG for missing thumbnails
         const fallbackSvg = `
           <svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
