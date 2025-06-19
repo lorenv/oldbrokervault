@@ -355,37 +355,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get NDA template if required
-      let ndaUrl = null;
-      if (cimDoc.ndaProtected && cimDoc.ndaTemplateId) {
-        console.log("Getting NDA template:", cimDoc.ndaTemplateId);
-        try {
-          const ndaTemplate = await storage.getNdaTemplate(cimDoc.ndaTemplateId);
-          if (ndaTemplate?.fileContent) {
-            ndaUrl = `/api/nda-templates/${cimDoc.ndaTemplateId}/download`;
-          }
-        } catch (ndaError) {
-          console.log("Error fetching NDA template:", ndaError);
-          // Continue without NDA template
-        }
-      }
+      // Parallel data fetching for maximum performance
+      let [userProfile, customSections, ndaTemplate] = await Promise.all([
+        storage.getUser(cimDoc.userId),
+        storage.getCustomSections(cimDoc.id),
+        cimDoc.ndaProtected && cimDoc.ndaTemplateId 
+          ? storage.getNdaTemplate(cimDoc.ndaTemplateId).catch(() => null)
+          : Promise.resolve(null)
+      ]);
 
-      // Direct database access without timeout delays
-      let userProfile = null;
-      let customSections = [];
-      
-      try {
-        // Immediate parallel database access
-        [userProfile, customSections] = await Promise.all([
-          storage.getUser(cimDoc.userId),
-          storage.getCustomSections(cimDoc.id)
-        ]);
-        console.log("Custom sections found:", customSections.length);
-      } catch (fetchError) {
-        console.log("Using fallback data due to error");
-        userProfile = null;
-        customSections = [];
-      }
+      // Generate NDA URL if template exists
+      const ndaUrl = ndaTemplate?.fileContent 
+        ? `/api/nda-templates/${cimDoc.ndaTemplateId}/download`
+        : null;
+
+      console.log("Parallel data fetch completed - custom sections:", customSections.length);
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
       
@@ -484,10 +468,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
-      // Get user profile for contact information
-      const userProfile = await storage.getUser(cimDoc.userId);
+      // Parallel data fetching for optimal performance
+      const [userProfile, documentFinancialFiles, customSections] = await Promise.all([
+        storage.getUser(cimDoc.userId),
+        db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id)),
+        storage.getCustomSections(cimDoc.id)
+      ]);
       
-      // Get financial data if available
+      // Prepare financial data from cached document properties
       const financialData = {
         enabled: cimDoc.financialsEnabled || false,
         askingPrice: cimDoc.askingPrice,
@@ -498,20 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: cimDoc.ebitdaIncluded || false
       };
 
-      // Get financial files for the document
-      const documentFinancialFiles = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id));
-
-      console.log("Generating PDF with full context:", {
-        logoUrl: cimDoc.logoUrl,
-        selectedImages: cimDoc.selectedImages?.length || 0,
-        websiteUrl: cimDoc.websiteUrl,
-        hasUserProfile: !!userProfile,
-        financialData: financialData.enabled,
-        financialFilesCount: documentFinancialFiles?.length || 0
-      });
-
-      // Get custom sections for the shared document
-      const customSections = await storage.getCustomSections(cimDoc.id);
+      console.log("Using cached analysis data - no reprocessing needed for PDF export");
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
@@ -520,12 +495,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-      // Direct PDF generation with minimal processing - no heavy analysis
+      // Optimized PDF generation using cached data without reprocessing
       const pdfBuffer = await generatePDF(
-        cimDoc.analysis, // Pass analysis as-is without reprocessing
-        cimDoc.logoUrl, // Pass logo URL directly
+        cimDoc.analysis, // Use cached analysis - no regeneration
+        cimDoc.logoUrl, // Use cached logo URL  
         cimDoc.websiteUrl || undefined,
-        cimDoc.selectedImages || [], // Pass images directly
+        cimDoc.selectedImages || [], // Use cached images - no reprocessing
         userProfile,
         financialData,
         documentFinancialFiles,
