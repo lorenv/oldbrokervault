@@ -547,61 +547,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
-      // Ultra-fast image processing - minimal conversions for speed
-      const processImageForPdf = (imagePath: string): string | null => {
-        if (!imagePath) return null;
-        
-        // Return base64 images immediately
-        if (imagePath.startsWith('data:')) {
-          return imagePath;
-        }
-        
-        // Return URLs as-is for external handling
-        if (imagePath.startsWith('http')) {
-          return imagePath;
-        }
-        
-        // For local files, return path for direct PDF library handling
-        return imagePath;
-      };
 
-      // Process logo for PDF - fast path
-      const logoForPdf = cimDoc.logoUrl ? processImageForPdf(cimDoc.logoUrl) : null;
 
-      // Fast image processing - minimal overhead
-      const selectedImagesForPdf = cimDoc.selectedImages?.map(processImageForPdf).filter(Boolean) || [];
-
-      // Convert cover image to base64
-      let coverImageBase64: string | undefined = undefined;
-      if (cimDoc.coverImageUrl) {
-        console.log("Converting cover image to base64 for PDF:", cimDoc.coverImageUrl);
-        coverImageBase64 = await convertImageToBase64(cimDoc.coverImageUrl) || undefined;
-        console.log("Cover image conversion result:", coverImageBase64 ? "success" : "failed");
-      }
-
-      console.log("About to call generatePDF function...");
-      console.log("Parameters being passed to generatePDF:");
-      console.log("- analysis:", !!cimDoc.analysis ? "present" : "missing");
-      console.log("- logoUrl (base64):", logoBase64 ? "converted" : "none");
-      console.log("- websiteUrl:", cimDoc.websiteUrl);
-      console.log("- selectedImages (base64):", selectedImagesBase64?.length || 0);
-      console.log("- userProfile:", JSON.stringify(userProfile, null, 2));
-      console.log("- financialData:", JSON.stringify(financialData, null, 2));
-      console.log("- customSections:", JSON.stringify(customSections, null, 2));
-      console.log("- coverImage (base64):", coverImageBase64 ? "converted" : "none");
-      
+      // Direct PDF generation with minimal processing - no heavy analysis
       const pdfBuffer = await generatePDF(
-        cimDoc.analysis,
-        logoBase64,
+        cimDoc.analysis, // Pass analysis as-is without reprocessing
+        cimDoc.logoUrl, // Pass logo URL directly
         cimDoc.websiteUrl || undefined,
-        selectedImagesBase64,
+        cimDoc.selectedImages || [], // Pass images directly
         userProfile,
         financialData,
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
         customSections,
-        coverImageBase64,
+        cimDoc.coverImageUrl,
         cimDoc.coverImagePosition,
         cimDoc.id
       );
