@@ -187,12 +187,46 @@ export function PdfTemplateSelector() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex justify-center">
-            {previewTemplateId && (
-              <iframe
-                src={`/api/pdf-templates/${previewTemplateId}/preview`}
-                className="w-full h-96 border rounded"
-                title="Template Preview"
-              />
+            {previewTemplateId && previewTemplateId !== 'none' ? (
+              <div className="w-full space-y-4">
+                <div className="text-center">
+                  <Button
+                    onClick={() => window.open(`/api/pdf-templates/${previewTemplateId}/preview`, '_blank')}
+                    className="mb-4"
+                  >
+                    Open Full Preview in New Tab
+                  </Button>
+                </div>
+                <div className="w-full max-w-lg mx-auto">
+                  <object
+                    data={`/api/pdf-templates/${previewTemplateId}/preview`}
+                    type="application/pdf"
+                    className="w-full h-96 border rounded"
+                  >
+                    <div className="w-full h-96 border rounded bg-gray-50 flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <FileImage className="h-12 w-12 mx-auto mb-2" />
+                        <p className="text-lg font-medium">PDF Preview</p>
+                        <p className="text-sm mb-4">Click the button above to view the template</p>
+                        <Button
+                          variant="outline"
+                          onClick={() => window.open(`/api/pdf-templates/${previewTemplateId}/preview`, '_blank')}
+                        >
+                          Open Preview
+                        </Button>
+                      </div>
+                    </div>
+                  </object>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-lg h-96 border rounded bg-gray-50 flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <FileImage className="h-12 w-12 mx-auto mb-2" />
+                  <p className="text-lg font-medium">No Background Template</p>
+                  <p className="text-sm">Clean pages without any background design</p>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
