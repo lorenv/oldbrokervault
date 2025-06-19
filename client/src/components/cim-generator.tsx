@@ -946,9 +946,6 @@ ${analysis.team.ownerResponsibilities}
                     {form.formState.errors.websiteUrl.message as string}
                   </p>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  Add a business website URL to enhance the CIM with website content
-                </div>
               </div>
               
               {/* Image extraction and selection section */}
@@ -1369,7 +1366,7 @@ ${analysis.team.ownerResponsibilities}
               {/* Compact custom directions field */}
               <div className="space-y-2">
                 <Textarea
-                  className="min-h-[80px] text-xs resize-y"
+                  className="min-h-[120px] text-xs resize-y"
                   value={customDirections}
                   onChange={(e) => {
                     setCustomDirections(e.target.value);
