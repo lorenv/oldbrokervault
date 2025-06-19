@@ -197,8 +197,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return await withRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    });
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -884,10 +886,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomSections(cimDocumentId: number): Promise<any[]> {
-    return await db.select()
-      .from(customSections)
-      .where(eq(customSections.cimDocumentId, cimDocumentId))
-      .orderBy(asc(customSections.position));
+    return await withRetry(async () => {
+      return await db.select()
+        .from(customSections)
+        .where(eq(customSections.cimDocumentId, cimDocumentId))
+        .orderBy(asc(customSections.position));
+    });
   }
 
   async updateCustomSection(id: number, updates: { title?: string; content?: string }): Promise<void> {
