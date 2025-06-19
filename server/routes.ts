@@ -370,56 +370,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Streamlined data fetch with timeout protection
+      // Direct database access without timeout delays
       let userProfile = null;
       let customSections = [];
       
       try {
-        // Fast parallel fetch with aggressive timeout
-        const fetchPromise = Promise.all([
+        // Immediate parallel database access
+        [userProfile, customSections] = await Promise.all([
           storage.getUser(cimDoc.userId),
           storage.getCustomSections(cimDoc.id)
         ]);
-        
-        // 2-second timeout to prevent delays
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Fetch timeout')), 2000)
-        );
-        
-        [userProfile, customSections] = await Promise.race([fetchPromise, timeoutPromise]) as any;
         console.log("Custom sections found:", customSections.length);
       } catch (fetchError) {
-        console.log("Using fallback data due to fetch timeout/error");
-        // Use empty values to prevent delays
+        console.log("Using fallback data due to error");
         userProfile = null;
         customSections = [];
       }
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
       
-      // Ultra-lightweight analysis for fast loading - only essential structure
-      let streamlinedAnalysis: any = null;
-      if (cimDoc.analysis) {
-        try {
-          const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
-          
-          // Minimal structure for immediate loading
-          streamlinedAnalysis = {
-            sections: fullAnalysis.sections || {}
-          };
-          
-          // Only add small, essential fields (< 1000 chars each)
-          ['businessOverview', 'executiveSummary'].forEach(field => {
-            if (fullAnalysis[field] && typeof fullAnalysis[field] === 'string' && fullAnalysis[field].length < 1000) {
-              streamlinedAnalysis[field] = fullAnalysis[field];
-            }
-          });
-          
-        } catch (e) {
-          console.error("Error parsing analysis:", e);
-          streamlinedAnalysis = { sections: {} };
-        }
-      }
+      // Instant analysis delivery - no processing delays
+      const streamlinedAnalysis = cimDoc.analysis || { sections: {} };
 
       // Fast image path conversion - minimal processing
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
