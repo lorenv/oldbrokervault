@@ -90,16 +90,6 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         const contentWidth = pageWidth - (2 * marginSize);
         const contentHeight = pageHeight - (2 * marginSize);
         
-        // Add a test border to verify the background is working
-        newPage.drawRectangle({
-          x: 10,
-          y: 10,
-          width: pageWidth - 20,
-          height: pageHeight - 20,
-          borderColor: pdfLib.rgb(1, 0, 0), // Red border for testing
-          borderWidth: 2
-        });
-        
         // Create a semi-transparent white background rectangle for the content area
         newPage.drawRectangle({
           x: marginSize,
