@@ -110,9 +110,12 @@ export default function DocumentsPage() {
   // Handle PDF export
   const handleExport = async (docId: number, format: 'pdf' | 'word') => {
     try {
-      const response = await fetch(`/api/cim/${docId}/export/${format}`, {
-        method: 'GET',
-        credentials: 'include'
+      const response = await fetch(`/api/cim/export/${format}/${docId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (!response.ok) throw new Error(`${format.toUpperCase()} export failed`);

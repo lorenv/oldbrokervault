@@ -83,8 +83,8 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         // Get the original content page
         const originalContentPage = originalPages[i];
         
-        // Create content area with 1-inch margins (72 points = 1 inch in PDF)
-        const marginSize = 72; // 1 inch in points
+        // Create content area with 0.5-inch margins (36 points = 0.5 inch in PDF)
+        const marginSize = 36; // 0.5 inch in points
         const pageWidth = newPage.getWidth();
         const pageHeight = newPage.getHeight();
         const contentWidth = pageWidth - (2 * marginSize);
