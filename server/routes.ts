@@ -3223,6 +3223,84 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // PDF template thumbnail endpoint
+  app.get("/api/pdf-templates/:templateId/thumbnail", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { templateId } = req.params;
+      
+      if (templateId === 'none') {
+        return res.status(404).json({ error: "No thumbnail available for 'No Background' option" });
+      }
+
+      // Generate a simple SVG thumbnail for each template
+      let thumbnailSvg = '';
+      
+      switch (templateId) {
+        case 'classic':
+          thumbnailSvg = `
+            <svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+              <rect width="128" height="160" fill="#f8f9fa" stroke="#e9ecef" stroke-width="2" rx="4"/>
+              <rect x="8" y="8" width="112" height="144" fill="white" stroke="#d1d5db" stroke-width="1" rx="2"/>
+              <rect x="12" y="12" width="104" height="12" fill="#e5e7eb" rx="2"/>
+              <rect x="12" y="28" width="80" height="6" fill="#f3f4f6" rx="1"/>
+              <rect x="12" y="38" width="96" height="6" fill="#f3f4f6" rx="1"/>
+              <rect x="12" y="48" width="88" height="6" fill="#f3f4f6" rx="1"/>
+              <text x="64" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Classic</text>
+            </svg>
+          `;
+          break;
+        case 'professional-blue':
+          thumbnailSvg = `
+            <svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+              <rect width="128" height="160" fill="#eff6ff" stroke="#e1e7fd" stroke-width="2" rx="4"/>
+              <rect x="8" y="8" width="112" height="144" fill="white" stroke="#3b82f6" stroke-width="1" rx="2"/>
+              <rect x="12" y="12" width="104" height="12" fill="#3b82f6" rx="2"/>
+              <rect x="12" y="28" width="80" height="6" fill="#dbeafe" rx="1"/>
+              <rect x="12" y="38" width="96" height="6" fill="#dbeafe" rx="1"/>
+              <rect x="12" y="48" width="88" height="6" fill="#dbeafe" rx="1"/>
+              <text x="64" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#1e40af">Professional</text>
+            </svg>
+          `;
+          break;
+        case 'modern-green':
+          thumbnailSvg = `
+            <svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#ecfdf5;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#d1fae5;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <rect width="128" height="160" fill="url(#greenGradient)" stroke="#a7f3d0" stroke-width="2" rx="4"/>
+              <rect x="8" y="8" width="112" height="144" fill="white" stroke="#10b981" stroke-width="1" rx="2"/>
+              <rect x="12" y="12" width="104" height="12" fill="#10b981" rx="2"/>
+              <rect x="12" y="28" width="80" height="6" fill="#dcfce7" rx="1"/>
+              <rect x="12" y="38" width="96" height="6" fill="#dcfce7" rx="1"/>
+              <rect x="12" y="48" width="88" height="6" fill="#dcfce7" rx="1"/>
+              <text x="64" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#047857">Modern</text>
+            </svg>
+          `;
+          break;
+        default:
+          thumbnailSvg = `
+            <svg width="128" height="160" viewBox="0 0 128 160" xmlns="http://www.w3.org/2000/svg">
+              <rect width="128" height="160" fill="#f8f9fa" stroke="#e9ecef" stroke-width="2" rx="4"/>
+              <text x="64" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6c757d">Template</text>
+            </svg>
+          `;
+      }
+
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(thumbnailSvg);
+    } catch (error) {
+      console.error("Error serving template thumbnail:", error);
+      res.status(500).json({ error: "Failed to serve template thumbnail" });
+    }
+  });
+
   app.put("/api/user/pdf-template", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
