@@ -1980,9 +1980,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     let currentPageNumber = 1;
     
     doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => {
-      resolve(Buffer.concat(buffers));
-    });
     doc.on('error', reject);
 
     try {
@@ -3038,32 +3035,32 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       }
 
       doc.end();
-      
-      // Wait for PDFKit to finish generating the PDF
-      doc.on('end', async () => {
-        try {
-          const originalPdfBuffer = Buffer.concat(buffers);
-          
-          // If we have a background template, apply it to pages after the first page
-          if (backgroundTemplate) {
-            console.log("Applying PDF background template to pages after first page...");
-            const finalPdfBuffer = await applyBackgroundToPages(originalPdfBuffer, backgroundTemplate);
-            console.log("PDF background template applied successfully");
-            resolve(finalPdfBuffer);
-          } else {
-            console.log("No background template available, returning original PDF");
-            resolve(originalPdfBuffer);
-          }
-        } catch (error) {
-          console.error("Error applying PDF background template:", error);
-          // Fallback to original PDF if background application fails
-          resolve(Buffer.concat(buffers));
-        }
-      });
-      
     } catch (error) {
       reject(error);
     }
+    
+    // Wait for PDFKit to finish generating the PDF
+    doc.on('end', async () => {
+      try {
+        const originalPdfBuffer = Buffer.concat(buffers);
+        console.log("PDFKit generation completed, original PDF size:", originalPdfBuffer.length);
+        
+        // If we have a background template, apply it to pages after the first page
+        if (backgroundTemplate) {
+          console.log("Applying PDF background template to pages after first page...");
+          const finalPdfBuffer = await applyBackgroundToPages(originalPdfBuffer, backgroundTemplate);
+          console.log("PDF background template applied successfully, final PDF size:", finalPdfBuffer.length);
+          resolve(finalPdfBuffer);
+        } else {
+          console.log("No background template available, returning original PDF");
+          resolve(originalPdfBuffer);
+        }
+      } catch (error) {
+        console.error("Error applying PDF background template:", error);
+        // Fallback to original PDF if background application fails
+        resolve(Buffer.concat(buffers));
+      }
+    });
   });
 }
 
