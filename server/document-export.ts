@@ -60,19 +60,20 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
     const [firstPage] = await finalDoc.copyPages(originalDoc, [0]);
     finalDoc.addPage(firstPage);
     
-    // Process remaining pages with background template
+    // MAJOR OPTIMIZATION: Pre-embed background template once for all pages
+    console.log("Pre-embedding background template for maximum performance...");
+    const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
+    const backgroundForm = await finalDoc.embedPage(backgroundPageCopy);
+    
+    // Process remaining pages with optimized background template
+    console.log(`Processing ${originalPages.length - 1} pages with pre-embedded background...`);
+    
     for (let i = 1; i < originalPages.length; i++) {
-      console.log(`Processing page ${i + 1} with background template...`);
-      
       try {
-        // Start with a blank page and build it step by step
-        const newPage = finalDoc.addPage([612, 792]); // Standard letter size
+        // Create new page with standard letter size
+        const newPage = finalDoc.addPage([612, 792]);
         
-        // First, draw the background template
-        const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
-        const backgroundForm = await finalDoc.embedPage(backgroundPageCopy);
-        
-        // Draw the background template at full size
+        // Draw pre-embedded background template (MUCH faster than copying each time)
         newPage.drawPage(backgroundForm, {
           x: 0,
           y: 0,
@@ -83,39 +84,39 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         // Get the original content page
         const originalContentPage = originalPages[i];
         
-        // Create content area with 0.5-inch margins (36 points = 0.5 inch in PDF)
-        const marginSize = 36; // 0.5 inch in points
+        // Optimized content area with 0.5-inch margins
+        const marginSize = 36;
         const pageWidth = newPage.getWidth();
         const pageHeight = newPage.getHeight();
         const contentWidth = pageWidth - (2 * marginSize);
         const contentHeight = pageHeight - (2 * marginSize);
         
-        // Create a semi-transparent white background rectangle for the content area
+        // Draw semi-transparent content background
         newPage.drawRectangle({
           x: marginSize,
           y: marginSize,
           width: contentWidth,
           height: contentHeight,
-          color: pdfLib.rgb(1, 1, 1), // White background
-          opacity: 0.8 // More transparent to show background
+          color: pdfLib.rgb(1, 1, 1),
+          opacity: 0.8
         });
         
-        // Embed the original content page as a form object
+        // Embed content page efficiently
         const contentForm = await finalDoc.embedPage(originalContentPage);
         
-        // Scale the content to fit within the margins
+        // Scale content to fit within margins
         const scaleX = contentWidth / originalContentPage.getWidth();
         const scaleY = contentHeight / originalContentPage.getHeight();
-        const scale = Math.min(scaleX, scaleY, 1.0); // Don't exceed original size
+        const scale = Math.min(scaleX, scaleY, 1.0);
         
         const scaledWidth = originalContentPage.getWidth() * scale;
         const scaledHeight = originalContentPage.getHeight() * scale;
         
-        // Center the content within the margin area
+        // Center content within margins
         const xOffset = marginSize + (contentWidth - scaledWidth) / 2;
         const yOffset = marginSize + (contentHeight - scaledHeight) / 2;
         
-        // Draw the content over the background
+        // Draw optimized content
         newPage.drawPage(contentForm, {
           x: xOffset,
           y: yOffset,
@@ -123,10 +124,13 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
           height: scaledHeight
         });
         
-        console.log(`Successfully applied background to page ${i + 1} with visible background template`);
+        if (i % 5 === 0) {
+          console.log(`Processed ${i} of ${originalPages.length - 1} pages with background...`);
+        }
+        
       } catch (pageError) {
-        console.error(`Error applying background to page ${i + 1}:`, pageError);
-        // Fallback: just add the original page without background
+        console.error(`Error processing page ${i + 1}:`, pageError);
+        // Fallback: add original page without background
         const [originalPage] = await finalDoc.copyPages(originalDoc, [i]);
         finalDoc.addPage(originalPage);
       }
@@ -2203,10 +2207,23 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           // Check if it's a base64 data URL first
           if (logoUrl.startsWith('data:image/')) {
-            console.log("Website logo is base64 data URL, converting to buffer");
+            console.log("Processing base64 logo with optimization");
             const base64Data = logoUrl.split(',')[1];
-            imageBuffer = Buffer.from(base64Data, 'base64');
-            logoFound = true;
+            // Optimize base64 processing with memory-efficient conversion
+            const rawBuffer = Buffer.from(base64Data, 'base64');
+            
+            // Optimize image for PDF to reduce processing time
+            try {
+              imageBuffer = await sharp(rawBuffer)
+                .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 85 })
+                .toBuffer();
+              logoFound = true;
+            } catch (sharpError) {
+              console.log("Sharp optimization failed, using original buffer");
+              imageBuffer = rawBuffer;
+              logoFound = true;
+            }
           } else {
             // Try to resolve as file path
             const logoPath = resolveImagePath(logoUrl, documentId);
@@ -2636,9 +2653,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 
                 // Use direct buffer method with width/height specification
                 try {
-                  // Get image dimensions first to ensure proper scaling
+                  // Optimize image processing for faster PDF generation
                   const sharp = require('sharp');
-                  const metadata = await sharp(imageBuffer).metadata();
+                  
+                  // Pre-process image for optimal PDF performance
+                  const optimizedBuffer = await sharp(imageBuffer)
+                    .resize(imageWidth * 2, imageHeight * 2, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 80 })
+                    .toBuffer();
+                  
+                  const metadata = await sharp(optimizedBuffer).metadata();
+                  imageBuffer = optimizedBuffer; // Use optimized buffer
                   
                   // Calculate aspect ratio and ensure image fits
                   const aspectRatio = metadata.width / metadata.height;
@@ -3040,9 +3065,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         // If we have a background template, apply it to pages after the first page
         if (backgroundTemplate) {
-          console.log("Applying PDF background template to pages after first page...");
+          console.log("Applying optimized PDF background template...");
+          const startTime = Date.now();
           const finalPdfBuffer = await applyBackgroundToPages(originalPdfBuffer, backgroundTemplate);
-          console.log("PDF background template applied successfully, final PDF size:", finalPdfBuffer.length);
+          const processingTime = Date.now() - startTime;
+          console.log(`Background template applied in ${processingTime}ms, final PDF size:`, finalPdfBuffer.length);
           resolve(finalPdfBuffer);
         } else {
           console.log("No background template available, returning original PDF");
