@@ -14,36 +14,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool for fast authentication and session management
+// Optimize connection pool for fast authentication
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 15, // Increased for session store and concurrent requests
-  min: 3, // More minimum connections for faster access
-  idleTimeoutMillis: 60000, // Keep connections alive longer to prevent termination
-  connectionTimeoutMillis: 10000, // Increased timeout for better reliability
-  allowExitOnIdle: false, // Prevent pool from closing on idle
+  max: 10, // Increased for better concurrency
+  min: 2, // More minimum connections for faster access
+  idleTimeoutMillis: 30000, // Increased to keep connections alive longer
+  connectionTimeoutMillis: 5000, // Reduced for faster failure detection
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners
-pool.setMaxListeners(200);
+pool.setMaxListeners(150);
 
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
-  // Only log actual errors, not connection recovery messages
-  if (!err.message.includes('Connection terminated unexpectedly')) {
-    console.error('Database pool error:', err);
-  }
-  // Graceful recovery - don't exit process
-});
-
-// Handle connection events gracefully
-pool.on('connect', (client) => {
-  // Set connection-level error handling
-  client.on('error', (err) => {
-    if (!err.message.includes('Connection terminated unexpectedly')) {
-      console.warn('Client connection error (recoverable):', err.message);
-    }
-  });
+  console.error('Database pool error:', err);
+  // Don't exit process on pool errors in production
 });
 
 // Reduce connection logging noise in development

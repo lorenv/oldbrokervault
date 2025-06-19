@@ -69,8 +69,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   // Initialize share URL on component mount
   useEffect(() => {
     if (shareSettings.shareEnabled && shareSettings.shareSlug) {
-      // Always use the current origin for the share URL to ensure it works in all environments
-      const baseUrl = window.location.origin;
+      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
       const url = `${baseUrl}/share/${shareSettings.shareSlug}`;
       setShareUrl(url);
     } else {

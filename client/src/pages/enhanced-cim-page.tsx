@@ -44,7 +44,7 @@ export default function EnhancedCimPage() {
       });
       return;
     }
-    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${cimDocument.shareSlug}`;
     await navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Share Link Copied",
@@ -61,7 +61,7 @@ export default function EnhancedCimPage() {
       });
       return;
     }
-    const shareUrl = `${window.location.origin}/share/${cimDocument.shareSlug}`;
+    const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${cimDocument.shareSlug}`;
     window.open(shareUrl, '_blank');
   };
 

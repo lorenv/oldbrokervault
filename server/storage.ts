@@ -16,44 +16,19 @@ let sessionStoreInstance: session.Store | null = null;
 // Initialize session store with proper configuration
 function initializeSessionStore() {
   if (!sessionStoreInstance) {
-    try {
-      sessionStoreInstance = new PostgresSessionStore({
-        pool,
-        tableName: 'session',
-        createTableIfMissing: true,
-        ttl: 24 * 60 * 60,
-        disableTouch: true, // Reduce database writes
-        schemaName: 'public',
-        pruneSessionInterval: 3600,
-        errorLog: (error: Error) => {
-          // Only log actual errors, not connection warnings
-          if (error.message.includes('Connection terminated') || error.message.includes('ECONNRESET')) {
-            console.warn('Session store connection warning (recoverable):', error.message);
-          } else {
-            console.error('Session store error:', error);
-          }
-        },
-      });
-      
-      // Set max listeners to handle multiple concurrent sessions
-      sessionStoreInstance.setMaxListeners(200);
-      
-      // Handle session store errors gracefully
-      sessionStoreInstance.on('error', (error: Error) => {
-        console.warn('Session store recovered from error:', error.message);
-      });
-      
-    } catch (error) {
-      console.error('Failed to initialize session store:', error);
-      // Fallback to memory store for development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Using memory store as fallback for development');
-        const MemoryStore = session.MemoryStore;
-        sessionStoreInstance = new MemoryStore();
-      } else {
-        throw error;
-      }
-    }
+    sessionStoreInstance = new PostgresSessionStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+      ttl: 24 * 60 * 60,
+      disableTouch: false,
+      schemaName: 'public',
+      pruneSessionInterval: 3600,
+      errorLog: () => {}, // Suppress session store errors to reduce noise
+    });
+    
+    // Set max listeners to handle multiple concurrent sessions
+    sessionStoreInstance.setMaxListeners(150);
   }
   return sessionStoreInstance;
 }
