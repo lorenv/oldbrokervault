@@ -155,14 +155,10 @@ export function PdfTemplateSelector() {
                 ) : (
                   <div className="w-32 h-40 border rounded shadow-sm overflow-hidden bg-white">
                     <img 
-                      src={`/api/pdf-templates/${template.id}/thumbnail`}
+                      src={`/template-thumbnails/${template.id}.png`}
                       alt={`${template.name} preview`}
                       className="w-full h-full object-cover"
-                      onLoad={() => {
-                        console.log(`Successfully loaded thumbnail for ${template.id}`);
-                      }}
                       onError={(e) => {
-                        console.error(`Failed to load thumbnail for ${template.id}:`, e);
                         // Fallback if thumbnail fails to load
                         (e.target as HTMLImageElement).style.display = 'none';
                         (e.target as HTMLImageElement).parentElement!.innerHTML = `
