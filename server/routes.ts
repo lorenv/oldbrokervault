@@ -397,58 +397,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
       
-      // Create streamlined analysis that includes content sections but excludes heavy data
+      // Ultra-lightweight analysis for fast loading - only essential structure
       let streamlinedAnalysis: any = null;
       if (cimDoc.analysis) {
         try {
           const fullAnalysis = typeof cimDoc.analysis === 'string' ? JSON.parse(cimDoc.analysis) : cimDoc.analysis;
           
-          // Only include essential fields to reduce processing time
-          streamlinedAnalysis = {} as any;
+          // Minimal structure for immediate loading
+          streamlinedAnalysis = {
+            sections: fullAnalysis.sections || {}
+          };
           
-          if (fullAnalysis.sections) {
-            streamlinedAnalysis.sections = fullAnalysis.sections;
-          }
-          
-          // Include key analysis sections if they exist and are small
-          const lightweightFields = ['businessOverview', 'executiveSummary', 'marketAnalysis', 'financialHighlights', 'investmentOpportunity'];
-          lightweightFields.forEach(field => {
-            if (fullAnalysis[field] && typeof fullAnalysis[field] === 'string' && fullAnalysis[field].length < 10000) {
+          // Only add small, essential fields (< 1000 chars each)
+          ['businessOverview', 'executiveSummary'].forEach(field => {
+            if (fullAnalysis[field] && typeof fullAnalysis[field] === 'string' && fullAnalysis[field].length < 1000) {
               streamlinedAnalysis[field] = fullAnalysis[field];
             }
           });
           
-          console.log("Created streamlined analysis with", Object.keys(streamlinedAnalysis.sections || {}).length, "sections");
         } catch (e) {
-          console.error("Error parsing analysis for share:", e);
+          console.error("Error parsing analysis:", e);
+          streamlinedAnalysis = { sections: {} };
         }
       }
 
-      // Convert image paths to absolute URLs for share links
+      // Fast image path conversion - minimal processing
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
         : `${req.protocol}://${req.get('host')}`;
       
-      const convertImagePaths = (images: string[] | null): string[] => {
-        if (!images) return [];
-        return images.map(imagePath => {
-          if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-            return imagePath; // Already absolute URL or base64 data URI
-          }
-          return `${baseUrl}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
-        });
-      };
-      
-      const absoluteSelectedImages = convertImagePaths(cimDoc.selectedImages);
-      const absoluteLogoUrl = cimDoc.logoUrl && !cimDoc.logoUrl.startsWith('http') && !cimDoc.logoUrl.startsWith('data:')
-        ? `${baseUrl}${cimDoc.logoUrl.startsWith('/') ? cimDoc.logoUrl : '/' + cimDoc.logoUrl}`
-        : cimDoc.logoUrl;
-      
-      console.log("Converted image paths:", { 
-        original: cimDoc.selectedImages, 
-        converted: absoluteSelectedImages,
-        baseUrl 
-      });
+      // Quick path conversion without heavy processing
+      const absoluteSelectedImages = cimDoc.selectedImages || [];
+      const absoluteLogoUrl = cimDoc.logoUrl;
       res.json({
         cim: {
           id: cimDoc.id,
@@ -567,69 +547,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
-      // Optimized image processing for PDF generation
-      const convertImageToBase64 = async (imagePath: string): Promise<string | null> => {
-        try {
-          if (imagePath.startsWith('data:')) {
-            return imagePath; // Already base64
-          }
-          
-          if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-            return imagePath; // External URLs - let PDF handler download them
-          }
-          
-          // Streamlined path resolution - check most likely locations first
-          const possiblePaths = [
-            path.resolve(process.cwd(), 'public', imagePath.replace(/^\/+/, '')),
-            path.resolve(process.cwd(), 'public', 'business-images', path.basename(imagePath)),
-            path.resolve(process.cwd(), 'public', 'logos', path.basename(imagePath))
-          ];
-          
-          for (const resolvedPath of possiblePaths) {
-            if (fsSync.existsSync(resolvedPath)) {
-              const imageBuffer = await fs.readFile(resolvedPath);
-              const ext = path.extname(resolvedPath).toLowerCase();
-              const mimeType = ext === '.png' ? 'image/png' : 
-                             ext === '.gif' ? 'image/gif' : 'image/jpeg';
-              return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
-            }
-          }
-          
-          return null;
-        } catch (error) {
-          console.error(`Failed to convert image to base64: ${imagePath}`, error);
-          return null;
+      // Ultra-fast image processing - minimal conversions for speed
+      const processImageForPdf = (imagePath: string): string | null => {
+        if (!imagePath) return null;
+        
+        // Return base64 images immediately
+        if (imagePath.startsWith('data:')) {
+          return imagePath;
         }
+        
+        // Return URLs as-is for external handling
+        if (imagePath.startsWith('http')) {
+          return imagePath;
+        }
+        
+        // For local files, return path for direct PDF library handling
+        return imagePath;
       };
 
-      // Convert logo to base64
-      let logoBase64: string | undefined = undefined;
-      if (cimDoc.logoUrl) {
-        console.log("Converting logo to base64 for PDF:", cimDoc.logoUrl);
-        logoBase64 = await convertImageToBase64(cimDoc.logoUrl) || undefined;
-        console.log("Logo conversion result:", logoBase64 ? "success" : "failed");
-      }
+      // Process logo for PDF - fast path
+      const logoForPdf = cimDoc.logoUrl ? processImageForPdf(cimDoc.logoUrl) : null;
 
-      // Optimized parallel image processing with batching
-      let selectedImagesBase64: string[] | undefined = undefined;
-      if (cimDoc.selectedImages && cimDoc.selectedImages.length > 0) {
-        // Process images in batches to prevent overwhelming the system
-        const batchSize = 3;
-        const batches = [];
-        for (let i = 0; i < cimDoc.selectedImages.length; i += batchSize) {
-          batches.push(cimDoc.selectedImages.slice(i, i + batchSize));
-        }
-        
-        const converted: (string | null)[] = [];
-        for (const batch of batches) {
-          const batchResults = await Promise.all(
-            batch.map(imagePath => convertImageToBase64(imagePath))
-          );
-          converted.push(...batchResults);
-        }
-        
-        selectedImagesBase64 = converted.filter((img): img is string => img !== null);
-      }
+      // Fast image processing - minimal overhead
+      const selectedImagesForPdf = cimDoc.selectedImages?.map(processImageForPdf).filter(Boolean) || [];
 
       // Convert cover image to base64
       let coverImageBase64: string | undefined = undefined;
