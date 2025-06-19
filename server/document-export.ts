@@ -1143,10 +1143,9 @@ function applyPageTemplate(doc: any, pageNumber: number) {
   const pageHeight = doc.page.height;
   const margin = 72; // 1 inch margin
   
-  // Save current state
+  // Save current state safely
   const currentY = doc.y;
-  const currentFont = doc._font;
-  const currentFontSize = doc._fontSize;
+  const currentFontSize = doc._fontSize || 12;
   const currentColor = doc._fillColor;
   
   // Add subtle header border/line
@@ -1192,9 +1191,11 @@ function applyPageTemplate(doc: any, pageNumber: number) {
      .lineTo(pageWidth - margin + 5, footerY)
      .stroke();
   
-  // Restore previous state
+  // Restore previous state safely
   doc.y = currentY;
-  doc.font(currentFont);
+  
+  // Always use safe font restoration - just set to Helvetica to avoid font errors
+  doc.font('Helvetica');
   doc.fontSize(currentFontSize);
   doc.fillColor(currentColor || '#000000');
   doc.strokeColor('#000000');
@@ -1834,7 +1835,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];
     
-    // Register custom Segoe UI fonts with fallback
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', reject);
+    
+    // IMPORTANT: Register custom Segoe UI fonts FIRST before any template functions
     let fontsRegistered = false;
     try {
       const fontsDir = path.resolve(process.cwd(), 'server', 'fonts');
