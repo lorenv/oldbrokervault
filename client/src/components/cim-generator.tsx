@@ -56,6 +56,13 @@ export function CimGenerator() {
     queryKey: ["/api/user/limits"],
     staleTime: 1000 * 30, // 30 seconds
   });
+
+  // Fetch user profile for personalized welcome message
+  const { data: userProfile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -410,21 +417,32 @@ export function CimGenerator() {
   };
 
   if (cimMode === 'choice') {
+    // Extract first name from user profile
+    const firstName = userProfile?.name ? userProfile.name.split(' ')[0] : '';
+    const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
+
     return (
-      <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Generate Your CIM</h1>
+          <h1 className="text-3xl font-bold">{welcomeMessage}</h1>
+          <p className="text-muted-foreground">
+            Create professional CIM documents with AI-powered analysis
+          </p>
+        </div>
+
+        <div className="text-center space-y-2 mt-8">
+          <h2 className="text-2xl font-bold">Generate Your CIM</h2>
           <p className="text-muted-foreground">
             Choose how you'd like to create your Confidential Information Memorandum
           </p>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid md:grid-cols-2 gap-6">
           <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCimMode('generate')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Generate from Transcript
+                Generate from Notes/Transcript
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -443,7 +461,7 @@ export function CimGenerator() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Upload an existing CIM document to enhance and share through our platform.
+                Upload your own CIM to enhance it with NDA, sharing, and analytics
               </p>
             </CardContent>
           </Card>
