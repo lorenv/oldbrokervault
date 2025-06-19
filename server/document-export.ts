@@ -90,14 +90,24 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         const contentWidth = pageWidth - (2 * marginSize);
         const contentHeight = pageHeight - (2 * marginSize);
         
-        // Create a white background rectangle for the content area to ensure readability
+        // Add a test border to verify the background is working
+        newPage.drawRectangle({
+          x: 10,
+          y: 10,
+          width: pageWidth - 20,
+          height: pageHeight - 20,
+          borderColor: pdfLib.rgb(1, 0, 0), // Red border for testing
+          borderWidth: 2
+        });
+        
+        // Create a semi-transparent white background rectangle for the content area
         newPage.drawRectangle({
           x: marginSize,
           y: marginSize,
           width: contentWidth,
           height: contentHeight,
           color: pdfLib.rgb(1, 1, 1), // White background
-          opacity: 0.9 // Slightly transparent to show some background
+          opacity: 0.8 // More transparent to show background
         });
         
         // Embed the original content page as a form object
