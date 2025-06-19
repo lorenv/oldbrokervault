@@ -3246,7 +3246,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         res.setHeader('Cache-Control', 'public, max-age=86400');
         const thumbnailBuffer = fsSync.readFileSync(thumbnailPath);
         console.log(`Serving PNG thumbnail, size: ${thumbnailBuffer.length} bytes`);
-        res.send(thumbnailBuffer);
+        return res.send(thumbnailBuffer);
       } else {
         console.log(`PNG not found, serving fallback SVG for ${templateId}`);
         // Fallback SVG for missing thumbnails
@@ -3263,7 +3263,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         `;
         res.setHeader('Content-Type', 'image/svg+xml');
         res.setHeader('Cache-Control', 'public, max-age=86400');
-        res.send(fallbackSvg);
+        return res.send(fallbackSvg);
       }
     } catch (error) {
       console.error("Error serving template thumbnail:", error);
