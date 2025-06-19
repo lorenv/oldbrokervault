@@ -576,7 +576,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("- customSections:", JSON.stringify(customSections, null, 2));
       console.log("- coverImage (base64):", coverImageBase64 ? "converted" : "none");
       
-      const pdfBuffer = await generatePDF(
+      const { generateOptimizedPDF } = await import('./pdf-performance-optimizer');
+      const pdfBuffer = await generateOptimizedPDF(
         cimDoc.analysis,
         logoBase64,
         cimDoc.websiteUrl || undefined,
