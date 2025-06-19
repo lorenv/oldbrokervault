@@ -1135,6 +1135,71 @@ export function formatTextContent(analysis: any, userProfile?: any): string {
   return content;
 }
 
+// Function to apply PDF template styling to pages after the first page
+function applyPageTemplate(doc: any, pageNumber: number) {
+  if (pageNumber === 1) return; // Don't apply template to first page
+  
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const margin = 72; // 1 inch margin
+  
+  // Save current state
+  const currentY = doc.y;
+  const currentFont = doc._font;
+  const currentFontSize = doc._fontSize;
+  const currentColor = doc._fillColor;
+  
+  // Add subtle header border/line
+  doc.strokeColor('#E5E7EB')
+     .lineWidth(1)
+     .moveTo(margin, 50)
+     .lineTo(pageWidth - margin, 50)
+     .stroke();
+  
+  // Add professional header styling
+  doc.fontSize(8)
+     .font('Helvetica')
+     .fillColor('#6B7280')
+     .text('CONFIDENTIAL INFORMATION MEMORANDUM', margin, 30, {
+       width: pageWidth - (2 * margin),
+       align: 'center'
+     });
+  
+  // Add footer border/line
+  const footerY = pageHeight - 50;
+  doc.strokeColor('#E5E7EB')
+     .lineWidth(1)
+     .moveTo(margin, footerY)
+     .lineTo(pageWidth - margin, footerY)
+     .stroke();
+  
+  // Add professional footer with page number
+  doc.fontSize(8)
+     .font('Helvetica')
+     .fillColor('#6B7280')
+     .text(`Page ${pageNumber}`, margin, footerY + 10, {
+       width: pageWidth - (2 * margin),
+       align: 'center'
+     });
+  
+  // Add subtle side borders for professional look
+  doc.strokeColor('#F3F4F6')
+     .lineWidth(0.5)
+     .moveTo(margin - 5, 50)
+     .lineTo(margin - 5, footerY)
+     .stroke()
+     .moveTo(pageWidth - margin + 5, 50)
+     .lineTo(pageWidth - margin + 5, footerY)
+     .stroke();
+  
+  // Restore previous state
+  doc.y = currentY;
+  doc.font(currentFont);
+  doc.fontSize(currentFontSize);
+  doc.fillColor(currentColor || '#000000');
+  doc.strokeColor('#000000');
+}
+
 // Function to add footer to each page
 function addFooter(doc: any, pageNumber: number, totalPages: number, documentTitle?: string) {
   const pageHeight = doc.page.height;
@@ -2155,6 +2220,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Add page break before generated content to create proper cover page
       doc.addPage();
+      currentPageNumber++;
+      applyPageTemplate(doc, currentPageNumber);
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
