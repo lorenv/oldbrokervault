@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 19, 2025: Updated CIM generator choice interface with side-by-side layout, personalized welcome message using user's first name from profile, changed text to "Generate from Notes/Transcript" and updated upload description to emphasize NDA, sharing, and analytics features
 - June 19, 2025: Fixed Financial Information section in CIM generator - removed collapse functionality for always-visible design, enabled toggle by default with all financial checkboxes pre-selected, and doubled analysis directions text box height from 80px to 160px for better user experience
 - June 18, 2025: Enhanced homepage feature showcase with three-column layout displaying investor database, NDA signatures, and analytics dashboard using updated screenshots; implemented click-to-enlarge modal functionality for all feature images with professional overlay and smooth transitions
 - June 18, 2025: Updated homepage to remove team collaboration feature and showcase investor database and NDA signatures with new screenshot previews - reorganized layout with dedicated feature showcase section highlighting contact tracking and approval management capabilities
