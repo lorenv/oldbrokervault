@@ -417,20 +417,9 @@ export function CimGenerator() {
   };
 
   if (cimMode === 'choice') {
-    // Extract first name from user profile
-    const firstName = userProfile?.name ? userProfile.name.split(' ')[0] : '';
-    const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
-
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">{welcomeMessage}</h1>
-          <p className="text-muted-foreground">
-            Create professional CIM documents with AI-powered analysis
-          </p>
-        </div>
-
-        <div className="text-center space-y-2 mt-8">
           <h2 className="text-2xl font-bold">Generate Your CIM</h2>
           <p className="text-muted-foreground">
             Choose how you'd like to create your Confidential Information Memorandum

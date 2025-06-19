@@ -16,8 +16,19 @@ export default function DashboardPage() {
     refetchOnReconnect: false,
   });
 
+  // Fetch user profile for personalized welcome message
+  const { data: userProfile } = useQuery({
+    queryKey: ["/api/profile"],
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   // Extract documents array from the response
   const documents = documentsResponse?.documents || [];
+
+  // Extract first name from user profile
+  const firstName = userProfile?.name ? userProfile.name.split(' ')[0] : '';
+  const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
@@ -27,7 +38,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Welcome back!
+                {welcomeMessage}
               </h1>
               <p className="text-gray-600 mt-1">Create professional CIM documents with AI-powered analysis</p>
             </div>
