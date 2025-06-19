@@ -504,30 +504,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaApprovalStatus
       });
     } catch (error) {
-      clearTimeout(timeout);
-      console.error("=== SHARE ROUTE ERROR ===");
-      console.error("Error fetching share data:", error);
-      console.error("Error name:", error instanceof Error ? error.name : typeof error);
-      console.error("Error message:", error instanceof Error ? error.message : String(error));
-      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
-      console.error("Environment info:", {
-        NODE_ENV: process.env.NODE_ENV,
-        DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Not set',
-        requestHeaders: req.headers,
-        requestParams: req.params,
-        requestUrl: req.url
+      console.error("Share endpoint error:", error);
+      res.status(500).json({ 
+        error: "Failed to load shared document"
       });
-      
-      // Enhanced error response for debugging
-      if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "Failed to fetch shared document", 
-          details: error instanceof Error ? error.message : String(error),
-          name: error instanceof Error ? error.name : typeof error,
-          environment: process.env.NODE_ENV || 'unknown',
-          timestamp: new Date().toISOString()
-        });
-      }
     }
   });
 

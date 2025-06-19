@@ -117,6 +117,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 19, 2025: Optimized share link and PDF export performance - removed excessive database retry logic that was causing 8+ second delays on share link loading, streamlined image processing with batched operations (3 images per batch), implemented parallel data fetching for PDF exports, and reduced timeout overhead; share links now load significantly faster with improved user experience
 - June 19, 2025: Fixed duplicate welcome messages by moving personalized greeting to dashboard header - now shows single "Welcome back, {first name}!" message dynamically extracted from user's profile name field, removed redundant welcome from CIM generator component
 - June 19, 2025: Updated CIM generator choice interface with side-by-side layout, personalized welcome message using user's first name from profile, changed text to "Generate from Notes/Transcript" and updated upload description to emphasize NDA, sharing, and analytics features
 - June 19, 2025: Fixed Financial Information section in CIM generator - removed collapse functionality for always-visible design, enabled toggle by default with all financial checkboxes pre-selected, and doubled analysis directions text box height from 80px to 160px for better user experience
