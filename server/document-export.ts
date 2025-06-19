@@ -65,9 +65,20 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
       console.log(`Processing page ${i + 1} with background template...`);
       
       try {
-        // Copy the background page to the final document
+        // Start with a blank page and build it step by step
+        const newPage = finalDoc.addPage([612, 792]); // Standard letter size
+        
+        // First, draw the background template
         const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
-        const newPage = finalDoc.addPage(backgroundPageCopy);
+        const backgroundForm = await finalDoc.embedPage(backgroundPageCopy);
+        
+        // Draw the background template at full size
+        newPage.drawPage(backgroundForm, {
+          x: 0,
+          y: 0,
+          width: newPage.getWidth(),
+          height: newPage.getHeight()
+        });
         
         // Get the original content page
         const originalContentPage = originalPages[i];
@@ -79,14 +90,23 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         const contentWidth = pageWidth - (2 * marginSize);
         const contentHeight = pageHeight - (2 * marginSize);
         
+        // Create a white background rectangle for the content area to ensure readability
+        newPage.drawRectangle({
+          x: marginSize,
+          y: marginSize,
+          width: contentWidth,
+          height: contentHeight,
+          color: pdfLib.rgb(1, 1, 1), // White background
+          opacity: 0.9 // Slightly transparent to show some background
+        });
+        
         // Embed the original content page as a form object
         const contentForm = await finalDoc.embedPage(originalContentPage);
         
-        // Draw the content on the background page within the margin boundaries
-        // Scale and position the content to fit within margins
+        // Scale the content to fit within the margins
         const scaleX = contentWidth / originalContentPage.getWidth();
         const scaleY = contentHeight / originalContentPage.getHeight();
-        const scale = Math.min(scaleX, scaleY); // Maintain aspect ratio
+        const scale = Math.min(scaleX, scaleY, 1.0); // Don't exceed original size
         
         const scaledWidth = originalContentPage.getWidth() * scale;
         const scaledHeight = originalContentPage.getHeight() * scale;
@@ -95,6 +115,7 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         const xOffset = marginSize + (contentWidth - scaledWidth) / 2;
         const yOffset = marginSize + (contentHeight - scaledHeight) / 2;
         
+        // Draw the content over the background
         newPage.drawPage(contentForm, {
           x: xOffset,
           y: yOffset,
@@ -102,7 +123,7 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
           height: scaledHeight
         });
         
-        console.log(`Successfully applied background to page ${i + 1}`);
+        console.log(`Successfully applied background to page ${i + 1} with visible background template`);
       } catch (pageError) {
         console.error(`Error applying background to page ${i + 1}:`, pageError);
         // Fallback: just add the original page without background
