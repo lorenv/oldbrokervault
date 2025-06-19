@@ -9,6 +9,7 @@ import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSch
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and, sql, inArray } from "drizzle-orm";
+import { withRetry } from './db-utils';
 import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
@@ -369,30 +370,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Parallel fetch for better performance with error handling
+      // Streamlined data fetch with timeout protection
       let userProfile = null;
       let customSections = [];
       
       try {
-        [userProfile, customSections] = await Promise.all([
+        // Fast parallel fetch with aggressive timeout
+        const fetchPromise = Promise.all([
           storage.getUser(cimDoc.userId),
           storage.getCustomSections(cimDoc.id)
         ]);
+        
+        // 2-second timeout to prevent delays
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Fetch timeout')), 2000)
+        );
+        
+        [userProfile, customSections] = await Promise.race([fetchPromise, timeoutPromise]) as any;
         console.log("Custom sections found:", customSections.length);
       } catch (fetchError) {
-        console.error("Error fetching related data:", fetchError);
-        // Continue with null/empty values rather than failing completely
-        try {
-          userProfile = await storage.getUser(cimDoc.userId);
-        } catch (userError) {
-          console.error("Error fetching user profile:", userError);
-        }
-        try {
-          customSections = await storage.getCustomSections(cimDoc.id);
-        } catch (sectionsError) {
-          console.error("Error fetching custom sections:", sectionsError);
-          customSections = [];
-        }
+        console.log("Using fallback data due to fetch timeout/error");
+        // Use empty values to prevent delays
+        userProfile = null;
+        customSections = [];
       }
       
       console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
