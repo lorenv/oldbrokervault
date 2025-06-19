@@ -14,13 +14,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool for fast authentication
+// Optimize connection pool with improved resilience
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Increased for better concurrency
-  min: 2, // More minimum connections for faster access
-  idleTimeoutMillis: 30000, // Increased to keep connections alive longer
-  connectionTimeoutMillis: 5000, // Reduced for faster failure detection
+  max: 8, // Reduced to prevent overwhelming Neon free tier
+  min: 1, // Reduced minimum to prevent connection exhaustion
+  idleTimeoutMillis: 20000, // Reduced to release idle connections faster
+  connectionTimeoutMillis: 10000, // Increased for better network tolerance
+  allowExitOnIdle: false, // Prevent pool from closing automatically
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners
@@ -29,7 +30,27 @@ pool.setMaxListeners(150);
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
   console.error('Database pool error:', err);
-  // Don't exit process on pool errors in production
+  // Don't exit process on pool errors - let the application continue
+});
+
+pool.on('connect', (client) => {
+  // Add connection timeout handling
+  client.on('error', (err) => {
+    console.error('Database client error:', err);
+  });
+});
+
+// Add graceful shutdown handling
+process.on('SIGINT', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
 });
 
 // Reduce connection logging noise in development

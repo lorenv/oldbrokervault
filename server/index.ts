@@ -95,7 +95,22 @@ app.get('/api/security/health', securityHealthCheck);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+      let message = err.message || "Internal Server Error";
+      
+      // Handle database connection errors gracefully
+      if (err.message?.includes('Connection terminated unexpectedly') || 
+          err.message?.includes('connection timeout') ||
+          err.message?.includes('ECONNRESET')) {
+        message = "Database temporarily unavailable. Please try again.";
+        console.error("Database connection error:", err.message);
+        return res.status(503).json({ 
+          message, 
+          error: "Service temporarily unavailable", 
+          timestamp: new Date().toISOString(),
+          retry: true
+        });
+      }
+      
       console.error("=== GLOBAL ERROR HANDLER ===");
       console.error("Error:", err);
       console.error("Stack:", err.stack);
