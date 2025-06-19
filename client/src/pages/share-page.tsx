@@ -17,6 +17,16 @@ export function SharePage() {
   const [matchCims, paramsCims] = useRoute("/cims/:shareSlug");
   const shareSlug = paramsShare?.shareSlug || paramsCims?.shareSlug;
   
+  // Debug logging
+  console.log("SharePage Debug:", {
+    matchShare,
+    matchCims,
+    paramsShare,
+    paramsCims,
+    shareSlug,
+    pathname: window.location.pathname
+  });
+  
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
