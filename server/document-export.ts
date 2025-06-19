@@ -2573,63 +2573,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const finalX = startX + (col * (imageWidth + horizontalMargin));
                 const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 
-                // Use direct buffer method with width/height specification
+                // Optimized image processing - skip expensive Sharp operations
                 try {
-                  // Get image dimensions first to ensure proper scaling
-                  const sharp = require('sharp');
-                  const metadata = await sharp(imageBuffer).metadata();
-                  
-                  // Calculate aspect ratio and ensure image fits
-                  const aspectRatio = metadata.width / metadata.height;
-                  let finalWidth = imageWidth;
-                  let finalHeight = imageHeight;
-                  
-                  if (aspectRatio > 1) {
-                    // Landscape image
-                    finalHeight = imageWidth / aspectRatio;
-                  } else {
-                    // Portrait image  
-                    finalWidth = imageHeight * aspectRatio;
-                  }
-                  
-                  // Add image with explicit dimensions maintaining aspect ratio
+                  // Use built-in PDFKit fit method for performance
                   doc.image(imageBuffer, finalX, finalY, {
-                    width: finalWidth,
-                    height: finalHeight
+                    fit: [imageWidth, imageHeight],
+                    align: 'center',
+                    valign: 'center'
                   });
                   
-                  console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
-                } catch (sharpError) {
-                  // Fallback without Sharp - calculate aspect ratio from buffer
-                  let fallbackWidth = imageWidth;
-                  let fallbackHeight = imageHeight;
-                  
-                  try {
-                    // Try to get dimensions from buffer
-                    const jpegDims = getJpegDimensions(imageBuffer);
-                    const pngDims = getPngDimensions(imageBuffer);
-                    
-                    if (jpegDims || pngDims) {
-                      const dims = jpegDims || pngDims;
-                      const aspectRatio = dims.width / dims.height;
-                      
-                      if (aspectRatio > 1) {
-                        // Landscape image
-                        fallbackHeight = imageWidth / aspectRatio;
-                      } else {
-                        // Portrait image  
-                        fallbackWidth = imageHeight * aspectRatio;
-                      }
-                    }
-                  } catch (dimError) {
-                    console.log("Could not determine image dimensions, using default");
-                  }
-                  
-                  doc.image(imageBuffer, finalX, finalY, {
-                    width: fallbackWidth,
-                    height: fallbackHeight
-                  });
-                  console.log(`Added business image ${i} without Sharp (${fallbackWidth}x${fallbackHeight})`);
+                  console.log(`Added business image ${i} with fit dimensions ${imageWidth}x${imageHeight}`);
+                } catch (error) {
+                  console.log(`Skipping problematic business image ${i}:`, error.message);
                 }
                 continue;
               } catch (error) {
