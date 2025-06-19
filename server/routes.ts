@@ -299,28 +299,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
-      // Retry database operations for production stability
-      let cimDoc = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      while (retryCount < maxRetries && !cimDoc) {
-        try {
-          cimDoc = await storage.getCimByShareSlug(shareSlug);
-          console.log("Found document:", !!cimDoc, cimDoc?.id);
-          break;
-        } catch (dbError) {
-          retryCount++;
-          console.error(`Database retry ${retryCount}/${maxRetries} for slug ${shareSlug}:`, dbError);
-          
-          if (retryCount >= maxRetries) {
-            throw dbError;
-          }
-          
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 100));
-        }
-      }
+      // Simple database operation without excessive retries
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      console.log("Found document:", !!cimDoc, cimDoc?.id);
       
       if (!cimDoc) {
         console.log("Document not found for share slug:", shareSlug);
@@ -636,11 +617,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
-      // Convert images to base64 for PDF generation (same as share page display)
+      // Optimized image processing for PDF generation
       const convertImageToBase64 = async (imagePath: string): Promise<string | null> => {
         try {
           if (imagePath.startsWith('data:')) {
-            console.log(`Image is already base64, returning as-is: ${imagePath.substring(0, 50)}...`);
             return imagePath; // Already base64
           }
           
@@ -648,34 +628,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return imagePath; // External URLs - let PDF handler download them
           }
           
-          // Handle local file paths - try multiple possible locations including document-specific subdirectories
+          // Streamlined path resolution - check most likely locations first
           const possiblePaths = [
-            // Direct path resolution first
             path.resolve(process.cwd(), 'public', imagePath.replace(/^\/+/, '')),
-            // Try with document ID subdirectory for business images
-            path.resolve(process.cwd(), 'public', 'business-images', cimDoc.id.toString(), path.basename(imagePath)),
-            // Try private folder for uploaded files
-            path.resolve(process.cwd(), 'private', imagePath.replace(/^\/+/, '')),
-            // Try attached_assets folder
-            path.resolve(process.cwd(), 'attached_assets', imagePath.replace(/^\/+/, '')),
-            // Try business-images subfolder without document ID
-            path.resolve(process.cwd(), 'public', 'business-images', imagePath.replace(/^\/+/, '')),
-            // Try images subfolder
-            path.resolve(process.cwd(), 'public', 'images', imagePath.replace(/^\/+/, '')),
-            // Try logos subfolder
-            path.resolve(process.cwd(), 'public', 'logos', imagePath.replace(/^\/+/, '')),
-            // Try with just the filename in business-images
             path.resolve(process.cwd(), 'public', 'business-images', path.basename(imagePath)),
-            // Try with just the filename in logos
             path.resolve(process.cwd(), 'public', 'logos', path.basename(imagePath))
           ];
           
-          console.log(`Converting image to base64: ${imagePath}`);
-          console.log(`Document ID: ${cimDoc.id}`);
-          
           for (const resolvedPath of possiblePaths) {
             if (fsSync.existsSync(resolvedPath)) {
-              console.log(`Found image at: ${resolvedPath}`);
               const imageBuffer = await fs.readFile(resolvedPath);
               const ext = path.extname(resolvedPath).toLowerCase();
               const mimeType = ext === '.png' ? 'image/png' : 
@@ -684,7 +645,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          console.log(`Image file not found for PDF at any of these paths:`, possiblePaths);
           return null;
         } catch (error) {
           console.error(`Failed to convert image to base64: ${imagePath}`, error);
@@ -700,25 +660,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Logo conversion result:", logoBase64 ? "success" : "failed");
       }
 
-      // Convert selected images to base64
+      // Optimized parallel image processing with batching
       let selectedImagesBase64: string[] | undefined = undefined;
       if (cimDoc.selectedImages && cimDoc.selectedImages.length > 0) {
-        console.log("=== SHARE ROUTE IMAGE DEBUG ===");
-        console.log("Converting selected images to base64 for PDF, count:", cimDoc.selectedImages.length);
-        console.log("Raw selectedImages data:", JSON.stringify(cimDoc.selectedImages.slice(0, 2), null, 2));
+        // Process images in batches to prevent overwhelming the system
+        const batchSize = 3;
+        const batches = [];
+        for (let i = 0; i < cimDoc.selectedImages.length; i += batchSize) {
+          batches.push(cimDoc.selectedImages.slice(i, i + batchSize));
+        }
         
-        const converted = await Promise.all(
-          cimDoc.selectedImages.map(async (imagePath: string, index: number) => {
-            console.log(`Processing image ${index}: ${imagePath.substring(0, 50)}...`);
-            const base64 = await convertImageToBase64(imagePath);
-            console.log(`Image ${index} conversion result: ${base64 ? 'SUCCESS' : 'FAILED'}`);
-            return base64;
-          })
-        );
+        const converted: (string | null)[] = [];
+        for (const batch of batches) {
+          const batchResults = await Promise.all(
+            batch.map(imagePath => convertImageToBase64(imagePath))
+          );
+          converted.push(...batchResults);
+        }
+        
         selectedImagesBase64 = converted.filter((img): img is string => img !== null);
-        console.log("Selected images conversion result:", selectedImagesBase64.length, "successful out of", converted.length, "total");
-        console.log("Final selectedImagesBase64 preview:", selectedImagesBase64.map(img => img.substring(0, 50) + "..."));
-        console.log("=== END SHARE ROUTE IMAGE DEBUG ===");
       }
 
       // Convert cover image to base64
