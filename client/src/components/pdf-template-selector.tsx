@@ -57,6 +57,8 @@ export function PdfTemplateSelector() {
   useEffect(() => {
     if (userData?.pdfBackgroundTemplate) {
       setSelectedTemplate(userData.pdfBackgroundTemplate);
+    } else {
+      setSelectedTemplate('none'); // Default to no background
     }
   }, [userData]);
 
@@ -81,7 +83,7 @@ export function PdfTemplateSelector() {
       });
       // Update the user data in cache
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      setSelectedTemplate(data.templateId);
+      setSelectedTemplate(data.templateId || data.pdfBackgroundTemplate);
     },
     onError: (error) => {
       toast({
@@ -112,7 +114,7 @@ export function PdfTemplateSelector() {
     );
   }
 
-  const templates: PdfTemplate[] = templatesData || [];
+  const templates: PdfTemplate[] = templatesData?.templates || [];
 
   return (
     <Card>
