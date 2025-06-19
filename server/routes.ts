@@ -474,6 +474,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id)),
         storage.getCustomSections(cimDoc.id)
       ]);
+
+      // Get document owner's PDF template preference
+      const pdfTemplate = userProfile?.pdfBackgroundTemplate || 'classic';
       
       // Prepare financial data from cached document properties
       const financialData = {
@@ -509,7 +512,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customSections,
         cimDoc.coverImageUrl,
         cimDoc.coverImagePosition,
-        cimDoc.id
+        cimDoc.id,
+        pdfTemplate // Pass user's template preference
       );
       
       console.log("PDF generation completed, buffer length:", pdfBuffer.length);
@@ -3150,6 +3154,105 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error("Unsplash download tracking error:", error);
       res.status(500).json({ error: "Failed to track download" });
+    }
+  });
+
+  // PDF Template Management Endpoints
+  app.get("/api/pdf-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const templates = [
+        {
+          id: 'none',
+          name: 'No Background',
+          description: 'Clean, plain pages without any background template',
+          preview: null
+        },
+        {
+          id: 'classic',
+          name: 'Classic',
+          description: 'Traditional professional background with elegant styling',
+          preview: '/api/pdf-templates/classic/preview'
+        },
+        {
+          id: 'professional-blue',
+          name: 'Professional Blue',
+          description: 'Modern minimal blue design for professional presentations',
+          preview: '/api/pdf-templates/professional-blue/preview'
+        },
+        {
+          id: 'modern-green',
+          name: 'Modern Green',
+          description: 'Contemporary green and blue design with modern appeal',
+          preview: '/api/pdf-templates/modern-green/preview'
+        }
+      ];
+
+      res.json({ templates });
+    } catch (error) {
+      console.error("Error fetching PDF templates:", error);
+      res.status(500).json({ error: "Failed to fetch PDF templates" });
+    }
+  });
+
+  app.get("/api/pdf-templates/:templateId/preview", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { templateId } = req.params;
+      
+      if (templateId === 'none') {
+        return res.status(404).json({ error: "No preview available for 'No Background' option" });
+      }
+
+      const templatePath = path.resolve(process.cwd(), 'pdf-templates', `${templateId}.pdf`);
+      
+      if (!fsSync.existsSync(templatePath)) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${templateId}-preview.pdf"`);
+      
+      const templateBuffer = fsSync.readFileSync(templatePath);
+      res.send(templateBuffer);
+    } catch (error) {
+      console.error("Error serving template preview:", error);
+      res.status(500).json({ error: "Failed to serve template preview" });
+    }
+  });
+
+  app.put("/api/user/pdf-template", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { templateId } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      if (!templateId || typeof templateId !== 'string') {
+        return res.status(400).json({ error: "Template ID is required" });
+      }
+
+      // Validate template ID
+      const validTemplates = ['none', 'classic', 'professional-blue', 'modern-green'];
+      if (!validTemplates.includes(templateId)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      // Update user's PDF template preference
+      await db.update(users)
+        .set({ pdfBackgroundTemplate: templateId })
+        .where(eq(users.id, userId));
+
+      res.json({ success: true, templateId });
+    } catch (error) {
+      console.error("Error updating PDF template preference:", error);
+      res.status(500).json({ error: "Failed to update PDF template preference" });
     }
   });
 
