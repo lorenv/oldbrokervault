@@ -2439,6 +2439,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           // Add page break before Executive Summary section
           if (section.title && section.title.toLowerCase().includes('executive summary')) {
             doc.addPage();
+            currentPageNumber++;
+            applyPageTemplate(doc, currentPageNumber);
           }
           
           doc.fontSize(18)
@@ -2488,6 +2490,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Business Images Section - separate from content sections
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
+        currentPageNumber++;
+        applyPageTemplate(doc, currentPageNumber);
         
         doc.fontSize(18)
            .font('Segoe-Bold')
@@ -2548,6 +2552,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 if (imageY + imageHeight > doc.page.height - pageMargin) {
                   doc.addPage();
+                  currentPageNumber++;
+                  applyPageTemplate(doc, currentPageNumber);
                   doc.fontSize(18)
                      .font('Segoe-Bold')
                      .fillColor('#1e3a8a')
@@ -2666,6 +2672,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
               if (imageY + imageHeight > doc.page.height - pageMargin) {
                 doc.addPage();
+                currentPageNumber++;
+                applyPageTemplate(doc, currentPageNumber);
                 
                 // Add section header on new page
                 doc.fontSize(18)
@@ -2730,6 +2738,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Contact Information Footer
       if (userProfile && (userProfile.name || userProfile.email || userProfile.phoneNumber)) {
         doc.addPage();
+        currentPageNumber++;
+        applyPageTemplate(doc, currentPageNumber);
         
         doc.fontSize(18)
            .font('Segoe-Bold')
