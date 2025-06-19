@@ -2,6 +2,7 @@ import { CimDocument } from "@shared/schema";
 import { storage } from "./storage";
 import * as docx from "docx";
 import PDFDocument from "pdfkit";
+import * as pdfLib from 'pdf-lib';
 import { Readable } from "stream";
 import path from 'path';
 import fs from 'fs';
