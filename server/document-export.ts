@@ -10,20 +10,34 @@ import fetch from 'node-fetch';
 import crypto from 'crypto';
 import sharp from 'sharp';
 
-// Load PDF background template for pages after the first page
-async function loadPdfBackgroundTemplate(): Promise<pdfLib.PDFDocument | null> {
+// Load PDF background template based on user preference
+async function loadPdfBackgroundTemplate(templateName?: string): Promise<pdfLib.PDFDocument | null> {
   try {
-    const backgroundPath = path.resolve(process.cwd(), 'attached_assets', 'pdf background_1750363075020.pdf');
+    if (!templateName || templateName === 'none') {
+      console.log("No background template requested");
+      return null;
+    }
+    
+    const templateFilename = `${templateName}.pdf`;
+    const backgroundPath = path.resolve(process.cwd(), 'pdf-templates', templateFilename);
     
     if (!fs.existsSync(backgroundPath)) {
       console.log("PDF background template not found at:", backgroundPath);
+      // Fallback to classic template
+      const fallbackPath = path.resolve(process.cwd(), 'pdf-templates', 'classic.pdf');
+      if (fs.existsSync(fallbackPath)) {
+        const fallbackBytes = fs.readFileSync(fallbackPath);
+        const fallbackDoc = await pdfLib.PDFDocument.load(fallbackBytes);
+        console.log("Using fallback classic template");
+        return fallbackDoc;
+      }
       return null;
     }
     
     const backgroundBytes = fs.readFileSync(backgroundPath);
     const backgroundDoc = await pdfLib.PDFDocument.load(backgroundBytes);
     
-    console.log("Successfully loaded PDF background template");
+    console.log(`Successfully loaded PDF background template: ${templateName}`);
     return backgroundDoc;
   } catch (error) {
     console.error("Failed to load PDF background template:", error);
@@ -1904,13 +1918,12 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
-    console.log("⚡ Starting optimized PDF generation with performance enhancements");
+    console.log("⚡ Starting optimized PDF generation with template:", pdfTemplate || 'classic');
     
-    // Skip background template loading for faster generation
-    const useBackgroundTemplate = process.env.FAST_PDF_MODE !== 'true';
-    const backgroundTemplate = useBackgroundTemplate ? await loadPdfBackgroundTemplate() : null;
+    // Load user's selected background template
+    const backgroundTemplate = await loadPdfBackgroundTemplate(pdfTemplate || 'classic');
     
     const doc = new PDFDocument();
     const buffers: Buffer[] = [];

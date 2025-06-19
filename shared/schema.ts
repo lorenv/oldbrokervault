@@ -55,6 +55,8 @@ export const users = pgTable("users", {
   // Password reset fields
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  // PDF export preferences
+  pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
 });
 
 export const cimDocuments = pgTable("cim_documents", {
