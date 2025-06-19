@@ -27,9 +27,10 @@ import { useLocation } from "wouter";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { SecurityDashboard } from "@/components/security-dashboard";
 import { UserManagement } from "@/components/user-management";
-import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings } from "lucide-react";
+import { User, Phone, Building, Upload, Camera, Shield, Lock, CreditCard, Settings, FileImage } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PdfTemplateSelector } from "@/components/pdf-template-selector";
 
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
@@ -658,6 +659,9 @@ export default function AccountPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* PDF Template Selection */}
+          <PdfTemplateSelector />
         </TabsContent>
 
         {/* Subscription & Billing Tab */}
