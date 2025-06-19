@@ -1062,128 +1062,129 @@ ${analysis.team.ownerResponsibilities}
               {financialsEnabled && (
                 <div className="space-y-6">
                   <div className="grid md:grid-cols-3 gap-4">
-                  {/* Asking Price */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.askingPriceIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
+                    {/* Asking Price */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.askingPriceIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">Asking Price</Label>
+                      </div>
+                      <Input
+                        placeholder="$1,000,000"
+                        value={financialData.askingPrice}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
                         }
-                        className="h-4 w-4"
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">Asking Price</Label>
                     </div>
-                    <Input
-                      placeholder="$1,000,000"
-                      value={financialData.askingPrice}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
-                      }
-                      className="h-9"
-                    />
-                  </div>
 
-                  {/* Annual Revenue */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.revenueIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
+                    {/* Annual Revenue */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.revenueIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
+                      </div>
+                      <Input
+                        placeholder="$500,000"
+                        value={financialData.revenue}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
                         }
-                        className="h-4 w-4"
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
                     </div>
-                    <Input
-                      placeholder="$500,000"
-                      value={financialData.revenue}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
-                      }
-                      className="h-9"
-                    />
-                  </div>
 
-                  {/* EBITDA */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={financialData.ebitdaIncluded}
-                        onCheckedChange={(checked) => 
-                          setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
+                    {/* EBITDA */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={financialData.ebitdaIncluded}
+                          onCheckedChange={(checked) => 
+                            setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Label className="text-xs text-muted-foreground">EBITDA</Label>
+                      </div>
+                      <Input
+                        placeholder="$150,000"
+                        value={financialData.ebitda}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
                         }
-                        className="h-4 w-4"
+                        className="h-9"
                       />
-                      <Label className="text-xs text-muted-foreground">EBITDA</Label>
                     </div>
-                    <Input
-                      placeholder="$150,000"
-                      value={financialData.ebitda}
-                      onChange={(e) => 
-                        setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-3 mt-4">
-                  <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
-                  <div className="border-2 border-dashed border-muted rounded-lg p-4">
-                    <div className="text-center">
-                      <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="gap-2"
-                      >
-                        <File className="h-4 w-4" />
-                        Upload Files
-                      </Button>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Financial statements, tax returns, or other documents
-                      </p>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      multiple={true}
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    />
                   </div>
                   
-                  {financialFiles.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Uploaded Files:</Label>
-                      <div className="space-y-2">
-                        {financialFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
-                            <div className="flex items-center space-x-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{file.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
+                  <div className="space-y-3 mt-4">
+                    <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
+                    <div className="border-2 border-dashed border-muted rounded-lg p-4">
+                      <div className="text-center">
+                        <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="gap-2"
+                        >
+                          <File className="h-4 w-4" />
+                          Upload Files
+                        </Button>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Financial statements, tax returns, or other documents
+                        </p>
                       </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        multiple={true}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      />
                     </div>
-                  )}
+                    
+                    {financialFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Uploaded Files:</Label>
+                        <div className="space-y-2">
+                          {financialFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded border">
+                              <div className="flex items-center space-x-2">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{file.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
