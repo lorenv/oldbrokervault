@@ -2806,14 +2806,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 
                 if (jpegDims || pngDims) {
                   const dims = jpegDims || pngDims;
-                  const aspectRatio = dims.width / dims.height;
+                  if (dims) {
+                    const aspectRatio = dims.width / dims.height;
                   
-                  if (aspectRatio > 1) {
-                    // Landscape image
-                    actualHeight = imageWidth / aspectRatio;
-                  } else {
-                    // Portrait image  
-                    actualWidth = imageHeight * aspectRatio;
+                    if (aspectRatio > 1) {
+                      // Landscape image
+                      actualHeight = imageWidth / aspectRatio;
+                    } else {
+                      // Portrait image  
+                      actualWidth = imageHeight * aspectRatio;
+                    }
                   }
                 }
               } catch (dimError) {
