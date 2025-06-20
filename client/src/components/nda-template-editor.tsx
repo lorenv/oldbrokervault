@@ -290,7 +290,6 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                     pdfBase64={pdfBase64}
                     signatureFields={signatureFields}
                     onFieldsChange={setSignatureFields}
-                    selectedFieldType={selectedFieldType}
                   />
                 ) : (
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
