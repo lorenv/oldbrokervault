@@ -23,7 +23,6 @@ interface ImagePdfEditorProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
-  selectedFieldType: SignatureField['type'];
 }
 
 const FIELD_COLORS = {
@@ -114,11 +113,37 @@ const FieldComponent = ({ field, onUpdate, onDelete, scale }: {
   );
 };
 
+// Draggable field component for the sidebar
+const DraggableFieldButton = ({ type, icon: Icon, label }: { 
+  type: SignatureField['type'], 
+  icon: any, 
+  label: string 
+}) => {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'new-field',
+    item: { type },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  return (
+    <div
+      ref={drag}
+      className={`flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50 ${
+        isDragging ? 'opacity-50 scale-95' : ''
+      }`}
+    >
+      <Icon className="w-4 h-4 text-gray-600" />
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </div>
+  );
+};
+
 export default function ImagePdfEditor({
   pdfBase64,
   signatureFields,
-  onFieldsChange,
-  selectedFieldType
+  onFieldsChange
 }: ImagePdfEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageImages, setPageImages] = useState<Array<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>>([]);
@@ -274,15 +299,7 @@ export default function ImagePdfEditor({
     onFieldsChange(filteredFields);
   }, [signatureFields, onFieldsChange]);
 
-  const handleImageClick = useCallback((e: React.MouseEvent, pageNumber: number) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (!rect) return;
-
-    const x = (e.clientX - rect.left) / scale;
-    const y = (e.clientY - rect.top) / scale;
-    addField(x, y, selectedFieldType, pageNumber);
-  }, [addField, selectedFieldType, scale]);
+  // Remove click-to-add functionality since we're using drag-and-drop only
 
   const openPdfInNewTab = () => {
     const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
@@ -326,24 +343,67 @@ export default function ImagePdfEditor({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">
-            {totalPages} page{totalPages !== 1 ? 's' : ''} • Scroll to position fields
-          </span>
+    <div className="grid grid-cols-12 gap-6">
+      {/* Draggable Fields Sidebar */}
+      <div className="col-span-3">
+        <div className="space-y-4">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Signature Fields</h3>
+            <p className="text-xs text-gray-600 mb-4">Drag these fields onto your document</p>
+            
+            <div className="space-y-3">
+              <DraggableFieldButton 
+                type="signature" 
+                icon={FileSignature} 
+                label="Signature" 
+              />
+              <DraggableFieldButton 
+                type="name" 
+                icon={Type} 
+                label="Name" 
+              />
+              <DraggableFieldButton 
+                type="date" 
+                icon={Calendar} 
+                label="Date" 
+              />
+              <DraggableFieldButton 
+                type="email" 
+                icon={Mail} 
+                label="Email" 
+              />
+              <DraggableFieldButton 
+                type="text" 
+                icon={AlignLeft} 
+                label="Text" 
+              />
+            </div>
+          </div>
           
-          <Button variant="outline" size="sm" onClick={openPdfInNewTab} className="ml-2">
-            <ExternalLink className="w-4 h-4 mr-1" />
-            View Original PDF
-          </Button>
-        </div>
-        
-        <div className="text-sm text-gray-600">
-          {signatureFields.length} field{signatureFields.length !== 1 ? 's' : ''} positioned
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Fields Positioned</span>
+              <span className="text-sm text-gray-600">{signatureFields.length}</span>
+            </div>
+            
+            <Button variant="outline" size="sm" onClick={openPdfInNewTab} className="w-full mt-3">
+              <ExternalLink className="w-4 h-4 mr-1" />
+              View Original PDF
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* PDF Preview */}
+      <div className="col-span-9">
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">PDF Template Editor</h3>
+            <div className="text-sm text-gray-600">
+              {totalPages} page{totalPages !== 1 ? 's' : ''} • Scroll to position fields
+            </div>
+          </div>
 
       {/* PDF Preview Container */}
       <Card className="relative overflow-hidden">
@@ -376,13 +436,12 @@ export default function ImagePdfEditor({
                     <img
                       src={page.imageDataUrl}
                       alt={`PDF Page ${page.pageNumber}`}
-                      className="w-full h-auto border rounded shadow-sm cursor-crosshair select-none"
-                      onClick={(e) => handleImageClick(e, page.pageNumber)}
+                      className="w-full h-auto border rounded shadow-sm select-none"
                       onDragStart={(e) => e.preventDefault()}
                       style={{
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
-                        pointerEvents: 'auto'
+                        pointerEvents: 'none'
                       }}
                     />
                     
@@ -411,7 +470,7 @@ export default function ImagePdfEditor({
           {signatureFields.length === 0 && pageImages.length > 0 && (
             <div className="absolute top-8 left-4 pointer-events-none z-10">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
-                Click on any page or drag fields from the sidebar to add {selectedFieldType} fields
+                Drag signature fields from the sidebar and drop them on the document
               </div>
             </div>
           )}
@@ -427,18 +486,19 @@ export default function ImagePdfEditor({
         </div>
       </Card>
 
-      {/* Instructions */}
-      <Card className="p-4">
-        <h4 className="font-medium mb-2">PDF Template Editor</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• All PDF pages converted to images and displayed vertically</li>
-          <li>• Scroll through pages to position signature fields anywhere</li>
-          <li>• Click anywhere on any page to add signature fields</li>
-          <li>• Drag fields to reposition them precisely</li>
-          <li>• Double-click field labels to edit them</li>
-          <li>• Field coordinates are saved for exact signature placement in the final PDF</li>
-        </ul>
-      </Card>
+          {/* Instructions */}
+          <Card className="p-4">
+            <h4 className="font-medium mb-2">How to Use</h4>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Drag signature field types from the left sidebar onto the document</li>
+              <li>• Drop fields precisely where you want signers to fill them in</li>
+              <li>• Drag existing fields to reposition them</li>
+              <li>• Double-click field labels to edit them</li>
+              <li>• Field coordinates are saved for exact placement in the final PDF</li>
+            </ul>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
