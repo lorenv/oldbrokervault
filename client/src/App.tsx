@@ -27,6 +27,7 @@ import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
 import EnhancedCimPage from "@/pages/enhanced-cim-page";
 import { DocumentDetailPage } from "@/pages/document-detail-page";
+import { lazy } from "react";
 
 function Router() {
   const [location] = useLocation();
