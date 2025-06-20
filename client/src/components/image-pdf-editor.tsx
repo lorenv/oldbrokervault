@@ -119,19 +119,13 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
   icon: any, 
   label: string 
 }) => {
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag(() => ({
     type: 'new-field',
     item: { type },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    begin: () => {
-      console.log('Drag started for:', type);
-    },
-    end: (item, monitor) => {
-      console.log('Drag ended for:', type, 'was dropped:', monitor.didDrop());
-    }
-  });
+  }), [type]);
 
   return (
     <div
@@ -139,7 +133,7 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
       className={`flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50 ${
         isDragging ? 'opacity-50 scale-95' : ''
       }`}
-      style={{ touchAction: 'none' }} // Prevent touch interference
+
     >
       <Icon className="w-4 h-4 text-gray-600" />
       <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -226,7 +220,7 @@ export default function ImagePdfEditor({
   // Remove auto-scaling since we're using max-width constraint instead
 
   // Drop handler for field placement on the entire container
-  const [{ isOver, canDrop }, dropProps] = useDrop({
+  const [{ isOver, canDrop }, dropProps] = useDrop(() => ({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       console.log('Drop triggered!', item);
@@ -284,7 +278,7 @@ export default function ImagePdfEditor({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  });
+  }), [pageImages, addField, updateField]);
 
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
     const newField: SignatureField = {
