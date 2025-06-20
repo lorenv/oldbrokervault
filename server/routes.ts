@@ -4600,10 +4600,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  app.post("/api/cim/:shareSlug/sign-nda", async (req, res) => {
+  app.post("/api/share/:shareSlug/sign-nda", async (req, res) => {
     try {
       const { shareSlug } = req.params;
-      const { signerName, signerEmail } = req.body;
+      const { signerName, signerEmail, fieldValues = {} } = req.body;
       // Get real client IP address, not proxy IP
       const signerIpAddress = req.headers['x-forwarded-for']?.toString().split(',')[0] || 
                              req.headers['x-real-ip']?.toString() ||
@@ -4695,13 +4695,51 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const signedAt = new Date();
       
       try {
-        const signedNdaContent = await addSignatureToNda(
-          ndaTemplate.fileContent,
-          signerName,
-          signedAt,
-          signerEmail,
-          signerIpAddress
-        );
+        // Enhanced signature processing with field values
+        let signedNdaContent: string;
+        
+        if (ndaTemplate.signatureFields && ndaTemplate.signatureFields.length > 0) {
+          console.log("Processing signature using enhanced field-based system");
+          const processor = await PdfSignatureProcessor.fromBase64(ndaTemplate.fileContent);
+          
+          // Prepare field values with signature data
+          const processedFieldValues = { ...fieldValues };
+          
+          // Auto-populate standard fields if not provided
+          if (!processedFieldValues.name && ndaTemplate.signatureFields.some((f: any) => f.type === 'name')) {
+            const nameField = ndaTemplate.signatureFields.find((f: any) => f.type === 'name');
+            if (nameField) processedFieldValues[nameField.id] = signerName;
+          }
+          
+          if (!processedFieldValues.email && ndaTemplate.signatureFields.some((f: any) => f.type === 'email')) {
+            const emailField = ndaTemplate.signatureFields.find((f: any) => f.type === 'email');
+            if (emailField) processedFieldValues[emailField.id] = signerEmail;
+          }
+          
+          // Process date fields
+          ndaTemplate.signatureFields.filter((f: any) => f.type === 'date').forEach((field: any) => {
+            if (!processedFieldValues[field.id]) {
+              processedFieldValues[field.id] = signedAt.toLocaleDateString();
+            }
+          });
+          
+          // Embed fields into PDF
+          signedNdaContent = await processor.embedFields(ndaTemplate.signatureFields, processedFieldValues);
+          
+          // Add completion certificate
+          await processor.addCompletionCertificate(signerName, signerEmail, signedAt);
+          signedNdaContent = await processor.saveAsBase64();
+          
+        } else {
+          console.log("Using legacy signature processing (no signature fields)");
+          signedNdaContent = await addSignatureToNda(
+            ndaTemplate.fileContent,
+            signerName,
+            signedAt,
+            signerEmail,
+            signerIpAddress
+          );
+        }
         console.log("Signed NDA content created successfully");
 
         // Save signature record
@@ -4714,7 +4752,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           signerEmail,
           signerIpAddress,
           signerLocation,
-          signedNdaContent
+          signedNdaContent,
+          fieldValues
         };
         
         console.log("🔍 Signature data structure:", {
