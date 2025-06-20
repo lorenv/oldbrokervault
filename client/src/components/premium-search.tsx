@@ -49,32 +49,7 @@ export function PremiumSearch() {
   };
 
   // Check if user has premium access
-  const isPremium = user && (user.subscriptionStatus !== 'free' || user.isAdmin);
-
-  if (!isPremium) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Advanced Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Premium Feature</h3>
-            <p className="text-muted-foreground mb-4">
-              Advanced search across all your documents is available with a premium subscription.
-            </p>
-            <Button variant="outline">
-              Upgrade to Premium
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Advanced search is now available to all users
 
   return (
     <div className="space-y-6">

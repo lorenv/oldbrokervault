@@ -2378,19 +2378,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Premium Feature: User Analytics Dashboard
+  // User Analytics Dashboard - Available to all users
   app.get("/api/analytics/dashboard", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const user = await storage.getUser(req.user!.id);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Analytics dashboard requires a premium subscription",
-          upgradeRequired: true 
-        });
-      }
-
       const { start, end } = req.query;
       const timeRange = start && end ? {
         start: new Date(start as string),

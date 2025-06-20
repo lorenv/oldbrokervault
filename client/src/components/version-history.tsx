@@ -54,32 +54,7 @@ export function VersionHistory({ documentId }: VersionHistoryProps) {
     }
   });
 
-  const isPremium = user && (user.subscriptionStatus !== 'free' || user.isAdmin);
-
-  if (!isPremium) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Version History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Premium Feature</h3>
-            <p className="text-muted-foreground mb-4">
-              Track document changes and restore previous versions with a premium subscription.
-            </p>
-            <Button variant="outline">
-              Upgrade to Premium
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Version history is now available to all users
 
   return (
     <Card>
