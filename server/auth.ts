@@ -224,7 +224,8 @@ export function setupAuth(app: Express) {
             message: "Failed to log in after registration"
           });
         }
-        res.status(201).json(user);
+        // SECURITY: Return sanitized user data without sensitive fields
+        res.status(201).json(sanitizeUser(user));
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -314,7 +315,8 @@ export function setupAuth(app: Express) {
           console.log("Session established successfully for:", user.email);
           console.log(`Final session ID: ${req.sessionID}`);
           console.log(`Total login process took: ${Date.now() - loginStart}ms`);
-          return res.json(user);
+          // SECURITY: Return sanitized user data without sensitive fields
+          return res.json(sanitizeUser(user));
         });
       })(req, res, next);
     } catch (error) {
@@ -344,6 +346,7 @@ export function setupAuth(app: Express) {
         message: "Not authenticated"
       });
     }
-    res.json(req.user);
+    // SECURITY: Return sanitized user data without sensitive fields
+    res.json(sanitizeUser(req.user));
   });
 }
