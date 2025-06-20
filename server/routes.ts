@@ -1831,7 +1831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics endpoint for document statistics
+  // Enhanced View Analytics endpoint with NDA-aware tracking
   app.get("/api/cim/:id/analytics", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -1843,18 +1843,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized" });
       }
       
-      // For now, return basic analytics structure
-      // This can be enhanced with actual view tracking later
+      // Get comprehensive view statistics using new tracking system
+      const viewStats = await storage.getDocumentViewStats(docId);
+      
+      // Return enhanced analytics with NDA-aware view tracking
       const analytics = {
-        totalViews: 0,
-        uniqueViewers: 0,
-        dailyViews: {}
+        totalViews: viewStats.totalViews,
+        anonymousViews: viewStats.anonymousViews,
+        ndaSignerViews: viewStats.ndaSignerViews,
+        uniqueNdaSigners: viewStats.uniqueNdaSigners,
+        legacyShareViewCount: cim.shareViewCount || 0,
+        ndaProtected: cim.ndaProtected,
+        documentType: cim.ndaProtected ? 'nda_protected' : 'public',
+        recentViews: viewStats.recentViews,
+        dailyViews: {} // Can be enhanced later with daily breakdown
       };
       
       res.json(analytics);
     } catch (error) {
-      console.error('Analytics error:', error);
+      console.error('Enhanced analytics error:', error);
       res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // NDA Signer View History endpoint
+  app.get("/api/cim/:docId/nda-signer-views/:signerEmail", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signerEmail = decodeURIComponent(req.params.signerEmail);
+      
+      const doc = await storage.getCimDocument(docId);
+      
+      if (!doc || doc.userId !== req.user!.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (!doc.ndaProtected) {
+        return res.status(400).json({ error: "Document is not NDA protected" });
+      }
+
+      const viewHistory = await storage.getNdaSignerViewHistory(docId, signerEmail);
+      res.json(viewHistory);
+    } catch (error) {
+      console.error("NDA signer view history error:", error);
+      res.status(500).json({ error: "Failed to get signer view history" });
     }
   });
 
