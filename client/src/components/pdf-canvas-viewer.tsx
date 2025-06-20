@@ -7,8 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker - disable for better compatibility
+if (typeof window !== 'undefined') {
+  // Disable worker for better compatibility in development
+  pdfjsLib.GlobalWorkerOptions.workerSrc = false;
+}
 
 interface SignatureField {
   id: string;
@@ -126,14 +129,44 @@ export default function PdfCanvasViewer({
     const loadPdf = async () => {
       setIsLoading(true);
       try {
-        const pdfData = `data:application/pdf;base64,${pdfBase64}`;
-        const loadingTask = pdfjsLib.getDocument(pdfData);
+        console.log('Loading PDF with base64 length:', pdfBase64.length);
+        
+        // Try multiple loading methods for better compatibility
+        let loadingTask;
+        
+        try {
+          // Method 1: Direct data URL
+          const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
+          loadingTask = pdfjsLib.getDocument({
+            url: dataUrl,
+            disableWorker: true,
+            isEvalSupported: false,
+          });
+        } catch (error) {
+          console.log('Data URL method failed, trying Uint8Array method');
+          
+          // Method 2: Uint8Array conversion
+          const binaryString = atob(pdfBase64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          loadingTask = pdfjsLib.getDocument({
+            data: bytes,
+            disableWorker: true,
+            isEvalSupported: false,
+          });
+        }
+        
         const pdf = await loadingTask.promise;
+        console.log('PDF loaded successfully, pages:', pdf.numPages);
         setPdfDoc(pdf);
         setTotalPages(pdf.numPages);
         setCurrentPage(1);
       } catch (error) {
         console.error('Error loading PDF:', error);
+        console.error('PDF base64 preview:', pdfBase64.substring(0, 100) + '...');
       } finally {
         setIsLoading(false);
       }
@@ -147,20 +180,29 @@ export default function PdfCanvasViewer({
     if (!pdfDoc || !canvasRef.current) return;
 
     const renderPage = async () => {
-      const page = await pdfDoc.getPage(currentPage);
-      const canvas = canvasRef.current!;
-      const context = canvas.getContext('2d')!;
+      try {
+        console.log('Rendering page:', currentPage, 'with scale:', scale);
+        const page = await pdfDoc.getPage(currentPage);
+        const canvas = canvasRef.current!;
+        const context = canvas.getContext('2d')!;
 
-      const viewport = page.getViewport({ scale });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+        const viewport = page.getViewport({ scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport,
-      };
+        // Clear canvas before rendering
+        context.clearRect(0, 0, canvas.width, canvas.height);
 
-      await page.render(renderContext).promise;
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        await page.render(renderContext).promise;
+        console.log('Page rendered successfully');
+      } catch (error) {
+        console.error('Error rendering page:', error);
+      }
     };
 
     renderPage();
@@ -249,7 +291,21 @@ export default function PdfCanvasViewer({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading PDF...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pdfDoc) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-sm text-red-600 mb-2">Failed to load PDF</p>
+          <p className="text-xs text-gray-500">Please try uploading the PDF again</p>
+        </div>
       </div>
     );
   }
