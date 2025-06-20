@@ -26,6 +26,7 @@ import sharp from 'sharp';
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
+import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 
 
 // Setup upload directory
@@ -300,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Found document:", !!cimDoc, cimDoc?.id);
       
       if (!cimDoc) {
-        console.log("Document not found for share slug:", shareSlug);
+        console.log("Document not found for share slug");
         return res.status(404).json({ error: "Document not found" });
       }
       
@@ -1999,12 +2000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Force refresh the user's session if they're currently logged in
         const user = await storage.getUser(userId);
-        console.log("Retrieved updated user:", {
-          id: user?.id,
-          subscriptionStatus: user?.subscriptionStatus,
-          subscriptionEndsAt: user?.subscriptionEndsAt,
-          stripeCustomerId: user?.stripeCustomerId
-        });
+        console.log("Retrieved updated user subscription status:", user?.subscriptionStatus);
 
         if (req.session && req.user?.id === userId) {
           req.session.passport = req.session.passport || {};
@@ -3822,7 +3818,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       clearTimeout(timeout);
       
-      // Return sanitized response
+      // Return sanitized response - explicitly excluding sensitive fields
       res.json({
         name: updatedUser.name,
         title: updatedUser.title,
@@ -3831,6 +3827,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         businessLogo: updatedUser.businessLogo,
         profilePhoto: updatedUser.profilePhoto,
         email: updatedUser.email
+        // Explicitly omitting: password, stripeCustomerId, subscriptionId, googleTokens, etc.
       });
     } catch (error) {
       clearTimeout(timeout);
@@ -3896,31 +3893,14 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Direct password reset endpoint (for admin/debugging purposes)
+  // SECURITY: Direct password reset endpoint disabled for production
+  // This endpoint poses a severe security risk as it bypasses normal password reset flow
+  /*
   app.post("/api/direct-password-reset", async (req, res) => {
-    try {
-      const { email, newPassword } = req.body;
-      
-      if (!email || !newPassword) {
-        return res.status(400).json({ error: "Email and new password are required" });
-      }
-
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const { hashPassword } = await import("./auth");
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUserPassword(user.id, hashedPassword);
-      
-      console.log(`Password reset directly for ${email}`);
-      res.json({ message: "Password has been reset successfully" });
-    } catch (error) {
-      console.error("Direct password reset error:", error);
-      res.status(500).json({ error: "Failed to reset password" });
-    }
+    // This endpoint has been disabled for security reasons
+    res.status(404).json({ error: "Endpoint not found" });
   });
+  */
 
   // User account update route (email and password)
   app.post("/api/user/update", async (req, res) => {
@@ -4813,7 +4793,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           signature.id,
           signerEmail
         );
-        console.log("Access token created:", ndaAccessToken.id);
+        console.log("Access token created for NDA signature");
 
         // Create redirect link
         console.log("Creating redirect link...");
@@ -4824,7 +4804,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           cimDoc.id,
           signerEmail
         );
-        console.log("Redirect link created:", redirectLink.id);
+        console.log("Redirect link created for NDA access");
 
         // Check if manual approval is required
         if (cimDoc.ndaApprovalRequired) {
