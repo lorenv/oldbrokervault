@@ -4177,41 +4177,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
         console.log(`PDF written to temp file: ${pdfPath}, size: ${stats.size} bytes`);
 
-        // Get page number from request (default to page 1)
-        const pageNumber = parseInt(req.body.pageNumber) || 1;
-
-        // Convert specific PDF page to PNG using poppler-utils
-        const baseImagePath = imagePath.replace('.png', '');
-        const convertCommand = `pdftoppm -png -f ${pageNumber} -l ${pageNumber} -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
-        const finalImagePath = `${baseImagePath}-${pageNumber.toString().padStart(2, '0')}.png`;
-
-        console.log(`Running conversion command for page ${pageNumber}:`, convertCommand);
-        await execAsync(convertCommand, { timeout: 30000 });
-
-        // Check multiple possible output formats
-        const possiblePaths = [
-          finalImagePath,
-          `${baseImagePath}-${pageNumber}.png`,
-          `${baseImagePath}-1.png`
-        ];
-
-        let actualImagePath = '';
-        for (const possiblePath of possiblePaths) {
-          if (fsSync.existsSync(possiblePath)) {
-            actualImagePath = possiblePath;
-            break;
-          }
-        }
-
-        if (!actualImagePath) {
-          throw new Error('PDF conversion failed - no output image generated');
-        }
-
-        // Read the generated image
-        const imageBuffer = fsSync.readFileSync(actualImagePath);
-        const imageBase64 = imageBuffer.toString('base64');
-
-        // Get total page count using pdfinfo
+        // Get total page count using pdfinfo first
         let totalPages = 1;
         try {
           const { stdout } = await execAsync(`pdfinfo "${pdfPath}"`, { timeout: 10000 });
@@ -4223,18 +4189,59 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           console.warn('Could not get page count, defaulting to 1');
         }
 
-        // Clean up temporary files
-        fsSync.unlinkSync(pdfPath);
-        fsSync.unlinkSync(actualImagePath);
+        console.log(`Converting all ${totalPages} pages to images`);
 
-        console.log(`PDF page ${pageNumber}/${totalPages} converted successfully, image size: ${imageBase64.length}`);
+        // Convert all pages to PNG using poppler-utils
+        const baseImagePath = imagePath.replace('.png', '');
+        const convertCommand = `pdftoppm -png -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
+        
+        console.log('Running conversion command for all pages:', convertCommand);
+        await execAsync(convertCommand, { timeout: 60000 });
+
+        // Collect all generated page images
+        const pageImages: Array<{ pageNumber: number; imageBase64: string; imageDataUrl: string }> = [];
+        
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+          // Check multiple possible output formats
+          const possiblePaths = [
+            `${baseImagePath}-${pageNum.toString().padStart(2, '0')}.png`,
+            `${baseImagePath}-${pageNum}.png`,
+            pageNum === 1 ? `${baseImagePath}.png` : null,
+            pageNum === 1 ? `${baseImagePath}-1.png` : null
+          ].filter(Boolean) as string[];
+
+          let actualImagePath = '';
+          for (const possiblePath of possiblePaths) {
+            if (fsSync.existsSync(possiblePath)) {
+              actualImagePath = possiblePath;
+              break;
+            }
+          }
+
+          if (actualImagePath) {
+            const imageBuffer = fsSync.readFileSync(actualImagePath);
+            const imageBase64 = imageBuffer.toString('base64');
+            
+            pageImages.push({
+              pageNumber: pageNum,
+              imageBase64,
+              imageDataUrl: `data:image/png;base64,${imageBase64}`
+            });
+
+            // Clean up this page image
+            fsSync.unlinkSync(actualImagePath);
+          }
+        }
+
+        // Clean up PDF file
+        fsSync.unlinkSync(pdfPath);
+
+        console.log(`All ${pageImages.length} pages converted successfully`);
 
         return res.json({
           success: true,
-          pageNumber,
           totalPages,
-          imageBase64,
-          imageDataUrl: `data:image/png;base64,${imageBase64}`
+          pages: pageImages
         });
 
       } catch (conversionError: any) {

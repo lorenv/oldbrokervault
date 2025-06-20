@@ -3,7 +3,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
 
 interface SignatureField {
   id: string;
@@ -120,13 +120,11 @@ export default function ImagePdfEditor({
   onFieldsChange,
   selectedFieldType
 }: ImagePdfEditorProps) {
-  const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [imageUrl, setImageUrl] = useState<string>('');
+  const [pageImages, setPageImages] = useState<Array<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>>([]);
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Convert PDF to image via server
@@ -138,12 +136,12 @@ export default function ImagePdfEditor({
       setError('');
 
       try {
-        console.log(`Converting PDF to image via server, page ${currentPage}`);
+        console.log('Converting all PDF pages to images via server');
         
         const response = await fetch('/api/pdf-to-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdfBase64, pageNumber: currentPage }),
+          body: JSON.stringify({ pdfBase64 }),
         });
 
         if (!response.ok) {
@@ -158,9 +156,27 @@ export default function ImagePdfEditor({
         }
 
         const data = await response.json();
-        console.log(`PDF page ${data.pageNumber} converted successfully, total pages: ${data.totalPages}`);
+        console.log(`All ${data.pages.length} PDF pages converted successfully`);
         
-        setImageUrl(data.imageDataUrl);
+        // Process page images and calculate dimensions
+        const processedPages = await Promise.all(
+          data.pages.map(async (page: any) => {
+            return new Promise<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                resolve({
+                  pageNumber: page.pageNumber,
+                  imageDataUrl: page.imageDataUrl,
+                  height: img.height,
+                  width: img.width
+                });
+              };
+              img.src = page.imageDataUrl;
+            });
+          })
+        );
+        
+        setPageImages(processedPages);
         setTotalPages(data.totalPages || 1);
         setIsLoading(false);
 
@@ -173,7 +189,7 @@ export default function ImagePdfEditor({
     };
 
     convertPdfToImage();
-  }, [pdfBase64, currentPage]);
+  }, [pdfBase64]);
 
   // Auto-scale image to fit container
   useEffect(() => {
@@ -211,10 +227,25 @@ export default function ImagePdfEditor({
       const x = (offset.x - imageRect.left) / scale;
       const y = (offset.y - imageRect.top) / scale;
       
+      // Calculate which page this drop is on
+      let cumulativeHeight = 0;
+      let targetPage = 1;
+      
+      for (const page of pageImages) {
+        const pageHeight = page.height * scale;
+        if (y >= cumulativeHeight && y < cumulativeHeight + pageHeight) {
+          targetPage = page.pageNumber;
+          // Adjust y coordinate to be relative to the page
+          y = y - cumulativeHeight;
+          break;
+        }
+        cumulativeHeight += pageHeight + 20; // 20px gap between pages
+      }
+      
       if (item.type && !item.id) {
-        addField(x, y, item.type);
+        addField(x, y, item.type, targetPage);
       } else if (item.id) {
-        updateField(item.id, { x, y, pageNumber: currentPage });
+        updateField(item.id, { x, y, pageNumber: targetPage });
       }
     },
     collect: (monitor) => ({
@@ -295,29 +326,9 @@ export default function ImagePdfEditor({
       {/* Toolbar */}
       <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
         <div className="flex items-center gap-2">
-          {totalPages > 1 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage <= 1 || isLoading}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm px-3">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage >= totalPages || isLoading}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </>
-          )}
+          <span className="text-sm font-medium">
+            {totalPages} page{totalPages !== 1 ? 's' : ''} • Scroll to position fields
+          </span>
           
           <Button variant="outline" size="sm" onClick={openPdfInNewTab} className="ml-2">
             <ExternalLink className="w-4 h-4 mr-1" />
@@ -326,7 +337,7 @@ export default function ImagePdfEditor({
         </div>
         
         <div className="text-sm text-gray-600">
-          {signatureFields.filter(f => f.pageNumber === currentPage).length} field{signatureFields.filter(f => f.pageNumber === currentPage).length !== 1 ? 's' : ''} on this page
+          {signatureFields.length} field{signatureFields.length !== 1 ? 's' : ''} positioned
         </div>
       </div>
 
@@ -384,9 +395,9 @@ export default function ImagePdfEditor({
       <Card className="p-4">
         <h4 className="font-medium mb-2">PDF Template Editor</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• PDF converted to image and displayed above</li>
-          <li>• Use page navigation if your PDF has multiple pages</li>
-          <li>• Click anywhere on the document image to add signature fields</li>
+          <li>• All PDF pages converted to images and displayed vertically</li>
+          <li>• Scroll through pages to position signature fields anywhere</li>
+          <li>• Click anywhere on any page to add signature fields</li>
           <li>• Drag fields to reposition them precisely</li>
           <li>• Double-click field labels to edit them</li>
           <li>• Field coordinates are saved for exact signature placement in the final PDF</li>
