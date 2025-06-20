@@ -1,186 +1,291 @@
-import { promises as fs } from 'fs';
+import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch';
-import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
-
-// Function to add rounded corners to images
-async function addRoundedCorners(imageBuffer: Buffer, radius: number = 12): Promise<Buffer> {
-  try {
-    const image = sharp(imageBuffer);
-    const metadata = await image.metadata();
-    
-    if (!metadata.width || !metadata.height) {
-      throw new Error('Could not determine image dimensions');
-    }
-
-    // Create rounded rectangle mask
-    const roundedCorners = Buffer.from(
-      `<svg width="${metadata.width}" height="${metadata.height}">
-        <rect x="0" y="0" width="${metadata.width}" height="${metadata.height}" rx="${radius}" ry="${radius}" fill="white"/>
-      </svg>`
-    );
-
-    // Apply the mask to create rounded corners
-    const processedImage = await sharp(imageBuffer)
-      .png() // Convert to PNG to support transparency for rounded corners
-      .composite([
-        {
-          input: roundedCorners,
-          blend: 'dest-in'
-        }
-      ])
-      .toBuffer();
-
-    return processedImage;
-  } catch (error) {
-    console.error('Error adding rounded corners:', error);
-    return imageBuffer; // Return original if processing fails
-  }
-}
+import sharp from 'sharp';
 
 export interface ImageMetadata {
   id: string;
   originalName: string;
   fileName: string;
-  localPath: string;
+  filePath: string;
   publicPath: string;
-  originalUrl?: string;
-  source: 'website' | 'upload';
-  dimensions: { width: number; height: number };
-  fileSize: number;
   mimeType: string;
-  uploadDate: Date;
+  fileSize: number;
+  width?: number;
+  height?: number;
+  userId: number;
+  createdAt: Date;
 }
 
 export class ImageManager {
-  private baseDir = 'public/business-images';
-
+  private baseDir: string;
+  
   constructor() {
-    this.ensureDirectories();
+    this.baseDir = path.join(process.cwd(), 'public', 'user-images');
+    this.ensureDirectoryExists(this.baseDir);
   }
 
-  private async ensureDirectories() {
-    try {
-      await fs.mkdir(this.baseDir, { recursive: true });
-    } catch (error) {
-      console.error('Error creating image directories:', error);
+  private ensureDirectoryExists(dirPath: string): void {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
     }
   }
 
-  private getCimImageDir(cimId: number): string {
-    return path.join(this.baseDir, cimId.toString());
+  private getUserImageDir(userId: number): string {
+    const userDir = path.join(this.baseDir, userId.toString());
+    this.ensureDirectoryExists(userDir);
+    return userDir;
   }
 
-  private getPublicPath(cimId: number, fileName: string): string {
-    return `/business-images/${cimId}/${fileName}`;
+  private getImageTypeDir(userId: number, type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections'): string {
+    const typeDir = path.join(this.getUserImageDir(userId), type);
+    this.ensureDirectoryExists(typeDir);
+    return typeDir;
   }
 
-  async downloadImageFromUrl(url: string, cimId: number, originalName?: string): Promise<ImageMetadata> {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.statusText}`);
-      }
-
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const imageId = uuidv4();
-      const fileName = `${imageId}.png`; // PNG to support rounded corners with transparency
-      
-      return await this.saveImageBuffer(buffer, cimId, fileName, {
-        originalName: originalName || path.basename(url),
-        originalUrl: url,
-        source: 'website'
-      });
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      throw error;
-    }
+  private generateFileName(originalName: string, mimeType: string): string {
+    const uuid = uuidv4();
+    const extension = this.getExtensionFromMimeType(mimeType) || path.extname(originalName) || '.jpg';
+    return `${uuid}${extension}`;
   }
 
-  async saveUploadedImage(buffer: Buffer, cimId: number, originalName: string): Promise<ImageMetadata> {
-    const imageId = uuidv4();
-    const fileName = `${imageId}.png`; // PNG to support rounded corners with transparency
-    
-    return await this.saveImageBuffer(buffer, cimId, fileName, {
-      originalName,
-      source: 'upload'
-    });
-  }
-
-  private async saveImageBuffer(
-    buffer: Buffer, 
-    cimId: number, 
-    fileName: string, 
-    metadata: Partial<ImageMetadata>
-  ): Promise<ImageMetadata> {
-    const cimDir = this.getCimImageDir(cimId);
-    await fs.mkdir(cimDir, { recursive: true });
-
-    // Process image with Sharp - optimize and get metadata
-    const image = sharp(buffer);
-    const sharpMetadata = await image.metadata();
-    
-    // Optimize image: resize if too large, compress
-    let optimizedBuffer = await image
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-    
-    // Apply rounded corners consistently to all business images
-    optimizedBuffer = await addRoundedCorners(optimizedBuffer, 30);
-
-    const localPath = path.join(cimDir, fileName);
-    await fs.writeFile(localPath, optimizedBuffer);
-
-    const imageMetadata: ImageMetadata = {
-      id: uuidv4(),
-      originalName: metadata.originalName || fileName,
-      fileName,
-      localPath,
-      publicPath: this.getPublicPath(cimId, fileName),
-      originalUrl: metadata.originalUrl,
-      source: metadata.source || 'upload',
-      dimensions: {
-        width: sharpMetadata.width || 0,
-        height: sharpMetadata.height || 0
-      },
-      fileSize: optimizedBuffer.length,
-      mimeType: 'image/png', // PNG to support transparency from rounded corners
-      uploadDate: new Date()
+  private getExtensionFromMimeType(mimeType: string): string {
+    const extensions: { [key: string]: string } = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg'
     };
-
-    return imageMetadata;
+    return extensions[mimeType] || '.jpg';
   }
 
-  async deleteImage(cimId: number, fileName: string): Promise<void> {
+  private getMimeTypeFromExtension(extension: string): string {
+    const mimeTypes: { [key: string]: string } = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml'
+    };
+    return mimeTypes[extension.toLowerCase()] || 'image/jpeg';
+  }
+
+  /**
+   * Save an image from buffer data
+   */
+  async saveImageFromBuffer(
+    buffer: Buffer,
+    originalName: string,
+    mimeType: string,
+    userId: number,
+    type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
+    options: { optimize?: boolean; maxWidth?: number; maxHeight?: number } = {}
+  ): Promise<ImageMetadata> {
+    const { optimize = true, maxWidth = 1200, maxHeight = 800 } = options;
+    
+    const fileName = this.generateFileName(originalName, mimeType);
+    const typeDir = this.getImageTypeDir(userId, type);
+    const filePath = path.join(typeDir, fileName);
+    const publicPath = `/user-images/${userId}/${type}/${fileName}`;
+
+    let processedBuffer = buffer;
+    let finalMimeType = mimeType;
+    let width: number | undefined;
+    let height: number | undefined;
+
+    // Optimize image if requested
+    if (optimize && !mimeType.includes('svg')) {
+      try {
+        const image = sharp(buffer);
+        const metadata = await image.metadata();
+        
+        width = metadata.width;
+        height = metadata.height;
+        
+        // Check if image has transparency
+        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
+        
+        if (hasAlpha || mimeType === 'image/png') {
+          // Preserve transparency for PNG images
+          processedBuffer = await image
+            .resize(maxWidth, maxHeight, { 
+              fit: 'inside', 
+              withoutEnlargement: true,
+              background: { r: 0, g: 0, b: 0, alpha: 0 }
+            })
+            .png({ quality: 85, force: true })
+            .toBuffer();
+          finalMimeType = 'image/png';
+        } else {
+          // Convert to JPEG for photos without transparency
+          processedBuffer = await image
+            .resize(maxWidth, maxHeight, { 
+              fit: 'inside', 
+              withoutEnlargement: true,
+              background: { r: 255, g: 255, b: 255, alpha: 1 }
+            })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          finalMimeType = 'image/jpeg';
+        }
+        
+        // Update metadata after processing
+        const processedMetadata = await sharp(processedBuffer).metadata();
+        width = processedMetadata.width;
+        height = processedMetadata.height;
+      } catch (error) {
+        console.warn('Image optimization failed, using original:', error);
+        processedBuffer = buffer;
+      }
+    }
+
+    // Write file to disk
+    fs.writeFileSync(filePath, processedBuffer);
+
+    return {
+      id: path.parse(fileName).name,
+      originalName,
+      fileName,
+      filePath,
+      publicPath,
+      mimeType: finalMimeType,
+      fileSize: processedBuffer.length,
+      width,
+      height,
+      userId,
+      createdAt: new Date()
+    };
+  }
+
+  /**
+   * Save an image from base64 data
+   */
+  async saveImageFromBase64(
+    base64Data: string,
+    originalName: string,
+    userId: number,
+    type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
+    options: { optimize?: boolean; maxWidth?: number; maxHeight?: number } = {}
+  ): Promise<ImageMetadata> {
+    // Extract MIME type and data from base64 string
+    const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Invalid base64 data format');
+    }
+    
+    const mimeType = matches[1];
+    const base64Content = matches[2];
+    const buffer = Buffer.from(base64Content, 'base64');
+    
+    return this.saveImageFromBuffer(buffer, originalName, mimeType, userId, type, options);
+  }
+
+  /**
+   * Save an image from URL
+   */
+  async saveImageFromUrl(
+    imageUrl: string,
+    userId: number,
+    type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
+    options: { optimize?: boolean; maxWidth?: number; maxHeight?: number } = {}
+  ): Promise<ImageMetadata> {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
+    }
+    
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+    const originalName = path.basename(new URL(imageUrl).pathname) || 'downloaded-image';
+    
+    return this.saveImageFromBuffer(buffer, originalName, mimeType, userId, type, options);
+  }
+
+  /**
+   * Get image metadata from file path
+   */
+  getImageMetadata(publicPath: string): ImageMetadata | null {
     try {
-      const filePath = path.join(this.getCimImageDir(cimId), fileName);
-      await fs.unlink(filePath);
+      const fullPath = path.join(process.cwd(), 'public', publicPath.replace(/^\//, ''));
+      
+      if (!fs.existsSync(fullPath)) {
+        return null;
+      }
+      
+      const stats = fs.statSync(fullPath);
+      const fileName = path.basename(fullPath);
+      const extension = path.extname(fileName);
+      const id = path.parse(fileName).name;
+      
+      // Extract userId from path structure
+      const pathParts = publicPath.split('/');
+      const userId = parseInt(pathParts[2]) || 0;
+      
+      return {
+        id,
+        originalName: fileName,
+        fileName,
+        filePath: fullPath,
+        publicPath,
+        mimeType: this.getMimeTypeFromExtension(extension),
+        fileSize: stats.size,
+        userId,
+        createdAt: stats.birthtime
+      };
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error('Failed to get image metadata:', error);
+      return null;
     }
   }
 
-  async deleteCimImages(cimId: number): Promise<void> {
+  /**
+   * Delete an image file
+   */
+  deleteImage(publicPath: string): boolean {
     try {
-      const cimDir = this.getCimImageDir(cimId);
-      await fs.rmdir(cimDir, { recursive: true });
+      const fullPath = path.join(process.cwd(), 'public', publicPath.replace(/^\//, ''));
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        return true;
+      }
+      return false;
     } catch (error) {
-      console.error('Error deleting CIM images:', error);
+      console.error('Failed to delete image:', error);
+      return false;
     }
   }
 
-  async getCimImages(cimId: number): Promise<string[]> {
-    try {
-      const cimDir = this.getCimImageDir(cimId);
-      const files = await fs.readdir(cimDir);
-      return files.filter(file => /\.(jpg|jpeg|png)$/i.test(file))
-        .map(file => this.getPublicPath(cimId, file));
-    } catch (error) {
-      return [];
-    }
+  /**
+   * Check if an image exists
+   */
+  imageExists(publicPath: string): boolean {
+    const fullPath = path.join(process.cwd(), 'public', publicPath.replace(/^\//, ''));
+    return fs.existsSync(fullPath);
+  }
+
+  /**
+   * Get the full file system path from public path
+   */
+  getFullPath(publicPath: string): string {
+    return path.join(process.cwd(), 'public', publicPath.replace(/^\//, ''));
+  }
+
+  /**
+   * Migrate base64 image to file system
+   */
+  async migrateBase64ToFile(
+    base64Data: string,
+    userId: number,
+    type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
+    originalName: string = 'migrated-image'
+  ): Promise<ImageMetadata> {
+    console.log(`Migrating base64 image for user ${userId}, type: ${type}`);
+    return this.saveImageFromBase64(base64Data, originalName, userId, type, { optimize: true });
   }
 }
 
+// Export singleton instance
 export const imageManager = new ImageManager();
