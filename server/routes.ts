@@ -4142,6 +4142,75 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // PDF to image conversion endpoint  
+  app.post('/api/pdf-to-image', express.json({ limit: '50mb' }), async (req, res) => {
+    try {
+      const { pdfBase64 } = req.body;
+      
+      if (!pdfBase64) {
+        return res.status(400).json({ error: 'No PDF data provided' });
+      }
+
+      console.log('Converting PDF to image, size:', pdfBase64.length);
+
+      const tempDir = '/tmp';
+      const pdfPath = path.join(tempDir, `pdf_${Date.now()}.pdf`);
+      const imagePath = path.join(tempDir, `pdf_${Date.now()}.png`);
+
+      try {
+        // Write PDF to temporary file
+        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+        fsSync.writeFileSync(pdfPath, pdfBuffer);
+
+        // Convert PDF to PNG using poppler-utils
+        const baseImagePath = imagePath.replace('.png', '');
+        const convertCommand = `pdftoppm -png -f 1 -l 1 -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
+        const finalImagePath = `${baseImagePath}-1.png`;
+
+        console.log('Running conversion command:', convertCommand);
+        await execAsync(convertCommand);
+
+        if (!fsSync.existsSync(finalImagePath)) {
+          throw new Error('PDF conversion failed - no output image generated');
+        }
+
+        // Read the generated image
+        const imageBuffer = fsSync.readFileSync(finalImagePath);
+        const imageBase64 = imageBuffer.toString('base64');
+
+        // Clean up temporary files
+        fsSync.unlinkSync(pdfPath);
+        fsSync.unlinkSync(finalImagePath);
+
+        console.log('PDF converted to image successfully, image size:', imageBase64.length);
+
+        return res.json({
+          success: true,
+          imageBase64,
+          imageDataUrl: `data:image/png;base64,${imageBase64}`
+        });
+
+      } catch (conversionError: any) {
+        console.error('PDF conversion error:', conversionError);
+        
+        // Clean up any temporary files
+        try {
+          if (fsSync.existsSync(pdfPath)) fsSync.unlinkSync(pdfPath);
+          if (fsSync.existsSync(finalImagePath)) fsSync.unlinkSync(finalImagePath);
+        } catch {}
+
+        return res.status(500).json({ 
+          error: 'PDF conversion failed',
+          details: conversionError.message 
+        });
+      }
+
+    } catch (error: any) {
+      console.error('PDF to image endpoint error:', error);
+      return res.status(500).json({ error: 'Server error during PDF conversion' });
+    }
+  });
+
   app.post("/api/nda-templates", upload.single('ndaFile'), async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
