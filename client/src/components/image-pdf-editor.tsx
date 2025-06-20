@@ -264,9 +264,27 @@ export default function ImagePdfEditor({
       
       if (item.type && !item.id) {
         console.log('Adding new field:', item.type, 'at', { adjustedX, adjustedY, targetPage });
-        addField(adjustedX, adjustedY, item.type, targetPage);
+        const newField: SignatureField = {
+          id: `field_${Date.now()}`,
+          type: item.type,
+          label: item.type.charAt(0).toUpperCase() + item.type.slice(1),
+          x: adjustedX,
+          y: adjustedY,
+          width: 120,
+          height: 30,
+          pageNumber: targetPage,
+          required: true,
+          fontSize: 12,
+        };
+        const updatedFields = [...signatureFields, newField];
+        onFieldsChange(updatedFields);
       } else if (item.id) {
-        updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
+        const updatedFields = signatureFields.map(field => 
+          field.id === item.id 
+            ? { ...field, x: adjustedX, y: adjustedY, pageNumber: targetPage }
+            : field
+        );
+        onFieldsChange(updatedFields);
       }
       
       return { success: true };
@@ -278,7 +296,7 @@ export default function ImagePdfEditor({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  }), [pageImages, addField, updateField]);
+  }), [pageImages, signatureFields, onFieldsChange]);
 
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
     const newField: SignatureField = {
