@@ -117,6 +117,8 @@ export interface IStorage {
     businessName?: string;
     businessLogo?: string;
     profilePhoto?: string;
+    businessLogoBackup?: string;
+    profilePhotoBackup?: string;
   }): Promise<User>;
   updateUserEmail(userId: number, email: string): Promise<void>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<void>;
@@ -689,6 +691,8 @@ export class DatabaseStorage implements IStorage {
     businessName?: string;
     businessLogo?: string;
     profilePhoto?: string;
+    businessLogoBackup?: string;
+    profilePhotoBackup?: string;
   }): Promise<User> {
     const [user] = await db.update(users)
       .set(profile)
@@ -895,7 +899,11 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async updateCustomSection(id: number, updates: { title?: string; content?: string }): Promise<void> {
+  async getAllCustomSections(): Promise<any[]> {
+    return await db.select().from(customSections);
+  }
+
+  async updateCustomSection(id: number, updates: { title?: string; content?: string; imageUrls?: string[]; imageUrlsBackup?: string[] }): Promise<void> {
     // Filter out undefined values to avoid "No values to set" error
     const validUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== undefined)
