@@ -2057,14 +2057,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const userName = req.user!.name || req.user!.email;
 
-      // Check if user has paid subscription for collaboration
+      // Collaboration features are now available to all users
       const user = await storage.getUser(userId);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Collaboration features require a paid subscription",
-          upgradeRequired: true 
-        });
-      }
 
       // Check document access
       const doc = await storage.getCimDocument(docId);
@@ -2176,14 +2170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docId = parseInt(req.params.id);
       const userId = req.user!.id;
 
-      // Check if user has paid subscription
+      // Collaboration features are now available to all users
       const user = await storage.getUser(userId);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Collaboration features require a paid subscription",
-          upgradeRequired: true 
-        });
-      }
 
       // Validate request body
       const validation = insertCollaboratorSchema.safeParse({
@@ -2251,12 +2239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await storage.getUser(req.user!.id);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Search features require a premium subscription",
-          upgradeRequired: true 
-        });
-      }
+      // Search features are now available to all users
 
       const { q: query, start, end } = req.query;
       if (!query || typeof query !== 'string') {
@@ -5442,7 +5425,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Check if user has premium access
-    if (req.user.subscriptionStatus === 'free') {
+    // Feature is now available to all users
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
@@ -5714,7 +5697,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    if (req.user.subscriptionStatus === 'free') {
+    // Feature is now available to all users
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
@@ -5752,7 +5735,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    if (req.user.subscriptionStatus === 'free') {
+    // Feature is now available to all users
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
@@ -5839,7 +5822,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    if (req.user.subscriptionStatus === 'free') {
+    // Feature is now available to all users
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
@@ -5871,7 +5854,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    if (req.user.subscriptionStatus === 'free') {
+    // Feature is now available to all users
       return res.status(403).json({ error: "Premium subscription required" });
     }
 
