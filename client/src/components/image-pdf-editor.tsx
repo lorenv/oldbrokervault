@@ -163,7 +163,8 @@ export default function ImagePdfEditor({
 
       } catch (error: any) {
         console.error('PDF to image conversion error:', error);
-        setError(`Failed to convert PDF: ${error.message}`);
+        const errorMessage = error.message || 'Unknown error during PDF conversion';
+        setError(`Failed to convert PDF to image: ${errorMessage}`);
         setIsLoading(false);
       }
     };

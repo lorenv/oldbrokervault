@@ -4144,10 +4144,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
   // PDF to image conversion endpoint  
   app.post('/api/pdf-to-image', express.json({ limit: '50mb' }), async (req, res) => {
+    console.log('PDF to image endpoint hit');
     try {
       const { pdfBase64 } = req.body;
       
       if (!pdfBase64) {
+        console.log('No PDF data provided');
         return res.status(400).json({ error: 'No PDF data provided' });
       }
 
@@ -4158,9 +4160,22 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const imagePath = path.join(tempDir, `pdf_${Date.now()}.png`);
 
       try {
+        // Validate PDF base64 data
+        if (pdfBase64.length < 1000) {
+          throw new Error('PDF data appears to be incomplete or corrupted');
+        }
+
         // Write PDF to temporary file
         const pdfBuffer = Buffer.from(pdfBase64, 'base64');
         fsSync.writeFileSync(pdfPath, pdfBuffer);
+
+        // Validate PDF file was written correctly
+        const stats = fsSync.statSync(pdfPath);
+        if (stats.size < 100) {
+          throw new Error('Generated PDF file is too small');
+        }
+
+        console.log(`PDF written to temp file: ${pdfPath}, size: ${stats.size} bytes`);
 
         // Convert PDF to PNG using poppler-utils
         const baseImagePath = imagePath.replace('.png', '');
@@ -4168,7 +4183,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         const finalImagePath = `${baseImagePath}-1.png`;
 
         console.log('Running conversion command:', convertCommand);
-        await execAsync(convertCommand);
+        await execAsync(convertCommand, { timeout: 30000 });
 
         if (!fsSync.existsSync(finalImagePath)) {
           throw new Error('PDF conversion failed - no output image generated');
