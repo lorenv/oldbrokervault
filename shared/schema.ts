@@ -366,11 +366,27 @@ export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).pick({
   mimeType: true
 });
 
+// Signature field schema for drag & drop functionality
+export const signatureFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum(['signature', 'name', 'date', 'email', 'text']),
+  label: z.string(),
+  x: z.number(), // X coordinate on PDF page
+  y: z.number(), // Y coordinate on PDF page
+  width: z.number(),
+  height: z.number(),
+  pageNumber: z.number(),
+  required: z.boolean().default(true),
+  fontSize: z.number().default(12),
+  placeholder: z.string().optional()
+});
+
 export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
   name: true,
   fileContent: true,
 }).extend({
-  isDefault: z.boolean().optional()
+  isDefault: z.boolean().optional(),
+  signatureFields: z.array(signatureFieldSchema).optional()
 });
 
 export const insertShareLinkSchema = createInsertSchema(shareLinks).pick({
@@ -388,7 +404,8 @@ export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
   signerLocation: true,
   signedNdaContent: true
 }).extend({
-  shareSlug: z.string().optional()
+  shareSlug: z.string().optional(),
+  fieldValues: z.record(z.string()).optional() // Field ID to value mapping
 });
 
 export const insertNdaAccessTokenSchema = createInsertSchema(ndaAccessTokens).pick({
