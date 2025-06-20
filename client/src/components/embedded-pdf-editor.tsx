@@ -122,33 +122,60 @@ export default function EmbeddedPdfEditor({
   const [currentPage] = useState(1);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [previewId, setPreviewId] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const embedRef = useRef<HTMLEmbedElement>(null);
 
-  // Create blob URL for PDF
+  // Create server-served PDF URL to bypass CSP restrictions
   useEffect(() => {
     if (pdfBase64) {
       try {
-        console.log('Creating PDF embed URL from base64, length:', pdfBase64.length);
+        console.log('Creating server-served PDF URL, base64 length:', pdfBase64.length);
         
-        const binaryString = atob(pdfBase64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
+        // Create unique preview ID for this session
+        const id = `preview_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        setPreviewId(id);
         
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
+        // Upload PDF to server for serving
+        fetch('/api/pdf-preview', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ pdfBase64 }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.url) {
+            setPdfUrl(data.url);
+            setPreviewId(data.previewId);
+            console.log('Server PDF URL created successfully:', data.url);
+          } else {
+            throw new Error('No URL returned from server');
+          }
+        })
+        .catch(error => {
+          console.error('Error creating server PDF URL:', error);
+          // Fallback to blob URL
+          const binaryString = atob(pdfBase64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          setPdfUrl(url);
+          console.log('Fallback to blob URL');
+        });
         
-        console.log('PDF embed URL created successfully');
-        
-        return () => {
-          URL.revokeObjectURL(url);
-        };
       } catch (error) {
-        console.error('Error creating PDF embed URL:', error);
+        console.error('Error setting up PDF URL:', error);
       }
     }
   }, [pdfBase64]);
@@ -224,9 +251,9 @@ export default function EmbeddedPdfEditor({
 
   const reloadPdf = () => {
     setIsLoaded(false);
-    if (embedRef.current) {
-      embedRef.current.src = pdfUrl + '#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit';
-    }
+    const timestamp = Date.now();
+    const newUrl = pdfUrl.includes('?') ? `${pdfUrl}&reload=${timestamp}` : `${pdfUrl}?reload=${timestamp}`;
+    setPdfUrl(newUrl);
   };
 
   const currentPageFields = signatureFields.filter(field => field.pageNumber === currentPage);
@@ -284,33 +311,33 @@ export default function EmbeddedPdfEditor({
         }`}
         style={{ height: '600px' }}
       >
-        {/* PDF Embed */}
-        <embed
-          ref={embedRef}
-          src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit`}
-          type="application/pdf"
-          className="w-full h-full"
-          onLoad={() => {
-            console.log('PDF embed loaded successfully');
-            setIsLoaded(true);
-          }}
-          onError={() => {
-            console.log('PDF embed failed, trying alternative method');
-            setIsLoaded(false);
-          }}
-        />
-        
-        {/* Fallback iframe if embed fails */}
-        {!isLoaded && (
+        {/* PDF Display - Server-served to bypass CSP */}
+        {pdfUrl && (
           <iframe
-            src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-            className="absolute inset-0 w-full h-full"
+            key={pdfUrl} // Force reload when URL changes
+            src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit`}
+            className="w-full h-full border-0"
             title="PDF Template"
             onLoad={() => {
-              console.log('PDF iframe fallback loaded');
+              console.log('PDF iframe loaded successfully');
               setIsLoaded(true);
             }}
+            onError={(e) => {
+              console.log('PDF iframe failed:', e);
+              setIsLoaded(false);
+            }}
+            allow="same-origin"
           />
+        )}
+        
+        {/* Loading overlay */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-sm text-gray-600">Loading PDF...</p>
+            </div>
+          </div>
         )}
         
         {/* Interactive Overlay */}
