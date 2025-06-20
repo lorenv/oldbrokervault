@@ -133,6 +133,7 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
       className={`flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50 ${
         isDragging ? 'opacity-50 scale-95' : ''
       }`}
+      style={{ touchAction: 'none' }} // Prevent touch interference
     >
       <Icon className="w-4 h-4 text-gray-600" />
       <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -222,14 +223,20 @@ export default function ImagePdfEditor({
   const [{ isOver }, dropProps] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
+      console.log('Drop triggered!', item);
       const offset = monitor.getClientOffset();
       const containerRect = containerRef.current?.getBoundingClientRect();
-      if (!offset || !containerRect) return;
+      if (!offset || !containerRect) {
+        console.log('No offset or container rect');
+        return;
+      }
       
       // Get relative position within the scrollable container
       const containerScrollTop = containerRef.current?.scrollTop || 0;
       const relativeX = offset.x - containerRect.left - 16; // Account for padding
       const relativeY = offset.y - containerRect.top + containerScrollTop - 16; // Account for padding and scroll
+      
+      console.log('Drop coordinates:', { relativeX, relativeY, offset, containerRect });
       
       // Calculate which page this drop is on
       let cumulativeHeight = 0;
@@ -249,12 +256,14 @@ export default function ImagePdfEditor({
           // Convert display coordinates to original PDF coordinates
           adjustedY = ((relativeY - cumulativeHeight) * page.height) / actualHeight;
           adjustedX = (relativeX * page.width) / actualWidth;
+          console.log('Found target page:', targetPage, 'coordinates:', { adjustedX, adjustedY });
           break;
         }
         cumulativeHeight += actualHeight + spacingGap;
       }
       
       if (item.type && !item.id) {
+        console.log('Adding new field:', item.type, 'at', { adjustedX, adjustedY, targetPage });
         addField(adjustedX, adjustedY, item.type, targetPage);
       } else if (item.id) {
         updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
@@ -415,7 +424,10 @@ export default function ImagePdfEditor({
           ref={containerRef}
           className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'border-2 border-gray-200'}`}
           {...dropProps}
-          style={{ minHeight: isLoading ? '400px' : 'auto' }}
+          style={{ 
+            minHeight: isLoading ? '400px' : 'auto',
+            touchAction: 'none'
+          }}
         >
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
@@ -427,15 +439,14 @@ export default function ImagePdfEditor({
                       Page {page.pageNumber}
                     </div>
                     
-                    {/* Page image */}
+                    {/* Page image with proper sizing */}
                     <img
                       src={page.imageDataUrl}
                       alt={`PDF Page ${page.pageNumber}`}
                       className="w-full h-auto border rounded shadow-sm select-none"
                       onDragStart={(e) => e.preventDefault()}
                       style={{
-                        transform: `scale(${scale})`,
-                        transformOrigin: 'top left',
+                        maxWidth: '1000px',
                         pointerEvents: 'none'
                       }}
                     />
@@ -444,16 +455,45 @@ export default function ImagePdfEditor({
                     <div className="absolute inset-0 pointer-events-none">
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
-                        .map((field) => (
-                          <div key={field.id} className="pointer-events-auto">
-                            <FieldComponent
-                              field={field}
-                              onUpdate={updateField}
-                              onDelete={deleteField}
-                              scale={scale}
-                            />
-                          </div>
-                        ))}
+                        .map((field) => {
+                          // Calculate actual display dimensions
+                          const maxWidth = 1000;
+                          const actualWidth = Math.min(page.width, maxWidth);
+                          const actualHeight = (page.height * actualWidth) / page.width;
+                          
+                          // Scale field position to match displayed size
+                          const displayX = (field.x * actualWidth) / page.width;
+                          const displayY = (field.y * actualHeight) / page.height;
+                          const displayWidth = (field.width * actualWidth) / page.width;
+                          const displayHeight = (field.height * actualHeight) / page.height;
+                          
+                          return (
+                            <div key={field.id} className="pointer-events-auto">
+                              <FieldComponent
+                                field={{
+                                  ...field,
+                                  x: displayX,
+                                  y: displayY,
+                                  width: displayWidth,
+                                  height: displayHeight
+                                }}
+                                scale={1} // Already scaled above
+                                onUpdate={(id, updates) => {
+                                  // Convert back to original coordinates
+                                  const originalUpdates = {
+                                    ...updates,
+                                    x: updates.x ? (updates.x * page.width) / actualWidth : undefined,
+                                    y: updates.y ? (updates.y * page.height) / actualHeight : undefined,
+                                    width: updates.width ? (updates.width * page.width) / actualWidth : undefined,
+                                    height: updates.height ? (updates.height * page.height) / actualHeight : undefined
+                                  };
+                                  updateField(id, originalUpdates);
+                                }}
+                                onDelete={deleteField}
+                              />
+                            </div>
+                          );
+                        })}
                     </div>
                   </div>
                 );
