@@ -275,6 +275,7 @@ export default function ImagePdfEditor({
   }, [signatureFields, onFieldsChange]);
 
   const handleImageClick = useCallback((e: React.MouseEvent, pageNumber: number) => {
+    e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     if (!rect) return;
 
@@ -357,7 +358,7 @@ export default function ImagePdfEditor({
 
         <div
           ref={containerRef}
-          className="relative max-h-[800px] overflow-y-auto p-4"
+          className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : ''}`}
           {...dropProps}
           style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
@@ -375,8 +376,9 @@ export default function ImagePdfEditor({
                     <img
                       src={page.imageDataUrl}
                       alt={`PDF Page ${page.pageNumber}`}
-                      className="w-full h-auto border rounded shadow-sm cursor-crosshair"
+                      className="w-full h-auto border rounded shadow-sm cursor-crosshair select-none"
                       onClick={(e) => handleImageClick(e, page.pageNumber)}
+                      onDragStart={(e) => e.preventDefault()}
                       style={{
                         transform: `scale(${scale})`,
                         transformOrigin: 'top left',
@@ -405,11 +407,20 @@ export default function ImagePdfEditor({
             </div>
           )}
           
-          {/* Click instruction */}
+          {/* Instructions overlay */}
           {signatureFields.length === 0 && pageImages.length > 0 && (
             <div className="absolute top-8 left-4 pointer-events-none z-10">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
-                Click anywhere on any page to add {selectedFieldType} fields
+                Click on any page or drag fields from the sidebar to add {selectedFieldType} fields
+              </div>
+            </div>
+          )}
+          
+          {/* Drop zone indicator */}
+          {isOver && (
+            <div className="absolute inset-4 pointer-events-none z-20 flex items-center justify-center">
+              <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-90">
+                Drop field here to position on the PDF
               </div>
             </div>
           )}
