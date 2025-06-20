@@ -124,6 +124,14 @@ export function Navbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem>
+                  <Link href="/nda-templates">
+                    <div className="flex items-center cursor-pointer w-full">
+                      <FileText className="h-4 w-4 mr-2" />
+                      NDA Templates
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
                   <Link href="/account">
                     <div className="flex items-center cursor-pointer w-full">
                       <Settings className="h-4 w-4 mr-2" />
