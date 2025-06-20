@@ -209,6 +209,19 @@ export const ndaRedirectLinks = pgTable("nda_redirect_links", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// View tracking for granular analytics based on NDA protection
+export const documentViews = pgTable("document_views", {
+  id: serial("id").primaryKey(),
+  cimDocumentId: integer("cim_document_id").notNull(),
+  viewerType: text("viewer_type").notNull(), // 'anonymous' or 'nda_signer'
+  ndaAccessTokenId: integer("nda_access_token_id"), // Only for NDA signers
+  signerEmail: text("signer_email"), // Only for NDA signers
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+  sessionDuration: integer("session_duration"), // Optional: time spent on document in seconds
+});
+
 
 
 export const financialFiles = pgTable("financial_files", {
@@ -392,6 +405,17 @@ export const insertNdaRedirectLinkSchema = createInsertSchema(ndaRedirectLinks).
   currentTokenId: true,
   cimDocumentId: true,
   signerEmail: true
+});
+
+export const insertDocumentViewSchema = createInsertSchema(documentViews).pick({
+  cimDocumentId: true,
+  viewerType: true,
+}).extend({
+  ndaAccessTokenId: z.number().optional(),
+  signerEmail: z.string().optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+  sessionDuration: z.number().optional()
 });
 
 
