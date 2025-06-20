@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft } from 'lucide-react';
+import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
 
 interface SignatureField {
   id: string;
@@ -19,7 +19,7 @@ interface SignatureField {
   placeholder?: string;
 }
 
-interface SimplePdfViewerProps {
+interface EnhancedPdfViewerProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
@@ -68,7 +68,7 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   return (
     <div
       ref={drag}
-      className={`absolute cursor-move border-2 border-dashed rounded px-2 py-1 text-xs select-none ${
+      className={`absolute cursor-move border-2 border-dashed rounded px-2 py-1 text-xs select-none z-10 ${
         FIELD_COLORS[field.type]
       } ${isDragging ? 'opacity-50' : ''}`}
       style={{
@@ -112,14 +112,15 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   );
 };
 
-export default function SimplePdfViewer({
+export default function EnhancedPdfViewer({
   pdfBase64,
   signatureFields,
   onFieldsChange,
   selectedFieldType
-}: SimplePdfViewerProps) {
+}: EnhancedPdfViewerProps) {
   const [currentPage] = useState(1);
   const [pdfUrl, setPdfUrl] = useState<string>('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Create blob URL for PDF
   React.useEffect(() => {
@@ -155,8 +156,7 @@ export default function SimplePdfViewer({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       const offset = monitor.getClientOffset();
-      const containerRect = monitor.getDropResult()?.getBoundingClientRect?.() || 
-                           document.querySelector('.pdf-drop-zone')?.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
       
       if (!offset || !containerRect) return;
       
@@ -206,11 +206,19 @@ export default function SimplePdfViewer({
   }, [signatureFields, onFieldsChange]);
 
   const handleContainerClick = useCallback((e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    addField(x, y, selectedFieldType);
+    if (e.target === e.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      addField(x, y, selectedFieldType);
+    }
   }, [addField, selectedFieldType]);
+
+  const openPdfInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   const currentPageFields = signatureFields.filter(field => field.pageNumber === currentPage);
 
@@ -233,6 +241,15 @@ export default function SimplePdfViewer({
           <span className="text-sm px-3">
             Page 1 (Interactive PDF Editor)
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openPdfInNewTab}
+            className="ml-2"
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            View PDF
+          </Button>
         </div>
         
         <div className="text-sm text-gray-600">
@@ -240,28 +257,53 @@ export default function SimplePdfViewer({
         </div>
       </div>
 
-      {/* PDF Container with Overlay */}
+      {/* PDF Container with Embedded Viewer and Overlay */}
       <div
-        ref={drop}
+        ref={(el) => {
+          drop(el);
+          containerRef.current = el;
+        }}
         className={`relative border rounded-lg overflow-hidden ${
           isOver ? 'bg-blue-50 border-blue-300' : 'bg-white'
         }`}
         style={{ height: '600px' }}
+        onClick={handleContainerClick}
       >
-        {/* PDF Background */}
-        <iframe
-          src={pdfUrl}
-          className="w-full h-full pointer-events-none"
-          title="PDF Template"
-          onLoad={() => console.log('PDF iframe loaded successfully')}
-          onError={(e) => console.error('PDF iframe error:', e)}
-        />
+        {/* PDF Display - Multiple fallback methods */}
+        <div className="absolute inset-0">
+          {/* Primary method: Object embed */}
+          <object
+            data={pdfUrl}
+            type="application/pdf"
+            className="w-full h-full border-0"
+            onLoad={() => console.log('PDF object loaded')}
+          >
+            {/* Fallback: Iframe */}
+            <iframe
+              src={pdfUrl}
+              className="w-full h-full border-0"
+              title="PDF Template"
+              onLoad={() => console.log('PDF iframe fallback loaded')}
+            >
+              {/* Final fallback: Canvas with instructions */}
+              <div className="flex items-center justify-center h-full bg-gray-100">
+                <div className="text-center p-8 max-w-md">
+                  <p className="text-gray-600 mb-4">PDF preview unavailable in this browser</p>
+                  <p className="text-sm text-gray-500 mb-4">You can still add signature fields by clicking in the area above</p>
+                  <Button onClick={openPdfInNewTab} variant="outline" size="sm">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    View Full PDF
+                  </Button>
+                </div>
+              </div>
+            </iframe>
+          </object>
+        </div>
         
-        {/* Clickable Overlay for Field Placement */}
+        {/* Interactive Overlay for Field Placement */}
         <div
-          className="absolute inset-0 pdf-drop-zone cursor-crosshair"
-          onClick={handleContainerClick}
-          style={{ zIndex: 1 }}
+          className="absolute inset-0 pointer-events-auto cursor-crosshair bg-transparent"
+          style={{ zIndex: 10 }}
         >
           {/* Render signature fields for current page */}
           {currentPageFields.map((field) => (
@@ -292,7 +334,7 @@ export default function SimplePdfViewer({
           <li>• Drag fields to reposition them</li>
           <li>• Double-click field labels to edit them</li>
           <li>• Use the trash icon to delete fields</li>
-          <li>• Fields are saved automatically when you save the template</li>
+          <li>• Click "View PDF" to see the full document in a new tab</li>
         </ul>
       </Card>
     </div>
