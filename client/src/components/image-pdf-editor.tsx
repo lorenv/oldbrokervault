@@ -158,7 +158,7 @@ export default function ImagePdfEditor({
         }
 
         const data = await response.json();
-        console.log('PDF converted to image successfully');
+        console.log(`PDF page ${data.pageNumber} converted successfully, total pages: ${data.totalPages}`);
         
         setImageUrl(data.imageDataUrl);
         setTotalPages(data.totalPages || 1);

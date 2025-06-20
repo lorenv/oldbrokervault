@@ -4227,7 +4227,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         fsSync.unlinkSync(pdfPath);
         fsSync.unlinkSync(actualImagePath);
 
-        console.log(`PDF page ${pageNumber} converted successfully, image size: ${imageBase64.length}, total pages: ${totalPages}`);
+        console.log(`PDF page ${pageNumber}/${totalPages} converted successfully, image size: ${imageBase64.length}`);
 
         return res.json({
           success: true,
