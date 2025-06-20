@@ -216,53 +216,48 @@ export default function ImagePdfEditor({
     convertPdfToImage();
   }, [pdfBase64]);
 
-  // Auto-scale images to fit container
-  useEffect(() => {
-    if (containerRef.current && pageImages.length > 0) {
-      const container = containerRef.current;
-      const containerWidth = container.clientWidth - 64; // Account for padding
-      const firstPageWidth = pageImages[0]?.width || 1200;
-      
-      if (firstPageWidth > 0) {
-        const calculatedScale = containerWidth / firstPageWidth;
-        setScale(calculatedScale);
-        console.log('Image scale set to:', calculatedScale);
-      }
-    }
-  }, [pageImages]);
+  // Remove auto-scaling since we're using max-width constraint instead
 
-  // Drop handler for field placement
+  // Drop handler for field placement on the entire container
   const [{ isOver }, dropProps] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       const offset = monitor.getClientOffset();
-      const imageRect = imageRef.current?.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      if (!offset || !containerRect) return;
       
-      if (!offset || !imageRect) return;
-      
-      const x = (offset.x - imageRect.left) / scale;
-      const y = (offset.y - imageRect.top) / scale;
+      // Get relative position within the scrollable container
+      const containerScrollTop = containerRef.current?.scrollTop || 0;
+      const relativeX = offset.x - containerRect.left - 16; // Account for padding
+      const relativeY = offset.y - containerRect.top + containerScrollTop - 16; // Account for padding and scroll
       
       // Calculate which page this drop is on
       let cumulativeHeight = 0;
       let targetPage = 1;
-      let adjustedY = y;
+      let adjustedY = relativeY;
+      let adjustedX = relativeX;
       
       for (const page of pageImages) {
-        const pageHeight = page.height * scale;
-        if (y >= cumulativeHeight && y < cumulativeHeight + pageHeight) {
+        // Calculate actual displayed height (no scale transform, just max-width constraint)
+        const maxWidth = 1000;
+        const actualWidth = Math.min(page.width, maxWidth);
+        const actualHeight = (page.height * actualWidth) / page.width;
+        const spacingGap = 20; // Gap between pages
+        
+        if (relativeY >= cumulativeHeight && relativeY < cumulativeHeight + actualHeight) {
           targetPage = page.pageNumber;
-          // Adjust y coordinate to be relative to the page
-          adjustedY = y - cumulativeHeight;
+          // Convert display coordinates to original PDF coordinates
+          adjustedY = ((relativeY - cumulativeHeight) * page.height) / actualHeight;
+          adjustedX = (relativeX * page.width) / actualWidth;
           break;
         }
-        cumulativeHeight += pageHeight + 20; // 20px gap between pages
+        cumulativeHeight += actualHeight + spacingGap;
       }
       
       if (item.type && !item.id) {
-        addField(x, adjustedY, item.type, targetPage);
+        addField(adjustedX, adjustedY, item.type, targetPage);
       } else if (item.id) {
-        updateField(item.id, { x, y: adjustedY, pageNumber: targetPage });
+        updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
       }
     },
     collect: (monitor) => ({
