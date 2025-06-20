@@ -723,7 +723,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // CIM Document Routes with file upload support
-  app.post("/api/cim", async (req, res) => {
+  app.post("/api/cim/generate", async (req, res) => {
     console.log("🚀 CIM POST ROUTE ACCESSED");
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -1651,7 +1651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const subscriptionStatus = user.subscriptionStatus || 'free';
-      const plan = subscriptionPlans[subscriptionStatus as keyof typeof subscriptionPlans];
+      const plan = subscriptionPlans[subscriptionStatus as keyof typeof subscriptionPlans] || subscriptionPlans.free;
       
       res.json({
         canCreateDocument: canCreate,
