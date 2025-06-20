@@ -38,7 +38,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfBase64, setPdfBase64] = useState('');
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
-  const [selectedFieldType, setSelectedFieldType] = useState<SignatureField['type']>('signature');
+  // Remove field type selector since we're using drag and drop
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
