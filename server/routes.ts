@@ -156,6 +156,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Image serving endpoints - serve user images statically
+  app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
+
+  // Migration endpoint - run image migration
+  app.post("/api/admin/migrate-images", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const user = await storage.getUser(req.user!.id);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      const result = await migrateImagesToFiles();
+      res.json(result);
+    } catch (error) {
+      console.error("Migration error:", error);
+      res.status(500).json({ error: "Migration failed" });
+    }
+  });
+
   // Serve uploaded file content for sharing
   app.get("/api/share/:shareSlug/file", async (req, res) => {
     try {
