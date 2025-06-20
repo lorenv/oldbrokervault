@@ -46,14 +46,21 @@ export function registerNdaTemplateRoutes(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const template = await storage.createNdaTemplate({
-        userId: req.user!.id,
+      console.log("Creating NDA template for user:", req.user!.id);
+      console.log("Request body:", {
+        name: req.body.name,
+        hasFileContent: !!req.body.fileContent,
+        signatureFieldsCount: req.body.signatureFields?.length || 0
+      });
+      
+      const template = await storage.createNdaTemplate(req.user!.id, {
         name: req.body.name,
         fileContent: req.body.fileContent,
         isDefault: req.body.isDefault || false,
         signatureFields: req.body.signatureFields || []
       });
       
+      console.log("Template created successfully:", template.id);
       res.status(201).json(template);
     } catch (error) {
       console.error("Error creating NDA template:", error);
