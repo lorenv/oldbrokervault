@@ -418,7 +418,7 @@ export default function ImagePdfEditor({
 
         <div
           ref={containerRef}
-          className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : ''}`}
+          className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'border-2 border-gray-200'}`}
           {...dropProps}
           style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
@@ -468,8 +468,8 @@ export default function ImagePdfEditor({
           
           {/* Instructions overlay */}
           {signatureFields.length === 0 && pageImages.length > 0 && (
-            <div className="absolute top-8 left-4 pointer-events-none z-10">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
+            <div className="absolute top-8 left-4 pointer-events-none z-20">
+              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90 shadow-lg">
                 Drag signature fields from the sidebar and drop them on the document
               </div>
             </div>
@@ -477,8 +477,8 @@ export default function ImagePdfEditor({
           
           {/* Drop zone indicator */}
           {isOver && (
-            <div className="absolute inset-4 pointer-events-none z-20 flex items-center justify-center">
-              <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-90">
+            <div className="absolute inset-4 pointer-events-none z-30 flex items-center justify-center">
+              <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-95 border-2 border-green-400">
                 Drop field here to position on the PDF
               </div>
             </div>
