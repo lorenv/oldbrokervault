@@ -288,8 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
       console.log("Environment:", process.env.NODE_ENV);
-      console.log("Database URL exists:", !!process.env.DATABASE_URL);
-      console.log("Fetching share data for slug:", shareSlug);
+      console.log("Processing share request for slug:", shareSlug.substring(0, 8) + "...");
       
       // Immediate validation
       if (!shareSlug || shareSlug.length < 3) {
@@ -1716,7 +1715,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     console.log("=== CIM PATCH REQUEST ===");
-    console.log("Request user:", req.user);
+    // Security: Don't log user objects that may contain sensitive data
+    console.log("Request user ID:", req.user?.id);
     console.log("Request body:", req.body);
     console.log("Request params:", req.params);
     
@@ -1932,7 +1932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("=== CHECKOUT REQUEST RECEIVED ===");
     console.log("Request body:", req.body);
     console.log("User authenticated:", req.isAuthenticated());
-    console.log("User ID:", req.user?.id);
+    console.log("Processing subscription for user:", req.user?.id);
     
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -3882,8 +3882,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         const { sendPasswordResetEmail } = await import("./email");
         const emailSent = await sendPasswordResetEmail(email, resetToken);
         
+        // Security: Don't log sensitive password reset tokens
         console.log(`Password reset email sent to ${email}: ${emailSent}`);
-        console.log(`Reset token: ${resetToken}`); // Keep for debugging
         
         res.json({ message: "If an account with that email exists, a reset link has been sent." });
       } else {
@@ -5212,7 +5212,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       const files = await db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimId));
       console.log("Found financial files:", files.length, "files");
-      console.log("Files data:", files);
       
       res.json(files);
     } catch (error) {
