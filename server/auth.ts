@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
+import { sanitizeUser } from "./data-sanitizer";
 
 // Enhanced user cache for authentication optimization
 const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
