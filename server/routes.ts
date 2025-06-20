@@ -28,6 +28,8 @@ import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
+import { PdfSignatureProcessor } from "./pdf-signature-processor";
 
 
 // Setup upload directory
@@ -147,6 +149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(responseSanitizationMiddleware);
   app.use(securityHeadersMiddleware);
   app.use(sensitiveEndpointLimiter);
+
+  // Register NDA template routes
+  registerNdaTemplateRoutes(app);
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
