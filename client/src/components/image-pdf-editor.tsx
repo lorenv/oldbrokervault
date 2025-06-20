@@ -19,7 +19,7 @@ interface SignatureField {
   placeholder?: string;
 }
 
-interface DebugPdfRendererProps {
+interface ImagePdfEditorProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
@@ -42,10 +42,11 @@ const FIELD_ICONS = {
   text: AlignLeft
 };
 
-const FieldComponent = ({ field, onUpdate, onDelete }: {
+const FieldComponent = ({ field, onUpdate, onDelete, scale }: {
   field: SignatureField;
   onUpdate: (id: string, updates: Partial<SignatureField>) => void;
   onDelete: (id: string) => void;
+  scale: number;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(field.label);
@@ -72,10 +73,10 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
         FIELD_COLORS[field.type]
       } ${isDragging ? 'opacity-50' : ''}`}
       style={{
-        left: field.x,
-        top: field.y,
-        width: field.width,
-        height: field.height,
+        left: field.x * scale,
+        top: field.y * scale,
+        width: field.width * scale,
+        height: field.height * scale,
         minHeight: '30px',
         zIndex: 1000,
       }}
@@ -113,47 +114,92 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   );
 };
 
-export default function DebugPdfRenderer({
+export default function ImagePdfEditor({
   pdfBase64,
   signatureFields,
   onFieldsChange,
   selectedFieldType
-}: DebugPdfRendererProps) {
+}: ImagePdfEditorProps) {
+  const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pdfUrl, setPdfUrl] = useState<string>('');
-  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [scale, setScale] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
+  // Convert PDF to image via server
   useEffect(() => {
-    if (pdfBase64) {
-      console.log('Debug PDF Renderer - PDF Base64 length:', pdfBase64.length);
-      
-      // Create data URL
-      const url = `data:application/pdf;base64,${pdfBase64}`;
-      setPdfUrl(url);
-      
-      // Try to validate PDF header
+    const convertPdfToImage = async () => {
+      if (!pdfBase64) return;
+
+      setIsLoading(true);
+      setError('');
+
       try {
-        const binaryString = atob(pdfBase64);
-        const header = binaryString.substring(0, 8);
-        console.log('PDF header:', header);
-        setDebugInfo(`PDF size: ${pdfBase64.length} chars, Header: ${header}`);
-      } catch (e) {
-        console.error('Error checking PDF:', e);
-        setDebugInfo(`PDF size: ${pdfBase64.length} chars, Error: ${e}`);
+        console.log('Converting PDF to image via server');
+        
+        const response = await fetch('/api/pdf-to-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pdfBase64 }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'PDF conversion failed');
+        }
+
+        const data = await response.json();
+        console.log('PDF converted to image successfully');
+        
+        setImageUrl(data.imageDataUrl);
+        setIsLoading(false);
+
+      } catch (error: any) {
+        console.error('PDF to image conversion error:', error);
+        setError(`Failed to convert PDF: ${error.message}`);
+        setIsLoading(false);
       }
-    }
+    };
+
+    convertPdfToImage();
   }, [pdfBase64]);
 
+  // Auto-scale image to fit container
+  useEffect(() => {
+    const updateScale = () => {
+      if (!imageRef.current || !containerRef.current || !imageUrl) return;
+
+      const containerWidth = containerRef.current.clientWidth - 40;
+      const imageNaturalWidth = imageRef.current.naturalWidth;
+      
+      if (imageNaturalWidth > 0) {
+        const optimalScale = Math.min(containerWidth / imageNaturalWidth, 1.2);
+        setScale(optimalScale);
+        console.log('Image scale set to:', optimalScale);
+      }
+    };
+
+    // Wait for image to load
+    if (imageUrl && imageRef.current) {
+      imageRef.current.onload = updateScale;
+      if (imageRef.current.complete) {
+        updateScale();
+      }
+    }
+  }, [imageUrl]);
+
+  // Drop handler for field placement
   const [{ isOver }, drop] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       const offset = monitor.getClientOffset();
-      const containerRect = containerRef.current?.getBoundingClientRect();
+      const imageRect = imageRef.current?.getBoundingClientRect();
       
-      if (!offset || !containerRect) return;
+      if (!offset || !imageRect) return;
       
-      const x = offset.x - containerRect.left;
-      const y = offset.y - containerRect.top;
+      const x = (offset.x - imageRect.left) / scale;
+      const y = (offset.y - imageRect.top) / scale;
       
       if (item.type && !item.id) {
         addField(x, y, item.type);
@@ -195,38 +241,54 @@ export default function DebugPdfRenderer({
     onFieldsChange(filteredFields);
   }, [signatureFields, onFieldsChange]);
 
-  const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === containerRef.current || (e.target as HTMLElement).classList.contains('workspace-area')) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        addField(x, y, selectedFieldType);
-      }
-    }
-  }, [addField, selectedFieldType]);
+  const handleImageClick = useCallback((e: React.MouseEvent) => {
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = (e.clientX - rect.left) / scale;
+    const y = (e.clientY - rect.top) / scale;
+    addField(x, y, selectedFieldType);
+  }, [addField, selectedFieldType, scale]);
 
   const openPdfInNewTab = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
+    const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
+    window.open(dataUrl, '_blank');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Processing PDF...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center max-w-md">
+          <p className="text-sm text-red-600 mb-4">{error}</p>
+          <Button onClick={openPdfInNewTab} variant="outline">
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Open Original PDF
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Debug Info */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-        <h4 className="text-sm font-medium text-yellow-800 mb-1">Debug Information</h4>
-        <p className="text-xs text-yellow-700">{debugInfo}</p>
-      </div>
-
       {/* Toolbar */}
       <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
         <div className="flex items-center gap-2">
-          <span className="text-sm">PDF Template Editor (Debug Mode)</span>
+          <span className="text-sm">PDF Template Editor</span>
           <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
             <ExternalLink className="w-4 h-4 mr-1" />
-            Test PDF
+            View Original PDF
           </Button>
         </div>
         <div className="text-sm text-gray-600">
@@ -234,72 +296,50 @@ export default function DebugPdfRenderer({
         </div>
       </div>
 
-      {/* Main Editor Area */}
+      {/* Image Editor Container */}
       <div
-        ref={(el) => {
-          drop(el);
-          containerRef.current = el;
-        }}
-        className={`relative border rounded-lg overflow-hidden ${
-          isOver ? 'border-blue-300 shadow-lg' : 'border-gray-300'
-        }`}
+        ref={containerRef}
+        className="relative border rounded-lg overflow-auto bg-gray-100 p-4"
         style={{ height: '600px' }}
-        onClick={handleWorkspaceClick}
       >
-        {/* PDF Preview Attempt */}
-        <div className="absolute inset-0">
-          <object
-            data={pdfUrl}
-            type="application/pdf"
-            className="w-full h-full"
-            style={{ zIndex: 1 }}
-          >
-            <iframe
-              src={pdfUrl}
-              className="w-full h-full border-0"
-              title="PDF Preview"
-              style={{ zIndex: 1 }}
-            >
-              {/* Fallback workspace */}
-              <div 
-                className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 workspace-area flex items-center justify-center"
-                style={{ zIndex: 1 }}
-              >
-                <div className="text-center p-8">
-                  <div className="w-24 h-32 mx-auto mb-6 bg-white rounded-lg shadow-lg border-2 border-gray-200 flex items-center justify-center">
-                    <span className="text-4xl text-blue-600">📄</span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-3">PDF Template Editor</h3>
-                  <p className="text-gray-600 mb-4 max-w-md">
-                    PDF loaded but cannot display inline. Click "Test PDF" to verify the file, 
-                    or click here to add signature fields based on your document layout.
-                  </p>
-                  <Button variant="outline" onClick={openPdfInNewTab}>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Test PDF
-                  </Button>
-                </div>
-              </div>
-            </iframe>
-          </object>
-        </div>
-        
-        {/* Signature Fields Overlay */}
-        <div className="absolute inset-0" style={{ zIndex: 500 }}>
-          {signatureFields.map((field) => (
-            <FieldComponent
-              key={field.id}
-              field={field}
-              onUpdate={updateField}
-              onDelete={deleteField}
+        <div
+          ref={drop}
+          className={`relative inline-block ${isOver ? 'shadow-lg' : ''}`}
+        >
+          {/* PDF Image */}
+          {imageUrl && (
+            <img
+              ref={imageRef}
+              src={imageUrl}
+              alt="PDF Document"
+              className="border border-gray-300 bg-white cursor-crosshair"
+              onClick={handleImageClick}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+              }}
             />
-          ))}
+          )}
+          
+          {/* Signature Fields Overlay */}
+          <div className="absolute inset-0 pointer-events-none">
+            {signatureFields.map((field) => (
+              <div key={field.id} className="pointer-events-auto">
+                <FieldComponent
+                  field={field}
+                  onUpdate={updateField}
+                  onDelete={deleteField}
+                  scale={scale}
+                />
+              </div>
+            ))}
+          </div>
           
           {/* Click instruction */}
-          {signatureFields.length === 0 && (
+          {signatureFields.length === 0 && imageUrl && (
             <div className="absolute top-4 left-4 pointer-events-none">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
-                Click anywhere to add {selectedFieldType} field
+                Click anywhere on the PDF image to add {selectedFieldType} field
               </div>
             </div>
           )}
@@ -308,13 +348,13 @@ export default function DebugPdfRenderer({
 
       {/* Instructions */}
       <Card className="p-4">
-        <h4 className="font-medium mb-2">PDF Template Editor (Debug Mode)</h4>
+        <h4 className="font-medium mb-2">PDF Template Editor</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Click "Test PDF" to verify your PDF opens correctly in a new tab</li>
-          <li>• Click anywhere in the workspace to add signature fields</li>
+          <li>• PDF converted to image and displayed above</li>
+          <li>• Click anywhere on the document image to add signature fields</li>
           <li>• Drag fields to reposition them precisely</li>
           <li>• Double-click field labels to edit them</li>
-          <li>• Field coordinates are saved for exact signature placement</li>
+          <li>• Field coordinates are saved for exact signature placement in the final PDF</li>
         </ul>
       </Card>
     </div>

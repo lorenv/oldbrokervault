@@ -28,6 +28,10 @@ import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 
