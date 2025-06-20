@@ -50,8 +50,10 @@ export const users = pgTable("users", {
   title: text("title"),
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
-  businessLogo: text("business_logo"), // Base64 encoded business logo or file path (legacy)
-  profilePhoto: text("profile_photo"), // Base64 encoded profile photo or file path (legacy)
+  businessLogo: text("business_logo"), // File path to business logo image
+  profilePhoto: text("profile_photo"), // File path to profile photo image
+  businessLogoBackup: text("business_logo_backup"), // Base64 backup during migration
+  profilePhotoBackup: text("profile_photo_backup"), // Base64 backup during migration
   // Password reset fields
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
@@ -74,10 +76,12 @@ export const cimDocuments = pgTable("cim_documents", {
   uploadedFileSize: integer("uploaded_file_size"),
   uploadedFileMimeType: text("uploaded_file_mime_type"),
   editedContent: jsonb("edited_content"),
-  logoUrl: text("logo_url"), // Base64 encoded logo or file path (legacy)
+  logoUrl: text("logo_url"), // File path to logo image
   websiteUrl: text("website_url"),
   websiteScreenshotUrl: text("website_screenshot_url"),
-  selectedImages: text("selected_images").array(), // Base64 encoded images or file paths (legacy)
+  selectedImages: text("selected_images").array(), // File paths to selected images
+  logoUrlBackup: text("logo_url_backup"), // Base64 backup during migration
+  selectedImagesBackup: text("selected_images_backup").array(), // Base64 backup during migration
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // Sharing functionality
   shareEnabled: boolean("share_enabled").default(false).notNull(),
@@ -130,8 +134,9 @@ export const customSections = pgTable("custom_sections", {
   type: text("type").notNull(), // 'text' or 'image'
   title: text("title"), // Section title
   content: text("content"), // Rich text content for text sections
-  imageUrls: text("image_urls").array(), // Array of image URLs for image sections
+  imageUrls: text("image_urls").array(), // Array of image file paths for image sections
   imageUrl: text("image_url"), // Legacy single image URL - kept for backward compatibility
+  imageUrlsBackup: text("image_urls_backup").array(), // Base64 backup during migration
   position: integer("position").notNull(), // Order position in the document
   insertAfterSection: text("insert_after_section").notNull(), // Which section this appears after
   createdAt: timestamp("created_at").defaultNow().notNull()
