@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,7 +19,7 @@ interface SignatureField {
   placeholder?: string;
 }
 
-interface WorkingPdfEditorProps {
+interface VisualPdfEditorProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
@@ -113,17 +113,25 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   );
 };
 
-export default function WorkingPdfEditor({
+export default function VisualPdfEditor({
   pdfBase64,
   signatureFields,
   onFieldsChange,
   selectedFieldType
-}: WorkingPdfEditorProps) {
+}: VisualPdfEditorProps) {
   const [currentPage] = useState(1);
+  const [pdfDataUrl, setPdfDataUrl] = useState<string>('');
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Create data URL for external viewing
-  const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+  // Create data URL for PDF
+  useEffect(() => {
+    if (pdfBase64) {
+      const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
+      setPdfDataUrl(dataUrl);
+    }
+  }, [pdfBase64]);
 
   // Drop handler for new fields
   const [{ isOver }, drop] = useDrop({
@@ -178,7 +186,8 @@ export default function WorkingPdfEditor({
   }, [signatureFields, onFieldsChange]);
 
   const handleContainerClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === containerRef.current || (e.target as HTMLElement).classList.contains('pdf-overlay')) {
+    // Only add field if clicking on the container itself, not on existing fields or buttons
+    if (e.target === containerRef.current || (e.target as HTMLElement).classList.contains('pdf-layer')) {
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
         const x = e.clientX - rect.left;
@@ -189,7 +198,13 @@ export default function WorkingPdfEditor({
   }, [addField, selectedFieldType]);
 
   const openPdfInNewTab = () => {
-    window.open(pdfDataUrl, '_blank');
+    if (pdfDataUrl) {
+      window.open(pdfDataUrl, '_blank');
+    }
+  };
+
+  const togglePdfPreview = () => {
+    setShowPdfPreview(!showPdfPreview);
   };
 
   const currentPageFields = signatureFields.filter(field => field.pageNumber === currentPage);
@@ -203,12 +218,19 @@ export default function WorkingPdfEditor({
             PDF Template Editor - Page 1
           </span>
           <Button
+            variant={showPdfPreview ? "default" : "outline"}
+            size="sm"
+            onClick={togglePdfPreview}
+          >
+            {showPdfPreview ? "Hide PDF" : "Show PDF"}
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             onClick={openPdfInNewTab}
           >
             <ExternalLink className="w-4 h-4 mr-1" />
-            View PDF
+            Open PDF
           </Button>
         </div>
 
@@ -229,44 +251,65 @@ export default function WorkingPdfEditor({
         style={{ height: '600px' }}
         onClick={handleContainerClick}
       >
-        {/* PDF Workspace Background */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-              linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px',
-            backgroundPosition: '25px 25px'
-          }}
-        >
-          {/* Document representation */}
-          <div className="absolute inset-8 bg-white shadow-lg rounded-lg border border-gray-200 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-20 mx-auto mb-3 bg-blue-50 rounded border border-blue-200 flex items-center justify-center">
-                <span className="text-2xl text-blue-600">📄</span>
+        {/* PDF Background Layer */}
+        {showPdfPreview && pdfDataUrl && (
+          <iframe
+            ref={iframeRef}
+            src={`${pdfDataUrl}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit`}
+            className="absolute inset-0 w-full h-full border-0 pointer-events-none"
+            title="PDF Preview"
+            style={{ zIndex: 1 }}
+          />
+        )}
+        
+        {/* Workspace Layer */}
+        {!showPdfPreview && (
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 pdf-layer"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, #e0e7ff 1px, transparent 1px),
+                linear-gradient(to bottom, #e0e7ff 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+              backgroundPosition: '20px 20px'
+            }}
+          >
+            {/* Document representation */}
+            <div className="absolute inset-6 bg-white shadow-xl rounded-lg border border-gray-200 flex items-center justify-center pdf-layer">
+              <div className="text-center">
+                <div className="w-20 h-24 mx-auto mb-4 bg-blue-100 rounded-lg border-2 border-blue-200 flex items-center justify-center">
+                  <span className="text-3xl text-blue-600">📄</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">PDF Template Editor</h3>
+                <p className="text-sm text-gray-600 mb-4 max-w-md">
+                  Your PDF is loaded and ready. Click "Show PDF" to see the document, or click anywhere here to add signature fields.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={togglePdfPreview}
+                  >
+                    Show PDF Background
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openPdfInNewTab}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Open PDF
+                  </Button>
+                </div>
               </div>
-              <h3 className="text-base font-medium text-gray-700 mb-1">PDF Template Workspace</h3>
-              <p className="text-xs text-gray-500 mb-3">
-                Your PDF is loaded and ready for signature field placement
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openPdfInNewTab}
-                className="text-xs"
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                View Full PDF
-              </Button>
             </div>
           </div>
-        </div>
+        )}
         
-        {/* Interactive Overlay */}
+        {/* Interactive Overlay for Fields */}
         <div
-          className="absolute inset-0 pdf-overlay cursor-crosshair bg-transparent"
+          className="absolute inset-0 pdf-layer"
           style={{ zIndex: 500 }}
         >
           {/* Signature Fields */}
@@ -282,7 +325,7 @@ export default function WorkingPdfEditor({
           {/* Click instruction */}
           {currentPageFields.length === 0 && (
             <div className="absolute top-4 left-4 pointer-events-none">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs">
+              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
                 Click anywhere to add {selectedFieldType} field
               </div>
             </div>
@@ -292,13 +335,13 @@ export default function WorkingPdfEditor({
 
       {/* Instructions */}
       <Card className="p-4">
-        <h4 className="font-medium mb-2">PDF Template Editor</h4>
+        <h4 className="font-medium mb-2">PDF Template Editor Instructions</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Your PDF is loaded and ready for field placement</li>
-          <li>• Click anywhere in the editor area above to add signature fields</li>
+          <li>• Click "Show PDF" to see your document as background while positioning fields</li>
+          <li>• Click anywhere in the editor area to add signature fields</li>
           <li>• Drag fields to reposition them precisely</li>
           <li>• Double-click field labels to edit them</li>
-          <li>• Use the "View PDF" button to see the full document</li>
+          <li>• Use "Open PDF" to view the full document in a new tab</li>
           <li>• Field coordinates are saved for exact signature placement</li>
         </ul>
       </Card>
