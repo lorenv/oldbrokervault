@@ -2636,13 +2636,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             console.log(`Original image data: ${selectedImages[i].substring(0, 100)}...`);
             console.log(`Image type: ${selectedImages[i].startsWith('data:') ? 'base64' : 'file path'}`);
             
-            // Handle base64 images using original working pattern
-            if (selectedImages[i].startsWith('data:')) {
-              console.log(`Processing base64 image ${i}`);
+            // Handle both base64 and file-based images
+            const imageData = await resolveImageData(selectedImages[i]);
+            if (imageData) {
+              console.log(`Processing image ${i}: ${imageData.isBase64 ? 'base64' : 'file'}`);
               
               try {
-                const base64Data = selectedImages[i].split(',')[1];
-                let imageBuffer = Buffer.from(base64Data, 'base64');
+                let imageBuffer = imageData.buffer;
                 
                 // Calculate position in grid
                 const col = i % imagesPerRow;
