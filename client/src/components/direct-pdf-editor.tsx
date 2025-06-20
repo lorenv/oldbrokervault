@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, FileText } from 'lucide-react';
+import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
 
 interface SignatureField {
   id: string;
@@ -19,7 +19,7 @@ interface SignatureField {
   placeholder?: string;
 }
 
-interface PdfTemplateEditorProps {
+interface DirectPdfEditorProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
@@ -27,11 +27,11 @@ interface PdfTemplateEditorProps {
 }
 
 const FIELD_COLORS = {
-  signature: 'border-blue-500 bg-blue-50',
-  name: 'border-green-500 bg-green-50',
-  date: 'border-purple-500 bg-purple-50',
-  email: 'border-orange-500 bg-orange-50',
-  text: 'border-gray-500 bg-gray-50'
+  signature: 'border-blue-500 bg-blue-50 bg-opacity-80',
+  name: 'border-green-500 bg-green-50 bg-opacity-80',
+  date: 'border-purple-500 bg-purple-50 bg-opacity-80',
+  email: 'border-orange-500 bg-orange-50 bg-opacity-80',
+  text: 'border-gray-500 bg-gray-50 bg-opacity-80'
 };
 
 const FIELD_ICONS = {
@@ -68,7 +68,7 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   return (
     <div
       ref={drag}
-      className={`absolute cursor-move border-2 border-dashed rounded px-2 py-1 text-xs select-none z-20 ${
+      className={`absolute cursor-move border-2 border-dashed rounded px-2 py-1 text-xs select-none shadow-sm ${
         FIELD_COLORS[field.type]
       } ${isDragging ? 'opacity-50' : ''}`}
       style={{
@@ -77,6 +77,7 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
         width: field.width,
         height: field.height,
         minHeight: '30px',
+        zIndex: 100,
       }}
       onDoubleClick={() => setIsEditing(true)}
     >
@@ -112,23 +113,21 @@ const FieldComponent = ({ field, onUpdate, onDelete }: {
   );
 };
 
-export default function PdfTemplateEditor({
+export default function DirectPdfEditor({
   pdfBase64,
   signatureFields,
   onFieldsChange,
   selectedFieldType
-}: PdfTemplateEditorProps) {
+}: DirectPdfEditorProps) {
   const [currentPage] = useState(1);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   // Create blob URL for PDF
-  React.useEffect(() => {
+  useEffect(() => {
     if (pdfBase64) {
       try {
-        console.log('Creating PDF blob URL from base64, length:', pdfBase64.length);
-        
-        // Convert base64 to blob
         const binaryString = atob(pdfBase64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -139,9 +138,6 @@ export default function PdfTemplateEditor({
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
         
-        console.log('PDF blob URL created successfully');
-        
-        // Cleanup function
         return () => {
           URL.revokeObjectURL(url);
         };
@@ -164,10 +160,8 @@ export default function PdfTemplateEditor({
       const y = offset.y - containerRect.top;
       
       if (item.type && !item.id) {
-        // New field from palette
         addField(x, y, item.type);
       } else if (item.id) {
-        // Moving existing field
         updateField(item.id, { x, y, pageNumber: currentPage });
       }
     },
@@ -181,7 +175,7 @@ export default function PdfTemplateEditor({
       id: `field_${Date.now()}`,
       type,
       label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      x: Math.max(0, x - 75), // Center the field on click
+      x: Math.max(0, x - 75),
       y: Math.max(0, y - 15),
       width: type === 'signature' ? 200 : 150,
       height: type === 'signature' ? 60 : 30,
@@ -205,40 +199,49 @@ export default function PdfTemplateEditor({
     onFieldsChange(filteredFields);
   }, [signatureFields, onFieldsChange]);
 
-  const handleContainerClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('pdf-overlay')) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      addField(x, y, selectedFieldType);
+  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
+    // Only add field if clicked directly on overlay, not on existing fields
+    if (e.target === overlayRef.current) {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        addField(x, y, selectedFieldType);
+      }
     }
   }, [addField, selectedFieldType]);
 
   const openPdfInNewTab = () => {
     if (pdfUrl) {
       window.open(pdfUrl, '_blank');
-    } else {
-      // Fallback to data URL
-      const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
-      window.open(dataUrl, '_blank');
     }
   };
 
   const currentPageFields = signatureFields.filter(field => field.pageNumber === currentPage);
+
+  if (!pdfUrl) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading PDF...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
         <div className="flex items-center gap-2">
-          <span className="text-sm px-3">
-            Page 1 (Interactive PDF Editor)
+          <span className="text-sm">
+            PDF Template Editor - Page 1
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={openPdfInNewTab}
-            className="ml-2"
           >
             <ExternalLink className="w-4 h-4 mr-1" />
             View PDF
@@ -250,53 +253,40 @@ export default function PdfTemplateEditor({
         </div>
       </div>
 
-      {/* PDF Container - Simplified approach */}
+      {/* PDF Container with Direct Display */}
       <div
         ref={(el) => {
           drop(el);
           containerRef.current = el;
         }}
         className={`relative border rounded-lg overflow-hidden ${
-          isOver ? 'bg-blue-50 border-blue-300' : 'bg-white'
+          isOver ? 'border-blue-300 shadow-lg' : 'border-gray-300'
         }`}
         style={{ height: '600px' }}
-        onClick={handleContainerClick}
       >
-        {/* PDF Display - Direct embedding */}
-        <div className="absolute inset-0">
-          {/* Try embed first, then iframe as fallback */}
-          <embed
-            src={pdfUrl}
-            type="application/pdf"
-            className="w-full h-full"
-            onLoad={() => console.log('PDF embed loaded')}
-          />
-          
-          {/* Invisible iframe fallback that triggers if embed fails */}
-          <iframe
-            src={pdfUrl}
-            className="w-full h-full absolute inset-0 -z-10"
-            title="PDF Template Fallback"
-            onLoad={() => console.log('PDF iframe fallback active')}
-          />
-          
-          {/* Final fallback: Canvas representation */}
-          <div className="absolute inset-0 -z-20 bg-white flex items-center justify-center">
-            <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-              <div className="text-center opacity-50">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">PDF Preview</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Interactive Overlay - High z-index to capture clicks */}
-        <div
-          className="absolute inset-0 pdf-overlay cursor-crosshair bg-transparent"
-          style={{ zIndex: 50 }}
+        {/* Direct PDF Display */}
+        <object
+          data={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+          type="application/pdf"
+          className="w-full h-full"
         >
-          {/* Render signature fields for current page */}
+          <iframe
+            src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+            className="w-full h-full"
+            title="PDF Template"
+          >
+            <p>Your browser doesn't support PDF viewing. <a href={pdfUrl} target="_blank" rel="noopener noreferrer">Download PDF</a></p>
+          </iframe>
+        </object>
+        
+        {/* Transparent Interactive Overlay */}
+        <div
+          ref={overlayRef}
+          className="absolute inset-0 cursor-crosshair"
+          onClick={handleOverlayClick}
+          style={{ zIndex: 50, background: 'transparent' }}
+        >
+          {/* Signature Fields */}
           {currentPageFields.map((field) => (
             <FieldComponent
               key={field.id}
@@ -306,29 +296,26 @@ export default function PdfTemplateEditor({
             />
           ))}
           
-          {/* Click instruction overlay - Only show if no fields */}
+          {/* Instruction hint */}
           {currentPageFields.length === 0 && (
             <div className="absolute top-4 left-4 pointer-events-none">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs">
-                Click to add {selectedFieldType} field
+              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-80">
+                Click anywhere on PDF to add {selectedFieldType} field
               </div>
             </div>
           )}
         </div>
-
-
       </div>
 
-      {/* Field Instructions */}
+      {/* Instructions */}
       <Card className="p-4">
-        <h4 className="font-medium mb-2">Field Instructions</h4>
+        <h4 className="font-medium mb-2">Template Editor Instructions</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Click anywhere in the template area to add a {selectedFieldType} field</li>
-          <li>• Drag fields to reposition them precisely</li>
+          <li>• The actual PDF is displayed above - click anywhere to add signature fields</li>
+          <li>• Drag fields to reposition them precisely on the document</li>
           <li>• Double-click field labels to edit them</li>
           <li>• Use the trash icon to delete fields</li>
-          <li>• Use "View PDF" button to open in new tab if needed</li>
-          <li>• Fields are saved with precise coordinates for signature placement</li>
+          <li>• Field coordinates are saved for exact signature placement</li>
         </ul>
       </Card>
     </div>
