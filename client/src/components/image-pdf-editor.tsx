@@ -461,6 +461,13 @@ export default function ImagePdfEditor({
           <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
             Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'} | Fields: {signatureFields.length}
           </div>
+          
+          {/* Field debug info */}
+          {signatureFields.length > 0 && (
+            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded z-50">
+              Fields in array: {signatureFields.map(f => `${f.type}(p${f.pageNumber})`).join(', ')}
+            </div>
+          )}
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
               {pageImages.map((page, index) => {
@@ -484,10 +491,12 @@ export default function ImagePdfEditor({
                     />
                     
                     {/* Signature Fields Overlay for this page */}
-                    <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
                         .map((field) => {
+                          console.log(`Rendering field ${field.id} on page ${page.pageNumber}:`, field);
+                          
                           // Calculate actual display dimensions
                           const maxWidth = 1000;
                           const actualWidth = Math.min(page.width, maxWidth);
@@ -499,28 +508,34 @@ export default function ImagePdfEditor({
                           const displayWidth = (field.width * actualWidth) / page.width;
                           const displayHeight = (field.height * actualHeight) / page.height;
                           
+                          console.log(`Display coordinates for ${field.id}:`, { displayX, displayY, displayWidth, displayHeight });
+                          
                           return (
                             <div 
                               key={field.id} 
                               className="absolute pointer-events-auto"
                               style={{
-                                left: displayX,
-                                top: displayY,
-                                width: displayWidth,
-                                height: displayHeight,
-                                zIndex: 20
+                                left: `${displayX}px`,
+                                top: `${displayY}px`,
+                                width: `${displayWidth}px`,
+                                height: `${displayHeight}px`,
+                                zIndex: 25,
+                                backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                                border: '2px dashed #3b82f6',
+                                borderRadius: '4px'
                               }}
                             >
-                              <div className={`border-2 border-dashed ${FIELD_COLORS[field.type]} rounded p-1 text-xs font-medium cursor-move bg-white bg-opacity-90`}>
-                                <div className="flex items-center justify-between">
-                                  <span className="truncate">{field.label}</span>
-                                  <button
-                                    onClick={() => deleteField(field.id)}
-                                    className="ml-1 text-red-500 hover:text-red-700"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
+                              <div className="flex items-center justify-between h-full p-1 text-xs font-medium text-blue-800 bg-white bg-opacity-90">
+                                <span className="truncate">{field.label}</span>
+                                <button
+                                  onClick={() => {
+                                    console.log('Deleting field:', field.id);
+                                    deleteField(field.id);
+                                  }}
+                                  className="ml-1 text-red-500 hover:text-red-700 w-4 h-4 flex items-center justify-center"
+                                >
+                                  ×
+                                </button>
                               </div>
                             </div>
                           );
