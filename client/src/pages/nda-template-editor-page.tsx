@@ -46,6 +46,12 @@ export default function NdaTemplateEditorPage() {
       fileContent: string;
       signatureFields: any[];
     }) => {
+      console.log('Saving template with data:', {
+        name: templateData.name,
+        hasFileContent: !!templateData.fileContent,
+        signatureFieldsCount: templateData.signatureFields?.length || 0
+      });
+
       const url = isNewTemplate 
         ? '/api/nda-templates'
         : `/api/nda-templates/${templateId}`;
@@ -57,7 +63,12 @@ export default function NdaTemplateEditorPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(templateData),
+        body: JSON.stringify({
+          name: templateData.name,
+          fileContent: templateData.fileContent,
+          signatureFields: templateData.signatureFields || [],
+          isDefault: false
+        }),
       });
       
       if (!response.ok) {
@@ -67,11 +78,24 @@ export default function NdaTemplateEditorPage() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (template) => {
+      console.log('Template saved successfully:', template.id);
+      toast({
+        title: "Template saved",
+        description: "Your NDA template has been saved successfully"
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
       setIsEditing(false);
       setLocation('/nda-templates');
     },
+    onError: (error) => {
+      console.error('Save error:', error);
+      toast({
+        title: "Save failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   });
 
   // Delete template mutation
