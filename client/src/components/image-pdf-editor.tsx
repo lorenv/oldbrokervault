@@ -191,32 +191,23 @@ export default function ImagePdfEditor({
     convertPdfToImage();
   }, [pdfBase64]);
 
-  // Auto-scale image to fit container
+  // Auto-scale images to fit container
   useEffect(() => {
-    const updateScale = () => {
-      if (!imageRef.current || !containerRef.current || !imageUrl) return;
-
-      const containerWidth = containerRef.current.clientWidth - 40;
-      const imageNaturalWidth = imageRef.current.naturalWidth;
+    if (containerRef.current && pageImages.length > 0) {
+      const container = containerRef.current;
+      const containerWidth = container.clientWidth - 64; // Account for padding
+      const firstPageWidth = pageImages[0]?.width || 1200;
       
-      if (imageNaturalWidth > 0) {
-        const optimalScale = Math.min(containerWidth / imageNaturalWidth, 1.2);
-        setScale(optimalScale);
-        console.log('Image scale set to:', optimalScale);
-      }
-    };
-
-    // Wait for image to load
-    if (imageUrl && imageRef.current) {
-      imageRef.current.onload = updateScale;
-      if (imageRef.current.complete) {
-        updateScale();
+      if (firstPageWidth > 0) {
+        const calculatedScale = containerWidth / firstPageWidth;
+        setScale(calculatedScale);
+        console.log('Image scale set to:', calculatedScale);
       }
     }
-  }, [imageUrl]);
+  }, [pageImages]);
 
   // Drop handler for field placement
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver }, dropProps] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       const offset = monitor.getClientOffset();
@@ -254,7 +245,7 @@ export default function ImagePdfEditor({
     }),
   });
 
-  const addField = useCallback((x: number, y: number, type: SignatureField['type']) => {
+  const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
     const newField: SignatureField = {
       id: `field_${Date.now()}`,
       type,
@@ -263,7 +254,7 @@ export default function ImagePdfEditor({
       y: Math.max(0, y - 15),
       width: type === 'signature' ? 200 : 150,
       height: type === 'signature' ? 60 : 30,
-      pageNumber: currentPage,
+      pageNumber,
       required: true,
       fontSize: 12,
       placeholder: type === 'date' ? 'MM/DD/YYYY' : undefined
@@ -283,13 +274,13 @@ export default function ImagePdfEditor({
     onFieldsChange(filteredFields);
   }, [signatureFields, onFieldsChange]);
 
-  const handleImageClick = useCallback((e: React.MouseEvent) => {
-    const rect = imageRef.current?.getBoundingClientRect();
+  const handleImageClick = useCallback((e: React.MouseEvent, pageNumber: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
     if (!rect) return;
 
     const x = (e.clientX - rect.left) / scale;
     const y = (e.clientY - rect.top) / scale;
-    addField(x, y, selectedFieldType);
+    addField(x, y, selectedFieldType, pageNumber);
   }, [addField, selectedFieldType, scale]);
 
   const openPdfInNewTab = () => {
@@ -342,55 +333,78 @@ export default function ImagePdfEditor({
         </div>
       </div>
 
-      {/* Image Editor Container */}
-      <div
-        ref={containerRef}
-        className="relative border rounded-lg overflow-auto bg-gray-100 p-4"
-        style={{ height: '600px' }}
-      >
+      {/* PDF Preview Container */}
+      <Card className="relative overflow-hidden">
+        {isLoading && (
+          <div className="flex items-center justify-center h-96 bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Converting all PDF pages to images...</p>
+            </div>
+          </div>
+        )}
+
         <div
-          ref={drop}
-          className={`relative inline-block ${isOver ? 'shadow-lg' : ''}`}
+          ref={containerRef}
+          className="relative max-h-[800px] overflow-y-auto p-4"
+          {...dropProps}
+          style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
-          {/* PDF Image */}
-          {imageUrl && (
-            <img
-              ref={imageRef}
-              src={imageUrl}
-              alt="PDF Document"
-              className="border border-gray-300 bg-white cursor-crosshair"
-              onClick={handleImageClick}
-              style={{
-                transform: `scale(${scale})`,
-                transformOrigin: 'top left',
-              }}
-            />
+          {pageImages.length > 0 && !isLoading && (
+            <div className="space-y-5">
+              {pageImages.map((page, index) => {
+                const pageOffset = getFieldOffset(page.pageNumber);
+                return (
+                  <div key={page.pageNumber} className="relative">
+                    {/* Page number indicator */}
+                    <div className="absolute -top-3 left-0 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium z-10">
+                      Page {page.pageNumber}
+                    </div>
+                    
+                    {/* Page image */}
+                    <img
+                      src={page.imageDataUrl}
+                      alt={`PDF Page ${page.pageNumber}`}
+                      className="w-full h-auto border rounded shadow-sm cursor-crosshair"
+                      onClick={(e) => handleImageClick(e, page.pageNumber)}
+                      style={{
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left',
+                        pointerEvents: 'auto'
+                      }}
+                    />
+                    
+                    {/* Signature Fields Overlay for this page */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {signatureFields
+                        .filter(field => field.pageNumber === page.pageNumber)
+                        .map((field) => (
+                          <div key={field.id} className="pointer-events-auto">
+                            <FieldComponent
+                              field={field}
+                              onUpdate={updateField}
+                              onDelete={deleteField}
+                              scale={scale}
+                            />
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
           
-          {/* Signature Fields Overlay */}
-          <div className="absolute inset-0 pointer-events-none">
-            {signatureFields.filter(field => field.pageNumber === currentPage).map((field) => (
-              <div key={field.id} className="pointer-events-auto">
-                <FieldComponent
-                  field={field}
-                  onUpdate={updateField}
-                  onDelete={deleteField}
-                  scale={scale}
-                />
-              </div>
-            ))}
-          </div>
-          
           {/* Click instruction */}
-          {signatureFields.filter(f => f.pageNumber === currentPage).length === 0 && imageUrl && (
-            <div className="absolute top-4 left-4 pointer-events-none">
+          {signatureFields.length === 0 && pageImages.length > 0 && (
+            <div className="absolute top-8 left-4 pointer-events-none z-10">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
-                Click anywhere on the PDF image to add {selectedFieldType} field
+                Click anywhere on any page to add {selectedFieldType} fields
               </div>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Instructions */}
       <Card className="p-4">
