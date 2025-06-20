@@ -1,12 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { DndProvider } from 'react-dnd';
+import { DndProvider, useDrag } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Save, X, Upload } from 'lucide-react';
+import { FileText, Plus, Save, X, Upload, Type, FileSignature, Calendar, Mail, AlignLeft } from 'lucide-react';
+import PdfCanvasViewer from './pdf-canvas-viewer';
 
 interface SignatureField {
   id: string;
@@ -78,22 +79,39 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
     }
   }, [toast]);
 
-  const addSignatureField = useCallback(() => {
-    const newField: SignatureField = {
-      id: `field-${Date.now()}`,
-      type: selectedFieldType,
-      label: `${selectedFieldType.charAt(0).toUpperCase() + selectedFieldType.slice(1)} Field`,
-      x: 100,
-      y: 100,
-      width: selectedFieldType === 'signature' ? 200 : 150,
-      height: selectedFieldType === 'signature' ? 80 : 30,
-      pageNumber: 1,
-      required: true,
-      fontSize: 12,
-      placeholder: selectedFieldType === 'text' ? 'Enter text...' : undefined
-    };
-    setSignatureFields(prev => [...prev, newField]);
-  }, [selectedFieldType]);
+  const FIELD_TYPES = [
+    { type: 'signature' as const, label: 'Signature', icon: FileSignature, color: 'bg-blue-100 border-blue-300' },
+    { type: 'name' as const, label: 'Name', icon: Type, color: 'bg-green-100 border-green-300' },
+    { type: 'date' as const, label: 'Date', icon: Calendar, color: 'bg-purple-100 border-purple-300' },
+    { type: 'email' as const, label: 'Email', icon: Mail, color: 'bg-orange-100 border-orange-300' },
+    { type: 'text' as const, label: 'Text', icon: AlignLeft, color: 'bg-gray-100 border-gray-300' }
+  ];
+
+  const DraggableFieldType = ({ fieldType }: { fieldType: typeof FIELD_TYPES[0] }) => {
+    const [{ isDragging }, drag] = useDrag({
+      type: 'new-field',
+      item: { type: fieldType.type },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    });
+
+    const Icon = fieldType.icon;
+
+    return (
+      <div
+        ref={drag}
+        className={`p-3 border-2 border-dashed rounded-lg cursor-move transition-all ${
+          fieldType.color
+        } ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4" />
+          <span className="text-sm font-medium">{fieldType.label}</span>
+        </div>
+      </div>
+    );
+  };
 
   const removeSignatureField = useCallback((fieldId: string) => {
     setSignatureFields(prev => prev.filter(field => field.id !== fieldId));
@@ -212,28 +230,36 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
 
             <Card>
               <CardHeader>
-                <CardTitle>Add Signature Fields</CardTitle>
+                <CardTitle>Drag Field Types</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="fieldType">Field Type</Label>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600 mb-3">
+                  Drag field types onto the PDF or click on the PDF to add fields
+                </p>
+                <div className="space-y-2">
+                  {FIELD_TYPES.map((fieldType) => (
+                    <DraggableFieldType
+                      key={fieldType.type}
+                      fieldType={fieldType}
+                    />
+                  ))}
+                </div>
+                <div className="pt-2 border-t">
+                  <Label htmlFor="selectedField">Current Field Type</Label>
                   <select
-                    id="fieldType"
+                    id="selectedField"
                     value={selectedFieldType}
                     onChange={(e) => setSelectedFieldType(e.target.value as SignatureField['type'])}
-                    className="w-full mt-2 p-2 border border-gray-300 rounded-md"
+                    className="w-full mt-1 p-2 border border-gray-300 rounded-md text-sm"
                   >
-                    <option value="signature">Signature</option>
-                    <option value="name">Name</option>
-                    <option value="date">Date</option>
-                    <option value="email">Email</option>
-                    <option value="text">Text</option>
+                    {FIELD_TYPES.map(ft => (
+                      <option key={ft.type} value={ft.type}>{ft.label}</option>
+                    ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Click on PDF to add {selectedFieldType} field
+                  </p>
                 </div>
-                <Button onClick={addSignatureField} className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add {selectedFieldType.charAt(0).toUpperCase() + selectedFieldType.slice(1)} Field
-                </Button>
               </CardContent>
             </Card>
 
@@ -268,24 +294,20 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
             )}
           </div>
 
-          {/* PDF Preview */}
+          {/* PDF Canvas Editor */}
           <div className="lg:col-span-2">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle>PDF Preview</CardTitle>
+                <CardTitle>PDF Template Editor</CardTitle>
               </CardHeader>
               <CardContent>
                 {pdfBase64 ? (
-                  <div className="relative border rounded-lg overflow-hidden" style={{ height: '600px' }}>
-                    <iframe
-                      src={`data:application/pdf;base64,${pdfBase64}`}
-                      className="w-full h-full"
-                      title="PDF Preview"
-                    />
-                    <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded text-sm">
-                      Template Preview - Field positioning available after save
-                    </div>
-                  </div>
+                  <PdfCanvasViewer
+                    pdfBase64={pdfBase64}
+                    signatureFields={signatureFields}
+                    onFieldsChange={setSignatureFields}
+                    selectedFieldType={selectedFieldType}
+                  />
                 ) : (
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
