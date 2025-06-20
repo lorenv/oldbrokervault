@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -859,6 +859,111 @@ export class DatabaseStorage implements IStorage {
         shareLastViewed: new Date()
       })
       .where(eq(cimDocuments.id, id));
+  }
+
+  // New granular view tracking methods
+  async trackDocumentView(
+    documentId: number, 
+    viewerType: 'anonymous' | 'nda_signer',
+    options: {
+      ndaAccessTokenId?: number;
+      signerEmail?: string;
+      ipAddress?: string;
+      userAgent?: string;
+      sessionDuration?: number;
+    } = {}
+  ): Promise<void> {
+    await db.insert(documentViews).values({
+      cimDocumentId: documentId,
+      viewerType,
+      ndaAccessTokenId: options.ndaAccessTokenId,
+      signerEmail: options.signerEmail,
+      ipAddress: options.ipAddress,
+      userAgent: options.userAgent,
+      sessionDuration: options.sessionDuration,
+    });
+
+    // Update document's last viewed timestamp
+    await db.update(cimDocuments)
+      .set({ shareLastViewed: new Date() })
+      .where(eq(cimDocuments.id, documentId));
+  }
+
+  async getDocumentViewStats(documentId: number): Promise<{
+    totalViews: number;
+    anonymousViews: number;
+    ndaSignerViews: number;
+    uniqueNdaSigners: number;
+    recentViews: any[];
+  }> {
+    // Get total view counts by type
+    const viewCounts = await db
+      .select({
+        viewerType: documentViews.viewerType,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(documentViews)
+      .where(eq(documentViews.cimDocumentId, documentId))
+      .groupBy(documentViews.viewerType);
+
+    // Get unique NDA signers count
+    const [uniqueSigners] = await db
+      .select({
+        count: sql<number>`COUNT(DISTINCT ${documentViews.signerEmail})`
+      })
+      .from(documentViews)
+      .where(
+        and(
+          eq(documentViews.cimDocumentId, documentId),
+          eq(documentViews.viewerType, 'nda_signer')
+        )
+      );
+
+    // Get recent views with details
+    const recentViews = await db
+      .select({
+        id: documentViews.id,
+        viewerType: documentViews.viewerType,
+        signerEmail: documentViews.signerEmail,
+        ipAddress: documentViews.ipAddress,
+        viewedAt: documentViews.viewedAt,
+        sessionDuration: documentViews.sessionDuration
+      })
+      .from(documentViews)
+      .where(eq(documentViews.cimDocumentId, documentId))
+      .orderBy(desc(documentViews.viewedAt))
+      .limit(50);
+
+    const anonymousViews = viewCounts.find(vc => vc.viewerType === 'anonymous')?.count || 0;
+    const ndaSignerViews = viewCounts.find(vc => vc.viewerType === 'nda_signer')?.count || 0;
+    const totalViews = anonymousViews + ndaSignerViews;
+
+    return {
+      totalViews,
+      anonymousViews,
+      ndaSignerViews,
+      uniqueNdaSigners: uniqueSigners?.count || 0,
+      recentViews
+    };
+  }
+
+  async getNdaSignerViewHistory(documentId: number, signerEmail: string): Promise<any[]> {
+    return await db
+      .select({
+        id: documentViews.id,
+        viewedAt: documentViews.viewedAt,
+        ipAddress: documentViews.ipAddress,
+        sessionDuration: documentViews.sessionDuration
+      })
+      .from(documentViews)
+      .where(
+        and(
+          eq(documentViews.cimDocumentId, documentId),
+          eq(documentViews.viewerType, 'nda_signer'),
+          eq(documentViews.signerEmail, signerEmail)
+        )
+      )
+      .orderBy(desc(documentViews.viewedAt));
   }
 
   async createCustomSection(section: {

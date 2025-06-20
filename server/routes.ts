@@ -336,9 +336,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No expiration date set - link never expires");
       }
 
-      // Increment view count
-      console.log("Incrementing view count for document:", cimDoc.id);
-      await storage.incrementShareViewCount(cimDoc.id);
+      // Track view based on document protection type
+      console.log("Tracking view for document:", cimDoc.id, "NDA Protected:", cimDoc.ndaProtected);
+      
+      if (cimDoc.ndaProtected) {
+        // For NDA-protected documents, we track views via token access, not here
+        console.log("NDA-protected document - view will be tracked via token access");
+      } else {
+        // For non-NDA documents, track as anonymous view
+        console.log("Non-NDA document - tracking anonymous view");
+        const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+        const userAgent = req.get('User-Agent') || 'unknown';
+        
+        await storage.trackDocumentView(cimDoc.id, 'anonymous', {
+          ipAddress: clientIp,
+          userAgent: userAgent
+        });
+        
+        // Also increment legacy counter for backwards compatibility
+        await storage.incrementShareViewCount(cimDoc.id);
+      }
 
       // Check NDA approval status if required
       let ndaApprovalStatus = null;
@@ -4929,8 +4946,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       
       console.log("Found access token:", accessToken.id);
       
-      // Update token last accessed
+      // Update token last accessed and track NDA signer view
       await storage.updateTokenLastAccessed(accessToken.token);
+      
+      // Track NDA signer view
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      const userAgent = req.get('User-Agent') || 'unknown';
+      
+      console.log("Tracking NDA signer view for document:", accessToken.cimDocumentId, "Signer:", accessToken.signerEmail);
+      await storage.trackDocumentView(accessToken.cimDocumentId, 'nda_signer', {
+        ndaAccessTokenId: accessToken.id,
+        signerEmail: accessToken.signerEmail,
+        ipAddress: clientIp,
+        userAgent: userAgent
+      });
       
       // Get CIM document
       const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
