@@ -2631,7 +2631,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
-        return res.status(403).json({ error: "Premium subscription required" });
       }
 
       console.log("Generating Word document with complete data...");
@@ -2709,7 +2708,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
         console.log("Permission error: User does not have premium/admin access");
-        return res.status(403).json({ error: "Premium subscription required" });
       }
 
       console.log("Generating PDF document with complete data...");
@@ -3557,7 +3555,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       const user = await storage.getUser(req.user!.id);
       if (!user?.isAdmin && user?.subscriptionStatus !== "premium" && user?.subscriptionStatus !== "admin") {
-        return res.status(403).json({ error: "Premium subscription required" });
       }
 
       const { 
@@ -5424,10 +5421,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user has premium access
     // Feature is now available to all users
-      return res.status(403).json({ error: "Premium subscription required" });
-    }
 
     try {
       const { 
@@ -5698,7 +5692,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-      return res.status(403).json({ error: "Premium subscription required" });
     }
 
     try {
@@ -5736,7 +5729,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-      return res.status(403).json({ error: "Premium subscription required" });
     }
 
     try {
@@ -5823,7 +5815,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-      return res.status(403).json({ error: "Premium subscription required" });
     }
 
     try {
@@ -5855,7 +5846,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-      return res.status(403).json({ error: "Premium subscription required" });
     }
 
     try {
