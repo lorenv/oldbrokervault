@@ -38,7 +38,6 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfBase64, setPdfBase64] = useState('');
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
-  // Remove field type selector since we're using drag and drop
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -234,7 +233,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-gray-600 mb-3">
-                  Drag field types onto the PDF or click on the PDF to add fields
+                  Drag field types onto the PDF to add fields
                 </p>
                 <div className="space-y-2">
                   {FIELD_TYPES.map((fieldType) => (
@@ -244,22 +243,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                     />
                   ))}
                 </div>
-                <div className="pt-2 border-t">
-                  <Label htmlFor="selectedField">Current Field Type</Label>
-                  <select
-                    id="selectedField"
-                    value={selectedFieldType}
-                    onChange={(e) => setSelectedFieldType(e.target.value as SignatureField['type'])}
-                    className="w-full mt-1 p-2 border border-gray-300 rounded-md text-sm"
-                  >
-                    {FIELD_TYPES.map(ft => (
-                      <option key={ft.type} value={ft.type}>{ft.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Click on PDF to add {selectedFieldType} field
-                  </p>
-                </div>
+
               </CardContent>
             </Card>
 
