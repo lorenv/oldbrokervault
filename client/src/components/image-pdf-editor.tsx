@@ -288,6 +288,17 @@ export default function ImagePdfEditor({
     window.open(dataUrl, '_blank');
   };
 
+  // Calculate cumulative offset for field positioning
+  const getFieldOffset = (pageNumber: number) => {
+    let offset = 0;
+    for (let i = 0; i < pageNumber - 1; i++) {
+      if (pageImages[i]) {
+        offset += pageImages[i].height * scale + 20; // 20px gap between pages
+      }
+    }
+    return offset;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -353,7 +364,6 @@ export default function ImagePdfEditor({
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
               {pageImages.map((page, index) => {
-                const pageOffset = getFieldOffset(page.pageNumber);
                 return (
                   <div key={page.pageNumber} className="relative">
                     {/* Page number indicator */}
