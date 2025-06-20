@@ -145,8 +145,14 @@ export default function ImagePdfEditor({
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'PDF conversion failed');
+          let errorMessage = 'PDF conversion failed';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
