@@ -286,12 +286,10 @@ export function CimGenerator() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
       
-      if (result.analysis) {
-        setAnalysis(result.analysis);
-        setCurrentDocId(result.id);
-        setExtractedImages(result.analysis.extractedImages || []);
-        setSelectedImages(result.analysis.selectedImages || []);
-      }
+      // Redirect to the document editing interface with tabs
+      setTimeout(() => {
+        window.location.assign(`/documents/${result.id}`);
+      }, 1500);
     },
     onError: (error) => {
       setWebsiteAnalysisStage(null);
