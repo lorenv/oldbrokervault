@@ -60,6 +60,9 @@ function Router() {
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
+            <ProtectedRoute path="/nda-templates/:id?" component={lazy(() => import("@/pages/nda-template-editor-page"))} />
+            <ProtectedRoute path="/nda-templates" component={lazy(() => import("@/pages/nda-template-editor-page"))} />
+            <Route path="/share/:shareSlug/sign-nda" component={lazy(() => import("@/pages/enhanced-nda-signing-page"))} />
             <Route component={NotFound} />
           </Switch>
         </div>
