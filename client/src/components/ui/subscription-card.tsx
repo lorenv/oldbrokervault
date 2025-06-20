@@ -136,19 +136,25 @@ export function SubscriptionCard({
 
           <ul className="space-y-2 text-sm">
             <li className="flex items-center">
-              ✓ {status === "premium" ? "Unlimited exports" : "PDF exports"}
+              ✓ All export features (PDF, Word, WordPress)
             </li>
             <li className="flex items-center">
-              ✓ {status === "premium" ? "Priority support" : "Standard support"}
+              ✓ Advanced analytics and search
+            </li>
+            <li className="flex items-center">
+              ✓ NDA management and sharing
+            </li>
+            <li className="flex items-center">
+              ✓ Version history and collaboration
             </li>
           </ul>
 
           {status === "free" && (
             <div className="text-sm text-muted-foreground mt-4">
-              <p>Upgrade to Premium for:</p>
+              <p>Upgrade for more CIM documents:</p>
               <ul className="list-disc pl-4 mt-2">
-                <li>Generate up to 100 CIMs per month</li>
-                <li>Priority support</li>
+                <li>Standard: 3 CIMs per month, 20 regenerations</li>
+                <li>Enterprise: Unlimited CIMs and regenerations</li>
               </ul>
             </div>
           )}
