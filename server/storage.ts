@@ -101,6 +101,7 @@ export interface IStorage {
   getUploadedFiles(cimDocumentId: number): Promise<any[]>;
   getCimDocuments(userId: number, options?: { page?: number; limit?: number; search?: string }): Promise<{ documents: CimDocument[]; total: number; hasMore: boolean }>;
   getAllUsers(): Promise<User[]>;
+  getAllCimDocuments(): Promise<CimDocument[]>;
   getCimDocument(id: number): Promise<CimDocument | undefined>;
   updateCimDocument(id: number, doc: Partial<CimDocument>): Promise<CimDocument>;
   updateCimDocumentContent(id: number, editedContent: any): Promise<CimDocument>;
@@ -600,6 +601,10 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return db.select().from(users);
+  }
+
+  async getAllCimDocuments(): Promise<CimDocument[]> {
+    return db.select().from(cimDocuments);
   }
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
