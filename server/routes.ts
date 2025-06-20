@@ -2289,12 +2289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await storage.getUser(req.user!.id);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Version history requires a premium subscription",
-          upgradeRequired: true 
-        });
-      }
+      // Version history is now available to all users
 
       const docId = parseInt(req.params.id);
       const doc = await storage.getCimDocument(docId);
@@ -2350,12 +2345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await storage.getUser(req.user!.id);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
-        return res.status(403).json({ 
-          error: "Analytics require a premium subscription",
-          upgradeRequired: true 
-        });
-      }
+      // Analytics are now available to all users
 
       const docId = parseInt(req.params.id);
       const doc = await storage.getCimDocument(docId);
