@@ -127,7 +127,7 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
     }),
   }), [type]);
 
-  console.log(`DraggableFieldButton ${type} - isDragging:`, isDragging);
+  // Remove logging to prevent infinite renders
 
   return (
     <div
@@ -278,9 +278,8 @@ export default function ImagePdfEditor({
           required: true,
           fontSize: 12,
         };
-        console.log('Creating field:', newField);
         const updatedFields = [...signatureFields, newField];
-        console.log('Updated fields array:', updatedFields);
+        console.log('Field created! Total fields:', updatedFields.length);
         onFieldsChange(updatedFields);
       } else if (item.id) {
         console.log('✅ Updating existing field:', item.id);
@@ -460,7 +459,7 @@ export default function ImagePdfEditor({
         >
           {/* Debug info */}
           <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
-            Can Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'}
+            Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'} | Fields: {signatureFields.length}
           </div>
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
@@ -501,29 +500,28 @@ export default function ImagePdfEditor({
                           const displayHeight = (field.height * actualHeight) / page.height;
                           
                           return (
-                            <div key={field.id} className="pointer-events-auto">
-                              <FieldComponent
-                                field={{
-                                  ...field,
-                                  x: displayX,
-                                  y: displayY,
-                                  width: displayWidth,
-                                  height: displayHeight
-                                }}
-                                scale={1} // Already scaled above
-                                onUpdate={(id, updates) => {
-                                  // Convert back to original coordinates
-                                  const originalUpdates = {
-                                    ...updates,
-                                    x: updates.x ? (updates.x * page.width) / actualWidth : undefined,
-                                    y: updates.y ? (updates.y * page.height) / actualHeight : undefined,
-                                    width: updates.width ? (updates.width * page.width) / actualWidth : undefined,
-                                    height: updates.height ? (updates.height * page.height) / actualHeight : undefined
-                                  };
-                                  updateField(id, originalUpdates);
-                                }}
-                                onDelete={deleteField}
-                              />
+                            <div 
+                              key={field.id} 
+                              className="absolute pointer-events-auto"
+                              style={{
+                                left: displayX,
+                                top: displayY,
+                                width: displayWidth,
+                                height: displayHeight,
+                                zIndex: 20
+                              }}
+                            >
+                              <div className={`border-2 border-dashed ${FIELD_COLORS[field.type]} rounded p-1 text-xs font-medium cursor-move bg-white bg-opacity-90`}>
+                                <div className="flex items-center justify-between">
+                                  <span className="truncate">{field.label}</span>
+                                  <button
+                                    onClick={() => deleteField(field.id)}
+                                    className="ml-1 text-red-500 hover:text-red-700"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
