@@ -27,6 +27,7 @@ import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNoti
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
+import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
 
 
 // Setup upload directory
@@ -141,6 +142,11 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication first, before any other routes
   setupAuth(app);
+  
+  // SECURITY: Apply security middleware globally
+  app.use(responseSanitizationMiddleware);
+  app.use(securityHeadersMiddleware);
+  app.use(sensitiveEndpointLimiter);
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
@@ -452,28 +458,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           coverImagePosition: cimDoc.coverImagePosition,
           coverImageAttribution: cimDoc.coverImageAttribution,
           createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
-          userProfile: userProfile ? {
-            name: userProfile.name,
-            title: userProfile.title,
-            email: userProfile.email,
-            phoneNumber: userProfile.phoneNumber,
-            businessName: userProfile.businessName,
-            businessLogo: userProfile.businessLogo,
-            profilePhoto: userProfile.profilePhoto
-          } : null
+          userProfile: sanitizedUserProfile
         },
         websiteUrl: cimDoc.websiteUrl || '',
         selectedImages: absoluteSelectedImages,
         logoUrl: absoluteLogoUrl,
-        userProfileData: userProfile ? {
-          name: userProfile.name,
-          title: userProfile.title,
-          email: userProfile.email,
-          phoneNumber: userProfile.phoneNumber,
-          businessName: userProfile.businessName,
-          businessLogo: userProfile.businessLogo,
-          profilePhoto: userProfile.profilePhoto
-        } : null,
+        userProfileData: sanitizedUserProfile,
         requiresNda: cimDoc.ndaProtected || false,
         ndaUrl,
         customSections: customSections || [],
@@ -2569,8 +2559,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !isAuthorizedAdmin(req.user)) {
       return res.sendStatus(401);
     }
-    const users = await storage.getAllUsers();
-    res.json(users);
+    
+    try {
+      const users = await storage.getAllUsers();
+      // SECURITY: Sanitize user data for admin view - exclude passwords, tokens, and sensitive fields
+      const sanitizedUsers = users.map(user => sanitizeUser(user));
+      res.json(sanitizedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
   });
 
   app.post("/api/admin/subscription", async (req, res) => {
