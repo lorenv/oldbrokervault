@@ -156,7 +156,9 @@ export const ndaTemplates = pgTable("nda_templates", {
   name: text("name").notNull(),
   fileContent: text("file_content").notNull(), // Base64 encoded PDF
   isDefault: boolean("is_default").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  signatureFields: jsonb("signature_fields").default([]).notNull(), // Array of field definitions
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 
 export const shareLinks = pgTable("share_links", {
@@ -181,7 +183,8 @@ export const ndaSignatures = pgTable("nda_signatures", {
   signedNdaContent: text("signed_nda_content").notNull(), // Base64 encoded signed PDF
   approved: boolean("approved").default(false).notNull(),
   approvedAt: timestamp("approved_at"),
-  approvedBy: integer("approved_by") // User ID who approved
+  approvedBy: integer("approved_by"), // User ID who approved
+  fieldValues: jsonb("field_values").default({}).notNull() // Field ID to value mapping
 });
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
