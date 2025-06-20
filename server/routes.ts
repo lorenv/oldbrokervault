@@ -5692,7 +5692,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-    }
 
     try {
       const contactId = parseInt(req.params.id);
@@ -5729,7 +5728,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-    }
 
     try {
       const { investorContacts, ndaSignatures, cimDocuments } = await import('@shared/schema');
@@ -5815,7 +5813,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-    }
 
     try {
       const { cimDocuments } = await import('@shared/schema');
@@ -5846,7 +5843,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
 
     // Feature is now available to all users
-    }
 
     try {
       const { contactIds } = req.query;
