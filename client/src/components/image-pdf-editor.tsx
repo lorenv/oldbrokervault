@@ -125,6 +125,12 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    begin: () => {
+      console.log('Drag started for:', type);
+    },
+    end: (item, monitor) => {
+      console.log('Drag ended for:', type, 'was dropped:', monitor.didDrop());
+    }
   });
 
   return (
@@ -220,7 +226,7 @@ export default function ImagePdfEditor({
   // Remove auto-scaling since we're using max-width constraint instead
 
   // Drop handler for field placement on the entire container
-  const [{ isOver }, dropProps] = useDrop({
+  const [{ isOver, canDrop }, dropProps] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
       console.log('Drop triggered!', item);
@@ -268,9 +274,15 @@ export default function ImagePdfEditor({
       } else if (item.id) {
         updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
       }
+      
+      return { success: true };
+    },
+    hover: (item, monitor) => {
+      console.log('Hovering over drop zone with:', item);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
     }),
   });
 
@@ -429,6 +441,12 @@ export default function ImagePdfEditor({
             touchAction: 'none'
           }}
         >
+          {/* Debug info */}
+          {canDrop && (
+            <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
+              Can Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'}
+            </div>
+          )}
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
               {pageImages.map((page, index) => {
