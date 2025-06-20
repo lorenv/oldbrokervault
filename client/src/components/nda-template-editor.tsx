@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Plus, Save, X, Upload, Type, FileSignature, Calendar, Mail, AlignLeft } from 'lucide-react';
-import FallbackPdfEditor from './fallback-pdf-editor';
+import EmbeddedPdfEditor from './embedded-pdf-editor';
 
 interface SignatureField {
   id: string;
@@ -302,7 +302,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
               </CardHeader>
               <CardContent>
                 {pdfBase64 ? (
-                  <FallbackPdfEditor
+                  <EmbeddedPdfEditor
                     pdfBase64={pdfBase64}
                     signatureFields={signatureFields}
                     onFieldsChange={setSignatureFields}
