@@ -3,7 +3,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
+import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SignatureField {
   id: string;
@@ -126,6 +126,8 @@ export default function ImagePdfEditor({
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Convert PDF to image via server
   useEffect(() => {
@@ -136,12 +138,12 @@ export default function ImagePdfEditor({
       setError('');
 
       try {
-        console.log('Converting PDF to image via server');
+        console.log(`Converting PDF to image via server, page ${currentPage}`);
         
         const response = await fetch('/api/pdf-to-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdfBase64 }),
+          body: JSON.stringify({ pdfBase64, pageNumber: currentPage }),
         });
 
         if (!response.ok) {
@@ -159,6 +161,7 @@ export default function ImagePdfEditor({
         console.log('PDF converted to image successfully');
         
         setImageUrl(data.imageDataUrl);
+        setTotalPages(data.totalPages || 1);
         setIsLoading(false);
 
       } catch (error: any) {
@@ -170,7 +173,7 @@ export default function ImagePdfEditor({
     };
 
     convertPdfToImage();
-  }, [pdfBase64]);
+  }, [pdfBase64, currentPage]);
 
   // Auto-scale image to fit container
   useEffect(() => {
@@ -211,7 +214,7 @@ export default function ImagePdfEditor({
       if (item.type && !item.id) {
         addField(x, y, item.type);
       } else if (item.id) {
-        updateField(item.id, { x, y });
+        updateField(item.id, { x, y, pageNumber: currentPage });
       }
     },
     collect: (monitor) => ({
@@ -228,7 +231,7 @@ export default function ImagePdfEditor({
       y: Math.max(0, y - 15),
       width: type === 'signature' ? 200 : 150,
       height: type === 'signature' ? 60 : 30,
-      pageNumber: 1,
+      pageNumber: currentPage,
       required: true,
       fontSize: 12,
       placeholder: type === 'date' ? 'MM/DD/YYYY' : undefined
@@ -292,14 +295,38 @@ export default function ImagePdfEditor({
       {/* Toolbar */}
       <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
         <div className="flex items-center gap-2">
-          <span className="text-sm">PDF Template Editor</span>
-          <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
+          {totalPages > 1 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage <= 1 || isLoading}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm px-3">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage >= totalPages || isLoading}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+          
+          <Button variant="outline" size="sm" onClick={openPdfInNewTab} className="ml-2">
             <ExternalLink className="w-4 h-4 mr-1" />
             View Original PDF
           </Button>
         </div>
+        
         <div className="text-sm text-gray-600">
-          {signatureFields.length} field{signatureFields.length !== 1 ? 's' : ''} positioned
+          {signatureFields.filter(f => f.pageNumber === currentPage).length} field{signatureFields.filter(f => f.pageNumber === currentPage).length !== 1 ? 's' : ''} on this page
         </div>
       </div>
 
@@ -330,7 +357,7 @@ export default function ImagePdfEditor({
           
           {/* Signature Fields Overlay */}
           <div className="absolute inset-0 pointer-events-none">
-            {signatureFields.map((field) => (
+            {signatureFields.filter(field => field.pageNumber === currentPage).map((field) => (
               <div key={field.id} className="pointer-events-auto">
                 <FieldComponent
                   field={field}
@@ -343,7 +370,7 @@ export default function ImagePdfEditor({
           </div>
           
           {/* Click instruction */}
-          {signatureFields.length === 0 && imageUrl && (
+          {signatureFields.filter(f => f.pageNumber === currentPage).length === 0 && imageUrl && (
             <div className="absolute top-4 left-4 pointer-events-none">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90">
                 Click anywhere on the PDF image to add {selectedFieldType} field
@@ -358,6 +385,7 @@ export default function ImagePdfEditor({
         <h4 className="font-medium mb-2">PDF Template Editor</h4>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• PDF converted to image and displayed above</li>
+          <li>• Use page navigation if your PDF has multiple pages</li>
           <li>• Click anywhere on the document image to add signature fields</li>
           <li>• Drag fields to reposition them precisely</li>
           <li>• Double-click field labels to edit them</li>

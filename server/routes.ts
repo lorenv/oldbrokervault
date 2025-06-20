@@ -4177,30 +4177,62 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
         console.log(`PDF written to temp file: ${pdfPath}, size: ${stats.size} bytes`);
 
-        // Convert PDF to PNG using poppler-utils
-        const baseImagePath = imagePath.replace('.png', '');
-        const convertCommand = `pdftoppm -png -f 1 -l 1 -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
-        const finalImagePath = `${baseImagePath}-1.png`;
+        // Get page number from request (default to page 1)
+        const pageNumber = parseInt(req.body.pageNumber) || 1;
 
-        console.log('Running conversion command:', convertCommand);
+        // Convert specific PDF page to PNG using poppler-utils
+        const baseImagePath = imagePath.replace('.png', '');
+        const convertCommand = `pdftoppm -png -f ${pageNumber} -l ${pageNumber} -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
+        const finalImagePath = `${baseImagePath}-${pageNumber.toString().padStart(2, '0')}.png`;
+
+        console.log(`Running conversion command for page ${pageNumber}:`, convertCommand);
         await execAsync(convertCommand, { timeout: 30000 });
 
-        if (!fsSync.existsSync(finalImagePath)) {
+        // Check multiple possible output formats
+        const possiblePaths = [
+          finalImagePath,
+          `${baseImagePath}-${pageNumber}.png`,
+          `${baseImagePath}-1.png`
+        ];
+
+        let actualImagePath = '';
+        for (const possiblePath of possiblePaths) {
+          if (fsSync.existsSync(possiblePath)) {
+            actualImagePath = possiblePath;
+            break;
+          }
+        }
+
+        if (!actualImagePath) {
           throw new Error('PDF conversion failed - no output image generated');
         }
 
         // Read the generated image
-        const imageBuffer = fsSync.readFileSync(finalImagePath);
+        const imageBuffer = fsSync.readFileSync(actualImagePath);
         const imageBase64 = imageBuffer.toString('base64');
+
+        // Get total page count using pdfinfo
+        let totalPages = 1;
+        try {
+          const { stdout } = await execAsync(`pdfinfo "${pdfPath}"`, { timeout: 10000 });
+          const pageMatch = stdout.match(/Pages:\s+(\d+)/);
+          if (pageMatch) {
+            totalPages = parseInt(pageMatch[1]);
+          }
+        } catch (infoError) {
+          console.warn('Could not get page count, defaulting to 1');
+        }
 
         // Clean up temporary files
         fsSync.unlinkSync(pdfPath);
-        fsSync.unlinkSync(finalImagePath);
+        fsSync.unlinkSync(actualImagePath);
 
-        console.log('PDF converted to image successfully, image size:', imageBase64.length);
+        console.log(`PDF page ${pageNumber} converted successfully, image size: ${imageBase64.length}, total pages: ${totalPages}`);
 
         return res.json({
           success: true,
+          pageNumber,
+          totalPages,
           imageBase64,
           imageDataUrl: `data:image/png;base64,${imageBase64}`
         });
