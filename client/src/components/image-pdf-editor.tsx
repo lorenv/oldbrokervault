@@ -230,22 +230,23 @@ export default function ImagePdfEditor({
       // Calculate which page this drop is on
       let cumulativeHeight = 0;
       let targetPage = 1;
+      let adjustedY = y;
       
       for (const page of pageImages) {
         const pageHeight = page.height * scale;
         if (y >= cumulativeHeight && y < cumulativeHeight + pageHeight) {
           targetPage = page.pageNumber;
           // Adjust y coordinate to be relative to the page
-          y = y - cumulativeHeight;
+          adjustedY = y - cumulativeHeight;
           break;
         }
         cumulativeHeight += pageHeight + 20; // 20px gap between pages
       }
       
       if (item.type && !item.id) {
-        addField(x, y, item.type, targetPage);
+        addField(x, adjustedY, item.type, targetPage);
       } else if (item.id) {
-        updateField(item.id, { x, y, pageNumber: targetPage });
+        updateField(item.id, { x, y: adjustedY, pageNumber: targetPage });
       }
     },
     collect: (monitor) => ({
