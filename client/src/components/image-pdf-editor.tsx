@@ -127,6 +127,8 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
     }),
   }), [type]);
 
+  console.log(`DraggableFieldButton ${type} - isDragging:`, isDragging);
+
   return (
     <div
       ref={drag}
@@ -263,22 +265,25 @@ export default function ImagePdfEditor({
       }
       
       if (item.type && !item.id) {
-        console.log('Adding new field:', item.type, 'at', { adjustedX, adjustedY, targetPage });
+        console.log('✅ SUCCESS! Adding new field:', item.type, 'at coordinates:', { adjustedX, adjustedY, targetPage });
         const newField: SignatureField = {
           id: `field_${Date.now()}`,
           type: item.type,
           label: item.type.charAt(0).toUpperCase() + item.type.slice(1),
           x: adjustedX,
           y: adjustedY,
-          width: 120,
-          height: 30,
+          width: item.type === 'signature' ? 200 : 150,
+          height: item.type === 'signature' ? 60 : 30,
           pageNumber: targetPage,
           required: true,
           fontSize: 12,
         };
+        console.log('Creating field:', newField);
         const updatedFields = [...signatureFields, newField];
+        console.log('Updated fields array:', updatedFields);
         onFieldsChange(updatedFields);
       } else if (item.id) {
+        console.log('✅ Updating existing field:', item.id);
         const updatedFields = signatureFields.map(field => 
           field.id === item.id 
             ? { ...field, x: adjustedX, y: adjustedY, pageNumber: targetPage }
@@ -290,7 +295,7 @@ export default function ImagePdfEditor({
       return { success: true };
     },
     hover: (item, monitor) => {
-      console.log('Hovering over drop zone with:', item);
+      // Remove excessive hover logging for cleaner console
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -454,11 +459,9 @@ export default function ImagePdfEditor({
           }}
         >
           {/* Debug info */}
-          {canDrop && (
-            <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
-              Can Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'}
-            </div>
-          )}
+          <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
+            Can Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'}
+          </div>
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
               {pageImages.map((page, index) => {
