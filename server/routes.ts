@@ -1033,10 +1033,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Save the uploaded image using the image manager
-      const metadata = await imageManager.saveUploadedImage(
-        req.file.buffer, 
-        cimId, 
-        req.file.originalname
+      const metadata = await imageManager.saveImageFromBuffer(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        req.user!.id,
+        'business-images',
+        { optimize: true, maxWidth: 1200, maxHeight: 800 }
       );
 
       // Get current images and add the new one
@@ -1086,66 +1089,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "File must be an image" });
       }
 
-      // No need for file system operations - storing as base64
+      // Save the logo using the new ImageManager
+      const metadata = await imageManager.saveImageFromBuffer(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        req.user!.id,
+        'logos',
+        { optimize: true, maxWidth: 800, maxHeight: 600 }
+      );
 
-      // Optimize image before saving
-      let processedBuffer = req.file.buffer;
-      
-      try {
-        // Use sharp to resize and optimize the image
-        const sharp = require('sharp');
-        const image = sharp(req.file.buffer);
-        
-        // Check if the original image has transparency
-        const metadata = await image.metadata();
-        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
-        
-        if (hasAlpha || req.file.mimetype === 'image/png') {
-          // Preserve transparency for PNG images with transparent background
-          processedBuffer = await image
-            .resize(800, 600, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
-            })
-            .png({ 
-              quality: 85,
-              force: true // Force PNG output
-            })
-            .toBuffer();
-        } else {
-          // Use PNG with white background for images without transparency
-          processedBuffer = await image
-            .resize(800, 600, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 255, g: 255, b: 255, alpha: 1 } // White background
-            })
-            .png({ 
-              quality: 85,
-              force: true
-            })
-            .toBuffer();
-        }
-      } catch (sharpError) {
-        console.log('Sharp optimization failed, using original:', sharpError.message);
-        // Fall back to original buffer if sharp fails
-      }
-
-      // Convert to base64 data URL for persistent storage
-      let mimeType = 'image/png'; // Since we're always converting to PNG
-      const base64Data = processedBuffer.toString('base64');
-      const logoUrl = `data:${mimeType};base64,${base64Data}`;
-      
-      console.log(`Logo converted to base64 (${base64Data.length} characters)`);
-
-      // Update the CIM document with the base64 logo
-      await storage.updateCimDocument(cimId, { logoUrl });
+      // Update the CIM document with the new logo path
+      await storage.updateCimDocument(cimId, { logoUrl: metadata.publicPath });
 
       res.json({ 
         success: true, 
-        logoUrl,
-        message: "Logo uploaded successfully" 
+        logoUrl: metadata.publicPath,
+        metadata: metadata
       });
     } catch (error) {
       console.error("Logo upload error:", error);

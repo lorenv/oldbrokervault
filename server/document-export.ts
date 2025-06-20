@@ -9,6 +9,8 @@ import fs from 'fs';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 import sharp from 'sharp';
+import { imageManager } from './image-manager';
+import { resolveImageData, getImageDimensions, createImageFallback } from './image-helpers';
 
 // Load PDF background template based on user preference
 async function loadPdfBackgroundTemplate(templateName?: string): Promise<pdfLib.PDFDocument | null> {
