@@ -41,7 +41,7 @@ export function Navbar() {
               <img 
                 src="/cim-share-logo.png" 
                 alt="CIM Share" 
-                className={`h-8 ${isHomePage ? "brightness-0 invert" : ""}`}
+                className={`h-10 ${isHomePage ? "brightness-0 invert" : ""}`}
               />
             </div>
           </Link>
