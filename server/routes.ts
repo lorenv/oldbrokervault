@@ -402,6 +402,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : Promise.resolve(null)
       ]);
 
+      // SECURITY: Sanitize user profile for sharing context
+      const sanitizedUserProfile = userProfile ? sanitizeUserForSharing(userProfile) : null;
+
       // Generate NDA URL if template exists
       const ndaUrl = ndaTemplate?.fileContent 
         ? `/api/nda-templates/${cimDoc.ndaTemplateId}/download`
@@ -513,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getCustomSections(cimDoc.id)
       ]);
 
-      // Get document owner's PDF template preference
+      // Get document owner's PDF template preference  
       const pdfTemplate = userProfile?.pdfBackgroundTemplate || 'classic';
       
       // Prepare financial data from cached document properties
@@ -3689,16 +3692,28 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   app.get("/api/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    const user = await storage.getUser(req.user!.id);
-    res.json({
-      name: user?.name,
-      title: user?.title,
-      phoneNumber: user?.phoneNumber,
-      businessName: user?.businessName,
-      businessLogo: user?.businessLogo,
-      profilePhoto: user?.profilePhoto,
-      email: user?.email
-    });
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // SECURITY: Return only profile-specific fields, excluding sensitive data
+      const profileData = {
+        name: user.name,
+        title: user.title,
+        phoneNumber: user.phoneNumber,
+        businessName: user.businessName,
+        businessLogo: user.businessLogo,
+        profilePhoto: user.profilePhoto,
+        email: user.email
+      };
+      
+      res.json(profileData);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
   });
 
   app.put("/api/profile", async (req, res) => {
