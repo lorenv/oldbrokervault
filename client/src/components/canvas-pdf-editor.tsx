@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
+// Configure PDF.js worker - use local worker to avoid CORS issues
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url
+  ).toString();
 }
 
 interface SignatureField {
@@ -176,7 +179,8 @@ export default function CanvasPdfEditor({
         
         const loadingTask = pdfjsLib.getDocument({
           data: bytes,
-          disableWorker: false,
+          disableWorker: true, // Disable worker to avoid setup issues
+          verbosity: 0, // Reduce console noise
         });
         
         const pdf = await loadingTask.promise;
