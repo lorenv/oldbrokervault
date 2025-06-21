@@ -119,20 +119,14 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
   icon: any, 
   label: string 
 }) => {
-  const [{ isDragging }, drag] = useDrag({
-    type: 'new-field',
-    item: { type },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
   return (
     <div
-      ref={drag}
-      className={`flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50 ${
-        isDragging ? 'opacity-50 scale-95' : ''
-      }`}
+      draggable
+      className="flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50"
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/field-type', type);
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
     >
       <Icon className="w-4 h-4 text-gray-600" />
       <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -413,8 +407,7 @@ export default function ImagePdfEditor({
 
         <div
           ref={containerRef}
-          className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'border-2 border-gray-200'}`}
-          {...dropProps}
+          className="relative max-h-[800px] overflow-y-auto p-4 border-2 border-gray-200 rounded-lg"
           style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
           {pageImages.length > 0 && !isLoading && (
@@ -464,17 +457,8 @@ export default function ImagePdfEditor({
           {/* Instructions overlay */}
           {signatureFields.length === 0 && pageImages.length > 0 && (
             <div className="absolute top-8 left-4 pointer-events-none z-20">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs opacity-90 shadow-lg">
-                Drag signature fields from the sidebar and drop them on the document
-              </div>
-            </div>
-          )}
-          
-          {/* Drop zone indicator */}
-          {isOver && (
-            <div className="absolute inset-4 pointer-events-none z-30 flex items-center justify-center">
-              <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-95 border-2 border-green-400">
-                Drop field here to position on the PDF
+              <div className="bg-blue-600 text-white px-3 py-1 rounded text-sm opacity-90 shadow-lg">
+                Drag signature fields from the sidebar and drop them anywhere on the PDF pages
               </div>
             </div>
           )}
