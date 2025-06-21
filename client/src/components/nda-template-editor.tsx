@@ -227,25 +227,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Drag Field Types</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600 mb-3">
-                  Drag field types onto the PDF to add fields
-                </p>
-                <div className="space-y-2">
-                  {FIELD_TYPES.map((fieldType) => (
-                    <DraggableFieldType
-                      key={fieldType.type}
-                      fieldType={fieldType}
-                    />
-                  ))}
-                </div>
-
-              </CardContent>
-            </Card>
+            {/* Removed duplicate drag interface - using ImagePdfEditor's built-in sidebar instead */}
 
             {/* Fields List */}
             {signatureFields.length > 0 && (
