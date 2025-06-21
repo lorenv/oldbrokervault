@@ -4167,9 +4167,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           throw new Error('PDF data appears to be incomplete or corrupted');
         }
 
-        // Write PDF to temporary file
+        // Write PDF to temporary file with optimized buffer handling
         const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-        fsSync.writeFileSync(pdfPath, pdfBuffer);
+        fsSync.writeFileSync(pdfPath, pdfBuffer, { flag: 'w' });
 
         // Validate PDF file was written correctly
         const stats = fsSync.statSync(pdfPath);
@@ -4195,10 +4195,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
         // Convert all pages to PNG using poppler-utils with optimized settings
         const baseImagePath = imagePath.replace('.png', '');
-        const convertCommand = `pdftoppm -png -scale-to-x 800 -scale-to-y -1 -q "${pdfPath}" "${baseImagePath}"`;
+        const convertCommand = `pdftoppm -png -scale-to-x 800 -scale-to-y -1 -q -cropbox "${pdfPath}" "${baseImagePath}"`;
         
         console.log('Running conversion command for all pages:', convertCommand);
-        await execAsync(convertCommand, { timeout: 30000 });
+        await execAsync(convertCommand, { timeout: 20000 });
 
         // Collect all generated page images
         const pageImages: Array<{ pageNumber: number; imageBase64: string; imageDataUrl: string }> = [];
@@ -4229,8 +4229,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             const serveFileName = `nda_page_${uniqueId}.png`;
             const servePath = path.join('/tmp', serveFileName);
             
-            // Copy image to serve directory with unique name
-            fsSync.writeFileSync(servePath, imageBuffer);
+            // Copy image to serve directory with unique name and optimization
+            fsSync.writeFileSync(servePath, imageBuffer, { flag: 'w' });
             
             pageImages.push({
               pageNumber: pageNum,
@@ -4239,8 +4239,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
               height: Math.round(800 * 1.414) // Approximate A4 ratio
             });
 
-            // Clean up the original conversion output
-            fsSync.unlinkSync(actualImagePath);
+            // Clean up the original conversion output immediately
+            try {
+              fsSync.unlinkSync(actualImagePath);
+            } catch (cleanupError) {
+              console.warn(`Failed to cleanup ${actualImagePath}:`, cleanupError);
+            }
             console.log(`Page ${pageNum} processed successfully, serving at ${serveFileName}`);
           }
         }
@@ -4282,7 +4286,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Temporary image serving endpoint for PDF pages
+  // Optimized temporary image serving endpoint for PDF pages
   app.get('/api/temp-image/:filename', (req, res) => {
     try {
       const filename = req.params.filename;
@@ -4298,20 +4302,33 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(404).json({ error: 'Image not found' });
       }
       
-      // Set appropriate headers
+      // Check if file is modified since last request
+      const stats = fsSync.statSync(imagePath);
+      const lastModified = stats.mtime.toUTCString();
+      const etag = `"${filename}-${stats.mtime.getTime()}"`;
+      
+      // Handle conditional requests
+      if (req.headers['if-none-match'] === etag) {
+        return res.status(304).end();
+      }
+      
+      // Set optimized headers
       res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.setHeader('Cache-Control', 'public, max-age=7200, immutable'); // 2 hour cache
+      res.setHeader('ETag', etag);
+      res.setHeader('Last-Modified', lastModified);
+      res.setHeader('Vary', 'Accept-Encoding');
       
       // Send the image file
       const imageBuffer = fsSync.readFileSync(imagePath);
       res.send(imageBuffer);
       
-      // Clean up after serving (optional - could keep for caching)
+      // Clean up after extended period for memory management
       setTimeout(() => {
         if (fsSync.existsSync(imagePath)) {
           fsSync.unlinkSync(imagePath);
         }
-      }, 3600000); // Delete after 1 hour
+      }, 7200000); // Delete after 2 hours
       
     } catch (error) {
       console.error('Error serving temp image:', error);
