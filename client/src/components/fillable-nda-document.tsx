@@ -70,11 +70,46 @@ export default function FillableNdaDocument({
         if (response.ok) {
           const data = await response.json();
           console.log('PDF conversion response:', data);
-          // Extract images from pages array
-          const images = data.pages ? data.pages.map((page: any) => page.imageBase64) : [];
-          setDocumentImages(images);
+          
+          if (data.success && data.pages) {
+            console.log('Raw page data received:', data.pages.length, 'pages');
+            
+            // Process pages with dimensions for accurate field positioning
+            const processedPages = await Promise.all(
+              data.pages.map(async (page: any, index: number) => {
+                return new Promise<{imageUrl: string, width: number, height: number}>((resolve, reject) => {
+                  const img = new Image();
+                  
+                  img.onload = () => {
+                    console.log(`Page ${index + 1} loaded successfully: ${img.width}x${img.height}`);
+                    resolve({
+                      imageUrl: page.imageUrl,
+                      width: img.width,
+                      height: img.height
+                    });
+                  };
+                  
+                  img.onerror = (error) => {
+                    console.error(`Failed to load page ${index + 1}:`, error);
+                    console.error('Image URL:', page.imageUrl);
+                    reject(new Error(`Failed to load page ${index + 1}`));
+                  };
+                  
+                  console.log(`Loading page ${index + 1} from:`, page.imageUrl);
+                  img.src = page.imageUrl;
+                });
+              })
+            );
+            
+            console.log('All pages processed successfully:', processedPages.map(p => ({w: p.width, h: p.height})));
+            setDocumentImages(processedPages);
+          } else {
+            console.error('Invalid response structure:', data);
+          }
         } else {
-          console.error('Failed to convert PDF to images');
+          console.error('Failed to convert PDF to images, status:', response.status);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
         }
       } catch (error) {
         console.error('Error converting PDF:', error);
@@ -167,15 +202,16 @@ export default function FillableNdaDocument({
         <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden">
           {/* PDF Page as Background */}
           <img
-            src={`data:image/png;base64,${pageData.imageBase64}`}
+            src={pageData.imageUrl}
             alt={`Document page ${pageNumber}`}
             className="w-full h-auto border border-gray-200"
             style={{ maxWidth: '800px', display: 'block' }}
             onError={(e) => {
               console.error('Image load error for page:', pageNumber);
+              console.error('Image URL:', pageData.imageUrl);
               e.currentTarget.style.display = 'none';
             }}
-            onLoad={() => console.log('Page loaded:', pageNumber, 'display size:', displayWidth, 'x', displayHeight)}
+            onLoad={() => console.log('Page loaded successfully:', pageNumber, 'display size:', displayWidth, 'x', displayHeight)}
           />
           
           {/* Transparent Overlay with Form Fields */}
