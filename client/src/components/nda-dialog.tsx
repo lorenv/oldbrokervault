@@ -54,8 +54,12 @@ export function NdaDialog({
       return;
     }
 
-    // For documents with NDA templates, redirect to the signing page
-    window.location.href = `/share/${shareSlug}/sign-nda`;
+    // For documents with NDA templates, redirect to the signing page with user info
+    const params = new URLSearchParams({
+      name: signerName.trim(),
+      email: signerEmail.trim()
+    });
+    window.location.href = `/share/${shareSlug}/sign-nda?${params.toString()}`;
   };
 
   return (

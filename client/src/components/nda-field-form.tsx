@@ -25,6 +25,8 @@ interface NdaFieldFormProps {
   ndaContent: string;
   onSubmit: (fieldValues: Record<string, string>) => Promise<void>;
   isLoading?: boolean;
+  prefilledName?: string;
+  prefilledEmail?: string;
 }
 
 const FIELD_ICONS = {
@@ -40,7 +42,9 @@ export default function NdaFieldForm({
   documentTitle,
   ndaContent,
   onSubmit,
-  isLoading = false
+  isLoading = false,
+  prefilledName = '',
+  prefilledEmail = ''
 }: NdaFieldFormProps) {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [agreed, setAgreed] = useState(false);
@@ -55,20 +59,25 @@ export default function NdaFieldForm({
     // Signature fields are now text inputs, no canvas setup needed
   }, [signatureFields]);
 
-  // Auto-populate date fields with current date
+  // Auto-populate fields with prefilled values and current date
   useEffect(() => {
-    const dateFields = signatureFields.filter(field => field.type === 'date');
-    const currentDate = new Date().toLocaleDateString();
+    const initialValues: Record<string, string> = {};
     
-    const dateValues: Record<string, string> = {};
-    dateFields.forEach(field => {
-      dateValues[field.id] = currentDate;
+    // Pre-populate name and email fields
+    signatureFields.forEach(field => {
+      if (field.type === 'name' && prefilledName) {
+        initialValues[field.id] = prefilledName;
+      } else if (field.type === 'email' && prefilledEmail) {
+        initialValues[field.id] = prefilledEmail;
+      } else if (field.type === 'date') {
+        initialValues[field.id] = new Date().toLocaleDateString();
+      }
     });
     
-    if (Object.keys(dateValues).length > 0) {
-      setFieldValues(prev => ({ ...prev, ...dateValues }));
+    if (Object.keys(initialValues).length > 0) {
+      setFieldValues(prev => ({ ...prev, ...initialValues }));
     }
-  }, [signatureFields]);
+  }, [signatureFields, prefilledName, prefilledEmail]);
 
   const validateFields = (): boolean => {
     const newErrors: Record<string, string> = {};
