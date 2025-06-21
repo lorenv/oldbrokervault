@@ -185,12 +185,37 @@ export function SharePage() {
     );
   }
 
-  if (!shareData) {
+  // If NDA check shows document exists but requires NDA, don't show "not found"
+  if (!shareData && !ndaCheck) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center text-gray-600">
             <p>Document not found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If document requires NDA and user hasn't signed, show NDA requirement message
+  if (ndaCheck?.requiresNda && !shareData && !hasSignedNda && !accessToken) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center max-w-md mx-auto">
+            <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Protected Document</h2>
+            <p className="text-gray-600 mb-6">
+              This document requires signing a Non-Disclosure Agreement before viewing.
+            </p>
+            <Button 
+              onClick={() => window.location.href = `/nda/${shareSlug}`}
+              size="lg"
+              className="w-full"
+            >
+              Sign NDA to Continue
+            </Button>
           </div>
         </div>
       </div>
