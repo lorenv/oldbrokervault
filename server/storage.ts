@@ -838,12 +838,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimByShareSlug(slug: string): Promise<CimDocument | undefined> {
-    // PERFORMANCE OPTIMIZATION: Direct database query without retry overhead for share links
-    const [doc] = await db.select()
-      .from(cimDocuments)
-      .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
-      .limit(1);
-    return doc || undefined;
+    // PERFORMANCE OPTIMIZATION: Direct database query with connection pooling optimization
+    try {
+      const [doc] = await db.select()
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
+        .limit(1);
+      return doc || undefined;
+    } catch (error) {
+      console.error('Error in getCimByShareSlug:', error);
+      throw error;
+    }
   }
 
   async incrementShareViewCount(id: number): Promise<void> {

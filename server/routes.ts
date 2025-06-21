@@ -367,14 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.incrementShareViewCount(cimDoc.id);
       }
 
-      // PERFORMANCE OPTIMIZATION: Parallel data fetching to minimize response time
-      const dataFetchStart = Date.now();
-      const [userProfile, customSections] = await Promise.all([
-        storage.getUser(cimDoc.userId),
-        storage.getCustomSections(cimDoc.id)
-      ]);
-
-      // Check NDA approval status if required
+      // PERFORMANCE OPTIMIZATION: Skip unnecessary data for basic share requests
       let ndaApprovalStatus = null;
       const { token } = req.query;
       
@@ -510,13 +503,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // PERFORMANCE OPTIMIZATION: Parallel data fetching for shared PDF export
+      const dataFetchStart = Date.now();
       const [userProfile, documentFinancialFiles, customSections] = await Promise.all([
         storage.getUser(cimDoc.userId),
         db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id)),
         storage.getCustomSections(cimDoc.id)
       ]);
 
-      console.log("Data fetch time:", Date.now() - startTime + "ms");
+      console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
 
       if (!userProfile) {
         return res.status(404).json({ error: "Document owner not found" });
