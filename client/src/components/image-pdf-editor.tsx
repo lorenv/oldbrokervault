@@ -395,6 +395,8 @@ export default function ImagePdfEditor({
                         style={{ zIndex: 10 }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          console.log('🎯 Drop event on page', page.pageNumber);
+                          console.log('🔍 Available dataTransfer types:', Array.from(e.dataTransfer.types));
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = ((e.clientX - rect.left) * page.width) / displayWidth;
@@ -404,19 +406,26 @@ export default function ImagePdfEditor({
                           const fieldId = e.dataTransfer.getData('application/field-id');
                           const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
                           
+                          console.log('📝 Field ID from dataTransfer:', fieldId);
+                          console.log('📝 Field type from dataTransfer:', fieldType);
+                          
                           if (fieldId) {
                             // Moving existing field
-                            console.log('Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
+                            console.log('✅ Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
                             updateField(fieldId, { x, y, pageNumber: page.pageNumber });
                           } else if (fieldType) {
                             // Adding new field
-                            console.log('Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
+                            console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
+                          } else {
+                            console.log('❌ No field ID or type found in dataTransfer');
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          e.dataTransfer.dropEffect = 'copy';
+                          // Check if we're dragging an existing field (move) or new field (copy)
+                          const fieldId = e.dataTransfer.getData('application/field-id');
+                          e.dataTransfer.dropEffect = fieldId ? 'move' : 'copy';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -451,10 +460,13 @@ export default function ImagePdfEditor({
                                 zIndex: 20,
                               }}
                               onDragStart={(e) => {
-                                console.log('Starting drag for placed field:', field.id);
+                                console.log('🚀 Starting drag for placed field:', field.id);
+                                e.dataTransfer.clearData(); // Clear any existing data
                                 e.dataTransfer.setData('application/field-id', field.id);
+                                e.dataTransfer.setData('text/plain', field.id); // Fallback
                                 e.dataTransfer.effectAllowed = 'move';
                                 e.currentTarget.style.opacity = '0.5';
+                                console.log('📦 Set field ID in dataTransfer:', field.id);
                               }}
                               onDragEnd={(e) => {
                                 console.log('Drag ended for placed field:', field.id);
