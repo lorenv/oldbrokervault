@@ -4496,6 +4496,32 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   });
 
   // Download NDA template endpoint
+  // Get individual NDA template
+  app.get("/api/nda-templates/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const templateId = parseInt(req.params.id);
+      const template = await storage.getNdaTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      // Verify ownership
+      if (template.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error('Error fetching NDA template:', error);
+      res.status(500).json({ error: "Failed to fetch template" });
+    }
+  });
+
   app.get("/api/nda-templates/:id/download", async (req, res) => {
     try {
       const templateId = parseInt(req.params.id);
