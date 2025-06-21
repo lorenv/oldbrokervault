@@ -75,19 +75,41 @@ export function SharePage() {
     refetchOnMount: false // Don't refetch on component remount
   });
 
-  const { data: shareData, isLoading, error } = useQuery({
-    queryKey: ['/api/share', shareSlug],
+  // Step 1: Fast NDA check
+  const { data: ndaCheck, isLoading: isCheckingNda, error: ndaCheckError } = useQuery({
+    queryKey: ['/api/share/nda-check', shareSlug],
     queryFn: async () => {
-      console.log('🔍 Fetching share data for:', shareSlug);
-      const response = await fetch(`/api/share/${shareSlug}`, {
+      console.log('⚡ Fast NDA check for:', shareSlug);
+      const response = await fetch(`/api/share/${shareSlug}/nda-check`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to check NDA status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('⚡ NDA check result:', data);
+      return data;
+    },
+    enabled: !!shareSlug,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false
+  });
+
+  // Step 2: Load full document data only if no NDA required OR user has access
+  const shouldLoadFullData = ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken);
+  
+  const { data: shareData, isLoading, error } = useQuery({
+    queryKey: ['/api/share', shareSlug, accessToken],
+    queryFn: async () => {
+      console.log('📄 Loading full document data for:', shareSlug);
+      const url = accessToken ? `/api/share/${shareSlug}?token=${accessToken}` : `/api/share/${shareSlug}`;
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include'
       });
-      
-      console.log('📡 Share API response:', response.status, response.ok);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -96,7 +118,7 @@ export function SharePage() {
       }
       
       const data = await response.json();
-      console.log('✅ Share data received:', data);
+      console.log('✅ Full document data received');
       return data;
     },
     enabled: !!shareSlug,
