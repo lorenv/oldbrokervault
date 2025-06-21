@@ -1059,10 +1059,33 @@ export class DatabaseStorage implements IStorage {
         .where(eq(ndaTemplates.userId, userId));
     }
 
+    // Process PDF to images if fileContent is provided and no cached images
+    let pageImages: any[] = [];
+    let totalPages = 1;
+    
+    if (template.fileContent && !template.pageImages) {
+      try {
+        const processedImages = await this.processPdfToImages(template.fileContent, `template_${userId}_${Date.now()}`);
+        pageImages = processedImages.pages;
+        totalPages = processedImages.totalPages;
+        console.log(`Processed ${totalPages} pages for new template`);
+      } catch (error) {
+        console.error('Error processing PDF to images:', error);
+      }
+    } else if (template.pageImages) {
+      pageImages = template.pageImages;
+      totalPages = template.totalPages || pageImages.length;
+    }
+
     const [newTemplate] = await db.insert(ndaTemplates)
       .values({
         userId,
-        ...template
+        name: template.name,
+        fileContent: template.fileContent,
+        isDefault: template.isDefault || false,
+        signatureFields: template.signatureFields || [],
+        pageImages,
+        totalPages
       })
       .returning();
     return newTemplate;
