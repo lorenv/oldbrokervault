@@ -309,17 +309,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Processing NDA check for slug:", shareSlug?.substring(0, 10) + "...");
     
     try {
-      // Quick lookup - only get essential NDA fields
-      const [cimDoc] = await db.select({
-        id: cimDocuments.id,
-        ndaProtected: cimDocuments.ndaProtected,
-        ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
-        shareExpiresAt: cimDocuments.shareExpiresAt,
-        title: cimDocuments.title
-      })
-      .from(cimDocuments)
-      .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
-      .limit(1);
+      // Quick lookup using storage method for consistency
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
 
       if (!cimDoc) {
         console.log("Document not found for slug:", shareSlug);
@@ -334,9 +325,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("NDA check completed in:", Date.now() - startTime + "ms");
       
       res.json({
-        requiresNda: cimDoc.ndaProtected || false,
-        requiresApproval: cimDoc.ndaApprovalRequired || false,
-        title: cimDoc.title,
+        requiresNda: Boolean(cimDoc.ndaProtected),
+        requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
+        title: cimDoc.title || 'Untitled Document',
         documentId: cimDoc.id
       });
 
