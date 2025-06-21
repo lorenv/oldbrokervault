@@ -364,42 +364,109 @@ export default function ImagePdfEditor({
           style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
           {pageImages.length > 0 && !isLoading && (
-            <div className="space-y-5">
+            <div className="space-y-8">
               {pageImages.map((page, index) => {
+                // Calculate display dimensions with max width constraint
+                const maxWidth = 800;
+                const displayWidth = Math.min(maxWidth, page.width);
+                const displayHeight = (page.height * displayWidth) / page.width;
+                
                 return (
-                  <div key={page.pageNumber} className="relative">
+                  <div key={page.pageNumber} className="relative mb-8">
                     {/* Page number indicator */}
-                    <div className="absolute -top-3 left-0 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium z-10">
+                    <div className="absolute -top-4 left-0 bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium z-20">
                       Page {page.pageNumber}
                     </div>
                     
-                    {/* Page image */}
-                    <img
-                      src={page.imageDataUrl}
-                      alt={`PDF Page ${page.pageNumber}`}
-                      className="w-full h-auto border rounded shadow-sm select-none"
-                      onDragStart={(e) => e.preventDefault()}
-                      style={{
-                        transform: `scale(${scale})`,
-                        transformOrigin: 'top left',
-                        pointerEvents: 'none'
-                      }}
-                    />
-                    
-                    {/* Signature Fields Overlay for this page */}
-                    <div className="absolute inset-0 pointer-events-none">
+                    {/* Page container with proper sizing */}
+                    <div 
+                      className="relative bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden"
+                      style={{ width: displayWidth, height: displayHeight }}
+                    >
+                      {/* PDF Image */}
+                      <img
+                        src={page.imageDataUrl}
+                        alt={`PDF Page ${page.pageNumber}`}
+                        className="w-full h-full object-contain select-none"
+                        onDragStart={(e) => e.preventDefault()}
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      
+                      {/* Transparent Drop Zone Overlay - RED OUTLINE FOR DEBUGGING */}
+                      <div
+                        className="absolute inset-0 w-full h-full cursor-crosshair border-4 border-red-500 border-dashed"
+                        style={{ 
+                          zIndex: 10,
+                          backgroundColor: 'rgba(255, 0, 0, 0.1)' // Slight red tint for visibility
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          console.log('🎯 Drop event triggered on page', page.pageNumber);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = ((e.clientX - rect.left) * page.width) / displayWidth;
+                          const y = ((e.clientY - rect.top) * page.height) / displayHeight;
+                          
+                          const fieldType = e.dataTransfer.getData('application/field-type');
+                          console.log('📝 Field type from dataTransfer:', fieldType);
+                          console.log('📍 Drop coordinates:', { x, y, displayWidth, displayHeight });
+                          
+                          if (fieldType) {
+                            console.log('✅ Adding field to page', page.pageNumber);
+                            addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
+                          } else {
+                            console.log('❌ No field type found in dataTransfer');
+                          }
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'copy';
+                          console.log('🔄 Drag over page', page.pageNumber);
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          console.log('🎯 Drag enter page', page.pageNumber);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          console.log('🚪 Drag leave page', page.pageNumber);
+                        }}
+                      />
+
+                      {/* Signature Fields for this page */}
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
-                        .map((field) => (
-                          <div key={field.id} className="pointer-events-auto">
+                        .map(field => {
+                          // Scale field position to match display
+                          const fieldX = (field.x * displayWidth) / page.width;
+                          const fieldY = (field.y * displayHeight) / page.height;
+                          const fieldWidth = (field.width * displayWidth) / page.width;
+                          const fieldHeight = (field.height * displayHeight) / page.height;
+                          
+                          return (
                             <FieldComponent
-                              field={field}
-                              onUpdate={updateField}
+                              key={field.id}
+                              field={{
+                                ...field,
+                                x: fieldX,
+                                y: fieldY,
+                                width: fieldWidth,
+                                height: fieldHeight
+                              }}
+                              scale={1}
+                              onUpdate={(id, updates) => {
+                                const originalUpdates = {
+                                  ...updates,
+                                  x: updates.x ? (updates.x * page.width) / displayWidth : field.x,
+                                  y: updates.y ? (updates.y * page.height) / displayHeight : field.y,
+                                  width: updates.width ? (updates.width * page.width) / displayWidth : field.width,
+                                  height: updates.height ? (updates.height * page.height) / displayHeight : field.height
+                                };
+                                updateField(id, originalUpdates);
+                              }}
                               onDelete={deleteField}
-                              scale={scale}
                             />
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   </div>
                 );
@@ -407,14 +474,7 @@ export default function ImagePdfEditor({
             </div>
           )}
           
-          {/* Instructions overlay */}
-          {signatureFields.length === 0 && pageImages.length > 0 && (
-            <div className="absolute top-8 left-4 pointer-events-none z-20">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded text-sm opacity-90 shadow-lg">
-                Drag colored field types from the left sidebar and drop them on the PDF pages
-              </div>
-            </div>
-          )}
+
         </div>
       </Card>
 
