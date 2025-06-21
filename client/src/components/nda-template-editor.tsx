@@ -198,7 +198,13 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                   />
                 </div>
 
-
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </CardContent>
             </Card>
 
