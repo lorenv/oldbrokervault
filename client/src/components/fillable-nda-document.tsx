@@ -212,13 +212,12 @@ export default function FillableNdaDocument({
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
       
       return (
-        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden">
+        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden mx-auto" style={{ maxWidth: '700px' }}>
           {/* PDF Page as Background */}
           <img
             src={pageData.imageUrl}
             alt={`Document page ${pageNumber}`}
-            className="w-full h-auto border border-gray-200"
-            style={{ maxWidth: '700px', display: 'block' }}
+            className="w-full h-auto border border-gray-200 block"
             loading="eager"
             decoding="sync"
             onError={(e) => {
@@ -235,48 +234,50 @@ export default function FillableNdaDocument({
             }}
           />
           
-          {/* Transparent Overlay with Form Fields */}
+          {/* Transparent Overlay with Form Fields - Responsive Positioning */}
           <div className="absolute inset-0">
             {pageFields.map((field) => {
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // Use percentage-based positioning for true responsiveness
-              // Convert absolute coordinates to percentages relative to original PDF dimensions
+              // MOBILE FIX: Calculate responsive positioning based on PDF coordinate system
+              // Convert PDF coordinates to percentage-based positioning that works on all screen sizes
               const fieldXPercent = (field.x / pageData.width) * 100;
               const fieldYPercent = (field.y / pageData.height) * 100;
-              const fieldWidthPercent = (field.width / pageData.width) * 100;
-              const fieldHeightPercent = (field.height / pageData.height) * 100;
+              const fieldWidthPercent = Math.max((field.width / pageData.width) * 100, 15); // Minimum 15% width
+              const fieldHeightPercent = Math.max((field.height / pageData.height) * 100, 6); // Minimum 6% height
               
-              console.log(`Field ${field.id} positioning:`, {
+              console.log(`Field ${field.id} mobile-responsive positioning:`, {
                 original: { x: field.x, y: field.y, w: field.width, h: field.height },
                 percentage: { x: fieldXPercent, y: fieldYPercent, w: fieldWidthPercent, h: fieldHeightPercent },
-                pageSize: { w: pageData.width, h: pageData.height }
+                pageSize: { w: pageData.width, h: pageData.height },
+                minimums: { minW: '15%', minH: '6%' }
               });
               
               const style = {
                 position: 'absolute' as const,
-                left: `${fieldXPercent}%`,
-                top: `${fieldYPercent}%`,
+                left: `${Math.max(0, Math.min(85, fieldXPercent))}%`, // Keep within bounds (0-85%)
+                top: `${Math.max(0, Math.min(94, fieldYPercent))}%`, // Keep within bounds (0-94%)
                 width: `${fieldWidthPercent}%`,
                 height: `${fieldHeightPercent}%`,
-                minHeight: '36px',
-                minWidth: '120px',
+                minHeight: window.innerWidth < 640 ? '28px' : '36px', // Mobile-specific sizing
+                minWidth: window.innerWidth < 640 ? '80px' : '120px', // Mobile-specific sizing
                 zIndex: 10
               };
 
               return (
                 <div key={field.id} style={style}>
-                  {/* Field Label */}
-                  <div className="absolute -top-7 left-0 text-xs font-medium text-gray-700 bg-blue-100 px-2 py-1 rounded shadow-sm border border-blue-200 flex items-center gap-1 whitespace-nowrap">
-                    <Icon className="w-3 h-3 text-blue-600" />
-                    {field.label}
+                  {/* Mobile-Optimized Field Label */}
+                  <div className="absolute -top-6 left-0 text-xs font-medium text-gray-700 bg-blue-100 px-1.5 py-0.5 rounded shadow-sm border border-blue-200 flex items-center gap-1 whitespace-nowrap z-20 sm:-top-7 sm:px-2 sm:py-1">
+                    <Icon className="w-3 h-3 text-blue-600 sm:w-3 sm:h-3" />
+                    <span className="hidden xs:inline">{field.label}</span>
+                    <span className="xs:hidden">{field.label.substring(0, 8)}</span>
                     {isRequired && <span className="text-red-500">*</span>}
                   </div>
                   
-                  {/* Field Input */}
+                  {/* Mobile-Optimized Field Input */}
                   {field.type === 'date' ? (
-                    <div className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded p-2 text-sm flex items-center justify-center font-medium text-blue-800">
+                    <div className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded p-1 text-xs flex items-center justify-center font-medium text-blue-800 sm:p-2 sm:text-sm">
                       {new Date().toLocaleDateString()}
                     </div>
                   ) : field.type === 'signature' ? (
@@ -284,11 +285,11 @@ export default function FillableNdaDocument({
                       type="text"
                       value={fieldValues[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                      placeholder="Type your signature here"
-                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-2 text-sm italic"
+                      placeholder="Your signature"
+                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-1 text-xs italic focus:outline-none focus:ring-2 focus:ring-blue-300 sm:px-2 sm:text-sm"
                       style={{ 
                         fontFamily: 'cursive',
-                        fontSize: '14px',
+                        fontSize: window.innerWidth < 640 ? '12px' : '14px',
                         color: '#1e40af'
                       }}
                     />
@@ -297,14 +298,14 @@ export default function FillableNdaDocument({
                       type={field.type === 'email' ? 'email' : 'text'}
                       value={fieldValues[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                      placeholder={`Enter ${field.label.toLowerCase()}`}
-                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-2 text-sm"
+                      placeholder={window.innerWidth < 640 ? field.label : `Enter ${field.label.toLowerCase()}`}
+                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300 sm:px-2 sm:text-sm"
                     />
                   )}
                   
-                  {/* Error Message */}
+                  {/* Mobile-Optimized Error Message */}
                   {errors[field.id] && (
-                    <div className="absolute -bottom-6 left-0 text-xs text-red-500 bg-white px-2 py-1 rounded shadow-sm border">
+                    <div className="absolute -bottom-5 left-0 text-xs text-red-500 bg-white px-1.5 py-0.5 rounded shadow-sm border z-20 sm:-bottom-6 sm:px-2 sm:py-1">
                       {errors[field.id]}
                     </div>
                   )}
@@ -318,58 +319,64 @@ export default function FillableNdaDocument({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-2 sm:py-8">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4">
         <Card className="shadow-xl">
-          <CardHeader className="text-center border-b">
-            <CardTitle className="text-2xl font-bold text-gray-800">
+          <CardHeader className="text-center border-b p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-800">
               {documentTitle}
             </CardTitle>
-            <p className="text-gray-600 mt-2">
-              Please fill in the required information by clicking on the highlighted fields below
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">
+              Please fill in the required information by tapping on the highlighted fields below
             </p>
+            {/* Mobile-specific instruction */}
+            <div className="sm:hidden mt-3 p-2 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-700">
+                💡 Tip: Scroll down to see all pages and tap on blue fields to fill them out
+              </p>
+            </div>
           </CardHeader>
           
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             {/* Document with Overlay Fields */}
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               {documentImages.length > 0 ? (
                 renderDocumentWithFields()
               ) : (
-                <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+                <div className="flex items-center justify-center h-48 sm:h-64 bg-gray-100 rounded-lg">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading document...</p>
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600 text-sm sm:text-base">Loading document...</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Agreement Checkbox */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <label className="flex items-start space-x-3 cursor-pointer">
+            {/* Mobile-Optimized Agreement Checkbox */}
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
+              <label className="flex items-start space-x-2 sm:space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-blue-600"
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                   I have read and agree to the terms of this Non-Disclosure Agreement. I understand that by signing this document, I am legally bound by its terms. 
                   <span className="text-red-500">*</span>
                 </span>
               </label>
               {errors.agreement && (
-                <p className="text-red-500 text-sm mt-2">{errors.agreement}</p>
+                <p className="text-red-500 text-xs sm:text-sm mt-2">{errors.agreement}</p>
               )}
             </div>
 
-            {/* Submit Button */}
+            {/* Mobile-Optimized Submit Button */}
             <div className="text-center">
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || isLoading}
-                className="px-8 py-3 text-lg font-semibold"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3 text-base sm:text-lg font-semibold"
                 size="lg"
               >
                 {isSubmitting || isLoading ? (
