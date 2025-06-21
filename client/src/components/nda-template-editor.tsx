@@ -39,6 +39,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
   const [pdfBase64, setPdfBase64] = useState('');
   const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -140,6 +141,7 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
       return;
     }
 
+    setIsSaving(true);
     try {
       await onSave({
         name: templateName,
@@ -158,6 +160,8 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
         description: "Failed to save template",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   }, [templateName, pdfBase64, signatureFields, onSave, toast]);
 
@@ -178,9 +182,18 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              <Save className="w-4 h-4 mr-2" />
-              Save Template
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Template
+                </>
+              )}
             </Button>
           </div>
         </div>
