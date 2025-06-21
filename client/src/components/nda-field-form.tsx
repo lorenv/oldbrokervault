@@ -70,7 +70,12 @@ export default function NdaFieldForm({
       } else if (field.type === 'email' && prefilledEmail) {
         initialValues[field.id] = prefilledEmail;
       } else if (field.type === 'date') {
-        initialValues[field.id] = new Date().toLocaleDateString();
+        // Format date as yyyy-MM-dd for date input
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        initialValues[field.id] = `${year}-${month}-${day}`;
       }
     });
     
