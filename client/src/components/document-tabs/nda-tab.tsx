@@ -62,25 +62,23 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Update NDA settings mutation
   const updateNdaSettingsMutation = useMutation({
     mutationFn: async (settings: any) => {
-      const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}`, {
+      const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}/share-settings`, {
         ndaProtected: settings.ndaProtected,
         ndaTemplateId: settings.ndaTemplateId,
-        ndaApprovalRequired: settings.ndaApprovalRequired
+        ndaRequiresManualApproval: settings.ndaApprovalRequired
       });
       if (!response.ok) throw new Error('Failed to update NDA settings');
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "NDA Settings Updated",
-        description: "Your NDA protection settings have been saved."
-      });
+      // Silent auto-save success - no toast needed for better UX
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
     },
     onError: () => {
       toast({
-        title: "Update Failed",
-        description: "Failed to update NDA settings. Please try again.",
+        title: "Auto-save Failed",
+        description: "Failed to save settings. Please try again.",
         variant: "destructive"
       });
     }
@@ -148,10 +146,10 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     const newSettings = { ...ndaSettings, [setting]: value };
     setNdaSettings(newSettings);
     
-    // Auto-save to backend
+    // Auto-save to backend with proper mapping
     const backendSettings: any = {
       ndaProtected: newSettings.ndaProtected,
-      ndaRequiresManualApproval: newSettings.ndaApprovalRequired
+      ndaApprovalRequired: newSettings.ndaApprovalRequired // Fixed: was using ndaRequiresManualApproval
     };
     
     if (newSettings.ndaTemplateId) {
@@ -340,86 +338,146 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   return (
     <div className="space-y-6">
-      {/* NDA Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSignature className="h-5 w-5" />
+      {/* NDA Protection Settings */}
+      <Card className="border-blue-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-xl text-blue-900">
+            <div className="p-2 rounded-lg bg-blue-100">
+              <FileSignature className="h-5 w-5 text-blue-700" />
+            </div>
             NDA Protection Settings
           </CardTitle>
+          <CardDescription className="text-blue-700/70">
+            Secure your confidential information with legally binding agreements
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="nda-protection">Enable NDA Protection</Label>
-              <p className="text-sm text-muted-foreground">
-                Require visitors to sign an NDA before viewing the document
-              </p>
-            </div>
-            <Switch
-              id="nda-protection"
-              checked={ndaSettings.ndaProtected}
-              onCheckedChange={(checked) => 
-                handleSettingChange('ndaProtected', checked)
-              }
-            />
-          </div>
-          
-          {ndaSettings.ndaProtected && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="nda-template">NDA Template</Label>
-                <Select
-                  value={ndaSettings.ndaTemplateId?.toString() || ""}
-                  onValueChange={(value) => 
-                    handleSettingChange('ndaTemplateId', parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an NDA template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ndaTemplates.map((template: any) => (
-                      <SelectItem key={template.id} value={template.id.toString()}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="manual-approval">Manually approve each signer</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Signers will need your approval before gaining access to the document
-                  </p>
-                </div>
-                <Switch
-                  id="manual-approval"
-                  checked={ndaSettings.ndaApprovalRequired}
-                  onCheckedChange={(checked) => 
-                    handleSettingChange('ndaApprovalRequired', checked)
-                  }
-                />
-              </div>
-            </>
-          )}
-          
-          <div className="pt-4 border-t">
+        <CardContent className="space-y-6">
+          {/* Main Protection Toggle */}
+          <div className="p-4 rounded-xl border-2 border-blue-200 bg-white/60 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base font-medium">NDA Templates</Label>
-                <p className="text-sm text-muted-foreground">
-                  Create and manage your NDA templates
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <Label htmlFor="nda-protection" className="text-base font-semibold text-gray-900">
+                    Enable NDA Protection
+                  </Label>
+                </div>
+                <p className="text-sm text-gray-600 ml-4">
+                  Require visitors to sign a legal agreement before viewing confidential content
                 </p>
               </div>
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/nda-templates'}
-              >
-                Manage NDA Templates
-              </Button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-500">
+                  {ndaSettings.ndaProtected ? 'Protected' : 'Open Access'}
+                </span>
+                <Switch
+                  id="nda-protection"
+                  checked={ndaSettings.ndaProtected}
+                  onCheckedChange={(checked) => 
+                    handleSettingChange('ndaProtected', checked)
+                  }
+                  className="data-[state=checked]:bg-blue-600"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Protected Content Settings */}
+          {ndaSettings.ndaProtected && (
+            <div className="space-y-4 pl-4 border-l-2 border-blue-200 animate-in slide-in-from-top-2 duration-300">
+              {/* Template Selection */}
+              <div className="p-4 rounded-lg bg-white border border-gray-200">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                    <Label htmlFor="nda-template" className="font-medium text-gray-900">
+                      NDA Template
+                    </Label>
+                  </div>
+                  <Select
+                    value={ndaSettings.ndaTemplateId?.toString() || ""}
+                    onValueChange={(value) => 
+                      handleSettingChange('ndaTemplateId', parseInt(value))
+                    }
+                  >
+                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue placeholder="Choose your legal template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ndaTemplates.map((template: any) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <FileSignature className="h-4 w-4 text-blue-600" />
+                            {template.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {ndaTemplates.length === 0 && (
+                    <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                      No templates available. Create one using the template manager below.
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Manual Approval Toggle */}
+              <div className="p-4 rounded-lg bg-white border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                      <Label htmlFor="manual-approval" className="font-medium text-gray-900">
+                        Manual Approval Required
+                      </Label>
+                    </div>
+                    <p className="text-sm text-gray-600 ml-4">
+                      Review and approve each signer individually before granting document access
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-500">
+                      {ndaSettings.ndaApprovalRequired ? 'Manual' : 'Automatic'}
+                    </span>
+                    <Switch
+                      id="manual-approval"
+                      checked={ndaSettings.ndaApprovalRequired}
+                      onCheckedChange={(checked) => 
+                        handleSettingChange('ndaApprovalRequired', checked)
+                      }
+                      className="data-[state=checked]:bg-blue-600"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Template Management Section */}
+          <div className="pt-4 border-t border-blue-200">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-gray-200">
+                      <FileSignature className="h-4 w-4 text-gray-700" />
+                    </div>
+                    <Label className="text-base font-semibold text-gray-900">Template Management</Label>
+                  </div>
+                  <p className="text-sm text-gray-600 ml-7">
+                    Create, edit, and organize your NDA templates with drag-and-drop signature fields
+                  </p>
+                </div>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/nda-templates'}
+                  className="bg-white hover:bg-gray-50 border-gray-300 text-gray-700 hover:text-gray-900 font-medium"
+                >
+                  <FileSignature className="h-4 w-4 mr-2" />
+                  Manage Templates
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
