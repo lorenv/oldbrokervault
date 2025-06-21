@@ -46,6 +46,11 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
   // Update state when initialTemplate changes
   React.useEffect(() => {
     if (initialTemplate) {
+      console.log('Loading template data:', {
+        name: initialTemplate.name,
+        hasFileContent: !!initialTemplate.fileContent,
+        fieldsCount: initialTemplate.signatureFields?.length || 0
+      });
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
       setSignatureFields(initialTemplate.signatureFields || []);
@@ -362,16 +367,20 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
               </CardHeader>
               <CardContent>
                 {pdfBase64 ? (
-                  <ImagePdfEditor
-                    pdfBase64={pdfBase64}
-                    signatureFields={signatureFields}
-                    onFieldsChange={setSignatureFields}
-                  />
+                  <div className="border rounded-lg overflow-hidden">
+                    <ImagePdfEditor
+                      pdfBase64={pdfBase64}
+                      signatureFields={signatureFields}
+                      onFieldsChange={setSignatureFields}
+                    />
+                  </div>
                 ) : (
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">Upload a PDF to start creating your template</p>
+                      <p className="text-gray-600 mb-2">
+                        {initialTemplate ? 'PDF template loading...' : 'Upload a PDF to start creating your template'}
+                      </p>
                       <Button
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
