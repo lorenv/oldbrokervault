@@ -264,8 +264,8 @@ export default function ImagePdfEditor({
       id: `field_${Date.now()}`,
       type,
       label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      x: Math.max(0, x - 75),
-      y: Math.max(0, y - 15),
+      x: Math.max(0, x - 75), // Center field on cursor
+      y: Math.max(0, y - 15), // Center field on cursor
       width: type === 'signature' ? 200 : 150,
       height: type === 'signature' ? 60 : 30,
       pageNumber,
@@ -273,6 +273,7 @@ export default function ImagePdfEditor({
       fontSize: 12,
       placeholder: type === 'date' ? 'MM/DD/YYYY' : undefined
     };
+    console.log('🔧 Adding field at coordinates:', { x: newField.x, y: newField.y, pageNumber });
     onFieldsChange([...signatureFields, newField]);
   }, [signatureFields, onFieldsChange]);
 
@@ -363,10 +364,14 @@ export default function ImagePdfEditor({
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-8">
               {pageImages.map((page, index) => {
-                // Calculate display dimensions with max width constraint
+                // Calculate display dimensions with consistent max width
                 const maxWidth = 800;
                 const displayWidth = Math.min(maxWidth, page.width);
                 const displayHeight = (page.height * displayWidth) / page.width;
+                
+                // Calculate scale factors for coordinate conversion
+                const scaleX = page.width / displayWidth;
+                const scaleY = page.height / displayHeight;
                 
                 return (
                   <div key={page.pageNumber} className="relative mb-8">
@@ -399,8 +404,21 @@ export default function ImagePdfEditor({
                           console.log('🔍 Available dataTransfer types:', Array.from(e.dataTransfer.types));
                           
                           const rect = e.currentTarget.getBoundingClientRect();
-                          const x = ((e.clientX - rect.left) * page.width) / displayWidth;
-                          const y = ((e.clientY - rect.top) * page.height) / displayHeight;
+                          // Convert display coordinates to PDF coordinates with proper precision
+                          const relativeX = e.clientX - rect.left;
+                          const relativeY = e.clientY - rect.top;
+                          
+                          // Apply scale factors for accurate coordinate mapping
+                          const x = relativeX * scaleX;
+                          const y = relativeY * scaleY;
+                          
+                          console.log('🎯 Drop coordinates:', {
+                            display: { x: relativeX, y: relativeY },
+                            pdf: { x, y },
+                            scale: { x: scaleX, y: scaleY },
+                            pageSize: { width: page.width, height: page.height },
+                            displaySize: { width: displayWidth, height: displayHeight }
+                          });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
@@ -410,9 +428,31 @@ export default function ImagePdfEditor({
                           console.log('📝 Field type from dataTransfer:', fieldType);
                           
                           if (fieldId) {
-                            // Moving existing field
-                            console.log('✅ Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
-                            updateField(fieldId, { x, y, pageNumber: page.pageNumber });
+                            // Moving existing field with precise positioning
+                            const currentX = parseFloat(e.dataTransfer.getData('application/field-current-x')) || 0;
+                            const currentY = parseFloat(e.dataTransfer.getData('application/field-current-y')) || 0;
+                            
+                            // For small movements, use relative positioning to maintain precision
+                            const deltaX = x - currentX;
+                            const deltaY = y - currentY;
+                            const isSmallMovement = Math.abs(deltaX) < 50 && Math.abs(deltaY) < 50;
+                            
+                            let finalX = x;
+                            let finalY = y;
+                            
+                            if (isSmallMovement) {
+                              // For small movements, maintain the exact drop position
+                              finalX = x;
+                              finalY = y;
+                            } else {
+                              // For larger movements, center field on cursor
+                              finalX = x - 75;
+                              finalY = y - 15;
+                            }
+                            
+                            console.log('✅ Moving field', fieldId, 'to', finalX, finalY, 'on page', page.pageNumber, 
+                                      `(delta: ${Math.round(deltaX)}, ${Math.round(deltaY)}, small: ${isSmallMovement})`);
+                            updateField(fieldId, { x: Math.max(0, finalX), y: Math.max(0, finalY), pageNumber: page.pageNumber });
                           } else if (fieldType && fieldType !== fieldId) {
                             // Adding new field (make sure it's not a field ID mistaken as type)
                             console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
@@ -442,11 +482,11 @@ export default function ImagePdfEditor({
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
                         .map(field => {
-                          // Scale field position to match display
-                          const fieldX = (field.x * displayWidth) / page.width;
-                          const fieldY = (field.y * displayHeight) / page.height;
-                          const fieldWidth = (field.width * displayWidth) / page.width;
-                          const fieldHeight = (field.height * displayHeight) / page.height;
+                          // Scale field position to match display with proper precision
+                          const fieldX = field.x / scaleX;
+                          const fieldY = field.y / scaleY;
+                          const fieldWidth = field.width / scaleX;
+                          const fieldHeight = field.height / scaleY;
                           
                           return (
                             <div
@@ -470,6 +510,10 @@ export default function ImagePdfEditor({
                                 e.dataTransfer.effectAllowed = 'move';
                                 e.currentTarget.style.opacity = '0.5';
                                 console.log('📦 Set field ID in dataTransfer:', field.id);
+                                
+                                // Store current position for precise small movements
+                                e.dataTransfer.setData('application/field-current-x', field.x.toString());
+                                e.dataTransfer.setData('application/field-current-y', field.y.toString());
                               }}
                               onDragEnd={(e) => {
                                 console.log('Drag ended for placed field:', field.id);
