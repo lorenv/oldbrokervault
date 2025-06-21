@@ -413,18 +413,21 @@ export default function ImagePdfEditor({
                             // Moving existing field
                             console.log('✅ Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
                             updateField(fieldId, { x, y, pageNumber: page.pageNumber });
-                          } else if (fieldType) {
-                            // Adding new field
+                          } else if (fieldType && fieldType !== fieldId) {
+                            // Adding new field (make sure it's not a field ID mistaken as type)
                             console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ No field ID or type found in dataTransfer');
+                            console.log('Available types:', Array.from(e.dataTransfer.types));
+                            console.log('Field ID:', fieldId);
+                            console.log('Field type:', fieldType);
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          // Check if we're dragging an existing field (move) or new field (copy)
-                          const fieldId = e.dataTransfer.getData('application/field-id');
+                          // Check if we're dragging a field to set appropriate drop effect
+                          const fieldId = e.dataTransfer.types.includes('application/field-id');
                           e.dataTransfer.dropEffect = fieldId ? 'move' : 'copy';
                         }}
                         onDragEnter={(e) => {
