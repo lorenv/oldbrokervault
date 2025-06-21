@@ -10,10 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   FileSignature, 
-  Upload, 
-  Download, 
-  Eye, 
-  Trash2, 
   ExternalLink, 
   Mail, 
   MapPin,
@@ -22,7 +18,8 @@ import {
   Check,
   Copy,
   Link2Off,
-  Loader2
+  Loader2,
+  Eye
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -45,13 +42,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
   
-  // State for new NDA template upload
-  const [newNdaTemplate, setNewNdaTemplate] = useState({
-    name: '',
-    file: null as File | null,
-    isDefault: false
-  });
-  const [isUploadingNda, setIsUploadingNda] = useState(false);
+
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
   const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
@@ -150,123 +141,27 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     }
   });
 
-  // Upload NDA template mutation
-  const uploadNdaTemplateMutation = useMutation({
-    mutationFn: async (templateData: any) => {
-      const formData = new FormData();
-      formData.append('name', templateData.name);
-      formData.append('ndaFile', templateData.file);
-      formData.append('isDefault', templateData.isDefault.toString());
 
-      const response = await fetch('/api/nda-templates', {
-        method: 'POST',
-        body: formData,
-      });
 
-      if (!response.ok) throw new Error('Upload failed');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "NDA Template Uploaded",
-        description: "Your NDA template has been saved successfully"
-      });
-      setNewNdaTemplate({ name: '', file: null, isDefault: false });
-      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-    },
-    onError: () => {
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload NDA template. Please try again.",
-        variant: "destructive"
-      });
+  // Auto-save NDA settings when they change
+  const handleSettingChange = (setting: string, value: any) => {
+    const newSettings = { ...ndaSettings, [setting]: value };
+    setNdaSettings(newSettings);
+    
+    // Auto-save to backend
+    const backendSettings: any = {
+      ndaProtected: newSettings.ndaProtected,
+      ndaRequiresManualApproval: newSettings.ndaApprovalRequired
+    };
+    
+    if (newSettings.ndaTemplateId) {
+      backendSettings.ndaTemplateId = newSettings.ndaTemplateId;
     }
-  });
-
-  // Handle NDA settings update
-  const handleNdaSettingsUpdate = () => {
-    if (ndaSettings.ndaProtected && !ndaSettings.ndaTemplateId) {
-      toast({
-        title: "NDA Template Required",
-        description: "Please select an NDA template when enabling NDA protection.",
-        variant: "destructive"
-      });
-      return;
-    }
-    updateNdaSettingsMutation.mutate(ndaSettings);
+    
+    updateNdaSettingsMutation.mutate(backendSettings);
   };
 
-  // Handle NDA template upload
-  const handleNdaTemplateUpload = () => {
-    if (!newNdaTemplate.name || !newNdaTemplate.file) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a name and select a PDF file",
-        variant: "destructive"
-      });
-      return;
-    }
-    uploadNdaTemplateMutation.mutate(newNdaTemplate);
-  };
 
-  // Handle template preview
-  const previewNdaTemplate = (templateId: number) => {
-    const url = `/api/nda-templates/${templateId}/download`;
-    window.open(url, '_blank');
-  };
-
-  // Handle template download
-  const downloadNdaTemplate = async (templateId: number, templateName: string) => {
-    try {
-      const response = await fetch(`/api/nda-templates/${templateId}/download`);
-      if (!response.ok) throw new Error('Download failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${templateName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Download Started",
-        description: "Your NDA template is being downloaded"
-      });
-    } catch (error) {
-      toast({
-        title: "Download Failed",
-        description: "Unable to download the NDA template",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Handle template deletion
-  const deleteNdaTemplate = async (templateId: number) => {
-    try {
-      const response = await apiRequest('DELETE', `/api/nda-templates/${templateId}`);
-      if (response.ok) {
-        toast({
-          title: "Template Deleted",
-          description: "NDA template has been removed"
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-        // Reset selected template if it was deleted
-        if (ndaSettings.ndaTemplateId === templateId) {
-          setNdaSettings(prev => ({ ...prev, ndaTemplateId: null }));
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Delete Failed",
-        description: "Please try again",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Filter signatures based on search term
   const filteredSignatures = ndaSignatures.filter(signature =>
