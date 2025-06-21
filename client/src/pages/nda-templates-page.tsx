@@ -22,13 +22,14 @@ export default function NdaTemplatesPage() {
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['/api/nda-templates'],
-    queryFn: () => apiRequest('/api/nda-templates')
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/nda-templates');
+      return response.json();
+    }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/nda-templates/${id}`, {
-      method: 'DELETE'
-    }),
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/nda-templates/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
       toast({

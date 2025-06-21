@@ -5,6 +5,8 @@ import NdaTemplateEditor from '@/components/nda-template-editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import { ArrowLeft, FileText, Plus } from 'lucide-react';
 
 interface NdaTemplate {
@@ -52,23 +54,16 @@ export default function NdaTemplateEditorPage() {
       
       const method = isNewTemplate ? 'POST' : 'PUT';
       
-      const response = await fetch(url, {
+      const response = await apiRequest(
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        url,
+        {
           name: templateData.name,
           fileContent: templateData.fileContent,
           signatureFields: templateData.signatureFields || [],
           isDefault: false
-        }),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save template');
-      }
+        }
+      );
       
       return response.json();
     },
@@ -95,14 +90,7 @@ export default function NdaTemplateEditorPage() {
   // Delete template mutation
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/nda-templates/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete template');
-      }
+      await apiRequest('DELETE', `/api/nda-templates/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });

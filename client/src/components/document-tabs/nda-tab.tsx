@@ -35,7 +35,7 @@ interface DocumentNdaTabProps {
 export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   
   // State for NDA settings
   const [ndaSettings, setNdaSettings] = useState({
