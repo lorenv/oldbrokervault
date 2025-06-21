@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import EnhancedNdaClickwrap from '@/components/enhanced-nda-clickwrap';
+import NdaFieldForm from '@/components/nda-field-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 

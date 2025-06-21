@@ -4,6 +4,7 @@ import { insertNdaTemplateSchema } from "@shared/schema";
 import { validateZodSchema } from "../middleware/validation";
 
 export function registerNdaTemplateRoutes(app: Express) {
+  console.log('=== SETTING UP NDA TEMPLATE ROUTES ===');
   // Get all NDA templates for user
   app.get("/api/nda-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -121,7 +122,12 @@ export function registerNdaTemplateRoutes(app: Express) {
   });
 
   // Get template for signature process (public endpoint for signers)
+  console.log('=== REGISTERING /api/share/:shareSlug/nda-template ROUTE ===');
   app.get("/api/share/:shareSlug/nda-template", async (req, res) => {
+    console.log('=== NDA TEMPLATE ENDPOINT HIT ===');
+    console.log('Share slug:', req.params.shareSlug);
+    console.log('Full URL:', req.url);
+    console.log('Request method:', req.method);
     try {
       const { shareSlug } = req.params;
       

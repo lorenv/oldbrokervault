@@ -155,7 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(sensitiveEndpointLimiter);
 
   // Register NDA template routes
+  console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
   registerNdaTemplateRoutes(app);
+  console.log('=== NDA TEMPLATE ROUTES REGISTERED ===');
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
