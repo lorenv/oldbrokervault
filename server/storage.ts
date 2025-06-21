@@ -1086,14 +1086,51 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Process PDF to images if fileContent has changed
+    let updateData = { ...template };
+    
+    if (template.fileContent && !template.pageImages) {
+      try {
+        const processedImages = await this.processPdfToImages(template.fileContent, `template_update_${id}_${Date.now()}`);
+        updateData.pageImages = processedImages.pages;
+        updateData.totalPages = processedImages.totalPages;
+        console.log(`Reprocessed ${processedImages.totalPages} pages for template ${id}`);
+      } catch (error) {
+        console.error('Error reprocessing PDF to images:', error);
+        // Continue with existing data
+      }
+    }
+
     const [updated] = await db.update(ndaTemplates)
-      .set(template)
+      .set(updateData)
       .where(eq(ndaTemplates.id, id))
       .returning();
     return updated;
   }
 
   async deleteNdaTemplate(id: number): Promise<void> {
+    // Get template data before deletion to clean up image files
+    const [template] = await db.select().from(ndaTemplates).where(eq(ndaTemplates.id, id));
+    
+    if (template && template.pageImages) {
+      try {
+        // Clean up cached image files
+        const pageImages = template.pageImages as any[];
+        for (const page of pageImages) {
+          if (page.imagePath) {
+            const fullPath = path.join(process.cwd(), 'public', page.imagePath);
+            if (fs.existsSync(fullPath)) {
+              fs.unlinkSync(fullPath);
+              console.log(`Cleaned up image file: ${fullPath}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error cleaning up template images:', error);
+        // Continue with deletion even if cleanup fails
+      }
+    }
+
     await db.delete(ndaTemplates)
       .where(eq(ndaTemplates.id, id));
   }

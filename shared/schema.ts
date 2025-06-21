@@ -157,6 +157,8 @@ export const ndaTemplates = pgTable("nda_templates", {
   fileContent: text("file_content").notNull(), // Base64 encoded PDF
   isDefault: boolean("is_default").default(false).notNull(),
   signatureFields: jsonb("signature_fields").default([]).notNull(), // Array of field definitions
+  pageImages: jsonb("page_images").default([]).notNull(), // Array of processed page image data
+  totalPages: integer("total_pages").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -389,7 +391,14 @@ export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
   fileContent: true,
 }).extend({
   isDefault: z.boolean().optional(),
-  signatureFields: z.array(signatureFieldSchema).optional()
+  signatureFields: z.array(signatureFieldSchema).optional(),
+  pageImages: z.array(z.object({
+    pageNumber: z.number(),
+    imagePath: z.string(),
+    width: z.number(),
+    height: z.number()
+  })).optional(),
+  totalPages: z.number().optional()
 });
 
 export const insertShareLinkSchema = createInsertSchema(shareLinks).pick({
