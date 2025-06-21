@@ -111,7 +111,7 @@ export default function EnhancedNdaSigningPage() {
         console.log('Auto-approval - redirecting to CIM in 2 seconds');
         // Auto-redirect to CIM document after 2 seconds
         setTimeout(() => {
-          const cimUrl = data.redirectUrl || `/share/${shareSlug}?token=${data.accessToken}`;
+          const cimUrl = data.redirectUrl || `/cims/${shareSlug}?token=${data.accessToken}`;
           console.log('Redirecting to:', cimUrl);
           window.location.href = cimUrl;
         }, 2000);
