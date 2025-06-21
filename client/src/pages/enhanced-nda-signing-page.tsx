@@ -102,20 +102,7 @@ export default function EnhancedNdaSigningPage() {
       console.log('NDA signed successfully:', data);
       setSignResponse(data);
       setIsComplete(true);
-      
-      // Handle redirect logic based on approval requirements
-      if (data.requiresApproval) {
-        console.log('Manual approval required - staying on success page');
-        // Stay on success page for manual approval
-      } else {
-        console.log('Auto-approval - redirecting to CIM in 2 seconds');
-        // Auto-redirect to CIM document after 2 seconds
-        setTimeout(() => {
-          const cimUrl = data.redirectUrl || `/cims/${shareSlug}?token=${data.accessToken}`;
-          console.log('Redirecting to:', cimUrl);
-          window.location.href = cimUrl;
-        }, 2000);
-      }
+      // No automatic redirect - user will check email for access link
     },
     onError: (error: any) => {
       setError(error.message || 'Failed to sign NDA');
@@ -171,12 +158,11 @@ export default function EnhancedNdaSigningPage() {
             ) : (
               <div>
                 <p className="text-gray-600 mb-4">
-                  Your signature has been recorded and you now have access to the document.
+                  Your signature has been recorded successfully.
                 </p>
-                <div className="flex items-center justify-center gap-2 text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <p className="text-sm font-medium">Redirecting to document in 2 seconds...</p>
-                </div>
+                <p className="text-sm text-blue-600 font-medium">
+                  Please check your email for the link to access the document.
+                </p>
               </div>
             )}
           </CardContent>
