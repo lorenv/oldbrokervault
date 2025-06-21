@@ -140,7 +140,7 @@ export default function NdaTemplateEditorPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <NdaTemplateEditor
+        <CachedNdaTemplateEditor
           initialTemplate={template}
           onSave={handleSave}
           isLoading={saveTemplateMutation.isPending}
