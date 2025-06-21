@@ -24,7 +24,13 @@ interface EmailParams {
 
 async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    await mailService.send({
+    console.log('Sending email via SendGrid:');
+    console.log('- To:', params.to);
+    console.log('- From:', params.from);
+    console.log('- Subject:', params.subject);
+    console.log('- Has attachments:', !!params.attachments?.length);
+    
+    const result = await mailService.send({
       to: params.to,
       from: params.from,
       subject: params.subject,
@@ -33,9 +39,18 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
       html: params.html,
       attachments: params.attachments,
     });
+    
+    console.log('Email sent successfully to:', params.to);
+    console.log('SendGrid response:', result);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('SendGrid email error:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    if (error.response) {
+      console.error('SendGrid response status:', error.response.status);
+      console.error('SendGrid response body:', error.response.body);
+    }
     return false;
   }
 }
@@ -263,15 +278,25 @@ async function sendNdaSignedEmail(
   viewerName?: string,
   ownerProfile?: any
 ): Promise<boolean> {
+  console.log('=== EMAIL SENDING DEBUG ===');
+  console.log('Viewer email:', viewerEmail);
+  console.log('Owner email:', ownerEmail);
+  console.log('CIM title:', cimTitle);
+  console.log('Share link:', shareLink);
+  console.log('Signed NDA size:', signedNdaBase64?.length || 0);
+  
   // Send NDA confirmation email first
+  console.log('Sending NDA confirmation email...');
   const ndaConfirmationSuccess = await sendNdaConfirmationEmail(
     viewerEmail,
     viewerName || 'Valued Investor',
     cimTitle,
     signedNdaBase64
   );
+  console.log('NDA confirmation email result:', ndaConfirmationSuccess);
 
   // Send CIM link email with contact information
+  console.log('Sending CIM link email...');
   const cimLinkSuccess = await sendCimLinkEmail(
     viewerEmail,
     viewerName || 'Valued Investor',
@@ -282,8 +307,10 @@ async function sendNdaSignedEmail(
       email: ownerEmail
     }
   );
+  console.log('CIM link email result:', cimLinkSuccess);
 
   // Send owner notification
+  console.log('Sending owner notification email...');
   const ownerNotificationSuccess = await sendOwnerNdaNotification(
     ownerEmail,
     ownerName,
@@ -293,8 +320,13 @@ async function sendNdaSignedEmail(
     shareLink,
     signedNdaBase64
   );
-
-  return ndaConfirmationSuccess && cimLinkSuccess && ownerNotificationSuccess;
+  console.log('Owner notification email result:', ownerNotificationSuccess);
+  
+  const allSuccess = ndaConfirmationSuccess && cimLinkSuccess && ownerNotificationSuccess;
+  console.log('All emails sent successfully:', allSuccess);
+  console.log('=== END EMAIL DEBUG ===');
+  
+  return allSuccess;
 }
 
 async function sendPasswordResetEmail(
