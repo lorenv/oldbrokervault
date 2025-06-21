@@ -180,19 +180,15 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">
-              {templateId ? 'Edit NDA Template' : 'Create NDA Template'}
+              {initialTemplate ? 'Edit NDA Template' : 'Create NDA Template'}
             </h1>
             <p className="text-gray-600">
               Upload a PDF template and configure signature fields
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel}>
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
+            <Button onClick={handleSave} disabled={isSaving || isLoading}>
+              {(isSaving || isLoading) ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   Saving...
