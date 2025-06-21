@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Mail, Type, FileSignature, AlignLeft } from 'lucide-react';
-import SignaturePad from 'signature_pad';
+
 import { useToast } from '@/hooks/use-toast';
 
 interface SignatureField {
@@ -48,46 +48,11 @@ export default function NdaFieldForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  const signaturePadRefs = useRef<Record<string, SignaturePad>>({});
-  const signatureCanvasRefs = useRef<Record<string, HTMLCanvasElement>>({});
 
-  // Initialize signature pads for signature fields
+
+  // No longer needed - signature fields are now text inputs
   useEffect(() => {
-    const signatureFieldIds = signatureFields
-      .filter(field => field.type === 'signature')
-      .map(field => field.id);
-
-    signatureFieldIds.forEach(fieldId => {
-      const canvas = signatureCanvasRefs.current[fieldId];
-      if (canvas && !signaturePadRefs.current[fieldId]) {
-        const signaturePad = new SignaturePad(canvas, {
-          backgroundColor: 'rgb(255, 255, 255)',
-          penColor: 'rgb(0, 0, 0)',
-          minWidth: 1,
-          maxWidth: 2.5,
-        });
-        
-        signaturePadRefs.current[fieldId] = signaturePad;
-        
-        // Update field value when signature changes
-        signaturePad.addEventListener('endStroke', () => {
-          if (!signaturePad.isEmpty()) {
-            const dataURL = signaturePad.toDataURL();
-            setFieldValues(prev => ({ ...prev, [fieldId]: dataURL }));
-            setErrors(prev => ({ ...prev, [fieldId]: '' }));
-          }
-        });
-      }
-    });
-
-    return () => {
-      // Cleanup signature pads
-      Object.values(signaturePadRefs.current).forEach(pad => {
-        if (pad && typeof pad.off === 'function') {
-          pad.off();
-        }
-      });
-    };
+    // Signature fields are now text inputs, no canvas setup needed
   }, [signatureFields]);
 
   // Auto-populate date fields with current date
@@ -118,11 +83,8 @@ export default function NdaFieldForm({
         }
       }
       
-      if (field.type === 'signature') {
-        const signaturePad = signaturePadRefs.current[field.id];
-        if (!signaturePad || signaturePad.isEmpty()) {
-          newErrors[field.id] = 'Signature is required';
-        }
+      if (field.type === 'signature' && !value?.trim()) {
+        newErrors[field.id] = 'Signature is required';
       }
       
       if ((field.type === 'name' || field.type === 'email') && !value?.trim()) {
@@ -153,18 +115,8 @@ export default function NdaFieldForm({
     setIsSubmitting(true);
     
     try {
-      // Ensure signature fields have their data URLs
-      const finalFieldValues = { ...fieldValues };
-      signatureFields
-        .filter(field => field.type === 'signature')
-        .forEach(field => {
-          const signaturePad = signaturePadRefs.current[field.id];
-          if (signaturePad && !signaturePad.isEmpty()) {
-            finalFieldValues[field.id] = signaturePad.toDataURL();
-          }
-        });
-      
-      await onSubmit(finalFieldValues);
+      // Submit the field values as-is (signature fields now contain text)
+      await onSubmit(fieldValues);
     } catch (error) {
       console.error('Error submitting NDA:', error);
       toast({
@@ -177,14 +129,7 @@ export default function NdaFieldForm({
     }
   };
 
-  const clearSignature = (fieldId: string) => {
-    const signaturePad = signaturePadRefs.current[fieldId];
-    if (signaturePad) {
-      signaturePad.clear();
-      setFieldValues(prev => ({ ...prev, [fieldId]: '' }));
-      setErrors(prev => ({ ...prev, [fieldId]: '' }));
-    }
-  };
+
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -217,25 +162,21 @@ export default function NdaFieldForm({
                     
                     {field.type === 'signature' ? (
                       <div className="space-y-2">
-                        <div className={`border-2 rounded-lg ${hasError ? 'border-red-500' : 'border-gray-300'}`}>
-                          <canvas
-                            ref={el => {
-                              if (el) signatureCanvasRefs.current[field.id] = el;
-                            }}
-                            width={400}
-                            height={150}
-                            className="w-full h-32 touch-none"
-                            style={{ touchAction: 'none' }}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => clearSignature(field.id)}
-                        >
-                          Clear Signature
-                        </Button>
+                        <Input
+                          id={field.id}
+                          type="text"
+                          value={fieldValues[field.id] || ''}
+                          onChange={(e) => {
+                            setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }));
+                            setErrors(prev => ({ ...prev, [field.id]: '' }));
+                          }}
+                          className={`${hasError ? 'border-red-500' : ''} text-lg`}
+                          style={{ fontFamily: 'Brush Script MT, cursive, fantasy' }}
+                          placeholder="Type your signature here"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Your typed signature will appear in a handwriting style font
+                        </p>
                       </div>
                     ) : field.type === 'text' ? (
                       <Textarea
