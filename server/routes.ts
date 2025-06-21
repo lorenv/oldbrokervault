@@ -367,7 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.incrementShareViewCount(cimDoc.id);
       }
 
-      // PERFORMANCE OPTIMIZATION: Skip unnecessary data for basic share requests
+      // PERFORMANCE OPTIMIZATION: Minimal data fetching and NDA status check
+      const dataFetchStart = Date.now();
+      
       let ndaApprovalStatus = null;
       const { token } = req.query;
       
@@ -402,6 +404,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }
+
+      // Get essential data in parallel
+      const [userProfile, customSections] = await Promise.all([
+        storage.getUser(cimDoc.userId),
+        storage.getCustomSections(cimDoc.id)
+      ]);
       
       console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
       
