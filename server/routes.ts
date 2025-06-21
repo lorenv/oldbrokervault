@@ -4877,6 +4877,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.log("Share slug:", shareSlug);
       console.log("Signer name:", signerName);
       console.log("Signer email:", signerEmail);
+      console.log("Field values:", fieldValues);
       console.log("Headers:", {
         'x-forwarded-for': req.headers['x-forwarded-for'],
         'x-real-ip': req.headers['x-real-ip'],
