@@ -37,25 +37,25 @@ export class PdfSignatureProcessor {
 
   async embedFields(signatureFields: SignatureField[], fieldValues: FieldValue): Promise<string> {
     try {
-      // Embed all fonts once at the beginning
-      console.log('Embedding fonts...');
-      const standardFont = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
-      const italicFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaItalic);
-      console.log('Fonts embedded successfully');
+      console.log('Starting PDF field embedding...');
+      
+      // Try to use default font first - no embedding needed
+      const pages = this.pdfDoc.getPages();
+      console.log(`PDF has ${pages.length} pages, processing ${signatureFields.length} fields`);
 
       for (const field of signatureFields) {
         const value = fieldValues[field.id];
         if (!value) continue;
 
-        console.log(`Processing field: ${field.id}, type: ${field.type}, value: ${value.substring(0, 20)}...`);
+        console.log(`Processing field: ${field.id}, type: ${field.type}, page: ${field.pageNumber}`);
 
         const pageIndex = field.pageNumber - 1;
-        if (pageIndex < 0 || pageIndex >= this.pages.length) {
+        if (pageIndex < 0 || pageIndex >= pages.length) {
           console.log(`Skipping field ${field.id}: invalid page ${field.pageNumber}`);
           continue;
         }
 
-        const page = this.pages[pageIndex];
+        const page = pages[pageIndex];
         const { height: pageHeight } = page.getSize();
 
         // Convert coordinates (PDF coordinate system has origin at bottom-left)
@@ -63,28 +63,14 @@ export class PdfSignatureProcessor {
         const y = pageHeight - field.y - field.height;
 
         try {
-          if (field.type === 'signature') {
-            // Use italic font for signatures
-            page.drawText(value, {
-              x: x + 2,
-              y: y + 2,
-              size: 16,
-              font: italicFont,
-              color: rgb(0, 0, 0.8),
-            });
-            console.log(`Signature field ${field.id} processed successfully`);
-          } else {
-            // Use standard font for other fields
-            page.drawText(value, {
-              x: x + 2,
-              y: y + 2,
-              size: field.fontSize || 12,
-              font: standardFont,
-              color: rgb(0, 0, 0),
-              maxWidth: field.width - 4,
-            });
-            console.log(`Text field ${field.id} processed successfully`);
-          }
+          // Use simple text drawing without custom fonts to avoid embedding issues
+          page.drawText(value, {
+            x: x + 2,
+            y: y + 2,
+            size: field.type === 'signature' ? 16 : (field.fontSize || 12),
+            color: field.type === 'signature' ? rgb(0, 0, 0.8) : rgb(0, 0, 0),
+          });
+          console.log(`Field ${field.id} processed successfully`);
         } catch (drawError) {
           console.error(`Error drawing field ${field.id}:`, drawError);
           // Continue processing other fields
