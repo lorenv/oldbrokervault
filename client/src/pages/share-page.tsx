@@ -250,28 +250,9 @@ export function SharePage() {
   if (shouldShowNda) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <Card className="max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 rounded-full bg-blue-100">
-                <Shield className="h-6 w-6 text-blue-600" />
-              </div>
-              <CardTitle>Non-Disclosure Agreement Required</CardTitle>
-              <CardDescription>
-                This document requires signing an NDA before viewing
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button onClick={() => setShowNdaDialog(true)}>
-                Review and Sign NDA
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-        
         <NdaDialog
-          isOpen={showNdaDialog}
-          onClose={() => setShowNdaDialog(false)}
+          isOpen={true}
+          onClose={() => {}}
           onSigned={() => setHasSignedNda(true)}
           shareSlug={shareSlug || ''}
           ndaUrl={shareData.ndaUrl}
