@@ -87,22 +87,27 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
   ];
 
   const DraggableFieldType = ({ fieldType }: { fieldType: typeof FIELD_TYPES[0] }) => {
-    const [{ isDragging }, drag] = useDrag({
-      type: 'new-field',
-      item: { type: fieldType.type },
-      collect: (monitor) => ({
-        isDragging: monitor.isDragging(),
-      }),
-    });
-
     const Icon = fieldType.icon;
 
     return (
       <div
-        ref={drag}
-        className={`p-3 border-2 border-dashed rounded-lg cursor-move transition-all ${
-          fieldType.color
-        } ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+        draggable
+        className={`p-3 border-2 border-dashed rounded-lg cursor-grab active:cursor-grabbing transition-all ${fieldType.color} hover:scale-105`}
+        onDragStart={(e) => {
+          console.log('🖱️ Mouse down on field:', fieldType.type);
+          console.log('🚀 Drag started for field type:', fieldType.type);
+          console.log('🔍 DataTransfer object:', e.dataTransfer);
+          
+          e.dataTransfer.clearData(); // Clear any existing data
+          e.dataTransfer.setData('application/field-type', fieldType.type);
+          e.dataTransfer.setData('text/plain', fieldType.type); // Fallback
+          e.dataTransfer.effectAllowed = 'copy';
+          
+          console.log('✅ Drag data set successfully');
+        }}
+        onDragEnd={(e) => {
+          console.log('🏁 Drag ended for field type:', fieldType.type);
+        }}
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
