@@ -16,9 +16,15 @@ interface NdaTemplateData {
 export default function EnhancedNdaSigningPage() {
   const [match, params] = useRoute('/share/:shareSlug/sign-nda');
   const [isComplete, setIsComplete] = useState(false);
+  const [signResponse, setSignResponse] = useState<SignNdaResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   const shareSlug = params?.shareSlug;
+  
+  // Get URL parameters for pre-filling name/email
+  const urlParams = new URLSearchParams(window.location.search);
+  const prefilledName = urlParams.get('name') || '';
+  const prefilledEmail = urlParams.get('email') || '';
 
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
@@ -131,19 +137,21 @@ export default function EnhancedNdaSigningPage() {
     );
   }
 
-  // Render the enhanced clickwrap interface
+  // Convert base64 NDA content to displayable format
   const ndaContent = templateData.fileContent 
-    ? `<iframe src="data:application/pdf;base64,${templateData.fileContent}" width="100%" height="400px"></iframe>`
-    : '<p>NDA content not available</p>';
+    ? `<p>Please review the NDA document and fill in the required fields below.</p>`
+    : 'No NDA content available';
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <EnhancedNdaClickwrap
-        documentTitle={templateData.documentTitle}
+      <NdaFieldForm
+        documentTitle={templateData.documentTitle || 'Non-Disclosure Agreement'}
         ndaContent={ndaContent}
-        signatureFields={templateData.signatureFields}
-        onSign={signNdaMutation.mutateAsync}
+        signatureFields={templateData.signatureFields || []}
+        onSubmit={signNdaMutation.mutateAsync}
         isLoading={signNdaMutation.isPending}
+        prefilledName={prefilledName}
+        prefilledEmail={prefilledEmail}
       />
     </div>
   );
