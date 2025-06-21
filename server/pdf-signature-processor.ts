@@ -36,40 +36,71 @@ export class PdfSignatureProcessor {
   }
 
   async embedFields(signatureFields: SignatureField[], fieldValues: FieldValue): Promise<string> {
-    const font = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    try {
+      // Embed all fonts once at the beginning
+      console.log('Embedding fonts...');
+      const standardFont = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
+      const italicFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaItalic);
+      console.log('Fonts embedded successfully');
 
-    for (const field of signatureFields) {
-      const value = fieldValues[field.id];
-      if (!value) continue;
+      for (const field of signatureFields) {
+        const value = fieldValues[field.id];
+        if (!value) continue;
 
-      const pageIndex = field.pageNumber - 1;
-      if (pageIndex < 0 || pageIndex >= this.pages.length) continue;
+        console.log(`Processing field: ${field.id}, type: ${field.type}, value: ${value.substring(0, 20)}...`);
 
-      const page = this.pages[pageIndex];
-      const { height: pageHeight } = page.getSize();
+        const pageIndex = field.pageNumber - 1;
+        if (pageIndex < 0 || pageIndex >= this.pages.length) {
+          console.log(`Skipping field ${field.id}: invalid page ${field.pageNumber}`);
+          continue;
+        }
 
-      // Convert coordinates (PDF coordinate system has origin at bottom-left)
-      const x = field.x;
-      const y = pageHeight - field.y - field.height;
+        const page = this.pages[pageIndex];
+        const { height: pageHeight } = page.getSize();
 
-      if (field.type === 'signature') {
-        // Use italic font for signatures
-        const italicFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaItalic);
-        page.drawText(value, {
-          x: x + 2,
-          y: y + 2,
-          size: 16,
-          font: italicFont,
-          color: rgb(0, 0, 0.8),
-        });
-      } else {
-        await this.embedTextField(page, value, x, y, field.width, field.height, field.fontSize, font);
+        // Convert coordinates (PDF coordinate system has origin at bottom-left)
+        const x = field.x;
+        const y = pageHeight - field.y - field.height;
+
+        try {
+          if (field.type === 'signature') {
+            // Use italic font for signatures
+            page.drawText(value, {
+              x: x + 2,
+              y: y + 2,
+              size: 16,
+              font: italicFont,
+              color: rgb(0, 0, 0.8),
+            });
+            console.log(`Signature field ${field.id} processed successfully`);
+          } else {
+            // Use standard font for other fields
+            page.drawText(value, {
+              x: x + 2,
+              y: y + 2,
+              size: field.fontSize || 12,
+              font: standardFont,
+              color: rgb(0, 0, 0),
+              maxWidth: field.width - 4,
+            });
+            console.log(`Text field ${field.id} processed successfully`);
+          }
+        } catch (drawError) {
+          console.error(`Error drawing field ${field.id}:`, drawError);
+          // Continue processing other fields
+        }
       }
-    }
 
-    const pdfBytes = await this.pdfDoc.save();
-    return Buffer.from(pdfBytes).toString('base64');
+      console.log('Saving PDF...');
+      const pdfBytes = await this.pdfDoc.save();
+      const base64Result = Buffer.from(pdfBytes).toString('base64');
+      console.log('PDF saved successfully, size:', base64Result.length);
+      return base64Result;
+
+    } catch (error) {
+      console.error('Error in embedFields:', error);
+      throw new Error(`Failed to process PDF signature: ${error.message}`);
+    }
   }
 
   private async embedSignatureImage(page: any, signatureDataUrl: string, x: number, y: number, width: number, height: number) {
