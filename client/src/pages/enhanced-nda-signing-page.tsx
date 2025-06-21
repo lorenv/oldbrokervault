@@ -23,13 +23,6 @@ export default function EnhancedNdaSigningPage() {
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
     queryKey: ['/api/share', shareSlug, 'nda-template'],
-    queryFn: async () => {
-      const response = await fetch(`/api/share/${shareSlug}/nda-template`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch NDA template');
-      }
-      return response.json();
-    },
     enabled: !!shareSlug
   });
 
@@ -138,10 +131,6 @@ export default function EnhancedNdaSigningPage() {
     );
   }
 
-  // Debug: Log the template data to see what we're receiving
-  console.log('🔍 Template data received:', templateData);
-  console.log('📋 Signature fields:', templateData?.signatureFields);
-
   // Render the enhanced clickwrap interface
   const ndaContent = templateData.fileContent 
     ? `<iframe src="data:application/pdf;base64,${templateData.fileContent}" width="100%" height="400px"></iframe>`
@@ -152,7 +141,7 @@ export default function EnhancedNdaSigningPage() {
       <EnhancedNdaClickwrap
         documentTitle={templateData.documentTitle}
         ndaContent={ndaContent}
-        signatureFields={templateData.signatureFields || []}
+        signatureFields={templateData.signatureFields}
         onSign={signNdaMutation.mutateAsync}
         isLoading={signNdaMutation.isPending}
       />
