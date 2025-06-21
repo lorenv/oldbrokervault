@@ -240,39 +240,39 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                   {FIELD_TYPES.map((fieldType) => (
                     <div
                       key={fieldType.type}
-                      draggable
+                      draggable={true}
                       className={`p-3 border-2 border-dashed rounded-lg cursor-grab transition-all ${
                         fieldType.color
-                      } hover:scale-105 active:scale-95 active:cursor-grabbing`}
+                      } hover:scale-105 select-none`}
+                      style={{ 
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        MozUserSelect: 'none',
+                        msUserSelect: 'none'
+                      }}
                       onDragStart={(e) => {
                         console.log('🚀 Drag started for field type:', fieldType.type);
+                        console.log('🔍 DataTransfer object:', e.dataTransfer);
                         
                         // Set the data to transfer
+                        e.dataTransfer.setData('text/plain', fieldType.type);
                         e.dataTransfer.setData('application/field-type', fieldType.type);
                         e.dataTransfer.effectAllowed = 'copy';
                         
-                        // Create a drag image for visual feedback
-                        const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
-                        dragImage.style.transform = 'rotate(5deg)';
-                        dragImage.style.opacity = '0.8';
-                        document.body.appendChild(dragImage);
-                        e.dataTransfer.setDragImage(dragImage, 50, 25);
+                        // Set opacity for visual feedback
+                        e.currentTarget.style.opacity = '0.5';
                         
-                        // Clean up after a short delay
-                        setTimeout(() => {
-                          document.body.removeChild(dragImage);
-                        }, 0);
+                        console.log('✅ Drag data set successfully');
                       }}
                       onDragEnd={(e) => {
                         console.log('🏁 Drag ended for field type:', fieldType.type);
                         e.currentTarget.style.opacity = '1';
                       }}
-                      onDrag={(e) => {
-                        // Add some visual feedback during drag
-                        e.currentTarget.style.opacity = '0.5';
+                      onMouseDown={(e) => {
+                        console.log('🖱️ Mouse down on field:', fieldType.type);
                       }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 pointer-events-none">
                         <fieldType.icon className="w-4 h-4" />
                         <span className="text-sm font-medium">{fieldType.label}</span>
                       </div>
