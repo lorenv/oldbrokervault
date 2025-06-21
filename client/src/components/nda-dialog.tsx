@@ -54,49 +54,8 @@ export function NdaDialog({
       return;
     }
 
-    setIsSigning(true);
-    try {
-      const response = await fetch(`/api/cim/${shareSlug}/sign-nda`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          signerName: signerName.trim(),
-          signerEmail: signerEmail.trim()
-        })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        if (result.requiresApproval) {
-          // Manual approval required - show thank you message and don't redirect
-          toast({
-            title: "NDA Signed Successfully",
-            description: result.message || "Thank you for signing the NDA. Your signature is pending approval.",
-          });
-          onClose(); // Close dialog but don't call onSigned() to prevent redirect
-        } else {
-          // Automatic approval - allow redirect to document
-          toast({
-            title: "NDA Signed Successfully",
-            description: result.message || "You can now access the CIM document. Check your email for confirmation.",
-          });
-          onSigned(); // This will trigger the redirect to document
-        }
-      } else {
-        throw new Error(result.error || 'Failed to sign NDA');
-      }
-    } catch (error) {
-      toast({
-        title: "Signing Failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSigning(false);
-    }
+    // For documents with NDA templates, redirect to the signing page
+    window.location.href = `/share/${shareSlug}/sign-nda`;
   };
 
   return (
