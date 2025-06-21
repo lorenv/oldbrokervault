@@ -194,7 +194,7 @@ export default function FillableNdaDocument({
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
       
       // Calculate display dimensions with max width constraint
-      const maxWidth = 800;
+      const maxWidth = 700; // Reduced for better performance
       const displayWidth = Math.min(maxWidth, pageData.width);
       const displayHeight = (pageData.height * displayWidth) / pageData.width;
       
@@ -205,7 +205,7 @@ export default function FillableNdaDocument({
             src={pageData.imageUrl}
             alt={`Document page ${pageNumber}`}
             className="w-full h-auto border border-gray-200"
-            style={{ maxWidth: '800px', display: 'block' }}
+            style={{ maxWidth: '700px', display: 'block' }}
             onError={(e) => {
               console.error('Image load error for page:', pageNumber);
               console.error('Image URL:', pageData.imageUrl);

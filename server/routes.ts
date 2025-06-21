@@ -4182,7 +4182,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         // Get total page count using pdfinfo first
         let totalPages = 1;
         try {
-          const { stdout } = await execAsync(`pdfinfo "${pdfPath}"`, { timeout: 10000 });
+          const { stdout } = await execAsync(`pdfinfo "${pdfPath}"`, { timeout: 5000 });
           const pageMatch = stdout.match(/Pages:\s+(\d+)/);
           if (pageMatch) {
             totalPages = parseInt(pageMatch[1]);
@@ -4193,12 +4193,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
         console.log(`Converting all ${totalPages} pages to images`);
 
-        // Convert all pages to PNG using poppler-utils
+        // Convert all pages to PNG using poppler-utils with optimized settings
         const baseImagePath = imagePath.replace('.png', '');
-        const convertCommand = `pdftoppm -png -scale-to-x 1200 -scale-to-y -1 "${pdfPath}" "${baseImagePath}"`;
+        const convertCommand = `pdftoppm -png -scale-to-x 800 -scale-to-y -1 -q "${pdfPath}" "${baseImagePath}"`;
         
         console.log('Running conversion command for all pages:', convertCommand);
-        await execAsync(convertCommand, { timeout: 60000 });
+        await execAsync(convertCommand, { timeout: 30000 });
 
         // Collect all generated page images
         const pageImages: Array<{ pageNumber: number; imageBase64: string; imageDataUrl: string }> = [];
@@ -4235,8 +4235,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             pageImages.push({
               pageNumber: pageNum,
               imageUrl: `/api/temp-image/${serveFileName}`,
-              width: 1200, // Known from conversion scale
-              height: Math.round(1200 * 1.414) // Approximate A4 ratio
+              width: 800, // Reduced resolution for better performance
+              height: Math.round(800 * 1.414) // Approximate A4 ratio
             });
 
             // Clean up the original conversion output
@@ -5130,8 +5130,6 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           res.json({ 
             success: true, 
             signature,
-            accessToken,
-            redirectUrl: `/cims/${shareSlug}?token=${accessToken}`,
             requiresApproval: false,
             message: "NDA signed successfully. Check your email for confirmation and CIM access."
           });
