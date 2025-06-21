@@ -125,11 +125,11 @@ export function SharePage() {
     refetchOnWindowFocus: false
   });
 
-  // Redirect to NDA if required and user hasn't signed
+  // Redirect to NDA if required and user hasn't signed - immediate redirect
   useEffect(() => {
     if (ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !isCheckingNda && !ndaCheckError) {
-      console.log('🔒 NDA required - redirecting to NDA signing');
-      window.location.href = `/nda/${shareSlug}`;
+      console.log('🔒 NDA required - redirecting immediately to NDA signing');
+      window.location.href = `/share/${shareSlug}/sign-nda`;
     }
   }, [ndaCheck, hasSignedNda, accessToken, shareSlug, isCheckingNda, ndaCheckError]);
 
@@ -198,29 +198,8 @@ export function SharePage() {
     );
   }
 
-  // If document requires NDA and user hasn't signed, show NDA requirement message
-  if (ndaCheck?.requiresNda && !shareData && !hasSignedNda && !accessToken) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <div className="text-center max-w-md mx-auto">
-            <Shield className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Protected Document</h2>
-            <p className="text-gray-600 mb-6">
-              This document requires signing a Non-Disclosure Agreement before viewing.
-            </p>
-            <Button 
-              onClick={() => window.location.href = `/nda/${shareSlug}`}
-              size="lg"
-              className="w-full"
-            >
-              Sign NDA to Continue
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // If document requires NDA and user hasn't signed, redirect directly to NDA signing
+  // No intermediate dialogue - go straight to the NDA flow
 
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
