@@ -4850,11 +4850,31 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.log("Existing signature found:", !!existingSignature);
       
       if (existingSignature) {
-        console.log("User already signed, returning existing signature");
+        console.log("User already signed, getting existing access token...");
+        
+        // Get existing access token for this signature
+        const { ndaAccessTokens } = await import('@shared/schema');
+        const { and, eq } = await import('drizzle-orm');
+        const existingTokens = await db.select().from(ndaAccessTokens)
+          .where(and(
+            eq(ndaAccessTokens.cimDocumentId, cimDoc.id),
+            eq(ndaAccessTokens.signerEmail, signerEmail),
+            eq(ndaAccessTokens.isActive, true)
+          ));
+        
+        let accessToken = null;
+        if (existingTokens.length > 0) {
+          accessToken = existingTokens[0].token;
+          console.log("Found existing access token");
+        }
+        
         return res.json({ 
           success: true, 
           message: "NDA already signed",
-          signature: existingSignature 
+          signature: existingSignature,
+          accessToken: accessToken,
+          requiresApproval: cimDoc.ndaApprovalRequired || false,
+          redirectUrl: accessToken ? `/cims/${shareSlug}?token=${accessToken}` : null
         });
       }
 
@@ -5106,7 +5126,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             success: true, 
             signature,
             accessToken,
-            redirectUrl,
+            redirectUrl: `/cims/${shareSlug}?token=${accessToken}`,
             requiresApproval: false,
             message: "NDA signed successfully. Check your email for confirmation and CIM access."
           });
