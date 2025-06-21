@@ -54,7 +54,15 @@ export class PdfSignatureProcessor {
       const y = pageHeight - field.y - field.height;
 
       if (field.type === 'signature') {
-        await this.embedSignatureImage(page, value, x, y, field.width, field.height);
+        // Use italic font for signatures
+        const italicFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaItalic);
+        page.drawText(value, {
+          x: x + 2,
+          y: y + 2,
+          size: 16,
+          font: italicFont,
+          color: rgb(0, 0, 0.8),
+        });
       } else {
         await this.embedTextField(page, value, x, y, field.width, field.height, field.fontSize, font);
       }
