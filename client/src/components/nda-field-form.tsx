@@ -25,7 +25,8 @@ interface NdaFieldFormProps {
   ndaContent: string;
   onSubmit: (fieldValues: Record<string, string>) => Promise<void>;
   isLoading?: boolean;
-
+  prefilledName?: string;
+  prefilledEmail?: string;
 }
 
 const FIELD_ICONS = {
@@ -41,7 +42,9 @@ export default function NdaFieldForm({
   documentTitle,
   ndaContent,
   onSubmit,
-  isLoading = false
+  isLoading = false,
+  prefilledName = '',
+  prefilledEmail = ''
 }: NdaFieldFormProps) {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [agreed, setAgreed] = useState(false);
@@ -60,9 +63,13 @@ export default function NdaFieldForm({
   useEffect(() => {
     const initialValues: Record<string, string> = {};
     
-    // Auto-populate date fields
+    // Pre-populate name and email fields
     signatureFields.forEach(field => {
-      if (field.type === 'date') {
+      if (field.type === 'name' && prefilledName) {
+        initialValues[field.id] = prefilledName;
+      } else if (field.type === 'email' && prefilledEmail) {
+        initialValues[field.id] = prefilledEmail;
+      } else if (field.type === 'date') {
         // Format date as readable text (not form input format)
         const today = new Date();
         initialValues[field.id] = today.toLocaleDateString('en-US', {
@@ -76,7 +83,7 @@ export default function NdaFieldForm({
     if (Object.keys(initialValues).length > 0) {
       setFieldValues(prev => ({ ...prev, ...initialValues }));
     }
-  }, [signatureFields]);
+  }, [signatureFields, prefilledName, prefilledEmail]);
 
   const validateFields = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -200,15 +207,14 @@ export default function NdaFieldForm({
                     ) : (
                       <Input
                         id={field.id}
-                        type={field.type === 'email' ? 'email' : 'text'}
+                        type={field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'}
                         value={fieldValues[field.id] || ''}
-                        onChange={field.type === 'date' ? undefined : (e) => {
+                        onChange={(e) => {
                           setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }));
                           setErrors(prev => ({ ...prev, [field.id]: '' }));
                         }}
-                        className={`${hasError ? 'border-red-500' : ''} ${field.type === 'date' ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        className={hasError ? 'border-red-500' : ''}
                         readOnly={field.type === 'date'}
-                        placeholder={field.type === 'date' ? 'Auto-filled with today\'s date' : undefined}
                       />
                     )}
                     
