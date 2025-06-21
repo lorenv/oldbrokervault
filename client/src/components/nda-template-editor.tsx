@@ -156,8 +156,6 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
     }
   }, [templateName, pdfBase64, signatureFields, onSave, toast]);
 
-  console.log('NdaTemplateEditor rendering with DndProvider');
-  
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="container mx-auto px-4 py-8">
