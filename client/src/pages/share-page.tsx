@@ -96,7 +96,7 @@ export function SharePage() {
   });
 
   // Step 2: Load full document data only if no NDA required OR user has access
-  const shouldLoadFullData = ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken) && !ndaCheckError;
+  const shouldLoadFullData = Boolean(ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken) && !ndaCheckError);
   
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug, accessToken],
@@ -121,7 +121,7 @@ export function SharePage() {
       console.log('✅ Full document data received');
       return data;
     },
-    enabled: shouldLoadFullData,
+    enabled: Boolean(shouldLoadFullData),
     refetchOnWindowFocus: false
   });
 
