@@ -50,12 +50,22 @@ export default function FillableNdaDocument({
   const [documentImages, setDocumentImages] = useState<Array<{imageUrl: string, width: number, height: number}>>([]);
   const { toast } = useToast();
 
-  // Convert PDF to images for display
+  // Convert PDF to images for display with caching
   useEffect(() => {
     const convertPdfToImages = async () => {
       if (!ndaContent) return;
       
       try {
+        // Check if images are already cached
+        const cacheKey = `nda_images_${btoa(ndaContent).substring(0, 16)}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        
+        if (cached) {
+          const cachedData = JSON.parse(cached);
+          setDocumentImages(cachedData);
+          return;
+        }
+
         const response = await fetch('/api/pdf-to-image', {
           method: 'POST',
           headers: {
@@ -80,12 +90,16 @@ export default function FillableNdaDocument({
                 return new Promise<{imageUrl: string, width: number, height: number}>((resolve, reject) => {
                   const img = new Image();
                   
+                  // Optimize loading
+                  img.loading = 'eager';
+                  img.decoding = 'sync';
+                  
                   img.onload = () => {
                     console.log(`Page ${index + 1} loaded successfully: ${img.width}x${img.height}`);
                     resolve({
                       imageUrl: page.imageUrl,
-                      width: img.width,
-                      height: img.height
+                      width: img.naturalWidth,
+                      height: img.naturalHeight
                     });
                   };
                   
@@ -103,6 +117,10 @@ export default function FillableNdaDocument({
             
             console.log('All pages processed successfully:', processedPages.map(p => ({w: p.width, h: p.height})));
             setDocumentImages(processedPages);
+            
+            // Cache the processed images for faster reloads
+            const cacheKey = `nda_images_${btoa(ndaContent).substring(0, 16)}`;
+            sessionStorage.setItem(cacheKey, JSON.stringify(processedPages));
           } else {
             console.error('Invalid response structure:', data);
           }
@@ -206,6 +224,8 @@ export default function FillableNdaDocument({
             alt={`Document page ${pageNumber}`}
             className="w-full h-auto border border-gray-200"
             style={{ maxWidth: '700px', display: 'block' }}
+            loading="eager"
+            decoding="sync"
             onError={(e) => {
               console.error('Image load error for page:', pageNumber);
               console.error('Image URL:', pageData.imageUrl);
