@@ -314,11 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // PERFORMANCE OPTIMIZATION: Single database query with direct connection - no retry overhead
-      const cimDoc = await db.select()
-        .from(cimDocuments)
-        .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
-        .limit(1)
-        .then(result => result[0] || null);
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
       
       console.log("Document lookup time:", Date.now() - startTime + "ms");
       
@@ -371,6 +367,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.incrementShareViewCount(cimDoc.id);
       }
 
+      // PERFORMANCE OPTIMIZATION: Parallel data fetching to minimize response time
+      const dataFetchStart = Date.now();
+      const [userProfile, customSections] = await Promise.all([
+        storage.getUser(cimDoc.userId),
+        storage.getCustomSections(cimDoc.id)
+      ]);
+
       // Check NDA approval status if required
       let ndaApprovalStatus = null;
       const { token } = req.query;
@@ -406,14 +409,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }
-
-      // PERFORMANCE OPTIMIZATION: Parallel data fetching to minimize response time
-      const dataFetchStart = Date.now();
-      const [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
-        db.select().from(users).where(eq(users.id, cimDoc.userId)).limit(1).then(result => result[0] || null),
-        db.select().from(customSections).where(eq(customSections.cimDocumentId, cimDoc.id)),
-        cimDoc.ndaProtected ? storage.getNdaApprovalStatus(cimDoc.id) : Promise.resolve(null)
-      ]);
       
       console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
       
@@ -497,10 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Shared PDF export request for slug:", shareSlug);
       
       // PERFORMANCE OPTIMIZATION: Direct database query for shared PDF export
-      const [cimDoc] = await db.select()
-        .from(cimDocuments)
-        .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
-        .limit(1);
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
       
       console.log("Document lookup time:", Date.now() - startTime + "ms");
       
@@ -519,9 +511,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // PERFORMANCE OPTIMIZATION: Parallel data fetching for shared PDF export
       const [userProfile, documentFinancialFiles, customSections] = await Promise.all([
-        db.select().from(users).where(eq(users.id, cimDoc.userId)).limit(1).then(result => result[0] || null),
+        storage.getUser(cimDoc.userId),
         db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id)),
-        db.select().from(customSections).where(eq(customSections.cimDocumentId, cimDoc.id))
+        storage.getCustomSections(cimDoc.id)
       ]);
 
       console.log("Data fetch time:", Date.now() - startTime + "ms");
