@@ -154,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(securityHeadersMiddleware);
   app.use(sensitiveEndpointLimiter);
 
-  // Register NDA template routes
+  // Register NDA template routes BEFORE other routes to avoid conflicts
   console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
   registerNdaTemplateRoutes(app);
   console.log('=== NDA TEMPLATE ROUTES REGISTERED ===');
