@@ -438,28 +438,46 @@ export default function ImagePdfEditor({
                           const fieldHeight = (field.height * displayHeight) / page.height;
                           
                           return (
-                            <FieldComponent
+                            <div
                               key={field.id}
-                              field={{
-                                ...field,
-                                x: fieldX,
-                                y: fieldY,
+                              draggable
+                              className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded px-2 py-1 text-xs group hover:shadow-md transition-all cursor-move select-none`}
+                              style={{
+                                left: fieldX,
+                                top: fieldY,
                                 width: fieldWidth,
-                                height: fieldHeight
+                                height: fieldHeight,
+                                minWidth: '80px',
+                                minHeight: '20px',
+                                zIndex: 20,
                               }}
-                              scale={1}
-                              onUpdate={(id, updates) => {
-                                const originalUpdates = {
-                                  ...updates,
-                                  x: updates.x ? (updates.x * page.width) / displayWidth : field.x,
-                                  y: updates.y ? (updates.y * page.height) / displayHeight : field.y,
-                                  width: updates.width ? (updates.width * page.width) / displayWidth : field.width,
-                                  height: updates.height ? (updates.height * page.height) / displayHeight : field.height
-                                };
-                                updateField(id, originalUpdates);
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('application/field-id', field.id);
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.currentTarget.style.opacity = '0.5';
                               }}
-                              onDelete={deleteField}
-                            />
+                              onDragEnd={(e) => {
+                                e.currentTarget.style.opacity = '1';
+                              }}
+                            >
+                              <div className="flex items-center justify-between h-full">
+                                <div className="flex items-center gap-1 flex-1 min-w-0">
+                                  {React.createElement(FIELD_ICONS[field.type], { className: "w-3 h-3 flex-shrink-0" })}
+                                  <span className="truncate text-xs flex-1 min-w-0">{field.label}</span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="opacity-0 group-hover:opacity-100 h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteField(field.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-2 w-2" />
+                                </Button>
+                              </div>
+                            </div>
                           );
                         })}
                     </div>
