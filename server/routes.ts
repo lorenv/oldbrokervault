@@ -5106,6 +5106,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           // Send immediate access email with separate NDA confirmation and CIM link emails
           console.log("Sending separate NDA confirmation and CIM access emails...");
           const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
+          
+          // Use imported email function
+          
           const finalEmailSent = await sendNdaSignedEmail(
             signerEmail,
             owner.email,
