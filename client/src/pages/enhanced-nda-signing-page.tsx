@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import NdaFieldForm from '@/components/nda-field-form';
+import FillableNdaDocument from '@/components/fillable-nda-document';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -172,16 +172,14 @@ export default function EnhancedNdaSigningPage() {
     : 'No NDA content available';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NdaFieldForm
-        documentTitle={templateData.documentTitle || 'Non-Disclosure Agreement'}
-        ndaContent={ndaContent}
-        signatureFields={templateData.signatureFields || []}
-        onSubmit={signNdaMutation.mutateAsync}
-        isLoading={signNdaMutation.isPending}
-        prefilledName={prefilledName}
-        prefilledEmail={prefilledEmail}
-      />
-    </div>
+    <FillableNdaDocument
+      documentTitle={templateData.documentTitle || 'Non-Disclosure Agreement'}
+      ndaContent={templateData.fileContent || ''}
+      signatureFields={templateData.signatureFields || []}
+      onSubmit={signNdaMutation.mutateAsync}
+      isLoading={signNdaMutation.isPending}
+      prefilledName={prefilledName}
+      prefilledEmail={prefilledEmail}
+    />
   );
 }
