@@ -1948,26 +1948,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     // Background template processing
     const backgroundTemplate = await backgroundTemplatePromise;
     console.log("Background template loaded:", Date.now() - pdfStartTime + "ms");
-        console.log("Successfully registered all Segoe UI fonts");
-      } else {
-        console.log("Some font files missing, will use fallback fonts");
-      }
-    } catch (error) {
-      console.error("Failed to register custom fonts:", error);
-      fontsRegistered = false;
-    }
     
-    // Helper function to get appropriate font name with fallback
+    // PERFORMANCE OPTIMIZATION: Use system fonts for faster rendering
     const getFont = (style: 'regular' | 'bold' | 'italic' | 'light') => {
-      if (fontsRegistered) {
-        switch (style) {
-          case 'regular': return 'Segoe-Regular';
-          case 'bold': return 'Segoe-Bold';
-          case 'italic': return 'Segoe-Italic';
-          case 'light': return 'Segoe-Light';
-          default: return 'Segoe-Regular';
-        }
-      } else {
         // Fallback to standard PDF fonts
         switch (style) {
           case 'regular': return 'Helvetica';
@@ -1976,7 +1959,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           case 'light': return 'Helvetica';
           default: return 'Helvetica';
         }
-      }
     };
 
     // Track page information
