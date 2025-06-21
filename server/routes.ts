@@ -5118,7 +5118,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           );
 
           if (!finalEmailSent) {
-            console.error('Failed to send NDA confirmation emails');
+            console.error('Failed to send NDA confirmation emails - check email debug logs above');
+          } else {
+            console.log('All NDA emails sent successfully');
           }
 
           console.log("NDA signing completed successfully");
