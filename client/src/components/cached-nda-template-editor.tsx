@@ -139,7 +139,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
       fontSize: 12,
       placeholder: `Enter ${fieldType}`
     };
-    
+
     setSignatureFields(prev => [...prev, newField]);
   }, []);
 
@@ -179,38 +179,10 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {initialTemplate ? 'Edit NDA Template' : 'Create NDA Template'}
-            </h1>
-            <p className="text-gray-600">
-              Upload a PDF template and configure signature fields
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleSave} 
-              disabled={isSaving || isLoading}
-              className="flex items-center gap-2"
-            >
-              {(isSaving || isLoading) ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save Template
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Template Configuration - Simplified */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Template Configuration */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>
@@ -243,7 +215,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                     </div>
                   </div>
                 )}
-                
+
                 {/* Hidden file input - functionality preserved */}
                 <input
                   ref={fileInputRef}
@@ -318,8 +290,8 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
             )}
           </div>
 
-          {/* PDF Template Display */}
-          <div className="lg:col-span-3">
+          {/* PDF Canvas Editor */}
+          <div className="lg:col-span-2">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>PDF Template Editor</CardTitle>
@@ -335,13 +307,13 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                           const displayHeight = (page.height * displayWidth) / page.width;
                           const scaleX = page.width / displayWidth;
                           const scaleY = page.height / displayHeight;
-                          
+
                           return (
                             <div key={page.pageNumber} className="relative mb-8">
                               <div className="absolute -top-4 left-0 bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium z-20">
                                 Page {page.pageNumber}
                               </div>
-                              
+
                               <div 
                                 className="relative bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden"
                                 style={{ width: displayWidth, height: displayHeight }}
@@ -352,7 +324,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                                   className="w-full h-full object-contain select-none"
                                   style={{ pointerEvents: 'none' }}
                                 />
-                                
+
                                 {/* Drop Zone Overlay */}
                                 <div
                                   className="absolute inset-0 w-full h-full"
@@ -365,7 +337,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                                     const x = relativeX * scaleX;
                                     const y = relativeY * scaleY;
                                     const fieldType = e.dataTransfer.getData('application/field-type');
-                                    
+
                                     if (fieldType) {
                                       handleFieldDrop(page.pageNumber, x, y, fieldType);
                                     }

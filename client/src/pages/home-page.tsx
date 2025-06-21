@@ -13,6 +13,7 @@ import {
   Globe,
   Smartphone,
   BarChart3,
+  PenTool,
   X
 } from "lucide-react";
 import { useState } from "react";
@@ -58,9 +59,9 @@ export default function HomePage() {
       color: "text-red-500"
     },
     {
-      icon: Sparkles,
-      title: "Smart Automation",
-      description: "Automatically extract key business information from transcripts and organize it into professional sections.",
+      icon: PenTool,
+      title: "Digital Signatures",
+      description: "Secure electronic signature collection with NDA management, approval workflows, and comprehensive audit trails.",
       color: "text-yellow-500"
     },
     {
