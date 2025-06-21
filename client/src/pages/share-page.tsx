@@ -96,7 +96,7 @@ export function SharePage() {
   });
 
   // Step 2: Load full document data only if no NDA required OR user has access
-  const shouldLoadFullData = ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken);
+  const shouldLoadFullData = ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken) && !ndaCheckError;
   
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug, accessToken],
@@ -127,11 +127,11 @@ export function SharePage() {
 
   // Redirect to NDA if required and user hasn't signed
   useEffect(() => {
-    if (ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !isCheckingNda) {
+    if (ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !isCheckingNda && !ndaCheckError) {
       console.log('🔒 NDA required - redirecting to NDA signing');
       window.location.href = `/nda/${shareSlug}`;
     }
-  }, [ndaCheck, hasSignedNda, accessToken, shareSlug, isCheckingNda]);
+  }, [ndaCheck, hasSignedNda, accessToken, shareSlug, isCheckingNda, ndaCheckError]);
 
   // Fetch uploaded files for the shared document
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
