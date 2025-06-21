@@ -406,77 +406,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }
-
-      // Parallel data fetching for maximum performance
-      let [userProfile, customSections, ndaTemplate] = await Promise.all([
-        storage.getUser(cimDoc.userId),
-        storage.getCustomSections(cimDoc.id),
-        cimDoc.ndaProtected && cimDoc.ndaTemplateId 
-          ? storage.getNdaTemplate(cimDoc.ndaTemplateId).catch(() => null)
-          : Promise.resolve(null)
-      ]);
-
-      // SECURITY: Sanitize user profile for sharing context
-      const sanitizedUserProfile = userProfile ? sanitizeUserForSharing(userProfile) : null;
-
-      // Generate NDA URL if template exists
-      const ndaUrl = ndaTemplate?.fileContent 
-        ? `/api/nda-templates/${cimDoc.ndaTemplateId}/download`
-        : null;
-
-      console.log("Parallel data fetch completed - custom sections:", customSections.length);
-      
-      console.log("Preparing share response with analysis and custom sections for document:", cimDoc.id);
-      
-      // Instant analysis delivery - no processing delays
-      const streamlinedAnalysis = cimDoc.analysis || { sections: {} };
-
-      // Fast image path conversion - minimal processing
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : `${req.protocol}://${req.get('host')}`;
-      
-      // Quick path conversion without heavy processing
-      const absoluteSelectedImages = cimDoc.selectedImages || [];
-      const absoluteLogoUrl = cimDoc.logoUrl;
-      res.json({
-        cim: {
-          id: cimDoc.id,
-          userId: cimDoc.userId,
-          title: cimDoc.title,
-          analysis: streamlinedAnalysis,
-          logoUrl: absoluteLogoUrl,
-          websiteUrl: cimDoc.websiteUrl,
-          selectedImages: absoluteSelectedImages,
-          shareEnabled: cimDoc.shareEnabled,
-          shareSlug: cimDoc.shareSlug,
-          sharePassword: cimDoc.sharePassword,
-          shareExpiresAt: cimDoc.shareExpiresAt ? cimDoc.shareExpiresAt.toISOString() : null,
-          shareViewCount: cimDoc.shareViewCount,
-          ndaProtected: cimDoc.ndaProtected,
-          ndaTemplateId: cimDoc.ndaTemplateId,
-          financialsEnabled: cimDoc.financialsEnabled,
-          askingPrice: cimDoc.askingPrice,
-          askingPriceIncluded: cimDoc.askingPriceIncluded,
-          revenue: cimDoc.revenue,
-          revenueIncluded: cimDoc.revenueIncluded,
-          ebitda: cimDoc.ebitda,
-          ebitdaIncluded: cimDoc.ebitdaIncluded,
-          coverImageUrl: cimDoc.coverImageUrl,
-          coverImagePosition: cimDoc.coverImagePosition,
-          coverImageAttribution: cimDoc.coverImageAttribution,
-          createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
-          userProfile: sanitizedUserProfile
-        },
-        websiteUrl: cimDoc.websiteUrl || '',
-        selectedImages: absoluteSelectedImages,
-        logoUrl: absoluteLogoUrl,
-        userProfileData: sanitizedUserProfile,
-        requiresNda: cimDoc.ndaProtected || false,
-        ndaUrl,
-        customSections: customSections || [],
-        ndaApprovalStatus
-      });
     } catch (error) {
       console.error("Share endpoint error:", error);
       res.status(500).json({ 
@@ -485,14 +414,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Shared document export endpoints - PDF
+  // Shared document export endpoints - PDF (OPTIMIZED)
   app.post("/api/share/:shareSlug/export/pdf", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { shareSlug } = req.params;
       console.log("Shared PDF export request for slug:", shareSlug);
       
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
-      console.log("Found document for PDF export:", cimDoc ? cimDoc.id : 'null');
+      // PERFORMANCE OPTIMIZATION: Direct database query for shared PDF export
+      const [cimDoc] = await db.select()
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
+        .limit(1);
+      
+      console.log("Document lookup time:", Date.now() - startTime + "ms");
       
       if (!cimDoc) {
         return res.status(404).json({ error: "Document not found" });
