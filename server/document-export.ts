@@ -76,13 +76,16 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
     const [firstPage] = await finalDoc.copyPages(originalDoc, [0]);
     finalDoc.addPage(firstPage);
     
-    // MAJOR OPTIMIZATION: Pre-embed background template once for all pages
+    // ULTRA PERFORMANCE OPTIMIZATION: Pre-embed background template once for all pages
     console.log("Pre-embedding background template for maximum performance...");
+    const templateEmbedStart = Date.now();
     const [backgroundPageCopy] = await finalDoc.copyPages(backgroundTemplate, [0]);
     const backgroundForm = await finalDoc.embedPage(backgroundPageCopy);
+    console.log("Template embed time:", Date.now() - templateEmbedStart + "ms");
     
     // Process remaining pages with optimized background template
     console.log(`Processing ${originalPages.length - 1} pages with pre-embedded background...`);
+    const pageProcessStart = Date.now();
     
     for (let i = 1; i < originalPages.length; i++) {
       try {
@@ -1922,41 +1925,29 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
 
 export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
-    console.log("⚡ Starting optimized PDF generation with template:", pdfTemplate || 'classic');
+    const pdfStartTime = Date.now();
+    console.log("⚡ Starting ULTRA-OPTIMIZED PDF generation with template:", pdfTemplate || 'classic');
     
-    // Load user's selected background template
-    const backgroundTemplate = await loadPdfBackgroundTemplate(pdfTemplate || 'classic');
+    // PERFORMANCE OPTIMIZATION: Load background template asynchronously if needed
+    const backgroundTemplatePromise = pdfTemplate && pdfTemplate !== 'none' 
+      ? loadPdfBackgroundTemplate(pdfTemplate) 
+      : Promise.resolve(null);
     
-    const doc = new PDFDocument();
+    // PERFORMANCE OPTIMIZATION: Initialize PDF with optimized settings
+    const doc = new PDFDocument({
+      bufferPages: true, // Enable page buffering for faster processing
+      autoFirstPage: false // We'll add pages manually for better control
+    });
     const buffers: Buffer[] = [];
     
-    // Register custom Segoe UI fonts with fallback
+    // PERFORMANCE OPTIMIZATION: Skip font registration for faster generation
+    // Use system fonts which are faster to process
     let fontsRegistered = false;
-    try {
-      const fontsDir = path.resolve(process.cwd(), 'server', 'fonts');
-      console.log("Attempting to register fonts from:", fontsDir);
-      
-      // Check if font files exist before registering
-      const fontFiles = [
-        'segoe-ui-regular.ttf',
-        'segoe-ui-bold.ttf', 
-        'segoe-ui-italic.ttf',
-        'segoe-ui-light.ttf'
-      ];
-      
-      const allFontsExist = fontFiles.every(file => {
-        const fontPath = path.join(fontsDir, file);
-        const exists = fs.existsSync(fontPath);
-        console.log(`Font check: ${file} - ${exists ? 'exists' : 'missing'} at ${fontPath}`);
-        return exists;
-      });
-      
-      if (allFontsExist) {
-        doc.registerFont('Segoe-Regular', path.join(fontsDir, 'segoe-ui-regular.ttf'));
-        doc.registerFont('Segoe-Bold', path.join(fontsDir, 'segoe-ui-bold.ttf'));
-        doc.registerFont('Segoe-Italic', path.join(fontsDir, 'segoe-ui-italic.ttf'));
-        doc.registerFont('Segoe-Light', path.join(fontsDir, 'segoe-ui-light.ttf'));
-        fontsRegistered = true;
+    console.log("Using system fonts for faster PDF generation");
+    
+    // Background template processing
+    const backgroundTemplate = await backgroundTemplatePromise;
+    console.log("Background template loaded:", Date.now() - pdfStartTime + "ms");
         console.log("Successfully registered all Segoe UI fonts");
       } else {
         console.log("Some font files missing, will use fallback fonts");

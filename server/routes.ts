@@ -302,10 +302,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public share endpoints (optimized for performance)
   app.get("/api/share/:shareSlug", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { shareSlug } = req.params;
       console.log("=== SHARE LINK ACCESS ===");
-      console.log("Environment:", process.env.NODE_ENV);
       console.log("Processing share request for slug:", shareSlug.substring(0, 8) + "...");
       
       // Immediate validation
@@ -313,22 +313,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
-      // Simple database operation without excessive retries
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
-      console.log("Found document:", !!cimDoc, cimDoc?.id);
+      // PERFORMANCE OPTIMIZATION: Single database query with direct connection - no retry overhead
+      const cimDoc = await db.select()
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
+        .limit(1)
+        .then(result => result[0] || null);
+      
+      console.log("Document lookup time:", Date.now() - startTime + "ms");
       
       if (!cimDoc) {
         console.log("Document not found for share slug");
         return res.status(404).json({ error: "Document not found" });
       }
-      
-      console.log("Document details:", {
-        id: cimDoc.id,
-        title: cimDoc.title,
-        shareEnabled: cimDoc.shareEnabled,
-        shareExpiresAt: cimDoc.shareExpiresAt,
-        ndaProtected: cimDoc.ndaProtected
-      });
       
       if (!cimDoc.shareEnabled) {
         console.log("ERROR: Sharing disabled for document:", cimDoc.id);
