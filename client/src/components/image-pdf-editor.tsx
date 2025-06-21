@@ -392,58 +392,38 @@ export default function ImagePdfEditor({
                         style={{ pointerEvents: 'none' }}
                       />
                       
-                      {/* Transparent Drop Zone Overlay - RED OUTLINE FOR DEBUGGING */}
+                      {/* Transparent Drop Zone Overlay */}
                       <div
-                        className="absolute inset-0 w-full h-full cursor-crosshair border-4 border-red-500 border-dashed"
-                        style={{ 
-                          zIndex: 10,
-                          backgroundColor: 'rgba(255, 0, 0, 0.1)' // Slight red tint for visibility
-                        }}
+                        className="absolute inset-0 w-full h-full cursor-crosshair"
+                        style={{ zIndex: 10 }}
                         onDrop={(e) => {
                           e.preventDefault();
-                          console.log('🎯 Drop event triggered on page', page.pageNumber);
-                          console.log('🔍 All dataTransfer types:', Array.from(e.dataTransfer.types));
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = ((e.clientX - rect.left) * page.width) / displayWidth;
                           const y = ((e.clientY - rect.top) * page.height) / displayHeight;
                           
-                          // Try both data formats
-                          let fieldType = e.dataTransfer.getData('application/field-type');
-                          if (!fieldType) {
-                            fieldType = e.dataTransfer.getData('text/plain');
-                          }
+                          // Check if it's a new field or existing field move
+                          const fieldId = e.dataTransfer.getData('application/field-id');
+                          const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
                           
-                          console.log('📝 Field type from dataTransfer:', fieldType);
-                          console.log('📍 Drop coordinates:', { x, y, displayWidth, displayHeight });
-                          
-                          if (fieldType) {
-                            console.log('✅ Adding field to page', page.pageNumber);
+                          if (fieldId) {
+                            // Moving existing field
+                            updateField(fieldId, { x, y, pageNumber: page.pageNumber });
+                          } else if (fieldType) {
+                            // Adding new field
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
-                          } else {
-                            console.log('❌ No field type found in dataTransfer');
-                            console.log('🔍 Available data:', e.dataTransfer.types.map(type => ({
-                              type,
-                              data: e.dataTransfer.getData(type)
-                            })));
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'copy';
-                          console.log('🔄 Drag over page', page.pageNumber);
-                          // Add visual feedback
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
-                          console.log('🎯 Drag enter page', page.pageNumber);
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
-                          console.log('🚪 Drag leave page', page.pageNumber);
-                          // Reset visual feedback
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
                         }}
                       />
 
