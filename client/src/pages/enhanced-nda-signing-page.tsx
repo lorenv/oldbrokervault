@@ -21,10 +21,7 @@ export default function EnhancedNdaSigningPage() {
   
   const shareSlug = params?.shareSlug;
   
-  // Get URL parameters for pre-filling name/email
-  const urlParams = new URLSearchParams(window.location.search);
-  const prefilledName = urlParams.get('name') || '';
-  const prefilledEmail = urlParams.get('email') || '';
+  // No URL parameters needed - direct signing without pre-form
 
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
