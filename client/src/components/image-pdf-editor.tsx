@@ -403,17 +403,13 @@ export default function ImagePdfEditor({
                           const y = ((e.clientY - rect.top) * page.height) / displayHeight;
                           
                           // Check if it's a new field or existing field move
-                          let fieldId = e.dataTransfer.getData('application/field-id');
-                          if (!fieldId) {
-                            fieldId = e.dataTransfer.getData('text/plain');
-                          }
-                          const fieldType = e.dataTransfer.getData('application/field-type');
+                          const fieldId = e.dataTransfer.getData('application/field-id');
+                          const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
                           
                           console.log('📝 Field ID from dataTransfer:', fieldId);
                           console.log('📝 Field type from dataTransfer:', fieldType);
                           
-                          // Check if fieldId matches an existing field (starts with 'field_')
-                          if (fieldId && fieldId.startsWith('field_')) {
+                          if (fieldId) {
                             // Moving existing field
                             console.log('✅ Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
                             updateField(fieldId, { x, y, pageNumber: page.pageNumber });
@@ -422,12 +418,14 @@ export default function ImagePdfEditor({
                             console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
                           } else {
-                            console.log('❌ No valid field ID or type found in dataTransfer');
+                            console.log('❌ No field ID or type found in dataTransfer');
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
+                          // Check if we're dragging an existing field (move) or new field (copy)
+                          const fieldId = e.dataTransfer.getData('application/field-id');
+                          e.dataTransfer.dropEffect = fieldId ? 'move' : 'copy';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
