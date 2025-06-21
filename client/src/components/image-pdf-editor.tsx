@@ -335,16 +335,13 @@ export default function ImagePdfEditor({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">PDF Template Editor</h3>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-600">
-            {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
-          </div>
-          <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
-            <ExternalLink className="w-4 h-4 mr-1" />
-            View Original PDF
-          </Button>
+        <div className="text-sm text-gray-600">
+          {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
         </div>
+        <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
+          <ExternalLink className="w-4 h-4 mr-1" />
+          View Original PDF
+        </Button>
       </div>
 
       {/* PDF Preview Container */}
@@ -409,9 +406,11 @@ export default function ImagePdfEditor({
                           
                           if (fieldId) {
                             // Moving existing field
+                            console.log('Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
                             updateField(fieldId, { x, y, pageNumber: page.pageNumber });
                           } else if (fieldType) {
                             // Adding new field
+                            console.log('Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
                           }
                         }}
@@ -452,11 +451,13 @@ export default function ImagePdfEditor({
                                 zIndex: 20,
                               }}
                               onDragStart={(e) => {
+                                console.log('Starting drag for placed field:', field.id);
                                 e.dataTransfer.setData('application/field-id', field.id);
                                 e.dataTransfer.effectAllowed = 'move';
                                 e.currentTarget.style.opacity = '0.5';
                               }}
                               onDragEnd={(e) => {
+                                console.log('Drag ended for placed field:', field.id);
                                 e.currentTarget.style.opacity = '1';
                               }}
                             >
