@@ -50,12 +50,7 @@ export default function HomePage() {
       description: "Track and manage investor contacts across all documents with comprehensive NDA signature management.",
       color: "text-indigo-500"
     },
-    {
-      icon: FileText,
-      title: "Professional Templates",
-      description: "Choose from industry-standard CIM templates or create your own custom layouts.",
-      color: "text-teal-500"
-    },
+    
     {
       icon: Lock,
       title: "Enterprise Security",
