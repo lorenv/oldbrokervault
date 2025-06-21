@@ -1936,13 +1936,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     // PERFORMANCE OPTIMIZATION: Initialize PDF with optimized settings
     const doc = new PDFDocument({
       bufferPages: true, // Enable page buffering for faster processing
-      autoFirstPage: false // We'll add pages manually for better control
+      autoFirstPage: true // Let PDFKit handle first page creation
     });
     const buffers: Buffer[] = [];
     
-    // PERFORMANCE OPTIMIZATION: Skip font registration for faster generation
-    // Use system fonts which are faster to process
-    let fontsRegistered = false;
+    // PERFORMANCE OPTIMIZATION: Use system fonts for faster generation
     console.log("Using system fonts for faster PDF generation");
     
     // Background template processing
@@ -1951,7 +1949,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
     
     // PERFORMANCE OPTIMIZATION: Use system fonts for faster rendering
     const getFont = (style: 'regular' | 'bold' | 'italic' | 'light') => {
-        // Fallback to standard PDF fonts
         switch (style) {
           case 'regular': return 'Helvetica';
           case 'bold': return 'Helvetica-Bold';
