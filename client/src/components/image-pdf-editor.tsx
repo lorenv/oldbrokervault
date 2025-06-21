@@ -421,6 +421,8 @@ export default function ImagePdfEditor({
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'copy';
                           console.log('🔄 Drag over page', page.pageNumber);
+                          // Add visual feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -429,6 +431,8 @@ export default function ImagePdfEditor({
                         onDragLeave={(e) => {
                           e.preventDefault();
                           console.log('🚪 Drag leave page', page.pageNumber);
+                          // Reset visual feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
                         }}
                       />
 

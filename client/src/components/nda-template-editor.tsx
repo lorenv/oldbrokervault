@@ -241,13 +241,35 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                     <div
                       key={fieldType.type}
                       draggable
-                      className={`p-3 border-2 border-dashed rounded-lg cursor-move transition-all ${
+                      className={`p-3 border-2 border-dashed rounded-lg cursor-grab transition-all ${
                         fieldType.color
-                      } hover:scale-105 active:scale-95`}
+                      } hover:scale-105 active:scale-95 active:cursor-grabbing`}
                       onDragStart={(e) => {
-                        console.log('Drag started for field type:', fieldType.type);
+                        console.log('🚀 Drag started for field type:', fieldType.type);
+                        
+                        // Set the data to transfer
                         e.dataTransfer.setData('application/field-type', fieldType.type);
                         e.dataTransfer.effectAllowed = 'copy';
+                        
+                        // Create a drag image for visual feedback
+                        const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+                        dragImage.style.transform = 'rotate(5deg)';
+                        dragImage.style.opacity = '0.8';
+                        document.body.appendChild(dragImage);
+                        e.dataTransfer.setDragImage(dragImage, 50, 25);
+                        
+                        // Clean up after a short delay
+                        setTimeout(() => {
+                          document.body.removeChild(dragImage);
+                        }, 0);
+                      }}
+                      onDragEnd={(e) => {
+                        console.log('🏁 Drag ended for field type:', fieldType.type);
+                        e.currentTarget.style.opacity = '1';
+                      }}
+                      onDrag={(e) => {
+                        // Add some visual feedback during drag
+                        e.currentTarget.style.opacity = '0.5';
                       }}
                     >
                       <div className="flex items-center gap-2">
