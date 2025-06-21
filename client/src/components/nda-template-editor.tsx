@@ -227,7 +227,38 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
               </CardContent>
             </Card>
 
-            {/* Removed duplicate drag interface - using ImagePdfEditor's built-in sidebar instead */}
+            {/* Signature Field Types */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Drag Field Types</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600 mb-3">
+                  Drag these field types onto the PDF
+                </p>
+                <div className="space-y-2">
+                  {FIELD_TYPES.map((fieldType) => (
+                    <div
+                      key={fieldType.type}
+                      draggable
+                      className={`p-3 border-2 border-dashed rounded-lg cursor-move transition-all ${
+                        fieldType.color
+                      } hover:scale-105 active:scale-95`}
+                      onDragStart={(e) => {
+                        console.log('Drag started for field type:', fieldType.type);
+                        e.dataTransfer.setData('application/field-type', fieldType.type);
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <fieldType.icon className="w-4 h-4" />
+                        <span className="text-sm font-medium">{fieldType.label}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Fields List */}
             {signatureFields.length > 0 && (
