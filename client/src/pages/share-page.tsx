@@ -205,6 +205,9 @@ export function SharePage() {
   const hasValidToken = tokenValidation?.valid === true;
   const shouldShowNda = shareData?.requiresNda && !hasSignedNda && !hasValidToken;
   
+  // Only access shareData.cim if shareData exists
+  const cimData = shareData?.cim;
+  
   // Check if manual approval is required and not yet granted
   const needsApproval = shareData?.ndaApprovalStatus?.requiresApproval && !shareData?.ndaApprovalStatus?.isApproved;
 
@@ -291,17 +294,31 @@ export function SharePage() {
     );
   }
 
+  // Don't render if shareData or cimData is not available
+  if (!shareData || !cimData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Loading document...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
-      {!shareData.cim.isUploadedFile && shareData.cim.coverImageUrl ? (
+      {!cimData.isUploadedFile && cimData.coverImageUrl ? (
         <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url(${shareData.cim.coverImageUrl})`,
-              backgroundPosition: shareData.cim.coverImagePosition || 'center',
+              backgroundImage: `url(${cimData.coverImageUrl})`,
+              backgroundPosition: cimData.coverImagePosition || 'center',
               transform: `translate3d(0, ${scrollY * 0.5}px, 0) scale(1.1)`,
               willChange: 'transform'
             }}
@@ -584,14 +601,14 @@ export function SharePage() {
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {shareData.cim.askingPrice && (
+                        {cimData.askingPrice && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <DollarSign className="h-5 w-5 text-blue-600" />
                               <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(shareData.cim.askingPrice).toLocaleString()}
+                              ${parseInt(cimData.askingPrice).toLocaleString()}
                             </p>
                           </div>
                         )}
