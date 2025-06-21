@@ -31,6 +31,11 @@ export default function NdaTemplateEditorPage() {
   // Fetch specific template if editing
   const { data: template, isLoading: templateLoading } = useQuery({
     queryKey: ['/api/nda-templates', templateId],
+    queryFn: async () => {
+      if (!templateId) return null;
+      const response = await apiRequest('GET', `/api/nda-templates/${templateId}`);
+      return response.json();
+    },
     enabled: !!templateId && !isNewTemplate
   });
 

@@ -24,24 +24,33 @@ interface SignatureField {
 }
 
 interface NdaTemplateEditorProps {
-  templateId?: number | null;
+  initialTemplate?: any;
   onSave: (data: {
     name: string;
     fileContent: string;
     signatureFields: SignatureField[];
   }) => void;
-  onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaTemplateEditorProps) {
-  const [templateName, setTemplateName] = useState('');
+export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }: NdaTemplateEditorProps) {
+  const [templateName, setTemplateName] = useState(initialTemplate?.name || '');
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfBase64, setPdfBase64] = useState('');
-  const [signatureFields, setSignatureFields] = useState<SignatureField[]>([]);
+  const [pdfBase64, setPdfBase64] = useState(initialTemplate?.fileContent || '');
+  const [signatureFields, setSignatureFields] = useState<SignatureField[]>(initialTemplate?.signatureFields || []);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Update state when initialTemplate changes
+  React.useEffect(() => {
+    if (initialTemplate) {
+      setTemplateName(initialTemplate.name || '');
+      setPdfBase64(initialTemplate.fileContent || '');
+      setSignatureFields(initialTemplate.signatureFields || []);
+    }
+  }, [initialTemplate]);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
