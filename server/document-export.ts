@@ -2169,14 +2169,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Title page with modern design - using only the document title
       if (title && title !== 'Comprehensive Business Overview') {
         doc.fontSize(28)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e293b')
            .text(title, { align: 'center' });
         doc.moveDown(0.5);
         
         // Add subtitle text
         doc.fontSize(12)
-           .font('Segoe-Italic')
+           .font('Helvetica-Oblique')
            .fillColor('#6b7280')
            .text('Confidential Memorandum - includes sensitive material', { align: 'center' });
         doc.moveDown(1);
@@ -2300,11 +2300,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Financial Information Section (if enabled) - remove icons and clean formatting
       if (financialData && financialData.enabled) {
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
            .text('FINANCIAL INFORMATION')
            .fillColor('#000000')
-           .font('Segoe-Regular')
+           .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
@@ -2324,11 +2324,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Draw financial data in a clean, aligned format
         if (tableData.length > 0) {
           tableData.forEach(([label, value]) => {
-            doc.font('Segoe-Bold')
+            doc.font('Helvetica-Bold')
                .fillColor('#000000')
                .text(label, { continued: true });
             
-            doc.font('Segoe-Regular')
+            doc.font('Helvetica')
                .fillColor('#2563eb')
                .text(`  ${value}`);
             
@@ -2344,7 +2344,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           if (includedFiles.length > 0) {
             doc.moveDown(1);
-            doc.font('Segoe-Bold')
+            doc.font('Helvetica-Bold')
                .fillColor('#000000')
                .text('Additional Financial Documents:');
             doc.moveDown(0.5);
@@ -2356,7 +2356,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
               // Add file name as clickable link
-              doc.font('Segoe-Regular')
+              doc.font('Helvetica')
                  .fillColor('#2563eb')
                  .text(`• ${file.originalName}`, {
                    link: downloadUrl,
@@ -2364,7 +2364,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                  });
               
               // Add file size information  
-              doc.font('Segoe-Regular')
+              doc.font('Helvetica')
                  .fillColor('#666666')
                  .fontSize(10)
                  .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB`, {
@@ -2388,11 +2388,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Website URL Section (moved after financials)
       if (websiteUrl) {
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
            .text('Website')
            .fillColor('#000000')
-           .font('Segoe-Regular')
+           .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
@@ -2414,11 +2414,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         sortedCustomSections.forEach((customSection) => {
           doc.fontSize(18)
-             .font('Segoe-Bold')
+             .font('Helvetica-Bold')
              .fillColor('#1e3a8a')
              .text(customSection.title || 'Custom Section')
              .fillColor('#000000')
-             .font('Segoe-Regular')
+             .font('Helvetica')
              .fontSize(12);
           
           doc.moveDown(1);
@@ -2432,7 +2432,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
               .trim();
             
-            doc.font('Segoe-Regular').text(content, {
+            doc.font('Helvetica').text(content, {
               align: 'left',
               lineGap: 4
             });
@@ -2516,11 +2516,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           }
           
           doc.fontSize(18)
-             .font('Segoe-Bold')
+             .font('Helvetica-Bold')
              .fillColor('#1e3a8a')
              .text(section.title || `Section ${index + 1}`)
              .fillColor('#000000')
-             .font('Segoe-Regular')
+             .font('Helvetica')
              .fontSize(12);
           
           doc.moveDown(1);
@@ -2534,7 +2534,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
               .trim();
             
-            doc.font('Segoe-Regular').text(content, {
+            doc.font('Helvetica').text(content, {
               align: 'left',
               lineGap: 4
             });
@@ -2545,17 +2545,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       } else if (analysis.story) {
         // Fallback to old format if no sections
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
            .text('Business Summary')
            .fillColor('#000000')
-           .font('Segoe-Regular')
+           .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(1);
 
         if (analysis.story.businessSummary) {
-          doc.font('Segoe-Regular').text(safeStringify(analysis.story.businessSummary));
+          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
         }
       }
 
@@ -2564,7 +2564,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.addPage();
         
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
            .text('BUSINESS IMAGES')
            .fillColor('#000000');
@@ -2623,7 +2623,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 if (imageY + imageHeight > doc.page.height - pageMargin) {
                   doc.addPage();
                   doc.fontSize(18)
-                     .font('Segoe-Bold')
+                     .font('Helvetica-Bold')
                      .fillColor('#1e3a8a')
                      .text('BUSINESS IMAGES (continued)')
                      .fillColor('#000000');
@@ -2753,7 +2753,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 
                 // Add section header on new page
                 doc.fontSize(18)
-                   .font('Segoe-Bold')
+                   .font('Helvetica-Bold')
                    .fillColor('#1e3a8a')
                    .text('BUSINESS IMAGES (continued)')
                    .fillColor('#000000');
@@ -2818,11 +2818,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.addPage();
         
         doc.fontSize(18)
-           .font('Segoe-Bold')
+           .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
            .text('CONTACT INFORMATION')
            .fillColor('#000000')
-           .font('Segoe-Regular')
+           .font('Helvetica')
            .fontSize(12);
         
         doc.moveDown(2);
@@ -2917,27 +2917,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
         
         if (userProfile.name) {
-          doc.font('Segoe-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
+          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.title) {
-          doc.font('Segoe-Regular').text(`Title: ${userProfile.title}`, { align: 'center' });
+          doc.font('Helvetica').text(`Title: ${userProfile.title}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.phoneNumber) {
-          doc.font('Segoe-Regular').text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
+          doc.font('Helvetica').text(`Phone: ${userProfile.phoneNumber}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.email) {
-          doc.font('Segoe-Regular').text(`Email: ${userProfile.email}`, { align: 'center' });
+          doc.font('Helvetica').text(`Email: ${userProfile.email}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         
         if (userProfile.businessName) {
-          doc.font('Segoe-Regular').text(`Company: ${userProfile.businessName}`, { align: 'center' });
+          doc.font('Helvetica').text(`Company: ${userProfile.businessName}`, { align: 'center' });
           doc.moveDown(1);
         }
         
