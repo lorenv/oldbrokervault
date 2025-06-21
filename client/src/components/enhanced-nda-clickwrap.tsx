@@ -39,9 +39,6 @@ export default function EnhancedNdaClickwrap({
   onSign,
   isLoading = false
 }: EnhancedNdaClickwrapProps) {
-  // Debug: Log the signature fields to see what we're receiving
-  console.log('🔍 Enhanced NDA Clickwrap received signature fields:', signatureFields);
-  console.log('📊 Field count:', signatureFields?.length || 0);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -316,13 +313,7 @@ export default function EnhancedNdaClickwrap({
           <CardTitle>Required Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {signatureFields && signatureFields.length > 0 ? (
-            signatureFields.map(renderField)
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              Loading signature fields...
-            </div>
-          )}
+          {signatureFields.map(renderField)}
         </CardContent>
       </Card>
 
