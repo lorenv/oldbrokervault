@@ -209,8 +209,8 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Template Configuration */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Template Configuration - Simplified */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>
@@ -227,45 +227,24 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                   />
                 </div>
 
-                {!pdfFile && !pdfBase64 ? (
-                  <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">
-                      Click to upload your PDF template
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Supports PDF files up to 10MB
-                    </p>
-                  </div>
-                ) : (
+                {/* Show current PDF status if available */}
+                {(pdfFile || pdfBase64) && (
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-blue-600" />
-                        <div>
-                          <p className="font-medium">
-                            {pdfFile?.name || initialTemplate?.name || 'Existing PDF'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {pageImages.length > 0 ? `${pageImages.length} pages cached` : 'Processing...'}
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-8 h-8 text-blue-600" />
+                      <div>
+                        <p className="font-medium">
+                          {pdfFile?.name || initialTemplate?.name || 'PDF Template'}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {pageImages.length > 0 ? `${pageImages.length} pages cached` : 'Processing...'}
+                        </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Change PDF
-                      </Button>
                     </div>
                   </div>
                 )}
                 
+                {/* Hidden file input - functionality preserved */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -340,7 +319,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
           </div>
 
           {/* PDF Template Display */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>PDF Template Editor</CardTitle>
@@ -451,6 +430,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                       <Button
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
+                        className="bg-blue-600 text-white hover:bg-blue-700"
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         Upload PDF
