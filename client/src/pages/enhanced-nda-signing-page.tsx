@@ -29,6 +29,35 @@ export default function EnhancedNdaSigningPage() {
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
     queryKey: ['/api/share', shareSlug, 'nda-template'],
+    queryFn: async () => {
+      console.log('=== FRONTEND API CALL ===');
+      console.log('Fetching template for slug:', shareSlug);
+      const url = `/api/share/${shareSlug}/nda-template`;
+      console.log('API URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', [...response.headers.entries()]);
+      console.log('Response ok:', response.ok);
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('API Error Response:', text.substring(0, 200));
+        throw new Error(`Failed to fetch template: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Template data received:', data);
+      console.log('=== END FRONTEND API CALL ===');
+      return data;
+    },
     enabled: !!shareSlug
   });
 

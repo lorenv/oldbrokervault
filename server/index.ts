@@ -128,6 +128,24 @@ app.get('/api/security/health', securityHealthCheck);
     } else {
       serveStatic(app);
     }
+    
+    // Debug: Log all registered routes for API debugging
+    console.log('=== REGISTERED ROUTES DEBUG ===');
+    app._router.stack.forEach((middleware, index) => {
+      if (middleware.route) {
+        console.log(`Route ${index}: ${middleware.route.stack[0].method.toUpperCase()} ${middleware.route.path}`);
+      } else if (middleware.name === 'router') {
+        console.log(`Router middleware ${index} with ${middleware.handle.stack?.length || 0} routes`);
+        if (middleware.handle.stack) {
+          middleware.handle.stack.forEach((route, routeIndex) => {
+            if (route.route) {
+              console.log(`  Sub-route ${routeIndex}: ${route.route.stack[0].method.toUpperCase()} ${route.route.path}`);
+            }
+          });
+        }
+      }
+    });
+    console.log('=== END ROUTES DEBUG ===');
 
     const port = process.env.PORT || 5000;
     
