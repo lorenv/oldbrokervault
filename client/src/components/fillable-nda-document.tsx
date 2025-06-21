@@ -69,7 +69,10 @@ export default function FillableNdaDocument({
 
         if (response.ok) {
           const data = await response.json();
-          setDocumentImages(data.images || []);
+          console.log('PDF conversion response:', data);
+          // Extract images from pages array
+          const images = data.pages ? data.pages.map((page: any) => page.imageBase64) : [];
+          setDocumentImages(images);
         } else {
           console.error('Failed to convert PDF to images');
         }
@@ -161,8 +164,13 @@ export default function FillableNdaDocument({
           <img
             src={`data:image/png;base64,${imageBase64}`}
             alt={`Document page ${pageNumber}`}
-            className="w-full h-auto"
-            style={{ maxWidth: '800px' }}
+            className="w-full h-auto border border-gray-200"
+            style={{ maxWidth: '800px', display: 'block' }}
+            onError={(e) => {
+              console.error('Image load error for page:', pageNumber);
+              e.currentTarget.style.display = 'none';
+            }}
+            onLoad={() => console.log('Page loaded:', pageNumber)}
           />
           
           {/* Transparent Overlay with Form Fields */}
@@ -171,29 +179,30 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // Calculate responsive positioning
+              // Calculate responsive positioning based on actual image dimensions
+              // Use a more conservative scaling approach
               const style = {
                 position: 'absolute' as const,
-                left: `${(field.x / 612) * 100}%`, // Assuming 612px PDF width
-                top: `${(field.y / 792) * 100}%`,  // Assuming 792px PDF height
-                width: `${(field.width / 612) * 100}%`,
-                height: `${(field.height / 792) * 100}%`,
-                minHeight: '32px',
+                left: `${Math.max(0, Math.min(95, (field.x / 612) * 100))}%`,
+                top: `${Math.max(0, Math.min(95, (field.y / 792) * 100))}%`,
+                width: `${Math.max(5, Math.min(30, (field.width / 612) * 100))}%`,
+                height: `${Math.max(2, Math.min(10, (field.height / 792) * 100))}%`,
+                minHeight: '36px',
                 zIndex: 10
               };
 
               return (
                 <div key={field.id} style={style}>
                   {/* Field Label */}
-                  <div className="absolute -top-6 left-0 text-xs font-medium text-gray-700 bg-white px-2 py-1 rounded shadow-sm border flex items-center gap-1">
-                    <Icon className="w-3 h-3" />
+                  <div className="absolute -top-7 left-0 text-xs font-medium text-gray-700 bg-blue-100 px-2 py-1 rounded shadow-sm border border-blue-200 flex items-center gap-1 whitespace-nowrap">
+                    <Icon className="w-3 h-3 text-blue-600" />
                     {field.label}
                     {isRequired && <span className="text-red-500">*</span>}
                   </div>
                   
                   {/* Field Input */}
                   {field.type === 'date' ? (
-                    <div className="w-full h-full bg-blue-50 border-2 border-blue-300 rounded p-1 text-xs flex items-center justify-center font-medium">
+                    <div className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded p-2 text-sm flex items-center justify-center font-medium text-blue-800">
                       {new Date().toLocaleDateString()}
                     </div>
                   ) : field.type === 'signature' ? (
@@ -202,10 +211,11 @@ export default function FillableNdaDocument({
                       value={fieldValues[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
                       placeholder="Type your signature here"
-                      className="w-full h-full bg-blue-50 border-2 border-blue-300 rounded px-2 text-sm font-handwriting"
+                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-2 text-sm italic"
                       style={{ 
-                        fontFamily: 'Handwritania, cursive',
-                        fontSize: '16px'
+                        fontFamily: 'cursive',
+                        fontSize: '14px',
+                        color: '#1e40af'
                       }}
                     />
                   ) : (
@@ -214,7 +224,7 @@ export default function FillableNdaDocument({
                       value={fieldValues[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
                       placeholder={`Enter ${field.label.toLowerCase()}`}
-                      className="w-full h-full bg-blue-50 border-2 border-blue-300 rounded px-2 text-sm"
+                      className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-2 text-sm"
                     />
                   )}
                   
