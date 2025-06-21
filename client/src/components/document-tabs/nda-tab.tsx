@@ -34,6 +34,7 @@ interface DocumentNdaTabProps {
 export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
   
   // State for NDA settings
   const [ndaSettings, setNdaSettings] = useState({
@@ -471,11 +472,11 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 </div>
                 <Button 
                   variant="outline"
-                  onClick={() => window.location.href = '/nda-templates'}
+                  onClick={() => setLocation('/nda-templates')}
                   className="bg-white hover:bg-gray-50 border-gray-300 text-gray-700 hover:text-gray-900 font-medium"
                 >
                   <FileSignature className="h-4 w-4 mr-2" />
-                  Manage Templates
+                  Manage NDA Templates
                 </Button>
               </div>
             </div>

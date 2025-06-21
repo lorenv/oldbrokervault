@@ -122,63 +122,41 @@ export default function NdaTemplateEditorPage() {
     await saveTemplateMutation.mutateAsync(templateData);
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    setLocation('/nda-templates');
-  };
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
-      await deleteTemplateMutation.mutateAsync(id);
-    }
-  };
-
-  if (isEditing || isNewTemplate) {
-    return (
-      <NdaTemplateEditor
-        templateId={templateId}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
-    );
-  }
-
-  if (templatesLoading || templateLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto p-6">
+      <div className="mb-6 flex items-center gap-4">
+        <Button
+          variant="outline"
+          onClick={() => setLocation('/nda-templates')}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Templates
+        </Button>
+        
         <div>
-          <h1 className="text-3xl font-bold">NDA Templates</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isNewTemplate ? 'Create New' : 'Edit'} NDA Template
+          </h1>
           <p className="text-gray-600 mt-2">
-            Create and manage drag & drop signature templates for your NDAs
+            {isNewTemplate ? 'Upload a PDF and add signature fields' : 'Update template and signature fields'}
           </p>
         </div>
-        <Button onClick={() => setIsEditing(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          New Template
-        </Button>
       </div>
 
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates?.map((template: NdaTemplate) => (
-          <Card key={template.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    {template.name}
+      {templateLoading && !isNewTemplate ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <NdaTemplateEditor
+          initialTemplate={template}
+          onSave={handleSave}
+          isLoading={saveTemplateMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
                   </CardTitle>
                   {template.isDefault && (
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full mt-2">
