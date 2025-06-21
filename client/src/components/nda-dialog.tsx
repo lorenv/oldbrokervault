@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Shield } from "lucide-react";
 
@@ -32,7 +32,7 @@ export function NdaDialog({
   const { toast } = useToast();
   const [signerName, setSignerName] = useState("");
   const [signerEmail, setSignerEmail] = useState("");
-  const [hasAccepted, setHasAccepted] = useState(false);
+
   const [isSigning, setIsSigning] = useState(false);
 
   const handleSignNda = async () => {
@@ -45,14 +45,7 @@ export function NdaDialog({
       return;
     }
 
-    if (!hasAccepted) {
-      toast({
-        title: "Agreement Required",
-        description: "Please accept the NDA terms to continue",
-        variant: "destructive"
-      });
-      return;
-    }
+
 
     setIsSigning(true);
     try {
@@ -125,38 +118,7 @@ export function NdaDialog({
               />
             </div>
 
-            <div className="flex items-start space-x-3 pt-2">
-              <Checkbox
-                id="accept-terms"
-                checked={hasAccepted}
-                onCheckedChange={(checked) => setHasAccepted(checked as boolean)}
-                disabled={isSigning}
-              />
-              <div className="space-y-1">
-                <Label 
-                  htmlFor="accept-terms" 
-                  className="text-sm font-normal leading-relaxed cursor-pointer"
-                >
-                  I agree to the terms of the{" "}
-                  {ndaUrl ? (
-                    <a 
-                      href={ndaUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline inline-flex items-center gap-1"
-                    >
-                      Non-Disclosure Agreement
-                      <FileText className="h-3 w-3" />
-                    </a>
-                  ) : (
-                    <span className="text-blue-600 font-medium">Non-Disclosure Agreement</span>
-                  )}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Your signature will be digitally recorded with date, time, and IP address for legal purposes.
-                </p>
-              </div>
-            </div>
+
           </div>
         </div>
 
@@ -170,17 +132,17 @@ export function NdaDialog({
           </Button>
           <Button 
             onClick={handleSignNda}
-            disabled={isSigning || !signerName.trim() || !signerEmail.trim() || !hasAccepted}
+            disabled={isSigning || !signerName.trim() || !signerEmail.trim()}
           >
             {isSigning ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Signing...
+                Processing...
               </>
             ) : (
               <>
                 <FileText className="h-4 w-4 mr-2" />
-                Sign NDA & Access CIM
+                Continue
               </>
             )}
           </Button>
