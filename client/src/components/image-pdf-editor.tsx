@@ -402,11 +402,18 @@ export default function ImagePdfEditor({
                         onDrop={(e) => {
                           e.preventDefault();
                           console.log('🎯 Drop event triggered on page', page.pageNumber);
+                          console.log('🔍 All dataTransfer types:', Array.from(e.dataTransfer.types));
+                          
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = ((e.clientX - rect.left) * page.width) / displayWidth;
                           const y = ((e.clientY - rect.top) * page.height) / displayHeight;
                           
-                          const fieldType = e.dataTransfer.getData('application/field-type');
+                          // Try both data formats
+                          let fieldType = e.dataTransfer.getData('application/field-type');
+                          if (!fieldType) {
+                            fieldType = e.dataTransfer.getData('text/plain');
+                          }
+                          
                           console.log('📝 Field type from dataTransfer:', fieldType);
                           console.log('📍 Drop coordinates:', { x, y, displayWidth, displayHeight });
                           
@@ -415,6 +422,10 @@ export default function ImagePdfEditor({
                             addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ No field type found in dataTransfer');
+                            console.log('🔍 Available data:', e.dataTransfer.types.map(type => ({
+                              type,
+                              data: e.dataTransfer.getData(type)
+                            })));
                           }
                         }}
                         onDragOver={(e) => {
