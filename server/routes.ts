@@ -5055,6 +5055,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
             signature,
             accessToken,
             redirectUrl,
+            requiresApproval: false,
             message: "NDA signed successfully. Check your email for confirmation and CIM access."
           });
         }

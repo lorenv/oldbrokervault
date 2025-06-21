@@ -13,6 +13,14 @@ interface NdaTemplateData {
   documentTitle: string;
 }
 
+interface SignNdaResponse {
+  success: boolean;
+  message: string;
+  requiresApproval: boolean;
+  accessToken?: string;
+  redirectUrl?: string;
+}
+
 export default function EnhancedNdaSigningPage() {
   const [match, params] = useRoute('/share/:shareSlug/sign-nda');
   const [isComplete, setIsComplete] = useState(false);
@@ -91,11 +99,22 @@ export default function EnhancedNdaSigningPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('NDA signed successfully:', data);
+      setSignResponse(data);
       setIsComplete(true);
       
-      // If manual approval is required, show different success message
+      // Handle redirect logic based on approval requirements
       if (data.requiresApproval) {
-        // The success message is already shown by the clickwrap component
+        console.log('Manual approval required - staying on success page');
+        // Stay on success page for manual approval
+      } else {
+        console.log('Auto-approval - redirecting to CIM in 2 seconds');
+        // Auto-redirect to CIM document after 2 seconds
+        setTimeout(() => {
+          const cimUrl = data.redirectUrl || `/share/${shareSlug}?token=${data.accessToken}`;
+          console.log('Redirecting to:', cimUrl);
+          window.location.href = cimUrl;
+        }, 2000);
       }
     },
     onError: (error: any) => {
@@ -131,15 +150,35 @@ export default function EnhancedNdaSigningPage() {
   }
 
   if (isComplete) {
+    const requiresApproval = signResponse?.requiresApproval;
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardContent className="text-center py-8">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Document Signed Successfully</h2>
-            <p className="text-gray-600">
-              Your signature has been recorded and the document owner has been notified.
-            </p>
+            
+            {requiresApproval ? (
+              <div>
+                <p className="text-gray-600 mb-4">
+                  Your signature has been recorded and sent to the document owner for approval.
+                </p>
+                <p className="text-sm text-blue-600 font-medium">
+                  You will receive an email notification once your access is approved.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-gray-600 mb-4">
+                  Your signature has been recorded and you now have access to the document.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <p className="text-sm font-medium">Redirecting to document in 2 seconds...</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

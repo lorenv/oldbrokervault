@@ -154,15 +154,20 @@ export default function FillableNdaDocument({
   };
 
   const renderDocumentWithFields = () => {
-    return documentImages.map((imageBase64, pageIndex) => {
+    return documentImages.map((pageData, pageIndex) => {
       const pageNumber = pageIndex + 1;
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
+      
+      // Calculate display dimensions with max width constraint
+      const maxWidth = 800;
+      const displayWidth = Math.min(maxWidth, pageData.width);
+      const displayHeight = (pageData.height * displayWidth) / pageData.width;
       
       return (
         <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden">
           {/* PDF Page as Background */}
           <img
-            src={`data:image/png;base64,${imageBase64}`}
+            src={`data:image/png;base64,${pageData.imageBase64}`}
             alt={`Document page ${pageNumber}`}
             className="w-full h-auto border border-gray-200"
             style={{ maxWidth: '800px', display: 'block' }}
@@ -170,7 +175,7 @@ export default function FillableNdaDocument({
               console.error('Image load error for page:', pageNumber);
               e.currentTarget.style.display = 'none';
             }}
-            onLoad={() => console.log('Page loaded:', pageNumber)}
+            onLoad={() => console.log('Page loaded:', pageNumber, 'display size:', displayWidth, 'x', displayHeight)}
           />
           
           {/* Transparent Overlay with Form Fields */}
@@ -179,15 +184,31 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // Calculate responsive positioning based on actual image dimensions
-              // Use a more conservative scaling approach
+              // Calculate positioning using actual PDF dimensions and display scaling
+              const scaleX = pageData.width / displayWidth;
+              const scaleY = pageData.height / displayHeight;
+              
+              const fieldX = field.x / scaleX;
+              const fieldY = field.y / scaleY;
+              const fieldWidth = field.width / scaleX;
+              const fieldHeight = field.height / scaleY;
+              
+              console.log(`Field ${field.id} positioning:`, {
+                original: { x: field.x, y: field.y, w: field.width, h: field.height },
+                display: { x: fieldX, y: fieldY, w: fieldWidth, h: fieldHeight },
+                scale: { x: scaleX, y: scaleY },
+                pageSize: { w: pageData.width, h: pageData.height },
+                displaySize: { w: displayWidth, h: displayHeight }
+              });
+              
               const style = {
                 position: 'absolute' as const,
-                left: `${Math.max(0, Math.min(95, (field.x / 612) * 100))}%`,
-                top: `${Math.max(0, Math.min(95, (field.y / 792) * 100))}%`,
-                width: `${Math.max(5, Math.min(30, (field.width / 612) * 100))}%`,
-                height: `${Math.max(2, Math.min(10, (field.height / 792) * 100))}%`,
+                left: `${fieldX}px`,
+                top: `${fieldY}px`,
+                width: `${fieldWidth}px`,
+                height: `${fieldHeight}px`,
                 minHeight: '36px',
+                minWidth: '120px',
                 zIndex: 10
               };
 
