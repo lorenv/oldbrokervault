@@ -121,13 +121,17 @@ export function SharePage() {
       console.log('✅ Full document data received');
       return data;
     },
-    enabled: !!shareSlug,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 1, // Only retry once to avoid excessive requests
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false // Don't refetch on component remount
-  }) as { data: any, isLoading: boolean, error: any };
+    enabled: shouldLoadFullData,
+    refetchOnWindowFocus: false
+  });
+
+  // Redirect to NDA if required and user hasn't signed
+  useEffect(() => {
+    if (ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !isCheckingNda) {
+      console.log('🔒 NDA required - redirecting to NDA signing');
+      window.location.href = `/nda/${shareSlug}`;
+    }
+  }, [ndaCheck, hasSignedNda, accessToken, shareSlug, isCheckingNda]);
 
   // Fetch uploaded files for the shared document
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
@@ -153,7 +157,7 @@ export function SharePage() {
     }
   }, [shareData, hasSignedNda, error, isLoading]);
 
-  if (isLoading) {
+  if (isCheckingNda || isLoading || isValidatingToken) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
@@ -166,7 +170,7 @@ export function SharePage() {
     );
   }
 
-  if (error) {
+  if (error || tokenError || ndaCheckError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">

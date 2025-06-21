@@ -300,6 +300,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lightweight NDA check endpoint - fast initial check for share links
+  app.get('/api/share/:shareSlug/nda-check', async (req, res) => {
+    const { shareSlug } = req.params;
+    const startTime = Date.now();
+    
+    console.log("=== NDA CHECK ===");
+    console.log("Processing NDA check for slug:", shareSlug?.substring(0, 10) + "...");
+    
+    try {
+      // Quick lookup - only get essential NDA fields
+      const [cimDoc] = await db.select({
+        id: cimDocuments.id,
+        ndaProtected: cimDocuments.ndaProtected,
+        ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
+        shareExpiresAt: cimDocuments.shareExpiresAt,
+        title: cimDocuments.title
+      })
+      .from(cimDocuments)
+      .where(or(eq(cimDocuments.shareSlug, shareSlug), eq(cimDocuments.customSlug, shareSlug)))
+      .limit(1);
+
+      if (!cimDoc) {
+        console.log("Document not found for slug:", shareSlug);
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      console.log("NDA check completed in:", Date.now() - startTime + "ms");
+      
+      res.json({
+        requiresNda: cimDoc.ndaProtected || false,
+        requiresApproval: cimDoc.ndaApprovalRequired || false,
+        title: cimDoc.title,
+        documentId: cimDoc.id
+      });
+
+    } catch (error) {
+      console.error('NDA check error:', error);
+      res.status(500).json({ error: "Failed to check NDA status" });
+    }
+  });
+
   // Public share endpoints (optimized for performance)
   app.get("/api/share/:shareSlug", async (req, res) => {
     const startTime = Date.now();
