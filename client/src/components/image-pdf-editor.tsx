@@ -119,15 +119,13 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
   icon: any, 
   label: string 
 }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag({
     type: 'new-field',
     item: { type },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [type]);
-
-  // Remove logging to prevent infinite renders
+  });
 
   return (
     <div
@@ -135,7 +133,6 @@ const DraggableFieldButton = ({ type, icon: Icon, label }: {
       className={`flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50 ${
         isDragging ? 'opacity-50 scale-95' : ''
       }`}
-
     >
       <Icon className="w-4 h-4 text-gray-600" />
       <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -222,23 +219,17 @@ export default function ImagePdfEditor({
   // Remove auto-scaling since we're using max-width constraint instead
 
   // Drop handler for field placement on the entire container
-  const [{ isOver, canDrop }, dropProps] = useDrop(() => ({
+  const [{ isOver }, dropProps] = useDrop({
     accept: ['new-field', 'field'],
     drop: (item: any, monitor) => {
-      console.log('Drop triggered!', item);
       const offset = monitor.getClientOffset();
       const containerRect = containerRef.current?.getBoundingClientRect();
-      if (!offset || !containerRect) {
-        console.log('No offset or container rect');
-        return;
-      }
+      if (!offset || !containerRect) return;
       
       // Get relative position within the scrollable container
       const containerScrollTop = containerRef.current?.scrollTop || 0;
       const relativeX = offset.x - containerRect.left - 16; // Account for padding
       const relativeY = offset.y - containerRect.top + containerScrollTop - 16; // Account for padding and scroll
-      
-      console.log('Drop coordinates:', { relativeX, relativeY, offset, containerRect });
       
       // Calculate which page this drop is on
       let cumulativeHeight = 0;
@@ -258,49 +249,21 @@ export default function ImagePdfEditor({
           // Convert display coordinates to original PDF coordinates
           adjustedY = ((relativeY - cumulativeHeight) * page.height) / actualHeight;
           adjustedX = (relativeX * page.width) / actualWidth;
-          console.log('Found target page:', targetPage, 'coordinates:', { adjustedX, adjustedY });
           break;
         }
         cumulativeHeight += actualHeight + spacingGap;
       }
       
       if (item.type && !item.id) {
-        console.log('✅ SUCCESS! Adding new field:', item.type, 'at coordinates:', { adjustedX, adjustedY, targetPage });
-        const newField: SignatureField = {
-          id: `field_${Date.now()}`,
-          type: item.type,
-          label: item.type.charAt(0).toUpperCase() + item.type.slice(1),
-          x: adjustedX,
-          y: adjustedY,
-          width: item.type === 'signature' ? 200 : 150,
-          height: item.type === 'signature' ? 60 : 30,
-          pageNumber: targetPage,
-          required: true,
-          fontSize: 12,
-        };
-        const updatedFields = [...signatureFields, newField];
-        console.log('Field created! Total fields:', updatedFields.length);
-        onFieldsChange(updatedFields);
+        addField(adjustedX, adjustedY, item.type, targetPage);
       } else if (item.id) {
-        console.log('✅ Updating existing field:', item.id);
-        const updatedFields = signatureFields.map(field => 
-          field.id === item.id 
-            ? { ...field, x: adjustedX, y: adjustedY, pageNumber: targetPage }
-            : field
-        );
-        onFieldsChange(updatedFields);
+        updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
       }
-      
-      return { success: true };
-    },
-    hover: (item, monitor) => {
-      // Remove excessive hover logging for cleaner console
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
     }),
-  }), [pageImages, signatureFields, onFieldsChange]);
+  });
 
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
     const newField: SignatureField = {
@@ -452,22 +415,8 @@ export default function ImagePdfEditor({
           ref={containerRef}
           className={`relative max-h-[800px] overflow-y-auto p-4 ${isOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed' : 'border-2 border-gray-200'}`}
           {...dropProps}
-          style={{ 
-            minHeight: isLoading ? '400px' : 'auto',
-            touchAction: 'none'
-          }}
+          style={{ minHeight: isLoading ? '400px' : 'auto' }}
         >
-          {/* Debug info */}
-          <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-50">
-            Drop: {canDrop ? 'Yes' : 'No'} | Over: {isOver ? 'Yes' : 'No'} | Fields: {signatureFields.length}
-          </div>
-          
-          {/* Field debug info */}
-          {signatureFields.length > 0 && (
-            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded z-50">
-              Fields in array: {signatureFields.map(f => `${f.type}(p${f.pageNumber})`).join(', ')}
-            </div>
-          )}
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-5">
               {pageImages.map((page, index) => {
@@ -478,68 +427,33 @@ export default function ImagePdfEditor({
                       Page {page.pageNumber}
                     </div>
                     
-                    {/* Page image with proper sizing */}
+                    {/* Page image */}
                     <img
                       src={page.imageDataUrl}
                       alt={`PDF Page ${page.pageNumber}`}
                       className="w-full h-auto border rounded shadow-sm select-none"
                       onDragStart={(e) => e.preventDefault()}
                       style={{
-                        maxWidth: '1000px',
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left',
                         pointerEvents: 'none'
                       }}
                     />
                     
                     {/* Signature Fields Overlay for this page */}
-                    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+                    <div className="absolute inset-0 pointer-events-none">
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
-                        .map((field) => {
-                          console.log(`Rendering field ${field.id} on page ${page.pageNumber}:`, field);
-                          
-                          // Calculate actual display dimensions
-                          const maxWidth = 1000;
-                          const actualWidth = Math.min(page.width, maxWidth);
-                          const actualHeight = (page.height * actualWidth) / page.width;
-                          
-                          // Scale field position to match displayed size
-                          const displayX = (field.x * actualWidth) / page.width;
-                          const displayY = (field.y * actualHeight) / page.height;
-                          const displayWidth = (field.width * actualWidth) / page.width;
-                          const displayHeight = (field.height * actualHeight) / page.height;
-                          
-                          console.log(`Display coordinates for ${field.id}:`, { displayX, displayY, displayWidth, displayHeight });
-                          
-                          return (
-                            <div 
-                              key={field.id} 
-                              className="absolute pointer-events-auto"
-                              style={{
-                                left: `${displayX}px`,
-                                top: `${displayY}px`,
-                                width: `${displayWidth}px`,
-                                height: `${displayHeight}px`,
-                                zIndex: 25,
-                                backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                                border: '2px dashed #3b82f6',
-                                borderRadius: '4px'
-                              }}
-                            >
-                              <div className="flex items-center justify-between h-full p-1 text-xs font-medium text-blue-800 bg-white bg-opacity-90">
-                                <span className="truncate">{field.label}</span>
-                                <button
-                                  onClick={() => {
-                                    console.log('Deleting field:', field.id);
-                                    deleteField(field.id);
-                                  }}
-                                  className="ml-1 text-red-500 hover:text-red-700 w-4 h-4 flex items-center justify-center"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        .map((field) => (
+                          <div key={field.id} className="pointer-events-auto">
+                            <FieldComponent
+                              field={field}
+                              onUpdate={updateField}
+                              onDelete={deleteField}
+                              scale={scale}
+                            />
+                          </div>
+                        ))}
                     </div>
                   </div>
                 );
