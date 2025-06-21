@@ -465,7 +465,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               id="nda-protection"
               checked={ndaSettings.ndaProtected}
               onCheckedChange={(checked) => 
-                setNdaSettings(prev => ({ ...prev, ndaProtected: checked }))
+                handleSettingChange('ndaProtected', checked)
               }
             />
           </div>
@@ -477,7 +477,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Select
                   value={ndaSettings.ndaTemplateId?.toString() || ""}
                   onValueChange={(value) => 
-                    setNdaSettings(prev => ({ ...prev, ndaTemplateId: parseInt(value) }))
+                    handleSettingChange('ndaTemplateId', parseInt(value))
                   }
                 >
                   <SelectTrigger>
@@ -504,19 +504,29 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   id="manual-approval"
                   checked={ndaSettings.ndaApprovalRequired}
                   onCheckedChange={(checked) => 
-                    setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }))
+                    handleSettingChange('ndaApprovalRequired', checked)
                   }
                 />
               </div>
             </>
           )}
           
-          <Button 
-            onClick={handleNdaSettingsUpdate}
-            disabled={updateNdaSettingsMutation.isPending}
-          >
-            {updateNdaSettingsMutation.isPending ? "Updating..." : "Update Settings"}
-          </Button>
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base font-medium">NDA Templates</Label>
+                <p className="text-sm text-muted-foreground">
+                  Create and manage your NDA templates
+                </p>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/nda-templates'}
+              >
+                Manage NDA Templates
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
