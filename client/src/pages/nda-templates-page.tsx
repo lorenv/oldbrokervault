@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -19,6 +19,7 @@ export default function NdaTemplatesPage() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['/api/nda-templates'],
@@ -70,48 +71,79 @@ export default function NdaTemplatesPage() {
             <h1 className="text-3xl font-bold text-gray-900">NDA Templates</h1>
             <p className="text-gray-600 mt-2">Create and manage your NDA templates with signature fields</p>
           </div>
-          <Button 
-            onClick={() => setLocation('/nda-templates/create')}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Template
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* View Toggle */}
+            <div className="flex items-center border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="h-8 w-8 p-0"
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8 w-8 p-0"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <Button 
+              onClick={() => setLocation('/nda-templates/create')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Template
+            </Button>
+          </div>
         </div>
       </div>
 
+      {/* Templates Display */}
       {templates.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent>
-            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No templates yet</h3>
-            <p className="text-gray-600 mb-4">
-              Create your first NDA template to get started with e-signature collection
+        <Card className="border-dashed border-2">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <FileText className="w-16 h-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No NDA Templates</h3>
+            <p className="text-gray-600 text-center mb-4">
+              Create your first NDA template to get started with document protection
             </p>
             <Button 
               onClick={() => setLocation('/nda-templates/create')}
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Create First Template
+              Add New Template
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template: NdaTemplate) => (
-            <Card key={template.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    {template.name}
-                  </CardTitle>
-                  <div className="flex items-center gap-1">
+            <Card key={template.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="flex items-center gap-2 text-lg truncate">
+                      <FileText className="w-5 h-5 flex-shrink-0" />
+                      <span className="truncate">{template.name}</span>
+                    </CardTitle>
+                    {template.isDefault && (
+                      <Badge variant="secondary" className="mt-2">
+                        Default
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0 ml-2">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
+                      className="h-8 w-8 p-0"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -119,13 +151,14 @@ export default function NdaTemplatesPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleDelete(template.id, template.name)}
+                      className="h-8 w-8 p-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-grow flex flex-col justify-between">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Calendar className="w-4 h-4" />
@@ -137,13 +170,73 @@ export default function NdaTemplatesPage() {
                       {template.signatureFields?.length || 0} signature fields
                     </Badge>
                   </div>
+                </div>
+                
+                <Button 
+                  className="w-full mt-4"
+                  onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Template
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((template: NdaTemplate) => (
+            <Card key={template.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold truncate">{template.name}</h3>
+                        {template.isDefault && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(template.createdAt).toLocaleDateString()}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {template.signatureFields?.length || 0} fields
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
                   
-                  <Button 
-                    className="w-full"
-                    onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
-                  >
-                    Edit Template
-                  </Button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(template.id, template.name)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
