@@ -4221,17 +4221,27 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           }
 
           if (actualImagePath) {
+            console.log(`Processing image file: ${actualImagePath}`);
             const imageBuffer = fsSync.readFileSync(actualImagePath);
-            const imageBase64 = imageBuffer.toString('base64');
+            
+            // Create a unique filename for serving
+            const uniqueId = `${Date.now()}_${pageNum}`;
+            const serveFileName = `nda_page_${uniqueId}.png`;
+            const servePath = path.join('/tmp', serveFileName);
+            
+            // Copy image to serve directory with unique name
+            fsSync.writeFileSync(servePath, imageBuffer);
             
             pageImages.push({
               pageNumber: pageNum,
-              imageBase64,
-              imageDataUrl: `data:image/png;base64,${imageBase64}`
+              imageUrl: `/api/temp-image/${serveFileName}`,
+              width: 1200, // Known from conversion scale
+              height: Math.round(1200 * 1.414) // Approximate A4 ratio
             });
 
-            // Clean up this page image
+            // Clean up the original conversion output
             fsSync.unlinkSync(actualImagePath);
+            console.log(`Page ${pageNum} processed successfully, serving at ${serveFileName}`);
           }
         }
 
@@ -4243,7 +4253,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.json({
           success: true,
           totalPages,
-          pages: pageImages
+          pages: pageImages.map(p => ({
+            pageNumber: p.pageNumber,
+            imageUrl: p.imageUrl,
+            width: p.width,
+            height: p.height
+          }))
         });
 
       } catch (conversionError: any) {
@@ -4264,6 +4279,43 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error: any) {
       console.error('PDF to image endpoint error:', error);
       return res.status(500).json({ error: 'Server error during PDF conversion' });
+    }
+  });
+
+  // Temporary image serving endpoint for PDF pages
+  app.get('/api/temp-image/:filename', (req, res) => {
+    try {
+      const filename = req.params.filename;
+      
+      // Security: only allow specific pattern
+      if (!/^nda_page_\d+_\d+\.png$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename pattern' });
+      }
+      
+      const imagePath = path.join('/tmp', filename);
+      
+      if (!fsSync.existsSync(imagePath)) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      
+      // Send the image file
+      const imageBuffer = fsSync.readFileSync(imagePath);
+      res.send(imageBuffer);
+      
+      // Clean up after serving (optional - could keep for caching)
+      setTimeout(() => {
+        if (fsSync.existsSync(imagePath)) {
+          fsSync.unlinkSync(imagePath);
+        }
+      }, 3600000); // Delete after 1 hour
+      
+    } catch (error) {
+      console.error('Error serving temp image:', error);
+      res.status(500).json({ error: 'Failed to serve image' });
     }
   });
 

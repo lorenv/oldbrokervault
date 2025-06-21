@@ -47,7 +47,7 @@ export default function FillableNdaDocument({
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [documentImages, setDocumentImages] = useState<string[]>([]);
+  const [documentImages, setDocumentImages] = useState<Array<{imageUrl: string, width: number, height: number}>>([]);
   const { toast } = useToast();
 
   // Convert PDF to images for display
@@ -209,6 +209,7 @@ export default function FillableNdaDocument({
             onError={(e) => {
               console.error('Image load error for page:', pageNumber);
               console.error('Image URL:', pageData.imageUrl);
+              console.error('Error event:', e);
               e.currentTarget.style.display = 'none';
             }}
             onLoad={() => console.log('Page loaded successfully:', pageNumber, 'display size:', displayWidth, 'x', displayHeight)}
