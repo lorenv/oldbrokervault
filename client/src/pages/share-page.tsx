@@ -612,32 +612,32 @@ export function SharePage() {
                             </p>
                           </div>
                         )}
-                        {shareData.cim.revenue && (
+                        {cimData.revenue && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <TrendingUp className="h-5 w-5 text-blue-600" />
                               <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(shareData.cim.revenue).toLocaleString()}
+                              ${parseInt(cimData.revenue).toLocaleString()}
                             </p>
                           </div>
                         )}
-                        {shareData.cim.ebitda && (
+                        {cimData.ebitda && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <BarChart3 className="h-5 w-5 text-purple-600" />
                               <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                             </div>
                             <p className="text-3xl font-bold text-purple-600">
-                              ${parseInt(shareData.cim.ebitda).toLocaleString()}
+                              ${parseInt(cimData.ebitda).toLocaleString()}
                             </p>
                           </div>
                         )}
                       </div>
                       
                       {/* Financial Documents Download Section */}
-                      <FinancialDocumentsDisplay cimId={shareData.cim.id} />
+                      <FinancialDocumentsDisplay cimId={cimData.id} />
                     </CardContent>
                   </Card>
                 )}
@@ -673,15 +673,15 @@ export function SharePage() {
                 )}
 
                 <CimDisplay 
-                  analysis={shareData.cim.analysis}
+                  analysis={cimData.analysis}
                   isSharedView={true}
-                  docId={shareData.cim.id}
+                  docId={cimData.id}
                   websiteUrl={shareData.websiteUrl}
                   logoUrl={shareData.logoUrl}
                   selectedImages={shareData.selectedImages}
-                  title={shareData.cim.title}
-                  userProfile={shareData.cim.userProfile}
-                  cimDocument={shareData.cim}
+                  title={cimData.title}
+                  userProfile={cimData.userProfile}
+                  cimDocument={cimData}
                 />
               </>
             )}
@@ -691,8 +691,8 @@ export function SharePage() {
           <div className="lg:w-[28rem] flex-shrink-0">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
-              cimTitle={shareData.cim.title}
-              userProfile={shareData.userProfileData || shareData.cim.userProfile}
+              cimTitle={cimData.title}
+              userProfile={shareData.userProfileData || cimData.userProfile}
               logoUrl={shareData.logoUrl}
             />
           </div>
