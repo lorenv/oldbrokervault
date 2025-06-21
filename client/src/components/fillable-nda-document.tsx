@@ -211,11 +211,6 @@ export default function FillableNdaDocument({
       const pageNumber = pageIndex + 1;
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
       
-      // Calculate display dimensions with max width constraint
-      const maxWidth = 700; // Reduced for better performance
-      const displayWidth = Math.min(maxWidth, pageData.width);
-      const displayHeight = (pageData.height * displayWidth) / pageData.width;
-      
       return (
         <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden">
           {/* PDF Page as Background */}
@@ -232,7 +227,12 @@ export default function FillableNdaDocument({
               console.error('Error event:', e);
               e.currentTarget.style.display = 'none';
             }}
-            onLoad={() => console.log('Page loaded successfully:', pageNumber, 'display size:', displayWidth, 'x', displayHeight)}
+            onLoad={(e) => {
+              const imgElement = e.currentTarget;
+              const actualDisplayWidth = imgElement.clientWidth;
+              const actualDisplayHeight = imgElement.clientHeight;
+              console.log('Page loaded successfully:', pageNumber, 'actual display size:', actualDisplayWidth, 'x', actualDisplayHeight);
+            }}
           />
           
           {/* Transparent Overlay with Form Fields */}
@@ -241,29 +241,25 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // Calculate positioning using actual PDF dimensions and display scaling
-              const scaleX = pageData.width / displayWidth;
-              const scaleY = pageData.height / displayHeight;
-              
-              const fieldX = field.x / scaleX;
-              const fieldY = field.y / scaleY;
-              const fieldWidth = field.width / scaleX;
-              const fieldHeight = field.height / scaleY;
+              // Use percentage-based positioning for true responsiveness
+              // Convert absolute coordinates to percentages relative to original PDF dimensions
+              const fieldXPercent = (field.x / pageData.width) * 100;
+              const fieldYPercent = (field.y / pageData.height) * 100;
+              const fieldWidthPercent = (field.width / pageData.width) * 100;
+              const fieldHeightPercent = (field.height / pageData.height) * 100;
               
               console.log(`Field ${field.id} positioning:`, {
                 original: { x: field.x, y: field.y, w: field.width, h: field.height },
-                display: { x: fieldX, y: fieldY, w: fieldWidth, h: fieldHeight },
-                scale: { x: scaleX, y: scaleY },
-                pageSize: { w: pageData.width, h: pageData.height },
-                displaySize: { w: displayWidth, h: displayHeight }
+                percentage: { x: fieldXPercent, y: fieldYPercent, w: fieldWidthPercent, h: fieldHeightPercent },
+                pageSize: { w: pageData.width, h: pageData.height }
               });
               
               const style = {
                 position: 'absolute' as const,
-                left: `${fieldX}px`,
-                top: `${fieldY}px`,
-                width: `${fieldWidth}px`,
-                height: `${fieldHeight}px`,
+                left: `${fieldXPercent}%`,
+                top: `${fieldYPercent}%`,
+                width: `${fieldWidthPercent}%`,
+                height: `${fieldHeightPercent}%`,
                 minHeight: '36px',
                 minWidth: '120px',
                 zIndex: 10

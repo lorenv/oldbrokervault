@@ -482,11 +482,11 @@ export default function ImagePdfEditor({
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
                         .map(field => {
-                          // Scale field position to match display with proper precision
-                          const fieldX = field.x / scaleX;
-                          const fieldY = field.y / scaleY;
-                          const fieldWidth = field.width / scaleX;
-                          const fieldHeight = field.height / scaleY;
+                          // Use percentage-based positioning for responsive scaling
+                          const fieldXPercent = (field.x / page.width) * 100;
+                          const fieldYPercent = (field.y / page.height) * 100;
+                          const fieldWidthPercent = (field.width / page.width) * 100;
+                          const fieldHeightPercent = (field.height / page.height) * 100;
                           
                           return (
                             <div
@@ -494,10 +494,10 @@ export default function ImagePdfEditor({
                               draggable
                               className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded px-2 py-1 text-xs group hover:shadow-md transition-all cursor-move select-none`}
                               style={{
-                                left: fieldX,
-                                top: fieldY,
-                                width: fieldWidth,
-                                height: fieldHeight,
+                                left: `${fieldXPercent}%`,
+                                top: `${fieldYPercent}%`,
+                                width: `${fieldWidthPercent}%`,
+                                height: `${fieldHeightPercent}%`,
                                 minWidth: '80px',
                                 minHeight: '20px',
                                 zIndex: 20,
