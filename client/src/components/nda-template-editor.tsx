@@ -198,32 +198,50 @@ export default function NdaTemplateEditor({ templateId, onSave, onCancel }: NdaT
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="pdfFile">PDF Template</Label>
-                  <div className="mt-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="w-full"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {isUploading ? 'Uploading...' : pdfFile ? 'Change PDF' : 'Upload PDF'}
-                    </Button>
-                    {pdfFile && (
-                      <p className="text-sm text-gray-600 mt-2">
-                        Selected: {pdfFile.name}
-                      </p>
-                    )}
+                {!pdfFile ? (
+                  <div
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">
+                      Click to upload your PDF template
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Supports PDF files up to 10MB
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-8 h-8 text-blue-600" />
+                        <div>
+                          <p className="font-medium">{pdfFile.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change PDF
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
               </CardContent>
             </Card>
 
