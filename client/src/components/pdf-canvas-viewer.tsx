@@ -7,10 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
-// Configure PDF.js worker - disable for better compatibility
+// Configure PDF.js worker for version 5.x
 if (typeof window !== 'undefined') {
-  // Disable worker for better compatibility in development
-  pdfjsLib.GlobalWorkerOptions.workerSrc = false;
+  // Set proper worker path for PDF.js 5.x
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).toString();
 }
 
 interface SignatureField {
