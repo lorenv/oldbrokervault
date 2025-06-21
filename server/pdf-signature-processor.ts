@@ -1,4 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface SignatureField {
   id: string;
