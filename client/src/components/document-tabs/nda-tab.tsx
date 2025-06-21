@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 import { 
   FileSignature, 
   ExternalLink, 
@@ -425,104 +425,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         </CardContent>
       </Card>
 
-      {/* Upload New NDA Template */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload NDA Template</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="template-name">Template Name</Label>
-            <Input
-              id="template-name"
-              placeholder="e.g., Standard Confidentiality Agreement"
-              value={newNdaTemplate.name}
-              onChange={(e) => setNewNdaTemplate(prev => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="template-file">PDF File</Label>
-            <Input
-              id="template-file"
-              type="file"
-              accept=".pdf"
-              onChange={(e) => setNewNdaTemplate(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="is-default"
-              checked={newNdaTemplate.isDefault}
-              onCheckedChange={(checked) => 
-                setNewNdaTemplate(prev => ({ ...prev, isDefault: checked }))
-              }
-            />
-            <Label htmlFor="is-default">Set as default template</Label>
-          </div>
-          
-          <Button 
-            onClick={handleNdaTemplateUpload}
-            disabled={uploadNdaTemplateMutation.isPending}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {uploadNdaTemplateMutation.isPending ? "Uploading..." : "Upload Template"}
-          </Button>
-        </CardContent>
-      </Card>
 
-      {/* Existing NDA Templates */}
-      <Card>
-        <CardHeader>
-          <CardTitle>NDA Templates</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {ndaTemplates.length > 0 ? (
-            <div className="space-y-3">
-              {ndaTemplates.map((template: any) => (
-                <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{template.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Created {format(new Date(template.createdAt), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => previewNdaTemplate(template.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm" 
-                      onClick={() => downloadNdaTemplate(template.id, template.name)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteNdaTemplate(template.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <FileSignature className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No NDA templates uploaded</p>
-              <p className="text-xs text-muted-foreground">Upload a template above to get started</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
 
 
