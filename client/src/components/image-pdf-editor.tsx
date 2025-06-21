@@ -332,67 +332,20 @@ export default function ImagePdfEditor({
   }
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      {/* Draggable Fields Sidebar */}
-      <div className="col-span-3">
-        <div className="space-y-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Signature Fields</h3>
-            <p className="text-xs text-gray-600 mb-4">Drag these fields onto your document</p>
-            
-            <div className="space-y-3">
-              <DraggableFieldButton 
-                type="signature" 
-                icon={FileSignature} 
-                label="Signature" 
-              />
-              <DraggableFieldButton 
-                type="name" 
-                icon={Type} 
-                label="Name" 
-              />
-              <DraggableFieldButton 
-                type="date" 
-                icon={Calendar} 
-                label="Date" 
-              />
-              <DraggableFieldButton 
-                type="email" 
-                icon={Mail} 
-                label="Email" 
-              />
-              <DraggableFieldButton 
-                type="text" 
-                icon={AlignLeft} 
-                label="Text" 
-              />
-            </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">PDF Template Editor</h3>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-600">
+            {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
           </div>
-          
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Fields Positioned</span>
-              <span className="text-sm text-gray-600">{signatureFields.length}</span>
-            </div>
-            
-            <Button variant="outline" size="sm" onClick={openPdfInNewTab} className="w-full mt-3">
-              <ExternalLink className="w-4 h-4 mr-1" />
-              View Original PDF
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
+            <ExternalLink className="w-4 h-4 mr-1" />
+            View Original PDF
+          </Button>
         </div>
       </div>
-
-      {/* PDF Preview */}
-      <div className="col-span-9">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">PDF Template Editor</h3>
-            <div className="text-sm text-gray-600">
-              {totalPages} page{totalPages !== 1 ? 's' : ''} • Scroll to position fields
-            </div>
-          </div>
 
       {/* PDF Preview Container */}
       <Card className="relative overflow-hidden">
@@ -458,26 +411,24 @@ export default function ImagePdfEditor({
           {signatureFields.length === 0 && pageImages.length > 0 && (
             <div className="absolute top-8 left-4 pointer-events-none z-20">
               <div className="bg-blue-600 text-white px-3 py-1 rounded text-sm opacity-90 shadow-lg">
-                Drag signature fields from the sidebar and drop them anywhere on the PDF pages
+                Drag colored field types from the left sidebar and drop them on the PDF pages
               </div>
             </div>
           )}
         </div>
       </Card>
 
-          {/* Instructions */}
-          <Card className="p-4">
-            <h4 className="font-medium mb-2">How to Use</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Drag signature field types from the left sidebar onto the document</li>
-              <li>• Drop fields precisely where you want signers to fill them in</li>
-              <li>• Drag existing fields to reposition them</li>
-              <li>• Double-click field labels to edit them</li>
-              <li>• Field coordinates are saved for exact placement in the final PDF</li>
-            </ul>
-          </Card>
-        </div>
-      </div>
+      {/* Instructions */}
+      <Card className="p-4">
+        <h4 className="font-medium mb-2">How to Use</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• Drag signature field types from the left sidebar onto the document</li>
+          <li>• Drop fields precisely where you want signers to fill them in</li>
+          <li>• Drag existing fields to reposition them</li>
+          <li>• Double-click field labels to edit them</li>
+          <li>• Field coordinates are saved for exact placement in the final PDF</li>
+        </ul>
+      </Card>
     </div>
   );
 }
