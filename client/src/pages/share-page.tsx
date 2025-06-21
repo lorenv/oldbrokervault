@@ -125,13 +125,7 @@ export function SharePage() {
     refetchOnWindowFocus: false
   });
 
-  // Redirect to NDA if required and user hasn't signed - immediate redirect
-  useEffect(() => {
-    if (ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !isCheckingNda && !ndaCheckError) {
-      console.log('🔒 NDA required - redirecting immediately to NDA signing');
-      window.location.href = `/share/${shareSlug}/sign-nda`;
-    }
-  }, [ndaCheck, hasSignedNda, accessToken, shareSlug, isCheckingNda, ndaCheckError]);
+  // Don't redirect - show NDA dialog instead when needed
 
   // Fetch uploaded files for the shared document
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery({
@@ -203,7 +197,9 @@ export function SharePage() {
 
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
-  const shouldShowNda = shareData?.requiresNda && !hasSignedNda && !hasValidToken;
+  
+  // Show NDA dialog if document requires NDA and user hasn't signed or has no valid token
+  const shouldShowNdaDialog = ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !ndaCheckError;
   
   // Only access shareData.cim if shareData exists
   const cimData = shareData?.cim;
@@ -280,16 +276,19 @@ export function SharePage() {
     );
   }
 
-  if (shouldShowNda) {
+  // Show NDA dialog if required
+  if (shouldShowNdaDialog) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <NdaDialog
-          isOpen={true}
-          onClose={() => {}}
-          onSigned={() => setHasSignedNda(true)}
-          shareSlug={shareSlug || ''}
-          ndaUrl={shareData.ndaUrl}
-        />
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <NdaDialog
+            isOpen={true}
+            onClose={() => {}}
+            onSigned={() => setHasSignedNda(true)}
+            shareSlug={shareSlug || ''}
+            ndaUrl={undefined}
+          />
+        </div>
       </div>
     );
   }
