@@ -406,6 +406,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
       }
+
+      // PERFORMANCE OPTIMIZATION: Parallel data fetching to minimize response time
+      const dataFetchStart = Date.now();
+      const [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
+        db.select().from(users).where(eq(users.id, cimDoc.userId)).limit(1).then(result => result[0] || null),
+        db.select().from(customSections).where(eq(customSections.cimDocumentId, cimDoc.id)),
+        cimDoc.ndaProtected ? storage.getNdaApprovalStatus(cimDoc.id) : Promise.resolve(null)
+      ]);
+      
+      console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
+      
+      if (!userProfile) {
+        console.log("ERROR: User profile not found for document owner:", cimDoc.userId);
+        return res.status(404).json({ error: "Document owner not found" });
+      }
+
+      // PERFORMANCE OPTIMIZATION: Pre-compute absolute URLs without redundant processing
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
+      const processImageUrl = (url: string) => {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
+      };
+
+      const absoluteSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
+      const absoluteLogoUrl = processImageUrl(cimDoc.logoUrl);
+
+      // Generate NDA URL if needed
+      const ndaUrl = cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null;
+
+      // Sanitize user profile for public sharing
+      const sanitizedUserProfile = {
+        name: userProfile.name,
+        title: userProfile.title,
+        email: userProfile.email,
+        phoneNumber: userProfile.phoneNumber,
+        businessName: userProfile.businessName,
+        businessLogo: userProfile.businessLogo,
+        profilePhoto: userProfile.profilePhoto
+      };
+
+      console.log("Total response time:", Date.now() - startTime + "ms");
+
+      res.json({
+        cim: {
+          id: cimDoc.id,
+          title: cimDoc.title,
+          analysis: cimDoc.analysis,
+          logoUrl: cimDoc.logoUrl,
+          selectedImages: cimDoc.selectedImages || [],
+          financialsEnabled: cimDoc.financialsEnabled,
+          askingPrice: cimDoc.askingPrice,
+          askingPriceIncluded: cimDoc.askingPriceIncluded,
+          revenue: cimDoc.revenue,
+          revenueIncluded: cimDoc.revenueIncluded,
+          ebitda: cimDoc.ebitda,
+          ebitdaIncluded: cimDoc.ebitdaIncluded,
+          coverImageUrl: cimDoc.coverImageUrl,
+          coverImagePosition: cimDoc.coverImagePosition,
+          coverImageAttribution: cimDoc.coverImageAttribution,
+          createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
+          userProfile: sanitizedUserProfile
+        },
+        websiteUrl: cimDoc.websiteUrl || '',
+        selectedImages: absoluteSelectedImages,
+        logoUrl: absoluteLogoUrl,
+        userProfileData: sanitizedUserProfile,
+        requiresNda: cimDoc.ndaProtected || false,
+        ndaUrl,
+        customSections: customSections || [],
+        ndaApprovalStatus
+      });
     } catch (error) {
       console.error("Share endpoint error:", error);
       res.status(500).json({ 
@@ -442,15 +517,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
-      // Parallel data fetching for optimal performance
+      // PERFORMANCE OPTIMIZATION: Parallel data fetching for shared PDF export
       const [userProfile, documentFinancialFiles, customSections] = await Promise.all([
-        storage.getUser(cimDoc.userId),
+        db.select().from(users).where(eq(users.id, cimDoc.userId)).limit(1).then(result => result[0] || null),
         db.select().from(financialFiles).where(eq(financialFiles.cimDocumentId, cimDoc.id)),
-        storage.getCustomSections(cimDoc.id)
+        db.select().from(customSections).where(eq(customSections.cimDocumentId, cimDoc.id))
       ]);
 
+      console.log("Data fetch time:", Date.now() - startTime + "ms");
+
+      if (!userProfile) {
+        return res.status(404).json({ error: "Document owner not found" });
+      }
+
       // Get document owner's PDF template preference  
-      const pdfTemplate = userProfile?.pdfBackgroundTemplate || 'classic';
+      const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
       
       // Prepare financial data from cached document properties
       const financialData = {
@@ -463,16 +544,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: cimDoc.ebitdaIncluded || false
       };
 
-      console.log("Using cached analysis data - no reprocessing needed for PDF export");
+      console.log("Using cached analysis data - no reprocessing needed for shared PDF export");
 
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
 
-
-
-      // Optimized PDF generation using cached data without reprocessing
+      // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
+      const pdfGenStart = Date.now();
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
         cimDoc.logoUrl, // Use cached logo URL  
@@ -490,6 +570,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pdfTemplate // Pass user's template preference
       );
       
+      console.log("PDF generation time:", Date.now() - pdfGenStart + "ms");
+      console.log("Total shared PDF export time:", Date.now() - startTime + "ms");
       console.log("PDF generation completed, buffer length:", pdfBuffer.length);
 
       res.setHeader('Content-Type', 'application/pdf');
