@@ -27,6 +27,7 @@ import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
 import EnhancedCimPage from "@/pages/enhanced-cim-page";
 import { DocumentDetailPage } from "@/pages/document-detail-page";
+import NdaTemplatesPage from "@/pages/nda-templates-page";
 import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
 import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
 
@@ -61,8 +62,9 @@ function Router() {
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
-            <ProtectedRoute path="/nda-templates/:id?" component={NdaTemplateEditorPage} />
-            <ProtectedRoute path="/nda-templates" component={NdaTemplateEditorPage} />
+            <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
+            <ProtectedRoute path="/nda-templates/create" component={NdaTemplateEditorPage} />
+            <ProtectedRoute path="/nda-templates/edit/:id" component={NdaTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route component={NotFound} />
           </Switch>

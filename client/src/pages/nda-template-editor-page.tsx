@@ -19,19 +19,13 @@ interface NdaTemplate {
 
 export default function NdaTemplateEditorPage() {
   const [location, setLocation] = useLocation();
-  const [match, params] = useRoute('/nda-templates/:id?');
-  const [isEditing, setIsEditing] = useState(false);
+  const [, params] = useRoute('/nda-templates/edit/:id');
+  const [createMatch] = useRoute('/nda-templates/create');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   const templateId = params?.id ? parseInt(params.id) : null;
-  const isNewTemplate = templateId === null;
-
-  // Fetch existing templates
-  const { data: templates, isLoading: templatesLoading } = useQuery({
-    queryKey: ['/api/nda-templates'],
-    enabled: !isEditing
-  });
+  const isNewTemplate = !!createMatch;
 
   // Fetch specific template if editing
   const { data: template, isLoading: templateLoading } = useQuery({
