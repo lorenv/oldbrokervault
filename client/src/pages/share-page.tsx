@@ -262,7 +262,7 @@ export function SharePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button onClick={() => window.location.href = `/share/${shareSlug}/sign-nda`}>
+              <Button onClick={() => setShowNdaDialog(true)}>
                 Review and Sign NDA
               </Button>
             </CardContent>

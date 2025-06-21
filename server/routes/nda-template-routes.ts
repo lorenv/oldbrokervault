@@ -128,6 +128,8 @@ export function registerNdaTemplateRoutes(app: Express) {
     console.log('Share slug:', req.params.shareSlug);
     console.log('Full URL:', req.url);
     console.log('Request method:', req.method);
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Production mode:', process.env.NODE_ENV === 'production');
     try {
       const { shareSlug } = req.params;
       
