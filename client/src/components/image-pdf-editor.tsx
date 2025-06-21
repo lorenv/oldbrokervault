@@ -507,17 +507,7 @@ export default function ImagePdfEditor({
         </div>
       </Card>
 
-      {/* Instructions */}
-      <Card className="p-4">
-        <h4 className="font-medium mb-2">How to Use</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Drag signature field types from the left sidebar onto the document</li>
-          <li>• Drop fields precisely where you want signers to fill them in</li>
-          <li>• Drag existing fields to reposition them</li>
-          <li>• Double-click field labels to edit them</li>
-          <li>• Field coordinates are saved for exact placement in the final PDF</li>
-        </ul>
-      </Card>
+
     </div>
   );
 }
