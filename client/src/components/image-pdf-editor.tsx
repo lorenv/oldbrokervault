@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
 
@@ -368,6 +368,20 @@ export default function ImagePdfEditor({
         </Button>
       </div>
 
+      {/* Draggable Field Palette */}
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <h3 className="text-lg font-semibold mb-3">Signature Fields</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <DraggableFieldButton type="signature" icon={FIELD_ICONS.signature} label="Signature" />
+            <DraggableFieldButton type="name" icon={FIELD_ICONS.name} label="Name" />
+            <DraggableFieldButton type="date" icon={FIELD_ICONS.date} label="Date" />
+            <DraggableFieldButton type="email" icon={FIELD_ICONS.email} label="Email" />
+            <DraggableFieldButton type="text" icon={FIELD_ICONS.text} label="Text Field" />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* PDF Preview Container */}
       <Card className="relative overflow-hidden">
         {isLoading && (
@@ -424,11 +438,9 @@ export default function ImagePdfEditor({
                         style={{ zIndex: 10 }}
                         onDrop={(e) => {
                           e.preventDefault();
-                          console.log('🎯 Drop event on page', page.pageNumber);
-                          console.log('🔍 Available dataTransfer types:', Array.from(e.dataTransfer.types));
+                          console.log('Drop event on page', page.pageNumber);
                           
                           const rect = e.currentTarget.getBoundingClientRect();
-                          // Convert display coordinates to PDF coordinates with proper precision
                           const relativeX = e.clientX - rect.left;
                           const relativeY = e.clientY - rect.top;
                           
@@ -436,68 +448,25 @@ export default function ImagePdfEditor({
                           const x = relativeX * scaleX;
                           const y = relativeY * scaleY;
                           
-                          console.log('🎯 Drop coordinates:', {
-                            display: { x: relativeX, y: relativeY },
-                            pdf: { x, y },
-                            scale: { x: scaleX, y: scaleY },
-                            pageSize: { width: page.width, height: page.height },
-                            displaySize: { width: displayWidth, height: displayHeight }
-                          });
-                          
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
-                          const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
-                          
-                          console.log('📝 Field ID from dataTransfer:', fieldId);
-                          console.log('📝 Field type from dataTransfer:', fieldType);
+                          const fieldType = e.dataTransfer.getData('application/field-type');
                           
                           if (fieldId) {
-                            // Moving existing field with precise positioning
-                            const currentX = parseFloat(e.dataTransfer.getData('application/field-current-x')) || 0;
-                            const currentY = parseFloat(e.dataTransfer.getData('application/field-current-y')) || 0;
-                            
-                            // For small movements, use relative positioning to maintain precision
-                            const deltaX = x - currentX;
-                            const deltaY = y - currentY;
-                            const isSmallMovement = Math.abs(deltaX) < 50 && Math.abs(deltaY) < 50;
-                            
-                            let finalX = x;
-                            let finalY = y;
-                            
-                            if (isSmallMovement) {
-                              // For small movements, maintain the exact drop position
-                              finalX = x;
-                              finalY = y;
-                            } else {
-                              // For larger movements, center field on cursor
-                              finalX = x - 75;
-                              finalY = y - 15;
-                            }
-                            
-                            console.log('✅ Moving field', fieldId, 'to', finalX, finalY, 'on page', page.pageNumber, 
-                                      `(delta: ${Math.round(deltaX)}, ${Math.round(deltaY)}, small: ${isSmallMovement})`);
-                            updateField(fieldId, { x: Math.max(0, finalX), y: Math.max(0, finalY), pageNumber: page.pageNumber });
-                          } else if (fieldType && fieldType !== fieldId) {
-                            // Adding new field (make sure it's not a field ID mistaken as type)
-                            console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
-                            addField(x, y, fieldType as SignatureField['type'], page.pageNumber);
-                          } else {
-                            console.log('❌ No field ID or type found in dataTransfer');
-                            console.log('Available types:', Array.from(e.dataTransfer.types));
-                            console.log('Field ID:', fieldId);
-                            console.log('Field type:', fieldType);
+                            // Moving existing field
+                            console.log('Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
+                            updateField(fieldId, { x: Math.max(0, x - 75), y: Math.max(0, y - 15), pageNumber: page.pageNumber });
+                          } else if (fieldType) {
+                            // Adding new field
+                            console.log('Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
+                            addField(x - 75, y - 15, fieldType as SignatureField['type'], page.pageNumber);
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          // Check if we're dragging a field to set appropriate drop effect
-                          const fieldId = e.dataTransfer.types.includes('application/field-id');
-                          e.dataTransfer.dropEffect = fieldId ? 'move' : 'copy';
+                          e.dataTransfer.dropEffect = 'copy';
                         }}
                         onDragEnter={(e) => {
-                          e.preventDefault();
-                        }}
-                        onDragLeave={(e) => {
                           e.preventDefault();
                         }}
                       />
