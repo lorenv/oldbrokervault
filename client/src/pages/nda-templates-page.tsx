@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Calendar, Grid3X3, List, Eye, MoreVertical, Users } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface NdaTemplate {
   id: number;
@@ -91,7 +92,7 @@ export default function NdaTemplatesPage() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <Button 
               onClick={() => setLocation('/nda-templates/create')}
               className="flex items-center gap-2"
@@ -124,118 +125,154 @@ export default function NdaTemplatesPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template: NdaTemplate) => (
-            <Card key={template.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
+            <Card 
+              key={template.id} 
+              className="group hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-200 h-full flex flex-col border-gray-200 hover:border-blue-200 cursor-pointer bg-white"
+              onClick={() => setLocation(`/nda-templates/${template.id}/edit`)}
+            >
+              <CardHeader className="flex-shrink-0 pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="flex items-center gap-2 text-lg truncate">
-                      <FileText className="w-5 h-5 flex-shrink-0" />
-                      <span className="truncate">{template.name}</span>
+                    <CardTitle className="flex items-center gap-3 text-lg truncate group-hover:text-blue-600 transition-colors">
+                      <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="truncate font-semibold">{template.name}</span>
                     </CardTitle>
-                    {template.isDefault && (
-                      <Badge variant="secondary" className="mt-2">
-                        Default
-                      </Badge>
-                    )}
                   </div>
-                  <div className="flex gap-1 flex-shrink-0 ml-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(template.id, template.name)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLocation(`/nda-templates/${template.id}/edit`);
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(template.id, template.name);
+                        }}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="flex-grow flex flex-col justify-between">
+
+              <CardContent className="flex-1 flex flex-col justify-between pt-0">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Calendar className="w-4 h-4" />
-                    Created {new Date(template.createdAt).toLocaleDateString()}
+                    <span>Created {new Date(template.createdAt).toLocaleDateString()}</span>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {template.signatureFields?.length || 0} signature fields
-                    </Badge>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Users className="w-4 h-4" />
+                    <span>{template.signatureFields?.length || 0} signature fields</span>
                   </div>
                 </div>
-                
-                <Button 
-                  className="w-full mt-4"
-                  onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Template
-                </Button>
+
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400 group-hover:text-blue-500 transition-colors">
+                      Click to edit template
+                    </span>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Edit className="w-3 h-3 text-blue-600" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {templates.map((template: NdaTemplate) => (
-            <Card key={template.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
+            <Card 
+              key={template.id} 
+              className="group hover:shadow-md hover:shadow-blue-100/50 transition-all duration-200 border-gray-200 hover:border-blue-200 cursor-pointer bg-white"
+              onClick={() => setLocation(`/nda-templates/${template.id}/edit`)}
+            >
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="p-3 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                      <FileText className="w-6 h-6 text-blue-600" />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate">{template.name}</h3>
-                        {template.isDefault && (
-                          <Badge variant="secondary" className="text-xs">
-                            Default
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                      <h3 className="text-lg font-semibold truncate group-hover:text-blue-600 transition-colors">{template.name}</h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(template.createdAt).toLocaleDateString()}
+                          <Calendar className="w-4 h-4" />
+                          Created {new Date(template.createdAt).toLocaleDateString()}
                         </span>
-                        <Badge variant="outline" className="text-xs">
-                          {template.signatureFields?.length || 0} fields
-                        </Badge>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {template.signatureFields?.length || 0} signature fields
+                        </span>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setLocation(`/nda-templates/edit/${template.id}`)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(template.id, template.name)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+
+                  <div className="flex items-center gap-3 ml-4">
+                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-2 text-sm text-gray-400">
+                      <span>Click to edit</span>
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Edit className="w-3 h-3 text-blue-600" />
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="opacity-60 group-hover:opacity-100 transition-opacity hover:bg-gray-100"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-500" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/nda-templates/${template.id}/edit`);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(template.id, template.name);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>
