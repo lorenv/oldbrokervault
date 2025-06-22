@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Plus, Save, Upload, Type, FileSignature, Calendar, Mail, AlignLeft, Trash2 } from 'lucide-react';
+import UnifiedPdfDisplay from '@/components/unified-pdf-display';
 
 interface SignatureField {
   id: string;

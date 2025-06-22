@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Mail, Type, FileSignature, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import UnifiedPdfDisplay from '@/components/unified-pdf-display';
 
 interface SignatureField {
   id: string;
