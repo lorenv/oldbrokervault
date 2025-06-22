@@ -232,9 +232,9 @@ export default function ImagePdfEditor({
       let adjustedX = relativeX;
       
       for (const page of pageImages) {
-        // Calculate actual displayed height (no scale transform, just max-width constraint)
-        const maxWidth = 1000;
-        const actualWidth = Math.min(page.width, maxWidth);
+        // Use consistent 800px display width to match UnifiedPdfDisplay
+        const FIXED_DISPLAY_WIDTH = 800;
+        const actualWidth = Math.min(page.width, FIXED_DISPLAY_WIDTH);
         const actualHeight = (page.height * actualWidth) / page.width;
         const spacingGap = 20; // Gap between pages
         
@@ -299,9 +299,12 @@ export default function ImagePdfEditor({
   // Calculate cumulative offset for field positioning
   const getFieldOffset = (pageNumber: number) => {
     let offset = 0;
+    const FIXED_DISPLAY_WIDTH = 800;
     for (let i = 0; i < pageNumber - 1; i++) {
       if (pageImages[i]) {
-        offset += pageImages[i].height * scale + 20; // 20px gap between pages
+        const displayWidth = Math.min(FIXED_DISPLAY_WIDTH, pageImages[i].width);
+        const displayHeight = (pageImages[i].height * displayWidth) / pageImages[i].width;
+        offset += displayHeight + 20; // 20px gap between pages
       }
     }
     return offset;
@@ -364,9 +367,9 @@ export default function ImagePdfEditor({
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-8">
               {pageImages.map((page, index) => {
-                // Calculate display dimensions with consistent max width
-                const maxWidth = 800;
-                const displayWidth = Math.min(maxWidth, page.width);
+                // Use consistent 800px display width to match UnifiedPdfDisplay
+                const FIXED_DISPLAY_WIDTH = 800;
+                const displayWidth = Math.min(FIXED_DISPLAY_WIDTH, page.width);
                 const displayHeight = (page.height * displayWidth) / page.width;
                 
                 // Calculate scale factors for coordinate conversion

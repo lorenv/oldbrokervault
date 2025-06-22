@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Plus, Save, Upload, Type, FileSignature, Calendar, Mail, AlignLeft, Trash2 } from 'lucide-react';
 import UnifiedPdfDisplay from '@/components/unified-pdf-display';
+import ImagePdfEditor from '@/components/image-pdf-editor';
 
 interface SignatureField {
   id: string;
@@ -306,31 +307,41 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
 
           {/* PDF Template Display */}
           <div className="lg:col-span-2">
-            <UnifiedPdfDisplay
-              pdfBase64={pdfBase64}
-              pageImages={pageImages.length > 0 ? pageImages.map(page => ({
-                pageNumber: page.pageNumber,
-                imagePath: page.imagePath,
-                imageDataUrl: page.imagePath, // Use imagePath as imageDataUrl for cached images
-                width: page.width,
-                height: page.height
-              })) : undefined}
-              signatureFields={signatureFields}
-              mode="template"
-              onFieldDrop={handleFieldDrop}
-              onFieldMove={(fieldId, x, y, pageNumber) => {
-                handleFieldUpdate(fieldId, { x, y, pageNumber });
-              }}
-              onFieldDelete={handleFieldDelete}
-            />
-            
-            {/* Upload prompt if no PDF */}
-            {!pdfBase64 && pageImages.length === 0 && (
-              <Card className="h-full mt-4">
-                <CardHeader>
-                  <CardTitle>PDF Template Editor</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>PDF Template Editor</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pageImages.length > 0 ? (
+                  // Use UnifiedPdfDisplay for cached templates with existing page images
+                  <UnifiedPdfDisplay
+                    pdfBase64={pdfBase64}
+                    pageImages={pageImages.map(page => ({
+                      pageNumber: page.pageNumber,
+                      imagePath: page.imagePath,
+                      imageDataUrl: page.imagePath,
+                      width: page.width,
+                      height: page.height
+                    }))}
+                    signatureFields={signatureFields}
+                    mode="template"
+                    onFieldDrop={handleFieldDrop}
+                    onFieldMove={(fieldId, x, y, pageNumber) => {
+                      handleFieldUpdate(fieldId, { x, y, pageNumber });
+                    }}
+                    onFieldDelete={handleFieldDelete}
+                  />
+                ) : pdfBase64 ? (
+                  // Use ImagePdfEditor for new templates that need PDF conversion
+                  <div className="border rounded-lg overflow-hidden">
+                    <ImagePdfEditor
+                      pdfBase64={pdfBase64}
+                      signatureFields={signatureFields}
+                      onFieldsChange={setSignatureFields}
+                    />
+                  </div>
+                ) : (
+                  // Upload prompt if no PDF
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -345,9 +356,9 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
