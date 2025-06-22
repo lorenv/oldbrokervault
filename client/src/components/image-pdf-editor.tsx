@@ -149,10 +149,15 @@ export default function ImagePdfEditor({
   // Convert PDF to image via server
   useEffect(() => {
     const convertPdfToImage = async () => {
-      if (!pdfBase64) return;
+      if (!pdfBase64) {
+        console.log('No PDF base64 provided, skipping conversion');
+        return;
+      }
 
+      console.log('Starting PDF conversion, setting loading to true');
       setIsLoading(true);
       setError('');
+      setPageImages([]); // Clear existing images
 
       try {
         console.log('Converting all PDF pages to images via server');
@@ -183,20 +188,32 @@ export default function ImagePdfEditor({
             return new Promise<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>((resolve) => {
               const img = new Image();
               img.onload = () => {
+                console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
                 resolve({
                   pageNumber: page.pageNumber,
-                  imageDataUrl: page.imageDataUrl,
+                  imageDataUrl: page.imageDataUrl || page.imageUrl, // Support both formats
                   height: img.height,
                   width: img.width
                 });
               };
-              img.src = page.imageDataUrl;
+              img.onerror = () => {
+                console.error(`Failed to load image for page ${page.pageNumber}`);
+                resolve({
+                  pageNumber: page.pageNumber,
+                  imageDataUrl: page.imageDataUrl || page.imageUrl, // Support both formats
+                  height: 800,
+                  width: 600
+                });
+              };
+              img.src = page.imageDataUrl || page.imageUrl; // Support both formats
             });
           })
         );
         
+        console.log('All page images processed:', processedPages.length);
         setPageImages(processedPages);
         setTotalPages(data.totalPages || 1);
+        console.log('PDF conversion complete, setting loading to false, pageImages:', processedPages.length);
         setIsLoading(false);
 
       } catch (error: any) {
@@ -310,12 +327,15 @@ export default function ImagePdfEditor({
     return offset;
   };
 
+  console.log('ImagePdfEditor render state:', { isLoading, pageImagesCount: pageImages.length, hasError: !!error });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
           <p className="text-sm text-gray-600">Processing PDF...</p>
+          <p className="text-xs text-gray-500 mt-1">Converting pages to images</p>
         </div>
       </div>
     );
@@ -354,7 +374,8 @@ export default function ImagePdfEditor({
           <div className="flex items-center justify-center h-96 bg-gray-50">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Converting all PDF pages to images...</p>
+              <p className="text-gray-600">Converting PDF pages to images...</p>
+              <p className="text-xs text-gray-500 mt-2">Processing {totalPages} pages...</p>
             </div>
           </div>
         )}
