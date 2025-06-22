@@ -73,7 +73,19 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
       setSignatureFields(initialTemplate.signatureFields || []);
-      setPageImages(initialTemplate.pageImages || []);
+      if (initialTemplate.pageImages && initialTemplate.pageImages.length > 0) {
+        console.log('Setting cached page images:', initialTemplate.pageImages);
+        setPageImages(initialTemplate.pageImages);
+      } else {
+        console.log('No cached page images found, will need to convert PDF');
+        setPageImages([]);
+      }
+    } else {
+      console.log('No initial template provided, starting fresh');
+      setTemplateName('');
+      setPdfBase64('');
+      setSignatureFields([]);
+      setPageImages([]);
     }
   }, [initialTemplate]);
 
@@ -314,7 +326,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
             
             {/* Upload prompt if no PDF */}
             {!pdfBase64 && pageImages.length === 0 && (
-              <Card className="h-full">
+              <Card className="h-full mt-4">
                 <CardHeader>
                   <CardTitle>PDF Template Editor</CardTitle>
                 </CardHeader>

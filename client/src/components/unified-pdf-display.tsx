@@ -212,12 +212,24 @@ export default function UnifiedPdfDisplay({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Processing PDF pages...</p>
-        </div>
-      </div>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>
+            {mode === 'template' ? 'PDF Template Editor' : 'Document Review'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Processing PDF pages...</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {providedPageImages?.length > 0 ? 'Loading cached images...' : 'Converting PDF to images...'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
