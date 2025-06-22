@@ -291,111 +291,31 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
             )}
           </div>
 
-          {/* PDF Canvas Editor */}
+          {/* PDF Template Display */}
           <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>PDF Template Editor</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pageImages.length > 0 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="max-h-[800px] overflow-y-auto p-4">
-                      <div className="space-y-8">
-                        {pageImages.map((page, index) => {
-                          const maxWidth = 700;
-                          const displayWidth = Math.min(maxWidth, page.width);
-                          const displayHeight = (page.height * displayWidth) / page.width;
-                          const scaleX = page.width / displayWidth;
-                          const scaleY = page.height / displayHeight;
-
-                          return (
-                            <div key={page.pageNumber} className="relative mb-8">
-                              <div className="absolute -top-4 left-0 bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium z-20">
-                                Page {page.pageNumber}
-                              </div>
-
-                              <div 
-                                className="relative bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden"
-                                style={{ width: displayWidth, height: displayHeight }}
-                              >
-                                <img
-                                  src={page.imagePath}
-                                  alt={`PDF Page ${page.pageNumber}`}
-                                  className="w-full h-full object-contain select-none"
-                                  style={{ pointerEvents: 'none' }}
-                                />
-
-                                {/* Drop Zone Overlay */}
-                                <div
-                                  className="absolute inset-0 w-full h-full"
-                                  style={{ zIndex: 10 }}
-                                  onDrop={(e) => {
-                                    e.preventDefault();
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const relativeX = e.clientX - rect.left;
-                                    const relativeY = e.clientY - rect.top;
-                                    const x = relativeX * scaleX;
-                                    const y = relativeY * scaleY;
-                                    const fieldType = e.dataTransfer.getData('application/field-type');
-
-                                    if (fieldType) {
-                                      handleFieldDrop(page.pageNumber, x, y, fieldType);
-                                    }
-                                  }}
-                                  onDragOver={(e) => e.preventDefault()}
-                                />
-
-                                {/* Signature Fields */}
-                                {signatureFields
-                                  .filter(field => field.pageNumber === page.pageNumber)
-                                  .map((field) => (
-                                    <div
-                                      key={field.id}
-                                      className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded cursor-move flex items-center justify-center text-xs font-medium`}
-                                      style={{
-                                        left: (field.x / scaleX),
-                                        top: (field.y / scaleY),
-                                        width: (field.width / scaleX),
-                                        height: (field.height / scaleY),
-                                        zIndex: 15
-                                      }}
-                                      draggable
-                                      onDragStart={(e) => {
-                                        e.dataTransfer.setData('application/field-id', field.id);
-                                        e.dataTransfer.setData('application/field-current-x', field.x.toString());
-                                        e.dataTransfer.setData('application/field-current-y', field.y.toString());
-                                      }}
-                                    >
-                                      <span className="truncate px-1">{field.type}</span>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0 ml-1"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleFieldDelete(field.id);
-                                        }}
-                                      >
-                                        <Trash2 className="h-2 w-2" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : pdfBase64 ? (
-                  <div className="h-96 border-2 border-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-gray-600">Processing PDF pages...</p>
-                    </div>
-                  </div>
-                ) : (
+            {pageImages.length > 0 || pdfBase64 ? (
+              <UnifiedPdfDisplay
+                pdfBase64={pdfBase64}
+                pageImages={pageImages.map(page => ({
+                  pageNumber: page.pageNumber,
+                  imagePath: page.imagePath,
+                  width: page.width,
+                  height: page.height
+                }))}
+                signatureFields={signatureFields}
+                mode="template"
+                onFieldDrop={handleFieldDrop}
+                onFieldMove={(fieldId, x, y, pageNumber) => {
+                  handleFieldUpdate(fieldId, { x, y, pageNumber });
+                }}
+                onFieldDelete={handleFieldDelete}
+              />
+            ) : (
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>PDF Template Editor</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -410,9 +330,9 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                       </Button>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
