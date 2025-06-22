@@ -67,7 +67,8 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
         name: initialTemplate.name,
         hasFileContent: !!initialTemplate.fileContent,
         fieldsCount: initialTemplate.signatureFields?.length || 0,
-        pagesCount: initialTemplate.pageImages?.length || 0
+        pagesCount: initialTemplate.pageImages?.length || 0,
+        pageImages: initialTemplate.pageImages
       });
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
@@ -293,24 +294,26 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
 
           {/* PDF Template Display */}
           <div className="lg:col-span-2">
-            {pageImages.length > 0 || pdfBase64 ? (
-              <UnifiedPdfDisplay
-                pdfBase64={pdfBase64}
-                pageImages={pageImages.map(page => ({
-                  pageNumber: page.pageNumber,
-                  imagePath: page.imagePath,
-                  width: page.width,
-                  height: page.height
-                }))}
-                signatureFields={signatureFields}
-                mode="template"
-                onFieldDrop={handleFieldDrop}
-                onFieldMove={(fieldId, x, y, pageNumber) => {
-                  handleFieldUpdate(fieldId, { x, y, pageNumber });
-                }}
-                onFieldDelete={handleFieldDelete}
-              />
-            ) : (
+            <UnifiedPdfDisplay
+              pdfBase64={pdfBase64}
+              pageImages={pageImages.length > 0 ? pageImages.map(page => ({
+                pageNumber: page.pageNumber,
+                imagePath: page.imagePath,
+                imageDataUrl: page.imagePath, // Use imagePath as imageDataUrl for cached images
+                width: page.width,
+                height: page.height
+              })) : undefined}
+              signatureFields={signatureFields}
+              mode="template"
+              onFieldDrop={handleFieldDrop}
+              onFieldMove={(fieldId, x, y, pageNumber) => {
+                handleFieldUpdate(fieldId, { x, y, pageNumber });
+              }}
+              onFieldDelete={handleFieldDelete}
+            />
+            
+            {/* Upload prompt if no PDF */}
+            {!pdfBase64 && pageImages.length === 0 && (
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>PDF Template Editor</CardTitle>

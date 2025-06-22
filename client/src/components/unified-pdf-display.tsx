@@ -62,16 +62,37 @@ export default function UnifiedPdfDisplay({
   className = ''
 }: UnifiedPdfDisplayProps) {
   const [zoom, setZoom] = useState(1);
-  const [pageImages, setPageImages] = useState<PageImage[]>(providedPageImages || []);
-  const [isLoading, setIsLoading] = useState(!providedPageImages?.length);
+  const [pageImages, setPageImages] = useState<PageImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Convert PDF to images if not provided
+  // Handle page images from props or convert PDF
   useEffect(() => {
-    const convertPdfToImages = async () => {
-      if (providedPageImages?.length || !pdfBase64) return;
+    const handlePageImages = async () => {
+      console.log('UnifiedPdfDisplay useEffect triggered:', {
+        providedPageImagesLength: providedPageImages?.length || 0,
+        hasPdfBase64: !!pdfBase64,
+        currentPageImagesLength: pageImages.length
+      });
+
+      // If we have provided page images, use them directly
+      if (providedPageImages && providedPageImages.length > 0) {
+        console.log('Using provided page images:', providedPageImages.length, providedPageImages);
+        setPageImages(providedPageImages);
+        setIsLoading(false);
+        return;
+      }
       
+      // Only convert if we have PDF data but no page images
+      if (!pdfBase64) {
+        console.log('No PDF data provided, setting empty state');
+        setPageImages([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Starting PDF conversion for unified display');
       setIsLoading(true);
       setError('');
 
@@ -91,7 +112,7 @@ export default function UnifiedPdfDisplay({
         const data = await response.json();
         console.log(`Converted ${data.pages.length} pages for unified display`);
         
-        // Process page images
+        // Process page images from API response
         const processedPages = await Promise.all(
           data.pages.map(async (page: any) => {
             return new Promise<PageImage>((resolve) => {
@@ -119,16 +140,8 @@ export default function UnifiedPdfDisplay({
       }
     };
 
-    convertPdfToImages();
+    handlePageImages();
   }, [pdfBase64, providedPageImages]);
-
-  // Update page images when provided images change
-  useEffect(() => {
-    if (providedPageImages?.length) {
-      setPageImages(providedPageImages);
-      setIsLoading(false);
-    }
-  }, [providedPageImages]);
 
   const handleZoomIn = useCallback(() => {
     const currentIndex = ZOOM_LEVELS.indexOf(zoom);
