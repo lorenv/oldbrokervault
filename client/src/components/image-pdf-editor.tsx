@@ -26,12 +26,18 @@ interface ImagePdfEditorProps {
   pdfBase64: string;
   signatureFields: SignatureField[];
   onFieldsChange: (fields: SignatureField[]) => void;
+  templateName?: string;
+  onSave?: (templateData: { name: string; fileContent: string; signatureFields: SignatureField[] }) => void;
+  isNewTemplate?: boolean;
 }
 
 export default function ImagePdfEditor({
   pdfBase64,
   signatureFields,
-  onFieldsChange
+  onFieldsChange,
+  templateName = '',
+  onSave,
+  isNewTemplate = false
 }: ImagePdfEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageImages, setPageImages] = useState<PageImage[]>([]);
@@ -40,6 +46,8 @@ export default function ImagePdfEditor({
   const [totalPages, setTotalPages] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [resizingField, setResizingField] = useState<string | null>(null);
+  const [localTemplateName, setLocalTemplateName] = useState(templateName);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Helper functions for field management
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
@@ -206,6 +214,40 @@ export default function ImagePdfEditor({
             <ExternalLink className="w-4 h-4 mr-1" />
             View Original PDF
           </Button>
+          
+          {isNewTemplate && onSave && (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Template name..."
+                value={localTemplateName}
+                onChange={(e) => setLocalTemplateName(e.target.value)}
+                className="w-48"
+              />
+              <Button 
+                onClick={async () => {
+                  if (!localTemplateName.trim()) {
+                    alert('Please enter a template name');
+                    return;
+                  }
+                  setIsSaving(true);
+                  try {
+                    await onSave({
+                      name: localTemplateName.trim(),
+                      fileContent: pdfBase64,
+                      signatureFields
+                    });
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving || !localTemplateName.trim()}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isSaving ? 'Saving...' : 'Save Template'}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -322,13 +364,13 @@ export default function ImagePdfEditor({
                               pageNumber: page.pageNumber 
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
-                            // Adding new field - center field at drop location
+                            // Adding new field - use exact coordinates for more precise placement
                             console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 60), Math.max(0, y - 15), fieldType as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 30), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
                           } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
-                            // Fallback for new field creation via text/plain - center field at drop location
+            // Fallback for new field creation via text/plain - use exact coordinates
                             console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 60), Math.max(0, y - 15), textPlain as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 30), Math.max(0, y - 10), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
