@@ -289,7 +289,7 @@ export default function ImagePdfEditor({
                           
                           if (fieldId && fieldId.startsWith('field_')) {
                             // Moving existing field
-                            console.log('✅ Moving existing field', fieldId);
+                            console.log('✅ Moving existing field', fieldId, 'to page', page.pageNumber, 'at', x, y);
                             updateField(fieldId, { 
                               x: Math.max(0, x - 50), 
                               y: Math.max(0, y - 10), 
@@ -338,7 +338,7 @@ export default function ImagePdfEditor({
                             <div
                               key={field.id}
                               className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-70 rounded px-2 py-1 text-xs select-none cursor-move group hover:bg-blue-100 transition-colors"
-                              draggable
+                              draggable={true}
                               style={{
                                 left: `${fieldXPercent}%`,
                                 top: `${fieldYPercent}%`,
@@ -349,16 +349,18 @@ export default function ImagePdfEditor({
                                 zIndex: 20,
                               }}
                               onDragStart={(e) => {
+                                console.log('🔄 FIELD DRAG START:', field.id);
                                 e.dataTransfer.clearData();
                                 e.dataTransfer.setData('application/field-id', field.id);
                                 e.dataTransfer.setData('text/plain', field.id);
                                 e.dataTransfer.effectAllowed = 'move';
-                                e.currentTarget.style.opacity = '0.3';
+                                e.currentTarget.style.opacity = '0.5';
                                 e.currentTarget.style.transform = 'scale(1.05)';
                                 e.currentTarget.style.zIndex = '1000';
                                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                               }}
                               onDragEnd={(e) => {
+                                console.log('🔄 FIELD DRAG END:', field.id);
                                 e.currentTarget.style.opacity = '1';
                                 e.currentTarget.style.transform = 'scale(1)';
                                 e.currentTarget.style.zIndex = '20';
