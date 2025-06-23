@@ -4163,22 +4163,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // NDA Template routes
+  // NDA Template routes - optimized for performance
   app.get("/api/nda-templates", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
-      const templates = await storage.getNdaTemplates(req.user.id);
+      // Use lightweight version that excludes heavy fileContent
+      const templates = await storage.getNdaTemplatesLight(req.user.id);
       
       // Check if user has a default NDA template, if not and user is standard or premium, create one
       const hasDefault = templates.some(template => template.isDefault);
       if (!hasDefault && (req.user.subscriptionStatus === 'standard' || req.user.subscriptionStatus === 'premium' || req.user.subscriptionStatus === 'pro')) {
         const { populateDefaultNDAForUser } = await import("./populate-default-nda");
         await populateDefaultNDAForUser(req.user.id);
-        // Refetch templates after creating default
-        const updatedTemplates = await storage.getNdaTemplates(req.user.id);
+        // Refetch templates after creating default (still lightweight)
+        const updatedTemplates = await storage.getNdaTemplatesLight(req.user.id);
         return res.json(updatedTemplates);
       }
       
