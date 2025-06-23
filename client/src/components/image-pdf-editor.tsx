@@ -3,7 +3,7 @@ import { useDrop, useDrag } from 'react-dnd';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink } from 'lucide-react';
+import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface SignatureField {
   id: string;
@@ -505,7 +505,9 @@ export default function ImagePdfEditor({
                             <div
                               key={field.id}
                               draggable
-                              className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded px-2 py-1 text-xs group hover:shadow-md transition-all cursor-move select-none`}
+                              className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded px-2 py-1 text-xs group hover:shadow-md transition-all cursor-move select-none ${
+                                resizingField === field.id ? 'ring-2 ring-blue-500' : ''
+                              }`}
                               style={{
                                 left: `${fieldXPercent}%`,
                                 top: `${fieldYPercent}%`,
@@ -550,6 +552,44 @@ export default function ImagePdfEditor({
                                   <Trash2 className="h-2 w-2" />
                                 </Button>
                               </div>
+                              
+                              {/* Resize Handles */}
+                              <div
+                                className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-se-resize opacity-0 group-hover:opacity-100"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setResizingField(field.id);
+                                  
+                                  const startX = e.clientX;
+                                  const startY = e.clientY;
+                                  const startWidth = field.width;
+                                  const startHeight = field.height;
+                                  
+                                  const handleMouseMove = (moveE: MouseEvent) => {
+                                    const deltaX = moveE.clientX - startX;
+                                    const deltaY = moveE.clientY - startY;
+                                    
+                                    // Convert screen deltas to PDF coordinates
+                                    const newWidth = Math.max(50, startWidth + deltaX * scaleX);
+                                    const newHeight = Math.max(20, startHeight + deltaY * scaleY);
+                                    
+                                    updateField(field.id, { 
+                                      width: newWidth, 
+                                      height: newHeight 
+                                    });
+                                  };
+                                  
+                                  const handleMouseUp = () => {
+                                    setResizingField(null);
+                                    document.removeEventListener('mousemove', handleMouseMove);
+                                    document.removeEventListener('mouseup', handleMouseUp);
+                                  };
+                                  
+                                  document.addEventListener('mousemove', handleMouseMove);
+                                  document.addEventListener('mouseup', handleMouseUp);
+                                }}
+                              />
                             </div>
                           );
                         })}
