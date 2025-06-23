@@ -49,6 +49,14 @@ export default function ImagePdfEditor({
   const [localTemplateName, setLocalTemplateName] = useState(templateName);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Debug log to check if this is a new template
+  console.log('🔧 ImagePdfEditor props:', { 
+    isNewTemplate, 
+    hasOnSave: !!onSave, 
+    templateName: localTemplateName,
+    hasPdfBase64: !!pdfBase64
+  });
+
   // Helper functions for field management
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
     const newField: SignatureField = {
@@ -178,7 +186,7 @@ export default function ImagePdfEditor({
         <div className="text-sm text-gray-600">
           {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
           {/* Zoom Controls */}
           <div className="flex items-center gap-2 border rounded-lg p-1">
             <Button
@@ -216,7 +224,7 @@ export default function ImagePdfEditor({
           </Button>
           
           {isNewTemplate && onSave && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-4">
               <Input
                 placeholder="Template name..."
                 value={localTemplateName}
