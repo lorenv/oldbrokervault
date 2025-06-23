@@ -351,6 +351,42 @@ export function CimGenerator() {
     },
   });
 
+  // Template management mutations
+  const createTemplateMutation = useMutation({
+    mutationFn: async (templateData: { name: string; customDirections: string }) => {
+      return apiRequest("/api/analysis-templates", {
+        method: "POST",
+        body: templateData
+      });
+    },
+    onSuccess: () => {
+      refetchTemplates();
+      setTemplateName('');
+      setIsTemplateDialogOpen(false);
+      toast({
+        title: "Template Saved",
+        description: "Your template has been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save template. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const loadTemplate = (template: any) => {
+    setCustomDirections(template.customDirections);
+    form.setValue("directions", template.customDirections);
+    setIsTemplateDialogOpen(false);
+    toast({
+      title: "Template Loaded",
+      description: `Loaded template: ${template.name}`,
+    });
+  };
+
   // File handling functions
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
