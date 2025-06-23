@@ -126,6 +126,15 @@ The application follows a modern client-server architecture with clear separatio
 3. Ensure `draggable={true}` is explicitly set on source elements
 4. Use consistent data transfer keys: 'application/field-type' and 'text/plain'
 
+### Common Issue: Fields Can't Be Repositioned After Placement
+**Problem:** Fields drop correctly but can't be moved to new positions after initial placement
+**Root Cause:** Field elements missing proper drag properties or conflicting event handlers
+**Solution:**
+1. Ensure `draggable={true}` is explicitly set on field elements (not just `draggable`)
+2. Set correct dataTransfer data: `'application/field-id'` for existing fields vs `'application/field-type'` for new fields
+3. Use `effectAllowed = 'move'` for existing field repositioning
+4. Add proper logging to track field ID in drag events: `console.log('🔄 FIELD DRAG START:', field.id)`
+
 ### Common Issue: Images Don't Load
 **Problem:** PDF conversion succeeds but images show as broken/undefined URLs
 **Root Cause:** API response structure mismatch between filename and imageUrl fields
