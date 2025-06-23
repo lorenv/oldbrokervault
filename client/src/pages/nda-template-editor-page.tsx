@@ -78,7 +78,6 @@ export default function NdaTemplateEditorPage() {
         description: "Your NDA template has been saved successfully"
       });
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-      setIsEditing(false);
       setLocation('/nda-templates');
     },
     onError: (error) => {
