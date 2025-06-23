@@ -97,46 +97,36 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Menu</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link href="/dashboard">
-                    <div className="flex items-center cursor-pointer w-full">
-                      <Zap className="h-4 w-4 mr-2" />
-                      Create New CIM
-                    </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="flex items-center cursor-pointer w-full">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Create New CIM
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/documents">
-                    <div className="flex items-center cursor-pointer w-full">
-                      <FileText className="h-4 w-4 mr-2" />
-                      My CIMs
-                    </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/documents" className="flex items-center cursor-pointer w-full">
+                    <FileText className="h-4 w-4 mr-2" />
+                    My CIMs
                   </Link>
                 </DropdownMenuItem>
                 {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
-                  <DropdownMenuItem>
-                    <Link href="/investor-database">
-                      <div className="flex items-center cursor-pointer w-full">
-                        <Database className="h-4 w-4 mr-2" />
-                        Investor Database
-                      </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/investor-database" className="flex items-center cursor-pointer w-full">
+                      <Database className="h-4 w-4 mr-2" />
+                      Investor Database
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem>
-                  <Link href="/nda-templates">
-                    <div className="flex items-center cursor-pointer w-full">
-                      <FileText className="h-4 w-4 mr-2" />
-                      NDA Templates
-                    </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
+                    <FileText className="h-4 w-4 mr-2" />
+                    NDA Templates
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/account">
-                    <div className="flex items-center cursor-pointer w-full">
-                      <Settings className="h-4 w-4 mr-2" />
-                      My Account
-                    </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/account" className="flex items-center cursor-pointer w-full">
+                    <Settings className="h-4 w-4 mr-2" />
+                    My Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
