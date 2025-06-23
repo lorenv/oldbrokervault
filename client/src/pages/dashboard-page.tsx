@@ -42,12 +42,7 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-600 mt-1">Create professional CIM documents with AI-powered analysis</p>
             </div>
-            <div className="hidden md:flex items-center space-x-4 text-sm text-gray-500">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4" />
-                <span>{documents.length} documents</span>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>
