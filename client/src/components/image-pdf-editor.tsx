@@ -103,11 +103,12 @@ export default function ImagePdfEditor({
           data.pages.map((page: any) => {
             return new Promise<PageImage>((resolve) => {
               const img = new Image();
+              const imageUrl = `/api/temp-image/${page.filename}`;
               img.onload = () => {
                 console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
                 resolve({
                   pageNumber: page.pageNumber,
-                  imageDataUrl: `/api/temp-image/${page.filename}`,
+                  imageDataUrl: imageUrl,
                   height: img.height,
                   width: img.width
                 });
@@ -116,12 +117,12 @@ export default function ImagePdfEditor({
                 console.error(`Failed to load image for page ${page.pageNumber}`);
                 resolve({
                   pageNumber: page.pageNumber,
-                  imageDataUrl: `/api/temp-image/${page.filename}`,
+                  imageDataUrl: imageUrl,
                   height: 800,
                   width: 600
                 });
               };
-              img.src = `/api/temp-image/${page.filename}`;
+              img.src = imageUrl;
             });
           })
         );
