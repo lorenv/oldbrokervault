@@ -214,6 +214,37 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                   />
                 </div>
 
+                {/* Debug logging for Save button */}
+                {console.log('🔍 CachedEditor Save button condition check:', {
+                  initialTemplate,
+                  hasInitialTemplate: !!initialTemplate,
+                  hasPdfBase64: !!pdfBase64,
+                  hasTemplateName: !!templateName.trim(),
+                  isNewTemplate: !initialTemplate,
+                  shouldShowSave: !initialTemplate && pdfBase64 && templateName.trim()
+                })}
+                
+                {!initialTemplate && pdfBase64 && templateName.trim() && (
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isSaving || !templateName.trim() || !pdfBase64}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    size="lg"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Saving Template...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save NDA Template
+                      </>
+                    )}
+                  </Button>
+                )}
+
                 {/* Show current PDF status if available */}
                 {(pdfFile || pdfBase64) && (
                   <div className="bg-gray-50 rounded-lg p-4">
