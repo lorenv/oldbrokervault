@@ -56,11 +56,31 @@ export class PdfSignatureProcessor {
         }
 
         const page = pages[pageIndex];
-        const { height: pageHeight } = page.getSize();
+        const { width: pageWidth, height: pageHeight } = page.getSize();
 
-        // Convert coordinates (PDF coordinate system has origin at bottom-left)
-        const x = field.x;
-        const y = pageHeight - field.y - field.height;
+        // CRITICAL FIX: The signing interface uses 800px fixed display width
+        // We need to scale coordinates from display size to actual PDF size
+        const DISPLAY_WIDTH = 800;
+        const scaleX = pageWidth / DISPLAY_WIDTH;
+        const scaleY = scaleX; // Maintain aspect ratio
+        
+        // Scale coordinates from display to PDF coordinates
+        const scaledX = field.x * scaleX;
+        const scaledY = field.y * scaleY;
+        const scaledWidth = field.width * scaleX;
+        const scaledHeight = field.height * scaleY;
+
+        // Convert coordinates (PDF coordinate system has origin at bottom-left, display has top-left)
+        const x = scaledX;
+        const y = pageHeight - scaledY - scaledHeight;
+        
+        console.log(`Coordinate conversion for field ${field.id}:`, {
+          original: { x: field.x, y: field.y, w: field.width, h: field.height },
+          pageSize: { w: pageWidth, h: pageHeight },
+          scale: { x: scaleX, y: scaleY },
+          scaled: { x: scaledX, y: scaledY, w: scaledWidth, h: scaledHeight },
+          final: { x, y }
+        });
 
         try {
           // Use simple text drawing without custom fonts to avoid embedding issues
