@@ -392,22 +392,20 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
 
           {/* PDF Canvas Editor */}
           <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
+            <Card className="h-fit">
+              <CardHeader className="pb-4">
                 <CardTitle>PDF Template Editor</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {pdfBase64 ? (
-                  <div className="border rounded-lg overflow-hidden">
-                    <ImagePdfEditor
-                      pdfBase64={pdfBase64}
-                      signatureFields={signatureFields}
-                      onFieldsChange={setSignatureFields}
-                      templateName={templateName}
-                      onSave={onSave}
-                      isNewTemplate={!initialTemplate}
-                    />
-                  </div>
+                  <ImagePdfEditor
+                    pdfBase64={pdfBase64}
+                    signatureFields={signatureFields}
+                    onFieldsChange={setSignatureFields}
+                    templateName={templateName}
+                    onSave={onSave}
+                    isNewTemplate={!initialTemplate}
+                  />
                 ) : (
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
