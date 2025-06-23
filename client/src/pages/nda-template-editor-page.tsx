@@ -141,7 +141,7 @@ export default function NdaTemplateEditorPage() {
         </div>
       ) : (
         <CachedNdaTemplateEditor
-          initialTemplate={template}
+          initialTemplate={isNewTemplate ? null : template}
           onSave={handleSave}
           isLoading={saveTemplateMutation.isPending}
         />
