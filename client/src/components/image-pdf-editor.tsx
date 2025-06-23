@@ -511,14 +511,16 @@ export default function ImagePdfEditor({
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          e.dataTransfer.dropEffect = 'copy';
-                          console.log('🎭 DRAG OVER page', page.pageNumber, 'types:', Array.from(e.dataTransfer.types));
-                          // Add visual feedback when hovering over drop zone
-                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                          e.dataTransfer.dropEffect = 'move';
+                          // Enhanced visual feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                          e.currentTarget.style.border = '2px dashed #3b82f6';
+                          e.currentTarget.style.borderRadius = '8px';
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
                           e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.border = 'none';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -553,21 +555,20 @@ export default function ImagePdfEditor({
                                 zIndex: 20,
                               }}
                               onDragStart={(e) => {
-                                console.log('🚀 Starting drag for placed field:', field.id);
-                                e.dataTransfer.clearData(); // Clear any existing data
+                                e.dataTransfer.clearData();
                                 e.dataTransfer.setData('application/field-id', field.id);
-                                e.dataTransfer.setData('text/plain', field.id); // Fallback
+                                e.dataTransfer.setData('text/plain', field.id);
                                 e.dataTransfer.effectAllowed = 'move';
-                                e.currentTarget.style.opacity = '0.5';
-                                console.log('📦 Set field ID in dataTransfer:', field.id);
-                                
-                                // Store current position for precise small movements
-                                e.dataTransfer.setData('application/field-current-x', field.x.toString());
-                                e.dataTransfer.setData('application/field-current-y', field.y.toString());
+                                e.currentTarget.style.opacity = '0.3';
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.zIndex = '1000';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                               }}
                               onDragEnd={(e) => {
-                                console.log('Drag ended for placed field:', field.id);
                                 e.currentTarget.style.opacity = '1';
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.zIndex = '20';
+                                e.currentTarget.style.boxShadow = 'none';
                               }}
                             >
                               <div className="flex items-center justify-between h-full">
