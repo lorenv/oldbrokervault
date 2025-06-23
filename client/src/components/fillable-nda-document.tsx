@@ -263,8 +263,9 @@ export default function FillableNdaDocument({
               // Convert PDF coordinates to absolute pixel positioning (same as template editor)
               const fieldXPixels = field.x * displayScaleX;
               const fieldYPixels = field.y * displayScaleY;
-              const fieldWidthPixels = field.width * displayScaleX;
-              const fieldHeightPixels = field.height * displayScaleY;
+              // FIXED: Use actual field dimensions from template, not hardcoded sizes
+              const fieldWidthPixels = (field.width || 120) * displayScaleX; // Use template field width
+              const fieldHeightPixels = (field.height || 30) * displayScaleY; // Use template field height
               
               console.log(`Field ${field.id} consistent positioning:`, {
                 original: { x: field.x, y: field.y, w: field.width, h: field.height },
@@ -279,8 +280,9 @@ export default function FillableNdaDocument({
                 top: `${fieldYPixels}px`, 
                 width: `${fieldWidthPixels}px`,
                 height: `${fieldHeightPixels}px`,
-                minHeight: window.innerWidth < 640 ? '28px' : '36px', // Mobile-specific sizing
-                minWidth: window.innerWidth < 640 ? '80px' : '120px', // Mobile-specific sizing
+                // Respect template sizing - only apply minimums for very small fields
+                minHeight: fieldHeightPixels < 20 ? '20px' : undefined,
+                minWidth: fieldWidthPixels < 60 ? '60px' : undefined,
                 zIndex: 10
               };
 

@@ -427,17 +427,80 @@ export default function ImagePdfEditor({
                                   {React.createElement(FIELD_ICONS[field.type], { className: "w-3 h-3 flex-shrink-0" })}
                                   <span className="truncate text-xs flex-1 min-w-0">{field.label}</span>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="opacity-0 group-hover:opacity-100 h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteField(field.id);
-                                  }}
-                                >
-                                  <Trash2 className="h-2 w-2" />
-                                </Button>
+                                
+                                {/* Precision movement controls */}
+                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 flex-shrink-0">
+                                  <div className="grid grid-cols-3 gap-0.5 p-1 bg-white rounded border shadow-sm">
+                                    {/* Arrow keys for precise movement */}
+                                    <div></div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-4 w-4 p-0 hover:bg-blue-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveField(field.id, 0, -1); // Move up 1px
+                                      }}
+                                      title="Move up 1px"
+                                    >
+                                      <div className="w-2 h-2 border-l border-t transform rotate-45 border-gray-600"></div>
+                                    </Button>
+                                    <div></div>
+                                    
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-4 w-4 p-0 hover:bg-blue-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveField(field.id, -1, 0); // Move left 1px
+                                      }}
+                                      title="Move left 1px"
+                                    >
+                                      <div className="w-2 h-2 border-l border-b transform rotate-45 border-gray-600"></div>
+                                    </Button>
+                                    <div></div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-4 w-4 p-0 hover:bg-blue-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveField(field.id, 1, 0); // Move right 1px
+                                      }}
+                                      title="Move right 1px"
+                                    >
+                                      <div className="w-2 h-2 border-r border-t transform rotate-45 border-gray-600"></div>
+                                    </Button>
+                                    
+                                    <div></div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-4 w-4 p-0 hover:bg-blue-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveField(field.id, 0, 1); // Move down 1px
+                                      }}
+                                      title="Move down 1px"
+                                    >
+                                      <div className="w-2 h-2 border-r border-b transform rotate-45 border-gray-600"></div>
+                                    </Button>
+                                    <div></div>
+                                  </div>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteField(field.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-2 w-2" />
+                                  </Button>
+                                </div>
                               </div>
                               
                               {/* Optimized resize handle */}
