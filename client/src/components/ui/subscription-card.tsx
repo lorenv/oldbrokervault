@@ -134,20 +134,7 @@ export function SubscriptionCard({
             </Button>
           )}
 
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-center">
-              ✓ All export features (PDF, Word, WordPress)
-            </li>
-            <li className="flex items-center">
-              ✓ Advanced analytics and search
-            </li>
-            <li className="flex items-center">
-              ✓ NDA management and sharing
-            </li>
-            <li className="flex items-center">
-              ✓ Version history and collaboration
-            </li>
-          </ul>
+          
 
           {status === "free" && (
             <div className="text-sm text-muted-foreground mt-4">
