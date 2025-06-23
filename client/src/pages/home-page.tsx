@@ -214,6 +214,31 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* E-Signature Template Editor Feature - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div 
+                className="bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-300"
+                onClick={() => setEnlargedImage("/e-signature-template-editor.png")}
+              >
+                <img 
+                  src="/e-signature-template-editor.png" 
+                  alt="E-Signature Template Editor with Drag & Drop Fields"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+              <div className="space-y-6">
+                <h3 className="text-3xl font-bold text-gray-900">E-Signature Templates</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Create custom PDF templates with drag-and-drop signature fields. Upload any PDF document and position signature, 
+                  name, date, email, and text fields exactly where you need them for professional document signing workflows.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">PDF Template Editor</span>
+                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">Drag & Drop Fields</span>
+                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">Custom Positioning</span>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
