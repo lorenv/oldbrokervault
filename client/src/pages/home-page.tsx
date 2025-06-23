@@ -305,11 +305,11 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-purple-600 pt-20 pb-0 overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-end">
             {/* Left side - Text content */}
-            <div className="text-center lg:text-left">
+            <div className="text-center lg:text-left pb-20">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
                 Ready to Make CIMs the Easy Way?
               </h2>
@@ -337,6 +337,7 @@ export default function HomePage() {
                   src="/mobile-mockup.png"
                   alt="CIM Share mobile app showing Arbor Partners CIM with financial information"
                   className="w-full max-w-md h-auto drop-shadow-2xl"
+                  style={{ marginBottom: '-2px' }}
                 />
               </div>
             </div>
