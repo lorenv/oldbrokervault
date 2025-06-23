@@ -145,6 +145,8 @@ export default function ImagePdfEditor({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [totalPages, setTotalPages] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [resizingField, setResizingField] = useState<string | null>(null);
 
   // Convert PDF to image via server
   useEffect(() => {
@@ -421,14 +423,14 @@ export default function ImagePdfEditor({
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-8">
               {pageImages.map((page, index) => {
-                // Use consistent 800px display width to match UnifiedPdfDisplay
-                const FIXED_DISPLAY_WIDTH = 800;
-                const displayWidth = Math.min(FIXED_DISPLAY_WIDTH, page.width);
+                // Calculate display dimensions with zoom support
+                const baseDisplayWidth = 800;
+                const displayWidth = (baseDisplayWidth * zoomLevel) / 100;
                 const displayHeight = (page.height * displayWidth) / page.width;
                 
-                // Calculate scale factors for coordinate conversion
-                const scaleX = page.width / displayWidth;
-                const scaleY = page.height / displayHeight;
+                // Calculate scale factors for coordinate conversion (zoom doesn't affect field positioning)
+                const scaleX = page.width / baseDisplayWidth;
+                const scaleY = page.height / (baseDisplayWidth * (page.height / page.width));
                 
                 return (
                   <div key={page.pageNumber} className="relative mb-8">
