@@ -248,7 +248,10 @@ export default function ImagePdfEditor({
                     {/* Page container with proper sizing */}
                     <div 
                       className="relative bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden"
-                      style={{ width: displayWidth, height: displayHeight }}
+                      style={{ 
+                        width: displayWidth * (zoomLevel / 100), 
+                        height: displayHeight * (zoomLevel / 100)
+                      }}
                     >
                       {/* PDF Image */}
                       <img
@@ -258,8 +261,8 @@ export default function ImagePdfEditor({
                         onDragStart={(e) => e.preventDefault()}
                         style={{ 
                           pointerEvents: 'none',
-                          transform: `scale(${zoomLevel / 100})`,
-                          transformOrigin: 'top left'
+                          width: '100%',
+                          height: '100%'
                         }}
                       />
                       
@@ -357,11 +360,16 @@ export default function ImagePdfEditor({
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
                         .map((field) => {
-                          // Convert PDF coordinates to display coordinates
-                          const fieldXPercent = (field.x / page.width) * 100;
-                          const fieldYPercent = (field.y / page.height) * 100;
-                          const fieldWidthPercent = (field.width / page.width) * 100;
-                          const fieldHeightPercent = (field.height / page.height) * 100;
+                          // Convert PDF coordinates to zoom-adjusted display coordinates
+                          const zoomFactor = zoomLevel / 100;
+                          const displayScaleX = displayWidth / page.width;
+                          const displayScaleY = displayHeight / page.height;
+                          
+                          // Calculate absolute pixel positions based on zoom
+                          const fieldX = (field.x * displayScaleX) * zoomFactor;
+                          const fieldY = (field.y * displayScaleY) * zoomFactor;
+                          const fieldWidth = (field.width * displayScaleX) * zoomFactor;
+                          const fieldHeight = (field.height * displayScaleY) * zoomFactor;
 
                           return (
                             <div
@@ -369,10 +377,10 @@ export default function ImagePdfEditor({
                               className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-70 rounded px-2 py-1 text-xs select-none cursor-move group hover:bg-blue-100 transition-colors"
                               draggable={true}
                               style={{
-                                left: `${fieldXPercent}%`,
-                                top: `${fieldYPercent}%`,
-                                width: `${fieldWidthPercent}%`,
-                                height: `${fieldHeightPercent}%`,
+                                left: `${fieldX}px`,  
+                                top: `${fieldY}px`,
+                                width: `${fieldWidth}px`,
+                                height: `${fieldHeight}px`,
                                 minWidth: '80px',
                                 minHeight: '20px',
                                 zIndex: 20,
