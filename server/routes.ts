@@ -4977,13 +4977,36 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           console.log("Found existing access token");
         }
         
+        // Send access email even for existing signers
+        console.log("Sending access email for existing signer...");
+        const { owner } = await storage.getCimWithOwner(cimDoc.id);
+        const redirectUrl = accessToken ? `${req.protocol}://${req.get('host')}/cims/${shareSlug}?token=${accessToken}` : null;
+        
+        let emailSent = false;
+        if (redirectUrl) {
+          try {
+            const { sendNdaAccessEmail } = await import('./email');
+            emailSent = await sendNdaAccessEmail(
+              signerEmail.trim(),
+              owner.email,
+              owner.name || owner.email,
+              cimDoc.title,
+              redirectUrl,
+              signerName.trim()
+            );
+            console.log("Access email sent to existing signer:", emailSent);
+          } catch (error) {
+            console.error("Failed to send access email to existing signer:", error);
+          }
+        }
+
         return res.json({ 
           success: true, 
-          message: "NDA already signed",
+          message: emailSent ? "Check your email for the document access link" : "NDA already signed",
           signature: existingSignature,
           accessToken: accessToken,
           requiresApproval: cimDoc.ndaApprovalRequired || false,
-          redirectUrl: accessToken ? `/cims/${shareSlug}?token=${accessToken}` : null
+          redirectUrl: redirectUrl
         });
       }
 
