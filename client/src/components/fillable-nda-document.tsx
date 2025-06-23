@@ -213,12 +213,13 @@ export default function FillableNdaDocument({
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
       
       return (
-        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden mx-auto" style={{ maxWidth: '700px' }}>
+        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden mx-auto" style={{ maxWidth: '800px' }}>
           {/* PDF Page as Background */}
           <img
             src={pageData.imageUrl}
             alt={`Document page ${pageNumber}`}
-            className="w-full h-auto border border-gray-200 block"
+            className="block border border-gray-200"
+            style={{ width: '800px', height: 'auto' }}
             loading="eager"
             decoding="sync"
             onError={(e) => {
@@ -231,7 +232,7 @@ export default function FillableNdaDocument({
               const imgElement = e.currentTarget;
               const actualDisplayWidth = imgElement.clientWidth;
               const actualDisplayHeight = imgElement.clientHeight;
-              console.log('Page loaded successfully:', pageNumber, 'actual display size:', actualDisplayWidth, 'x', actualDisplayHeight);
+              console.log('Page loaded successfully:', pageNumber, 'fixed display size:', actualDisplayWidth, 'x', actualDisplayHeight);
             }}
           />
           
@@ -241,26 +242,31 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // MOBILE FIX: Calculate responsive positioning based on PDF coordinate system
-              // Convert PDF coordinates to percentage-based positioning that works on all screen sizes
-              const fieldXPercent = (field.x / pageData.width) * 100;
-              const fieldYPercent = (field.y / pageData.height) * 100;
-              const fieldWidthPercent = Math.max((field.width / pageData.width) * 100, 15); // Minimum 15% width
-              const fieldHeightPercent = Math.max((field.height / pageData.height) * 100, 6); // Minimum 6% height
+              // CONSISTENT POSITIONING: Use same system as template editor (800px fixed width)
+              // Calculate display scale based on consistent 800px width (same as ImagePdfEditor)
+              const FIXED_DISPLAY_WIDTH = 800;
+              const displayScaleX = FIXED_DISPLAY_WIDTH / pageData.width;
+              const displayScaleY = displayScaleX; // Maintain aspect ratio
               
-              console.log(`Field ${field.id} mobile-responsive positioning:`, {
+              // Convert PDF coordinates to absolute pixel positioning (same as template editor)
+              const fieldXPixels = field.x * displayScaleX;
+              const fieldYPixels = field.y * displayScaleY;
+              const fieldWidthPixels = field.width * displayScaleX;
+              const fieldHeightPixels = field.height * displayScaleY;
+              
+              console.log(`Field ${field.id} consistent positioning:`, {
                 original: { x: field.x, y: field.y, w: field.width, h: field.height },
-                percentage: { x: fieldXPercent, y: fieldYPercent, w: fieldWidthPercent, h: fieldHeightPercent },
-                pageSize: { w: pageData.width, h: pageData.height },
-                minimums: { minW: '15%', minH: '6%' }
+                scale: { x: displayScaleX, y: displayScaleY },
+                pixels: { x: fieldXPixels, y: fieldYPixels, w: fieldWidthPixels, h: fieldHeightPixels },
+                pageSize: { w: pageData.width, h: pageData.height }
               });
               
               const style = {
                 position: 'absolute' as const,
-                left: `${Math.max(0, Math.min(85, fieldXPercent))}%`, // Keep within bounds (0-85%)
-                top: `${Math.max(0, Math.min(94, fieldYPercent))}%`, // Keep within bounds (0-94%)
-                width: `${fieldWidthPercent}%`,
-                height: `${fieldHeightPercent}%`,
+                left: `${fieldXPixels}px`,
+                top: `${fieldYPixels}px`, 
+                width: `${fieldWidthPixels}px`,
+                height: `${fieldHeightPixels}px`,
                 minHeight: window.innerWidth < 640 ? '28px' : '36px', // Mobile-specific sizing
                 minWidth: window.innerWidth < 640 ? '80px' : '120px', // Mobile-specific sizing
                 zIndex: 10
