@@ -183,7 +183,15 @@ export default function FillableNdaDocument({
   };
 
   const handleSubmit = async () => {
+    console.log('=== FILLABLE NDA FORM SUBMISSION DEBUG ===');
+    console.log('Field values:', fieldValues);
+    console.log('Agreed to terms:', agreed);
+    console.log('Signature fields:', signatureFields);
+    console.log('Prefilled name:', prefilledName);
+    console.log('Prefilled email:', prefilledEmail);
+    
     if (!validateFields()) {
+      console.log('ERROR: Validation failed');
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields and agree to the terms",
@@ -192,11 +200,14 @@ export default function FillableNdaDocument({
       return;
     }
 
+    console.log('✅ Validation passed, calling onSubmit...');
     setIsSubmitting(true);
     try {
+      console.log('Calling onSubmit with field values:', fieldValues);
       await onSubmit(fieldValues);
+      console.log('✅ onSubmit completed successfully');
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('❌ Submission error:', error);
       toast({
         title: "Submission Failed",
         description: "Please try again or contact support",
@@ -204,6 +215,7 @@ export default function FillableNdaDocument({
       });
     } finally {
       setIsSubmitting(false);
+      console.log('=== END FILLABLE NDA FORM SUBMISSION DEBUG ===');
     }
   };
 

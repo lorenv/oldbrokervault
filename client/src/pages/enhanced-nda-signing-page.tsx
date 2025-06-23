@@ -33,6 +33,15 @@ export default function EnhancedNdaSigningPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const prefilledName = urlParams.get('name') || '';
   const prefilledEmail = urlParams.get('email') || '';
+  
+  console.log('=== NDA SIGNING PAGE LOAD DEBUG ===');
+  console.log('Current URL:', window.location.href);
+  console.log('URL search params:', window.location.search);
+  console.log('Parsed URL params:', [...urlParams.entries()]);
+  console.log('Prefilled name:', prefilledName);
+  console.log('Prefilled email:', prefilledEmail);
+  console.log('Share slug:', shareSlug);
+  console.log('=== END PAGE LOAD DEBUG ===');
 
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
