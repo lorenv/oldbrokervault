@@ -180,15 +180,15 @@ export default function ImagePdfEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header with Zoom Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-6 bg-gray-50 border-b">
         <div className="text-sm text-gray-600">
           {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
         </div>
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-2 border rounded-lg p-1">
+          <div className="flex items-center gap-2 border rounded-lg p-1 bg-white">
             <Button
               variant="ghost"
               size="sm"
@@ -222,8 +222,6 @@ export default function ImagePdfEditor({
             <ExternalLink className="w-4 h-4 mr-1" />
             View Original PDF
           </Button>
-          
-
         </div>
       </div>
 
