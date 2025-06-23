@@ -426,7 +426,9 @@ export default function ImagePdfEditor({
                           e.preventDefault();
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
-                          console.log('Drop event on page', page.pageNumber);
+                          
+                          console.log('🎯 DROP EVENT on page', page.pageNumber);
+                          console.log('📦 DataTransfer types available:', Array.from(e.dataTransfer.types));
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const relativeX = e.clientX - rect.left;
@@ -436,34 +438,56 @@ export default function ImagePdfEditor({
                           const x = relativeX * scaleX;
                           const y = relativeY * scaleY;
                           
+                          console.log('📐 Drop coordinates:', {
+                            clientX: e.clientX,
+                            clientY: e.clientY,
+                            rectLeft: rect.left,
+                            rectTop: rect.top,
+                            relativeX,
+                            relativeY,
+                            scaledX: x,
+                            scaledY: y
+                          });
+                          
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
-                          const fieldType = e.dataTransfer.getData('application/field-type');
+                          const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
+                          
+                          console.log('🔍 Retrieved data:', {
+                            fieldId,
+                            fieldType,
+                            allData: Array.from(e.dataTransfer.types).map(type => ({
+                              type,
+                              data: e.dataTransfer.getData(type)
+                            }))
+                          });
                           
                           if (fieldId) {
                             // Moving existing field
-                            console.log('Moving field', fieldId, 'to', x, y, 'on page', page.pageNumber);
+                            console.log('✅ Moving existing field', fieldId, 'to', x, y, 'on page', page.pageNumber);
                             updateField(fieldId, { x: Math.max(0, x - 75), y: Math.max(0, y - 15), pageNumber: page.pageNumber });
                           } else if (fieldType) {
                             // Adding new field
-                            console.log('Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
+                            console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
                             addField(x - 75, y - 15, fieldType as SignatureField['type'], page.pageNumber);
+                          } else {
+                            console.log('❌ NO FIELD DATA FOUND - cannot drop');
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'copy';
+                          console.log('🎭 DRAG OVER page', page.pageNumber, 'types:', Array.from(e.dataTransfer.types));
                           // Add visual feedback when hovering over drop zone
                           e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
-                          e.currentTarget.style.border = '2px dashed #3B82F6';
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
                           e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.border = 'none';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
+                          console.log('🚪 DRAG ENTER page', page.pageNumber);
                         }}
                       />
 
