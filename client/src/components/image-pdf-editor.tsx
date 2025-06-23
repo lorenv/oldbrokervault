@@ -231,52 +231,40 @@ export default function ImagePdfEditor({
 
   // Remove auto-scaling since we're using max-width constraint instead
 
-  // Drop handler for field placement on the entire container
-  const [{ isOver }, dropProps] = useDrop({
-    accept: ['new-field', 'field'],
-    drop: (item: any, monitor) => {
-      const offset = monitor.getClientOffset();
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      if (!offset || !containerRect) return;
-      
-      // Get relative position within the scrollable container
-      const containerScrollTop = containerRef.current?.scrollTop || 0;
-      const relativeX = offset.x - containerRect.left - 16; // Account for padding
-      const relativeY = offset.y - containerRect.top + containerScrollTop - 16; // Account for padding and scroll
-      
-      // Calculate which page this drop is on
-      let cumulativeHeight = 0;
-      let targetPage = 1;
-      let adjustedY = relativeY;
-      let adjustedX = relativeX;
-      
-      for (const page of pageImages) {
-        // Use consistent 800px display width to match UnifiedPdfDisplay
-        const FIXED_DISPLAY_WIDTH = 800;
-        const actualWidth = Math.min(page.width, FIXED_DISPLAY_WIDTH);
-        const actualHeight = (page.height * actualWidth) / page.width;
-        const spacingGap = 20; // Gap between pages
-        
-        if (relativeY >= cumulativeHeight && relativeY < cumulativeHeight + actualHeight) {
-          targetPage = page.pageNumber;
-          // Convert display coordinates to original PDF coordinates
-          adjustedY = ((relativeY - cumulativeHeight) * page.height) / actualHeight;
-          adjustedX = (relativeX * page.width) / actualWidth;
-          break;
-        }
-        cumulativeHeight += actualHeight + spacingGap;
-      }
-      
-      if (item.type && !item.id) {
-        addField(adjustedX, adjustedY, item.type, targetPage);
-      } else if (item.id) {
-        updateField(item.id, { x: adjustedX, y: adjustedY, pageNumber: targetPage });
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  });
+  // Helper functions for field management
+  const addField = (x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
+    const newField: SignatureField = {
+      id: `field_${Date.now()}`,
+      type,
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      width: type === 'signature' ? 150 : type === 'text' ? 200 : 120,
+      height: type === 'signature' ? 60 : 30,
+      pageNumber,
+      label: type === 'signature' ? 'Signature' : 
+             type === 'name' ? 'Full Name' : 
+             type === 'date' ? 'Date' : 
+             type === 'email' ? 'Email Address' : 'Text Field'
+    };
+    
+    console.log('🆕 Creating new field:', newField);
+    const updatedFields = [...signatureFields, newField];
+    console.log('📋 Updated fields array:', updatedFields.length, 'fields');
+    onFieldsChange(updatedFields);
+  };
+
+  const updateField = (fieldId: string, updates: Partial<SignatureField>) => {
+    const updatedFields = signatureFields.map(field => 
+      field.id === fieldId ? { ...field, ...updates } : field
+    );
+    console.log('📝 Updated field:', fieldId, updates);
+    onFieldsChange(updatedFields);
+  };
+
+  const deleteField = (fieldId: string) => {
+    const updatedFields = signatureFields.filter(field => field.id !== fieldId);
+    onFieldsChange(updatedFields);
+  };
 
   const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
     const newField: SignatureField = {
@@ -356,6 +344,12 @@ export default function ImagePdfEditor({
       </div>
     );
   }
+
+  const openPdfInNewTab = () => {
+    if (pageImages.length > 0) {
+      window.open('/api/temp-image/' + pageImages[0]?.imageDataUrl?.split('/').pop(), '_blank');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -459,11 +453,11 @@ export default function ImagePdfEditor({
                         style={{ zIndex: 10 }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
                           
                           console.log('🎯 DROP EVENT on page', page.pageNumber);
-                          console.log('📦 DataTransfer types available:', Array.from(e.dataTransfer.types));
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const relativeX = e.clientX - rect.left;
@@ -473,20 +467,30 @@ export default function ImagePdfEditor({
                           const x = relativeX * scaleX;
                           const y = relativeY * scaleY;
                           
-                          console.log('📐 Drop coordinates:', {
-                            clientX: e.clientX,
-                            clientY: e.clientY,
-                            rectLeft: rect.left,
-                            rectTop: rect.top,
-                            relativeX,
-                            relativeY,
-                            scaledX: x,
-                            scaledY: y
-                          });
+                          console.log('📐 Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
                           const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
+                          
+                          console.log('🔍 Retrieved data:', { fieldId, fieldType });
+                          
+                          if (fieldId && fieldId.startsWith('field_')) {
+                            // Moving existing field
+                            console.log('✅ Moving existing field', fieldId);
+                            updateField(fieldId, { 
+                              x: Math.max(0, x - 50), 
+                              y: Math.max(0, y - 10), 
+                              pageNumber: page.pageNumber 
+                            });
+                          } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
+                            // Adding new field
+                            console.log('✅ Adding new field', fieldType);
+                            addField(Math.max(0, x - 50), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
+                          } else {
+                            console.log('❌ NO FIELD DATA FOUND');
+                          }
+                        }}
                           
                           console.log('🔍 Retrieved data:', {
                             fieldId,
