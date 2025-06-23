@@ -223,39 +223,7 @@ export default function ImagePdfEditor({
             View Original PDF
           </Button>
           
-          {isNewTemplate && onSave && (
-            <div className="flex items-center gap-2 ml-4">
-              <Input
-                placeholder="Template name..."
-                value={localTemplateName}
-                onChange={(e) => setLocalTemplateName(e.target.value)}
-                className="w-48"
-              />
-              <Button 
-                onClick={async () => {
-                  if (!localTemplateName.trim()) {
-                    alert('Please enter a template name');
-                    return;
-                  }
-                  setIsSaving(true);
-                  try {
-                    await onSave({
-                      name: localTemplateName.trim(),
-                      fileContent: pdfBase64,
-                      signatureFields
-                    });
-                  } finally {
-                    setIsSaving(false);
-                  }
-                }}
-                disabled={isSaving || !localTemplateName.trim()}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isSaving ? 'Saving...' : 'Save Template'}
-              </Button>
-            </div>
-          )}
+
         </div>
       </div>
 
