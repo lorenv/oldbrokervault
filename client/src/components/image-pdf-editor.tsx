@@ -314,7 +314,11 @@ export default function ImagePdfEditor({
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          e.dataTransfer.dropEffect = 'copy';
+                          
+                          // Check what's being dragged to set correct dropEffect
+                          const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
+                          e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
+                          
                           // Enhanced visual feedback
                           e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
                           e.currentTarget.style.border = '2px dashed #3b82f6';

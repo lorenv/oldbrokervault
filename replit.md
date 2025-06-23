@@ -128,13 +128,14 @@ The application follows a modern client-server architecture with clear separatio
 
 ### Common Issue: Fields Can't Be Repositioned After Placement
 **Problem:** Fields drop correctly but can't be moved to new positions after initial placement
-**Root Cause:** Drop handler not properly checking both `application/field-id` and `text/plain` data sources
+**Root Cause:** Mismatched `dropEffect` and `effectAllowed` - field uses 'move' but drop zone expects 'copy'
 **Solution:**
 1. Ensure `draggable={true}` is explicitly set on field elements (not just `draggable`)
 2. Set correct dataTransfer data: `'application/field-id'` for existing fields vs `'application/field-type'` for new fields
 3. Use `effectAllowed = 'move'` for existing field repositioning
-4. Check both data sources in drop handler: `const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);`
-5. Add comprehensive logging to track all dataTransfer types and values
+4. **CRITICAL**: Set dynamic dropEffect in onDragOver: `e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';`
+5. Check both data sources in drop handler: `const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);`
+6. Add comprehensive logging to track all dataTransfer types and values
 
 ### Common Issue: Images Don't Load
 **Problem:** PDF conversion succeeds but images show as broken/undefined URLs
