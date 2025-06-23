@@ -64,6 +64,7 @@ function Router() {
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
             <ProtectedRoute path="/nda-templates/create" component={NdaTemplateEditorPage} />
+            <ProtectedRoute path="/nda-templates/:id/edit" component={NdaTemplateEditorPage} />
             <ProtectedRoute path="/nda-templates/edit/:id" component={NdaTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route component={NotFound} />
