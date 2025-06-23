@@ -356,7 +356,7 @@ export default function ImagePdfEditor({
                           const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
                           
                           if (existingFieldId && existingFieldId.startsWith('field_')) {
-                            // Moving existing field - use exact coordinates without offset
+                            // Moving existing field - use exact coordinates for precise positioning
                             console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', x, y);
                             updateField(existingFieldId, { 
                               x: Math.max(0, x), 
@@ -364,13 +364,13 @@ export default function ImagePdfEditor({
                               pageNumber: page.pageNumber 
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
-                            // Adding new field - use exact coordinates for more precise placement
+                            // Adding new field - minimal offset for better visual centering
                             console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 30), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 15), Math.max(0, y - 8), fieldType as SignatureField['type'], page.pageNumber);
                           } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
-            // Fallback for new field creation via text/plain - use exact coordinates
+                            // Fallback for new field creation via text/plain - minimal offset
                             console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 30), Math.max(0, y - 10), textPlain as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 15), Math.max(0, y - 8), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
