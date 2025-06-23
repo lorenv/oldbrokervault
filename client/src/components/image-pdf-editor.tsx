@@ -424,6 +424,8 @@ export default function ImagePdfEditor({
                         style={{ zIndex: 10 }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.border = 'none';
                           console.log('Drop event on page', page.pageNumber);
                           
                           const rect = e.currentTarget.getBoundingClientRect();
@@ -451,6 +453,14 @@ export default function ImagePdfEditor({
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'copy';
+                          // Add visual feedback when hovering over drop zone
+                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                          e.currentTarget.style.border = '2px dashed #3B82F6';
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.border = 'none';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();

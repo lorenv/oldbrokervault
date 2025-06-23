@@ -258,15 +258,26 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                       draggable
                       className={`p-3 border-2 border-dashed rounded-lg cursor-grab transition-all ${
                         fieldType.color
-                      } hover:scale-105 select-none`}
+                      } hover:scale-105 select-none active:cursor-grabbing`}
                       onDragStart={(e) => {
                         e.dataTransfer.setData('application/field-type', fieldType.type);
                         e.dataTransfer.effectAllowed = 'copy';
-                        e.currentTarget.style.opacity = '0.5';
+                        
+                        // Enhanced visual feedback
+                        const element = e.currentTarget as HTMLElement;
+                        element.style.opacity = '0.6';
+                        element.style.transform = 'rotate(3deg) scale(1.1)';
+                        element.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                        element.style.zIndex = '1000';
+                        
                         console.log('Started dragging field type:', fieldType.type);
                       }}
                       onDragEnd={(e) => {
-                        e.currentTarget.style.opacity = '1';
+                        const element = e.currentTarget as HTMLElement;
+                        element.style.opacity = '1';
+                        element.style.transform = 'rotate(0deg) scale(1)';
+                        element.style.boxShadow = 'none';
+                        element.style.zIndex = 'auto';
                       }}
                     >
                       <div className="flex items-center gap-2">
