@@ -368,20 +368,6 @@ export default function ImagePdfEditor({
         </Button>
       </div>
 
-      {/* Draggable Field Palette */}
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <h3 className="text-lg font-semibold mb-3">Signature Fields</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <DraggableFieldButton type="signature" icon={FIELD_ICONS.signature} label="Signature" />
-            <DraggableFieldButton type="name" icon={FIELD_ICONS.name} label="Name" />
-            <DraggableFieldButton type="date" icon={FIELD_ICONS.date} label="Date" />
-            <DraggableFieldButton type="email" icon={FIELD_ICONS.email} label="Email" />
-            <DraggableFieldButton type="text" icon={FIELD_ICONS.text} label="Text Field" />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* PDF Preview Container */}
       <Card className="relative overflow-hidden">
         {isLoading && (

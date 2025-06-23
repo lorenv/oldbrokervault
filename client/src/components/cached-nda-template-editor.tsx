@@ -262,6 +262,11 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                       onDragStart={(e) => {
                         e.dataTransfer.setData('application/field-type', fieldType.type);
                         e.dataTransfer.effectAllowed = 'copy';
+                        e.currentTarget.style.opacity = '0.5';
+                        console.log('Started dragging field type:', fieldType.type);
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.style.opacity = '1';
                       }}
                     >
                       <div className="flex items-center gap-2">
