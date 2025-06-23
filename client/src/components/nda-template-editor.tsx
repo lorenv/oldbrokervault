@@ -191,21 +191,23 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
               Upload a PDF template and configure signature fields
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={isSaving || isLoading}>
-              {(isSaving || isLoading) ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Template
-                </>
-              )}
-            </Button>
-          </div>
+          {initialTemplate && (
+            <div className="flex gap-2">
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {(isSaving || isLoading) ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Template
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -225,6 +227,27 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
                     placeholder="Enter template name..."
                   />
                 </div>
+
+                {!initialTemplate && pdfBase64 && (
+                  <Button 
+                    onClick={handleSave}
+                    disabled={isSaving || !templateName.trim() || !pdfBase64}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    size="lg"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Saving Template...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save NDA Template
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {!pdfFile ? (
                   <div
@@ -373,7 +396,7 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
                       signatureFields={signatureFields}
                       onFieldsChange={setSignatureFields}
                       templateName={templateName}
-                      onSave={handleSave}
+                      onSave={onSave}
                       isNewTemplate={!initialTemplate}
                     />
                   </div>
