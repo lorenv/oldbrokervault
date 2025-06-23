@@ -159,7 +159,9 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!templateName.trim()) {
+    const finalTemplateName = templateName.trim() || `Template ${Date.now()}`;
+    
+    if (!finalTemplateName) {
       toast({
         title: "Name required",
         description: "Please enter a template name",
@@ -180,7 +182,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
     setIsSaving(true);
     try {
       await onSave({
-        name: templateName.trim(),
+        name: finalTemplateName,
         fileContent: pdfBase64,
         signatureFields: signatureFields
       });
@@ -221,13 +223,13 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                   hasPdfBase64: !!pdfBase64,
                   hasTemplateName: !!templateName.trim(),
                   isNewTemplate: !initialTemplate,
-                  shouldShowSave: !initialTemplate && pdfBase64 && templateName.trim()
+                  shouldShowSave: !initialTemplate && pdfBase64
                 })}
                 
-                {!initialTemplate && pdfBase64 && templateName.trim() && (
+                {!initialTemplate && pdfBase64 && (
                   <Button 
                     onClick={handleSave}
-                    disabled={isSaving || !templateName.trim() || !pdfBase64}
+                    disabled={isSaving || !pdfBase64}
                     className="w-full bg-green-600 hover:bg-green-700"
                     size="lg"
                   >
