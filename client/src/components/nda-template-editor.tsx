@@ -24,7 +24,7 @@ interface SignatureField {
 }
 
 interface NdaTemplateEditorProps {
-  initialTemplate?: any;
+  initialTemplate?: any | null;
   onSave: (data: {
     name: string;
     fileContent: string;
@@ -230,9 +230,11 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
 
                 {/* Debug logging for Save button */}
                 {console.log('🔍 Save button condition check:', {
+                  initialTemplate,
                   hasInitialTemplate: !!initialTemplate,
                   hasPdfBase64: !!pdfBase64,
                   hasTemplateName: !!templateName.trim(),
+                  isNewTemplate: !initialTemplate,
                   shouldShowSave: !initialTemplate && pdfBase64 && templateName.trim()
                 })}
                 
