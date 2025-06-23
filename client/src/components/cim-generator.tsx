@@ -63,6 +63,12 @@ export function CimGenerator() {
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Load analysis templates from database
+  const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
+    queryKey: ['/api/analysis-templates'],
+    enabled: !!user,
+  });
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -87,6 +93,8 @@ export function CimGenerator() {
   const [selectedTone, setSelectedTone] = useState<string>('professional');
   const [selectedAudience, setSelectedAudience] = useState<string>('investors');
   const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
+  const [templateName, setTemplateName] = useState<string>('');
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [templateNameInput, setTemplateNameInput] = useState<string>('');
 
   // Cover image state
@@ -721,7 +729,7 @@ export function CimGenerator() {
                       Customize how AI analyzes your transcript
                     </p>
                   </div>
-                  <Dialog>
+                  <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-2">
                         <Settings className="h-4 w-4" />
@@ -737,28 +745,94 @@ export function CimGenerator() {
                       </DialogHeader>
                       
                       <div className="space-y-6">
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium">Current Directions</Label>
-                          <Textarea
-                            className="min-h-[300px] text-sm"
-                            value={customDirections}
-                            onChange={(e) => {
-                              setCustomDirections(e.target.value);
-                              form.setValue("directions", e.target.value);
-                            }}
-                            placeholder="Enter your custom analysis directions..."
-                          />
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Save className="h-4 w-4 mr-2" />
-                            Save as Template
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <FolderOpen className="h-4 w-4 mr-2" />
-                            Load Template
-                          </Button>
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Current Directions Editor */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Current Directions</Label>
+                            <Textarea
+                              className="min-h-[300px] text-sm"
+                              value={customDirections}
+                              onChange={(e) => {
+                                setCustomDirections(e.target.value);
+                                form.setValue("directions", e.target.value);
+                              }}
+                              placeholder="Enter your custom analysis directions..."
+                            />
+                            
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Template Name</Label>
+                              <Input
+                                value={templateName}
+                                onChange={(e) => setTemplateName(e.target.value)}
+                                placeholder="Enter template name..."
+                              />
+                            </div>
+                            
+                            <Button 
+                              size="sm" 
+                              onClick={() => {
+                                if (!templateName.trim()) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Please enter a template name.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                createTemplateMutation.mutate({
+                                  name: templateName.trim(),
+                                  customDirections: customDirections
+                                });
+                              }}
+                              disabled={createTemplateMutation.isPending}
+                              className="w-full"
+                            >
+                              {createTemplateMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Save className="h-4 w-4 mr-2" />
+                              )}
+                              Save as Template
+                            </Button>
+                          </div>
+
+                          {/* Saved Templates List */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Saved Templates</Label>
+                            <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+                              {analysisTemplates.length === 0 ? (
+                                <div className="p-4 text-center text-muted-foreground">
+                                  No saved templates yet. Create your first template!
+                                </div>
+                              ) : (
+                                <div className="space-y-2 p-2">
+                                  {analysisTemplates.map((template: any) => (
+                                    <div key={template.id} className="p-3 border rounded hover:bg-muted/50 cursor-pointer"
+                                         onClick={() => loadTemplate(template)}>
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <h4 className="font-medium text-sm">{template.name}</h4>
+                                          <p className="text-xs text-muted-foreground">
+                                            {template.customDirections.slice(0, 80)}...
+                                          </p>
+                                        </div>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            loadTemplate(template);
+                                          }}
+                                        >
+                                          <FolderOpen className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </DialogContent>
