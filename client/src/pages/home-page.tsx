@@ -81,38 +81,19 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20 relative overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left side - Text content */}
-            <div className="text-center lg:text-left">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight pb-2" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}>
-                Build, Share, Protect
-              </h1>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto lg:mx-0">
-                Everything you need to create, customize, and share professional Confidential Information Memorandums with confidence and security.
-              </p>
-              <Link href="/login">
-                <Button size="lg" className="text-lg px-8 py-3">
-                  Create a Free CIM
-                </Button>
-              </Link>
-            </div>
-            
-            {/* Right side - Hero Phone Mockup */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative">
-                <img 
-                  src="/hero-phone-mockup.png" 
-                  alt="CIM Share Mobile Interface showing Arbor Partners document"
-                  className="w-80 md:w-96 max-w-full h-auto drop-shadow-2xl"
-                />
-                {/* Optional floating elements for visual appeal */}
-                <div className="absolute -top-4 -left-4 w-8 h-8 bg-white/20 rounded-full animate-pulse"></div>
-                <div className="absolute -bottom-6 -right-6 w-6 h-6 bg-white/30 rounded-full animate-pulse delay-75"></div>
-              </div>
-            </div>
-          </div>
+      <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight pb-2" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}>
+            Build, Share, Protect
+          </h1>
+          <p className="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
+            Everything you need to create, customize, and share professional Confidential Information Memorandums with confidence and security.
+          </p>
+          <Link href="/login">
+            <Button size="lg" className="text-lg px-8 py-3">
+              Create a Free CIM
+            </Button>
+          </Link>
         </div>
       </section>
 
