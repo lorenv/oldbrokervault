@@ -81,8 +81,59 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20">
-        <div className="container mx-auto px-4 text-center">
+      <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20 relative overflow-hidden">
+        {/* Floating Icons Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Large floating icons */}
+          <div className="absolute top-20 left-10 animate-bounce" style={{animationDelay: '0s', animationDuration: '3s'}}>
+            <Shield className="w-8 h-8 text-white/20" />
+          </div>
+          <div className="absolute top-32 right-16 animate-bounce" style={{animationDelay: '1s', animationDuration: '4s'}}>
+            <FileText className="w-10 h-10 text-white/25" />
+          </div>
+          <div className="absolute top-40 left-1/4 animate-bounce" style={{animationDelay: '2s', animationDuration: '3.5s'}}>
+            <Lock className="w-6 h-6 text-white/20" />
+          </div>
+          <div className="absolute bottom-20 left-20 animate-bounce" style={{animationDelay: '0.5s', animationDuration: '4.5s'}}>
+            <Download className="w-7 h-7 text-white/25" />
+          </div>
+          <div className="absolute bottom-32 right-20 animate-bounce" style={{animationDelay: '1.5s', animationDuration: '3s'}}>
+            <Database className="w-9 h-9 text-white/20" />
+          </div>
+          <div className="absolute top-1/2 right-10 animate-bounce" style={{animationDelay: '2.5s', animationDuration: '4s'}}>
+            <Zap className="w-8 h-8 text-white/25" />
+          </div>
+          
+          {/* Sparkle particles */}
+          <div className="absolute top-16 left-1/3 animate-pulse" style={{animationDelay: '0s', animationDuration: '2s'}}>
+            <Sparkles className="w-4 h-4 text-white/30" />
+          </div>
+          <div className="absolute top-28 right-1/3 animate-pulse" style={{animationDelay: '1s', animationDuration: '2.5s'}}>
+            <Sparkles className="w-3 h-3 text-white/25" />
+          </div>
+          <div className="absolute bottom-24 left-1/2 animate-pulse" style={{animationDelay: '1.5s', animationDuration: '2s'}}>
+            <Sparkles className="w-5 h-5 text-white/20" />
+          </div>
+          <div className="absolute top-3/4 left-16 animate-pulse" style={{animationDelay: '0.5s', animationDuration: '3s'}}>
+            <Sparkles className="w-4 h-4 text-white/25" />
+          </div>
+          <div className="absolute top-1/4 right-1/4 animate-pulse" style={{animationDelay: '2s', animationDuration: '2.5s'}}>
+            <Sparkles className="w-3 h-3 text-white/30" />
+          </div>
+          
+          {/* Additional floating elements */}
+          <div className="absolute top-1/3 left-1/6 animate-bounce" style={{animationDelay: '3s', animationDuration: '5s'}}>
+            <Globe className="w-6 h-6 text-white/20" />
+          </div>
+          <div className="absolute bottom-1/3 right-1/6 animate-bounce" style={{animationDelay: '2.5s', animationDuration: '4.5s'}}>
+            <PenTool className="w-7 h-7 text-white/25" />
+          </div>
+          <div className="absolute top-1/2 left-1/2 animate-pulse" style={{animationDelay: '1.8s', animationDuration: '3.5s'}}>
+            <BarChart3 className="w-5 h-5 text-white/15" />
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white leading-tight pb-2" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}>
             Build, Share, Protect
           </h1>
