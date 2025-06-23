@@ -373,7 +373,7 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
                       signatureFields={signatureFields}
                       onFieldsChange={setSignatureFields}
                       templateName={templateName}
-                      onSave={onSave}
+                      onSave={handleSave}
                       isNewTemplate={!initialTemplate}
                     />
                   </div>
