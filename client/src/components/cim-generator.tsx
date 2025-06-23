@@ -354,10 +354,7 @@ export function CimGenerator() {
   // Template management mutations
   const createTemplateMutation = useMutation({
     mutationFn: async (templateData: { name: string; customDirections: string }) => {
-      return apiRequest("/api/analysis-templates", {
-        method: "POST",
-        body: templateData
-      });
+      return apiRequest("POST", "/api/analysis-templates", templateData);
     },
     onSuccess: () => {
       refetchTemplates();
