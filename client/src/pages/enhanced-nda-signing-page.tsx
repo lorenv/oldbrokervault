@@ -72,14 +72,27 @@ export default function EnhancedNdaSigningPage() {
   // Sign NDA mutation
   const signNdaMutation = useMutation({
     mutationFn: async (fieldValues: Record<string, string>) => {
+      console.log('=== FRONTEND NDA SIGNING DEBUG ===');
+      console.log('Template data:', templateData);
+      console.log('Signature fields:', templateData?.signatureFields);
+      console.log('Field values received:', fieldValues);
+      console.log('Prefilled name:', prefilledName);
+      console.log('Prefilled email:', prefilledEmail);
+      
       // Extract required values from field data or URL parameters
       const nameField = templateData?.signatureFields.find(f => f.type === 'name');
       const emailField = templateData?.signatureFields.find(f => f.type === 'email');
+      
+      console.log('Name field found:', nameField);
+      console.log('Email field found:', emailField);
       
       // Use field values if available, otherwise fall back to URL parameters
       const signerName = nameField ? fieldValues[nameField.id] : prefilledName || 'Unknown';
       const signerEmail = emailField ? fieldValues[emailField.id] : prefilledEmail || '';
 
+      console.log('Final signer name:', signerName);
+      console.log('Final signer email:', signerEmail);
+      console.log('=== END FRONTEND DEBUG ===');
       console.log('NDA signing request data:', { signerName, signerEmail, fieldValues });
 
       const response = await fetch(`/api/share/${shareSlug}/sign-nda`, {

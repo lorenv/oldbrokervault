@@ -36,7 +36,13 @@ export function NdaDialog({
   const [isSigning, setIsSigning] = useState(false);
 
   const handleSignNda = async () => {
+    console.log('=== NDA DIALOG SIGNING DEBUG ===');
+    console.log('Signer name from dialog:', signerName);
+    console.log('Signer email from dialog:', signerEmail);
+    console.log('Share slug:', shareSlug);
+    
     if (!signerName.trim() || !signerEmail.trim()) {
+      console.log('ERROR: Missing name or email');
       toast({
         title: "Missing Information",
         description: "Please provide your name and email address",
@@ -45,7 +51,7 @@ export function NdaDialog({
       return;
     }
 
-
+    console.log('Validation passed, proceeding with redirect...');
 
     setIsSigning(true);
     try {
@@ -54,8 +60,15 @@ export function NdaDialog({
         name: signerName.trim(),
         email: signerEmail.trim()
       });
-      window.location.href = `/share/${shareSlug}/sign-nda?${params.toString()}`;
+      
+      const redirectUrl = `/share/${shareSlug}/sign-nda?${params.toString()}`;
+      console.log('Redirecting to:', redirectUrl);
+      console.log('URL params created:', params.toString());
+      console.log('=== END NDA DIALOG DEBUG ===');
+      
+      window.location.href = redirectUrl;
     } catch (error) {
+      console.error('Redirect error:', error);
       setIsSigning(false);
       toast({
         title: "Error",
