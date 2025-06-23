@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,21 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   
-  // State for NDA settings
+  // State for NDA settings - sync with document data
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null,
     ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
+
+  // Sync local state with document data when it changes
+  useEffect(() => {
+    setNdaSettings({
+      ndaProtected: cimDocument.ndaProtected || false,
+      ndaTemplateId: cimDocument.ndaTemplateId || null,
+      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+    });
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
   
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -73,13 +82,24 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       if (!response.ok) throw new Error('Failed to update NDA settings');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Show brief success indicator for template changes
       toast({
         title: "Settings Saved",
         description: "NDA settings updated successfully",
         duration: 2000
       });
+      
+      // Update local state with server response to prevent reversion
+      if (data) {
+        setNdaSettings(prev => ({
+          ...prev,
+          ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : prev.ndaProtected,
+          ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : prev.ndaTemplateId,
+          ndaApprovalRequired: data.ndaRequiresManualApproval !== undefined ? data.ndaRequiresManualApproval : prev.ndaApprovalRequired
+        }));
+      }
+      
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
     },
