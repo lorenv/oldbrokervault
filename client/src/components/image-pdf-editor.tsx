@@ -91,20 +91,7 @@ export default function ImagePdfEditor({
     onFieldsChange(updatedFields);
   }, [signatureFields, onFieldsChange]);
 
-  // Precision movement function for 1px adjustments
-  const moveField = useCallback((fieldId: string, deltaX: number, deltaY: number) => {
-    const updatedFields = signatureFields.map(field => {
-      if (field.id === fieldId) {
-        return {
-          ...field,
-          x: Math.max(0, field.x + deltaX),
-          y: Math.max(0, field.y + deltaY)
-        };
-      }
-      return field;
-    });
-    onFieldsChange(updatedFields);
-  }, [signatureFields, onFieldsChange]);
+
 
   // Convert PDF to images via server
   useEffect(() => {
@@ -372,15 +359,17 @@ export default function ImagePdfEditor({
                           const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
                           e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
                           
-                          // Enhanced visual feedback
-                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                          // DocuSign-style visual feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
                           e.currentTarget.style.border = '2px dashed #3b82f6';
                           e.currentTarget.style.borderRadius = '8px';
+                          e.currentTarget.style.transition = 'all 0.2s ease';
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
+                          e.currentTarget.style.transition = 'all 0.2s ease';
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -407,7 +396,7 @@ export default function ImagePdfEditor({
                           return (
                             <div
                               key={field.id}
-                              className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-70 rounded px-2 py-1 text-xs select-none cursor-move group hover:bg-blue-100 transition-colors"
+                              className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-70 rounded px-2 py-1 text-xs select-none cursor-move group hover:bg-blue-100 hover:border-blue-600 transition-all duration-200 hover:shadow-lg"
                               draggable={true}
                               style={{
                                 left: `${fieldX}px`,  
@@ -424,17 +413,24 @@ export default function ImagePdfEditor({
                                 e.dataTransfer.setData('application/field-id', field.id);
                                 e.dataTransfer.setData('text/plain', field.id);
                                 e.dataTransfer.effectAllowed = 'move';
-                                e.currentTarget.style.opacity = '0.5';
-                                e.currentTarget.style.transform = 'scale(1.05)';
+                                
+                                // Enhanced visual feedback for smoother drag experience
+                                e.currentTarget.style.opacity = '0.7';
+                                e.currentTarget.style.transform = 'scale(1.02) rotate(2deg)';
                                 e.currentTarget.style.zIndex = '1000';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
+                                e.currentTarget.style.borderStyle = 'solid';
+                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
                               }}
                               onDragEnd={(e) => {
                                 console.log('🔄 FIELD DRAG END:', field.id);
+                                // Smooth reset of drag styling
                                 e.currentTarget.style.opacity = '1';
-                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
                                 e.currentTarget.style.zIndex = '20';
                                 e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.borderStyle = 'dashed';
+                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)';
                               }}
                             >
                               <div className="flex items-center justify-between h-full">
@@ -443,79 +439,17 @@ export default function ImagePdfEditor({
                                   <span className="truncate text-xs flex-1 min-w-0">{field.label}</span>
                                 </div>
                                 
-                                {/* Precision movement controls */}
-                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 flex-shrink-0">
-                                  <div className="grid grid-cols-3 gap-0.5 p-1 bg-white rounded border shadow-sm">
-                                    {/* Arrow keys for precise movement */}
-                                    <div></div>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-4 w-4 p-0 hover:bg-blue-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveField(field.id, 0, -1); // Move up 1px
-                                      }}
-                                      title="Move up 1px"
-                                    >
-                                      <div className="w-2 h-2 border-l border-t transform rotate-45 border-gray-600"></div>
-                                    </Button>
-                                    <div></div>
-                                    
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-4 w-4 p-0 hover:bg-blue-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveField(field.id, -1, 0); // Move left 1px
-                                      }}
-                                      title="Move left 1px"
-                                    >
-                                      <div className="w-2 h-2 border-l border-b transform rotate-45 border-gray-600"></div>
-                                    </Button>
-                                    <div></div>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-4 w-4 p-0 hover:bg-blue-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveField(field.id, 1, 0); // Move right 1px
-                                      }}
-                                      title="Move right 1px"
-                                    >
-                                      <div className="w-2 h-2 border-r border-t transform rotate-45 border-gray-600"></div>
-                                    </Button>
-                                    
-                                    <div></div>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-4 w-4 p-0 hover:bg-blue-100"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveField(field.id, 0, 1); // Move down 1px
-                                      }}
-                                      title="Move down 1px"
-                                    >
-                                      <div className="w-2 h-2 border-r border-b transform rotate-45 border-gray-600"></div>
-                                    </Button>
-                                    <div></div>
-                                  </div>
-                                  
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteField(field.id);
-                                    }}
-                                  >
-                                    <Trash2 className="h-2 w-2" />
-                                  </Button>
-                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="opacity-0 group-hover:opacity-100 h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteField(field.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-2 w-2" />
+                                </Button>
                               </div>
                               
                               {/* Optimized resize handle */}
