@@ -260,24 +260,22 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                         fieldType.color
                       } hover:scale-105 select-none active:cursor-grabbing`}
                       onDragStart={(e) => {
+                        console.log('🚀 DRAG START:', fieldType.type);
                         e.dataTransfer.setData('application/field-type', fieldType.type);
+                        e.dataTransfer.setData('text/plain', fieldType.type); // Fallback
                         e.dataTransfer.effectAllowed = 'copy';
                         
-                        // Enhanced visual feedback
-                        const element = e.currentTarget as HTMLElement;
-                        element.style.opacity = '0.6';
-                        element.style.transform = 'rotate(3deg) scale(1.1)';
-                        element.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
-                        element.style.zIndex = '1000';
+                        // Simple visual feedback
+                        e.currentTarget.style.opacity = '0.5';
                         
-                        console.log('Started dragging field type:', fieldType.type);
+                        console.log('📋 Data set in dataTransfer:', {
+                          fieldType: fieldType.type,
+                          types: Array.from(e.dataTransfer.types)
+                        });
                       }}
                       onDragEnd={(e) => {
-                        const element = e.currentTarget as HTMLElement;
-                        element.style.opacity = '1';
-                        element.style.transform = 'rotate(0deg) scale(1)';
-                        element.style.boxShadow = 'none';
-                        element.style.zIndex = 'auto';
+                        console.log('🏁 DRAG END:', fieldType.type);
+                        e.currentTarget.style.opacity = '1';
                       }}
                     >
                       <div className="flex items-center gap-2">
