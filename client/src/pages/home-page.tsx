@@ -305,7 +305,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 pt-20 pb-0 overflow-hidden">
+      <section className="bg-gradient-to-r from-blue-600 to-purple-600 pt-12 pb-0 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-end">
             {/* Left side - Text content */}
