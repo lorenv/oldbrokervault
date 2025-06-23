@@ -228,7 +228,15 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
                   />
                 </div>
 
-                {!initialTemplate && pdfBase64 && (
+                {/* Debug logging for Save button */}
+                {console.log('🔍 Save button condition check:', {
+                  hasInitialTemplate: !!initialTemplate,
+                  hasPdfBase64: !!pdfBase64,
+                  hasTemplateName: !!templateName.trim(),
+                  shouldShowSave: !initialTemplate && pdfBase64 && templateName.trim()
+                })}
+                
+                {!initialTemplate && pdfBase64 && templateName.trim() && (
                   <Button 
                     onClick={handleSave}
                     disabled={isSaving || !templateName.trim() || !pdfBase64}
