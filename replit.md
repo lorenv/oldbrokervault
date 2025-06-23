@@ -128,7 +128,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ### Common Issue: Fields Can't Be Repositioned After Placement
 **Problem:** Fields drop correctly but can't be moved to new positions after initial placement
-**Root Cause:** Mismatched `dropEffect` and `effectAllowed` - field uses 'move' but drop zone expects 'copy'
+**Root Cause:** Overlap detection prevents coordinate updates when new position intersects with previous field area
 **COMPLETE SOLUTION CONFIRMED WORKING:**
 1. Ensure `draggable={true}` is explicitly set on field elements (not just `draggable`)
 2. Set correct dataTransfer data: `'application/field-id'` for existing fields vs `'application/field-type'` for new fields
@@ -138,12 +138,14 @@ The application follows a modern client-server architecture with clear separatio
    const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
    e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
    ```
-5. Check both data sources in drop handler for maximum compatibility:
+5. **OVERLAP FIX**: Force coordinate updates regardless of overlap with previous position:
    ```javascript
-   const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
+   // Always apply updates, even if coordinates are similar to prevent overlap blocking
+   const updatedField = { ...field, ...updates };
    ```
-6. Add `e.stopPropagation()` to both `onDragOver` and `onDragEnter` handlers
-7. Comprehensive logging shows: drag start → drag enter → **drop event** → field update → drag end
+6. Check both data sources in drop handler for maximum compatibility
+7. Add `e.stopPropagation()` to both `onDragOver` and `onDragEnter` handlers
+8. Comprehensive logging shows: drag start → drag enter → **drop event** → field update → drag end
 
 ### Common Issue: Images Don't Load
 **Problem:** PDF conversion succeeds but images show as broken/undefined URLs
