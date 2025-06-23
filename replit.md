@@ -129,13 +129,21 @@ The application follows a modern client-server architecture with clear separatio
 ### Common Issue: Fields Can't Be Repositioned After Placement
 **Problem:** Fields drop correctly but can't be moved to new positions after initial placement
 **Root Cause:** Mismatched `dropEffect` and `effectAllowed` - field uses 'move' but drop zone expects 'copy'
-**Solution:**
+**COMPLETE SOLUTION CONFIRMED WORKING:**
 1. Ensure `draggable={true}` is explicitly set on field elements (not just `draggable`)
 2. Set correct dataTransfer data: `'application/field-id'` for existing fields vs `'application/field-type'` for new fields
-3. Use `effectAllowed = 'move'` for existing field repositioning
-4. **CRITICAL**: Set dynamic dropEffect in onDragOver: `e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';`
-5. Check both data sources in drop handler: `const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);`
-6. Add comprehensive logging to track all dataTransfer types and values
+3. Use `effectAllowed = 'move'` for existing field repositioning in onDragStart
+4. **CRITICAL**: Set dynamic dropEffect in onDragOver based on what's being dragged:
+   ```javascript
+   const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
+   e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
+   ```
+5. Check both data sources in drop handler for maximum compatibility:
+   ```javascript
+   const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
+   ```
+6. Add `e.stopPropagation()` to both `onDragOver` and `onDragEnter` handlers
+7. Comprehensive logging shows: drag start → drag enter → **drop event** → field update → drag end
 
 ### Common Issue: Images Don't Load
 **Problem:** PDF conversion succeeds but images show as broken/undefined URLs
@@ -155,6 +163,7 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 23, 2025: **COMPLETED FULL DRAG AND DROP FUNCTIONALITY** - Successfully fixed all drag and drop issues: fields drop correctly from sidebar, existing fields can be repositioned after placement, resizing works smoothly with throttled updates; key solution was dynamic dropEffect detection (`draggedFieldId ? 'move' : 'copy'`) to match field effectAllowed with drop zone expectations; comprehensive solution documented for future reference
 - June 23, 2025: **FIXED DRAG AND DROP FIELD PLACEMENT** - Resolved drop event not firing by adding proper `e.stopPropagation()` to drag handlers, setting correct `dropEffect = 'copy'`, and ensuring explicit `draggable={true}` on source elements; documented common drag-and-drop solutions for future reference
 - June 23, 2025: **OPTIMIZED IMAGE LOADING AND TEMPLATE PERFORMANCE** - Fixed broken PDF image display by correcting API response structure with proper filename/imageUrl handling, optimized NDA templates endpoint to exclude heavy fileContent data reducing load time from 3+ seconds to under 500ms
 - June 22, 2025: **ENHANCED PDF TEMPLATE EDITOR WITH FIELD RESIZING AND ZOOM CONTROLS** - Added comprehensive field manipulation features: drag handles for resizing fields (bottom-right corner resize handle with minimum size constraints), zoom controls (25%-200% with zoom in/out/reset buttons), field repositioning via drag and drop, visual feedback during resize operations with blue ring highlight, and coordinate system that maintains field positioning accuracy across all zoom levels; users can now fully customize field sizes and positions with precise control
