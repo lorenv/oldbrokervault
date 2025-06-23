@@ -333,25 +333,27 @@ export default function ImagePdfEditor({
                           
                           console.log('🔍 Retrieved data:', { fieldId, fieldType, textPlain, allTypes: Array.from(e.dataTransfer.types) });
                           
-                          // Check for existing field movement first (field ID in either field-id or text/plain)
+                          // Handle field movement with precise coordinate updates
                           const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
                           
                           if (existingFieldId && existingFieldId.startsWith('field_')) {
-                            // Moving existing field - use exact coordinates for precise positioning
-                            console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', x, y);
+                            // Moving existing field - force coordinate update regardless of overlap
+                            const newX = Math.max(0, Math.round(x));
+                            const newY = Math.max(0, Math.round(y));
+                            console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', newX, newY);
                             updateField(existingFieldId, { 
-                              x: Math.max(0, x), 
-                              y: Math.max(0, y), 
+                              x: newX, 
+                              y: newY, 
                               pageNumber: page.pageNumber 
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
-                            // Adding new field - minimal offset for better visual centering
-                            console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 15), Math.max(0, y - 8), fieldType as SignatureField['type'], page.pageNumber);
+                            // Adding new field
+                            console.log('✅ Adding new field', fieldType, 'at coordinates', Math.round(x), Math.round(y));
+                            addField(Math.max(0, Math.round(x - 15)), Math.max(0, Math.round(y - 8)), fieldType as SignatureField['type'], page.pageNumber);
                           } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
-                            // Fallback for new field creation via text/plain - minimal offset
-                            console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 15), Math.max(0, y - 8), textPlain as SignatureField['type'], page.pageNumber);
+                            // Fallback for new field creation
+                            console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', Math.round(x), Math.round(y));
+                            addField(Math.max(0, Math.round(x - 15)), Math.max(0, Math.round(y - 8)), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
@@ -360,21 +362,34 @@ export default function ImagePdfEditor({
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // Check what's being dragged to set correct dropEffect
-                          const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
-                          e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
+                          // Always accept drops for better responsiveness
+                          e.dataTransfer.dropEffect = e.dataTransfer.types.includes('application/field-id') ? 'move' : 'copy';
                           
-                          // DocuSign-style visual feedback
-                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
-                          e.currentTarget.style.border = '2px dashed #3b82f6';
+                          // Immediate visual feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                          e.currentTarget.style.border = '2px solid #3b82f6';
                           e.currentTarget.style.borderRadius = '8px';
-                          e.currentTarget.style.transition = 'all 0.2s ease';
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          // Enhanced enter feedback
+                          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                          e.currentTarget.style.border = '2px solid #2563eb';
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.border = 'none';
-                          e.currentTarget.style.transition = 'all 0.2s ease';
+                          
+                          // Only clear if actually leaving the element
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX;
+                          const y = e.clientY;
+                          
+                          if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.border = 'none';
+                          }
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -419,22 +434,24 @@ export default function ImagePdfEditor({
                                 e.dataTransfer.setData('text/plain', field.id);
                                 e.dataTransfer.effectAllowed = 'move';
                                 
-                                // Enhanced visual feedback for smoother drag experience
-                                e.currentTarget.style.opacity = '0.7';
-                                e.currentTarget.style.transform = 'scale(1.02) rotate(2deg)';
+                                // Clean visual feedback without rotation
+                                e.currentTarget.style.opacity = '0.8';
+                                e.currentTarget.style.transform = 'scale(1.05)';
                                 e.currentTarget.style.zIndex = '1000';
-                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.4)';
+                                e.currentTarget.style.boxShadow = '0 10px 30px rgba(59, 130, 246, 0.5)';
                                 e.currentTarget.style.borderStyle = 'solid';
-                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                                e.currentTarget.style.borderColor = '#2563eb';
+                                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
                               }}
                               onDragEnd={(e) => {
                                 console.log('🔄 FIELD DRAG END:', field.id);
-                                // Smooth reset of drag styling
+                                // Clean reset of drag styling
                                 e.currentTarget.style.opacity = '1';
-                                e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+                                e.currentTarget.style.transform = 'scale(1)';
                                 e.currentTarget.style.zIndex = '20';
                                 e.currentTarget.style.boxShadow = 'none';
                                 e.currentTarget.style.borderStyle = 'dashed';
+                                e.currentTarget.style.borderColor = '#3b82f6';
                                 e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)';
                               }}
                             >
