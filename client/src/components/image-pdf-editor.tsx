@@ -1,22 +1,25 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useDrop, useDrag } from 'react-dnd';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Trash2, Type, FileSignature, Calendar, Mail, AlignLeft, ExternalLink, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, ExternalLink, Trash2 } from 'lucide-react';
+import { useDrop } from 'react-dnd';
+import { SignatureField } from '@/types/signature';
 
-interface SignatureField {
-  id: string;
-  type: 'signature' | 'name' | 'date' | 'email' | 'text';
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+// Field type icons mapping
+const FIELD_ICONS = {
+  signature: () => <div className="w-3 h-3 bg-blue-500 rounded" />,
+  name: () => <div className="w-3 h-3 bg-green-500 rounded" />,
+  date: () => <div className="w-3 h-3 bg-purple-500 rounded" />,
+  email: () => <div className="w-3 h-3 bg-orange-500 rounded" />,
+  text: () => <div className="w-3 h-3 bg-gray-500 rounded" />
+};
+
+interface PageImage {
   pageNumber: number;
-  required: boolean;
-  fontSize: number;
-  placeholder?: string;
+  imageDataUrl: string;
+  height: number;
+  width: number;
 }
 
 interface ImagePdfEditorProps {
@@ -25,214 +28,21 @@ interface ImagePdfEditorProps {
   onFieldsChange: (fields: SignatureField[]) => void;
 }
 
-const FIELD_COLORS = {
-  signature: 'border-blue-500 bg-blue-50 bg-opacity-90',
-  name: 'border-green-500 bg-green-50 bg-opacity-90',
-  date: 'border-purple-500 bg-purple-50 bg-opacity-90',
-  email: 'border-orange-500 bg-orange-50 bg-opacity-90',
-  text: 'border-gray-500 bg-gray-50 bg-opacity-90'
-};
-
-const FIELD_ICONS = {
-  signature: FileSignature,
-  name: Type,
-  date: Calendar,
-  email: Mail,
-  text: AlignLeft
-};
-
-const FieldComponent = ({ field, onUpdate, onDelete, scale }: {
-  field: SignatureField;
-  onUpdate: (id: string, updates: Partial<SignatureField>) => void;
-  onDelete: (id: string) => void;
-  scale: number;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editLabel, setEditLabel] = useState(field.label);
-
-  const [{ isDragging }, drag] = useDrag({
-    type: 'field',
-    item: { id: field.id, type: field.type },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const handleLabelUpdate = () => {
-    onUpdate(field.id, { label: editLabel });
-    setIsEditing(false);
-  };
-
-  const Icon = FIELD_ICONS[field.type];
-
-  return (
-    <div
-      ref={drag}
-      className={`absolute cursor-move border-2 border-dashed rounded px-2 py-1 text-xs select-none shadow-md ${
-        FIELD_COLORS[field.type]
-      } ${isDragging ? 'opacity-50' : ''}`}
-      style={{
-        left: field.x * scale,
-        top: field.y * scale,
-        width: field.width * scale,
-        height: field.height * scale,
-        minHeight: '30px',
-        zIndex: 1000,
-      }}
-      onDoubleClick={() => setIsEditing(true)}
-    >
-      <div className="flex items-center justify-between h-full">
-        <div className="flex items-center gap-1 flex-1">
-          <Icon className="w-3 h-3 flex-shrink-0" />
-          {isEditing ? (
-            <Input
-              value={editLabel}
-              onChange={(e) => setEditLabel(e.target.value)}
-              onBlur={handleLabelUpdate}
-              onKeyDown={(e) => e.key === 'Enter' && handleLabelUpdate()}
-              className="h-4 text-xs border-0 p-0 bg-transparent flex-1"
-              autoFocus
-            />
-          ) : (
-            <span className="truncate text-xs">{field.label}</span>
-          )}
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-4 w-4 p-0 hover:bg-red-100 flex-shrink-0 ml-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(field.id);
-          }}
-        >
-          <Trash2 className="h-2 w-2" />
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-// Draggable field component for the sidebar
-const DraggableFieldButton = ({ type, icon: Icon, label }: { 
-  type: SignatureField['type'], 
-  icon: any, 
-  label: string 
-}) => {
-  return (
-    <div
-      draggable
-      className="flex items-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-move transition-all hover:border-blue-400 hover:bg-blue-50"
-      onDragStart={(e) => {
-        e.dataTransfer.setData('application/field-type', type);
-        e.dataTransfer.effectAllowed = 'copy';
-      }}
-    >
-      <Icon className="w-4 h-4 text-gray-600" />
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-    </div>
-  );
-};
-
 export default function ImagePdfEditor({
   pdfBase64,
   signatureFields,
   onFieldsChange
 }: ImagePdfEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pageImages, setPageImages] = useState<Array<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>>([]);
-  const [scale, setScale] = useState(1);
+  const [pageImages, setPageImages] = useState<PageImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [totalPages, setTotalPages] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [resizingField, setResizingField] = useState<string | null>(null);
 
-  // Convert PDF to image via server
-  useEffect(() => {
-    const convertPdfToImage = async () => {
-      if (!pdfBase64) {
-        console.log('No PDF base64 provided, skipping conversion');
-        return;
-      }
-
-      console.log('Starting PDF conversion, setting loading to true');
-      setIsLoading(true);
-      setError('');
-      setPageImages([]); // Clear existing images
-
-      try {
-        console.log('Converting all PDF pages to images via server');
-        
-        const response = await fetch('/api/pdf-to-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdfBase64 }),
-        });
-
-        if (!response.ok) {
-          let errorMessage = 'PDF conversion failed';
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        console.log(`All ${data.pages.length} PDF pages converted successfully`);
-        
-        // Process page images and calculate dimensions
-        const processedPages = await Promise.all(
-          data.pages.map(async (page: any) => {
-            return new Promise<{ pageNumber: number; imageDataUrl: string; height: number; width: number }>((resolve) => {
-              const img = new Image();
-              img.onload = () => {
-                console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
-                resolve({
-                  pageNumber: page.pageNumber,
-                  imageDataUrl: page.imageDataUrl || page.imageUrl, // Support both formats
-                  height: img.height,
-                  width: img.width
-                });
-              };
-              img.onerror = () => {
-                console.error(`Failed to load image for page ${page.pageNumber}`);
-                resolve({
-                  pageNumber: page.pageNumber,
-                  imageDataUrl: page.imageDataUrl || page.imageUrl, // Support both formats
-                  height: 800,
-                  width: 600
-                });
-              };
-              img.src = page.imageDataUrl || page.imageUrl; // Support both formats
-            });
-          })
-        );
-        
-        console.log('All page images processed:', processedPages.length);
-        setPageImages(processedPages);
-        setTotalPages(data.totalPages || 1);
-        console.log('PDF conversion complete, setting loading to false, pageImages:', processedPages.length);
-        setIsLoading(false);
-
-      } catch (error: any) {
-        console.error('PDF to image conversion error:', error);
-        const errorMessage = error.message || 'Unknown error during PDF conversion';
-        setError(`Failed to convert PDF to image: ${errorMessage}`);
-        setIsLoading(false);
-      }
-    };
-
-    convertPdfToImage();
-  }, [pdfBase64]);
-
-  // Remove auto-scaling since we're using max-width constraint instead
-
   // Helper functions for field management
-  const addField = (x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
+  const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number) => {
     const newField: SignatureField = {
       id: `field_${Date.now()}`,
       type,
@@ -247,96 +57,102 @@ export default function ImagePdfEditor({
              type === 'email' ? 'Email Address' : 'Text Field'
     };
     
-    console.log('🆕 Creating new field:', newField);
+    console.log('Creating new field:', newField);
     const updatedFields = [...signatureFields, newField];
-    console.log('📋 Updated fields array:', updatedFields.length, 'fields');
     onFieldsChange(updatedFields);
-  };
+  }, [signatureFields, onFieldsChange]);
 
-  const updateField = (fieldId: string, updates: Partial<SignatureField>) => {
+  const updateField = useCallback((fieldId: string, updates: Partial<SignatureField>) => {
     const updatedFields = signatureFields.map(field => 
       field.id === fieldId ? { ...field, ...updates } : field
     );
-    console.log('📝 Updated field:', fieldId, updates);
+    console.log('Updated field:', fieldId, updates);
     onFieldsChange(updatedFields);
-  };
+  }, [signatureFields, onFieldsChange]);
 
-  const deleteField = (fieldId: string) => {
+  const deleteField = useCallback((fieldId: string) => {
     const updatedFields = signatureFields.filter(field => field.id !== fieldId);
     onFieldsChange(updatedFields);
-  };
+  }, [signatureFields, onFieldsChange]);
 
-  const addField = useCallback((x: number, y: number, type: SignatureField['type'], pageNumber: number = 1) => {
-    const newField: SignatureField = {
-      id: `field_${Date.now()}`,
-      type,
-      label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
-      x: Math.max(0, x - 75), // Center field on cursor
-      y: Math.max(0, y - 15), // Center field on cursor
-      width: type === 'signature' ? 200 : 150,
-      height: type === 'signature' ? 60 : 30,
-      pageNumber,
-      required: true,
-      fontSize: 12,
-      placeholder: type === 'date' ? 'MM/DD/YYYY' : undefined
+  // Convert PDF to images via server
+  useEffect(() => {
+    if (!pdfBase64) return;
+
+    const convertPdfToImage = async () => {
+      console.log('Starting PDF conversion, setting loading to true');
+      setIsLoading(true);
+      setError('');
+
+      try {
+        console.log('Converting all PDF pages to images via server');
+        const response = await fetch('/api/pdf-to-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pdfBase64, convertAllPages: true })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('All', data.totalPages, 'PDF pages converted successfully');
+
+        const processedPages = await Promise.all(
+          data.pages.map((page: any) => {
+            return new Promise<PageImage>((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
+                resolve({
+                  pageNumber: page.pageNumber,
+                  imageDataUrl: `/api/temp-image/${page.filename}`,
+                  height: img.height,
+                  width: img.width
+                });
+              };
+              img.onerror = () => {
+                console.error(`Failed to load image for page ${page.pageNumber}`);
+                resolve({
+                  pageNumber: page.pageNumber,
+                  imageDataUrl: `/api/temp-image/${page.filename}`,
+                  height: 800,
+                  width: 600
+                });
+              };
+              img.src = `/api/temp-image/${page.filename}`;
+            });
+          })
+        );
+
+        console.log('All page images processed:', processedPages.length);
+        setPageImages(processedPages);
+        setTotalPages(data.totalPages || 1);
+        setIsLoading(false);
+
+      } catch (error: any) {
+        console.error('PDF to image conversion error:', error);
+        setError(`Failed to convert PDF to image: ${error.message}`);
+        setIsLoading(false);
+      }
     };
-    console.log('🔧 Adding field at coordinates:', { x: newField.x, y: newField.y, pageNumber });
-    onFieldsChange([...signatureFields, newField]);
-  }, [signatureFields, onFieldsChange]);
 
-  const updateField = useCallback((id: string, updates: Partial<SignatureField>) => {
-    const updatedFields = signatureFields.map(field =>
-      field.id === id ? { ...field, ...updates } : field
-    );
-    onFieldsChange(updatedFields);
-  }, [signatureFields, onFieldsChange]);
-
-  const deleteField = useCallback((id: string) => {
-    const filteredFields = signatureFields.filter(field => field.id !== id);
-    onFieldsChange(filteredFields);
-  }, [signatureFields, onFieldsChange]);
-
-  // Remove click-to-add functionality since we're using drag-and-drop only
+    convertPdfToImage();
+  }, [pdfBase64]);
 
   const openPdfInNewTab = () => {
-    const dataUrl = `data:application/pdf;base64,${pdfBase64}`;
-    window.open(dataUrl, '_blank');
-  };
-
-  // Calculate cumulative offset for field positioning
-  const getFieldOffset = (pageNumber: number) => {
-    let offset = 0;
-    const FIXED_DISPLAY_WIDTH = 800;
-    for (let i = 0; i < pageNumber - 1; i++) {
-      if (pageImages[i]) {
-        const displayWidth = Math.min(FIXED_DISPLAY_WIDTH, pageImages[i].width);
-        const displayHeight = (pageImages[i].height * displayWidth) / pageImages[i].width;
-        offset += displayHeight + 20; // 20px gap between pages
-      }
+    if (pageImages.length > 0) {
+      window.open(pageImages[0]?.imageDataUrl, '_blank');
     }
-    return offset;
   };
-
-  console.log('ImagePdfEditor render state:', { isLoading, pageImagesCount: pageImages.length, hasError: !!error });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Processing PDF...</p>
-          <p className="text-xs text-gray-500 mt-1">Converting pages to images</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center max-w-md">
-          <p className="text-sm text-red-600 mb-4">{error}</p>
-          <Button onClick={openPdfInNewTab} variant="outline">
+      <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button variant="outline" onClick={openPdfInNewTab}>
             <ExternalLink className="w-4 h-4 mr-2" />
             Open Original PDF
           </Button>
@@ -344,12 +160,6 @@ export default function ImagePdfEditor({
       </div>
     );
   }
-
-  const openPdfInNewTab = () => {
-    if (pageImages.length > 0) {
-      window.open('/api/temp-image/' + pageImages[0]?.imageDataUrl?.split('/').pop(), '_blank');
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -416,16 +226,16 @@ export default function ImagePdfEditor({
         >
           {pageImages.length > 0 && !isLoading && (
             <div className="space-y-8">
-              {pageImages.map((page, index) => {
+              {pageImages.map((page) => {
                 // Calculate display dimensions with zoom support
                 const baseDisplayWidth = 800;
                 const displayWidth = (baseDisplayWidth * zoomLevel) / 100;
-                const displayHeight = (page.height * displayWidth) / page.width;
+                const displayHeight = (page.height / page.width) * displayWidth;
                 
-                // Calculate scale factors for coordinate conversion (zoom doesn't affect field positioning)
+                // Scale factors for coordinate conversion (zoom doesn't affect field positioning)
                 const scaleX = page.width / baseDisplayWidth;
                 const scaleY = page.height / (baseDisplayWidth * (page.height / page.width));
-                
+
                 return (
                   <div key={page.pageNumber} className="relative mb-8">
                     {/* Page number indicator */}
@@ -457,7 +267,7 @@ export default function ImagePdfEditor({
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
                           
-                          console.log('🎯 DROP EVENT on page', page.pageNumber);
+                          console.log('DROP EVENT on page', page.pageNumber);
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const relativeX = e.clientX - rect.left;
@@ -467,17 +277,17 @@ export default function ImagePdfEditor({
                           const x = relativeX * scaleX;
                           const y = relativeY * scaleY;
                           
-                          console.log('📐 Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
+                          console.log('Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
                           const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
                           
-                          console.log('🔍 Retrieved data:', { fieldId, fieldType });
+                          console.log('Retrieved data:', { fieldId, fieldType });
                           
                           if (fieldId && fieldId.startsWith('field_')) {
                             // Moving existing field
-                            console.log('✅ Moving existing field', fieldId);
+                            console.log('Moving existing field', fieldId);
                             updateField(fieldId, { 
                               x: Math.max(0, x - 50), 
                               y: Math.max(0, y - 10), 
@@ -485,32 +295,10 @@ export default function ImagePdfEditor({
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
                             // Adding new field
-                            console.log('✅ Adding new field', fieldType);
+                            console.log('Adding new field', fieldType);
                             addField(Math.max(0, x - 50), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
                           } else {
-                            console.log('❌ NO FIELD DATA FOUND');
-                          }
-                        }}
-                          
-                          console.log('🔍 Retrieved data:', {
-                            fieldId,
-                            fieldType,
-                            allData: Array.from(e.dataTransfer.types).map(type => ({
-                              type,
-                              data: e.dataTransfer.getData(type)
-                            }))
-                          });
-                          
-                          if (fieldId) {
-                            // Moving existing field
-                            console.log('✅ Moving existing field', fieldId, 'to', x, y, 'on page', page.pageNumber);
-                            updateField(fieldId, { x: Math.max(0, x - 75), y: Math.max(0, y - 15), pageNumber: page.pageNumber });
-                          } else if (fieldType) {
-                            // Adding new field
-                            console.log('✅ Adding new field', fieldType, 'at', x, y, 'on page', page.pageNumber);
-                            addField(x - 75, y - 15, fieldType as SignatureField['type'], page.pageNumber);
-                          } else {
-                            console.log('❌ NO FIELD DATA FOUND - cannot drop');
+                            console.log('NO FIELD DATA FOUND');
                           }
                         }}
                         onDragOver={(e) => {
@@ -528,27 +316,25 @@ export default function ImagePdfEditor({
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
-                          console.log('🚪 DRAG ENTER page', page.pageNumber);
+                          console.log('DRAG ENTER page', page.pageNumber);
                         }}
                       />
 
                       {/* Signature Fields for this page */}
                       {signatureFields
                         .filter(field => field.pageNumber === page.pageNumber)
-                        .map(field => {
-                          // Use percentage-based positioning for responsive scaling
+                        .map((field) => {
+                          // Convert PDF coordinates to display coordinates
                           const fieldXPercent = (field.x / page.width) * 100;
                           const fieldYPercent = (field.y / page.height) * 100;
                           const fieldWidthPercent = (field.width / page.width) * 100;
                           const fieldHeightPercent = (field.height / page.height) * 100;
-                          
+
                           return (
                             <div
                               key={field.id}
+                              className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-70 rounded px-2 py-1 text-xs select-none cursor-move group hover:bg-blue-100 transition-colors"
                               draggable
-                              className={`absolute border-2 ${FIELD_COLORS[field.type]} rounded px-2 py-1 text-xs group hover:shadow-md transition-all cursor-move select-none ${
-                                resizingField === field.id ? 'ring-2 ring-blue-500' : ''
-                              }`}
                               style={{
                                 left: `${fieldXPercent}%`,
                                 top: `${fieldYPercent}%`,
@@ -593,9 +379,11 @@ export default function ImagePdfEditor({
                                 </Button>
                               </div>
                               
-                              {/* Resize Handles */}
+                              {/* Optimized resize handle */}
                               <div
-                                className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-full cursor-se-resize opacity-0 group-hover:opacity-100"
+                                className={`absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize rounded-tl transition-opacity ${
+                                  resizingField === field.id ? 'ring-2 ring-blue-500 opacity-100' : 'opacity-60 hover:opacity-100'
+                                }`}
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -606,26 +394,32 @@ export default function ImagePdfEditor({
                                   const startWidth = field.width;
                                   const startHeight = field.height;
                                   
-                                  const handleMouseMove = (moveE: MouseEvent) => {
-                                    const deltaX = moveE.clientX - startX;
-                                    const deltaY = moveE.clientY - startY;
-                                    
-                                    // Convert screen deltas to PDF coordinates
-                                    const newWidth = Math.max(50, startWidth + deltaX * scaleX);
-                                    const newHeight = Math.max(20, startHeight + deltaY * scaleY);
-                                    
-                                    updateField(field.id, { 
-                                      width: newWidth, 
-                                      height: newHeight 
-                                    });
+                                  // Throttle resize updates for better performance
+                                  let resizeTimeout: NodeJS.Timeout;
+
+                                  const handleMouseMove = (e: MouseEvent) => {
+                                    clearTimeout(resizeTimeout);
+                                    resizeTimeout = setTimeout(() => {
+                                      const deltaX = e.clientX - startX;
+                                      const deltaY = e.clientY - startY;
+                                      
+                                      const widthDelta = deltaX / (displayWidth / page.width);
+                                      const heightDelta = deltaY / (displayHeight / page.height);
+                                      
+                                      const newWidth = Math.max(50, startWidth + widthDelta);
+                                      const newHeight = Math.max(20, startHeight + heightDelta);
+                                      
+                                      updateField(field.id, { width: newWidth, height: newHeight });
+                                    }, 16); // ~60fps throttling
                                   };
-                                  
+
                                   const handleMouseUp = () => {
+                                    clearTimeout(resizeTimeout);
                                     setResizingField(null);
                                     document.removeEventListener('mousemove', handleMouseMove);
                                     document.removeEventListener('mouseup', handleMouseUp);
                                   };
-                                  
+
                                   document.addEventListener('mousemove', handleMouseMove);
                                   document.addEventListener('mouseup', handleMouseUp);
                                 }}
@@ -639,12 +433,8 @@ export default function ImagePdfEditor({
               })}
             </div>
           )}
-          
-
         </div>
       </Card>
-
-
     </div>
   );
 }
