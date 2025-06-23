@@ -231,12 +231,13 @@ export default function ImagePdfEditor({
               {pageImages.map((page) => {
                 // Calculate display dimensions with zoom support
                 const baseDisplayWidth = 800;
+                const baseDisplayHeight = (page.height / page.width) * baseDisplayWidth;
                 const displayWidth = (baseDisplayWidth * zoomLevel) / 100;
-                const displayHeight = (page.height / page.width) * displayWidth;
+                const displayHeight = (baseDisplayHeight * zoomLevel) / 100;
                 
-                // Scale factors for coordinate conversion (zoom doesn't affect field positioning)
+                // Scale factors for coordinate conversion (based on original dimensions)
                 const scaleX = page.width / baseDisplayWidth;
-                const scaleY = page.height / (baseDisplayWidth * (page.height / page.width));
+                const scaleY = page.height / baseDisplayHeight;
 
                 return (
                   <div key={page.pageNumber} className="relative mb-8">
@@ -287,6 +288,7 @@ export default function ImagePdfEditor({
                           const zoomAdjustedX = relativeX / zoomFactor;
                           const zoomAdjustedY = relativeY / zoomFactor;
                           
+                          // Calculate PDF coordinates with precise scaling
                           const x = zoomAdjustedX * scaleX;
                           const y = zoomAdjustedY * scaleY;
                           
@@ -312,21 +314,21 @@ export default function ImagePdfEditor({
                           const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
                           
                           if (existingFieldId && existingFieldId.startsWith('field_')) {
-                            // Moving existing field
+                            // Moving existing field - use exact coordinates without offset
                             console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', x, y);
                             updateField(existingFieldId, { 
-                              x: Math.max(0, x - 50), 
-                              y: Math.max(0, y - 10), 
+                              x: Math.max(0, x), 
+                              y: Math.max(0, y), 
                               pageNumber: page.pageNumber 
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
-                            // Adding new field
+                            // Adding new field - center field at drop location
                             console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 50), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 60), Math.max(0, y - 15), fieldType as SignatureField['type'], page.pageNumber);
                           } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
-                            // Fallback for new field creation via text/plain
+                            // Fallback for new field creation via text/plain - center field at drop location
                             console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', x, y);
-                            addField(Math.max(0, x - 50), Math.max(0, y - 10), textPlain as SignatureField['type'], page.pageNumber);
+                            addField(Math.max(0, x - 60), Math.max(0, y - 15), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
                             console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
