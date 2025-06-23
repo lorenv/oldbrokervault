@@ -4879,6 +4879,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
   });
 
   app.post("/api/share/:shareSlug/sign-nda", async (req, res) => {
+    console.log("🚀 NDA SIGNING ENDPOINT HIT!");
+    console.log("Request method:", req.method);
+    console.log("Request URL:", req.url);
+    console.log("Request body:", req.body);
+    console.log("Request params:", req.params);
+    
     try {
       const { shareSlug } = req.params;
       const { signerName, signerEmail, fieldValues = {} } = req.body;
