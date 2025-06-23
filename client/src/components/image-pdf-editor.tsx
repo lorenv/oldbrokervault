@@ -283,14 +283,18 @@ export default function ImagePdfEditor({
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
-                          const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
+                          const fieldType = e.dataTransfer.getData('application/field-type');
+                          const textPlain = e.dataTransfer.getData('text/plain');
                           
-                          console.log('🔍 Retrieved data:', { fieldId, fieldType });
+                          console.log('🔍 Retrieved data:', { fieldId, fieldType, textPlain, allTypes: Array.from(e.dataTransfer.types) });
                           
-                          if (fieldId && fieldId.startsWith('field_')) {
+                          // Check for existing field movement first (field ID in either field-id or text/plain)
+                          const existingFieldId = fieldId || (textPlain && textPlain.startsWith('field_') ? textPlain : null);
+                          
+                          if (existingFieldId && existingFieldId.startsWith('field_')) {
                             // Moving existing field
-                            console.log('✅ Moving existing field', fieldId, 'to page', page.pageNumber, 'at', x, y);
-                            updateField(fieldId, { 
+                            console.log('✅ Moving existing field', existingFieldId, 'to page', page.pageNumber, 'at', x, y);
+                            updateField(existingFieldId, { 
                               x: Math.max(0, x - 50), 
                               y: Math.max(0, y - 10), 
                               pageNumber: page.pageNumber 
@@ -299,8 +303,12 @@ export default function ImagePdfEditor({
                             // Adding new field
                             console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
                             addField(Math.max(0, x - 50), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
+                          } else if (textPlain && ['signature', 'name', 'date', 'email', 'text'].includes(textPlain)) {
+                            // Fallback for new field creation via text/plain
+                            console.log('✅ Adding new field (fallback)', textPlain, 'at coordinates', x, y);
+                            addField(Math.max(0, x - 50), Math.max(0, y - 10), textPlain as SignatureField['type'], page.pageNumber);
                           } else {
-                            console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType);
+                            console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType, 'textPlain:', textPlain);
                           }
                         }}
                         onDragOver={(e) => {
