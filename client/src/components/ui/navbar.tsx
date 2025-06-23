@@ -31,7 +31,7 @@ export function Navbar() {
       isHomePage 
         ? "absolute top-0 left-0 right-0 z-50" 
         : user 
-          ? "border-b bg-gradient-to-r from-slate-50 via-gray-50 to-blue-50 border-gray-200" 
+          ? "border-b bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-blue-200" 
           : "border-b"
     }>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
