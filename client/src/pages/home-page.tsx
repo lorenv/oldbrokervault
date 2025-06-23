@@ -306,24 +306,40 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Make CIMs the Easy Way?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of professionals who trust CIM Share for their confidential business documentation needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/login">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                Create a Free CIM
-              </Button>
-            </Link>
-            <Link href="/pricing">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-gray-900 bg-white hover:bg-gray-100">
-                View Pricing
-              </Button>
-            </Link>
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left side - Text content */}
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Ready to Make CIMs the Easy Way?
+              </h2>
+              <p className="text-xl text-blue-100 mb-8 max-w-2xl">
+                Join thousands of professionals who trust CIM Share for their confidential business documentation needs.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link href="/login">
+                  <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+                    Create a Free CIM
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-gray-900 bg-white hover:bg-gray-100">
+                    View Pricing
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Right side - Mobile mockup */}
+            <div className="flex justify-center lg:justify-end">
+              <div className="relative">
+                <img
+                  src="/mobile-mockup.png"
+                  alt="CIM Share mobile app showing Arbor Partners CIM with financial information"
+                  className="w-full max-w-md h-auto drop-shadow-2xl"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
