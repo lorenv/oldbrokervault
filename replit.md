@@ -138,10 +138,12 @@ The application follows a modern client-server architecture with clear separatio
    const draggedFieldId = e.dataTransfer.types.includes('application/field-id');
    e.dataTransfer.dropEffect = draggedFieldId ? 'move' : 'copy';
    ```
-5. **OVERLAP FIX**: Force coordinate updates regardless of overlap with previous position:
+5. **OVERLAP FIX**: Compare exact coordinates and force updates for any change:
    ```javascript
-   // Always apply updates, even if coordinates are similar to prevent overlap blocking
-   const updatedField = { ...field, ...updates };
+   // Always update if coordinates changed, even by 1 pixel
+   if (!currentField || currentField.x !== newX || currentField.y !== newY || currentField.pageNumber !== page.pageNumber) {
+     updateField(existingFieldId, { x: newX, y: newY, pageNumber: page.pageNumber });
+   }
    ```
 6. Check both data sources in drop handler for maximum compatibility
 7. Add `e.stopPropagation()` to both `onDragOver` and `onDragEnter` handlers
