@@ -91,6 +91,21 @@ export default function ImagePdfEditor({
     onFieldsChange(updatedFields);
   }, [signatureFields, onFieldsChange]);
 
+  // Precision movement function for 1px adjustments
+  const moveField = useCallback((fieldId: string, deltaX: number, deltaY: number) => {
+    const updatedFields = signatureFields.map(field => {
+      if (field.id === fieldId) {
+        return {
+          ...field,
+          x: Math.max(0, field.x + deltaX),
+          y: Math.max(0, field.y + deltaY)
+        };
+      }
+      return field;
+    });
+    onFieldsChange(updatedFields);
+  }, [signatureFields, onFieldsChange]);
+
   // Convert PDF to images via server
   useEffect(() => {
     if (!pdfBase64) return;
