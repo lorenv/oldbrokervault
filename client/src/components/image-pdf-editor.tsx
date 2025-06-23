@@ -357,15 +357,48 @@ export default function ImagePdfEditor({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with Zoom Controls */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
           {totalPages} page{totalPages !== 1 ? 's' : ''} • {signatureFields.length} fields positioned
         </div>
-        <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
-          <ExternalLink className="w-4 h-4 mr-1" />
-          View Original PDF
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2 border rounded-lg p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setZoomLevel(Math.max(25, zoomLevel - 25))}
+              disabled={zoomLevel <= 25}
+              className="h-8 w-8 p-0"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium w-12 text-center">{zoomLevel}%</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))}
+              disabled={zoomLevel >= 200}
+              className="h-8 w-8 p-0"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setZoomLevel(100)}
+              className="h-8 w-8 p-0"
+              title="Reset zoom"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button variant="outline" size="sm" onClick={openPdfInNewTab}>
+            <ExternalLink className="w-4 h-4 mr-1" />
+            View Original PDF
+          </Button>
+        </div>
       </div>
 
       {/* PDF Preview Container */}
