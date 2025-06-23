@@ -721,10 +721,48 @@ export function CimGenerator() {
                       Customize how AI analyzes your transcript
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    Templates
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Settings className="h-4 w-4" />
+                        Templates
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Manage Direction Templates</DialogTitle>
+                        <DialogDescription>
+                          Create, save, and load custom analysis direction templates
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Current Directions</Label>
+                          <Textarea
+                            className="min-h-[300px] text-sm"
+                            value={customDirections}
+                            onChange={(e) => {
+                              setCustomDirections(e.target.value);
+                              form.setValue("directions", e.target.value);
+                            }}
+                            placeholder="Enter your custom analysis directions..."
+                          />
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Save className="h-4 w-4 mr-2" />
+                            Save as Template
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <FolderOpen className="h-4 w-4 mr-2" />
+                            Load Template
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -779,16 +817,16 @@ export function CimGenerator() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="investors">Investors</SelectItem>
-                        <SelectItem value="partners">Partners</SelectItem>
                         <SelectItem value="internal_team">Internal Team</SelectItem>
-                        <SelectItem value="potential_buyers">Potential Buyers</SelectItem>
+                        <SelectItem value="high_school_level">High School Level</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {/* Doubled height for analysis directions */}
+                {/* Custom directions with grey title */}
                 <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Custom Directions</Label>
                   <Textarea
                     className="min-h-[160px] text-xs resize-y"
                     value={customDirections}
