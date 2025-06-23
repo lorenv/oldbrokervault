@@ -24,13 +24,15 @@ interface EmailParams {
 
 async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    console.log('Sending email via SendGrid:');
+    console.log('=== SENDGRID EMAIL ATTEMPT ===');
     console.log('- To:', params.to);
     console.log('- From:', params.from);
     console.log('- Subject:', params.subject);
     console.log('- Has attachments:', !!params.attachments?.length);
+    console.log('- API Key configured:', !!process.env.SENDGRID_API_KEY);
+    console.log('- API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
     
-    const result = await mailService.send({
+    const emailData = {
       to: params.to,
       from: params.from,
       subject: params.subject,
@@ -38,19 +40,37 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
       replyTo: params.replyTo,
       html: params.html,
       attachments: params.attachments,
+    };
+    
+    console.log('Sending email with data:', {
+      to: emailData.to,
+      from: emailData.from,
+      subject: emailData.subject,
+      hasText: !!emailData.text,
+      hasHtml: !!emailData.html,
+      hasReplyTo: !!emailData.replyTo,
+      attachmentCount: emailData.attachments?.length || 0
     });
     
-    console.log('Email sent successfully to:', params.to);
-    console.log('SendGrid response:', result);
+    const result = await mailService.send(emailData);
+    
+    console.log('✅ Email sent successfully to:', params.to);
+    console.log('SendGrid response status:', result[0]?.statusCode);
+    console.log('SendGrid response headers:', result[0]?.headers);
+    console.log('=== END SENDGRID SUCCESS ===');
     return true;
   } catch (error: any) {
-    console.error('SendGrid email error:', error);
+    console.error('❌ SendGrid email error:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
     if (error.response) {
       console.error('SendGrid response status:', error.response.status);
       console.error('SendGrid response body:', error.response.body);
+      if (error.response.body && error.response.body.errors) {
+        console.error('SendGrid errors:', error.response.body.errors);
+      }
     }
+    console.error('=== END SENDGRID ERROR ===');
     return false;
   }
 }

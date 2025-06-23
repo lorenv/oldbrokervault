@@ -4913,6 +4913,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.log("Signer name:", signerName);
       console.log("Signer email:", signerEmail);
       console.log("Field values:", fieldValues);
+      console.log("Email validation:", {
+        hasName: !!signerName && signerName.trim().length > 0,
+        hasEmail: !!signerEmail && signerEmail.trim().length > 0,
+        emailFormat: signerEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerEmail) : false
+      });
       console.log("Headers:", {
         'x-forwarded-for': req.headers['x-forwarded-for'],
         'x-real-ip': req.headers['x-real-ip'],
@@ -5205,16 +5210,42 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           console.log("Sending separate NDA confirmation and CIM access emails...");
           const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
           
-          // Use imported email function
+          // Enhanced email validation and logging
+          console.log("=== EMAIL SENDING VALIDATION ===");
+          console.log("Signer email (final):", signerEmail);
+          console.log("Signer name (final):", signerName);
+          console.log("Owner email:", owner.email);
+          console.log("CIM title:", cimDoc.title);
+          console.log("Redirect URL:", redirectUrl);
+          console.log("Signed NDA content size:", signedNdaContent?.length || 0);
+          console.log("Owner profile data:", ownerProfileData);
+          
+          // Validate required data before sending
+          if (!signerEmail || !signerEmail.trim()) {
+            console.error("ERROR: Signer email is empty or undefined");
+            throw new Error("Signer email is required for email sending");
+          }
+          
+          if (!signerName || !signerName.trim()) {
+            console.error("ERROR: Signer name is empty or undefined");
+            throw new Error("Signer name is required for email sending");
+          }
+          
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerEmail.trim())) {
+            console.error("ERROR: Invalid email format:", signerEmail);
+            throw new Error("Invalid email format");
+          }
+          
+          console.log("✅ Email validation passed, proceeding with email sending...");
           
           const finalEmailSent = await sendNdaSignedEmail(
-            signerEmail,
+            signerEmail.trim(),
             owner.email,
             owner.name || owner.email,
             cimDoc.title,
             redirectUrl,
             signedNdaContent,
-            signerName,
+            signerName.trim(),
             ownerProfileData
           );
 
