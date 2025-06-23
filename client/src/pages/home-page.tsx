@@ -230,10 +230,10 @@ export default function HomePage() {
               </div>
               <div 
                 className="bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow duration-300 lg:order-2"
-                onClick={() => setEnlargedImage("/drag-drop-signature-preview.png")}
+                onClick={() => setEnlargedImage("/drag-drop-signature-preview-new.png")}
               >
                 <img 
-                  src="/drag-drop-signature-preview.png" 
+                  src="/drag-drop-signature-preview-new.png" 
                   alt="Drag & Drop E-Signature Template Editor"
                   className="w-full h-auto object-cover"
                 />
