@@ -26,7 +26,11 @@ export default function NdaTemplatesPage() {
     queryKey: ['/api/nda-templates'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/nda-templates');
-      return response.json();
+      const data = await response.json();
+      // Sort by creation date in reverse chronological order (newest first)
+      return data.sort((a: NdaTemplate, b: NdaTemplate) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - cache templates to avoid repeated loads
     cacheTime: 30 * 60 * 1000, // 30 minutes

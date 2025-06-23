@@ -20,8 +20,11 @@ interface NdaTemplate {
 
 export default function NdaTemplateEditorPage() {
   const [location, setLocation] = useLocation();
-  const [, params] = useRoute('/nda-templates/edit/:id');
+  const [, params1] = useRoute('/nda-templates/edit/:id');
+  const [, params2] = useRoute('/nda-templates/:id/edit');
   const [createMatch] = useRoute('/nda-templates/create');
+  
+  const params = params1 || params2;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
