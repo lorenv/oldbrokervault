@@ -20,7 +20,8 @@ import {
   Copy,
   Link2Off,
   Loader2,
-  Eye
+  Eye,
+  Download
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +74,12 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       return response.json();
     },
     onSuccess: () => {
-      // Silent auto-save success - no toast needed for better UX
+      // Show brief success indicator for template changes
+      toast({
+        title: "Settings Saved",
+        description: "NDA settings updated successfully",
+        duration: 2000
+      });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
     },
@@ -151,13 +157,11 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     // Auto-save to backend with proper mapping
     const backendSettings: any = {
       ndaProtected: newSettings.ndaProtected,
-      ndaApprovalRequired: newSettings.ndaApprovalRequired // Fixed: was using ndaRequiresManualApproval
+      ndaApprovalRequired: newSettings.ndaApprovalRequired,
+      ndaTemplateId: newSettings.ndaTemplateId // Always include template ID
     };
     
-    if (newSettings.ndaTemplateId) {
-      backendSettings.ndaTemplateId = newSettings.ndaTemplateId;
-    }
-    
+    console.log('Auto-saving NDA settings:', { setting, value, backendSettings });
     updateNdaSettingsMutation.mutate(backendSettings);
   };
 
@@ -401,9 +405,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     onValueChange={(value) => 
                       handleSettingChange('ndaTemplateId', parseInt(value))
                     }
+                    disabled={updateNdaSettingsMutation.isPending}
                   >
                     <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue placeholder="Choose your legal template" />
+                      {updateNdaSettingsMutation.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      )}
                     </SelectTrigger>
                     <SelectContent>
                       {ndaTemplates.map((template: any) => (
