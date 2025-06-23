@@ -3443,7 +3443,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const { isPublic, requireNda, password, expiresAt, customSlug } = req.body;
+      const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaRequiresManualApproval } = req.body;
       
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
@@ -3478,8 +3478,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         customSlug: validatedCustomSlug,
         sharePassword: password,
         shareExpiresAt: expiresAt,
-        ndaProtected: requireNda,
-        ndaTemplateId: doc.ndaTemplateId
+        ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
+        ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
+        ndaApprovalRequired: ndaRequiresManualApproval !== undefined ? ndaRequiresManualApproval : doc.ndaApprovalRequired
       });
 
       res.json({
@@ -3489,7 +3490,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         requireNda: updatedDoc.ndaProtected,
         password: updatedDoc.sharePassword,
         expiresAt: updatedDoc.shareExpiresAt,
-        viewCount: updatedDoc.shareViewCount
+        viewCount: updatedDoc.shareViewCount,
+        ndaProtected: updatedDoc.ndaProtected,
+        ndaTemplateId: updatedDoc.ndaTemplateId,
+        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
       });
     } catch (error) {
       console.error("Error updating share settings:", error);
@@ -3585,7 +3589,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       res.json({
         shareEnabled: updatedDoc.shareEnabled,
         shareSlug: updatedDoc.shareSlug,
-        viewCount: updatedDoc.shareViewCount
+        viewCount: updatedDoc.shareViewCount,
+        ndaProtected: updatedDoc.ndaProtected,
+        ndaTemplateId: updatedDoc.ndaTemplateId,
+        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
       });
     } catch (error: any) {
       console.error("Error updating share settings:", error);
