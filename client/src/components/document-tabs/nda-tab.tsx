@@ -67,8 +67,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       if (!response.ok) throw new Error('Failed to fetch NDA templates');
       return response.json();
     },
-    staleTime: 60000,
-    refetchOnWindowFocus: false
+    staleTime: 5000, // Reduced stale time to refresh more frequently
+    refetchOnWindowFocus: true
   });
 
   // Update NDA settings mutation
@@ -92,16 +92,20 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       
       // Update local state with server response to prevent reversion
       if (data) {
-        setNdaSettings(prev => ({
-          ...prev,
-          ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : prev.ndaProtected,
-          ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : prev.ndaTemplateId,
-          ndaApprovalRequired: data.ndaRequiresManualApproval !== undefined ? data.ndaRequiresManualApproval : prev.ndaApprovalRequired
-        }));
+        console.log('Server response data:', data);
+        const newSettings = {
+          ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : ndaSettings.ndaProtected,
+          ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : ndaSettings.ndaTemplateId,
+          ndaApprovalRequired: data.ndaRequiresManualApproval !== undefined ? data.ndaRequiresManualApproval : ndaSettings.ndaApprovalRequired
+        };
+        console.log('Updating local state to:', newSettings);
+        setNdaSettings(newSettings);
       }
       
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
     },
     onError: () => {
       toast({
