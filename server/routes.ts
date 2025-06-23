@@ -4304,6 +4304,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           totalPages,
           pages: pageImages.map(p => ({
             pageNumber: p.pageNumber,
+            filename: p.imageUrl.split('/').pop(), // Extract filename from URL
             imageUrl: p.imageUrl,
             width: p.width,
             height: p.height

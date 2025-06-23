@@ -103,7 +103,8 @@ export default function ImagePdfEditor({
           data.pages.map((page: any) => {
             return new Promise<PageImage>((resolve) => {
               const img = new Image();
-              const imageUrl = `/api/temp-image/${page.filename}`;
+              // Use the imageUrl directly from the API response
+              const imageUrl = page.imageUrl || `/api/temp-image/${page.filename}`;
               img.onload = () => {
                 console.log(`Image loaded for page ${page.pageNumber}: ${img.width}x${img.height}`);
                 resolve({
@@ -114,7 +115,7 @@ export default function ImagePdfEditor({
                 });
               };
               img.onerror = () => {
-                console.error(`Failed to load image for page ${page.pageNumber}`);
+                console.error(`Failed to load image for page ${page.pageNumber}, URL: ${imageUrl}`);
                 resolve({
                   pageNumber: page.pageNumber,
                   imageDataUrl: imageUrl,
