@@ -81,9 +81,9 @@ export default function ImagePdfEditor({
   const updateField = useCallback((fieldId: string, updates: Partial<SignatureField>) => {
     const updatedFields = signatureFields.map(field => {
       if (field.id === fieldId) {
-        // Always apply updates, even if coordinates are similar to prevent overlap blocking
+        // Force update - ignore any overlap detection
         const updatedField = { ...field, ...updates };
-        console.log('Updated field:', fieldId, 'from:', { x: field.x, y: field.y, page: field.pageNumber }, 'to:', updates);
+        console.log('🔄 FORCE UPDATE field:', fieldId, 'from:', { x: field.x, y: field.y, page: field.pageNumber }, 'to:', updates);
         return updatedField;
       }
       return field;
