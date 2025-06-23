@@ -99,12 +99,12 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {/* Right side - Mobile mockup */}
+            {/* Right side - Hero Phone Mockup */}
             <div className="flex justify-center lg:justify-end">
               <div className="relative">
                 <img 
-                  src="/mobile-cim-mockup.png" 
-                  alt="CIM Share mobile interface showing Arbor Partners CIM"
+                  src="/hero-phone-mockup.png" 
+                  alt="CIM Share Mobile Interface showing Arbor Partners document"
                   className="w-80 md:w-96 max-w-full h-auto drop-shadow-2xl"
                 />
                 {/* Optional floating elements for visual appeal */}
