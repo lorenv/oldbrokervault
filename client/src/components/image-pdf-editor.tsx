@@ -269,7 +269,7 @@ export default function ImagePdfEditor({
                           e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.border = 'none';
                           
-                          console.log('DROP EVENT on page', page.pageNumber);
+                          console.log('🎯 DROP EVENT on page', page.pageNumber);
                           
                           const rect = e.currentTarget.getBoundingClientRect();
                           const relativeX = e.clientX - rect.left;
@@ -279,17 +279,17 @@ export default function ImagePdfEditor({
                           const x = relativeX * scaleX;
                           const y = relativeY * scaleY;
                           
-                          console.log('Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
+                          console.log('📐 Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
                           const fieldType = e.dataTransfer.getData('application/field-type') || e.dataTransfer.getData('text/plain');
                           
-                          console.log('Retrieved data:', { fieldId, fieldType });
+                          console.log('🔍 Retrieved data:', { fieldId, fieldType });
                           
                           if (fieldId && fieldId.startsWith('field_')) {
                             // Moving existing field
-                            console.log('Moving existing field', fieldId);
+                            console.log('✅ Moving existing field', fieldId);
                             updateField(fieldId, { 
                               x: Math.max(0, x - 50), 
                               y: Math.max(0, y - 10), 
@@ -297,15 +297,16 @@ export default function ImagePdfEditor({
                             });
                           } else if (fieldType && ['signature', 'name', 'date', 'email', 'text'].includes(fieldType)) {
                             // Adding new field
-                            console.log('Adding new field', fieldType);
+                            console.log('✅ Adding new field', fieldType, 'at coordinates', x, y);
                             addField(Math.max(0, x - 50), Math.max(0, y - 10), fieldType as SignatureField['type'], page.pageNumber);
                           } else {
-                            console.log('NO FIELD DATA FOUND');
+                            console.log('❌ NO FIELD DATA FOUND - fieldId:', fieldId, 'fieldType:', fieldType);
                           }
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
+                          e.stopPropagation();
+                          e.dataTransfer.dropEffect = 'copy';
                           // Enhanced visual feedback
                           e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
                           e.currentTarget.style.border = '2px dashed #3b82f6';
@@ -318,7 +319,8 @@ export default function ImagePdfEditor({
                         }}
                         onDragEnter={(e) => {
                           e.preventDefault();
-                          console.log('DRAG ENTER page', page.pageNumber);
+                          e.stopPropagation();
+                          console.log('🚪 DRAG ENTER page', page.pageNumber);
                         }}
                       />
 
