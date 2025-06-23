@@ -1098,6 +1098,21 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(ndaTemplates.createdAt));
   }
 
+  async getNdaTemplatesLight(userId: number): Promise<Omit<NdaTemplate, 'fileContent'>[]> {
+    return await db.select({
+      id: ndaTemplates.id,
+      userId: ndaTemplates.userId,
+      name: ndaTemplates.name,
+      createdAt: ndaTemplates.createdAt,
+      signatureFields: ndaTemplates.signatureFields,
+      totalPages: ndaTemplates.totalPages,
+      pageImages: ndaTemplates.pageImages
+    })
+      .from(ndaTemplates)
+      .where(eq(ndaTemplates.userId, userId))
+      .orderBy(asc(ndaTemplates.createdAt));
+  }
+
   // Optimized version that excludes heavy fileContent for list views
   async getNdaTemplatesLight(userId: number): Promise<Omit<NdaTemplate, 'fileContent'>[]> {
     return await db.select({

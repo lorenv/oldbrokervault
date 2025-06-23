@@ -5,12 +5,13 @@ import { validateZodSchema } from "../middleware/validation";
 
 export function registerNdaTemplateRoutes(app: Express) {
   console.log('=== SETTING UP NDA TEMPLATE ROUTES ===');
-  // Get all NDA templates for user
+  // Get all NDA templates for user (lightweight version for list view)
   app.get("/api/nda-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const templates = await storage.getNdaTemplates(req.user!.id);
+      // Use lightweight version that excludes heavy fileContent for faster loading
+      const templates = await storage.getNdaTemplatesLight(req.user!.id);
       res.json(templates);
     } catch (error) {
       console.error("Error fetching NDA templates:", error);
