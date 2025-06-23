@@ -256,7 +256,11 @@ export default function ImagePdfEditor({
                         alt={`PDF Page ${page.pageNumber}`}
                         className="w-full h-full object-contain select-none"
                         onDragStart={(e) => e.preventDefault()}
-                        style={{ pointerEvents: 'none' }}
+                        style={{ 
+                          pointerEvents: 'none',
+                          transform: `scale(${zoomLevel / 100})`,
+                          transformOrigin: 'top left'
+                        }}
                       />
                       
                       {/* Transparent Drop Zone Overlay */}
@@ -275,11 +279,24 @@ export default function ImagePdfEditor({
                           const relativeX = e.clientX - rect.left;
                           const relativeY = e.clientY - rect.top;
                           
-                          // Apply scale factors for accurate coordinate mapping
-                          const x = relativeX * scaleX;
-                          const y = relativeY * scaleY;
+                          // Apply zoom factor first, then scale factors for accurate coordinate mapping
+                          const zoomFactor = zoomLevel / 100;
+                          const zoomAdjustedX = relativeX / zoomFactor;
+                          const zoomAdjustedY = relativeY / zoomFactor;
                           
-                          console.log('📐 Drop coordinates:', { relativeX, relativeY, scaledX: x, scaledY: y });
+                          const x = zoomAdjustedX * scaleX;
+                          const y = zoomAdjustedY * scaleY;
+                          
+                          console.log('📐 Drop coordinates:', { 
+                            relativeX, 
+                            relativeY, 
+                            zoomLevel, 
+                            zoomFactor, 
+                            zoomAdjustedX, 
+                            zoomAdjustedY, 
+                            scaledX: x, 
+                            scaledY: y 
+                          });
                           
                           // Check if it's a new field or existing field move
                           const fieldId = e.dataTransfer.getData('application/field-id');
