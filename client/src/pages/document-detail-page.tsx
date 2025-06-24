@@ -26,8 +26,8 @@ export function DocumentDetailPage() {
   
   const docId = params?.id ? parseInt(params.id) : undefined;
   
-  // Get current tab from URL or default to analytics
-  const urlTab = new URLSearchParams(window.location.search).get('tab') || 'analytics';
+  // Get current tab from URL or default to edit for new documents
+  const urlTab = new URLSearchParams(window.location.search).get('tab') || 'edit';
   const [activeTab, setActiveTab] = useState(urlTab);
   
   // Fetch document data
@@ -39,7 +39,7 @@ export function DocumentDetailPage() {
   // Update URL when tab changes
   useEffect(() => {
     if (docId) {
-      const newUrl = `/documents/${docId}${activeTab !== 'analytics' ? `?tab=${activeTab}` : ''}`;
+      const newUrl = `/documents/${docId}${activeTab !== 'edit' ? `?tab=${activeTab}` : ''}`;
       if (window.location.pathname + window.location.search !== newUrl) {
         window.history.replaceState(null, '', newUrl);
       }

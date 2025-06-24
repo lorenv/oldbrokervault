@@ -381,9 +381,9 @@ export function CimGenerator() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
       
-      // Redirect to the document editing interface with tabs
+      // Redirect to the document editing interface with edit tab active
       setTimeout(() => {
-        window.location.assign(`/documents/${result.id}`);
+        window.location.assign(`/documents/${result.id}?tab=edit`);
       }, 1500);
     },
     onError: (error) => {
