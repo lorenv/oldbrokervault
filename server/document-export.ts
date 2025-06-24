@@ -2353,10 +2353,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Adding financial file to PDF:", file.originalName);
               // Use the dynamic base URL for file downloads - handle both regular and shared document downloads
               const domain = baseUrl || 'https://cimshare.com';
-              // For shared documents, use share-compatible download URL
-              const downloadUrl = shareSlug 
-                ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
-                : `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+              // Always use the regular document download URL for PDF exports
+              const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
               // Add file name as clickable link
               doc.font('Helvetica')
