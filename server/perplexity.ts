@@ -210,13 +210,14 @@ ${formatInstructions}
 
 MARKDOWN CONSISTENCY RULES:
 - Write content in PARAGRAPH FORMAT based on the selected tone
-- For PROFESSIONAL tone: Write in flowing narrative paragraphs (NO bullet points or lists)
+- For PROFESSIONAL tone: Write ONLY in flowing narrative paragraphs (NEVER use bullet points, lists, or dashes)
 - For MEMO tone: Use bullet points and concise formatting
 - For ROBUST tone: Write detailed narrative paragraphs
+- For BALANCED tone: Mix paragraphs and lists appropriately
 - Use **bold** for emphasis, not mixed formatting
 - Keep formatting consistent throughout all sections
 - NEVER use code blocks, backticks, or code formatting in any content
-- Format should match the tone selection exactly
+- Format should match the tone selection exactly - PROFESSIONAL = PARAGRAPHS ONLY
 
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above

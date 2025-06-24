@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: cimDoc.title,
           analysis: cimDoc.analysis,
           logoUrl: cimDoc.logoUrl,
-          selectedImages: cimDoc.selectedImages || [],
+          selectedImages: absoluteSelectedImages,
           financialsEnabled: cimDoc.financialsEnabled,
           askingPrice: cimDoc.askingPrice,
           askingPriceIncluded: cimDoc.askingPriceIncluded,
