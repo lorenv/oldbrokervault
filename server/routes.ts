@@ -1324,13 +1324,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const transcript = req.file.buffer.toString('utf-8');
+      
+      // Parse selectedImages from FormData string to array before schema validation
+      let parsedBody = { ...req.body };
+      if (req.body.selectedImages && typeof req.body.selectedImages === 'string') {
+        try {
+          parsedBody.selectedImages = JSON.parse(req.body.selectedImages);
+          console.log("Parsed selectedImages from FormData:", parsedBody.selectedImages);
+        } catch (error) {
+          console.error("Failed to parse selectedImages:", error);
+          parsedBody.selectedImages = [];
+        }
+      }
+      
       const data = insertCimDocumentSchema.parse({
-        ...req.body,
+        ...parsedBody,
         transcript
       });
 
       // Debug: Check if selectedImages are present
-      console.log("Selected images in request:", req.body.selectedImages);
+      console.log("Selected images in request:", data.selectedImages);
       
       // Parse customizations from upload form
       const customizations = req.body.customizations ? JSON.parse(req.body.customizations) : {};
@@ -1366,19 +1379,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle selected images early in the process - always download if provided
       let savedImagePaths: string[] = [];
-      if (req.body.selectedImages) {
+      if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
         try {
-          const selectedImages = JSON.parse(req.body.selectedImages);
-          if (Array.isArray(selectedImages) && selectedImages.length > 0) {
-            const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
-            console.log(`Processing ${selectedImages.length} selected images...`);
-            savedImagePaths = await downloadSelectedImages(selectedImages, normalizedUrl);
-            console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
-            
-            // Store selected images in analysis object
-            if (typeof analysis === 'object' && analysis !== null) {
-              (analysis as any).selectedImages = savedImagePaths;
-            }
+          const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
+          console.log(`Processing ${data.selectedImages.length} selected images...`);
+          savedImagePaths = await downloadSelectedImages(data.selectedImages, normalizedUrl);
+          console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
+          
+          // Store selected images in analysis object
+          if (typeof analysis === 'object' && analysis !== null) {
+            (analysis as any).selectedImages = savedImagePaths;
           }
         } catch (imageError) {
           console.error("Selected images processing error:", imageError);
