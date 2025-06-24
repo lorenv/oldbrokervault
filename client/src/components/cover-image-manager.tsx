@@ -48,7 +48,7 @@ export function CoverImageManager({
   currentAttribution, 
   onUpdate 
 }: CoverImageManagerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Expanded by default
   const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [unsplashResults, setUnsplashResults] = useState<UnsplashImage[]>([]);
