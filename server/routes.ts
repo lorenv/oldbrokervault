@@ -1448,8 +1448,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (financialFileFields.length > 0) {
         const financialFilesDir = path.join(process.cwd(), 'financial-files');
-        if (!fs.existsSync(financialFilesDir)) {
-          fs.mkdirSync(financialFilesDir, { recursive: true });
+        if (!fsSync.existsSync(financialFilesDir)) {
+          fsSync.mkdirSync(financialFilesDir, { recursive: true });
         }
         
         for (const file of financialFileFields) {
@@ -1457,7 +1457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
           const filePath = path.join(financialFilesDir, uniqueFileName);
           
-          fs.writeFileSync(filePath, file.buffer);
+          fsSync.writeFileSync(filePath, file.buffer);
           
           uploadedFinancialFiles.push({
             fileName: uniqueFileName,
