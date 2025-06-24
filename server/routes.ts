@@ -1322,7 +1322,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For upload endpoint, files are optional (text-only generation is allowed)
       // Check if we have either uploaded files or just text content
 
-      const transcript = req.file.buffer.toString('utf-8');
+      const files = req.files as Express.Multer.File[] || [];
+      const transcriptFile = files.find(file => file.fieldname === 'transcript');
+      const transcript = transcriptFile ? transcriptFile.buffer.toString('utf-8') : req.body.transcript;
       
       // Parse selectedImages from FormData string to array before schema validation
       let parsedBody = { ...req.body };
@@ -1440,7 +1442,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle financial files upload
       let uploadedFinancialFiles = [];
-      const files = req.files as Express.Multer.File[] || [];
       const financialFileFields = files.filter(file => file.fieldname.startsWith('financialFile_'));
       
       console.log("Found financial files to upload:", financialFileFields.length);
