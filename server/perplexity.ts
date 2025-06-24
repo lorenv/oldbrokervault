@@ -302,12 +302,20 @@ Create a comprehensive CIM document following the analysis parameters and custom
     
     const result = JSON.parse(jsonContent.trim());
     
-    // Calculate word count
-    const wordCount = result.sections.reduce((count: number, section: any) => {
-      return count + section.content.split(/\s+/).length;
-    }, 0);
+    // Calculate word count safely
+    let wordCount = 0;
+    if (result.sections && Array.isArray(result.sections)) {
+      wordCount = result.sections.reduce((count: number, section: any) => {
+        if (section && section.content && typeof section.content === 'string') {
+          return count + section.content.split(/\s+/).length;
+        }
+        return count;
+      }, 0);
+    }
     
-    result.metadata.wordCount = wordCount;
+    if (result.metadata) {
+      result.metadata.wordCount = wordCount;
+    }
     
     return result as FlexibleCimDocument;
   } catch (error) {
