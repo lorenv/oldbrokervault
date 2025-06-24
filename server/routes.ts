@@ -943,8 +943,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store selectedImages URLs for processing after CIM creation
       let selectedImageUrls: string[] = [];
-      if (req.body.selectedImages && Array.isArray(req.body.selectedImages) && req.body.selectedImages.length > 0) {
-        selectedImageUrls = req.body.selectedImages;
+      if (data.selectedImages && Array.isArray(data.selectedImages) && data.selectedImages.length > 0) {
+        selectedImageUrls = data.selectedImages;
         console.log(`Will process ${selectedImageUrls.length} selected images after CIM creation`);
       }
       
