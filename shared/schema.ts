@@ -358,6 +358,18 @@ export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
 }).extend({
   isUploadedFile: z.boolean().default(true),
   uploadedFileName: z.string(),
+  directions: z.string().optional(),
+  websiteUrl: z.string().optional(),
+  selectedImages: z.array(z.string()).optional(),
+  coverImageUrl: z.string().nullable().optional(),
+  coverImagePosition: z.string().nullable().optional(),
+  coverImageAttribution: z.string().nullable().optional(),
+  financials: z.any().optional(),
+  customizations: z.any().optional(),
+  docId: z.string().optional(),
+  purpose: z.string().optional(),
+  tone: z.string().optional(),
+  audience: z.string().optional(),
   uploadedFilePath: z.string(),
   uploadedFileSize: z.number(),
   uploadedFileMimeType: z.string()

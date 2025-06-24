@@ -811,8 +811,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("=== CIM REQUEST DEBUG END ===");
       
       const data = insertCimDocumentSchema.parse(req.body);
-      const docId = req.body.docId; // For regeneration
-      const customizations = req.body.customizations || {};
+      const docId = data.docId; // For regeneration
+      const customizations = data.customizations || {};
       
       // Debug selectedImages after Zod parsing
       console.log("After Zod parsing - data.selectedImages:", data.selectedImages);
@@ -858,9 +858,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Generate flexible CIM with new directions and customizations
-        const purpose = req.body.purpose || 'business_overview';
-        const tone = req.body.tone || 'professional';
-        const audience = req.body.audience || 'investors';
+        const purpose = data.purpose || 'business_overview';
+        const tone = data.tone || 'professional';
+        const audience = data.audience || 'investors';
         
         let analysis = await generateFlexibleCimDocument(
           data.transcript,
@@ -907,9 +907,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // New document generation using flexible CIM system
-      const purpose = req.body.purpose || 'business_overview';
-      const tone = req.body.tone || 'professional';
-      const audience = req.body.audience || 'investors';
+      const purpose = data.purpose || 'business_overview';
+      const tone = data.tone || 'professional';
+      const audience = data.audience || 'investors';
       
       console.log("=== USING NEW FLEXIBLE CIM SYSTEM ===");
       console.log("Purpose:", purpose);
@@ -936,9 +936,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let savedImagePaths: string[] = [];
       console.log("Checking for selected images:", {
         hasWebsiteUrl: !!data.websiteUrl,
-        hasSelectedImages: !!req.body.selectedImages,
-        selectedImagesType: typeof req.body.selectedImages,
-        selectedImagesLength: Array.isArray(req.body.selectedImages) ? req.body.selectedImages.length : 'not array'
+        hasSelectedImages: !!data.selectedImages,
+        selectedImagesType: typeof data.selectedImages,
+        selectedImagesLength: Array.isArray(data.selectedImages) ? data.selectedImages.length : 'not array'
       });
       
       // Store selectedImages URLs for processing after CIM creation
@@ -1346,7 +1346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Selected images in request:", data.selectedImages);
       
       // Parse customizations from upload form
-      const customizations = req.body.customizations ? JSON.parse(req.body.customizations) : {};
+      const customizations = data.customizations || {};
       
       // Debug financial data in upload endpoint
       console.log("=== UPLOAD ENDPOINT FINANCIAL DEBUG ===");
@@ -1363,9 +1363,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use flexible CIM system for upload route as well
-      const purpose = req.body.purpose || 'business_overview';
-      const tone = req.body.tone || 'professional';
-      const audience = req.body.audience || 'investors';
+      const purpose = data.purpose || 'business_overview';
+      const tone = data.tone || 'professional';
+      const audience = data.audience || 'investors';
       
       let analysis = await generateFlexibleCimDocument(
         transcript,
@@ -1417,9 +1417,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const financials = data.financials;
       
       // Extract cover image data from request
-      const coverImageUrl = req.body.coverImageUrl || null;
-      const coverImagePosition = req.body.coverImagePosition ? JSON.parse(req.body.coverImagePosition) : null;
-      const coverImageAttribution = req.body.coverImageAttribution || null;
+      const coverImageUrl = data.coverImageUrl || null;
+      const coverImagePosition = data.coverImagePosition || null;
+      const coverImageAttribution = data.coverImageAttribution || null;
       
       console.log("Creating CIM document from upload with directions:", data.directions);
       
