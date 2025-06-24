@@ -460,9 +460,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.get('host');
       const baseUrl = `${protocol}://${host}`;
 
-      const processImageUrl = (url: string) => {
+      const processImageUrl = (url: string | null) => {
         if (!url) return null;
-        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+        // Return data URLs unchanged
+        if (url.startsWith('data:')) return url;
+        // Return absolute URLs unchanged
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        // Convert relative paths to absolute URLs
         return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
       };
 
