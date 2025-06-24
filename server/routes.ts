@@ -610,7 +610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.coverImageUrl,
         cimDoc.coverImagePosition,
         cimDoc.id,
-        pdfTemplate // Pass user's template preference
+        pdfTemplate, // Pass user's template preference
+        shareSlug // Pass shareSlug to PDF generator for shared links
       );
       
       console.log("PDF generation time:", Date.now() - pdfGenStart + "ms");
