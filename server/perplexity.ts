@@ -209,12 +209,14 @@ CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
 
 MARKDOWN CONSISTENCY RULES:
-- Use consistent bullet point formatting with "-" (not "###" headers inside content)
-- Format lists as proper markdown: "- Item 1\n- Item 2"
+- Write content in PARAGRAPH FORMAT based on the selected tone
+- For PROFESSIONAL tone: Write in flowing narrative paragraphs (NO bullet points or lists)
+- For MEMO tone: Use bullet points and concise formatting
+- For ROBUST tone: Write detailed narrative paragraphs
 - Use **bold** for emphasis, not mixed formatting
 - Keep formatting consistent throughout all sections
-- NEVER use code blocks or code formatting - use plain text with bullet points instead
-- Avoid any markdown code syntax like backticks or code blocks
+- NEVER use code blocks, backticks, or code formatting in any content
+- Format should match the tone selection exactly
 
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above
