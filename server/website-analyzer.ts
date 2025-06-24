@@ -310,7 +310,7 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
  * @param websiteUrl The website URL (used for naming)
  * @returns Promise resolving to the local path of the saved logo, or null if failed
  */
-async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise<string | null> {
+async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: number = 1): Promise<string | null> {
   try {
     const fs = await import('fs');
     const path = await import('path');

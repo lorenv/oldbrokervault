@@ -880,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Extract logo only (screenshot functionality removed for efficiency)
             try {
               console.log("Extracting logo from website...");
-              const logoUrl = await extractLogoFromWebsite(normalizedUrl);
+              const logoUrl = await extractLogoFromWebsite(normalizedUrl, req.user!.id);
               if (logoUrl) {
                 existingDoc.logoUrl = logoUrl;
               }
@@ -959,7 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Run logo extraction and image extraction in parallel for efficiency
           const [logoResult, imagesResult] = await Promise.allSettled([
-            extractLogoFromWebsite(normalizedUrl),
+            extractLogoFromWebsite(normalizedUrl, req.user!.id),
             extractWebsiteImages(normalizedUrl)
           ]);
           
@@ -1412,7 +1412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Extracting logo from website (upload route)...");
           
           try {
-            logoUrl = await extractLogoFromWebsite(normalizedUrl);
+            logoUrl = await extractLogoFromWebsite(normalizedUrl, req.user!.id);
             console.log("Logo extraction completed:", logoUrl);
           } catch (logoError) {
             console.error("Logo extraction error:", logoError);
