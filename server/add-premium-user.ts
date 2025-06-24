@@ -13,7 +13,7 @@ async function hashPassword(password: string) {
 
 async function main() {
   // Check if user exists
-  const email = "robert@businessexits.com";
+  const email = "robert@dealve.cc";
   let user = await storage.getUserByEmail(email);
   
   if (!user) {
@@ -21,20 +21,37 @@ async function main() {
     console.log(`Creating new user: ${email}`);
     user = await storage.createUser({
       email,
-      password: await hashPassword("ChangeMe123!"), // Temporary password
-      isAdmin: false,
+      password: await hashPassword("Flydccstone500!"),
+      isAdmin: true, // Setting as admin for unlimited access
     });
     console.log(`User created with ID: ${user.id}`);
   } else {
     console.log(`User exists with ID: ${user.id}`);
+    // Update password if user exists
+    const hashedPassword = await hashPassword("Flydccstone500!");
+    await storage.updateUserPassword(user.id, hashedPassword);
+    console.log("Password updated");
   }
   
-  // Set premium subscription
+  // Set premium subscription with unlimited access
   const endsAt = new Date();
-  endsAt.setMonth(endsAt.getMonth() + 12); // 12 months premium
+  endsAt.setFullYear(endsAt.getFullYear() + 10); // 10 years premium for unlimited access
   
   await storage.updateSubscription(user.id, "premium", endsAt);
   console.log(`Subscription updated to premium until ${endsAt.toISOString()}`);
+  
+  // Set admin status for unlimited features
+  const { db } = await import("./db");
+  const { users } = await import("@shared/schema");
+  const { eq } = await import("drizzle-orm");
+  
+  await db.update(users).set({ 
+    isAdmin: true,
+    monthlyDocumentsCreated: 0, // Reset counter
+    monthlyRegenerationsUsed: 0 // Reset counter
+  }).where(eq(users.id, user.id));
+  
+  console.log("Admin status granted for unlimited access");
   
   // Print summary
   const updatedUser = await storage.getUser(user.id);
@@ -42,8 +59,16 @@ async function main() {
     id: updatedUser.id,
     email: updatedUser.email,
     status: updatedUser.subscriptionStatus,
-    endsAt: updatedUser.subscriptionEndsAt
+    isAdmin: updatedUser.isAdmin,
+    endsAt: updatedUser.subscriptionEndsAt,
+    documentsCreated: updatedUser.monthlyDocumentsCreated,
+    regenerationsUsed: updatedUser.monthlyRegenerationsUsed
   });
+  
+  console.log("\n✅ Premium unlimited account created successfully!");
+  console.log("📧 Email: robert@dealve.cc");
+  console.log("🔑 Password: Flydccstone500!");
+  console.log("🚀 Features: Unlimited CIM creations, regenerations, and all premium features");
   
   process.exit(0);
 }
