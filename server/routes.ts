@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const processImageUrl = (url: string) => {
         if (!url) return null;
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
         return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
       };
 
