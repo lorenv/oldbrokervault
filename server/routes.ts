@@ -1383,8 +1383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const normalizedUrl = data.websiteUrl ? normalizeUrl(data.websiteUrl) : 'unknown-source';
           console.log(`Processing ${data.selectedImages.length} selected images...`);
-          savedImagePaths = await downloadSelectedImages(data.selectedImages, normalizedUrl);
+          console.log("Selected image URLs to download:", data.selectedImages);
+          savedImagePaths = await downloadSelectedImages(data.selectedImages, normalizedUrl, req.user!.id);
           console.log(`Successfully downloaded ${savedImagePaths.length} selected images`);
+          console.log("Downloaded image paths:", savedImagePaths);
           
           // Store selected images in analysis object
           if (typeof analysis === 'object' && analysis !== null) {
@@ -1392,7 +1394,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (imageError) {
           console.error("Selected images processing error:", imageError);
+          console.error("Error details:", imageError);
         }
+      } else {
+        console.log("No selected images to process:", {
+          hasSelectedImages: !!data.selectedImages,
+          isArray: Array.isArray(data.selectedImages),
+          length: data.selectedImages?.length || 0
+        });
       }
       
       // If website URL is provided, extract logo in parallel (for file upload route)
