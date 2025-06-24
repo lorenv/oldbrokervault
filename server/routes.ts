@@ -1437,6 +1437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const coverImageAttribution = data.coverImageAttribution || null;
       
       console.log("Creating CIM document from upload with directions:", data.directions);
+      console.log("Financial data for upload route:", parsedFinancials);
       
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
@@ -1454,14 +1455,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         coverImageUrl,
         coverImagePosition,
         coverImageAttribution,
-        // Add financial data directly to the document
-        financialsEnabled: financials?.enabled || false,
-        askingPrice: financials?.askingPrice || null,
-        askingPriceIncluded: financials?.askingPriceIncluded || false,
-        revenue: financials?.revenue || null,
-        revenueIncluded: financials?.revenueIncluded || false,
-        ebitda: financials?.ebitda || null,
-        ebitdaIncluded: financials?.ebitdaIncluded || false,
+        // Add financial data directly to the document (upload route uses parsedFinancials)
+        financialsEnabled: parsedFinancials?.enabled || false,
+        askingPrice: parsedFinancials?.askingPrice || null,
+        askingPriceIncluded: parsedFinancials?.askingPriceIncluded || false,
+        revenue: parsedFinancials?.revenue || null,
+        revenueIncluded: parsedFinancials?.revenueIncluded || false,
+        ebitda: parsedFinancials?.ebitda || null,
+        ebitdaIncluded: parsedFinancials?.ebitdaIncluded || false,
         // Enable sharing by default with generated slug
         shareEnabled: true,
         shareSlug: shareSlug,
