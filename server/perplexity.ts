@@ -286,7 +286,21 @@ Create a comprehensive CIM document following the analysis parameters and custom
   const content = data.choices[0].message.content;
   
   try {
-    const result = JSON.parse(content);
+    // Handle JSON wrapped in markdown code blocks (common with Perplexity)
+    let jsonContent = content;
+    if (content.includes('```json')) {
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[1];
+      }
+    } else if (content.includes('```')) {
+      const codeMatch = content.match(/```\s*([\s\S]*?)\s*```/);
+      if (codeMatch) {
+        jsonContent = codeMatch[1];
+      }
+    }
+    
+    const result = JSON.parse(jsonContent.trim());
     
     // Calculate word count
     const wordCount = result.sections.reduce((count: number, section: any) => {
@@ -298,6 +312,7 @@ Create a comprehensive CIM document following the analysis parameters and custom
     return result as FlexibleCimDocument;
   } catch (error) {
     console.error("Failed to parse flexible CIM response:", error);
+    console.error("Response content:", content);
     throw new Error("Failed to generate CIM document");
   }
 }
