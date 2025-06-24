@@ -1351,9 +1351,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug financial data in upload endpoint
       console.log("=== UPLOAD ENDPOINT FINANCIAL DEBUG ===");
       console.log("Raw financials from form:", req.body.financials);
+      console.log("financialsEnabled from parsed data:", data.financialsEnabled);
+      let parsedFinancials = null;
       if (req.body.financials) {
-        const parsedFinancials = JSON.parse(req.body.financials);
-        console.log("Parsed financials:", parsedFinancials);
+        try {
+          parsedFinancials = JSON.parse(req.body.financials);
+          console.log("Parsed financials:", parsedFinancials);
+        } catch (e) {
+          console.error("Failed to parse financials:", e);
+        }
       }
       console.log("Customizations from upload:", customizations);
 
@@ -1373,7 +1379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         purpose,
         tone,
         audience,
-        req.body.financials ? JSON.parse(req.body.financials) : undefined,
+        parsedFinancials,
         undefined
       );
       
