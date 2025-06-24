@@ -677,7 +677,7 @@ export function SharePage() {
                   docId={cimData.id}
                   websiteUrl={shareData.websiteUrl}
                   logoUrl={shareData.logoUrl}
-                  selectedImages={shareData.selectedImages}
+                  selectedImages={shareData.cim.selectedImages}
                   title={cimData.title}
                   userProfile={cimData.userProfile}
                   cimDocument={cimData}
