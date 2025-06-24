@@ -472,6 +472,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const absoluteSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
       const absoluteLogoUrl = processImageUrl(cimDoc.logoUrl);
+      
+      console.log("DEBUGGING SHARE IMAGES:");
+      console.log("Original selectedImages:", cimDoc.selectedImages);
+      console.log("Processed absoluteSelectedImages:", absoluteSelectedImages);
 
       // Generate NDA URL if needed
       const ndaUrl = cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null;
