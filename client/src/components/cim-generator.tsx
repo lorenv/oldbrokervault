@@ -167,6 +167,50 @@ export function CimGenerator() {
     return value;
   };
 
+  // Function to extract images from website
+  const extractImages = async (websiteUrl: string) => {
+    if (!websiteUrl.trim()) return;
+    
+    setIsExtractingImages(true);
+    try {
+      const encodedUrl = encodeURIComponent(websiteUrl);
+      const response = await apiRequest("GET", `/api/website-images/${encodedUrl}`);
+      const data = await response.json();
+      
+      if (data.images && data.images.length > 0) {
+        setExtractedImages(data.images);
+        toast({
+          title: "Images Found!",
+          description: `Found ${data.images.length} images from the website`,
+        });
+      } else {
+        toast({
+          title: "No Images Found",
+          description: "No suitable images were found on this website",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error extracting images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to extract images from website",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingImages(false);
+    }
+  };
+
+  // Toggle image selection
+  const toggleImageSelection = (imageUrl: string) => {
+    setSelectedImages(prev => 
+      prev.includes(imageUrl)
+        ? prev.filter(url => url !== imageUrl)
+        : [...prev, imageUrl]
+    );
+  };
+
   const handleGenerate = async (data: FormValues) => {
     generateMutation.mutate(data);
   };
@@ -560,8 +604,7 @@ export function CimGenerator() {
                     onClick={() => {
                       const url = form.getValues("websiteUrl");
                       if (url?.trim()) {
-                        setIsExtractingImages(true);
-                        // Extract images function call here
+                        extractImages(url);
                       }
                     }}
                     disabled={!form.watch("websiteUrl")?.trim() || isExtractingImages}
@@ -570,7 +613,7 @@ export function CimGenerator() {
                     {isExtractingImages ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
-                      "Extract"
+                      "Extract Images"
                     )}
                   </Button>
                 </div>
@@ -580,6 +623,64 @@ export function CimGenerator() {
                   </p>
                 )}
               </div>
+              
+              {/* Image extraction and selection section */}
+              {form.watch("websiteUrl") && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium">Website Images</h4>
+                  </div>
+                  
+                  {extractedImages.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Select images to include in your CIM document (click to select/deselect):
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {extractedImages.map((imageUrl, index) => (
+                          <div
+                            key={index}
+                            className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
+                              selectedImages.includes(imageUrl)
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => toggleImageSelection(imageUrl)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Website image ${index + 1}`}
+                              className="w-full h-24 object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {selectedImages.includes(imageUrl) && (
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                  ✓
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {selectedImages.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {extractedImages.length === 0 && !isExtractingImages && (
+                    <div className="text-xs text-muted-foreground">
+                      Click "Extract Images" to find images from the website
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <Textarea
