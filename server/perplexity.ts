@@ -252,7 +252,8 @@ Include these financial details appropriately:
 ${JSON.stringify(financials)}` : ''}
 
 RESPONSE FORMAT:
-Return a JSON object with this structure:
+Return ONLY a valid JSON object - no markdown headers, explanations, or formatting.
+Start directly with the opening brace and end with the closing brace:
 {
   "title": "Document title",
   "companyName": "Company name if mentioned",
@@ -322,6 +323,21 @@ Create a comprehensive CIM document following the analysis parameters and custom
       if (codeMatch) {
         jsonContent = codeMatch[1];
       }
+    }
+    
+    // Remove markdown headers that break JSON parsing
+    jsonContent = jsonContent.replace(/^#+\s+.*$/gm, '');
+    
+    // Remove any text before the first opening brace
+    const firstBrace = jsonContent.indexOf('{');
+    if (firstBrace > 0) {
+      jsonContent = jsonContent.substring(firstBrace);
+    }
+    
+    // Remove any text after the last closing brace
+    const lastBrace = jsonContent.lastIndexOf('}');
+    if (lastBrace > -1 && lastBrace < jsonContent.length - 1) {
+      jsonContent = jsonContent.substring(0, lastBrace + 1);
     }
     
     // Clean up the JSON content to handle control characters while preserving JSON structure
