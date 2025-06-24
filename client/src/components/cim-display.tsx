@@ -236,11 +236,35 @@ export function CimDisplay({
   const [localSelectedImages, setLocalSelectedImages] = useState(
     selectedImages || cimDocument?.selectedImages || []
   );
+  
+  // Update local state when props change (important for shared views)
+  useEffect(() => {
+    if (selectedImages && selectedImages.length > 0) {
+      console.log("Updating localSelectedImages from props:", selectedImages);
+      setLocalSelectedImages(selectedImages);
+      setBrokenImages(new Set()); // Reset broken images when new images arrive
+    }
+  }, [selectedImages]);
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
   
   // State for tracking broken images
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
   const [logoError, setLogoError] = useState(false);
+  
+  // Debug selectedImages prop
+  useEffect(() => {
+    console.log("CimDisplay selectedImages prop:", selectedImages);
+    console.log("CimDisplay localSelectedImages state:", localSelectedImages);
+    if (selectedImages && selectedImages.length > 0) {
+      selectedImages.forEach((img, idx) => {
+        console.log(`Testing image ${idx}: ${img}`);
+        // Test if images are accessible
+        fetch(img, { method: 'HEAD' })
+          .then(res => console.log(`Image ${idx} (${img}) status:`, res.status))
+          .catch(err => console.error(`Image ${idx} (${img}) failed:`, err));
+      });
+    }
+  }, [selectedImages]);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [isBusinessImagesUploading, setIsBusinessImagesUploading] = useState(false);
 
@@ -945,11 +969,14 @@ export function CimDisplay({
                                   text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
                                 }}
                               >
-                                {processMarkdownWithEscaping(section.content.replace(/```[\s\S]*?```/g, (match) => {
-                                  // Convert code blocks to bullet points
-                                  const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
-                                  return content.split('\n').filter(line => line.trim()).map(line => `- ${line.trim()}`).join('\n');
-                                }))}
+                                {processMarkdownWithEscaping(section.content
+                                  .replace(/```[\s\S]*?```/g, (match) => {
+                                    // Convert code blocks to bullet points
+                                    const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
+                                    return content.split('\n').filter(line => line.trim()).map(line => `- ${line.trim()}`).join('\n');
+                                  })
+                                  .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
+                                )}
                               </ReactMarkdown>
                             </div>
                           )}
