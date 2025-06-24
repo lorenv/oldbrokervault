@@ -292,6 +292,11 @@ export function CimGenerator() {
           }));
         }
 
+        // Add financial files to FormData
+        financialFiles.forEach((file, index) => {
+          formData.append(`financialFile_${index}`, file);
+        });
+
         // Add cover image data if selected
         if (selectedCoverImage) {
           formData.append('coverImageUrl', selectedCoverImage);

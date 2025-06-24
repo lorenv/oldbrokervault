@@ -1314,14 +1314,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File upload endpoint for large text
-  app.post("/api/cim/upload", upload.single('transcript'), async (req, res) => {
+  // File upload endpoint for large text and financial files
+  app.post("/api/cim/upload", upload.any(), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
+      // For upload endpoint, files are optional (text-only generation is allowed)
+      // Check if we have either uploaded files or just text content
 
       const transcript = req.file.buffer.toString('utf-8');
       
@@ -1439,6 +1438,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating CIM document from upload with directions:", data.directions);
       console.log("Financial data for upload route:", parsedFinancials);
       
+      // Handle financial files upload
+      let uploadedFinancialFiles = [];
+      const files = req.files as Express.Multer.File[] || [];
+      const financialFileFields = files.filter(file => file.fieldname.startsWith('financialFile_'));
+      
+      console.log("Found financial files to upload:", financialFileFields.length);
+      
+      if (financialFileFields.length > 0) {
+        const financialFilesDir = path.join(process.cwd(), 'financial-files');
+        if (!fs.existsSync(financialFilesDir)) {
+          fs.mkdirSync(financialFilesDir, { recursive: true });
+        }
+        
+        for (const file of financialFileFields) {
+          const fileExtension = path.extname(file.originalname);
+          const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
+          const filePath = path.join(financialFilesDir, uniqueFileName);
+          
+          fs.writeFileSync(filePath, file.buffer);
+          
+          uploadedFinancialFiles.push({
+            fileName: uniqueFileName,
+            originalName: file.originalname,
+            filePath,
+            fileSize: file.size,
+            mimeType: file.mimetype
+          });
+        }
+        console.log("Uploaded financial files:", uploadedFinancialFiles.length);
+      }
+      
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
@@ -1471,6 +1501,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaProtected: false,
         ndaTemplateId: null
       });
+
+      // Save financial files to database after document creation
+      if (uploadedFinancialFiles.length > 0) {
+        console.log("Saving financial files to database for doc ID:", doc.id);
+        for (const fileData of uploadedFinancialFiles) {
+          await db.insert(financialFiles).values({
+            cimDocumentId: doc.id,
+            fileName: fileData.fileName,
+            originalName: fileData.originalName,
+            filePath: fileData.filePath,
+            fileSize: fileData.fileSize,
+            mimeType: fileData.mimeType,
+            included: true
+          });
+        }
+        console.log("Financial files saved to database successfully");
+      }
 
       res.json(doc);
     } catch (error) {
