@@ -844,7 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             baseline,
             data.transcript,
             data.directions,
-            req.body.financials
+            data.financials
           );
 
           if (!validation.isValid) {
@@ -868,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           purpose,
           tone,
           audience,
-          req.body.financials,
+          data.financials,
           undefined // websiteData - will add later if needed
         );
         
@@ -923,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         purpose,
         tone,
         audience,
-        req.body.financials,
+        data.financials,
         undefined // websiteData - will add later if needed
       );
       
@@ -986,10 +986,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract financial data from request
-      const financials = req.body.financials;
+      const financials = data.financials;
       
       // Extract cover image data from request (handling nested object structure)
-      const coverImage = req.body.coverImage;
+      const coverImage = data.coverImage;
       const coverImageUrl = coverImage?.url || null;
       const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : null;
       const coverImageAttribution = coverImage?.attribution || null;
@@ -1414,7 +1414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Extract financial data from request
-      const financials = req.body.financials ? JSON.parse(req.body.financials) : undefined;
+      const financials = data.financials;
       
       // Extract cover image data from request
       const coverImageUrl = req.body.coverImageUrl || null;
