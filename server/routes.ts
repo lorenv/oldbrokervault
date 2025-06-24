@@ -146,6 +146,10 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve static files including user-images
+  app.use(express.static(path.join(process.cwd(), 'public')));
+  app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
+  
   // Setup authentication first, before any other routes
   setupAuth(app);
   
@@ -1669,6 +1673,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching shared document files:", error);
       res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
+  // Download financial file from shared document (public endpoint)
+  app.get("/api/share/:shareSlug/financial-files/:fileId/download", async (req, res) => {
+    try {
+      const { shareSlug, fileId } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      const file = await db
+        .select()
+        .from(financialFiles)
+        .where(eq(financialFiles.id, parseInt(fileId)))
+        .then(files => files[0]);
+
+      if (!file || file.cimDocumentId !== cimDoc.id) {
+        return res.status(404).json({ error: "Financial file not found" });
+      }
+
+      // Check if file is included
+      if (file.included === false) {
+        return res.status(404).json({ error: "File not available for download" });
+      }
+
+      // Check if file exists on disk
+      const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
+      if (!fileExists) {
+        return res.status(404).json({ error: "File not found on disk" });
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
+      res.setHeader('Content-Type', file.mimeType);
+
+      // Stream the file
+      const fileStream = await fs.readFile(file.filePath);
+      res.send(fileStream);
+    } catch (error) {
+      console.error('Error downloading shared financial file:', error);
+      res.status(500).json({ error: "Failed to download file" });
     }
   });
 
