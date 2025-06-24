@@ -208,6 +208,12 @@ ${customDirections}
 CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
 
+MARKDOWN CONSISTENCY RULES:
+- Use consistent bullet point formatting with "-" (not "###" headers inside content)
+- Format lists as proper markdown: "- Item 1\n- Item 2"
+- Use **bold** for emphasis, not mixed formatting
+- Keep formatting consistent throughout all sections
+
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above
 2. Extract and organize information from the transcript according to the custom directions
@@ -237,7 +243,7 @@ Return a JSON object with this structure:
     {
       "id": "unique-id",
       "title": "Section Title",
-      "content": "Rich text content with markdown formatting",
+      "content": "Rich text content using bullet points with - or * for lists, **bold** for emphasis, avoid ### headers in content",
       "order": 1,
       "type": "text"
     }
