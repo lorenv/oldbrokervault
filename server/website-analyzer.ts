@@ -118,76 +118,138 @@ export function normalizeUrl(urlString: string): string {
  */
 export async function extractWebsiteImages(websiteUrl: string): Promise<string[]> {
   try {
-    console.log(`Starting lightweight image extraction for: ${websiteUrl}`);
+    console.log(`Starting image extraction for: ${websiteUrl}`);
     
-    // Normalize and validate URL
-    const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log(`Extracting images from normalized URL: ${normalizedUrl}`);
+    // Try different URL variations to handle certificate issues
+    const urlsToTry = [];
     
-    // Fetch the website HTML directly (no browser needed)
-    const response = await fetch(normalizedUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      },
-      timeout: 10000 // 10 second timeout
-    });
+    // Add original URL (clean it up first)
+    let cleanUrl = websiteUrl.trim().toLowerCase();
+    if (!cleanUrl.startsWith('http')) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+    urlsToTry.push(cleanUrl);
     
-    if (!response.ok) {
-      console.error(`Failed to fetch website: ${response.status} ${response.statusText}`);
+    // Add alternative without www if original has it, or with www if it doesn't
+    try {
+      const urlObj = new URL(cleanUrl);
+      if (urlObj.hostname.startsWith('www.')) {
+        const noWwwUrl = `${urlObj.protocol}//${urlObj.hostname.substring(4)}${urlObj.pathname}${urlObj.search}`;
+        urlsToTry.push(noWwwUrl);
+      } else {
+        const wwwUrl = `${urlObj.protocol}//www.${urlObj.hostname}${urlObj.pathname}${urlObj.search}`;
+        urlsToTry.push(wwwUrl);
+      }
+    } catch (e) {
+      // Invalid URL, skip alternatives
+    }
+    
+    let html = '';
+    let baseUrl = '';
+    let successfulUrl = '';
+    
+    // Try each URL variation
+    for (const tryUrl of urlsToTry) {
+      try {
+        console.log(`Trying URL: ${tryUrl}`);
+        const response = await fetch(tryUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          },
+          timeout: 10000,
+          // Add TLS options to handle certificate issues
+          agent: false,
+          redirect: 'follow'
+        });
+        
+        if (response.ok) {
+          html = await response.text();
+          const urlObj = new URL(tryUrl);
+          baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+          successfulUrl = tryUrl;
+          console.log(`Successfully fetched HTML from: ${tryUrl}, length: ${html.length} bytes`);
+          break;
+        }
+      } catch (error) {
+        console.log(`Failed to fetch ${tryUrl}: ${error.message}`);
+        continue;
+      }
+    }
+    
+    if (!html) {
+      console.error('Failed to fetch website content from any URL variation');
       return [];
     }
     
-    const html = await response.text();
-    console.log(`Fetched HTML content, length: ${html.length} bytes`);
-    
-    // Extract the base URL for resolving relative paths
-    const urlObj = new URL(normalizedUrl);
-    const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-    
-    // Extract image URLs using regex patterns
-    const imgTagPattern = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    // Extract image URLs using multiple patterns
     const imageUrls: string[] = [];
-    let match;
+    const patterns = [
+      // Standard img tags
+      /<img[^>]+src=["']([^"']+)["'][^>]*>/gi,
+      // Background images in style attributes
+      /background-image:\s*url\(["']?([^"')]+)["']?\)/gi,
+      // CSS background properties
+      /background:\s*url\(["']?([^"')]+)["']?\)/gi
+    ];
     
-    while ((match = imgTagPattern.exec(html)) !== null && imageUrls.length < 10) {
-      let imageUrl = match[1];
-      
-      // Skip if it's clearly not a content image
-      const lowercaseUrl = imageUrl.toLowerCase();
-      if (lowercaseUrl.includes('spacer') ||
-          lowercaseUrl.includes('pixel') ||
-          lowercaseUrl.includes('blank') ||
-          lowercaseUrl.includes('loading') ||
-          lowercaseUrl.includes('spinner') ||
-          lowercaseUrl.includes('icon') ||
-          lowercaseUrl.includes('logo') ||
-          lowercaseUrl.endsWith('.svg') ||
-          imageUrl.length < 20) {
-        continue;
-      }
-      
-      // Resolve relative URLs
-      if (imageUrl.startsWith('//')) {
-        imageUrl = urlObj.protocol + imageUrl;
-      } else if (imageUrl.startsWith('/')) {
-        imageUrl = baseUrl + imageUrl;
-      } else if (!imageUrl.startsWith('http')) {
-        imageUrl = baseUrl + '/' + imageUrl;
-      }
-      
-      // Verify the image URL is accessible
-      try {
-        const imgResponse = await fetch(imageUrl, { method: 'HEAD', timeout: 3000 });
-        if (imgResponse.ok) {
-          imageUrls.push(imageUrl);
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null && imageUrls.length < 15) {
+        let imageUrl = match[1];
+        
+        // Skip obviously non-content images but be less restrictive
+        const lowercaseUrl = imageUrl.toLowerCase();
+        if (lowercaseUrl.includes('spacer.') ||
+            lowercaseUrl.includes('blank.') ||
+            lowercaseUrl.includes('1x1.') ||
+            lowercaseUrl.includes('transparent.') ||
+            lowercaseUrl.includes('loading.gif') ||
+            lowercaseUrl.includes('spinner.gif') ||
+            imageUrl.length < 10 ||
+            imageUrl.includes('data:image/svg')) {
+          continue;
         }
-      } catch (error) {
-        // Skip this image if not accessible
-        continue;
+        
+        // Resolve relative URLs
+        if (imageUrl.startsWith('//')) {
+          imageUrl = new URL(successfulUrl).protocol + imageUrl;
+        } else if (imageUrl.startsWith('/')) {
+          imageUrl = baseUrl + imageUrl;
+        } else if (!imageUrl.startsWith('http')) {
+          imageUrl = baseUrl + '/' + imageUrl;
+        }
+        
+        // Skip duplicates
+        if (imageUrls.includes(imageUrl)) {
+          continue;
+        }
+        
+        // Quick validation - check if it's a reasonable image URL
+        if (imageUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i)) {
+          imageUrls.push(imageUrl);
+        } else {
+          // For URLs without clear extensions, do a quick HEAD request
+          try {
+            const imgResponse = await fetch(imageUrl, { 
+              method: 'HEAD', 
+              timeout: 2000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              }
+            });
+            const contentType = imgResponse.headers.get('content-type');
+            if (imgResponse.ok && contentType && contentType.startsWith('image/')) {
+              imageUrls.push(imageUrl);
+            }
+          } catch (error) {
+            // Skip this image if not accessible
+            continue;
+          }
+        }
       }
     }
     
-    console.log(`Extracted ${imageUrls.length} accessible images from website`);
+    console.log(`Extracted ${imageUrls.length} images from website`);
     return imageUrls;
     
   } catch (error) {
