@@ -211,6 +211,62 @@ export function CimGenerator() {
     );
   };
 
+  // Cover image handlers
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSelectedCoverImage(url);
+      setCoverImageAttribution('');
+    }
+    if (coverImageFileInputRef.current) {
+      coverImageFileInputRef.current.value = '';
+    }
+  };
+
+  const searchUnsplash = async () => {
+    if (!unsplashSearchQuery.trim()) return;
+    
+    setIsSearchingUnsplash(true);
+    try {
+      const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(unsplashSearchQuery)}`);
+      const data = await response.json();
+      setUnsplashResults(data.results || []);
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to search Unsplash images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingUnsplash(false);
+    }
+  };
+
+  const selectUnsplashImage = async (image: any) => {
+    try {
+      const response = await fetch('/api/unsplash/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          downloadUrl: image.links.download_location
+        })
+      });
+    } catch (error) {
+      console.error('Failed to trigger Unsplash download event:', error);
+    }
+    
+    const photographerUrl = `${image.user.links.html}?utm_source=CIM_Generator&utm_medium=referral`;
+    const unsplashUrl = `https://unsplash.com/?utm_source=CIM_Generator&utm_medium=referral`;
+    const attribution = `Photo by <a href="${photographerUrl}" target="_blank" rel="noopener noreferrer">${image.user.name}</a> on <a href="${unsplashUrl}" target="_blank" rel="noopener noreferrer">Unsplash</a>`;
+    
+    setSelectedCoverImage(image.urls.regular);
+    setCoverImageAttribution(attribution);
+    setIsUnsplashDialogOpen(false);
+  };
+
   const handleGenerate = async (data: FormValues) => {
     generateMutation.mutate(data);
   };
@@ -253,6 +309,10 @@ export function CimGenerator() {
         if (selectedCoverImage) {
           formData.append('coverImageUrl', selectedCoverImage);
           formData.append('coverImagePosition', JSON.stringify(coverImagePosition));
+          if (coverImageAttribution) {
+            formData.append('coverImageAttribution', coverImageAttribution);
+          }
+        }
           if (coverImageAttribution) {
             formData.append('coverImageAttribution', coverImageAttribution);
           }
@@ -681,6 +741,140 @@ export function CimGenerator() {
                   )}
                 </div>
               )}
+
+              {/* Cover Image Section - Always visible */}
+              <div className="border rounded-lg bg-background">
+                <div className="p-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="text-sm font-medium">Cover Image</span>
+                    {selectedCoverImage && <Badge variant="secondary">Set</Badge>}
+                  </div>
+                </div>
+                <div className="p-4 space-y-4">
+                  {selectedCoverImage && (
+                    <div className="space-y-3">
+                      <DraggableImagePositioner
+                        imageUrl={selectedCoverImage}
+                        position={coverImagePosition}
+                        onPositionChange={setCoverImagePosition}
+                        className="w-full"
+                      />
+                      
+                      {coverImageAttribution && (
+                        <div 
+                          className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
+                          dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+                        />
+                      )}
+                      
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedCoverImage(null);
+                          setCoverImageAttribution('');
+                          setCoverImagePosition({ x: 50, y: 50 });
+                        }}
+                        className="w-full"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove Cover Image
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {!selectedCoverImage && (
+                    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                      <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                      <p className="text-xs text-gray-500 mb-3">
+                        Add a cover image to enhance your CIM presentation
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={() => coverImageFileInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Image
+                    </Button>
+                    
+                    <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          className="flex-1"
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Search Unsplash
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                        <DialogHeader>
+                          <DialogTitle>Search Unsplash Images</DialogTitle>
+                          <DialogDescription>
+                            Find professional cover images for your CIM document
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Search for images..."
+                              value={unsplashSearchQuery}
+                              onChange={(e) => setUnsplashSearchQuery(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && searchUnsplash()}
+                            />
+                            <Button onClick={searchUnsplash} disabled={isSearchingUnsplash}>
+                              {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                            {unsplashResults.map((image, index) => (
+                              <div
+                                key={index}
+                                className="relative cursor-pointer border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                                onClick={() => selectUnsplashImage(image)}
+                              >
+                                <img
+                                  src={image.urls.small}
+                                  alt={image.alt_description || `Image ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs">
+                                  by {image.user.name}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {unsplashResults.length === 0 && !isSearchingUnsplash && (
+                            <div className="text-center py-8 text-muted-foreground">
+                              Search for images above to get started
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  
+                  <input
+                    type="file"
+                    ref={coverImageFileInputRef}
+                    onChange={handleCoverImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+              </div>
 
               <div>
                 <Textarea
