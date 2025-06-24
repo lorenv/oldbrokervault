@@ -276,7 +276,9 @@ Start directly with the opening brace and end with the closing brace:
     "hasFinancials": ${!!financials},
     "hasImages": false
   }
-}`;
+}
+
+CRITICAL: Return ONLY the JSON object above. Do not include any markdown headers (# ## ###), explanations, or text before or after the JSON.`;
 
   const userPrompt = `TRANSCRIPT TO ANALYZE:
 ${transcript}
