@@ -175,6 +175,19 @@ FORMAT REQUIREMENTS FOR BALANCED STYLE:
 - Use clear, professional language
 - Combine lists and narrative sections effectively
 - Provide sufficient detail while maintaining readability`;
+  } else {
+    // Default professional tone - NARRATIVE PARAGRAPH FORMAT ONLY
+    formatInstructions = `
+FORMAT REQUIREMENTS FOR PROFESSIONAL STYLE:
+- Write in NARRATIVE PARAGRAPH FORMAT ONLY - ABSOLUTELY NO BULLET POINTS OR LISTS
+- Use well-structured paragraphs (4-6 sentences each) that flow naturally
+- Write in prose format like a formal business prospectus or investment document
+- Use complete sentences with professional vocabulary and smooth transitions
+- Provide detailed explanations in connected paragraph form
+- Target word count should be 1000-1200 words
+- Write as if creating a formal business document for investors
+- CRITICAL: Never use bullet points, dashes, lists, or any formatting other than paragraphs
+- Each section should read like a professional report with flowing narrative text`;
   }
 
   // Map purpose to content focus
