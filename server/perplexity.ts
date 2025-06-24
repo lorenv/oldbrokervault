@@ -354,6 +354,7 @@ Create a comprehensive CIM document following the analysis parameters and custom
     
     jsonContent = cleanedContent;
     
+    console.log("About to parse JSON, first 200 chars:", jsonContent.substring(0, 200));
     const result = JSON.parse(jsonContent);
     console.log("JSON parsing successful");
     
