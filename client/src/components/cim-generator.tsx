@@ -486,7 +486,18 @@ export function CimGenerator() {
     setFinancialFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-
+  // Cover image handlers
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSelectedCoverImage(url);
+      setCoverImageAttribution('');
+    }
+    if (coverImageFileInputRef.current) {
+      coverImageFileInputRef.current.value = '';
+    }
+  };
 
   if (cimMode === 'choice') {
     return (
