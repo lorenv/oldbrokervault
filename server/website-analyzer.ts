@@ -259,14 +259,39 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
 }
 
 /**
- * Image downloading functionality disabled to improve performance
- * @param imageUrls Array of image URLs (ignored)
- * @param websiteUrl The website URL (ignored)
- * @returns Promise resolving to empty array (image downloading disabled)
+ * Downloads selected images from website and saves them locally
+ * @param imageUrls Array of image URLs to download
+ * @param websiteUrl The website URL for context
+ * @returns Promise resolving to array of local image paths
  */
-export async function downloadSelectedImages(imageUrls: string[], websiteUrl: string): Promise<string[]> {
-  console.log('Website image downloading disabled for better performance');
-  return [];
+export async function downloadSelectedImages(imageUrls: string[], websiteUrl: string, userId: number = 1): Promise<string[]> {
+  console.log(`Downloading ${imageUrls.length} selected images from ${websiteUrl} for user ${userId}`);
+  const savedPaths: string[] = [];
+  
+  const { imageManager } = await import('./image-manager');
+  
+  for (let i = 0; i < imageUrls.length; i++) {
+    const imageUrl = imageUrls[i];
+    try {
+      console.log(`Downloading image ${i + 1}/${imageUrls.length}: ${imageUrl}`);
+      
+      // Use imageManager to download and save the image
+      const metadata = await imageManager.saveImageFromUrl(imageUrl, userId, 'business-images', { 
+        optimize: true, 
+        maxWidth: 1200, 
+        maxHeight: 800 
+      });
+      savedPaths.push(metadata.publicPath);
+      
+      console.log(`Successfully saved image ${i + 1}: ${metadata.publicPath}`);
+    } catch (error) {
+      console.error(`Failed to download image ${imageUrl}:`, error);
+      // Continue with other images even if one fails
+    }
+  }
+  
+  console.log(`Downloaded ${savedPaths.length}/${imageUrls.length} images successfully`);
+  return savedPaths;
 }
 
 /**
@@ -380,7 +405,7 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string): Promise
  * @param websiteUrl The URL of the website to extract the logo from
  * @returns Promise resolving to the local path of the downloaded logo, or null if not found
  */
-export async function extractLogoFromWebsite(websiteUrl: string): Promise<string | null> {
+export async function extractLogoFromWebsite(websiteUrl: string, userId: number = 1): Promise<string | null> {
   try {
     console.log(`Attempting to extract logo from website: ${websiteUrl}`);
     const normalizedUrl = normalizeUrl(websiteUrl);
@@ -457,7 +482,7 @@ export async function extractLogoFromWebsite(websiteUrl: string): Promise<string
           }
           console.log(`Logo URL is accessible`);
           // Download and save the logo locally
-          const localLogoPath = await downloadAndSaveLogo(logoUrl, websiteUrl);
+          const localLogoPath = await downloadAndSaveLogo(logoUrl, websiteUrl, userId);
           return localLogoPath || logoUrl; // Fallback to remote URL if download fails
         } catch (logoError) {
           console.error(`Error checking logo URL: ${logoError}`);
