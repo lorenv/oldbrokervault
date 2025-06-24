@@ -228,9 +228,13 @@ export function CimDisplay({
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
   
-  // Local state for immediate UI updates
-  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(logoUrl || undefined);
-  const [localSelectedImages, setLocalSelectedImages] = useState(selectedImages || []);
+  // Local state for immediate UI updates - properly initialize from cimDocument
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(
+    logoUrl || cimDocument?.logoUrl || undefined
+  );
+  const [localSelectedImages, setLocalSelectedImages] = useState(
+    selectedImages || cimDocument?.selectedImages || []
+  );
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
   
   // State for tracking broken images
@@ -249,8 +253,8 @@ export function CimDisplay({
   // Update local state when props change with debouncing
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLocalLogoUrl(logoUrl);
-      setLocalSelectedImages(selectedImages || []);
+      setLocalLogoUrl(logoUrl || cimDocument?.logoUrl);
+      setLocalSelectedImages(selectedImages || cimDocument?.selectedImages || []);
       setLocalTitle(cimDocument?.title || "");
       // Reset error states when images change
       setLogoError(false);
@@ -258,7 +262,7 @@ export function CimDisplay({
     }, 50);
     
     return () => clearTimeout(timer);
-  }, [logoUrl, selectedImages, cimDocument?.title]);
+  }, [logoUrl, selectedImages, cimDocument?.title, cimDocument?.logoUrl, cimDocument?.selectedImages]);
 
   // Handle auto-trigger share settings with simplified approach
   useEffect(() => {
