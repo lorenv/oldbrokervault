@@ -300,7 +300,61 @@ Create a comprehensive CIM document following the analysis parameters and custom
       }
     }
     
-    const result = JSON.parse(jsonContent.trim());
+    // Clean up the JSON content to handle control characters while preserving JSON structure
+    jsonContent = jsonContent.trim();
+    
+    // Use a more sophisticated approach - parse character by character and fix issues
+    let cleanedContent = '';
+    let inString = false;
+    let escapeNext = false;
+    
+    for (let i = 0; i < jsonContent.length; i++) {
+      const char = jsonContent[i];
+      const charCode = char.charCodeAt(0);
+      
+      if (escapeNext) {
+        cleanedContent += char;
+        escapeNext = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        cleanedContent += char;
+        escapeNext = true;
+        continue;
+      }
+      
+      if (char === '"' && !escapeNext) {
+        inString = !inString;
+        cleanedContent += char;
+        continue;
+      }
+      
+      // Handle control characters only when inside strings
+      if (inString && (charCode < 32 || charCode > 126)) {
+        // Replace problematic characters with escaped versions
+        switch (char) {
+          case '\n':
+            cleanedContent += '\\n';
+            break;
+          case '\r':
+            cleanedContent += '\\r';
+            break;
+          case '\t':
+            cleanedContent += '\\t';
+            break;
+          default:
+            // Skip other control characters
+            break;
+        }
+      } else {
+        cleanedContent += char;
+      }
+    }
+    
+    jsonContent = cleanedContent;
+    
+    const result = JSON.parse(jsonContent);
     console.log("JSON parsing successful");
     
     // Calculate word count safely
