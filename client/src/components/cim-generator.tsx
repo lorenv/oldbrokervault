@@ -211,19 +211,6 @@ export function CimGenerator() {
     );
   };
 
-  // Cover image handlers
-  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setSelectedCoverImage(url);
-      setCoverImageAttribution('');
-    }
-    if (coverImageFileInputRef.current) {
-      coverImageFileInputRef.current.value = '';
-    }
-  };
-
   const searchUnsplash = async () => {
     if (!unsplashSearchQuery.trim()) return;
     
@@ -509,38 +496,6 @@ export function CimGenerator() {
     }
     if (coverImageFileInputRef.current) {
       coverImageFileInputRef.current.value = '';
-    }
-  };
-
-  // Cover image handlers
-  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setSelectedCoverImage(url);
-      setCoverImageAttribution('');
-    }
-    if (coverImageFileInputRef.current) {
-      coverImageFileInputRef.current.value = '';
-    }
-  };
-
-  const searchUnsplash = async () => {
-    if (!unsplashSearchQuery.trim()) return;
-    
-    setIsSearchingUnsplash(true);
-    try {
-      const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(unsplashSearchQuery)}`);
-      const data = await response.json();
-      setUnsplashResults(data.results || []);
-    } catch (error) {
-      toast({
-        title: "Search Error",
-        description: "Failed to search Unsplash images",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearchingUnsplash(false);
     }
   };
 
