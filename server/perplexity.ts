@@ -258,21 +258,21 @@ ${transcript}
 
 Create a comprehensive CIM document following the analysis parameters and custom directions provided.`;
 
-  const response = await fetch(process.env.OPENAI_API_KEY ? "https://api.openai.com/v1/chat/completions" : PERPLEXITY_API_URL, {
+  const response = await fetch(process.env.PERPLEXITY_API_KEY ? PERPLEXITY_API_URL : "https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY || process.env.PERPLEXITY_API_KEY}`,
+      "Authorization": `Bearer ${process.env.PERPLEXITY_API_KEY || process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_API_KEY ? "gpt-4-turbo-preview" : "llama-3.1-sonar-large-128k-online",
+      model: process.env.PERPLEXITY_API_KEY ? "llama-3.1-sonar-large-128k-online" : "gpt-4-turbo-preview",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
       max_tokens: 4000,
       temperature: 0.1,
-      response_format: process.env.OPENAI_API_KEY ? { type: "json_object" } : undefined
+      response_format: process.env.PERPLEXITY_API_KEY ? undefined : { type: "json_object" }
     })
   });
 
