@@ -313,10 +313,6 @@ export function CimGenerator() {
             formData.append('coverImageAttribution', coverImageAttribution);
           }
         }
-          if (coverImageAttribution) {
-            formData.append('coverImageAttribution', coverImageAttribution);
-          }
-        }
 
         try {
           if (hasWebsiteUrl) {
@@ -501,6 +497,19 @@ export function CimGenerator() {
 
   const removeFile = (index: number) => {
     setFinancialFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Cover image handlers
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSelectedCoverImage(url);
+      setCoverImageAttribution('');
+    }
+    if (coverImageFileInputRef.current) {
+      coverImageFileInputRef.current.value = '';
+    }
   };
 
   // Cover image handlers
