@@ -301,27 +301,39 @@ Create a comprehensive CIM document following the analysis parameters and custom
     }
     
     const result = JSON.parse(jsonContent.trim());
+    console.log("JSON parsing successful");
     
     // Calculate word count safely
     let wordCount = 0;
-    if (result.sections && Array.isArray(result.sections)) {
-      wordCount = result.sections.reduce((count: number, section: any) => {
-        if (section && section.content && typeof section.content === 'string') {
-          return count + section.content.split(/\s+/).length;
-        }
-        return count;
-      }, 0);
+    try {
+      if (result.sections && Array.isArray(result.sections)) {
+        wordCount = result.sections.reduce((count: number, section: any) => {
+          if (section && section.content && typeof section.content === 'string') {
+            return count + section.content.split(/\s+/).length;
+          }
+          return count;
+        }, 0);
+      }
+      console.log("Word count calculated:", wordCount);
+      
+      if (result.metadata) {
+        result.metadata.wordCount = wordCount;
+      }
+      console.log("Metadata updated successfully");
+    } catch (wordCountError) {
+      console.error("Error in word count calculation:", wordCountError);
+      // Don't fail the entire process for word count issues
+      if (result.metadata) {
+        result.metadata.wordCount = 0;
+      }
     }
     
-    if (result.metadata) {
-      result.metadata.wordCount = wordCount;
-    }
-    
+    console.log("Generated flexible CIM document successfully");
     return result as FlexibleCimDocument;
   } catch (error) {
     console.error("Failed to parse flexible CIM response:", error);
-    console.error("Response content:", content);
-    throw new Error("Failed to generate CIM document");
+    console.error("Response content preview:", content?.substring(0, 500) + "...");
+    throw new Error(`Failed to generate CIM document: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
