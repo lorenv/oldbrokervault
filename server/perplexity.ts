@@ -213,6 +213,8 @@ MARKDOWN CONSISTENCY RULES:
 - Format lists as proper markdown: "- Item 1\n- Item 2"
 - Use **bold** for emphasis, not mixed formatting
 - Keep formatting consistent throughout all sections
+- NEVER use code blocks (```) or code formatting - use plain text with bullet points instead
+- Avoid any markdown code syntax like backticks or code blocks
 
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above

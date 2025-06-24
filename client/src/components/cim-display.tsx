@@ -785,8 +785,12 @@ export function CimDisplay({
                         alt={`Business image ${index + 1}`}
                         className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => openLightbox(index)}
-                        onError={() => {
+                        onError={(e) => {
+                          console.error(`Image failed to load: ${image}`, e);
                           setBrokenImages(prev => new Set([...prev, index]));
+                        }}
+                        onLoad={() => {
+                          console.log(`Image loaded successfully: ${image}`);
                         }}
                       />
                     ) : (
@@ -936,10 +940,16 @@ export function CimDisplay({
                                   ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
                                   li: ({ children }) => <li className="mb-1">{children}</li>,
                                   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                  code: ({ children }) => <span className="bg-gray-100 px-1 py-0.5 rounded text-sm">{children}</span>,
+                                  pre: ({ children }) => <div className="bg-gray-50 p-3 rounded border-l-4 border-blue-200">{children}</div>,
                                   text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
                                 }}
                               >
-                                {processMarkdownWithEscaping(section.content)}
+                                {processMarkdownWithEscaping(section.content.replace(/```[\s\S]*?```/g, (match) => {
+                                  // Convert code blocks to bullet points
+                                  const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
+                                  return content.split('\n').filter(line => line.trim()).map(line => `- ${line.trim()}`).join('\n');
+                                }))}
                               </ReactMarkdown>
                             </div>
                           )}
