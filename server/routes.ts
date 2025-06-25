@@ -10,7 +10,7 @@ import { searchService, versionService, analyticsService } from "./premium-servi
 import { db } from "./db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { withRetry } from './db-utils';
-import { createSubscriptionSession, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
+import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
 import * as express from 'express';
 import multer from 'multer';

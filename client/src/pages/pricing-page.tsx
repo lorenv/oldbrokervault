@@ -63,7 +63,13 @@ export default function PricingPage() {
       }
       
       if (planId === 'standard') {
-        // For Standard plan, create a checkout session
+        // If user is not authenticated, show email collection dialog
+        if (!user) {
+          setShowEmailDialog(true);
+          return;
+        }
+        
+        // For authenticated users, create a checkout session directly
         const response = await apiRequest("POST", "/api/subscription/create-checkout", {
           plan: 'standard'
         });
@@ -83,6 +89,35 @@ export default function PricingPage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process subscription action",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Create checkout session with email for non-authenticated user
+      const response = await apiRequest("POST", "/api/subscription/create-checkout", {
+        plan: 'standard',
+        email: email
+      });
+      const { url } = await response.json();
+      setShowEmailDialog(false);
+      window.location.href = url;
+    } catch (error) {
+      console.error("Email subscription error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create subscription. Please try again.",
         variant: "destructive",
       });
     }
@@ -201,6 +236,50 @@ export default function PricingPage() {
           </Card>
         ))}
       </div>
+
+      {/* Email Collection Dialog for Non-Authenticated Users */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Subscribe to Standard Plan</DialogTitle>
+            <DialogDescription>
+              Enter your email to subscribe to the Standard Plan at $99/month. You'll be redirected to Stripe to complete your payment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="col-span-3"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleEmailSubmit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowEmailDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" onClick={handleEmailSubmit}>
+              Continue to Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
