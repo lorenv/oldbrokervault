@@ -173,14 +173,14 @@ app.get('/api/security/health', securityHealthCheck);
             console.log("Database URL set:", !!process.env.DATABASE_URL);
             console.log("Port:", portToTry);
             
-            // Start image persistence system in background (non-blocking)
+            // Start image persistence system in background after server is fully responsive
             setTimeout(async () => {
               try {
                 console.log('🔄 Starting background image persistence system...');
                 await initializeImagePersistence();
               } catch (error) {
                 console.error("Warning: Image persistence initialization failed:", error);
-                // Retry after 30 seconds on failure
+                // Retry after 60 seconds on failure
                 setTimeout(async () => {
                   try {
                     console.log('🔄 Retrying image persistence system...');
@@ -188,9 +188,9 @@ app.get('/api/security/health', securityHealthCheck);
                   } catch (retryError) {
                     console.error("Image persistence retry failed:", retryError);
                   }
-                }, 30000);
+                }, 60000);
               }
-            }, 1000); // Start after 1 second delay
+            }, 5000); // Start after 5 seconds to ensure health checks are working
             
             resolve();
           });
