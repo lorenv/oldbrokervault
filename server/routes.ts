@@ -1148,7 +1148,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("User ID:", req.user?.id);
       console.error("=== END CIM GENERATION ERROR ===");
       
-      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      // Provide more user-friendly error messages
+      let userMessage = "An unexpected error occurred while generating your CIM";
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('json') || errorMsg.includes('unexpected token')) {
+          userMessage = "The AI service returned an invalid response. Please try again in a moment.";
+        } else if (errorMsg.includes('html') || errorMsg.includes('server error')) {
+          userMessage = "The AI service is temporarily unavailable. Please try again in a few minutes.";
+        } else if (errorMsg.includes('rate limit') || errorMsg.includes('quota')) {
+          userMessage = "The AI service is currently at capacity. Please try again in a few minutes.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          userMessage = "Network connection issue. Please check your connection and try again.";
+        } else if (errorMsg.includes('limit reached')) {
+          userMessage = error.message; // Keep the original message for limit errors
+        } else {
+          userMessage = error.message; // Use the original error message for other cases
+        }
+      }
+      
+      res.status(400).json({ error: userMessage });
     }
   });
 
