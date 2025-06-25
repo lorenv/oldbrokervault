@@ -315,6 +315,15 @@ Create a comprehensive CIM document following the analysis parameters and custom
   try {
     // Handle JSON wrapped in markdown code blocks (common with Perplexity)
     let jsonContent = content;
+    
+    console.log("Raw API response first 500 chars:", content.substring(0, 500));
+    
+    // First, check if this is an HTML response (which indicates an error)
+    if (content.trim().startsWith('<') || content.includes('<html>') || content.includes('<!DOCTYPE')) {
+      console.error("Received HTML response instead of JSON:", content.substring(0, 200));
+      throw new Error("API returned HTML instead of JSON. This may indicate a server error or rate limiting.");
+    }
+    
     if (content.includes('```json')) {
       const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
@@ -330,6 +339,9 @@ Create a comprehensive CIM document following the analysis parameters and custom
     // Remove markdown headers that break JSON parsing
     jsonContent = jsonContent.replace(/^#+\s+.*$/gm, '');
     
+    // Remove any HTML tags that might be present
+    jsonContent = jsonContent.replace(/<[^>]*>/g, '');
+    
     // Remove any text before the first opening brace
     const firstBrace = jsonContent.indexOf('{');
     if (firstBrace > 0) {
@@ -344,6 +356,12 @@ Create a comprehensive CIM document following the analysis parameters and custom
     
     // Clean up the JSON content to handle control characters while preserving JSON structure
     jsonContent = jsonContent.trim();
+    
+    // Additional validation - check if we have valid JSON structure
+    if (!jsonContent.startsWith('{') || !jsonContent.endsWith('}')) {
+      console.error("Invalid JSON structure after cleaning:", jsonContent.substring(0, 200));
+      throw new Error("Unable to extract valid JSON from API response");
+    }
     
     // Use a more sophisticated approach - parse character by character and fix issues
     let cleanedContent = '';
