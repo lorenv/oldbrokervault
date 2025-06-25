@@ -316,8 +316,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Direct database lookup without cache complications
       console.log("Processing NDA check with direct database lookup");
 
-      // Use optimized lookup for minimal data
-      const cimDoc = await storage.getCimByShareSlugOptimized(shareSlug);
+      // Use standard lookup to avoid optimization issues
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
 
       if (!cimDoc) {
         console.log("Document not found for slug:", shareSlug);
