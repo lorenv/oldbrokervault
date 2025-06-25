@@ -964,8 +964,8 @@ export function CimDisplay({
                                   ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
                                   li: ({ children }) => <li className="mb-1">{children}</li>,
                                   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                  code: ({ children }) => <span className="bg-gray-100 px-1 py-0.5 rounded text-sm">{children}</span>,
-                                  pre: ({ children }) => <div className="bg-gray-50 p-3 rounded border-l-4 border-blue-200">{children}</div>,
+                                  code: ({ children }) => <>{children}</>, // Render code as plain text
+                                  pre: ({ children }) => <>{children}</>, // Render code blocks as plain text
                                   text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
                                 }}
                               >
