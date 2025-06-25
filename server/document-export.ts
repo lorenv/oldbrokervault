@@ -2408,7 +2408,61 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         doc.moveDown(2);
       }
 
-      // Render content sections - prioritize custom sections over analysis sections
+      // First render all analysis sections (generated content)
+      if (analysis.sections && Array.isArray(analysis.sections)) {
+        analysis.sections.forEach((section: any, index: number) => {
+          // Add page break before Executive Summary section
+          if (section.title && section.title.toLowerCase().includes('executive summary')) {
+            doc.addPage();
+          }
+          
+          doc.fontSize(18)
+             .font('Helvetica-Bold')
+             .fillColor('#1e3a8a')
+             .text(section.title || `Section ${index + 1}`)
+             .fillColor('#000000')
+             .font('Helvetica')
+             .fontSize(12);
+          
+          doc.moveDown(1);
+          
+          if (section.content) {
+            // Handle markdown-style content by converting to plain text
+            const content = section.content
+              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+              .replace(/^#+\s+/gm, '') // Remove headers
+              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+              .trim();
+            
+            doc.font('Helvetica').text(content, {
+              align: 'left',
+              lineGap: 4
+            });
+          }
+          
+          doc.moveDown(2);
+        });
+      } else if (analysis.story) {
+        // Fallback to old format if no sections
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('Business Summary')
+           .fillColor('#000000')
+           .font('Helvetica')
+           .fontSize(12);
+        
+        doc.moveDown(1);
+
+        if (analysis.story.businessSummary) {
+          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
+        }
+        
+        doc.moveDown(2);
+      }
+
+      // Then render custom sections (if any) after the analysis content
       if (customSections && customSections.length > 0) {
         // Sort custom sections by position
         const sortedCustomSections = [...customSections].sort((a, b) => a.position - b.position);
@@ -2508,56 +2562,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           doc.moveDown(2);
         });
-      } else if (analysis.sections && Array.isArray(analysis.sections)) {
-        // Only render analysis sections if no custom sections exist
-        analysis.sections.forEach((section: any, index: number) => {
-          // Add page break before Executive Summary section
-          if (section.title && section.title.toLowerCase().includes('executive summary')) {
-            doc.addPage();
-          }
-          
-          doc.fontSize(18)
-             .font('Helvetica-Bold')
-             .fillColor('#1e3a8a')
-             .text(section.title || `Section ${index + 1}`)
-             .fillColor('#000000')
-             .font('Helvetica')
-             .fontSize(12);
-          
-          doc.moveDown(1);
-          
-          if (section.content) {
-            // Handle markdown-style content by converting to plain text
-            const content = section.content
-              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-              .replace(/^#+\s+/gm, '') // Remove headers
-              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
-              .trim();
-            
-            doc.font('Helvetica').text(content, {
-              align: 'left',
-              lineGap: 4
-            });
-          }
-          
-          doc.moveDown(2);
-        });
-      } else if (analysis.story) {
-        // Fallback to old format if no sections
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#1e3a8a')
-           .text('Business Summary')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
-
-        if (analysis.story.businessSummary) {
-          doc.font('Helvetica').text(safeStringify(analysis.story.businessSummary));
-        }
       }
 
       // Business Images Section - separate from content sections
