@@ -3010,8 +3010,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               }
               
               // Calculate scaled dimensions maintaining aspect ratio
-              const maxWidth = 80;
-              const maxHeight = 50;
+              const maxWidth = 120;
+              const maxHeight = 80;
               const aspectRatio = originalWidth / originalHeight;
               
               let logoWidth = maxWidth;
