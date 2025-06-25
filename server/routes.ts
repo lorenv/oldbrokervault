@@ -304,17 +304,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lightweight NDA check endpoint - fast initial check for share links
+  // Lightweight NDA check endpoint - optimized with caching
   app.get('/api/share/:shareSlug/nda-check', async (req, res) => {
     const { shareSlug } = req.params;
     const startTime = Date.now();
     
-    console.log("=== NDA CHECK ===");
+    console.log("=== OPTIMIZED NDA CHECK ===");
     console.log("Processing NDA check for slug:", shareSlug?.substring(0, 10) + "...");
     
     try {
-      // Quick lookup using storage method for consistency
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      // PERFORMANCE OPTIMIZATION: Cache integration for NDA checks
+      const { shareCache, CACHE_TTL } = await import('./cache');
+      const cacheKey = shareCache.keys.ndaStatus(shareSlug);
+      const cachedResult = shareCache.get(cacheKey);
+      
+      if (cachedResult) {
+        console.log("NDA check cache hit, time:", Date.now() - startTime + "ms");
+        return res.json(cachedResult);
+      }
+
+      // Use optimized lookup for minimal data
+      const cimDoc = await storage.getCimByShareSlugOptimized(shareSlug);
 
       if (!cimDoc) {
         console.log("Document not found for slug:", shareSlug);
@@ -326,14 +336,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
-      console.log("NDA check completed in:", Date.now() - startTime + "ms");
-      
-      res.json({
+      const result = {
         requiresNda: Boolean(cimDoc.ndaProtected),
         requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
         title: cimDoc.title || 'Untitled Document',
         documentId: cimDoc.id
-      });
+      };
+
+      // Cache the result for faster subsequent requests
+      shareCache.set(cacheKey, result, CACHE_TTL.NDA_CHECK);
+
+      console.log("NDA check completed in:", Date.now() - startTime + "ms");
+      res.json(result);
 
     } catch (error) {
       console.error('NDA check error:', error);
@@ -350,6 +364,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("=== OPTIMIZED SHARE LINK ACCESS ===");
       console.log("Processing share request for slug:", shareSlug.substring(0, 8) + "...");
+      
+      // PERFORMANCE OPTIMIZATION 6: Cache integration
+      const { shareCache, CACHE_TTL } = await import('./cache');
+      const cacheKey = shareCache.keys.shareDocument(shareSlug);
+      const cachedData = shareCache.get(cacheKey);
+      
+      if (cachedData && !token) {
+        console.log("Cache hit - returning cached data, time:", Date.now() - startTime + "ms");
+        return res.json(cachedData);
+      }
       
       // Immediate validation
       if (!shareSlug || shareSlug.length < 3) {
@@ -498,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Total optimized response time:", Date.now() - startTime + "ms");
 
-      res.json({
+      const responseData = {
         cim: {
           id: cimDoc.id,
           title: cimDoc.title,
@@ -526,7 +550,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaUrl,
         customSections: customSections || [],
         ndaApprovalStatus
-      });
+      };
+
+      // PERFORMANCE OPTIMIZATION 7: Cache successful responses (except when using tokens)
+      if (!token && !cimDoc.ndaProtected) {
+        shareCache.set(cacheKey, responseData, CACHE_TTL.SHARE_DOCUMENT);
+        console.log("Response cached for future requests");
+      }
+
+      res.json(responseData);
     } catch (error) {
       console.error("Share endpoint error:", error);
       res.status(500).json({ 
