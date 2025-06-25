@@ -899,23 +899,22 @@ export class DatabaseStorage implements IStorage {
     businessName: string | null;
     businessLogo: string | null;
   } | undefined> {
-    // PERFORMANCE OPTIMIZATION: Direct query without retry wrapper
+    // PERFORMANCE OPTIMIZATION: Simplified query - use standard method due to Drizzle complexity
     try {
-      const [user] = await db.select({
-        name: users.name,
-        email: users.email,
-        title: users.title,
-        phone: users.phone,
-        businessName: users.businessName,
-        businessLogo: users.businessLogo
-      })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      return user || undefined;
+      const user = await this.getUser(userId);
+      if (!user) return undefined;
+      
+      return {
+        name: user.name,
+        email: user.email,
+        title: user.title,
+        phone: user.phone,
+        businessName: user.businessName,
+        businessLogo: user.businessLogo
+      };
     } catch (error) {
       console.error('Error in getUserProfileOptimized:', error);
-      throw error; // Let caller handle fallback
+      throw error;
     }
   }
 
