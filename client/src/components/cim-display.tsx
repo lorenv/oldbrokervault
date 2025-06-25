@@ -1042,7 +1042,7 @@ export function CimDisplay({
                       </CardHeader>
                       <CardContent>
                         {customSection.type === 'text' ? (
-                          <div className="prose prose-sm max-w-none break-words overflow-hidden">
+                          <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                             {!isSharedView ? (
                               <FlexibleSectionEditor
                                 value={customSection.content}
@@ -1066,7 +1066,7 @@ export function CimDisplay({
                                 multiline={true}
                               />
                             ) : (
-                              <div className="prose prose-sm max-w-none break-words overflow-hidden">
+                              <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
                                 <ReactMarkdown 
                                   components={{
                                     ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
