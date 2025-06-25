@@ -25,7 +25,7 @@ export const pool = new Pool({
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners
-pool.setMaxListeners(150);
+pool.setMaxListeners(500);
 
 // Enhanced error handling for database connections
 pool.on('error', (err) => {
