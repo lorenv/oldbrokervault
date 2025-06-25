@@ -137,11 +137,14 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
-// Configure multer for memory storage
+// Configure multer for memory storage with increased limits
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit for large files
+    fieldSize: 100 * 1024 * 1024, // 100MB limit for field data
+    fields: 50, // Increase field count limit
+    files: 20 // Increase file count limit
   }
 });
 
