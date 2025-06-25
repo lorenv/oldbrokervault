@@ -920,17 +920,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementShareViewCount(id: number): Promise<void> {
-    // First get the current count, then increment it
-    const [current] = await db.select({ count: cimDocuments.shareViewCount })
-      .from(cimDocuments)
-      .where(eq(cimDocuments.id, id));
-    
-    await db.update(cimDocuments)
-      .set({ 
-        shareViewCount: (current?.count || 0) + 1,
-        shareLastViewed: new Date()
-      })
-      .where(eq(cimDocuments.id, id));
+    // PERFORMANCE OPTIMIZATION: Use single atomic update operation
+    try {
+      await db.update(cimDocuments)
+        .set({ 
+          shareViewCount: sql`COALESCE(${cimDocuments.shareViewCount}, 0) + 1`,
+          shareLastViewed: new Date()
+        })
+        .where(eq(cimDocuments.id, id));
+    } catch (error) {
+      console.error('Error incrementing share view count:', error);
+      // Don't throw error to avoid breaking share functionality
+    }
   }
 
   // New granular view tracking methods
@@ -1079,6 +1080,28 @@ export class DatabaseStorage implements IStorage {
         .where(eq(customSections.cimDocumentId, cimDocumentId))
         .orderBy(asc(customSections.position));
     });
+  }
+
+  async getCustomSectionsOptimized(cimDocumentId: number): Promise<any[]> {
+    // PERFORMANCE OPTIMIZATION: Direct query without retry overhead for share links
+    try {
+      return await db.select({
+        id: customSections.id,
+        type: customSections.type,
+        title: customSections.title,
+        content: customSections.content,
+        imageUrls: customSections.imageUrls,
+        position: customSections.position,
+        insertAfterSection: customSections.insertAfterSection
+      })
+        .from(customSections)
+        .where(eq(customSections.cimDocumentId, cimDocumentId))
+        .orderBy(asc(customSections.position));
+    } catch (error) {
+      console.error('Error in getCustomSectionsOptimized:', error);
+      // Fallback to regular method with retry logic
+      return this.getCustomSections(cimDocumentId);
+    }
   }
 
   async getAllCustomSections(): Promise<any[]> {
