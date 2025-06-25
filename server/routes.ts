@@ -313,15 +313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Processing NDA check for slug:", shareSlug?.substring(0, 10) + "...");
     
     try {
-      // PERFORMANCE OPTIMIZATION: Cache integration for NDA checks
-      const { shareCache, CACHE_TTL } = await import('./cache');
-      const cacheKey = shareCache.keys.ndaStatus(shareSlug);
-      const cachedResult = shareCache.get(cacheKey);
-      
-      if (cachedResult) {
-        console.log("NDA check cache hit, time:", Date.now() - startTime + "ms");
-        return res.json(cachedResult);
-      }
+      // Direct database lookup without cache complications
+      console.log("Processing NDA check with direct database lookup");
 
       // Use optimized lookup for minimal data
       const cimDoc = await storage.getCimByShareSlugOptimized(shareSlug);
@@ -343,8 +336,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentId: cimDoc.id
       };
 
-      // Cache the result for faster subsequent requests
-      shareCache.set(cacheKey, result, CACHE_TTL.NDA_CHECK);
+      // Skip caching to avoid import issues
+      console.log("NDA check completed successfully without cache");
 
       console.log("NDA check completed in:", Date.now() - startTime + "ms");
       res.json(result);
