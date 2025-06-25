@@ -199,12 +199,12 @@ export function CimDisplay({
   // State for section management - convert sections object to array if needed
   const initializeSections = () => {
     if (!analysis?.sections) return [];
-    
+
     // If sections is already an array, use it directly
     if (Array.isArray(analysis.sections)) {
       return analysis.sections;
     }
-    
+
     // If sections is an object, convert to array format
     if (typeof analysis.sections === 'object') {
       return Object.entries(analysis.sections).map(([key, value]: [string, any]) => ({
@@ -214,13 +214,13 @@ export function CimDisplay({
         ...value
       }));
     }
-    
+
     return [];
   };
-  
+
   const [sections, setSections] = useState(initializeSections());
   const [customSections, setCustomSections] = useState<any[]>([]);
-  
+
   // Update sections when analysis changes (e.g., when switching documents)
   useEffect(() => {
     setSections(initializeSections());
@@ -228,7 +228,7 @@ export function CimDisplay({
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
-  
+
   // Local state for immediate UI updates - properly initialize from cimDocument
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(
     logoUrl || cimDocument?.logoUrl || undefined
@@ -236,7 +236,7 @@ export function CimDisplay({
   const [localSelectedImages, setLocalSelectedImages] = useState(
     selectedImages || cimDocument?.selectedImages || []
   );
-  
+
   // Update local state when props change (important for shared views)
   useEffect(() => {
     if (selectedImages && selectedImages.length > 0) {
@@ -246,11 +246,11 @@ export function CimDisplay({
     }
   }, [selectedImages]);
   const [localTitle, setLocalTitle] = useState<string>(cimDocument?.title || "");
-  
+
   // State for tracking broken images
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
   const [logoError, setLogoError] = useState(false);
-  
+
   // Debug selectedImages prop
   useEffect(() => {
     console.log("CimDisplay selectedImages prop:", selectedImages);
@@ -270,7 +270,7 @@ export function CimDisplay({
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  
+
   // Lightbox state for business images
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -285,7 +285,7 @@ export function CimDisplay({
       setLogoError(false);
       setBrokenImages(new Set());
     }, 50);
-    
+
     return () => clearTimeout(timer);
   }, [logoUrl, selectedImages, cimDocument?.title, cimDocument?.logoUrl, cimDocument?.selectedImages]);
 
@@ -333,18 +333,18 @@ export function CimDisplay({
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
       // Reorder the unified sections
       const reorderedSections = arrayMove(unifiedSections, activeIndex, overIndex);
-      
+
       // Separate back into regular and custom sections with new positions
       const newRegularSections: any[] = [];
       const updatedCustomSections: any[] = [];
-      
+
       reorderedSections.forEach((item, index) => {
         if (item.type === 'regular') {
           newRegularSections.push(item.data);
         } else {
           // For custom sections, determine their insertAfterSection based on position
           let insertAfterSection = 'start';
-          
+
           // Look backwards to find the last regular section
           for (let i = index - 1; i >= 0; i--) {
             if (reorderedSections[i].type === 'regular') {
@@ -353,14 +353,14 @@ export function CimDisplay({
               break;
             }
           }
-          
+
           // If no regular section found before this, and there are regular sections after, use 'start'
           // If no regular sections at all or all are after, use 'end'
           const hasRegularAfter = reorderedSections.slice(index + 1).some(s => s.type === 'regular');
           if (insertAfterSection === 'start' && !hasRegularAfter && newRegularSections.length > 0) {
             insertAfterSection = 'end';
           }
-          
+
           updatedCustomSections.push({
             ...item.data,
             insertAfterSection,
@@ -386,7 +386,7 @@ export function CimDisplay({
             position: s.position,
             insertAfterSection: s.insertAfterSection
           }));
-          
+
           await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
             sections: customSectionUpdates
           });
@@ -413,7 +413,7 @@ export function CimDisplay({
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
         analysis: updatedAnalysis
       });
-      
+
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -439,7 +439,7 @@ export function CimDisplay({
     // Add custom sections with calculated sort order based on their insertAfterSection
     const customSectionItems = customSections.map((customSection: any) => {
       let sortOrder = 0;
-      
+
       if (customSection.insertAfterSection === 'start') {
         // Custom sections at start get negative sort order
         sortOrder = -1000 + customSection.position;
@@ -452,7 +452,7 @@ export function CimDisplay({
           const sectionId = section.id || section.title || `section-${index}`;
           return sectionId === customSection.insertAfterSection;
         });
-        
+
         if (afterSectionIndex !== -1) {
           // Place after the found section with micro-positioning
           sortOrder = (afterSectionIndex * 100) + 50 + customSection.position;
@@ -473,7 +473,7 @@ export function CimDisplay({
     // Combine and sort by sortOrder
     const allSections = [...regularSectionItems, ...customSectionItems];
     allSections.sort((a, b) => a.sortOrder - b.sortOrder);
-    
+
     return allSections;
   };
 
@@ -482,7 +482,7 @@ export function CimDisplay({
     try {
       // Immediately update local state for instant UI feedback
       setLocalLogoUrl(undefined);
-      
+
       const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
@@ -504,7 +504,7 @@ export function CimDisplay({
       // Immediately update local state for instant UI feedback
       const updatedImages = localSelectedImages.filter((_, index) => index !== imageIndex);
       setLocalSelectedImages(updatedImages);
-      
+
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
@@ -541,7 +541,7 @@ export function CimDisplay({
       }
 
       setIsLogoUploading(true);
-      
+
       const formData = new FormData();
       formData.append('logo', file);
 
@@ -553,10 +553,10 @@ export function CimDisplay({
       if (response.ok) {
         const result = await response.json();
         setLocalLogoUrl(result.logoUrl);
-        
+
         // Invalidate specific query only to avoid affecting modal state
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-        
+
         toast({ title: "Logo Updated", description: "Logo uploaded successfully." });
       } else {
         const error = await response.json();
@@ -603,10 +603,10 @@ export function CimDisplay({
           const result = await response.json();
           // Update local state immediately
           setLocalSelectedImages(prev => [...prev, result.imagePath]);
-          
+
           // Invalidate specific query only to avoid affecting modal state
           queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-          
+
           toast({ title: "Upload Successful", description: `${file.name} uploaded successfully.` });
         } else {
           const error = await response.json();
@@ -654,11 +654,11 @@ export function CimDisplay({
                   try {
                     // Update local state immediately for instant UI feedback
                     setLocalTitle(newTitle);
-                    
+
                     const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                       title: newTitle
                     });
-                    
+
                     if (response.ok) {
                       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                       queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -771,7 +771,7 @@ export function CimDisplay({
             )}
           </div>
         )}
-        
+
         {/* Business Images */}
         {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (
           <div className="mb-6">
@@ -857,7 +857,7 @@ export function CimDisplay({
             ) : null}
           </div>
         )}
-        
+
         {/* Combined Draggable Sections */}
         <DndContext
           sensors={sensors}
@@ -886,220 +886,75 @@ export function CimDisplay({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <CardHeader>
-                        <CardTitle className="text-lg pr-8">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={section.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const updatedSections = sections.map((sec: any, idx: number) => {
-                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                      return { ...sec, title: newTitle };
-                                    }
-                                    return sec;
-                                  });
-                                  setSections(updatedSections);
-                                  
-                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
-                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
-                                  });
-                                  
-                                  if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                    toast({ title: "Title Updated", description: "Section title saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
-                            />
-                          ) : (
-                            section.title
-                          )}
+                      <CardHeader className="pb-5 pt-7 px-7">
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                          {getSectionIcon(section.title)}
+                          {section.title}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="prose prose-sm max-w-none break-words overflow-hidden">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={section.content}
-                              onSave={async (newContent: string) => {
-                                try {
-                                  const updatedSections = sections.map((sec: any, idx: number) => {
-                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                      return { ...sec, content: newContent };
-                                    }
-                                    return sec;
-                                  });
-                                  setSections(updatedSections);
-                                  
-                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
-                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
-                                  });
-                                  
-                                  if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                    toast({ title: "Content Updated", description: "Section content saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section content"
-                              multiline={true}
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none break-words overflow-hidden">
-                              <ReactMarkdown 
-                                components={{
-                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                  code: ({ children }) => <span className="bg-gray-100 px-1 py-0.5 rounded text-sm">{children}</span>,
-                                  pre: ({ children }) => <div className="bg-gray-50 p-3 rounded border-l-4 border-blue-200">{children}</div>,
-                                  text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
-                                }}
-                              >
-                                {processMarkdownWithEscaping(section.content
-                                  .replace(/```[\s\S]*?```/g, (match) => {
-                                    // Convert code blocks to bullet points
-                                    const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
-                                    return content.split('\n').filter(line => line.trim()).map(line => `- ${line.trim()}`).join('\n');
-                                  })
-                                  .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
-                                )}
-                              </ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
+                      <CardContent className="px-7 pb-7">
+                        <ReactMarkdown className="prose prose-slate max-w-none">
+                          {processMarkdownWithEscaping(section.content)}
+                        </ReactMarkdown>
                       </CardContent>
                     </Card>
                   </DraggableSection>
                 );
-              } else {
-                // Custom section rendering
+              } else if (unifiedSection.type === 'custom') {
                 const customSection = unifiedSection.data;
+                const sectionId = unifiedSection.id;
                 return (
-                  <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
+                  <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
                     <Card className="mb-4 relative group">
                       {!isSharedView && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={async () => {
-                            try {
-                              const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
-                              if (response.ok) {
-                                setCustomSections(prev => prev.filter(s => s.id !== customSection.id));
-                                toast({ title: "Section Deleted", description: "Custom section removed successfully." });
-                              }
-                            } catch (error) {
-                              toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
-                            }
-                          }}
+                          onClick={() => handleDeleteCustomSection(customSection.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <CardHeader>
-                        <CardTitle className="text-lg pr-8">
+                      <CardHeader className="pb-5 pt-7 px-7">
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                          {customSection.sectionType === 'text' ? <Type className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
                           {!isSharedView ? (
                             <FlexibleSectionEditor
                               value={customSection.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                    title: newTitle
-                                  });
-                                  
-                                  if (response.ok) {
-                                    setCustomSections(prev => prev.map(s => 
-                                      s.id === customSection.id ? { ...s, title: newTitle } : s
-                                    ));
-                                    toast({ title: "Title Updated", description: "Custom section title saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
+                              onSave={(value) => handleUpdateCustomSection(customSection.id, { title: value })}
+                              placeholder="Section title..."
                             />
-                          ) : (
-                            customSection.title
-                          )}
+                          ) : customSection.title}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        {customSection.type === 'text' ? (
-                          <div className="prose prose-sm max-w-none break-words overflow-hidden">
-                            {!isSharedView ? (
-                              <FlexibleSectionEditor
-                                value={customSection.content}
-                                onSave={async (newContent: string) => {
-                                  try {
-                                    const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                      content: newContent
-                                    });
-                                    
-                                    if (response.ok) {
-                                      setCustomSections(prev => prev.map(s => 
-                                        s.id === customSection.id ? { ...s, content: newContent } : s
-                                      ));
-                                      toast({ title: "Content Updated", description: "Custom section content saved successfully." });
-                                    }
-                                  } catch (error) {
-                                    toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                  }
-                                }}
-                                placeholder="Click to edit this text section..."
-                                multiline={true}
-                              />
-                            ) : (
-                              <div className="prose prose-sm max-w-none break-words overflow-hidden">
-                                <ReactMarkdown 
-                                  components={{
-                                    ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                    text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
-                                  }}
-                                >
-                                  {processMarkdownWithEscaping(customSection.content)}
-                                </ReactMarkdown>
-                              </div>
-                            )}
-                          </div>
+                      <CardContent className="px-7 pb-7">
+                        {customSection.sectionType === 'text' ? (
+                          !isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={customSection.content}
+                              onSave={(value) => handleUpdateCustomSection(customSection.id, { content: value })}
+                              placeholder="Enter your content here..."
+                              multiline
+                            />
+                          ) : (
+                            <ReactMarkdown className="prose prose-slate max-w-none">
+                              {processMarkdownWithEscaping(customSection.content)}
+                            </ReactMarkdown>
+                          )
                         ) : (
                           <div className="space-y-4">
-                            {customSection.imageUrls && customSection.imageUrls.length > 0 ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {customSection.imageUrls.map((imageUrl: string, index: number) => (
-                                  <img 
-                                    key={index}
-                                    src={imageUrl} 
-                                    alt={`Custom section image ${index + 1}`}
-                                    className="w-full h-48 object-cover rounded-lg"
-                                  />
-                                ))}
-                              </div>
-                            ) : customSection.imageUrl ? (
-                              <img 
-                                src={customSection.imageUrl} 
-                                alt="Custom section image"
-                                className="w-full h-48 object-cover rounded-lg"
+                            {customSection.imageUrl && (
+                              <img
+                                src={customSection.imageUrl}
+                                alt={customSection.title}
+                                className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
+                                onError={(e) => {
+                                  console.error("Image failed to load:", customSection.imageUrl);
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               />
-                            ) : null}
+                            )}
                           </div>
                         )}
                       </CardContent>
@@ -1107,239 +962,10 @@ export function CimDisplay({
                   </DraggableSection>
                 );
               }
+              return null;
             })}
-          </SortableContext>
-        </DndContext>
-
-        {/* Add Custom Section Button - Only in Edit View */}
-        {!isSharedView && (
-          <div className="flex justify-center py-4">
-            <Dialog open={addSectionDialogOpen} onOpenChange={setAddSectionDialogOpen} modal={false}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Custom Section
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Custom Section</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Choose the type of section you'd like to add to your CIM document.
-                  </p>
-                  <div className="grid grid-cols-1 gap-3">
-                    <Button
-                      variant="outline"
-                      className="h-auto p-4 flex flex-col items-start gap-2"
-                      disabled={isAddingSectionLoading}
-                      onClick={async () => {
-                        try {
-                          setIsAddingSectionLoading(true);
-                          const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/text`, {
-                            content: 'Click to edit this text section...',
-                            afterSection: 'end'
-                          });
-
-                          if (response.ok) {
-                            // Invalidate custom sections query to refresh via centralized hook
-                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                            toast({
-                              title: "Text Section Added",
-                              description: "Your new text section has been added to the document.",
-                            });
-                            setAddSectionDialogOpen(false);
-                          }
-                        } catch (error) {
-                          toast({
-                            title: "Failed to Add Section",
-                            description: "Please try again.",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setIsAddingSectionLoading(false);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Type className="h-4 w-4" />
-                        <span className="font-medium">Text Section</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        Add a custom text section with your own content
-                      </span>
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      className="h-auto p-4 flex flex-col items-start gap-2"
-                      disabled={isAddingSectionLoading}
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.multiple = true;
-                        input.onchange = async (e) => {
-                          const files = Array.from((e.target as HTMLInputElement).files || []);
-                          if (files.length === 0) return;
-
-                          try {
-                            setIsAddingSectionLoading(true);
-                            const formData = new FormData();
-                            files.forEach(file => formData.append('images', file));
-                            formData.append('afterSection', 'end');
-
-                            const response = await fetch(`/api/cim/${docId}/custom-section/image`, {
-                              method: 'POST',
-                              body: formData,
-                            });
-
-                            if (response.ok) {
-                              // Invalidate custom sections query to refresh via centralized hook
-                              queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
-                              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                              queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                              toast({
-                                title: "Image Section Added",
-                                description: "Your new image section has been added to the document.",
-                              });
-                              setAddSectionDialogOpen(false);
-                            }
-                          } catch (error) {
-                            toast({
-                              title: "Failed to Add Images",
-                              description: "Please try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsAddingSectionLoading(false);
-                          }
-                        };
-                        input.click();
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="font-medium">Image Section</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        Upload and add images to your document
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-
-        {/* Delete Confirmation Dialog */}
-        {confirmDeleteSectionId && (
-          <Dialog open={!!confirmDeleteSectionId} onOpenChange={() => setConfirmDeleteSectionId(null)} modal={false}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete Section</DialogTitle>
-              </DialogHeader>
-              <p>Are you sure you want to delete this section? This action cannot be undone.</p>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setConfirmDeleteSectionId(null)}>
-                  Cancel
-                </Button>
-                <Button variant="destructive" onClick={() => handleDeleteSection(confirmDeleteSectionId)}>
-                  Delete
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-
-      {/* DocumentExport component to handle share functionality */}
-      {!isSharedView && (
-        <DocumentExport
-          analysis={analysis}
-          docId={docId}
-          autoTriggerShare={shareDialogOpen}
-          onShareTriggered={() => setShareDialogOpen(false)}
-          isSharedView={false}
-          logoUrl={localLogoUrl}
-          selectedImages={localSelectedImages}
-        />
-      )}
-
-      </div>
-      
-      {/* Image Lightbox Dialog */}
-      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 border-0 bg-black [&>button]:hidden">
-          <div className="relative">
-            {localSelectedImages.length > 0 && (
-              <>
-                <img
-                  src={localSelectedImages[currentImageIndex]}
-                  alt={`Business image ${currentImageIndex + 1}`}
-                  className="w-full h-auto max-h-[80vh] object-contain"
-                />
-                
-                {/* Navigation buttons */}
-                {localSelectedImages.length > 1 && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                      onClick={() => navigateLightbox('prev')}
-                    >
-                      <ChevronLeft className="h-6 w-6" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                      onClick={() => navigateLightbox('next')}
-                    >
-                      <ChevronRight className="h-6 w-6" />
-                    </Button>
-                  </>
-                )}
-                
-                {/* Close button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white z-10"
-                  onClick={() => setLightboxOpen(false)}
-                >
-                  <X className="h-6 w-6" />
-                </Button>
-                
-                {/* Image counter */}
-                {localSelectedImages.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                    {currentImageIndex + 1} of {localSelectedImages.length}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Markdown Reference Guide - Only in Edit View - Bottom of Interface */}
-      {!isSharedView && (
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Formatting Reference</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MarkdownGuide />
-            </CardContent>
-          </Card>
+            </SortableContext>
+          </DndContext>
         </div>
-      )}
-    </div>
-  );
-}
+      );
+    }
