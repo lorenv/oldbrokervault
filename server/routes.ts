@@ -2192,9 +2192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("User authenticated:", req.isAuthenticated());
     console.log("Processing subscription for user:", req.user?.id);
     
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const { plan } = req.body;
+    const { plan, email } = req.body;
     console.log("Plan requested:", plan);
     
     if (!subscriptionPlans[plan as keyof typeof subscriptionPlans]) {
@@ -2202,13 +2200,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid plan selected" });
     }
 
+    // For non-authenticated users, they need to provide an email
+    if (!req.isAuthenticated() && !email) {
+      return res.status(400).json({ error: "Email required for subscription" });
+    }
+
     try {
       const hostHeader = req.get('host');
       console.log("Creating Stripe session with host:", hostHeader);
       
-      const session = await createSubscriptionSession(
+      // Use direct price ID to avoid retrieval issues
+      const priceId = process.env.STRIPE_PRICE_ID_STANDARD;
+      console.log("Using direct price ID:", priceId);
+      
+      if (!priceId) {
+        throw new Error("Price ID not configured");
+      }
+
+      // For authenticated users, use their ID and email
+      // For non-authenticated users, create a temp session
+      let userId = req.user?.id;
+      let userEmail = req.user?.email || email;
+      
+      if (!userId) {
+        // For non-authenticated users, we'll create a checkout session without a user ID
+        // The webhook will handle user creation upon successful payment
+        console.log("Creating checkout for non-authenticated user with email:", userEmail);
+      }
+
+      const session = await createSubscriptionSessionDirect(
         plan as keyof typeof subscriptionPlans,
-        req.user!.id,
+        priceId,
+        userEmail,
+        userId,
         hostHeader
       );
       res.json({ url: session.url });
