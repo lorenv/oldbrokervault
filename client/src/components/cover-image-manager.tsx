@@ -300,7 +300,6 @@ export function CoverImageManager({
           <div className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4" />
             Cover Image
-            {selectedImage && <Badge variant="secondary">Set</Badge>}
           </div>
           {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
