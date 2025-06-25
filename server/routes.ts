@@ -2210,7 +2210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating Stripe session with host:", hostHeader);
       
       // Use direct price ID to avoid retrieval issues
-      const priceId = process.env.STRIPE_PRICE_ID_STANDARD;
+      const priceId = "price_1RdzViLgC8JlC4RajYNV2iqN";
       console.log("Using direct price ID:", priceId);
       
       if (!priceId) {
