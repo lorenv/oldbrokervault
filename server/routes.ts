@@ -1878,7 +1878,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Get only the last 3 documents with minimal fields
-      const results = await storage.getCimDocuments(req.user!.id, { limit: 3 });
+      const results = await withRetry(async () => {
+        return storage.getCimDocuments(req.user!.id, { limit: 3 });
+      });
       
       // Return just the documents with minimal fields for dashboard
       const minimalDocs = results.documents.map(doc => ({
@@ -1892,6 +1894,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ documents: minimalDocs });
     } catch (error) {
       console.error("Error fetching recent documents:", error);
+      
+      // Enhanced error response for timeout issues
+      if (error instanceof Error && (error.message?.includes('timeout') || error.message?.includes('Connection terminated'))) {
+        return res.status(503).json({ 
+          message: "Database temporarily unavailable. Please try again.",
+          error: "Service temporarily unavailable",
+          timestamp: new Date().toISOString(),
+          retry: true
+        });
+      }
+      
       res.status(500).json({ error: "Failed to fetch recent documents" });
     }
   });
@@ -1901,9 +1914,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const canCreate = await storage.checkUserLimit(req.user!.id);
-      const canRegenerate = await storage.checkRegenerationLimit(req.user!.id);
-      const user = await storage.getUser(req.user!.id);
+      const [canCreate, canRegenerate, user] = await Promise.all([
+        withRetry(() => storage.checkUserLimit(req.user!.id)),
+        withRetry(() => storage.checkRegenerationLimit(req.user!.id)),
+        withRetry(() => storage.getUser(req.user!.id))
+      ]);
       
       if (!user) {
         return res.status(404).json({ error: "User not found" });
