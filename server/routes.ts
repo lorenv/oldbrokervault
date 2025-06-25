@@ -454,8 +454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
-          storage.getUserProfileOptimized(cimDoc.userId),
-          storage.getCustomSectionsOptimized(cimDoc.id),
+          storage.getUser(cimDoc.userId),
+          storage.getCustomSections(cimDoc.id),
         // NDA approval check as async operation
         (async () => {
           if (!cimDoc.ndaProtected || !cimDoc.ndaApprovalRequired) return null;
