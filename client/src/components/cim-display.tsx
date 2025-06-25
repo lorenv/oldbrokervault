@@ -498,6 +498,53 @@ export function CimDisplay({
     }
   };
 
+  // Handle custom section deletion
+  const handleDeleteCustomSection = async (customSectionId: number) => {
+    try {
+      const response = await apiRequest("DELETE", `/api/custom-section/${customSectionId}`);
+      if (response.ok) {
+        // Remove from local state immediately
+        setCustomSections(prev => prev.filter(section => section.id !== customSectionId));
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
+        toast({ title: "Section Deleted", description: "Custom section removed successfully." });
+      }
+    } catch (error) {
+      toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
+    }
+  };
+
+  // Handle custom section updates
+  const handleUpdateCustomSection = async (customSectionId: number, updates: any) => {
+    try {
+      const response = await apiRequest("PUT", `/api/custom-section/${customSectionId}`, updates);
+      if (response.ok) {
+        // Update local state immediately
+        setCustomSections(prev => prev.map(section => 
+          section.id === customSectionId ? { ...section, ...updates } : section
+        ));
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
+        toast({ title: "Section Updated", description: "Changes saved successfully." });
+      }
+    } catch (error) {
+      toast({ title: "Update Failed", description: "Failed to save changes.", variant: "destructive" });
+    }
+  };
+
+  // Get section icon based on title
+  const getSectionIcon = (title: string) => {
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes('financial') || lowerTitle.includes('revenue') || lowerTitle.includes('profit')) {
+      return <DollarSign className="h-6 w-6" />;
+    }
+    if (lowerTitle.includes('growth') || lowerTitle.includes('trend')) {
+      return <TrendingUpIcon className="h-6 w-6" />;
+    }
+    if (lowerTitle.includes('market') || lowerTitle.includes('analysis')) {
+      return <BarChart3 className="h-6 w-6" />;
+    }
+    return <Banknote className="h-6 w-6" />;
+  };
+
   // Handle business image deletion
   const handleDeleteImage = async (imageIndex: number) => {
     try {
@@ -964,8 +1011,93 @@ export function CimDisplay({
               }
               return null;
             })}
-            </SortableContext>
-          </DndContext>
-        </div>
-      );
+          </SortableContext>
+        </DndContext>
+
+        {/* Add Section Button */}
+        {!isSharedView && (
+          <div className="mt-6 text-center">
+            <Dialog open={addSectionDialogOpen} onOpenChange={setAddSectionDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Custom Section</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => handleAddSection('text')}
+                    disabled={isAddingSectionLoading}
+                    className="w-full"
+                  >
+                    {isAddingSectionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Type className="h-4 w-4 mr-2" />}
+                    Add Text Section
+                  </Button>
+                  <Button
+                    onClick={() => handleAddSection('image')}
+                    disabled={isAddingSectionLoading}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {isAddingSectionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                    Add Image Section
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+
+        {/* Confirmation Dialogs */}
+        {confirmDeleteSectionId && (
+          <Dialog open={!!confirmDeleteSectionId} onOpenChange={() => setConfirmDeleteSectionId(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Section</DialogTitle>
+              </DialogHeader>
+              <p>Are you sure you want to delete this section? This action cannot be undone.</p>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setConfirmDeleteSectionId(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => handleDeleteSection(confirmDeleteSectionId)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    );
+  };
+
+  // Handle adding new custom sections
+  const handleAddSection = async (sectionType: 'text' | 'image') => {
+    setIsAddingSectionLoading(true);
+    try {
+      const response = await apiRequest("POST", `/api/cim/${docId}/custom-section/${sectionType}`, {
+        title: `New ${sectionType} section`,
+        content: sectionType === 'text' ? 'Enter your content here...' : '',
+        insertAfterSection: 'end'
+      });
+
+      if (response.ok) {
+        const newSection = await response.json();
+        setCustomSections(prev => [...prev, newSection]);
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
+        toast({ title: "Section Added", description: `${sectionType} section created successfully.` });
+        setAddSectionDialogOpen(false);
+      }
+    } catch (error) {
+      toast({ title: "Creation Failed", description: "Failed to create section.", variant: "destructive" });
+    } finally {
+      setIsAddingSectionLoading(false);
     }
+  };
