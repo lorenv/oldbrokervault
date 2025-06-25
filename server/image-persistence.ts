@@ -64,8 +64,42 @@ export async function restoreMissingImages(): Promise<ImageRestoreResult> {
               result.failed++;
             }
           } else {
-            console.log(`⚠️ No backup data available for logo ${doc.logoUrl}`);
-            result.failed++;
+            // Try alternative locations for existing images
+            const alternativePaths = [
+              path.join(process.cwd(), 'public', 'logos', path.basename(doc.logoUrl)),
+              path.join(process.cwd(), 'attached_assets', path.basename(doc.logoUrl)),
+              path.join(process.cwd(), doc.logoUrl.replace(/^\//, ''))
+            ];
+            
+            let foundAlternative = false;
+            for (const altPath of alternativePaths) {
+              if (fs.existsSync(altPath)) {
+                try {
+                  // Copy from alternative location to correct user directory
+                  const fileBuffer = fs.readFileSync(altPath);
+                  const metadata = await imageManager.saveImageFromBuffer(
+                    fileBuffer,
+                    path.basename(doc.logoUrl),
+                    'image/png',
+                    doc.userId,
+                    'logos'
+                  );
+                  
+                  await storage.updateCimDocument(doc.id, { logoUrl: metadata.publicPath });
+                  console.log(`✅ Restored logo from alternative location: ${metadata.publicPath}`);
+                  result.restored++;
+                  foundAlternative = true;
+                  break;
+                } catch (error) {
+                  console.error(`❌ Failed to copy logo from ${altPath}:`, error);
+                }
+              }
+            }
+            
+            if (!foundAlternative) {
+              console.log(`⚠️ No backup data or alternative location found for logo ${doc.logoUrl}`);
+              result.failed++;
+            }
           }
         } else {
           result.skipped++;
