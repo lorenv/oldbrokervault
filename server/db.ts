@@ -14,14 +14,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool with improved resilience
+// Optimize connection pool with improved resilience and timeout handling
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 8, // Reduced to prevent overwhelming Neon free tier
+  max: 6, // Further reduced to prevent connection timeouts
   min: 1, // Reduced minimum to prevent connection exhaustion
-  idleTimeoutMillis: 20000, // Reduced to release idle connections faster
-  connectionTimeoutMillis: 10000, // Increased for better network tolerance
+  idleTimeoutMillis: 15000, // Faster idle cleanup
+  connectionTimeoutMillis: 15000, // Increased timeout for better tolerance
   allowExitOnIdle: false, // Prevent pool from closing automatically
+  statement_timeout: 30000, // 30 second query timeout
+  query_timeout: 30000, // 30 second query timeout
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners
