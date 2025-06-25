@@ -25,7 +25,7 @@ export function MarkdownGuide() {
               <div><code className="bg-gray-200 px-1 rounded">## Subheading</code> → Medium heading</div>
               <div><code className="bg-gray-200 px-1 rounded">- List item</code> → • List item</div>
               <div><code className="bg-gray-200 px-1 rounded">[Link](URL)</code> → Clickable link</div>
-              <div><code className="bg-gray-200 px-1 rounded">Line\nBreak</code> → Line break</div>
+              <div><code className="bg-gray-200 px-1 rounded">Line  <br/>Break</code> → Line break (two spaces + enter)</div>
             </div>
           </div>
           <div className="pt-2 border-t border-gray-300">
