@@ -14,16 +14,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Optimize connection pool with improved resilience and timeout handling
+// Simple, reliable connection pool configuration for Neon
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 6, // Further reduced to prevent connection timeouts
-  min: 1, // Reduced minimum to prevent connection exhaustion
-  idleTimeoutMillis: 15000, // Faster idle cleanup
-  connectionTimeoutMillis: 15000, // Increased timeout for better tolerance
-  allowExitOnIdle: false, // Prevent pool from closing automatically
-  statement_timeout: 30000, // 30 second query timeout
-  query_timeout: 30000, // 30 second query timeout
+  max: 3, // Minimal pool size to prevent timeouts
+  min: 0, // Allow pool to scale to zero when idle
+  idleTimeoutMillis: 10000, // Quick cleanup
+  connectionTimeoutMillis: 5000, // Fast timeout to prevent hanging
+  allowExitOnIdle: true, // Allow connections to close when idle
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners

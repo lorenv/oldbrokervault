@@ -365,14 +365,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("=== OPTIMIZED SHARE LINK ACCESS ===");
       console.log("Processing share request for slug:", shareSlug.substring(0, 8) + "...");
       
-      // PERFORMANCE OPTIMIZATION 6: Cache integration
-      const { shareCache, CACHE_TTL } = await import('./cache');
-      const cacheKey = shareCache.keys.shareDocument(shareSlug);
-      const cachedData = shareCache.get(cacheKey);
-      
-      if (cachedData && !token) {
-        console.log("Cache hit - returning cached data, time:", Date.now() - startTime + "ms");
-        return res.json(cachedData);
+      // PERFORMANCE OPTIMIZATION 6: Cache integration with timeout protection
+      let shareCache, CACHE_TTL, cacheKey, cachedData;
+      try {
+        const cacheModule = await import('./cache');
+        shareCache = cacheModule.shareCache;
+        CACHE_TTL = cacheModule.CACHE_TTL;
+        cacheKey = shareCache.keys.shareDocument(shareSlug);
+        cachedData = shareCache.get(cacheKey);
+        
+        if (cachedData && !token) {
+          console.log("Cache hit - returning cached data, time:", Date.now() - startTime + "ms");
+          return res.json(cachedData);
+        }
+      } catch (cacheError) {
+        console.log("Cache unavailable, proceeding without cache:", cacheError.message);
       }
       
       // Immediate validation
@@ -553,9 +560,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // PERFORMANCE OPTIMIZATION 7: Cache successful responses (except when using tokens)
-      if (!token && !cimDoc.ndaProtected) {
-        shareCache.set(cacheKey, responseData, CACHE_TTL.SHARE_DOCUMENT);
-        console.log("Response cached for future requests");
+      if (shareCache && !token && !cimDoc.ndaProtected) {
+        try {
+          shareCache.set(cacheKey, responseData, CACHE_TTL.SHARE_DOCUMENT);
+          console.log("Response cached for future requests");
+        } catch (cacheError) {
+          console.log("Cache write failed:", cacheError.message);
+        }
       }
 
       res.json(responseData);
