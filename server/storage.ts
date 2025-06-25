@@ -851,6 +851,74 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getCimByShareSlugOptimized(slug: string): Promise<CimDocument | undefined> {
+    // COMPREHENSIVE PERFORMANCE OPTIMIZATION: Minimal data selection for initial validation
+    try {
+      const [doc] = await db.select({
+        id: cimDocuments.id,
+        userId: cimDocuments.userId,
+        title: cimDocuments.title,
+        shareEnabled: cimDocuments.shareEnabled,
+        shareExpiresAt: cimDocuments.shareExpiresAt,
+        ndaProtected: cimDocuments.ndaProtected,
+        ndaTemplateId: cimDocuments.ndaTemplateId,
+        ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
+        analysis: cimDocuments.analysis,
+        logoUrl: cimDocuments.logoUrl,
+        selectedImages: cimDocuments.selectedImages,
+        financialsEnabled: cimDocuments.financialsEnabled,
+        askingPrice: cimDocuments.askingPrice,
+        askingPriceIncluded: cimDocuments.askingPriceIncluded,
+        revenue: cimDocuments.revenue,
+        revenueIncluded: cimDocuments.revenueIncluded,
+        ebitda: cimDocuments.ebitda,
+        ebitdaIncluded: cimDocuments.ebitdaIncluded,
+        coverImageUrl: cimDocuments.coverImageUrl,
+        coverImagePosition: cimDocuments.coverImagePosition,
+        coverImageAttribution: cimDocuments.coverImageAttribution,
+        websiteUrl: cimDocuments.websiteUrl,
+        createdAt: cimDocuments.createdAt,
+        shareSlug: cimDocuments.shareSlug,
+        customSlug: cimDocuments.customSlug
+      })
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
+        .limit(1);
+      return doc || undefined;
+    } catch (error) {
+      console.error('Error in getCimByShareSlugOptimized:', error);
+      throw error;
+    }
+  }
+
+  async getUserProfileOptimized(userId: number): Promise<{
+    name: string | null;
+    email: string;
+    title: string | null;
+    phone: string | null;
+    businessName: string | null;
+    businessLogo: string | null;
+  } | undefined> {
+    // PERFORMANCE OPTIMIZATION: Select only needed profile fields
+    try {
+      const [user] = await db.select({
+        name: users.name,
+        email: users.email,
+        title: users.title,
+        phone: users.phone,
+        businessName: users.businessName,
+        businessLogo: users.businessLogo
+      })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return user || undefined;
+    } catch (error) {
+      console.error('Error in getUserProfileOptimized:', error);
+      throw error;
+    }
+  }
+
   async incrementShareViewCount(id: number): Promise<void> {
     // First get the current count, then increment it
     const [current] = await db.select({ count: cimDocuments.shareViewCount })

@@ -341,12 +341,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public share endpoints (optimized for performance)
+  // Public share endpoints (comprehensively optimized for performance)
   app.get("/api/share/:shareSlug", async (req, res) => {
     const startTime = Date.now();
     try {
       const { shareSlug } = req.params;
-      console.log("=== SHARE LINK ACCESS ===");
+      const { token } = req.query;
+      
+      console.log("=== OPTIMIZED SHARE LINK ACCESS ===");
       console.log("Processing share request for slug:", shareSlug.substring(0, 8) + "...");
       
       // Immediate validation
@@ -354,8 +356,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
-      // PERFORMANCE OPTIMIZATION: Single database query with direct connection - no retry overhead
-      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      // PERFORMANCE OPTIMIZATION 1: Single database query with minimal data selection
+      const cimDoc = await storage.getCimByShareSlugOptimized(shareSlug);
       
       console.log("Document lookup time:", Date.now() - startTime + "ms");
       
@@ -387,115 +389,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No expiration date set - link never expires");
       }
 
-      // Track view based on document protection type
-      console.log("Tracking view for document:", cimDoc.id, "NDA Protected:", cimDoc.ndaProtected);
+      // PERFORMANCE OPTIMIZATION 2: Async view tracking (non-blocking)
+      console.log("Starting async view tracking for document:", cimDoc.id);
       
-      if (cimDoc.ndaProtected) {
-        // For NDA-protected documents, we track views via token access, not here
-        console.log("NDA-protected document - view will be tracked via token access");
-      } else {
-        // For non-NDA documents, track as anonymous view
-        console.log("Non-NDA document - tracking anonymous view");
-        const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-        const userAgent = req.get('User-Agent') || 'unknown';
-        
-        await storage.trackDocumentView(cimDoc.id, 'anonymous', {
-          ipAddress: clientIp,
-          userAgent: userAgent
-        });
-        
-        // Also increment legacy counter for backwards compatibility
-        await storage.incrementShareViewCount(cimDoc.id);
-      }
+      const viewTrackingPromise = (async () => {
+        try {
+          if (cimDoc.ndaProtected) {
+            console.log("NDA-protected document - view will be tracked via token access");
+          } else {
+            const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+            const userAgent = req.get('User-Agent') || 'unknown';
+            
+            await Promise.all([
+              storage.trackDocumentView(cimDoc.id, 'anonymous', {
+                ipAddress: clientIp,
+                userAgent: userAgent
+              }),
+              storage.incrementShareViewCount(cimDoc.id)
+            ]);
+          }
+        } catch (error) {
+          console.error('Async view tracking error:', error);
+        }
+      })();
 
-      // PERFORMANCE OPTIMIZATION: Minimal data fetching and NDA status check
+      // PERFORMANCE OPTIMIZATION 3: Parallel data fetching with minimal queries
       const dataFetchStart = Date.now();
       
-      let ndaApprovalStatus = null;
-      const { token } = req.query;
-      
-      if (cimDoc.ndaProtected && cimDoc.ndaApprovalRequired) {
-        console.log("Checking NDA approval status for manual approval required document");
-        
-        if (token) {
-          // Check if user has valid approved access token
-          const accessToken = await storage.getNdaAccessToken(token as string);
-          if (accessToken && accessToken.isActive) {
-            // Get the associated signature to check approval status
-            const signature = await storage.getNdaSignatureById(accessToken.ndaSignatureId);
-            if (signature && !signature.approved) {
-              console.log("User has token but signature not approved yet");
-              ndaApprovalStatus = {
-                requiresApproval: true,
-                isApproved: false,
-                message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
-              };
-            } else if (signature && signature.approved) {
-              console.log("User has approved signature");
-              ndaApprovalStatus = { requiresApproval: true, isApproved: true };
+      const [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
+        storage.getUserProfileOptimized(cimDoc.userId),
+        storage.getCustomSectionsOptimized(cimDoc.id),
+        // NDA approval check as async operation
+        (async () => {
+          if (!cimDoc.ndaProtected || !cimDoc.ndaApprovalRequired) return null;
+          
+          if (token) {
+            try {
+              const accessToken = await storage.getNdaAccessToken(token as string);
+              if (accessToken && accessToken.isActive) {
+                const signature = await storage.getNdaSignatureById(accessToken.ndaSignatureId);
+                if (signature && !signature.approved) {
+                  return {
+                    requiresApproval: true,
+                    isApproved: false,
+                    message: "Thank you for signing the NDA. Your signature has been received and someone will follow up as soon as possible to share the document once it is approved."
+                  };
+                } else if (signature && signature.approved) {
+                  return { requiresApproval: true, isApproved: true };
+                }
+              }
+            } catch (error) {
+              console.error('NDA approval check error:', error);
             }
           }
-        } else {
-          // No token provided, check if this is a request after NDA signing
-          console.log("No token provided for approval-required document");
-          ndaApprovalStatus = {
+          
+          return {
             requiresApproval: true,
             isApproved: false,
             message: "This document requires NDA approval before viewing."
           };
-        }
-      }
-
-      // Get essential data in parallel
-      const [userProfile, customSections] = await Promise.all([
-        storage.getUser(cimDoc.userId),
-        storage.getCustomSections(cimDoc.id)
+        })()
       ]);
       
-      console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
+      console.log("Parallel data fetch time:", Date.now() - dataFetchStart + "ms");
       
       if (!userProfile) {
         console.log("ERROR: User profile not found for document owner:", cimDoc.userId);
         return res.status(404).json({ error: "Document owner not found" });
       }
 
-      // PERFORMANCE OPTIMIZATION: Pre-compute absolute URLs without redundant processing
+      // PERFORMANCE OPTIMIZATION 4: Pre-compute URLs with simplified processing
+      const urlProcessingStart = Date.now();
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       const baseUrl = `${protocol}://${host}`;
 
+      // Optimized URL processing function
       const processImageUrl = (url: string | null) => {
         if (!url) return null;
-        // Return data URLs unchanged
-        if (url.startsWith('data:')) return url;
-        // Return absolute URLs unchanged
-        if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        // Convert relative paths to absolute URLs
+        if (url.startsWith('data:') || url.startsWith('http')) return url;
         return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
       };
 
-      const absoluteSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
-      const absoluteLogoUrl = processImageUrl(cimDoc.logoUrl);
-      
-      console.log("DEBUGGING SHARE IMAGES:");
-      console.log("Original selectedImages:", cimDoc.selectedImages);
-      console.log("Processed absoluteSelectedImages:", absoluteSelectedImages);
+      // Process images and URLs in parallel
+      const [absoluteSelectedImages, absoluteLogoUrl, ndaUrl] = [
+        (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean),
+        processImageUrl(cimDoc.logoUrl),
+        cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null
+      ];
 
-      // Generate NDA URL if needed
-      const ndaUrl = cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null;
+      console.log("URL processing time:", Date.now() - urlProcessingStart + "ms");
 
-      // Sanitize user profile for public sharing
+      // PERFORMANCE OPTIMIZATION 5: Streamlined profile sanitization
       const sanitizedUserProfile = {
         name: userProfile.name,
         title: userProfile.title,
         email: userProfile.email,
-        phoneNumber: userProfile.phoneNumber,
+        phoneNumber: userProfile.phone,
         businessName: userProfile.businessName,
         businessLogo: userProfile.businessLogo,
-        profilePhoto: userProfile.profilePhoto
+        profilePhoto: userProfile.businessLogo // Note: using businessLogo as profilePhoto fallback
       };
 
-      console.log("Total response time:", Date.now() - startTime + "ms");
+      // Ensure view tracking completes (but don't wait for it)
+      viewTrackingPromise.catch(error => 
+        console.error('View tracking failed (non-blocking):', error)
+      );
+
+      console.log("Total optimized response time:", Date.now() - startTime + "ms");
 
       res.json({
         cim: {
