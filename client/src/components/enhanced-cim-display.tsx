@@ -37,26 +37,18 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 // Simple inline editor for flexible CIM sections
-function FlexibleSectionEditor({ 
-  value, 
-  onSave, 
-  placeholder = "Click to edit...", 
-  multiline = false 
-}: { 
-  value: string; 
-  onSave: (value: string) => void; 
-  placeholder?: string; 
-  multiline?: boolean; 
-}) {
+interface FlexibleSectionEditorProps {
+  value: string;
+  onSave: (value: string) => Promise<void>;
+  placeholder?: string;
+  multiline?: boolean;
+}
+
+function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", multiline = false }: FlexibleSectionEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
-
-  useEffect(() => {
-    setEditValue(value);
-  }, [value]);
 
   const handleSave = async () => {
     await onSave(editValue);
@@ -72,17 +64,13 @@ function FlexibleSectionEditor({
     return (
       <div className="space-y-2">
         {multiline ? (
-          <ResizablePanelGroup direction="vertical" className="min-h-[100px] max-h-[500px] w-full border rounded-md">
-            <ResizablePanel defaultSize={100} minSize={30}>
-              <textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="w-full h-full p-2 border-0 resize-none focus:ring-0 focus:outline-none rounded-none"
-                placeholder={placeholder}
-                autoFocus
-              />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+          <textarea
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            className="w-full min-h-[100px] p-2 border rounded resize-none"
+            placeholder={placeholder}
+            autoFocus
+          />
         ) : (
           <input
             type="text"
@@ -209,7 +197,7 @@ export function EnhancedCimDisplay({
         const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
           analysis: updatedAnalysis
         });
-
+        
         if (response.ok) {
           queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
           queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -232,7 +220,7 @@ export function EnhancedCimDisplay({
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
         analysis: updatedAnalysis
       });
-
+      
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -303,7 +291,7 @@ export function EnhancedCimDisplay({
             </CardContent>
           </Card>
         )}
-
+        
         {/* Business Images */}
         {selectedImages && selectedImages.length > 0 && (
           <div className="mb-6">
@@ -320,7 +308,7 @@ export function EnhancedCimDisplay({
             </div>
           </div>
         )}
-
+        
         {/* Draggable Sections */}
         <DndContext
           sensors={sensors}
@@ -360,13 +348,13 @@ export function EnhancedCimDisplay({
                                   return sec;
                                 });
                                 setSections(updatedSections);
-
+                                
                                 const updatedAnalysis = { ...analysis, sections: updatedSections };
-
+                                
                                 const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                                   analysis: updatedAnalysis
                                 });
-
+                                
                                 if (response.ok) {
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -398,13 +386,13 @@ export function EnhancedCimDisplay({
                                   return sec;
                                 });
                                 setSections(updatedSections);
-
+                                
                                 const updatedAnalysis = { ...analysis, sections: updatedSections };
-
+                                
                                 const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                                   analysis: updatedAnalysis
                                 });
-
+                                
                                 if (response.ok) {
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                                   queryClient.invalidateQueries({ queryKey: ['/api/cim'] });

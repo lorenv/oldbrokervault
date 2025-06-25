@@ -4,7 +4,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Edit, Save, X, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface InlineEditorProps {
   value: string | string[];
@@ -98,17 +97,13 @@ export function InlineEditor({
         <CardContent className="p-4">
           <div className="space-y-3">
             {multiline ? (
-              <ResizablePanelGroup direction="vertical" className="min-h-[100px] max-h-[500px] w-full border rounded-md">
-                <ResizablePanel defaultSize={100} minSize={30}>
-                  <Textarea
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    placeholder={placeholder || "Enter text..."}
-                    className="h-full resize-none border-0 focus:ring-0 rounded-none"
-                    autoFocus
-                  />
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              <Textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder={placeholder || "Enter text..."}
+                className="min-h-[100px] resize-none"
+                autoFocus
+              />
             ) : (
               <Input
                 value={editValue}
