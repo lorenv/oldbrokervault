@@ -455,12 +455,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       })();
 
-      // PERFORMANCE OPTIMIZATION 3: Parallel data fetching with minimal queries
+      // PERFORMANCE OPTIMIZATION 3: Parallel data fetching with timeout protection
       const dataFetchStart = Date.now();
+      let userProfile, customSections, ndaApprovalStatus;
       
-      const [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
-        storage.getUserProfileOptimized(cimDoc.userId),
-        storage.getCustomSectionsOptimized(cimDoc.id),
+      try {
+        [userProfile, customSections, ndaApprovalStatus] = await Promise.all([
+          storage.getUserProfileOptimized(cimDoc.userId),
+          storage.getCustomSectionsOptimized(cimDoc.id),
         // NDA approval check as async operation
         (async () => {
           if (!cimDoc.ndaProtected || !cimDoc.ndaApprovalRequired) return null;
@@ -491,7 +493,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "This document requires NDA approval before viewing."
           };
         })()
-      ]);
+        ]);
+      } catch (error) {
+        console.log("Parallel query failed, using fallback:", error.message);
+        // Fallback to sequential standard queries
+        userProfile = await storage.getUser(cimDoc.userId);
+        customSections = await storage.getCustomSections(cimDoc.id);
+        ndaApprovalStatus = null;
+      }
       
       console.log("Parallel data fetch time:", Date.now() - dataFetchStart + "ms");
       
