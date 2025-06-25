@@ -1404,15 +1404,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create specialized upload configuration for large financial files
+  const largeFileUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 200 * 1024 * 1024, // 200MB limit for financial files
+      fieldSize: 200 * 1024 * 1024, // 200MB limit for field data
+      fields: 100, // Increase field count limit
+      files: 50 // Increase file count limit
+    }
+  });
+
   // File upload endpoint for large text and financial files
-  app.post("/api/cim/upload", upload.any(), async (req, res) => {
+  app.post("/api/cim/upload", (req, res, next) => {
+    largeFileUpload.any()(req, res, (err) => {
+      if (err) {
+        console.error("Multer upload error:", err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ 
+            error: `File too large. Maximum size allowed is 200MB. Please reduce your file size and try again.`,
+            details: `File size limit exceeded: ${(err.limit / (1024 * 1024)).toFixed(0)}MB`
+          });
+        } else if (err.code === 'LIMIT_FIELD_SIZE') {
+          return res.status(413).json({ 
+            error: "Form data too large. Please reduce the size of your submission.",
+            details: "Field size limit exceeded"
+          });
+        } else {
+          return res.status(400).json({ 
+            error: "File upload failed", 
+            details: err.message 
+          });
+        }
+      }
+      next();
+    });
+  }, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // Add debugging for file sizes
+      const uploadedFiles = req.files as Express.Multer.File[] || [];
+      if (uploadedFiles.length > 0) {
+        console.log("=== FILE UPLOAD DEBUG ===");
+        uploadedFiles.forEach((file, index) => {
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          console.log(`File ${index + 1}: ${file.originalname} - ${sizeMB}MB (${file.size} bytes)`);
+        });
+        
+        // Check for files over 50MB and warn
+        const largeFiles = uploadedFiles.filter(file => file.size > 50 * 1024 * 1024);
+        if (largeFiles.length > 0) {
+          console.log(`WARNING: ${largeFiles.length} file(s) over 50MB detected`);
+          largeFiles.forEach(file => {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            console.log(`Large file: ${file.originalname} - ${sizeMB}MB`);
+          });
+        }
+      }
       // For upload endpoint, files are optional (text-only generation is allowed)
       // Check if we have either uploaded files or just text content
 
-      const files = req.files as Express.Multer.File[] || [];
+      const files = uploadedFiles;
       const transcriptFile = files.find(file => file.fieldname === 'transcript');
       const transcript = transcriptFile ? transcriptFile.buffer.toString('utf-8') : req.body.transcript;
       
