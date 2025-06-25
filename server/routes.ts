@@ -532,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber: userProfile.phone,
         businessName: userProfile.businessName,
         businessLogo: userProfile.businessLogo,
-        profilePhoto: userProfile.businessLogo // Note: using businessLogo as profilePhoto fallback
+        profilePhoto: userProfile.profilePhoto || userProfile.profile_photo // Use actual profile photo, not business logo
       };
 
       // Ensure view tracking completes (but don't wait for it)
