@@ -46,6 +46,75 @@ async function getOrCreateCustomer(userId: number, email: string) {
   return customer.id;
 }
 
+export async function createSubscriptionSessionDirect(planId: keyof typeof subscriptionPlans, priceId: string, email: string, userId?: number, requestHost?: string) {
+  console.log("=== DIRECT STRIPE SESSION CREATION START ===");
+  console.log("Creating subscription session - plan:", planId, "userId:", userId, "email:", email);
+  console.log("Price ID:", priceId);
+  console.log("Request host:", requestHost);
+
+  // Use the actual request host if provided, otherwise fallback to production domain
+  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  console.log("Using base URL for redirects:", baseUrl);
+
+  try {
+    const sessionConfig: any = {
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing?canceled=true`,
+      customer_email: email,
+      subscription_data: {
+        metadata: {
+          email: email,
+        },
+      },
+    };
+
+    // If user is authenticated, add user ID to metadata
+    if (userId) {
+      sessionConfig.client_reference_id = userId.toString();
+      sessionConfig.subscription_data.metadata.userId = userId.toString();
+      
+      // Try to get existing customer if user is authenticated
+      const user = await storage.getUser(userId);
+      if (user?.stripeCustomerId) {
+        sessionConfig.customer = user.stripeCustomerId;
+        delete sessionConfig.customer_email; // Remove email if we have customer ID
+      }
+    }
+
+    console.log("Creating Stripe checkout session with config:", sessionConfig);
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    console.log("Successfully created subscription session:", session.id);
+    console.log("Session URL:", session.url);
+    return session;
+  } catch (error) {
+    console.error("=== STRIPE CHECKOUT SESSION ERROR ===");
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error code:", (error as any)?.code);
+    console.error("Error type from Stripe:", (error as any)?.type);
+    console.error("Error param:", (error as any)?.param);
+    console.error("Full error object:", error);
+    console.error("Configuration used:", {
+      mode: 'subscription',
+      priceId,
+      email,
+      userId,
+      baseUrl
+    });
+    throw error;
+  }
+}
+
 export async function createSubscriptionSession(planId: keyof typeof subscriptionPlans, userId: number, requestHost?: string, freshPriceId?: string) {
   console.log("=== ENVIRONMENT PRICE IDS ===");
   console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
