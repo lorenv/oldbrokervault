@@ -18,7 +18,6 @@ export function MarkdownGuide() {
               <div><code className="bg-gray-200 px-1 rounded">*Italic*</code> → <em>Italic</em></div>
               <div><code className="bg-gray-200 px-1 rounded">***Bold Italic***</code> → <strong><em>Bold Italic</em></strong></div>
               <div><code className="bg-gray-200 px-1 rounded">~~Strike~~</code> → <s>Strike</s></div>
-              <div><code className="bg-gray-200 px-1 rounded">`Code`</code> → <code className="bg-gray-200 px-1 rounded">Code</code></div>
             </div>
             <div className="space-y-1">
               <div><code className="bg-gray-200 px-1 rounded"># Heading</code> → Large heading</div>
