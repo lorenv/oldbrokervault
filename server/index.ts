@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurity, securityHealthCheck } from "./security";
+import { initializeImagePersistence } from "./image-persistence";
 
 const app = express();
 
@@ -153,12 +154,21 @@ app.get('/api/security/health', securityHealthCheck);
     const startServer = (portToTry: number, retries = 3): Promise<void> => {
       return new Promise((resolve, reject) => {
         const attemptStart = () => {
-          server.listen(portToTry, "0.0.0.0", () => {
+          server.listen(portToTry, "0.0.0.0", async () => {
             log(`serving on port ${portToTry}`);
             console.log("=== SERVER STARTUP ===");
             console.log("Environment:", process.env.NODE_ENV);
             console.log("Database URL set:", !!process.env.DATABASE_URL);
             console.log("Port:", portToTry);
+            
+            // Initialize image persistence system to prevent deployment image loss
+            try {
+              await initializeImagePersistence();
+            } catch (error) {
+              console.error("Warning: Image persistence initialization failed:", error);
+              // Don't block server startup if image restoration fails
+            }
+            
             resolve();
           });
         };
