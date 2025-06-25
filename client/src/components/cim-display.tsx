@@ -833,7 +833,7 @@ export function CimDisplay({
                         )}
                       </div>
                     )}
-                    {!isSharedView && !brokenImages.has(index) && (
+                    {!isSharedView && (
                       <Button
                         variant="ghost"
                         size="sm"
