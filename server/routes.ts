@@ -314,9 +314,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // PERFORMANCE OPTIMIZATION: Cache integration for NDA checks
-      const { shareCache, CACHE_TTL } = await import('./cache');
-      const cacheKey = shareCache.keys.ndaStatus(shareSlug);
-      const cachedResult = shareCache.get(cacheKey);
+      let cachedResult = null;
+      try {
+        const { shareCache, CACHE_TTL } = await import('./cache');
+        const cacheKey = shareCache.keys.ndaStatus(shareSlug);
+        cachedResult = shareCache.get(cacheKey);
+      } catch (cacheError) {
+        console.log("Cache unavailable, proceeding without cache");
+      }
       
       if (cachedResult) {
         console.log("NDA check cache hit, time:", Date.now() - startTime + "ms");
@@ -344,7 +349,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Cache the result for faster subsequent requests
-      shareCache.set(cacheKey, result, CACHE_TTL.NDA_CHECK);
+      try {
+        const { shareCache, CACHE_TTL } = await import('./cache');
+        const cacheKey = shareCache.keys.ndaStatus(shareSlug);
+        shareCache.set(cacheKey, result, CACHE_TTL.NDA_CHECK);
+      } catch (cacheError) {
+        console.log("Cache unavailable, skipping cache set");
+      }
 
       console.log("NDA check completed in:", Date.now() - startTime + "ms");
       res.json(result);
