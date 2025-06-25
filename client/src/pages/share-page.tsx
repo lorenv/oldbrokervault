@@ -317,7 +317,17 @@ export function SharePage() {
             className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: `url(${cimData.coverImageUrl})`,
-              backgroundPosition: cimData.coverImagePosition || 'center',
+              backgroundPosition: (() => {
+                if (cimData.coverImagePosition) {
+                  try {
+                    const position = JSON.parse(cimData.coverImagePosition);
+                    return `${position.x}% ${position.y}%`;
+                  } catch {
+                    return 'center';
+                  }
+                }
+                return 'center';
+              })(),
               transform: `translate3d(0, ${scrollY * 0.5}px, 0) scale(1.1)`,
               willChange: 'transform'
             }}

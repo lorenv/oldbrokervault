@@ -90,7 +90,7 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
           <textarea
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="w-full min-h-[100px] p-2 border rounded resize-none"
+            className="w-full min-h-[100px] max-h-[400px] p-2 border rounded resize-y"
             placeholder={placeholder}
             autoFocus
           />
