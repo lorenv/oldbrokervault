@@ -20,6 +20,36 @@ interface ImageRestoreResult {
 }
 
 /**
+ * Database query with timeout and retry logic
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  retries: number = 3,
+  timeout: number = 10000
+): Promise<T> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`Operation timeout after ${timeout}ms`)), timeout);
+      });
+      
+      return await Promise.race([operation(), timeoutPromise]);
+    } catch (error) {
+      console.log(`Attempt ${attempt}/${retries} failed:`, (error as Error).message);
+      
+      if (attempt === retries) {
+        throw error;
+      }
+      
+      // Exponential backoff: wait 2^attempt seconds
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+    }
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+
+/**
  * Check if image files exist and restore from database if missing
  */
 export async function restoreMissingImages(): Promise<ImageRestoreResult> {
@@ -33,8 +63,8 @@ export async function restoreMissingImages(): Promise<ImageRestoreResult> {
   };
 
   try {
-    // Get all CIM documents with images
-    const documents = await storage.getAllCimDocuments();
+    // Get all CIM documents with images (with timeout and retry)
+    const documents = await withRetry(() => storage.getAllCimDocuments(), 2, 8000);
     
     for (const doc of documents) {
       // Check logo
@@ -56,7 +86,7 @@ export async function restoreMissingImages(): Promise<ImageRestoreResult> {
                 `restored-logo-${doc.id}`
               );
               
-              await storage.updateCimDocument(doc.id, { logoUrl: metadata.publicPath });
+              await withRetry(() => storage.updateCimDocument(doc.id, { logoUrl: metadata.publicPath }), 2, 5000);
               console.log(`✅ Restored logo: ${metadata.publicPath}`);
               result.restored++;
             } catch (error) {
@@ -275,11 +305,35 @@ export async function initializeImagePersistence(): Promise<void> {
       console.log('📁 Created user-images directory');
     }
 
-    // Restore any missing images from database backups
-    await restoreMissingImages();
-    
-    // Create backups for existing images that don't have them
-    await createImageBackups();
+    // Run restoration and backup in parallel with shorter timeouts for deployment
+    try {
+      await Promise.race([
+        Promise.all([
+          restoreMissingImages().catch(err => {
+            console.log('⚠️ Image restoration completed with errors:', err.message);
+            return { totalChecked: 0, restored: 0, failed: 0, skipped: 0 };
+          }),
+          createImageBackups().catch(err => {
+            console.log('⚠️ Image backup completed with errors:', err.message);
+          })
+        ]),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Image persistence timeout')), 20000)
+        )
+      ]);
+    } catch (timeoutError) {
+      console.log('⚠️ Image persistence operations timed out - continuing in background');
+      // Continue operations in background without blocking server
+      setTimeout(async () => {
+        try {
+          await restoreMissingImages();
+          await createImageBackups();
+          console.log('✅ Background image persistence completed');
+        } catch (bgError) {
+          console.log('Background image persistence failed:', (bgError as Error).message);
+        }
+      }, 60000); // Retry in 1 minute
+    }
     
     console.log('✅ Image persistence system initialized successfully');
   } catch (error) {

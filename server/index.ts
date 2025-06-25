@@ -3,10 +3,11 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurity, securityHealthCheck } from "./security";
 import { initializeImagePersistence } from "./image-persistence";
+import { checkDatabaseHealth } from "./db-health";
 
 const app = express();
 
-// Add health check endpoint for deployment monitoring
+// Add immediate health check endpoint for deployment monitoring (no dependencies)
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
@@ -17,13 +18,24 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Add API health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    service: 'CIM Share API'
-  });
+// Add API health check endpoint with database status
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbHealthy = await checkDatabaseHealth();
+    res.status(200).json({ 
+      status: dbHealthy ? 'ok' : 'degraded', 
+      timestamp: new Date().toISOString(),
+      service: 'CIM Share API',
+      database: dbHealthy ? 'connected' : 'unavailable'
+    });
+  } catch (error) {
+    res.status(200).json({ 
+      status: 'degraded', 
+      timestamp: new Date().toISOString(),
+      service: 'CIM Share API',
+      database: 'error'
+    });
+  }
 });
 
 // Setup security after health checks
@@ -161,13 +173,24 @@ app.get('/api/security/health', securityHealthCheck);
             console.log("Database URL set:", !!process.env.DATABASE_URL);
             console.log("Port:", portToTry);
             
-            // Initialize image persistence system to prevent deployment image loss
-            try {
-              await initializeImagePersistence();
-            } catch (error) {
-              console.error("Warning: Image persistence initialization failed:", error);
-              // Don't block server startup if image restoration fails
-            }
+            // Start image persistence system in background (non-blocking)
+            setTimeout(async () => {
+              try {
+                console.log('🔄 Starting background image persistence system...');
+                await initializeImagePersistence();
+              } catch (error) {
+                console.error("Warning: Image persistence initialization failed:", error);
+                // Retry after 30 seconds on failure
+                setTimeout(async () => {
+                  try {
+                    console.log('🔄 Retrying image persistence system...');
+                    await initializeImagePersistence();
+                  } catch (retryError) {
+                    console.error("Image persistence retry failed:", retryError);
+                  }
+                }, 30000);
+              }
+            }, 1000); // Start after 1 second delay
             
             resolve();
           });
