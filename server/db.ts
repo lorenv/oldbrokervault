@@ -20,10 +20,10 @@ export const pool = new Pool({
   max: 3, // Reduced for serverless efficiency
   min: 0, // No minimum connections for serverless
   idleTimeoutMillis: 20000, // Faster cleanup for serverless
-  connectionTimeoutMillis: 8000, // Faster connection timeout
+  connectionTimeoutMillis: 3000, // Very fast connection timeout for deployment
   allowExitOnIdle: true, // Allow pool to close when idle
-  statement_timeout: 15000, // Reduced query timeout for faster failure detection
-  query_timeout: 15000, // Reduced query timeout for faster failure detection
+  statement_timeout: 3000, // Very fast query timeout for deployment
+  query_timeout: 3000, // Very fast query timeout for deployment
 });
 
 // Set max listeners to prevent warnings - increased for session store and other listeners

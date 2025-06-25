@@ -297,6 +297,12 @@ export async function createImageBackups(): Promise<void> {
 export async function initializeImagePersistence(): Promise<void> {
   console.log('🚀 Initializing image persistence system...');
   
+  // Skip image persistence during deployment to ensure fast health check response
+  if (process.env.NODE_ENV === 'production' && process.env.SKIP_IMAGE_PERSISTENCE === 'true') {
+    console.log('⚠️ Skipping image persistence during deployment for fast startup');
+    return;
+  }
+  
   try {
     // Ensure user images directory exists
     const userImagesDir = path.join(process.cwd(), 'public', 'user-images');
@@ -318,7 +324,7 @@ export async function initializeImagePersistence(): Promise<void> {
           })
         ]),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Image persistence timeout')), 20000)
+          setTimeout(() => reject(new Error('Image persistence timeout')), 5000)
         )
       ]);
     } catch (timeoutError) {
