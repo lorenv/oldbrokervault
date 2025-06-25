@@ -387,8 +387,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid share slug" });
       }
       
-      // PERFORMANCE OPTIMIZATION 1: Single database query with minimal data selection
-      const cimDoc = await storage.getCimByShareSlugOptimized(shareSlug);
+      // PERFORMANCE OPTIMIZATION 1: Use reliable database query with timeout protection
+      let cimDoc;
+      try {
+        cimDoc = await Promise.race([
+          storage.getCimByShareSlugOptimized(shareSlug),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout')), 6000)
+          )
+        ]);
+      } catch (error) {
+        console.log("Optimized query failed, using standard method:", error.message);
+        cimDoc = await storage.getCimByShareSlug(shareSlug);
+      }
       
       console.log("Document lookup time:", Date.now() - startTime + "ms");
       

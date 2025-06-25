@@ -36,7 +36,7 @@ function initializeSessionStore() {
     });
     
     // Set max listeners to handle multiple concurrent sessions
-    sessionStoreInstance.setMaxListeners(200);
+    sessionStoreInstance.setMaxListeners(500);
     
     // Add error handling for the session store instance
     sessionStoreInstance.on?.('error', (err: any) => {
@@ -852,45 +852,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCimByShareSlugOptimized(slug: string): Promise<CimDocument | undefined> {
-    // COMPREHENSIVE PERFORMANCE OPTIMIZATION: Minimal data selection with connection resilience
+    // PERFORMANCE OPTIMIZATION: Direct query without retry wrapper to prevent timeout loops
     try {
-      const [doc] = await withRetry(async () => {
-        return await db.select({
-          id: cimDocuments.id,
-          userId: cimDocuments.userId,
-          title: cimDocuments.title,
-          shareEnabled: cimDocuments.shareEnabled,
-          shareExpiresAt: cimDocuments.shareExpiresAt,
-          ndaProtected: cimDocuments.ndaProtected,
-          ndaTemplateId: cimDocuments.ndaTemplateId,
-          ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
-          analysis: cimDocuments.analysis,
-          logoUrl: cimDocuments.logoUrl,
-          selectedImages: cimDocuments.selectedImages,
-          financialsEnabled: cimDocuments.financialsEnabled,
-          askingPrice: cimDocuments.askingPrice,
-          askingPriceIncluded: cimDocuments.askingPriceIncluded,
-          revenue: cimDocuments.revenue,
-          revenueIncluded: cimDocuments.revenueIncluded,
-          ebitda: cimDocuments.ebitda,
-          ebitdaIncluded: cimDocuments.ebitdaIncluded,
-          coverImageUrl: cimDocuments.coverImageUrl,
-          coverImagePosition: cimDocuments.coverImagePosition,
-          coverImageAttribution: cimDocuments.coverImageAttribution,
-          websiteUrl: cimDocuments.websiteUrl,
-          createdAt: cimDocuments.createdAt,
-          shareSlug: cimDocuments.shareSlug,
-          customSlug: cimDocuments.customSlug
-        })
-          .from(cimDocuments)
-          .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
-          .limit(1);
-      });
+      const [doc] = await db.select({
+        id: cimDocuments.id,
+        userId: cimDocuments.userId,
+        title: cimDocuments.title,
+        shareEnabled: cimDocuments.shareEnabled,
+        shareExpiresAt: cimDocuments.shareExpiresAt,
+        ndaProtected: cimDocuments.ndaProtected,
+        ndaTemplateId: cimDocuments.ndaTemplateId,
+        ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
+        analysis: cimDocuments.analysis,
+        logoUrl: cimDocuments.logoUrl,
+        selectedImages: cimDocuments.selectedImages,
+        financialsEnabled: cimDocuments.financialsEnabled,
+        askingPrice: cimDocuments.askingPrice,
+        askingPriceIncluded: cimDocuments.askingPriceIncluded,
+        revenue: cimDocuments.revenue,
+        revenueIncluded: cimDocuments.revenueIncluded,
+        ebitda: cimDocuments.ebitda,
+        ebitdaIncluded: cimDocuments.ebitdaIncluded,
+        coverImageUrl: cimDocuments.coverImageUrl,
+        coverImagePosition: cimDocuments.coverImagePosition,
+        coverImageAttribution: cimDocuments.coverImageAttribution,
+        websiteUrl: cimDocuments.websiteUrl,
+        createdAt: cimDocuments.createdAt,
+        shareSlug: cimDocuments.shareSlug,
+        customSlug: cimDocuments.customSlug
+      })
+        .from(cimDocuments)
+        .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
+        .limit(1);
       return doc || undefined;
     } catch (error) {
-      console.error('Error in getCimByShareSlugOptimized, falling back to standard method:', error);
-      // Fallback to regular method if optimized fails
-      return this.getCimByShareSlug(slug);
+      console.error('Error in getCimByShareSlugOptimized:', error);
+      throw error; // Let caller handle fallback
     }
   }
 
@@ -902,35 +899,23 @@ export class DatabaseStorage implements IStorage {
     businessName: string | null;
     businessLogo: string | null;
   } | undefined> {
-    // PERFORMANCE OPTIMIZATION: Select only needed profile fields with connection resilience
+    // PERFORMANCE OPTIMIZATION: Direct query without retry wrapper
     try {
-      const [user] = await withRetry(async () => {
-        return await db.select({
-          name: users.name,
-          email: users.email,
-          title: users.title,
-          phone: users.phone,
-          businessName: users.businessName,
-          businessLogo: users.businessLogo
-        })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
-      });
+      const [user] = await db.select({
+        name: users.name,
+        email: users.email,
+        title: users.title,
+        phone: users.phone,
+        businessName: users.businessName,
+        businessLogo: users.businessLogo
+      })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
       return user || undefined;
     } catch (error) {
-      console.error('Error in getUserProfileOptimized, falling back to standard method:', error);
-      // Fallback to regular getUser method
-      const fullUser = await this.getUser(userId);
-      if (!fullUser) return undefined;
-      return {
-        name: fullUser.name,
-        email: fullUser.email,
-        title: fullUser.title,
-        phone: fullUser.phone,
-        businessName: fullUser.businessName,
-        businessLogo: fullUser.businessLogo
-      };
+      console.error('Error in getUserProfileOptimized:', error);
+      throw error; // Let caller handle fallback
     }
   }
 
