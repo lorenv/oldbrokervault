@@ -11,10 +11,36 @@ import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 
 export default function PricingPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Try to get user data with fallback for database issues
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const response = await fetch('/api/user', { 
+          credentials: 'include',
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.log('User data unavailable, showing pricing without user context');
+        // Don't show error to user, just continue without user data
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   const handleSubscriptionAction = async (planId?: string) => {
     try {
@@ -58,7 +84,7 @@ export default function PricingPage() {
       features: [
         "1 CIM document (trial only)",
       ],
-      current: user?.subscriptionStatus === "free",
+      current: user?.subscriptionStatus === "free" || false,
     },
     {
       name: "Standard",
@@ -74,7 +100,7 @@ export default function PricingPage() {
         "E-signature templates",
         "Priority support",
       ],
-      current: user?.subscriptionStatus === "standard",
+      current: user?.subscriptionStatus === "standard" || false,
     },
     {
       name: "Enterprise",
@@ -89,10 +115,21 @@ export default function PricingPage() {
         "Dedicated support",
         "Custom integrations",
       ],
-      current: user?.subscriptionStatus === "enterprise",
+      current: user?.subscriptionStatus === "enterprise" || false,
       isEnterprise: true
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
+          <p className="text-xl text-muted-foreground">Loading pricing information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
