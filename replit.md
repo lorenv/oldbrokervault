@@ -25,10 +25,11 @@ The application follows a modern client-server architecture with clear separatio
 - **Session Store**: PostgreSQL-backed session storage
 
 ### Deployment Strategy
-- **Platform**: Replit with CloudRun deployment target
+- **Platform**: Replit with native deployment (switched from CloudRun to preserve file storage)
 - **Environment**: Node.js 20 with PostgreSQL 16
 - **Build Process**: Vite for frontend, ESBuild for backend bundling
 - **Static Assets**: Served via Express with proper caching headers
+- **File Storage**: Persistent filesystem via Replit native deployment (images preserved between deployments)
 
 ## Key Components
 
@@ -167,6 +168,8 @@ The application follows a modern client-server architecture with clear separatio
 
 ## Changelog
 
+- June 25, 2025: **SWITCHED TO REPLIT NATIVE DEPLOYMENT TO SOLVE IMAGE LOSS PERMANENTLY** - Changed deployment target from CloudRun to Replit's native system to permanently solve image deletion during deployments; CloudRun's ephemeral containers were wiping /public/user-images/ directory on every deployment; Replit's native deployment provides persistent filesystem storage that preserves all user images between deployments; this eliminates the need for complex backup/restore systems and provides scalable storage for hundreds of thousands of images; future migration to S3 planned only when reaching enterprise scale limits
+- June 25, 2025: **FIXED BROKEN IMAGE DELETE BUTTON ACCESSIBILITY** - Resolved issue where delete buttons were hidden behind broken image placeholders; users can now delete any image whether it loads properly or shows "Image not found"; delete buttons always visible on hover for all image containers regardless of loading state
 - June 25, 2025: **DEPLOYED COMPREHENSIVE IMAGE PERSISTENCE SYSTEM TO PREVENT DEPLOYMENT DATA LOSS** - Implemented complete image resilience solution that prevents user images from being deleted during CloudRun deployments; created server/image-persistence.ts system that automatically runs on server startup to detect missing images, restore from database backups, and create base64 backups for existing images; enhanced database schema with logoUrlBackup and selectedImagesBackup fields for persistent storage; system checks 500+ images on startup, creates backups for existing files, and attempts restoration from alternative locations; future deployments will now preserve all user images through database fallback mechanism, eliminating critical data loss issue that affected user experience
 - June 25, 2025: **DISABLED CODE MARKDOWN TO PRESERVE APOSTROPHES FROM PERPLEXITY** - Completely removed code markdown formatting (backticks) across all ReactMarkdown instances while preserving all other markdown features (bold, italic, lists, headings, links); apostrophes in possessive writing like "company's books" now display correctly instead of being stripped to prevent code formatting; updated markdown guide to remove code formatting examples; ensures AI-generated content maintains proper grammar and readability
 - June 25, 2025: **ENHANCED EDIT INTERFACE USER EXPERIENCE AND FIXED COVER IMAGE POSITIONING** - Added resizable text areas to edit CIM interface allowing users to drag handles to expand text boxes vertically (100px-400px) for better content visibility; fixed critical cover image positioning bug in share links where user-set positioning coordinates weren't being applied, updated share view to properly parse JSON position data (x%, y%) instead of using raw JSON strings, ensuring cover images display exactly as positioned in edit interface across all viewing modes
