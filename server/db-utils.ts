@@ -1,28 +1,42 @@
 import { db, pool } from './db';
 
-// Database retry utility for handling connection issues
+// Enhanced database retry utility with timeout protection
 export async function withRetry<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3,
-  delayMs: number = 1000
+  maxRetries: number = 2, // Reduced retries for faster response
+  delayMs: number = 500, // Faster retry
+  timeoutMs: number = 15000 // 15 second total timeout
 ): Promise<T> {
   let lastError: any;
+  const startTime = Date.now();
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      // Check if we've exceeded total timeout
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error('Database operation timeout - service temporarily unavailable');
+      }
+      
+      // Wrap operation in timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Operation timeout')), 8000);
+      });
+      
+      const result = await Promise.race([operation(), timeoutPromise]);
+      return result;
     } catch (error: any) {
       lastError = error;
       
-      // Only retry on connection-related errors
-      if (error.message?.includes('Connection terminated unexpectedly') ||
-          error.message?.includes('connection timeout') ||
+      // Always retry on connection-related errors or timeouts
+      if (error.message?.includes('Connection terminated') ||
+          error.message?.includes('timeout') ||
           error.message?.includes('ECONNRESET') ||
+          error.message?.includes('ENOTFOUND') ||
           error.message?.includes('connect ECONNREFUSED')) {
         
-        if (attempt < maxRetries) {
-          console.log(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delayMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        if (attempt < maxRetries && (Date.now() - startTime) < timeoutMs) {
+          console.log(`Database retry ${attempt}/${maxRetries}: ${error.message}`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
           continue;
         }
       }
