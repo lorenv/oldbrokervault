@@ -892,6 +892,80 @@ export function CimDisplay({
                           {section.title}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="px-7 pb-7">[\s\S]*?```/g, (match) => {
-                                    // Convert code blocks to bullet points
-                                    const content = match.replace(/```[\w]*\n?/, '').replace(/
+                      <CardContent className="px-7 pb-7">
+                        <ReactMarkdown className="prose prose-slate max-w-none">
+                          {processMarkdownWithEscaping(section.content)}
+                        </ReactMarkdown>
+                      </CardContent>
+                    </Card>
+                  </DraggableSection>
+                );
+              } else if (unifiedSection.type === 'custom') {
+                const customSection = unifiedSection.data;
+                const sectionId = unifiedSection.id;
+                return (
+                  <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
+                    <Card className="mb-4 relative group">
+                      {!isSharedView && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteCustomSection(customSection.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <CardHeader className="pb-5 pt-7 px-7">
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                          {customSection.sectionType === 'text' ? <Type className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
+                          {!isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={customSection.title}
+                              onSave={(value) => handleUpdateCustomSection(customSection.id, { title: value })}
+                              placeholder="Section title..."
+                            />
+                          ) : customSection.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-7 pb-7">
+                        {customSection.sectionType === 'text' ? (
+                          !isSharedView ? (
+                            <FlexibleSectionEditor
+                              value={customSection.content}
+                              onSave={(value) => handleUpdateCustomSection(customSection.id, { content: value })}
+                              placeholder="Enter your content here..."
+                              multiline
+                            />
+                          ) : (
+                            <ReactMarkdown className="prose prose-slate max-w-none">
+                              {processMarkdownWithEscaping(customSection.content)}
+                            </ReactMarkdown>
+                          )
+                        ) : (
+                          <div className="space-y-4">
+                            {customSection.imageUrl && (
+                              <img
+                                src={customSection.imageUrl}
+                                alt={customSection.title}
+                                className="w-full max-w-2xl mx-auto rounded-lg shadow-md"
+                                onError={(e) => {
+                                  console.error("Image failed to load:", customSection.imageUrl);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </DraggableSection>
+                );
+              }
+              return null;
+            })}
+            </SortableContext>
+          </DndContext>
+        </div>
+      );
+    }
