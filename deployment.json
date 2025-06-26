@@ -1,0 +1,30 @@
+{
+  "name": "CIM Share",
+  "description": "AI-powered confidential information memorandum platform",
+  "version": "1.0.0",
+  "deployment": {
+    "type": "replit-native",
+    "environment": "production",
+    "health_check": {
+      "path": "/",
+      "expected_status": 200,
+      "timeout": 5000
+    },
+    "database": {
+      "type": "postgresql",
+      "provider": "neon",
+      "optimized_for": "replit"
+    },
+    "features": [
+      "persistent_filesystem",
+      "environment_variables",
+      "database_connection_pooling",
+      "health_monitoring"
+    ]
+  },
+  "startup": {
+    "command": "npm run start",
+    "health_checks_enabled": true,
+    "graceful_shutdown": true
+  }
+}
