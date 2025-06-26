@@ -311,35 +311,9 @@ export async function initializeImagePersistence(): Promise<void> {
       console.log('📁 Created user-images directory');
     }
 
-    // Run restoration and backup in parallel with shorter timeouts for deployment
-    try {
-      await Promise.race([
-        Promise.all([
-          restoreMissingImages().catch(err => {
-            console.log('⚠️ Image restoration completed with errors:', err.message);
-            return { totalChecked: 0, restored: 0, failed: 0, skipped: 0 };
-          }),
-          createImageBackups().catch(err => {
-            console.log('⚠️ Image backup completed with errors:', err.message);
-          })
-        ]),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Image persistence timeout')), 5000)
-        )
-      ]);
-    } catch (timeoutError) {
-      console.log('⚠️ Image persistence operations timed out - continuing in background');
-      // Continue operations in background without blocking server
-      setTimeout(async () => {
-        try {
-          await restoreMissingImages();
-          await createImageBackups();
-          console.log('✅ Background image persistence completed');
-        } catch (bgError) {
-          console.log('Background image persistence failed:', (bgError as Error).message);
-        }
-      }, 60000); // Retry in 1 minute
-    }
+    // Note: Backup operations removed since we're using Replit persistent storage
+    // Only run basic directory check - no database operations during startup
+    console.log('✅ Image persistence simplified for Replit deployment');
     
     console.log('✅ Image persistence system initialized successfully');
   } catch (error) {
