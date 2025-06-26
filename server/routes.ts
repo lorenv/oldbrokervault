@@ -2294,6 +2294,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // Check if Stripe is properly initialized before proceeding
+      if (!stripe) {
+        console.error("❌ Stripe subscription creation: Stripe not initialized");
+        return res.status(503).json({ 
+          error: "Payment processing temporarily unavailable", 
+          code: "STRIPE_UNAVAILABLE" 
+        });
+      }
+
       const hostHeader = req.get('host');
       console.log("Creating Stripe session with host:", hostHeader);
       
@@ -2341,16 +2350,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe webhook endpoint
+  // Stripe webhook endpoint with enhanced error handling
   app.post("/api/webhook/stripe", async (req, res) => {
+    // Validate webhook signature
     const sig = req.headers["stripe-signature"];
     if (!sig) {
-      console.log("No Stripe signature found");
-      return res.sendStatus(400);
+      console.error("❌ Stripe webhook: No signature found");
+      return res.status(400).json({ error: "Missing Stripe signature" });
+    }
+
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+      console.error("❌ Stripe webhook: Stripe not initialized");
+      return res.status(503).json({ error: "Payment processing unavailable" });
+    }
+
+    // Validate webhook secret is configured
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error("❌ Stripe webhook: Webhook secret not configured");
+      return res.status(500).json({ error: "Webhook configuration error" });
     }
 
     try {
-      console.log("Received Stripe webhook event");
+      console.log("🔄 Processing Stripe webhook event");
       const event = stripe.webhooks.constructEvent(
         req.body,
         sig,
@@ -2384,30 +2406,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ received: true });
     } catch (error) {
-      console.error('Stripe webhook error:', error);
+      console.error('❌ Stripe webhook processing error:', error);
+      
+      // Enhanced error reporting for webhook failures
       if (error instanceof Error) {
-        console.error('Error details:', error.message);
-        console.error('Error stack:', error.stack);
+        console.error('❌ Webhook error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        
+        // Check for specific Stripe webhook errors
+        if (error.message.includes('Invalid signature')) {
+          console.error('❌ Webhook signature validation failed - check STRIPE_WEBHOOK_SECRET');
+          return res.status(400).json({ error: "Invalid webhook signature" });
+        } else if (error.message.includes('timestamp')) {
+          console.error('❌ Webhook timestamp error - possible clock skew');
+          return res.status(400).json({ error: "Webhook timestamp error" });
+        }
       }
-      return res.status(400).json({ error: "Webhook handling failed" });
+      
+      // Generic webhook error response
+      return res.status(400).json({ 
+        error: "Webhook processing failed", 
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+      });
     }
   });
 
-  // New route for creating Stripe Customer Portal session
+  // New route for creating Stripe Customer Portal session with enhanced error handling
   app.post("/api/subscription/create-portal-session", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+      console.error("❌ Customer portal: Stripe not initialized");
+      return res.status(503).json({ 
+        error: "Payment processing temporarily unavailable",
+        code: "STRIPE_UNAVAILABLE"
+      });
+    }
 
     try {
       const session = await createCustomerPortalSession(req.user!.id);
       res.json({ url: session.url });
     } catch (error) {
-      console.error('Error creating portal session:', error);
+      console.error('❌ Error creating customer portal session:', error);
+      
       const message = error instanceof Error ? error.message : "Failed to create portal session";
-      res.status(500).json({
-        error: message === "No Stripe customer ID found"
-          ? "Please subscribe to a plan first before managing your subscription"
-          : "Failed to access subscription management"
-      });
+      
+      // Handle specific error cases
+      if (message === "No Stripe customer ID found") {
+        res.status(400).json({
+          error: "Please subscribe to a plan first before managing your subscription",
+          code: "NO_CUSTOMER_ID"
+        });
+      } else if (message.includes("Invalid customer")) {
+        res.status(400).json({
+          error: "Customer account not found in payment system",
+          code: "INVALID_CUSTOMER"
+        });
+      } else {
+        res.status(500).json({
+          error: "Failed to access subscription management",
+          code: "PORTAL_ERROR",
+          details: process.env.NODE_ENV === 'development' ? message : undefined
+        });
+      }
     }
   });
 
