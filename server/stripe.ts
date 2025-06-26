@@ -2,51 +2,109 @@ import Stripe from "stripe";
 import { subscriptionPlans } from "@shared/schema";
 import { storage } from "./storage";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Validate required environment variables
+function validateStripeConfig() {
+  const requiredVars = [
+    'STRIPE_SECRET_KEY',
+    'STRIPE_PUBLISHABLE_KEY', 
+    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_PRICE_ID_STANDARD'
+  ];
+  
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    console.error('=== STRIPE CONFIGURATION ERROR ===');
+    console.error('Missing required environment variables:', missing);
+    console.error('Please ensure all Stripe environment variables are configured');
+    throw new Error(`Missing Stripe environment variables: ${missing.join(', ')}`);
+  }
+  
+  console.log('✅ All required Stripe environment variables are configured');
+}
+
+// Initialize Stripe with error handling
+let stripe: Stripe;
+try {
+  validateStripeConfig();
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  console.log('✅ Stripe initialized successfully');
+} catch (error) {
+  console.error('❌ Failed to initialize Stripe:', error instanceof Error ? error.message : String(error));
+  // In development, we might want to continue without Stripe
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Running in development mode without Stripe - payment features will be disabled');
+  } else {
+    // In production, Stripe is required
+    throw error;
+  }
+}
 
 // Function to get dynamic pricing from Stripe
 export async function getPricing() {
+  if (!stripe) {
+    throw new Error('Stripe is not initialized - payment features are unavailable');
+  }
+  
   console.log("=== RETRIEVING STANDARD PRICE FROM STRIPE ===");
   console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
   
-  const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
-  console.log("Standard price retrieved successfully:", {
-    id: standardPrice.id,
-    active: standardPrice.active,
-    unit_amount: standardPrice.unit_amount
-  });
-  
-  return {
-    standard: {
-      amount: standardPrice.unit_amount! / 100,
-      currency: standardPrice.currency,
-      priceId: standardPrice.id
-    }
-  };
+  try {
+    const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
+    console.log("Standard price retrieved successfully:", {
+      id: standardPrice.id,
+      active: standardPrice.active,
+      unit_amount: standardPrice.unit_amount
+    });
+    
+    return {
+      standard: {
+        amount: standardPrice.unit_amount! / 100,
+        currency: standardPrice.currency,
+        priceId: standardPrice.id
+      }
+    };
+  } catch (error) {
+    console.error('Failed to retrieve pricing from Stripe:', error);
+    throw new Error('Unable to fetch pricing information');
+  }
 }
 
 async function getOrCreateCustomer(userId: number, email: string) {
-  const user = await storage.getUser(userId);
-
-  if (user?.stripeCustomerId) {
-    return user.stripeCustomerId;
+  if (!stripe) {
+    throw new Error('Stripe is not initialized - cannot create customer');
   }
 
-  // Create a new customer
-  const customer = await stripe.customers.create({
-    email,
-    metadata: {
-      userId: userId.toString()
+  try {
+    const user = await storage.getUser(userId);
+
+    if (user?.stripeCustomerId) {
+      return user.stripeCustomerId;
     }
-  });
 
-  // Note: Customer ID is stored in Stripe and linked via email
-  console.log("Customer created successfully:", customer.id);
+    // Create a new customer
+    const customer = await stripe.customers.create({
+      email,
+      metadata: {
+        userId: userId.toString()
+      }
+    });
 
-  return customer.id;
+    // Note: Customer ID is stored in Stripe and linked via email
+    console.log("Customer created successfully:", customer.id);
+
+    return customer.id;
+  } catch (error) {
+    console.error('Failed to create or retrieve Stripe customer:', error);
+    throw new Error('Unable to process customer information');
+  }
 }
 
 export async function createSubscriptionSessionDirect(planId: keyof typeof subscriptionPlans, priceId: string, email: string, userId?: number, requestHost?: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not initialized - cannot create subscription session');
+  }
+
   console.log("=== DIRECT STRIPE SESSION CREATION START ===");
   console.log("Creating subscription session - plan:", planId, "userId:", userId, "email:", email);
   console.log("Price ID:", priceId);
