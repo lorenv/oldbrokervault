@@ -4113,7 +4113,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       let processedBusinessLogo = businessLogo;
       let processedProfilePhoto = profilePhoto;
       
-      // Process business logo if it's a new upload
+      // Process business logo if it's a new upload - save as file instead of base64
       if (businessLogo && businessLogo.startsWith('data:image/')) {
         try {
           // Check size limit (increased to 10MB base64 for better handling)
@@ -4132,12 +4132,19 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           
           const imageBuffer = Buffer.from(base64Data, 'base64');
           
-          // Optimize image processing with compression
+          // Save as persistent file instead of base64 data
           try {
-            const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
-            processedBusinessLogo = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+            const logoMetadata = await imageManager.saveImageFromBuffer(
+              imageBuffer, 
+              `logo_${req.user!.id}_${Date.now()}.png`, 
+              'image/png', 
+              req.user!.id, 
+              'logos'
+            );
+            processedBusinessLogo = logoMetadata.publicPath; // Use file path instead of base64
+            console.log('Business logo saved as file:', logoMetadata.publicPath);
           } catch (processingError) {
-            console.warn('Image processing failed, using original:', processingError);
+            console.warn('Logo file save failed, falling back to base64:', processingError);
             processedBusinessLogo = businessLogo;
           }
         } catch (error) {
@@ -4150,7 +4157,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         }
       }
       
-      // Process profile photo if it's a new upload
+      // Process profile photo if it's a new upload - save as file instead of base64
       if (profilePhoto && profilePhoto.startsWith('data:image/')) {
         try {
           // Check size limit (increased to 10MB base64 for better handling)
@@ -4169,12 +4176,19 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           
           const imageBuffer = Buffer.from(base64Data, 'base64');
           
-          // Optimize image processing with compression
+          // Save as persistent file instead of base64 data
           try {
-            const roundedImageBuffer = await addRoundedCorners(imageBuffer, 15);
-            processedProfilePhoto = `data:image/png;base64,${roundedImageBuffer.toString('base64')}`;
+            const photoMetadata = await imageManager.saveImageFromBuffer(
+              imageBuffer, 
+              `profile_${req.user!.id}_${Date.now()}.png`, 
+              'image/png', 
+              req.user!.id, 
+              'profile-photos'
+            );
+            processedProfilePhoto = photoMetadata.publicPath; // Use file path instead of base64
+            console.log('Profile photo saved as file:', photoMetadata.publicPath);
           } catch (processingError) {
-            console.warn('Image processing failed, using original:', processingError);
+            console.warn('Profile photo file save failed, falling back to base64:', processingError);
             processedProfilePhoto = profilePhoto;
           }
         } catch (error) {
@@ -6735,17 +6749,23 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       let finalCoverImageUrl = coverImageUrl;
       
-      // Handle file upload if present
+      // Handle file upload if present - save to persistent storage
       if (req.file) {
-        const timestamp = Date.now();
-        const randomId = Math.random().toString(36).substring(2, 8);
-        const fileExtension = path.extname(req.file.originalname).toLowerCase();
-        const fileName = `${timestamp}_${randomId}${fileExtension}`;
-        const filePath = path.join(uploadsDir, fileName);
-        
-        // Save the uploaded file
-        await fs.writeFile(filePath, req.file.buffer);
-        finalCoverImageUrl = `/uploads/${fileName}`;
+        try {
+          // Use persistent image storage instead of ephemeral uploads directory
+          const coverImageMetadata = await imageManager.saveImageFromBuffer(
+            req.file.buffer,
+            req.file.originalname,
+            req.file.mimetype,
+            req.user!.id,
+            'business-images' // Store cover images with business images for persistence
+          );
+          finalCoverImageUrl = coverImageMetadata.publicPath;
+          console.log('Cover image saved to persistent storage:', coverImageMetadata.publicPath);
+        } catch (saveError) {
+          console.error('Failed to save cover image to persistent storage:', saveError);
+          return res.status(500).json({ error: "Failed to save cover image" });
+        }
       }
       
       // Update the CIM document with cover image data
