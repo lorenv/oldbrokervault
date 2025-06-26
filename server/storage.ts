@@ -589,8 +589,7 @@ export class DatabaseStorage implements IStorage {
       ndaApprovalRequired: false,
       editStartedAt: null,
       lastActivityAt: null,
-      searchVector: null,
-      version: 1
+      searchVector: null
     }));
 
     // For dashboard, we don't need exact total count - just use estimated
