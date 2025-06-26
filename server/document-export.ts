@@ -319,7 +319,7 @@ function resolveImagePath(imagePath: string, documentId?: number, userId?: numbe
   ].filter(Boolean);
   
   for (const possiblePath of possiblePaths) {
-    if (fs.existsSync(possiblePath)) {
+    if (possiblePath && fs.existsSync(possiblePath)) {
       console.log(`Found image at: ${possiblePath}`);
       return possiblePath;
     }
@@ -1350,7 +1350,7 @@ function generateContactFooter(userProfile: any): string {
         </div>`;
 }
 
-export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any): Promise<Buffer> {
+export async function generateWordDocument(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, documentId?: number): Promise<Buffer> {
   const sections: docx.ISectionOptions[] = [];
   const paragraphs: docx.Paragraph[] = [];
 
@@ -1845,7 +1845,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
         photoFound = true;
       } else {
         // Try to resolve as file path
-        const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+        const profilePhotoPath = resolveImagePath(userProfile.profilePhoto, documentId, userProfile?.id);
         if (fs.existsSync(profilePhotoPath)) {
           imageData = fs.readFileSync(profilePhotoPath);
           photoFound = true;
@@ -2852,7 +2852,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               photoFound = true;
             } else {
               // Try to resolve as file path
-              const profilePhotoPath = resolveImagePath(userProfile.profilePhoto);
+              const profilePhotoPath = resolveImagePath(userProfile.profilePhoto, documentId, userProfile?.id);
               console.log("Resolved profile photo path:", profilePhotoPath);
               
               let finalPhotoPath = profilePhotoPath;
@@ -2966,7 +2966,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               logoFound = true;
             } else {
               // Try to resolve as file path
-              const businessLogoPath = resolveImagePath(userProfile.businessLogo);
+              const businessLogoPath = resolveImagePath(userProfile.businessLogo, documentId, userProfile?.id);
               console.log("Resolved business logo path:", businessLogoPath);
               
               let finalLogoPath = businessLogoPath;
