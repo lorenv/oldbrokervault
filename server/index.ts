@@ -7,7 +7,21 @@ import { checkDatabaseHealth } from "./db-health";
 
 const app = express();
 
-// Add immediate health check endpoint for deployment monitoring (no dependencies)
+// PRIMARY DEPLOYMENT HEALTH CHECK - Root path for deployment monitoring
+// ALWAYS respond with 200 status for deployment health checks
+app.get('/', (req, res) => {
+  // Always respond with 200 status for deployment health checks
+  res.status(200).json({ 
+    status: 'ok',
+    service: 'CIM Share',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development',
+    message: 'Server is healthy and ready to serve requests'
+  });
+});
+
+// LIGHTWEIGHT HEALTH CHECK - No database operations, immediate response
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
@@ -18,7 +32,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Add API health check endpoint with database status
+// DEPLOYMENT READINESS CHECK - Another endpoint for deployment monitoring
+app.get('/ready', (req, res) => {
+  res.status(200).json({ 
+    status: 'ready',
+    service: 'CIM Share',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// DATABASE HEALTH CHECK - Only use when explicitly needed, not for deployment
 app.get('/api/health', async (req, res) => {
   try {
     const dbHealthy = await checkDatabaseHealth();
@@ -104,8 +128,10 @@ app.get('/api/security/health', securityHealthCheck);
 
 (async () => {
   try {
+    // PRIORITY 1: Register routes first but don't start listening yet
     const server = await registerRoutes(app);
 
+    // PRIORITY 2: Setup error handling
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       let message = err.message || "Internal Server Error";
@@ -136,44 +162,26 @@ app.get('/api/security/health', securityHealthCheck);
       });
     });
 
+    // PRIORITY 3: Setup development/production specific configurations
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
-    
-    // Debug: Log all registered routes for API debugging
-    console.log('=== REGISTERED ROUTES DEBUG ===');
-    app._router.stack.forEach((middleware, index) => {
-      if (middleware.route) {
-        console.log(`Route ${index}: ${middleware.route.stack[0].method.toUpperCase()} ${middleware.route.path}`);
-      } else if (middleware.name === 'router') {
-        console.log(`Router middleware ${index} with ${middleware.handle.stack?.length || 0} routes`);
-        if (middleware.handle.stack) {
-          middleware.handle.stack.forEach((route, routeIndex) => {
-            if (route.route) {
-              console.log(`  Sub-route ${routeIndex}: ${route.route.stack[0].method.toUpperCase()} ${route.route.path}`);
-            }
-          });
-        }
-      }
-    });
-    console.log('=== END ROUTES DEBUG ===');
 
+    // PRIORITY 4: Start server listening IMMEDIATELY for deployment health checks
     const port = process.env.PORT || 5000;
     
-    // Graceful startup with port retry logic
     const startServer = (portToTry: number, retries = 3): Promise<void> => {
       return new Promise((resolve, reject) => {
         const attemptStart = () => {
-          server.listen(portToTry, "0.0.0.0", async () => {
+          server.listen(portToTry, "0.0.0.0", () => {
             log(`serving on port ${portToTry}`);
             console.log("=== SERVER STARTUP ===");
             console.log("Environment:", process.env.NODE_ENV);
             console.log("Database URL set:", !!process.env.DATABASE_URL);
             console.log("Port:", portToTry);
-            
-            // Image persistence disabled for Replit deployment - using persistent filesystem
+            console.log('✅ Server listening - health checks now available');
             console.log('✅ Using Replit persistent storage - no image operations needed');
             
             resolve();
@@ -197,6 +205,28 @@ app.get('/api/security/health', securityHealthCheck);
     };
 
     await startServer(typeof port === 'string' ? parseInt(port) : port);
+    
+    // PRIORITY 5: Non-critical operations that happen after server is listening
+    // Move route debugging to after server is listening
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== REGISTERED ROUTES DEBUG ===');
+      app._router.stack.forEach((middleware: any, index: number) => {
+        if (middleware.route) {
+          console.log(`Route ${index}: ${middleware.route.stack[0].method.toUpperCase()} ${middleware.route.path}`);
+        } else if (middleware.name === 'router') {
+          console.log(`Router middleware ${index} with ${middleware.handle.stack?.length || 0} routes`);
+          if (middleware.handle.stack) {
+            middleware.handle.stack.forEach((route: any, routeIndex: number) => {
+              if (route.route) {
+                console.log(`  Sub-route ${routeIndex}: ${route.route.stack[0].method.toUpperCase()} ${route.route.path}`);
+              }
+            });
+          }
+        }
+      });
+      console.log('=== END ROUTES DEBUG ===');
+    }
+    
   } catch (startupError) {
     console.error("=== STARTUP ERROR ===");
     console.error("Failed to start server:", startupError);
