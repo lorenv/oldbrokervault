@@ -373,6 +373,7 @@ export default function ImagePdfEditor({
                         onDragEnter={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          console.log('🚪 DRAG ENTER page', page.pageNumber);
                           
                           // Enhanced enter feedback
                           e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
@@ -390,11 +391,6 @@ export default function ImagePdfEditor({
                             e.currentTarget.style.backgroundColor = 'transparent';
                             e.currentTarget.style.border = 'none';
                           }
-                        }}
-                        onDragEnter={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🚪 DRAG ENTER page', page.pageNumber);
                         }}
                       />
 
@@ -457,7 +453,7 @@ export default function ImagePdfEditor({
                             >
                               <div className="flex items-center justify-between h-full">
                                 <div className="flex items-center gap-1 flex-1 min-w-0">
-                                  {React.createElement(FIELD_ICONS[field.type], { className: "w-3 h-3 flex-shrink-0" })}
+                                  {React.createElement(FIELD_ICONS[field.type as keyof typeof FIELD_ICONS], { className: "w-3 h-3 flex-shrink-0" })}
                                   <span className="truncate text-xs flex-1 min-w-0">{field.label}</span>
                                 </div>
                                 
