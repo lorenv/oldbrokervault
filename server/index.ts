@@ -7,9 +7,12 @@ const app = express();
 const PORT = parseInt(process.env.PORT ?? "5000", 10);
 
 // IMMEDIATE HEALTH CHECK ENDPOINTS - respond instantly without dependencies
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'CIM Share', timestamp: new Date().toISOString() });
-});
+// Root health check only in production to avoid overriding Vite dev server
+if (process.env.NODE_ENV === 'production') {
+  app.get('/', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'CIM Share', timestamp: new Date().toISOString() });
+  });
+}
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
