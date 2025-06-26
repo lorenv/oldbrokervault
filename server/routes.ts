@@ -34,6 +34,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
+import migrateImagesToFiles from "./migrate-images";
 
 
 // Directory paths
