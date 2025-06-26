@@ -173,24 +173,8 @@ app.get('/api/security/health', securityHealthCheck);
             console.log("Database URL set:", !!process.env.DATABASE_URL);
             console.log("Port:", portToTry);
             
-            // Start image persistence system in background after server is fully responsive
-            setTimeout(async () => {
-              try {
-                console.log('🔄 Starting background image persistence system...');
-                await initializeImagePersistence();
-              } catch (error) {
-                console.error("Warning: Image persistence initialization failed:", error);
-                // Retry after 60 seconds on failure
-                setTimeout(async () => {
-                  try {
-                    console.log('🔄 Retrying image persistence system...');
-                    await initializeImagePersistence();
-                  } catch (retryError) {
-                    console.error("Image persistence retry failed:", retryError);
-                  }
-                }, 60000);
-              }
-            }, 5000); // Start after 5 seconds to ensure health checks are working
+            // Image persistence disabled for Replit deployment - using persistent filesystem
+            console.log('✅ Using Replit persistent storage - no image operations needed');
             
             resolve();
           });
