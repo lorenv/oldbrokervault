@@ -274,7 +274,7 @@ async function downloadAndCacheImage(imageUrl: string): Promise<string | null> {
 }
 
 // Helper function to resolve image paths correctly
-function resolveImagePath(imagePath: string, documentId?: number): string {
+function resolveImagePath(imagePath: string, documentId?: number, userId?: number): string {
   if (!imagePath) return '';
   
   // If it's already an absolute path, return as is
@@ -294,9 +294,13 @@ function resolveImagePath(imagePath: string, documentId?: number): string {
     return path.resolve(process.cwd(), imagePath);
   }
   
-  // For other cases, try multiple locations including document-specific subdirectories
+  // For other cases, try multiple locations including new user-specific directories
   const possiblePaths = [
-    // Try attached_assets folder first
+    // Try new user-specific directories first (persistent storage)
+    userId ? path.resolve(process.cwd(), 'public', 'user-images', userId.toString(), 'logos', path.basename(imagePath)) : null,
+    userId ? path.resolve(process.cwd(), 'public', 'user-images', userId.toString(), 'profile-photos', path.basename(imagePath)) : null,
+    userId ? path.resolve(process.cwd(), 'public', 'user-images', userId.toString(), 'business-images', path.basename(imagePath)) : null,
+    // Try attached_assets folder
     path.resolve(process.cwd(), 'attached_assets', imagePath),
     // Try public folder directly
     path.resolve(process.cwd(), 'public', imagePath),
@@ -304,13 +308,13 @@ function resolveImagePath(imagePath: string, documentId?: number): string {
     documentId ? path.resolve(process.cwd(), 'public', 'business-images', documentId.toString(), path.basename(imagePath)) : null,
     // Try business-images without document ID
     path.resolve(process.cwd(), 'public', 'business-images', imagePath),
-    // Try logos folder
+    // Try logos folder (legacy)
     path.resolve(process.cwd(), 'public', 'logos', imagePath),
     // Try images folder
     path.resolve(process.cwd(), 'public', 'images', imagePath),
     // Try with just the filename in business-images
     path.resolve(process.cwd(), 'public', 'business-images', path.basename(imagePath)),
-    // Try with just the filename in logos
+    // Try with just the filename in logos (legacy)
     path.resolve(process.cwd(), 'public', 'logos', path.basename(imagePath))
   ].filter(Boolean);
   
@@ -321,7 +325,7 @@ function resolveImagePath(imagePath: string, documentId?: number): string {
     }
   }
   
-  console.log(`Image not found in any location: ${imagePath}`);
+  console.log(`Image not found in any location: ${imagePath}${userId ? ` (userId: ${userId})` : ''}`);
   // Default to public folder if file doesn't exist yet
   return path.resolve(process.cwd(), 'public', imagePath);
 }
@@ -1369,7 +1373,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   // Add logo if available
   if (logoUrl) {
     try {
-      const logoPath = resolveImagePath(logoUrl);
+      const logoPath = resolveImagePath(logoUrl, documentId, userProfile?.id);
       if (fs.existsSync(logoPath)) {
         paragraphs.push(
           new docx.Paragraph({
@@ -2048,7 +2052,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
           } else {
             // Handle local file path
-            const imagePath = resolveImagePath(coverImageUrl, documentId);
+            const imagePath = resolveImagePath(coverImageUrl, documentId, userProfile?.id);
             
             let coverImageFound = false;
             let finalCoverImagePath = imagePath;
@@ -2140,7 +2144,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
           } else {
             // Handle local file path
-            const imagePath = resolveImagePath(firstImage, documentId);
+            const imagePath = resolveImagePath(firstImage, documentId, userProfile?.id);
             if (fs.existsSync(imagePath)) {
               // Calculate banner dimensions - 20% of page height, full width
               const bannerHeight = doc.page.height * 0.2; // 20% of page height
@@ -2211,7 +2215,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
           } else {
             // Try to resolve as file path
-            const logoPath = resolveImagePath(logoUrl, documentId);
+            const logoPath = resolveImagePath(logoUrl, documentId, userProfile?.id);
             console.log("Resolved website logo path:", logoPath);
             
             let finalLogoPath = logoPath;
@@ -2505,7 +2509,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             customSection.imageUrls.forEach((imageUrl: string, index: number) => {
               try {
-                const imagePath = resolveImagePath(imageUrl);
+                const imagePath = resolveImagePath(imageUrl, documentId, userProfile?.id);
                 console.log(`Trying to add custom section image: ${imageUrl} -> ${imagePath}`);
                 
                 let imageFound = false;
@@ -2717,7 +2721,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             }
             
             // Handle file path images
-            const imagePath = resolveImagePath(selectedImages[i], documentId);
+            const imagePath = resolveImagePath(selectedImages[i], documentId, userProfile?.id);
             console.log(`Processing file path image ${i}: ${selectedImages[i]} -> ${imagePath}`);
             
             let imageFound = false;
