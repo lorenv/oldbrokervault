@@ -58,8 +58,10 @@ const createDirectoriesAsync = async () => {
   }
 };
 
-// Start directory creation in background
-createDirectoriesAsync();
+// Start directory creation in background - completely non-blocking for deployment health checks
+createDirectoriesAsync().catch(error => {
+  console.error('Background directory creation failed:', error);
+});
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
