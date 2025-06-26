@@ -5,6 +5,11 @@ import { setupSecurity } from "./security";
 
 const app = express();
 
+// Simple health check for Replit deployment - responds immediately
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'CIM Share' });
+});
+
 // Setup security
 setupSecurity(app);
 
@@ -14,13 +19,6 @@ app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Register all API routes
 registerRoutes(app);
-
-// Setup Vite for development or serve static files for production
-if (app.get("env") === "development") {
-  setupVite(app);
-} else {
-  serveStatic(app);
-}
 
 // Error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -35,6 +33,15 @@ const PORT = parseInt(process.env.PORT ?? "5000", 10);
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`Server running on http://0.0.0.0:${PORT}`);
+  
+  // Setup Vite for development or serve static files for production
+  if (app.get("env") === "development") {
+    setupVite(app, server).catch(err => {
+      log(`Vite setup error: ${err.message}`, 'vite');
+    });
+  } else {
+    serveStatic(app);
+  }
 });
 
 // Graceful shutdown
