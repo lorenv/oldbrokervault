@@ -737,7 +737,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.websiteUrl || undefined,
         cimDoc.selectedImages ? cimDoc.selectedImages : undefined,
         userProfile,
-        financialData
+        financialData,
+        cimDoc.id
       );
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
@@ -3019,7 +3020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ebitdaIncluded: doc.ebitdaIncluded || false
       };
       
-      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData);
+      const buffer = await generateWordDocument(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, doc.id);
       console.log(`Word document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
