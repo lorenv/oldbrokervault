@@ -4,7 +4,20 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ZoomIn, ZoomOut, RotateCcw, ExternalLink, Trash2 } from 'lucide-react';
 import { useDrop } from 'react-dnd';
-import { SignatureField } from '@/types/signature';
+// Define SignatureField type inline to avoid import issues
+interface SignatureField {
+  id: string;
+  type: 'signature' | 'name' | 'date' | 'email' | 'text';
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pageNumber: number;
+  required?: boolean;
+  fontSize?: number;
+  placeholder?: string;
+}
 
 // Field type icons mapping
 const FIELD_ICONS = {

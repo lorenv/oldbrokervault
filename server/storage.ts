@@ -512,22 +512,17 @@ export class DatabaseStorage implements IStorage {
     const offset = (page - 1) * limit;
     const search = options?.search?.trim();
 
-    // Build base query
-    let whereCondition = eq(cimDocuments.userId, userId);
-    
-    // Add search condition if provided
-    if (search) {
-      const searchCondition = or(
-        ilike(cimDocuments.title, `%${search}%`),
-        ilike(cimDocuments.directions, `%${search}%`)
-      );
-      if (searchCondition) {
-        whereCondition = and(
-          eq(cimDocuments.userId, userId),
-          searchCondition
-        );
-      }
-    }
+    // Build base query with conditional search
+    const baseCondition = eq(cimDocuments.userId, userId);
+    const whereCondition = search 
+      ? and(
+          baseCondition,
+          or(
+            ilike(cimDocuments.title, `%${search}%`),
+            ilike(cimDocuments.directions, `%${search}%`)
+          )
+        )
+      : baseCondition;
 
     // For dashboard, only select essential fields to minimize data transfer
     const results = await db
@@ -586,7 +581,14 @@ export class DatabaseStorage implements IStorage {
       lastEditAt: null,
       editorsHeartbeat: {},
       lastModifiedBy: null,
-      ndaSignatureCount: 0
+      ndaSignatureCount: 0,
+      // Add missing required properties
+      logoUrlBackup: null,
+      selectedImagesBackup: null,
+      customSlug: null,
+      ndaApprovalRequired: false,
+      editStartedAt: null,
+      lastActivityAt: null
     }));
 
     // For dashboard, we don't need exact total count - just use estimated
