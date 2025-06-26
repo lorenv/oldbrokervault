@@ -24,42 +24,40 @@ if (process.env.NODE_ENV === 'production') {
 // Start server FIRST to ensure health checks respond immediately
 const PORT = parseInt(process.env.PORT ?? "5000", 10);
 
+// Setup basic middleware BEFORE server starts
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// Setup security and routes BEFORE server starts for deployment readiness
+setupSecurity(app);
+registerRoutes(app);
+
+// Error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  log(`Error ${status}: ${message}`);
+  res.status(status).json({ message });
+});
+
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`Server running on http://0.0.0.0:${PORT}`);
+  log('API routes and security setup completed');
   
-  // Setup heavy operations AFTER server is listening - removed setTimeout for immediate health check response
-  try {
-    // Setup basic middleware
-    app.use(express.json({ limit: '100mb' }));
-    app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-    
-    // Setup security middleware
-    setupSecurity(app);
-    
-    // Register all API routes
-    registerRoutes(app);
-    
-    // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      log(`Error ${status}: ${message}`);
-      res.status(status).json({ message });
-    });
-    
-    log('API routes and security setup completed');
-    
-    // Setup Vite for development or serve static files for production
-    if (app.get("env") === "development") {
-      setupVite(app, server).catch(err => {
-        log(`Vite setup error: ${err.message}`, 'vite');
-      });
-    } else {
-      serveStatic(app);
+  // Setup Vite/static serving AFTER server is listening (non-critical for health checks)
+  setTimeout(() => {
+    try {
+      if (app.get("env") === "development") {
+        setupVite(app, server).catch(err => {
+          log(`Vite setup error: ${err.message}`, 'vite');
+        });
+      } else {
+        serveStatic(app);
+      }
+    } catch (error) {
+      log(`Vite/Static setup error: ${error instanceof Error ? error.message : String(error)}`);
     }
-  } catch (error) {
-    log(`Background setup error: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  }, 50); // Small delay to ensure server is fully listening
 });
 
 // Graceful shutdown
