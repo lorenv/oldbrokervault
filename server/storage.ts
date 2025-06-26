@@ -35,8 +35,8 @@ function initializeSessionStore() {
       },
     });
     
-    // Set max listeners to handle multiple concurrent sessions
-    sessionStoreInstance.setMaxListeners(500);
+    // Set max listeners to handle 100+ concurrent users with buffer
+    sessionStoreInstance.setMaxListeners(2000);
     
     // Add error handling for the session store instance
     sessionStoreInstance.on?.('error', (err: any) => {
