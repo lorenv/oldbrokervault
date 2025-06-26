@@ -5,11 +5,7 @@ import { setupSecurity } from "./security";
 
 const app = express();
 
-// Immediate health check endpoints for deployment - no dependencies
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'CIM Share', timestamp: new Date().toISOString() });
-});
-
+// Health check endpoints for deployment - only root health check in production
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
@@ -17,6 +13,13 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
+// Root health check only in production to avoid overriding Vite dev server
+if (process.env.NODE_ENV === 'production') {
+  app.get('/', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'CIM Share', timestamp: new Date().toISOString() });
+  });
+}
 
 // Start server FIRST to ensure health checks respond immediately
 const PORT = parseInt(process.env.PORT ?? "5000", 10);
