@@ -36,21 +36,29 @@ import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 
 
-// Setup upload directory
+// Directory paths
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-fs.mkdir(uploadsDir, { recursive: true }).catch(console.error);
-
-// Setup business images directory
 const businessImagesDir = path.join(process.cwd(), 'public', 'business-images');
-fs.mkdir(businessImagesDir, { recursive: true }).catch(console.error);
-
-// Setup secure financial files directory (outside public folder)
 const financialFilesDir = path.join(process.cwd(), 'private', 'financial-files');
-fs.mkdir(financialFilesDir, { recursive: true }).catch(console.error);
-
-// Setup secure uploaded CIM files directory (outside public folder)
 const uploadedCimsDir = path.join(process.cwd(), 'private', 'uploaded-cims');
-fs.mkdir(uploadedCimsDir, { recursive: true }).catch(console.error);
+
+// Create directories asynchronously without blocking startup
+const createDirectoriesAsync = async () => {
+  try {
+    await Promise.all([
+      fs.mkdir(uploadsDir, { recursive: true }),
+      fs.mkdir(businessImagesDir, { recursive: true }),
+      fs.mkdir(financialFilesDir, { recursive: true }),
+      fs.mkdir(uploadedCimsDir, { recursive: true })
+    ]);
+    console.log('Directories created successfully');
+  } catch (error) {
+    console.error('Error creating directories:', error);
+  }
+};
+
+// Start directory creation in background
+createDirectoriesAsync();
 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
