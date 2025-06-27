@@ -55,6 +55,21 @@ export function SubscriptionCard({
     window.location.href = "/pricing";
   };
 
+  const handleCustomerPortal = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/subscription/create-portal-session");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Error accessing customer portal:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -131,6 +146,18 @@ export function SubscriptionCard({
               onClick={handleUpgrade}
             >
               {subtle ? "Upgrade Plan" : "Upgrade Subscription"}
+            </Button>
+          )}
+
+          {(isPremium || isStandard) && !isAdmin && (
+            <Button
+              className="w-full"
+              variant="outline"
+              size={subtle ? "sm" : "default"}
+              onClick={handleCustomerPortal}
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Change your plan"}
             </Button>
           )}
 

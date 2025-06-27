@@ -64,7 +64,6 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   
   // Document export state
   const [isPdfLoading, setIsPdfLoading] = useState(false);
-  const [isWordLoading, setIsWordLoading] = useState(false);
 
   // Initialize share URL on component mount
   useEffect(() => {
@@ -231,41 +230,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     }
   };
 
-  // Handle Word export
-  const handleWordExport = async () => {
-    setIsWordLoading(true);
-    try {
-      const response = await fetch(`/api/cim/${cimDocument.id}/export/word`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) throw new Error('Word export failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${cimDocument.title || 'CIM'}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Word Export Started",
-        description: "Your CIM is being downloaded as a Word document"
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to export Word document. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsWordLoading(false);
-    }
-  };
+
 
   return (
     <div className="space-y-6">
@@ -439,17 +404,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               <FileDown className="h-4 w-4 mr-2" />
               {isPdfLoading ? "Exporting..." : "Export PDF"}
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleWordExport}
-              disabled={isWordLoading}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {isWordLoading ? "Exporting..." : "Export Word"}
-            </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Download your CIM as PDF or Word document for offline sharing
+            Download your CIM as PDF document for offline sharing
           </p>
         </CardContent>
       </Card>

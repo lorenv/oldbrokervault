@@ -647,16 +647,16 @@ export function CimGenerator() {
                 </div>
               </div>
               
-              {/* Business Transcript Section */}
+              {/* Business Notes Section */}
               <div className="space-y-4">
                 <div className="border-l-4 border-green-500 pl-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Business Transcript</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Business Notes</h3>
                   <p className="text-sm text-gray-600">Paste your business meeting transcript or notes</p>
                 </div>
                 
                 <div className="ml-4">
                   <Textarea
-                    placeholder="Paste your business meeting transcript here..."
+                    placeholder="Paste your business notes here..."
                     className="min-h-[200px]"
                     {...form.register("transcript")}
                   />
