@@ -34,23 +34,13 @@ export default function EnhancedNdaSigningPage() {
   const prefilledName = urlParams.get('name') || '';
   const prefilledEmail = urlParams.get('email') || '';
   
-  console.log('=== NDA SIGNING PAGE LOAD DEBUG ===');
-  console.log('Current URL:', window.location.href);
-  console.log('URL search params:', window.location.search);
-  console.log('Parsed URL params:', [...urlParams.entries()]);
-  console.log('Prefilled name:', prefilledName);
-  console.log('Prefilled email:', prefilledEmail);
-  console.log('Share slug:', shareSlug);
-  console.log('=== END PAGE LOAD DEBUG ===');
+
 
   // Fetch NDA template data
   const { data: templateData, isLoading, error: fetchError } = useQuery<NdaTemplateData>({
     queryKey: ['/api/share', shareSlug, 'nda-template'],
     queryFn: async () => {
-      console.log('=== FRONTEND API CALL ===');
-      console.log('Fetching template for slug:', shareSlug);
       const url = `/api/share/${shareSlug}/nda-template`;
-      console.log('API URL:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -60,10 +50,6 @@ export default function EnhancedNdaSigningPage() {
         }
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', [...response.headers.entries()]);
-      console.log('Response ok:', response.ok);
-      
       if (!response.ok) {
         const text = await response.text();
         console.error('API Error Response:', text.substring(0, 200));
@@ -71,8 +57,6 @@ export default function EnhancedNdaSigningPage() {
       }
       
       const data = await response.json();
-      console.log('Template data received:', data);
-      console.log('=== END FRONTEND API CALL ===');
       return data;
     },
     enabled: !!shareSlug
