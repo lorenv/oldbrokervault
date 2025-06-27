@@ -1912,9 +1912,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "File not found on disk" });
       }
 
+      // Get MIME type from file extension
+      const ext = path.extname(file.filename).toLowerCase();
+      const mimeTypes: { [key: string]: string } = {
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png'
+      };
+      const mimeType = mimeTypes[ext] || 'application/octet-stream';
+      
+      console.log('File download debug:', { filename: file.filename, ext, mimeType });
+      
       // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
-      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+      res.setHeader('Content-Type', mimeType);
 
       // Stream the file
       const fileStream = await fs.readFile(file.filePath);
