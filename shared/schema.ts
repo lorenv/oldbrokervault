@@ -11,8 +11,8 @@ export const subscriptionPlans = {
   },
   standard: {
     name: "CIM Share Standard Plan",
-    limit: 3,
-    regenerationLimit: 20,
+    limit: 20,
+    regenerationLimit: Infinity,
     price: 99
   },
   enterprise: {

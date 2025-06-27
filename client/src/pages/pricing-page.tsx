@@ -139,8 +139,8 @@ export default function PricingPage() {
       priceLabel: "/month",
       description: "Perfect for regular business use",
       features: [
-        "3 CIM documents per month",
-        "20 regenerations per month",
+        "20 CIM documents per month",
+        "Unlimited regenerations",
         "PDF export",
         "Advanced analytics and search",
         "NDA management and sharing",
