@@ -6154,21 +6154,34 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
   // Upload financial file
   app.post("/api/cim/:id/financial-files", upload.single('file'), async (req, res) => {
+    console.log("=== FINANCIAL FILE UPLOAD START ===");
+    
     if (!req.user) {
+      console.log("Upload failed: Not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
       const cimId = parseInt(req.params.id);
       const file = req.file;
+      
+      console.log("Upload request - CIM ID:", cimId);
+      console.log("File received:", file ? {
+        originalname: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        bufferSize: file.buffer?.length
+      } : "No file");
 
       if (!file) {
+        console.log("Upload failed: No file uploaded");
         return res.status(400).json({ error: "No file uploaded" });
       }
 
       // Check if CIM belongs to user
       const cim = await storage.getCimDocument(cimId);
       if (!cim || cim.userId !== req.user.id) {
+        console.log("Upload failed: Not authorized - CIM userId:", cim?.userId, "Request userId:", req.user.id);
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -6176,9 +6189,21 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const fileExtension = path.extname(file.originalname);
       const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
       const filePath = path.join(financialFilesDir, uniqueFileName);
+      
+      console.log("Generated file path:", filePath);
+      console.log("Financial files directory:", financialFilesDir);
+
+      // Ensure directory exists
+      await fs.mkdir(financialFilesDir, { recursive: true });
+      console.log("Directory ensured to exist");
 
       // Save file to secure directory
       await fs.writeFile(filePath, file.buffer);
+      console.log("File written to disk successfully");
+
+      // Verify file was written
+      const fileStats = await fs.stat(filePath);
+      console.log("File verification - size on disk:", fileStats.size, "bytes");
 
       // Save file record to database
       const [fileRecord] = await db
@@ -6191,9 +6216,14 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         })
         .returning();
 
+      console.log("Database record created:", fileRecord);
+      console.log("=== FINANCIAL FILE UPLOAD SUCCESS ===");
+
       res.json(fileRecord);
     } catch (error) {
+      console.error('=== FINANCIAL FILE UPLOAD ERROR ===');
       console.error('Error uploading financial file:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
