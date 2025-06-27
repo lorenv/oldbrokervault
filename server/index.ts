@@ -132,7 +132,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
       log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
     });
   } else {
-    log('🔄 Development environment detected - Creating image backups for deployment persistence...');
+    log('🔄 Development mode - Creating image backups for persistence...');
     imagePersistenceManager.createImageBackups().catch(err => {
       log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
     });
