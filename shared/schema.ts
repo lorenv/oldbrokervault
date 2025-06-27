@@ -112,6 +112,7 @@ export const cimDocuments = pgTable("cim_documents", {
   coverImageUrl: text("cover_image_url"),
   coverImagePosition: text("cover_image_position"), // JSON string for image positioning within 16:3 frame
   coverImageAttribution: text("cover_image_attribution"), // For Unsplash credits
+  coverImageBackup: text("cover_image_backup"), // Base64 backup for deployment persistence
   // Search and version tracking (premium features)
   searchVector: text("search_vector"), // Full-text search vector
   version: integer("version").default(1).notNull(),
