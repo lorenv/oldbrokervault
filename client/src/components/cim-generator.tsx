@@ -589,54 +589,85 @@ export function CimGenerator() {
       {!analysis ? (
         <Card>
           <CardContent className="pt-6">
-            <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
               
-              <div>
-                <Input
-                  placeholder="Document Title"
-                  {...form.register("title")}
-                />
-                {form.formState.errors.title && (
-                  <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.title.message as string}
-                  </p>
-                )}
+              {/* Document Information Section */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Document Information</h3>
+                  <p className="text-sm text-gray-600">Basic details about your CIM document</p>
+                </div>
+                
+                <div className="space-y-4 ml-4">
+                  <div>
+                    <Input
+                      placeholder="Document Title"
+                      {...form.register("title")}
+                    />
+                    {form.formState.errors.title && (
+                      <p className="text-sm text-destructive mt-1">
+                        {form.formState.errors.title.message as string}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Input
+                        placeholder="Website URL (optional) - e.g., example.com"
+                        {...form.register("websiteUrl")}
+                        className="pr-20"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = form.getValues("websiteUrl");
+                          if (url?.trim()) {
+                            extractImages(url);
+                          }
+                        }}
+                        disabled={!form.watch("websiteUrl")?.trim() || isExtractingImages}
+                        className="absolute right-1 top-1 h-8 px-2 text-xs"
+                      >
+                        {isExtractingImages ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Extract Images"
+                        )}
+                      </Button>
+                    </div>
+                    {form.formState.errors.websiteUrl && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.websiteUrl.message as string}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Business Transcript Section */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-green-500 pl-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Business Transcript</h3>
+                  <p className="text-sm text-gray-600">Paste your business meeting transcript or notes</p>
+                </div>
+                
+                <div className="ml-4">
+                  <Textarea
+                    placeholder="Paste your business meeting transcript here..."
+                    className="min-h-[200px]"
+                    {...form.register("transcript")}
+                  />
+                  {form.formState.errors.transcript && (
+                    <p className="text-sm text-destructive mt-1">
+                      {form.formState.errors.transcript.message as string}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="relative">
-                  <Input
-                    placeholder="Website URL (optional) - e.g., example.com"
-                    {...form.register("websiteUrl")}
-                    className="pr-20"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const url = form.getValues("websiteUrl");
-                      if (url?.trim()) {
-                        extractImages(url);
-                      }
-                    }}
-                    disabled={!form.watch("websiteUrl")?.trim() || isExtractingImages}
-                    className="absolute right-1 top-1 h-8 px-2 text-xs"
-                  >
-                    {isExtractingImages ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      "Extract Images"
-                    )}
-                  </Button>
-                </div>
-                {form.formState.errors.websiteUrl && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.websiteUrl.message as string}
-                  </p>
-                )}
-              </div>
-              
               {/* Image extraction and selection section */}
               {form.watch("websiteUrl") && (
                 <div className="mt-4 p-4 border rounded-lg bg-muted/50">
@@ -829,33 +860,20 @@ export function CimGenerator() {
                 </div>
               </div>
 
-              <div>
-                <Textarea
-                  placeholder="Paste your business meeting transcript here..."
-                  className="min-h-[200px]"
-                  {...form.register("transcript")}
-                />
-                {form.formState.errors.transcript && (
-                  <p className="text-sm text-destructive mt-1">
-                    {form.formState.errors.transcript.message as string}
-                  </p>
-                )}
-              </div>
-
-              {/* Financial Information - Always visible with toggle enabled by default */}
-              <div className="space-y-4 p-4 border rounded-lg bg-background">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <h3 className="text-sm font-medium">Financial Information</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Add key financial metrics to enhance the CIM
-                      </p>
+              {/* Financial Information Section */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Financial Information</h3>
+                  <p className="text-sm text-gray-600">Add key financial metrics to enhance your CIM</p>
+                </div>
+                
+                <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
                     </div>
-                    {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
-                  </div>
-                  <Switch
-                    id="financials-enabled"
+                    <Switch
+                      id="financials-enabled"
                     checked={financialsEnabled}
                     onCheckedChange={(checked) => {
                       setFinancialsEnabled(checked);
