@@ -74,45 +74,16 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   
   const financials = getFinancials();
   
-  // Debug logging to track state changes (commented out for production)
-  // if (process.env.NODE_ENV === 'development') {
-  //   console.log("=== FINANCIALS COMPONENT STATE ===");
-  //   console.log("CIM Document:", cimDocument);
-  //   console.log("Raw financial data from CIM:", {
-  //     financialsEnabled: (cimDocument as any)?.financialsEnabled,
-  //     financials_enabled: (cimDocument as any)?.financials_enabled,
-  //     askingPrice: (cimDocument as any)?.askingPrice,
-  //     asking_price: (cimDocument as any)?.asking_price,
-  //     askingPriceIncluded: (cimDocument as any)?.askingPriceIncluded,
-  //     asking_price_included: (cimDocument as any)?.asking_price_included,
-  //     revenue: (cimDocument as any)?.revenue,
-  //     revenueIncluded: (cimDocument as any)?.revenueIncluded,
-  //     revenue_included: (cimDocument as any)?.revenue_included,
-  //     ebitda: (cimDocument as any)?.ebitda,
-  //     ebitdaIncluded: (cimDocument as any)?.ebitdaIncluded,
-  //     ebitda_included: (cimDocument as any)?.ebitda_included
-  //   });
-  //   console.log("All CIM Document keys:", Object.keys(cimDocument || {}));
-  // }
-  // console.log("Financials object:", financials);
-  // console.log("CIM Loading:", cimLoading);
+
 
   // Use centralized hook for financial files to eliminate duplicate requests
   const { data: files = [] } = useFinancialFiles(docId);
 
-  // Debug logging for files
-  // console.log("=== OWNER FINANCIALS FILES DEBUG ===");
-  // console.log("DocId:", docId);
-  // console.log("Files fetched:", files);
-  // console.log("Number of files:", files.length);
+
 
   // Update financials mutation - save to main CIM document
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
-      // console.log("=== FRONTEND FINANCIALS UPDATE ===");
-      // console.log("DocId:", docId);
-      // console.log("Data being sent:", data);
-      
       // Convert Financials format to CIM document format
       const cimUpdateData: any = {};
       if (data.enabled !== undefined) cimUpdateData.financialsEnabled = data.enabled;
@@ -123,9 +94,6 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
       if (data.ebitda !== undefined) cimUpdateData.ebitda = data.ebitda;
       if (data.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = data.ebitdaIncluded;
       
-      // console.log("CIM update data:", cimUpdateData);
-      // console.log("URL:", `/api/cim/${docId}`);
-      
       const response = await fetch(`/api/cim/${docId}`, {
         method: 'PATCH',
         headers: {
@@ -134,17 +102,12 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
         body: JSON.stringify(cimUpdateData),
       });
       
-      // console.log("Response status:", response.status);
-      // console.log("Response ok:", response.ok);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        // console.log("Error response:", errorText);
         throw new Error(`Failed to update financials: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
-      // console.log("Success response:", result);
       return result;
     },
     onMutate: async (newData) => {
