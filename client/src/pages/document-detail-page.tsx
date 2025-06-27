@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -145,13 +145,14 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
   }
 
   return (
-    <h1 
-      className="text-3xl font-bold tracking-tight cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors"
+    <div 
+      className="group text-3xl font-bold tracking-tight cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors flex items-center gap-2"
       onClick={() => setIsEditing(true)}
       title="Click to edit title"
     >
-      {title}
-    </h1>
+      <h1>{displayTitle}</h1>
+      <Edit2 className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+    </div>
   );
 }
 
