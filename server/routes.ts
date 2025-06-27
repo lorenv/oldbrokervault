@@ -6281,9 +6281,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Generate unique filename
+      // Generate unique filename while preserving original name
       const fileExtension = path.extname(file.originalname);
-      const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
+      const baseName = path.basename(file.originalname, fileExtension);
+      const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${baseName}${fileExtension}`;
       const filePath = path.join(financialFilesDir, uniqueFileName);
       
       console.log("Generated file path:", filePath);
@@ -6301,12 +6302,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const fileStats = await fs.stat(filePath);
       console.log("File verification - size on disk:", fileStats.size, "bytes");
 
-      // Save file record to database
+      // Save file record to database with original filename for display
       const [fileRecord] = await db
         .insert(financialFiles)
         .values({
           cimDocumentId: cimId,
-          filename: uniqueFileName, // Match actual database column
+          filename: file.originalname, // Store original filename for display
           filePath,
           fileSize: file.size
         })
