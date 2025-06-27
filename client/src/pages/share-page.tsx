@@ -646,7 +646,7 @@ export function SharePage() {
                       </div>
                       
                       {/* Financial Documents Download Section */}
-                      <FinancialDocumentsDisplay cimId={cimData.id} />
+                      <FinancialDocumentsDisplay cimId={cimData.id} shareSlug={shareSlug!} />
                     </CardContent>
                   </Card>
                 )}

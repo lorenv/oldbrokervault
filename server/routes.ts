@@ -1924,6 +1924,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk download all financial files from shared document (public endpoint)
+  app.get("/api/share/:shareSlug/financial-files/bulk-download", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      const files = await db
+        .select()
+        .from(financialFiles)
+        .where(eq(financialFiles.cimDocumentId, cimDoc.id))
+        .orderBy(desc(financialFiles.uploadedAt));
+
+      const includedFiles = files.filter(file => file.included !== false);
+
+      if (includedFiles.length === 0) {
+        return res.status(404).json({ error: "No financial files available" });
+      }
+
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="financial-documents-${cimDoc.title || 'document'}.zip"`);
+      
+      archive.pipe(res);
+
+      for (const file of includedFiles) {
+        try {
+          const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
+          if (fileExists) {
+            const fileBuffer = await fs.readFile(file.filePath);
+            archive.append(fileBuffer, { name: file.filename });
+          }
+        } catch (fileError) {
+          console.error(`Error adding file ${file.filename} to archive:`, fileError);
+        }
+      }
+
+      await archive.finalize();
+    } catch (error) {
+      console.error('Error creating bulk download:', error);
+      res.status(500).json({ error: "Failed to create download archive" });
+    }
+  });
+
   // Download individual uploaded file from shared document
   app.get("/api/share/:shareSlug/download/:fileId", async (req, res) => {
     try {
