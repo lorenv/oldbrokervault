@@ -2923,19 +2923,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { afterSection } = req.body;
       
-      // Process and save all images
+      // Process and save all images using persistent storage
       const imageUrls: string[] = [];
       
       for (const file of req.files) {
-        const filename = `custom-section-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-        const imagePath = path.join(uploadsDir, filename);
-        
-        await sharp(file.buffer)
-          .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality: 85 })
-          .toFile(imagePath);
-
-        imageUrls.push(`/uploads/${filename}`);
+        try {
+          // Use imageManager for persistent storage instead of ephemeral uploads directory
+          const metadata = await imageManager.saveImageFromBuffer(
+            file.buffer,
+            file.originalname,
+            file.mimetype,
+            req.user!.id,
+            'business-images', // Store custom section images with business images for persistence
+            { optimize: true, maxWidth: 800, maxHeight: 600 }
+          );
+          
+          imageUrls.push(metadata.publicPath);
+          console.log('Custom section image saved to persistent storage:', metadata.publicPath);
+        } catch (imageError) {
+          console.error('Failed to save custom section image to persistent storage:', imageError);
+          // Continue with other images instead of failing completely
+        }
+      }
+      
+      // Only create custom section if at least one image was successfully processed
+      if (imageUrls.length === 0) {
+        return res.status(400).json({ message: "No images could be processed successfully" });
       }
       
       const section = await storage.createCustomSection({
