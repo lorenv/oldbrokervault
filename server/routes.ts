@@ -5287,6 +5287,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const { shareSlug } = req.params;
       const { signerName, signerEmail, fieldValues = {} } = req.body;
+      
+      console.log("=== EMAIL DEBUG - INITIAL VALUES ===");
+      console.log("signerName from request body:", signerName);
+      console.log("signerEmail from request body:", signerEmail);
+      console.log("fieldValues from request body:", fieldValues);
+      console.log("shareSlug from params:", shareSlug);
+      console.log("====================================");
       // Get real client IP address, not proxy IP
       const signerIpAddress = req.headers['x-forwarded-for']?.toString().split(',')[0] || 
                              req.headers['x-real-ip']?.toString() ||
