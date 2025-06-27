@@ -31,7 +31,7 @@ export function UploadedCimFileManager({ docId, cimTitle }: UploadedCimFileManag
         throw new Error('Failed to fetch files');
       }
       const data = await response.json();
-      console.log('Fetched uploaded files:', data);
+
       return Array.isArray(data) ? data : [];
     },
   });

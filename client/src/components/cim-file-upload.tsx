@@ -21,11 +21,6 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ title, files }: { title: string; files: File[] }) => {
-      console.log("=== FRONTEND UPLOAD DEBUG ===");
-      console.log("Title:", title);
-      console.log("Files:", files);
-      console.log("File count:", files.length);
-      
       const formData = new FormData();
       formData.append('title', title);
       // Upload all selected files using the new multiple file format
@@ -33,20 +28,14 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
         formData.append('cimFiles', file);
       });
 
-      console.log("FormData created with title and file");
-
       const res = await fetch('/api/cim/upload-file', {
         method: 'POST',
         body: formData,
         credentials: 'include'
       });
 
-      console.log("Response status:", res.status);
-      console.log("Response ok:", res.ok);
-
       if (!res.ok) {
         const errorText = await res.text();
-        console.log("Error response:", errorText);
         let error;
         try {
           error = JSON.parse(errorText);
