@@ -1122,7 +1122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const imagePromises = imagesToProcess.map(async (imageUrl: string, index: number) => {
             try {
               console.log(`Downloading image ${index + 1}/${imagesToProcess.length}: ${imageUrl}`);
-              const metadata = await imageManager.downloadImageFromUrl(imageUrl, doc.id);
+              const metadata = await imageManager.saveImageFromUrl(imageUrl, req.user!.id, 'business-images');
               console.log(`Successfully downloaded image ${index + 1}: ${metadata.publicPath}`);
               return metadata.publicPath;
             } catch (error) {
