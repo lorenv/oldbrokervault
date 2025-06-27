@@ -686,8 +686,8 @@ export class DatabaseStorage implements IStorage {
     await db.delete(documentVersions).where(eq(documentVersions.cimDocumentId, id));
     await db.delete(documentAnalytics).where(eq(documentAnalytics.cimDocumentId, id));
     
-    // Note: share_links table uses 'cim_id' instead of 'cim_document_id'
-    await db.execute(sql`DELETE FROM share_links WHERE cim_id = ${id}`);
+    // Delete share links
+    await db.execute(sql`DELETE FROM share_links WHERE cim_document_id = ${id}`);
     
     // Delete the main document last
     await db.delete(cimDocuments).where(eq(cimDocuments.id, id));

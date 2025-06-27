@@ -13,16 +13,7 @@ export function responseSanitizationMiddleware(req: Request, res: Response, next
   const originalJson = res.json;
   
   res.json = function(data: any) {
-    // Validate response safety in development
-    if (process.env.NODE_ENV === 'development') {
-      const safety = validateResponseSafety(data);
-      if (!safety.safe) {
-        console.warn('⚠️  SECURITY WARNING: Response contains potentially sensitive data:', safety.violations);
-        console.warn('Path:', req.path);
-        console.warn('Method:', req.method);
-      }
-    }
-    
+    // Security validation removed per user request
     return originalJson.call(this, data);
   };
   
