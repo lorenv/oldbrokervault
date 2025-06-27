@@ -220,12 +220,11 @@ export const documentViews = pgTable("document_views", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
   viewerType: text("viewer_type").notNull(), // 'anonymous' or 'nda_signer'
-  ndaAccessTokenId: integer("nda_access_token_id"), // Only for NDA signers
-  signerEmail: text("signer_email"), // Only for NDA signers
+  viewerIdentifier: text("viewer_identifier"), // Email or session ID
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   viewedAt: timestamp("viewed_at").defaultNow().notNull(),
-  sessionDuration: integer("session_duration"), // Optional: time spent on document in seconds
+  location: text("location"), // Geolocation data
 });
 
 
