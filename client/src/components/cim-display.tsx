@@ -635,41 +635,7 @@ export function CimDisplay({
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {/* Document Title Editor - Only in Edit View */}
-        {!isSharedView && cimDocument && (
-          <div className="mb-6">
-            <div className="text-3xl font-bold">
-              <FlexibleSectionEditor
-                value={localTitle}
-                onSave={async (newTitle: string) => {
-                  try {
-                    // Update local state immediately for instant UI feedback
-                    setLocalTitle(newTitle);
-                    
-                    const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                      title: newTitle
-                    });
-                    
-                    if (response.ok) {
-                      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                      queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                      toast({ title: "Title Updated", description: "Document title saved successfully." });
-                    } else {
-                      // Revert on error
-                      setLocalTitle(cimDocument.title);
-                    }
-                  } catch (error) {
-                    // Revert on error
-                    setLocalTitle(cimDocument.title);
-                    toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
-                  }
-                }}
-                placeholder="Enter document title"
-                multiline={false}
-              />
-            </div>
-          </div>
-        )}
+        
 
         {/* Preview Share Link Button */}
         {!isSharedView && cimDocument?.shareSlug && (

@@ -17,25 +17,27 @@ import { DocumentAnalyticsTab } from "@/components/document-tabs/analytics-tab";
 import { DocumentEditTab } from "@/components/document-tabs/edit-tab";
 import { DocumentNdaTab } from "@/components/document-tabs/nda-tab";
 import { DocumentShareTab } from "@/components/document-tabs/share-tab";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function DocumentDetailPage() {
-  const [matched, params] = useRoute('/documents/:id');
+  const [, params] = useRoute('/documents/:id');
   const [location, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+  const queryClient = useQueryClient();
+
   const docId = params?.id ? parseInt(params.id) : undefined;
-  
+
   // Get current tab from URL or default to edit for new documents
   const urlTab = new URLSearchParams(window.location.search).get('tab') || 'edit';
   const [activeTab, setActiveTab] = useState(urlTab);
-  
+
   // Fetch document data
   const { data: cimDocument, isLoading: docLoading, error: docError } = useCimDocument(docId, !!docId);
   const { data: financialFiles } = useFinancialFiles(docId, !!docId);
   const { data: customSections } = useCustomSections(docId, !!docId);
   const { data: ndaSignatures } = useNdaSignatures(docId, !!docId);
-  
+
   // Update URL when tab changes
   useEffect(() => {
     if (docId) {
@@ -45,12 +47,12 @@ export function DocumentDetailPage() {
       }
     }
   }, [activeTab, docId]);
-  
+
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
-  
+
   if (!matched || !docId) {
     setLocation('/documents');
     return (
@@ -69,7 +71,7 @@ export function DocumentDetailPage() {
       </div>
     );
   }
-  
+
   if (docLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -87,7 +89,7 @@ export function DocumentDetailPage() {
       </div>
     );
   }
-  
+
   if (docError || !cimDocument) {
     return (
       <div className="min-h-screen bg-background">
@@ -116,8 +118,7 @@ export function DocumentDetailPage() {
       </div>
     );
   }
-  
-  // Ensure user owns the document
+
   if (cimDocument.userId !== user?.id) {
     return (
       <div className="min-h-screen bg-background">
@@ -146,7 +147,7 @@ export function DocumentDetailPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
@@ -160,7 +161,7 @@ export function DocumentDetailPage() {
               </Button>
             </Link>
           </div>
-          
+
           <div className="flex items-start justify-between">
             <div className="space-y-3">
               <h1 className="text-3xl font-bold tracking-tight">{cimDocument.title}</h1>
@@ -191,7 +192,7 @@ export function DocumentDetailPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -212,14 +213,14 @@ export function DocumentDetailPage() {
               Share CIM
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="analytics" className="mt-6">
             <DocumentAnalyticsTab 
               cimDocument={cimDocument}
               ndaSignatures={ndaSignatures || []}
             />
           </TabsContent>
-          
+
           <TabsContent value="edit" className="mt-6">
             <DocumentEditTab 
               cimDocument={cimDocument}
@@ -227,14 +228,14 @@ export function DocumentDetailPage() {
               customSections={customSections || []}
             />
           </TabsContent>
-          
+
           <TabsContent value="nda" className="mt-6">
             <DocumentNdaTab 
               cimDocument={cimDocument}
               ndaSignatures={ndaSignatures || []}
             />
           </TabsContent>
-          
+
           <TabsContent value="share" className="mt-6">
             <DocumentShareTab 
               cimDocument={cimDocument}
