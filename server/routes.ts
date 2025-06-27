@@ -8,7 +8,7 @@ import { imageManager } from "./image-manager";
 import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, desc } from "drizzle-orm";
 import { withRetry } from './db-utils';
 import { createSubscriptionSession, createSubscriptionSessionDirect, handleStripeWebhook, verifyCheckoutSession, createCustomerPortalSession, getPricing } from "./stripe";
 import Stripe from "stripe";
@@ -23,6 +23,7 @@ import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates 
 
 import JSZip from 'jszip';
 import sharp from 'sharp';
+import archiver from 'archiver';
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
 import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
