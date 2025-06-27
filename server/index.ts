@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurity } from "./security";
+import { imagePersistenceManager } from "./image-persistence";
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? "5000", 10);
@@ -121,6 +122,21 @@ try {
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);
   log('✅ Health checks responding immediately with full configuration');
+  
+  // Initialize image persistence system
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
+  
+  if (isProduction) {
+    log('🔄 Production deployment detected - Restoring missing images from database backups...');
+    imagePersistenceManager.restoreMissingImages().catch(err => {
+      log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
+    });
+  } else {
+    log('🔄 Development environment detected - Creating image backups for deployment persistence...');
+    imagePersistenceManager.createImageBackups().catch(err => {
+      log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
+    });
+  }
   
   // Setup Vite/static serving after server starts (non-critical for health checks)
   if (app.get("env") === "development") {
