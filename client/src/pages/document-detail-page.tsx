@@ -48,14 +48,34 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
       }
       return response.json();
     },
+    onMutate: async (newTitle: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/cim', docId] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['/api/cim', docId]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/cim', docId], (old: any) => {
+        return old ? { ...old, title: newTitle } : old;
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousData };
+    },
     onSuccess: (data) => {
+      // Invalidate to ensure we have the latest server data
       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
       queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
       toast({ title: "Title Updated", description: "Document title saved successfully." });
       onTitleUpdate?.(editTitle);
       setIsEditing(false);
     },
-    onError: () => {
+    onError: (err, newTitle, context: any) => {
+      // Rollback to the previous value
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/cim', docId], context.previousData);
+      }
       setEditTitle(title); // Revert on error
       toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
       setIsEditing(false);
