@@ -38,7 +38,7 @@ pool.setMaxListeners(isReplit ? 1000 : 500);
 
 // Add deployment-specific logging
 if (isReplit) {
-  console.log('🚀 Replit environment detected - Using optimized database configuration');
+  console.log('🔧 Environment-optimized database configuration loaded');
   console.log(`📊 Pool config: max=${poolConfig.max}, timeout=${poolConfig.connectionTimeoutMillis}ms`);
 }
 
