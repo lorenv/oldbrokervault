@@ -251,6 +251,7 @@ export function CimGenerator() {
     const attribution = `Photo by <a href="${photographerUrl}" target="_blank" rel="noopener noreferrer">${image.user.name}</a> on <a href="${unsplashUrl}" target="_blank" rel="noopener noreferrer">Unsplash</a>`;
     
     setSelectedCoverImage(image.urls.regular);
+    setCoverImageFile(null); // Clear file state when selecting Unsplash image
     setCoverImageAttribution(attribution);
     setIsUnsplashDialogOpen(false);
   };
@@ -304,6 +305,11 @@ export function CimGenerator() {
           formData.append('coverImagePosition', JSON.stringify(coverImagePosition));
           if (coverImageAttribution) {
             formData.append('coverImageAttribution', coverImageAttribution);
+          }
+          
+          // If it's a blob URL (user uploaded file), also append the file
+          if (selectedCoverImage.startsWith('blob:') && coverImageFile) {
+            formData.append('coverImage', coverImageFile);
           }
         }
 
@@ -498,6 +504,7 @@ export function CimGenerator() {
     if (file) {
       const url = URL.createObjectURL(file);
       setSelectedCoverImage(url);
+      setCoverImageFile(file); // Store the actual file for upload
       setCoverImageAttribution('');
     }
     if (coverImageFileInputRef.current) {
