@@ -1847,6 +1847,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get financial files for a shared CIM document (public endpoint)
+  app.get("/api/share/:shareSlug/financial-files", async (req, res) => {
+    try {
+      const { shareSlug } = req.params;
+      const cimDoc = await storage.getCimByShareSlug(shareSlug);
+      
+      if (!cimDoc || !cimDoc.shareEnabled) {
+        return res.status(404).json({ error: "Document not found or not shared" });
+      }
+
+      // Check expiration
+      if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
+        return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      const files = await db
+        .select()
+        .from(financialFiles)
+        .where(eq(financialFiles.cimDocumentId, cimDoc.id))
+        .orderBy(desc(financialFiles.uploadedAt));
+
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching shared document financial files:", error);
+      res.status(500).json({ error: "Failed to fetch financial files" });
+    }
+  });
+
   // Download financial file from shared document (public endpoint)
   app.get("/api/share/:shareSlug/financial-files/:fileId/download", async (req, res) => {
     try {
