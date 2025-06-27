@@ -1926,8 +1926,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const mimeType = mimeTypes[ext] || 'application/octet-stream';
       
-      console.log('File download debug:', { filename: file.filename, ext, mimeType });
-      
       // Set appropriate headers
       res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
       res.setHeader('Content-Type', mimeType);
