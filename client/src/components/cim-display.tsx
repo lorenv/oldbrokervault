@@ -181,6 +181,7 @@ interface CimDisplayProps {
   cimDocument?: any;
   autoTriggerShare?: boolean;
   onShareTriggered?: () => void;
+  customSections?: any[]; // For share view to pass pre-fetched custom sections
 }
 
 export function CimDisplay({
@@ -191,7 +192,8 @@ export function CimDisplay({
   isSharedView,
   cimDocument,
   autoTriggerShare,
-  onShareTriggered
+  onShareTriggered,
+  customSections: providedCustomSections
 }: CimDisplayProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -288,15 +290,19 @@ export function CimDisplay({
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
 
-  // Use centralized hook for custom sections to eliminate duplicate requests
-  const { data: customSectionsData } = useCustomSections(docId);
+  // Use centralized hook for custom sections only when not in shared view
+  const { data: customSectionsData } = useCustomSections(docId, !isSharedView && !providedCustomSections);
 
-  // Update custom sections when data changes
+  // Update custom sections when data changes or when provided directly
   useEffect(() => {
-    if (customSectionsData) {
+    if (providedCustomSections) {
+      // In shared view, use the provided custom sections
+      setCustomSections(providedCustomSections);
+    } else if (customSectionsData) {
+      // In edit view, use the fetched custom sections
       setCustomSections(customSectionsData);
     }
-  }, [customSectionsData]);
+  }, [customSectionsData, providedCustomSections]);
 
   // DnD sensors
   const sensors = useSensors(
