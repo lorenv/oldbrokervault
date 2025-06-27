@@ -5385,7 +5385,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         
         // Send access email even for existing signers
         console.log("Sending access email for existing signer...");
-        const { owner } = await storage.getCimWithOwner(cimDoc.id);
+        const owner = await storage.getUser(cimDoc.userId);
+        if (!owner) {
+          console.log("ERROR: Document owner not found for existing signer");
+          throw new Error("Document owner not found");
+        }
         const redirectUrl = accessToken ? `${req.protocol}://${req.get('host')}/cims/${shareSlug}?token=${accessToken}` : null;
         
         let emailSent = false;
