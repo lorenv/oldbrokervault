@@ -216,6 +216,9 @@ export class ContentValidationService {
     
     return {
       cimDocumentId,
+      baselineTranscript: transcript, // Legacy field
+      baselineDirections: directions, // Legacy field
+      baselineFinancials: financials || null, // Legacy field
       originalTranscript: transcript,
       originalDirections: directions,
       companyName: metrics.companyName || null,
