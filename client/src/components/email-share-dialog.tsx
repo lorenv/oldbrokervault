@@ -51,7 +51,6 @@ export function EmailShareDialog({
 
     // Validate required props
     if (!shareUrl || !documentTitle) {
-      console.error("Missing required data:", { shareUrl, documentTitle });
       toast({
         title: "Share Data Missing",
         description: "Unable to send email - missing document information",
@@ -63,11 +62,6 @@ export function EmailShareDialog({
     setIsLoading(true);
 
     try {
-      console.log("=== EMAIL SHARE FRONTEND DEBUG ===");
-      console.log("shareUrl:", shareUrl);
-      console.log("documentTitle:", documentTitle);
-      console.log("recipientEmail:", recipientEmail.trim());
-      console.log("=== END DEBUG ===");
 
       await apiRequest("POST", "/api/share/email", {
         recipientEmail: recipientEmail.trim(),
