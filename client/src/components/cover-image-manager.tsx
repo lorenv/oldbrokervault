@@ -295,22 +295,21 @@ export function CoverImageManager({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button variant="outline" className="w-full justify-between">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Cover Image
-          </div>
-          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </Button>
-      </CollapsibleTrigger>
-      
-      <CollapsibleContent className="mt-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Document Cover Image</CardTitle>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                <span className="text-sm font-medium">Cover Image</span>
+              </div>
+              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="space-y-4 pt-0">
             {selectedImage && (
               <div className="space-y-4">
                 <DraggableImagePositioner
@@ -424,8 +423,8 @@ export function CoverImageManager({
               className="hidden"
             />
           </CardContent>
-        </Card>
-      </CollapsibleContent>
+        </CollapsibleContent>
+      </Card>
     </Collapsible>
   );
 }
