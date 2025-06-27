@@ -255,15 +255,6 @@ export function CimDisplay({
   useEffect(() => {
     console.log("CimDisplay selectedImages prop:", selectedImages);
     console.log("CimDisplay localSelectedImages state:", localSelectedImages);
-    if (selectedImages && selectedImages.length > 0) {
-      selectedImages.forEach((img, idx) => {
-        console.log(`Testing image ${idx}: ${img}`);
-        // Test if images are accessible
-        fetch(img, { method: 'HEAD' })
-          .then(res => console.log(`Image ${idx} (${img}) status:`, res.status))
-          .catch(err => console.error(`Image ${idx} (${img}) failed:`, err));
-      });
-    }
   }, [selectedImages]);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [isBusinessImagesUploading, setIsBusinessImagesUploading] = useState(false);
