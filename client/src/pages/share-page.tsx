@@ -691,6 +691,7 @@ export function SharePage() {
                   title={cimData.title}
                   userProfile={cimData.userProfile}
                   cimDocument={cimData}
+                  customSections={shareData.customSections}
                 />
               </>
             )}
