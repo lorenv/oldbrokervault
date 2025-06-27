@@ -6218,8 +6218,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       }
 
       // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
-      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
 
       // Stream the file
       const fileStream = await fs.readFile(file.filePath);
@@ -6230,35 +6230,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
-  // Update file inclusion status
-  app.patch("/api/cim/:id/financial-files/:fileId", async (req, res) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-      const cimId = parseInt(req.params.id);
-      const fileId = parseInt(req.params.fileId);
-
-      // Check if CIM belongs to user
-      const cim = await storage.getCimDocument(cimId);
-      if (!cim || cim.userId !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      // Update file inclusion
-      const [updated] = await db
-        .update(financialFiles)
-        .set({ included: req.body.included })
-        .where(eq(financialFiles.id, fileId))
-        .returning();
-
-      res.json(updated);
-    } catch (error) {
-      console.error('Error updating file inclusion:', error);
-      res.status(500).json({ error: "Failed to update file inclusion" });
-    }
-  });
+  // Note: File inclusion status removed since database doesn't support this feature
 
   // Delete financial file
   app.delete("/api/cim/:id/financial-files/:fileId", async (req, res) => {
@@ -6303,15 +6275,13 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     try {
       const cimId = parseInt(req.params.id);
       
-      // Get all included files
+      // Get all files (no inclusion filter since column doesn't exist)
       const files = await db
         .select()
         .from(financialFiles)
         .where(eq(financialFiles.cimDocumentId, cimId));
 
-      const includedFiles = files.filter(f => f.included);
-
-      if (includedFiles.length === 0) {
+      if (files.length === 0) {
         return res.status(404).json({ error: "No files available for download" });
       }
 
@@ -6319,12 +6289,12 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // In production, you might want to use a proper ZIP library
       const zip = new JSZip();
 
-      for (const file of includedFiles) {
+      for (const file of files) {
         try {
           const fileContent = await fs.readFile(file.filePath);
-          zip.file(file.originalName, fileContent);
+          zip.file(file.filename, fileContent);
         } catch (error) {
-          console.error(`Error reading file ${file.originalName}:`, error);
+          console.error(`Error reading file ${file.filename}:`, error);
         }
       }
 
