@@ -32,7 +32,7 @@ interface DocumentShareTabProps {
 
 export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const { toast } = useToast();
-  
+
   // Share settings state
   const [shareSettings, setShareSettings] = useState({
     shareEnabled: cimDocument.shareEnabled || false,
@@ -43,17 +43,17 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null
   });
-  
+
   const [shareUrl, setShareUrl] = useState('');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
-  
+
   // Email sharing state
   const [emailShareDialog, setEmailShareDialog] = useState<{
     open: boolean;
     documentTitle?: string;
     shareUrl?: string;
   }>({ open: false });
-  
+
   // Embed settings state
   const [embedSettings, setEmbedSettings] = useState({
     width: '100%',
@@ -61,7 +61,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     border: true,
     responsive: true
   });
-  
+
   // Document export state
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
@@ -88,7 +88,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   // Update share settings
   const updateShareSettings = async () => {
     if (!cimDocument.id) return;
-    
+
     // Validate NDA template selection when NDA protection is enabled
     if (shareSettings.ndaProtected && !shareSettings.ndaTemplateId) {
       toast({
@@ -98,12 +98,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       });
       return;
     }
-    
+
     setIsUpdatingShare(true);
     try {
       const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
       const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
-      
+
       const payload = {
         shareEnabled: shareSettings.shareEnabled,
         shareSlug: slug,
@@ -113,12 +113,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         ndaProtected: shareSettings.ndaProtected,
         ndaTemplateId: shareSettings.ndaTemplateId
       };
-      
+
       const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/share`, payload);
 
       if (response.ok) {
         const result = await response.json();
-        
+
         if (result.shareSlug) {
           const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
           const url = `${baseUrl}/share/${result.shareSlug}`;
@@ -164,23 +164,23 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   // Generate embed code
   const generateEmbedCode = () => {
     if (!shareUrl) return '';
-    
+
     const { width, height, border, responsive } = embedSettings;
-    
+
     let iframe = `<iframe src="${shareUrl}" width="${width}" height="${height}px"`;
-    
+
     if (!border) {
       iframe += ` style="border: none;"`;
     }
-    
+
     iframe += ` frameborder="0" allowfullscreen></iframe>`;
-    
+
     if (responsive && width === '100%') {
       return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000;">
   ${iframe.replace(`height="${height}px"`, 'style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"')}
 </div>`;
     }
-    
+
     return iframe;
   };
 
@@ -202,9 +202,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         method: 'GET',
         credentials: 'include'
       });
-      
+
       if (!response.ok) throw new Error('PDF export failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -214,7 +214,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "PDF Export Started",
         description: "Your CIM is being downloaded as a PDF"
@@ -230,88 +230,63 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     }
   };
 
+  const copyToClipboard = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: successMessage,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadPdf = async () => {
+    setIsPdfLoading(true);
+    try {
+      const response = await fetch(`/api/cim/${cimDocument.id}/export/pdf`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cimDocument.title || 'document'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: "Your document is being downloaded as a PDF.",
+      });
+  
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to export PDF: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
 
 
   return (
     <div className="space-y-6">
-      {/* Share Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Share2 className="h-5 w-5" />
-            Share Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="share-enabled">Enable Public Sharing</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow others to view this document via a public link
-              </p>
-            </div>
-            <Switch
-              id="share-enabled"
-              checked={shareSettings.shareEnabled}
-              onCheckedChange={(checked) => 
-                setShareSettings(prev => ({ ...prev, shareEnabled: checked }))
-              }
-            />
-          </div>
-          
-          {shareSettings.shareEnabled && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="custom-slug">Custom Link (Optional)</Label>
-                <Input
-                  id="custom-slug"
-                  placeholder="my-company-cim"
-                  value={shareSettings.customSlug}
-                  onChange={(e) => 
-                    setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  Leave empty for auto-generated link
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="share-password">Password Protection (Optional)</Label>
-                <Input
-                  id="share-password"
-                  type="password"
-                  placeholder="Enter password"
-                  value={shareSettings.sharePassword}
-                  onChange={(e) => 
-                    setShareSettings(prev => ({ ...prev, sharePassword: e.target.value }))
-                  }
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="expires-at">Expiration Date (Optional)</Label>
-                <Input
-                  id="expires-at"
-                  type="datetime-local"
-                  value={shareSettings.shareExpiresAt}
-                  onChange={(e) => 
-                    setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
-                  }
-                />
-              </div>
-            </>
-          )}
-          
-          <Button 
-            onClick={updateShareSettings}
-            disabled={isUpdatingShare}
-          >
-            {isUpdatingShare ? "Updating..." : "Update Share Settings"}
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card>
@@ -335,7 +310,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {shareSettings.sharePassword && (
                 <Badge variant="outline">
@@ -360,7 +335,32 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         </Card>
       )}
 
-      {/* Email Sharing */}
+      {/* Export Document */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Export Document
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handlePdfExport}
+              disabled={isPdfLoading}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              {isPdfLoading ? "Exporting..." : "Export PDF"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Download your CIM as PDF document for offline sharing
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Send via Email */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -386,28 +386,81 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         </CardContent>
       </Card>
 
-      {/* Export Options */}
+      {/* Share Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Document
+            <Share2 className="h-5 w-5" />
+            Share Settings
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handlePdfExport}
-              disabled={isPdfLoading}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {isPdfLoading ? "Exporting..." : "Export PDF"}
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="share-enabled">Enable Public Sharing</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow others to view this document via a public link
+              </p>
+            </div>
+            <Switch
+              id="share-enabled"
+              checked={shareSettings.shareEnabled}
+              onCheckedChange={(checked) => 
+                setShareSettings(prev => ({ ...prev, shareEnabled: checked }))
+              }
+            />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Download your CIM as PDF document for offline sharing
-          </p>
+
+          {shareSettings.shareEnabled && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="custom-slug">Custom Link (Optional)</Label>
+                <Input
+                  id="custom-slug"
+                  placeholder="my-company-cim"
+                  value={shareSettings.customSlug}
+                  onChange={(e) => 
+                    setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave empty for auto-generated link
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="share-password">Password Protection (Optional)</Label>
+                <Input
+                  id="share-password"
+                  type="password"
+                  placeholder="Enter password"
+                  value={shareSettings.sharePassword}
+                  onChange={(e) => 
+                    setShareSettings(prev => ({ ...prev, sharePassword: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="expires-at">Expiration Date (Optional)</Label>
+                <Input
+                  id="expires-at"
+                  type="datetime-local"
+                  value={shareSettings.shareExpiresAt}
+                  onChange={(e) => 
+                    setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
+                  }
+                />
+              </div>
+            </>
+          )}
+
+          <Button 
+            onClick={updateShareSettings}
+            disabled={isUpdatingShare}
+          >
+            {isUpdatingShare ? "Updating..." : "Update Share Settings"}
+          </Button>
         </CardContent>
       </Card>
 
@@ -443,7 +496,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 />
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -466,7 +519,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Label htmlFor="embed-responsive">Responsive</Label>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="embed-code">Embed Code</Label>
               <Textarea
