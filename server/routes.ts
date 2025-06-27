@@ -3416,6 +3416,8 @@ Professional CIM Generation Platform`;
       console.log('From:', fromEmail);
       console.log('Reply-to:', sender.email);
       console.log('Subject:', subject);
+      console.log('SendGrid API Key available:', !!process.env.SENDGRID_API_KEY);
+      console.log('SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
       
       const emailSent = await sendEmail({
         to: recipientEmail.trim(),
@@ -3434,6 +3436,7 @@ Professional CIM Generation Platform`;
           message: "Email sent successfully" 
         });
       } else {
+        console.error('❌ Email sending failed - SendGrid returned false');
         res.status(500).json({ 
           error: "Failed to send email. Please try again." 
         });
