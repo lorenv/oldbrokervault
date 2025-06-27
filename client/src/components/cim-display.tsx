@@ -270,14 +270,13 @@ export function CimDisplay({
     const timer = setTimeout(() => {
       setLocalLogoUrl(logoUrl || cimDocument?.logoUrl);
       setLocalSelectedImages(selectedImages || cimDocument?.selectedImages || []);
-      setLocalTitle(cimDocument?.title || "");
       // Reset error states when images change
       setLogoError(false);
       setBrokenImages(new Set());
     }, 50);
     
     return () => clearTimeout(timer);
-  }, [logoUrl, selectedImages, cimDocument?.title, cimDocument?.logoUrl, cimDocument?.selectedImages]);
+  }, [logoUrl, selectedImages, cimDocument?.logoUrl, cimDocument?.selectedImages]);
 
   // Handle auto-trigger share settings with simplified approach
   useEffect(() => {
