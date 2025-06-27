@@ -30,12 +30,14 @@ interface EditableTitleProps {
 function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
+  const [displayTitle, setDisplayTitle] = useState(title);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Update editTitle when title prop changes
+  // Update editTitle and displayTitle when title prop changes
   useEffect(() => {
     setEditTitle(title);
+    setDisplayTitle(title);
   }, [title]);
 
   const updateTitleMutation = useMutation({
@@ -49,19 +51,22 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
       return response.json();
     },
     onMutate: async (newTitle: string) => {
+      // Immediately update the display title for instant UI feedback
+      setDisplayTitle(newTitle);
+      
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/cim', docId] });
       
       // Snapshot the previous value
       const previousData = queryClient.getQueryData(['/api/cim', docId]);
       
-      // Optimistically update to the new value
+      // Optimistically update the cache
       queryClient.setQueryData(['/api/cim', docId], (old: any) => {
         return old ? { ...old, title: newTitle } : old;
       });
       
-      // Return a context object with the snapshotted value
-      return { previousData };
+      // Return context for potential rollback
+      return { previousData, previousDisplayTitle: displayTitle };
     },
     onSuccess: (data) => {
       // Invalidate to ensure we have the latest server data
@@ -72,11 +77,14 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
       setIsEditing(false);
     },
     onError: (err, newTitle, context: any) => {
-      // Rollback to the previous value
+      // Rollback both cache and display title
       if (context?.previousData) {
         queryClient.setQueryData(['/api/cim', docId], context.previousData);
       }
-      setEditTitle(title); // Revert on error
+      if (context?.previousDisplayTitle) {
+        setDisplayTitle(context.previousDisplayTitle);
+      }
+      setEditTitle(title); // Revert edit field
       toast({ title: "Save Failed", description: "Failed to save title changes.", variant: "destructive" });
       setIsEditing(false);
     }
