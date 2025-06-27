@@ -370,9 +370,11 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                       )}
                       <FileText className="h-5 w-5 text-gray-500" />
                       <div>
-                        <div className="font-medium">{file.originalName}</div>
+                        <div className="font-medium">{file.filename}</div>
                         <div className="text-sm text-gray-500">
-                          {(file.fileSize / 1024 / 1024).toFixed(2)} MB
+                          {file.fileSize >= 1024 * 1024 ? 
+                            `${(file.fileSize / 1024 / 1024).toFixed(2)} MB` : 
+                            `${(file.fileSize / 1024).toFixed(1)} KB`}
                         </div>
                       </div>
                     </div>
@@ -394,7 +396,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
                                   // For other files, trigger download
                                   const a = document.createElement('a');
                                   a.href = url;
-                                  a.download = file.originalName;
+                                  a.download = file.filename;
                                   document.body.appendChild(a);
                                   a.click();
                                   document.body.removeChild(a);

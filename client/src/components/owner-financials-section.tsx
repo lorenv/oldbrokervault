@@ -422,7 +422,9 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                         {file.filename}
                       </a>
                       <div className="text-sm text-gray-500">
-                        {(file.fileSize / 1024 / 1024).toFixed(2)} MB
+                        {file.fileSize >= 1024 * 1024 ? 
+                          `${(file.fileSize / 1024 / 1024).toFixed(2)} MB` : 
+                          `${(file.fileSize / 1024).toFixed(1)} KB`}
                       </div>
                     </div>
                   </div>
