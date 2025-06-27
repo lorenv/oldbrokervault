@@ -6185,12 +6185,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         .insert(financialFiles)
         .values({
           cimDocumentId: cimId,
-          fileName: uniqueFileName,
-          originalName: file.originalname,
+          filename: uniqueFileName, // Match actual database column
           filePath,
-          fileSize: file.size,
-          mimeType: file.mimetype,
-          included: true
+          fileSize: file.size
         })
         .returning();
 

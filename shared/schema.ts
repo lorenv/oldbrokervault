@@ -233,12 +233,9 @@ export const documentViews = pgTable("document_views", {
 export const financialFiles = pgTable("financial_files", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
-  fileName: text("file_name").notNull(),
-  originalName: text("original_name").notNull(),
+  filename: text("filename").notNull(), // Match actual database column
   filePath: text("file_path").notNull(), // Secure path outside public folder
   fileSize: integer("file_size").notNull(),
-  mimeType: text("mime_type").notNull(),
-  included: boolean("included").default(true).notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
 });
 
