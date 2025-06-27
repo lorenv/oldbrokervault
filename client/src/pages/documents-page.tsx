@@ -450,6 +450,7 @@ export default function DocumentsPage() {
         onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
         documentTitle={emailShareDialog.documentTitle || ''}
         shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${emailShareDialog.shareToken}` : ''}
+        senderName={user?.name}
       />
     </div>
   );

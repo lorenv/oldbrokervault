@@ -3348,7 +3348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const fromName = senderName || sender.name || sender.email;
-      const fromEmail = 'noreply@cimshare.com'; // Use verified sender email
+      const fromEmail = 'system@cimshare.com'; // Use verified sender email
 
       // Prepare email content
       const subject = `Confidential Information Memorandum - ${documentTitle}`;
