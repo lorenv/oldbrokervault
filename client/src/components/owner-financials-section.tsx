@@ -23,11 +23,9 @@ interface Financials {
 interface FinancialFile {
   id: number;
   cimDocumentId: number;
-  originalName: string;
-  fileName: string;
+  filename: string;
+  filePath: string;
   fileSize: number;
-  mimeType: string;
-  included: boolean;
   uploadedAt: string;
 }
 
@@ -193,23 +191,7 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
     }
   });
 
-  // Update file inclusion mutation
-  const updateFileInclusionMutation = useMutation({
-    mutationFn: async ({ fileId, included }: { fileId: number; included: boolean }) => {
-      const response = await fetch(`/api/cim/${docId}/financial-files/${fileId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ included }),
-      });
-      if (!response.ok) throw new Error('Failed to update file inclusion');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/financial-files`] });
-    }
-  });
+  // File inclusion feature removed - database doesn't support this functionality
 
   const handleFieldUpdate = (field: string, value: string | boolean) => {
     // When enabling financials for the first time, automatically check all three fields
@@ -429,15 +411,6 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
               {files.map((file) => (
                 <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Checkbox
-                      checked={file.included}
-                      onCheckedChange={(checked) =>
-                        updateFileInclusionMutation.mutate({
-                          fileId: file.id,
-                          included: Boolean(checked)
-                        })
-                      }
-                    />
                     <FileText className="h-5 w-5 text-gray-500" />
                     <div>
                       <a
@@ -446,7 +419,7 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                         rel="noopener noreferrer"
                         className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                       >
-                        {file.originalName}
+                        {file.filename}
                       </a>
                       <div className="text-sm text-gray-500">
                         {(file.fileSize / 1024 / 1024).toFixed(2)} MB
