@@ -464,12 +464,9 @@ export const insertDocumentViewSchema = createInsertSchema(documentViews).pick({
 
 export const insertFinancialFileSchema = createInsertSchema(financialFiles).pick({
   cimDocumentId: true,
-  fileName: true,
-  originalName: true,
+  filename: true,
   filePath: true,
-  fileSize: true,
-  mimeType: true,
-  included: true
+  fileSize: true
 });
 
 export const insertCustomTagSchema = createInsertSchema(customTags).pick({

@@ -681,6 +681,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(ndaAccessTokens).where(eq(ndaAccessTokens.cimDocumentId, id));
     await db.delete(ndaRedirectLinks).where(eq(ndaRedirectLinks.cimDocumentId, id));
     await db.delete(financialFiles).where(eq(financialFiles.cimDocumentId, id));
+    await db.delete(documentViews).where(eq(documentViews.cimDocumentId, id));
     await db.delete(collaborators).where(eq(collaborators.cimDocumentId, id));
     await db.delete(documentVersions).where(eq(documentVersions.cimDocumentId, id));
     await db.delete(documentAnalytics).where(eq(documentAnalytics.cimDocumentId, id));
