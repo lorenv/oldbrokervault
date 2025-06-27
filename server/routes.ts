@@ -3319,6 +3319,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rate limiting storage for broker contact emails
   const contactRateLimit = new Map<string, number[]>();
 
+  // Simple email test endpoint for debugging
+  app.post("/api/test-email", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+      const { to } = req.body;
+      const user = req.user;
+      
+      console.log('=== EMAIL TEST DEBUG ===');
+      console.log('Test email to:', to);
+      console.log('From user:', user.email);
+      
+      const testEmailSent = await sendEmail({
+        to: to,
+        from: 'system@cimshare.com',
+        subject: 'Test Message from CIM Share',
+        text: 'Hello! This is a simple test message to verify email delivery is working correctly. Please reply if you receive this.',
+        html: '<p>Hello!</p><p>This is a simple test message to verify email delivery is working correctly.</p><p>Please reply if you receive this.</p>',
+        replyTo: user.email
+      });
+
+      if (testEmailSent) {
+        res.json({ 
+          success: true, 
+          message: "Test email sent successfully" 
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Test email failed to send" 
+        });
+      }
+      
+    } catch (error) {
+      console.error('Test email error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Email sharing endpoint
   app.post("/api/share/email", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -3404,20 +3444,59 @@ Shared by: ${fromName}
 
 ${customMessage?.trim() ? `Personal Message:\n${customMessage.trim()}\n\n` : ''}
 
-View the document at: ${shareUrl}
+Please find the confidential document attached as a PDF file.
+You can also view it online at: ${shareUrl}
 
-This document contains confidential information. Please do not share this link with unauthorized parties.
+This document contains confidential information. Please do not share without authorization.
 
 Professional CIM Generation Platform`;
 
-      // Send email
+      // Generate PDF attachment
+      console.log('=== GENERATING PDF ATTACHMENT ===');
+      let pdfAttachment = null;
+      
+      try {
+        // Import PDF generation function
+        const { generatePDF } = await import('./document-export');
+        
+        // Generate PDF buffer
+        const pdfBuffer = await generatePDF(cimDoc.id, sender.id);
+        const filename = `${documentTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}_CIM.pdf`;
+        
+        pdfAttachment = {
+          content: pdfBuffer.toString('base64'),
+          filename: filename,
+          type: 'application/pdf',
+          disposition: 'attachment'
+        };
+        
+        console.log('✅ PDF attachment generated:', filename);
+        console.log('PDF size:', Math.round(pdfBuffer.length / 1024), 'KB');
+      } catch (pdfError) {
+        console.error('❌ Failed to generate PDF attachment:', pdfError);
+        console.log('Sending email with link only...');
+      }
+
+      // Send email with comprehensive debugging
       console.log('=== EMAIL SHARE DEBUG ===');
       console.log('Sending email to:', recipientEmail.trim());
       console.log('From:', fromEmail);
       console.log('Reply-to:', sender.email);
       console.log('Subject:', subject);
+      console.log('Has PDF attachment:', !!pdfAttachment);
       console.log('SendGrid API Key available:', !!process.env.SENDGRID_API_KEY);
       console.log('SendGrid API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
+      console.log('Text content length:', textContent.length);
+      console.log('HTML content length:', htmlContent.length);
+      
+      // Check for potential spam triggers
+      const spamIndicators = [];
+      if (recipientEmail.includes('gmail.com')) spamIndicators.push('Gmail recipient');
+      if (subject.toLowerCase().includes('confidential')) spamIndicators.push('Confidential in subject');
+      if (textContent.includes('http')) spamIndicators.push('Contains links');
+      if (pdfAttachment) spamIndicators.push('Has PDF attachment');
+      
+      console.log('Potential spam indicators:', spamIndicators);
       
       const emailSent = await sendEmail({
         to: recipientEmail.trim(),
@@ -3425,7 +3504,8 @@ Professional CIM Generation Platform`;
         subject,
         text: textContent,
         html: htmlContent,
-        replyTo: sender.email
+        replyTo: sender.email,
+        attachments: pdfAttachment ? [pdfAttachment] : undefined
       });
 
       console.log('Email sent result:', emailSent);
