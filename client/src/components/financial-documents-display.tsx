@@ -9,20 +9,27 @@ interface FinancialDocumentsDisplayProps {
 }
 
 export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumentsDisplayProps) {
+  console.log('FinancialDocumentsDisplay props:', { cimId, shareSlug });
+  
   // Use different endpoint depending on context
   const { data: files = [], isLoading } = shareSlug 
     ? useQuery({
         queryKey: [`/api/share/${shareSlug}/financial-files`],
         queryFn: async () => {
+          console.log('Fetching share financial files for:', shareSlug);
           const response = await fetch(`/api/share/${shareSlug}/financial-files`);
           if (!response.ok) throw new Error('Failed to fetch financial files');
-          return response.json();
+          const data = await response.json();
+          console.log('Share financial files response:', data);
+          return data;
         },
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
       })
     : useFinancialFiles(cimId);
+  
+  console.log('FinancialDocumentsDisplay state:', { files, isLoading, filesLength: files?.length });
 
   if (isLoading) {
     return (
@@ -47,7 +54,10 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
       <div className="space-y-3">
         {files
-          .filter((file: any) => file.included !== false)
+          .filter((file: any) => {
+            console.log('Financial file filter check:', file.filename, 'included:', file.included, 'passes filter:', file.included !== false);
+            return file.included !== false;
+          })
           .map((file: any) => (
             <Button
               key={file.id}
