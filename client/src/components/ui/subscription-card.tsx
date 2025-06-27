@@ -33,7 +33,7 @@ export function SubscriptionCard({
       case "enterprise":
         return "Unlimited";
       case "standard":
-        return 3;
+        return 20;
       default:
         return 1; // Free trial
     }
@@ -43,9 +43,8 @@ export function SubscriptionCard({
     switch (status) {
       case "admin":
       case "enterprise":
-        return "Unlimited";
       case "standard":
-        return 20;
+        return "Unlimited";
       default:
         return 2; // Free trial
     }
@@ -167,7 +166,7 @@ export function SubscriptionCard({
             <div className="text-sm text-muted-foreground mt-4">
               <p>Upgrade for more CIM documents:</p>
               <ul className="list-disc pl-4 mt-2">
-                <li>Standard: 3 CIMs per month, 20 regenerations</li>
+                <li>Standard: 20 CIMs per month, unlimited regenerations</li>
                 <li>Enterprise: Unlimited CIMs and regenerations</li>
               </ul>
             </div>
