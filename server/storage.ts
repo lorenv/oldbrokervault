@@ -964,21 +964,19 @@ export class DatabaseStorage implements IStorage {
     documentId: number, 
     viewerType: 'anonymous' | 'nda_signer',
     options: {
-      ndaAccessTokenId?: number;
-      signerEmail?: string;
+      viewerIdentifier?: string;
       ipAddress?: string;
       userAgent?: string;
-      sessionDuration?: number;
+      location?: string;
     } = {}
   ): Promise<void> {
     await db.insert(documentViews).values({
       cimDocumentId: documentId,
       viewerType,
-      ndaAccessTokenId: options.ndaAccessTokenId,
-      signerEmail: options.signerEmail,
+      viewerIdentifier: options.viewerIdentifier,
       ipAddress: options.ipAddress,
       userAgent: options.userAgent,
-      sessionDuration: options.sessionDuration,
+      location: options.location,
     });
 
     // Update document's last viewed timestamp
@@ -1007,7 +1005,7 @@ export class DatabaseStorage implements IStorage {
     // Get unique NDA signers count
     const [uniqueSigners] = await db
       .select({
-        count: sql<number>`COUNT(DISTINCT ${documentViews.signerEmail})`
+        count: sql<number>`COUNT(DISTINCT ${documentViews.viewerIdentifier})`
       })
       .from(documentViews)
       .where(
@@ -1022,10 +1020,10 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: documentViews.id,
         viewerType: documentViews.viewerType,
-        signerEmail: documentViews.signerEmail,
+        viewerIdentifier: documentViews.viewerIdentifier,
         ipAddress: documentViews.ipAddress,
         viewedAt: documentViews.viewedAt,
-        sessionDuration: documentViews.sessionDuration
+        location: documentViews.location
       })
       .from(documentViews)
       .where(eq(documentViews.cimDocumentId, documentId))
@@ -1051,14 +1049,14 @@ export class DatabaseStorage implements IStorage {
         id: documentViews.id,
         viewedAt: documentViews.viewedAt,
         ipAddress: documentViews.ipAddress,
-        sessionDuration: documentViews.sessionDuration
+        location: documentViews.location
       })
       .from(documentViews)
       .where(
         and(
           eq(documentViews.cimDocumentId, documentId),
           eq(documentViews.viewerType, 'nda_signer'),
-          eq(documentViews.signerEmail, signerEmail)
+          eq(documentViews.viewerIdentifier, signerEmail)
         )
       )
       .orderBy(desc(documentViews.viewedAt));
