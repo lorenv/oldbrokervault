@@ -79,12 +79,7 @@ try {
 }
 
 // IMMEDIATE HEALTH CHECK ENDPOINTS - respond instantly without dependencies
-// Root health check only in production to avoid overriding Vite dev server
-if (process.env.NODE_ENV === 'production') {
-  app.get('/', (req, res) => {
-    res.status(200).json({ status: 'ok', service: 'CIM Share', timestamp: new Date().toISOString() });
-  });
-}
+// Note: No root health check to avoid conflicting with Vite development server
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
