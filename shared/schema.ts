@@ -291,6 +291,9 @@ export const searchIndex = pgTable("search_index", {
 export const documentBaselines = pgTable("document_baselines", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull().unique(),
+  baselineTranscript: text("baseline_transcript"), // Legacy field
+  baselineDirections: text("baseline_directions"), // Legacy field
+  baselineFinancials: jsonb("baseline_financials"), // Legacy field
   originalTranscript: text("original_transcript").notNull(),
   originalDirections: text("original_directions").notNull(),
   companyName: text("company_name"),
