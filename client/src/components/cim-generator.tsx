@@ -1017,18 +1017,19 @@ export function CimGenerator() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
 
-              {/* Analysis Directions - Doubled height */}
-              <div className="space-y-4 p-4 border rounded-lg bg-background">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium">Analysis Directions</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Customize how AI analyzes your transcript
-                    </p>
-                  </div>
-                  <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+              {/* Analysis Directions Section */}
+              <div className="space-y-4">
+                <div className="border-l-4 border-orange-500 pl-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Analysis Directions</h3>
+                  <p className="text-sm text-gray-600">Customize how AI analyzes your transcript</p>
+                </div>
+                
+                <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
+                  <div className="flex items-center justify-between">
+                    <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-2">
                         <Settings className="h-4 w-4" />
@@ -1209,6 +1210,7 @@ export function CimGenerator() {
                     }}
                     placeholder="Custom directions will appear here..."
                   />
+                </div>
                 </div>
               </div>
 
