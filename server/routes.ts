@@ -1586,10 +1586,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract financial data from request
       const financials = data.financials;
       
-      // Extract cover image data from request
-      const coverImageUrl = data.coverImageUrl || null;
+      // Extract and process cover image data from request
+      let coverImageUrl = data.coverImageUrl || null;
       const coverImagePosition = data.coverImagePosition || null;
       const coverImageAttribution = data.coverImageAttribution || null;
+      
+      // Handle cover image upload and save to persistent storage
+      if (coverImageUrl && coverImageUrl.startsWith('blob:')) {
+        console.log("Processing blob cover image for persistent storage...");
+        // Find the cover image file in uploaded files
+        const coverImageFile = files.find(file => file.fieldname === 'coverImage' || file.fieldname === 'coverImageFile');
+        if (coverImageFile) {
+          try {
+            const coverImageMetadata = await imageManager.saveImageFromBuffer(
+              coverImageFile.buffer,
+              coverImageFile.originalname,
+              coverImageFile.mimetype,
+              req.user!.id,
+              'business-images' // Store cover images with business images for persistence
+            );
+            coverImageUrl = coverImageMetadata.publicPath;
+            console.log('Cover image saved to persistent storage:', coverImageMetadata.publicPath);
+          } catch (saveError) {
+            console.error('Failed to save cover image to persistent storage:', saveError);
+            // Keep original URL as fallback
+          }
+        } else {
+          console.warn('Cover image blob URL found but no corresponding file upload detected');
+        }
+      }
       
       console.log("Creating CIM document from upload with directions:", data.directions);
       console.log("Financial data for upload route:", parsedFinancials);

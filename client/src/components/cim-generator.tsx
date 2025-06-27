@@ -99,6 +99,7 @@ export function CimGenerator() {
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePosition, setCoverImagePosition] = useState({ x: 50, y: 50 });
   const [coverImageAttribution, setCoverImageAttribution] = useState<string>('');
   const [isUnsplashDialogOpen, setIsUnsplashDialogOpen] = useState(false);
