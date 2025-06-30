@@ -79,8 +79,20 @@ try {
   }
 }
 
-// IMMEDIATE HEALTH CHECK ENDPOINTS - respond instantly without dependencies
-// Note: No root health check to avoid conflicting with Vite development server
+// IMMEDIATE HEALTH CHECK ENDPOINTS FOR STATIC DEPLOYMENT
+// Root endpoint required for Replit static deployment health checks
+app.get('/', (req, res) => {
+  if (process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true') {
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      deployment: 'static' 
+    });
+  } else {
+    // In development, let Vite handle the root
+    res.redirect('/api/health');
+  }
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
@@ -118,27 +130,12 @@ try {
   log(`Server setup error: ${error instanceof Error ? error.message : String(error)}`);
 }
 
-// Enhanced server startup with proper error handling
+// Enhanced server startup optimized for static deployment
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);
   log('✅ Health checks responding immediately with full configuration');
   
-  // Initialize image persistence system
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
-  
-  if (isProduction) {
-    log('🔄 Production deployment detected - Restoring missing images from database backups...');
-    imagePersistenceManager.restoreMissingImages().catch(err => {
-      log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
-    });
-  } else {
-    log('🔄 Development mode - Creating image backups for persistence...');
-    imagePersistenceManager.createImageBackups().catch(err => {
-      log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
-    });
-  }
-  
-  // Setup Vite/static serving after server starts (non-critical for health checks)
+  // Setup Vite/static serving immediately (critical for deployment)
   if (app.get("env") === "development") {
     setupVite(app, server).catch(err => {
       log(`⚠️ Vite setup error: ${err.message}`, 'vite');
@@ -146,6 +143,23 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   } else {
     serveStatic(app);
   }
+  
+  // Initialize image persistence system in background AFTER server is ready
+  setTimeout(() => {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
+    
+    if (isProduction) {
+      log('🔄 Production deployment detected - Restoring missing images from database backups...');
+      imagePersistenceManager.restoreMissingImages().catch(err => {
+        log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
+      });
+    } else {
+      log('🔄 Development mode - Creating image backups for persistence...');
+      imagePersistenceManager.createImageBackups().catch(err => {
+        log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
+      });
+    }
+  }, 1000); // Defer heavy operations for 1 second to allow health checks
 });
 
 // Enhanced error handling for server startup
