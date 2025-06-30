@@ -1399,7 +1399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload business image endpoint
+  // Upload business image endpoint - File-based storage only
   app.post("/api/cim/:id/business-image", upload.single('image'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -1423,57 +1423,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(403);
       }
 
-      // Optimize and convert image to base64 for persistent storage
-      let processedBuffer = req.file.buffer;
-      let mimeType = req.file.mimetype;
-      
-      try {
-        // Use sharp to resize and optimize the image
-        const sharp = require('sharp');
-        const image = sharp(req.file.buffer);
-        
-        // Check if the original image has transparency
-        const metadata = await image.metadata();
-        const hasAlpha = metadata.channels === 4 || metadata.hasAlpha;
-        
-        if (hasAlpha || req.file.mimetype === 'image/png') {
-          // Preserve transparency for PNG images
-          processedBuffer = await image
-            .resize(1200, 800, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 0, g: 0, b: 0, alpha: 0 }
-            })
-            .png({ quality: 85, force: true })
-            .toBuffer();
-          mimeType = 'image/png';
-        } else {
-          // Convert to JPEG for photos without transparency
-          processedBuffer = await image
-            .resize(1200, 800, { 
-              fit: 'inside', 
-              withoutEnlargement: true,
-              background: { r: 255, g: 255, b: 255, alpha: 1 }
-            })
-            .jpeg({ quality: 85 })
-            .toBuffer();
-          mimeType = 'image/jpeg';
-        }
-      } catch (sharpError) {
-        console.log('Sharp optimization failed, using original:', sharpError.message);
-      }
+      // Save the uploaded image using the image manager (file-based storage)
+      const metadata = await imageManager.saveImageFromBuffer(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        req.user!.id,
+        'business-images',
+        { optimize: true, maxWidth: 1200, maxHeight: 800 }
+      );
 
-      // Convert to base64 data URL for persistent storage
-      const base64Data = processedBuffer.toString('base64');
-      const imageDataUrl = `data:${mimeType};base64,${base64Data}`;
-      
-      // Update the CIM document with the new base64 image
+      // Update the CIM document with the new file path
       const currentImages = cim.selectedImages || [];
-      const updatedImages = [...currentImages, imageDataUrl];
+      const updatedImages = [...currentImages, metadata.publicPath];
       await storage.updateCimImages(cimId, updatedImages);
 
-      console.log(`Successfully uploaded business image as base64 (${base64Data.length} characters)`);
-      res.json({ success: true, imagePath: imageDataUrl });
+      console.log(`Successfully uploaded business image as file: ${metadata.publicPath}`);
+      res.json({ success: true, imagePath: metadata.publicPath });
     } catch (error) {
       console.error("Business image upload error:", error);
       res.status(500).json({ error: "Failed to upload business image" });
