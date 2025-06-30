@@ -80,74 +80,14 @@ try {
 }
 
 // IMMEDIATE HEALTH CHECK ENDPOINTS - respond instantly without dependencies
-// Primary health check at root for deployment validation
-app.get('/', (req, res) => {
-  // Always provide immediate health check response for deployment
-  if (req.headers['user-agent']?.includes('deployment') || req.headers['x-deployment-check']) {
-    return res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(), 
-      service: 'CIM Share API',
-      port: PORT,
-      deployment: 'ready'
-    });
-  }
-  
-  // In development, this will be overridden by Vite
-  // In production, serve the built frontend or health check
-  if (process.env.NODE_ENV === 'production') {
-    res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(), 
-      service: 'CIM Share API',
-      port: PORT 
-    });
-  } else {
-    // Development - let Vite handle this route
-    res.status(200).json({ 
-      status: 'healthy - development mode', 
-      timestamp: new Date().toISOString(),
-      note: 'Vite dev server will override this route'
-    });
-  }
-});
+// Note: No root health check to avoid conflicting with Vite development server
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Add a fast database health check endpoint (with timeout)
-app.get('/api/health/db', async (req, res) => {
-  try {
-    const { testConnection } = await import('./db-utils');
-    const isConnected = await testConnection();
-    
-    res.status(200).json({ 
-      status: isConnected ? 'healthy' : 'degraded',
-      database: isConnected ? 'connected' : 'disconnected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(503).json({ 
-      status: 'degraded',
-      database: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
-  }
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Setup all middleware BEFORE starting server for immediate response
@@ -183,54 +123,59 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);
   log('✅ Health checks responding immediately with full configuration');
   
-  // Setup Vite/static serving (non-critical for health checks)
+  // Initialize image persistence system
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
+  
+  if (isProduction) {
+    log('🔄 Production deployment detected - Restoring missing images from database backups...');
+    imagePersistenceManager.restoreMissingImages().catch(err => {
+      log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
+    });
+  } else {
+    log('🔄 Development mode - Creating image backups for persistence...');
+    imagePersistenceManager.createImageBackups().catch(err => {
+      log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
+    });
+  }
+  
+  // Setup Vite/static serving after server starts (non-critical for health checks)
   if (app.get("env") === "development") {
     setupVite(app, server).catch(err => {
       log(`⚠️ Vite setup error: ${err.message}`, 'vite');
     });
   } else {
-    // In production, serve static files
     serveStatic(app);
   }
-  
-  // Move heavy initialization operations to background after successful startup
-  // This prevents blocking deployment health checks and ensures immediate response
-  setImmediate(() => {
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
-    
-    // Run in next tick to ensure health checks respond first
-    process.nextTick(() => {
-      if (isProduction) {
-        log('🔄 Starting background image restoration (post-deployment)...');
-        imagePersistenceManager.restoreMissingImages().catch(err => {
-          log(`⚠️ Background image restoration error: ${err.message}`, 'image-persistence');
-        });
-      } else {
-        log('🔄 Starting background image backup creation...');
-        imagePersistenceManager.createImageBackups().catch(err => {
-          log(`⚠️ Background image backup error: ${err.message}`, 'image-persistence');
-        });
-      }
-    });
-  });
 });
 
-// Simplified error handling for server startup
+// Enhanced error handling for server startup
 server.on('error', (error: any) => {
   console.error('❌ Server startup error:', error);
   
   if (error.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use`);
-    console.error('❌ Please check port configuration for deployment');
+    console.error('❌ Trying to find alternative port...');
+    
+    // Try alternative port in deployment scenarios
+    const altPort = PORT + 1;
+    console.log(`🔄 Attempting to start server on port ${altPort}`);
+    
+    const altServer = app.listen(altPort, "0.0.0.0", () => {
+      log(`✅ Server started on alternative port http://0.0.0.0:${altPort}`);
+    });
+    
+    altServer.on('error', (altError) => {
+      console.error('❌ Failed to start on alternative port:', altError);
+      process.exit(1);
+    });
   } else if (error.code === 'EACCES') {
     console.error(`❌ Permission denied to bind to port ${PORT}`);
     console.error('❌ This may be a deployment configuration issue');
+    process.exit(1);
   } else {
     console.error('❌ Unexpected server error:', error);
+    process.exit(1);
   }
-  
-  // Exit cleanly to allow deployment system to handle restart
-  process.exit(1);
 });
 
 // Additional connection monitoring

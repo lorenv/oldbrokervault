@@ -1,39 +1,5 @@
 import { db, pool } from './db';
 
-/**
- * Timeout-protected database operation for deployment health checks
- * Prevents database operations from blocking server startup
- */
-export async function withTimeout<T>(
-  operation: Promise<T>, 
-  timeoutMs: number = 3000,
-  timeoutMessage: string = 'Database operation timed out'
-): Promise<T> {
-  return Promise.race([
-    operation,
-    new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
-    )
-  ]);
-}
-
-/**
- * Test database connection with timeout for health checks
- */
-export async function testConnection(): Promise<boolean> {
-  try {
-    await withTimeout(
-      pool.query('SELECT 1'), 
-      2000, 
-      'Database connection test timed out'
-    );
-    return true;
-  } catch (error) {
-    console.warn('Database connection test failed:', error instanceof Error ? error.message : 'Unknown error');
-    return false;
-  }
-}
-
 // Enhanced database retry utility with timeout protection
 export async function withRetry<T>(
   operation: () => Promise<T>,
