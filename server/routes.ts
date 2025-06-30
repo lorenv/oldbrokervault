@@ -3310,8 +3310,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.headers.host || 'cimshare.com';
       const baseUrl = `${protocol}://${host}`;
       
+      // Get user's PDF template preference
+      const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
+      
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition, doc.id);
+      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition, doc.id, pdfTemplate);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
