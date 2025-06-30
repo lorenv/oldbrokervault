@@ -1781,12 +1781,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const fileData of uploadedFinancialFiles) {
           await db.insert(financialFiles).values({
             cimDocumentId: doc.id,
-            fileName: fileData.fileName,
-            originalName: fileData.originalName,
+            filename: fileData.originalName || fileData.fileName, // Use original filename for display
             filePath: fileData.filePath,
-            fileSize: fileData.fileSize,
-            mimeType: fileData.mimeType,
-            included: true
+            fileSize: fileData.fileSize
           });
         }
         console.log("Financial files saved to database successfully");
