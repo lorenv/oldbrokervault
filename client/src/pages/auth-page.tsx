@@ -68,6 +68,7 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
 
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({
@@ -76,11 +77,11 @@ export default function AuthPage() {
       return await res.json();
     },
     onSuccess: () => {
+      setEmailSent(true);
       toast({
         title: "Reset Email Sent",
         description: "Please check your email for password reset instructions.",
       });
-      setShowForgotPassword(false);
     },
     onError: (error: Error) => {
       toast({
@@ -151,7 +152,36 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ForgotPasswordForm mutation={forgotPasswordMutation} />
+            {emailSent ? (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">Email Sent Successfully!</h3>
+                  <p className="text-gray-600 mb-4">
+                    We've sent password reset instructions to your email address. 
+                    Please check your inbox and follow the instructions to reset your password.
+                  </p>
+                  <p className="text-sm text-gray-500 mb-6">
+                    The reset link will expire in 1 hour. If you don't see the email, check your spam folder.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setEmailSent(false);
+                  }}
+                  className="w-full"
+                >
+                  Back to Login
+                </Button>
+              </div>
+            ) : (
+              <ForgotPasswordForm mutation={forgotPasswordMutation} />
+            )}
           </CardContent>
         </Card>
       </div>
