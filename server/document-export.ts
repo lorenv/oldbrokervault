@@ -1927,7 +1927,7 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   return await docx.Packer.toBuffer(doc);
 }
 
-export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string): Promise<Buffer> {
+export async function generatePDF(analysis: any, logoUrl?: string | null, websiteUrl?: string, selectedImages?: string[], userProfile?: any, financialData?: any, financialFiles?: any[], baseUrl?: string, documentTitle?: string, customSections?: any[], coverImageUrl?: string | null, coverImagePosition?: string | null, documentId?: number, pdfTemplate?: string, shareSlug?: string): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     const pdfStartTime = Date.now();
     console.log("⚡ Starting ULTRA-OPTIMIZED PDF generation with template:", pdfTemplate || 'classic');
@@ -2357,8 +2357,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("Adding financial file to PDF:", file.originalName);
               // Use the dynamic base URL for file downloads - handle both regular and shared document downloads
               const domain = baseUrl || 'https://cimshare.com';
-              // Always use the regular document download URL for PDF exports
-              const downloadUrl = `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+              // Use share URL if shareSlug is provided, otherwise use regular authenticated URL
+              const downloadUrl = shareSlug 
+                ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
+                : `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
               // Add file name as clickable link
               doc.font('Helvetica')
@@ -2401,10 +2403,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
            .fontSize(12);
         
         doc.moveDown(1);
+        // Ensure URL has proper protocol for hyperlinking
+        const formattedUrl = websiteUrl.startsWith('http://') || websiteUrl.startsWith('https://') 
+          ? websiteUrl 
+          : `https://${websiteUrl}`;
+        
         doc.fontSize(12)
            .fillColor('#2563eb')
            .text(websiteUrl, {
-             link: websiteUrl,
+             link: formattedUrl,
              underline: true,
              align: 'left'
            });
