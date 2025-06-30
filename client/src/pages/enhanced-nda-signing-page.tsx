@@ -79,12 +79,21 @@ export default function EnhancedNdaSigningPage() {
       console.log('Name field found:', nameField);
       console.log('Email field found:', emailField);
       
-      // Use field values if available, otherwise fall back to URL parameters
-      const signerName = nameField ? fieldValues[nameField.id] : prefilledName || 'Unknown';
-      const signerEmail = emailField ? fieldValues[emailField.id] : prefilledEmail || '';
+      // PRIORITY ORDER: URL parameters (from dialog) > field values (manual entry) > defaults
+      // This ensures email from name/email dialog always flows through properly
+      let signerName = prefilledName || (nameField ? fieldValues[nameField.id] : '') || 'Unknown';
+      let signerEmail = prefilledEmail || (emailField ? fieldValues[emailField.id] : '') || '';
+
+      // Additional safety check: ensure we have valid email before proceeding
+      if (!signerEmail || !signerEmail.trim()) {
+        console.error('CRITICAL: No email address found in any source!');
+        console.error('Sources checked: prefilledEmail =', prefilledEmail, ', fieldValue =', emailField ? fieldValues[emailField.id] : 'no email field');
+        throw new Error('Email address is required for NDA signing');
+      }
 
       console.log('Final signer name:', signerName);
       console.log('Final signer email:', signerEmail);
+      console.log('Email source priority: URL params =', prefilledEmail, ', field value =', emailField ? fieldValues[emailField.id] : 'N/A');
       console.log('=== END FRONTEND DEBUG ===');
       console.log('NDA signing request data:', { signerName, signerEmail, fieldValues });
 
