@@ -522,10 +522,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const host = req.get('host');
       const baseUrl = `${protocol}://${host}`;
 
-      // Optimized URL processing function
+      // Enhanced URL processing function for all image types
       const processImageUrl = (url: string | null) => {
         if (!url) return null;
         if (url.startsWith('data:') || url.startsWith('http')) return url;
+        
+        // For custom section images and other user-specific images, ensure proper serving
+        if (url.startsWith('/user-images/')) {
+          return `${baseUrl}${url}`;
+        }
+        
         return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
       };
 
@@ -582,7 +588,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userProfileData: sanitizedUserProfile,
         requiresNda: cimDoc.ndaProtected || false,
         ndaUrl,
-        customSections: customSections || [],
+        customSections: customSections ? customSections.map(section => ({
+          ...section,
+          imageUrls: section.imageUrls ? section.imageUrls.map(processImageUrl).filter(Boolean) : [],
+          imageUrl: section.imageUrl ? processImageUrl(section.imageUrl) : null
+        })) : [],
         ndaApprovalStatus
       };
 
