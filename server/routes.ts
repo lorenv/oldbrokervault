@@ -762,7 +762,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
-      const baseUrl = `${protocol}://${host}`;
+      // Use production domain for image URLs in production environment
+      let baseUrl;
+      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
+        baseUrl = 'https://cimshare.com';
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
 
       // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
       const pdfGenStart = Date.now();
@@ -3370,7 +3376,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the base URL from the request
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host || 'cimshare.com';
-      const baseUrl = `${protocol}://${host}`;
+      // Use production domain for image URLs in production environment
+      let baseUrl;
+      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
+        baseUrl = 'https://cimshare.com';
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
       
       // Get user's PDF template preference
       const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
@@ -3455,7 +3467,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Include logo URL, user profile, financial data, and files
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      // Use production domain for image URLs in production environment
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      let baseUrl;
+      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
+        baseUrl = 'https://cimshare.com';
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
+      
       const html = generateHtml(doc.analysis, doc.logoUrl || undefined, userProfile, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, financialData, financialFilesList, baseUrl);
       
       if (!html) {
