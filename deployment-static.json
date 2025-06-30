@@ -1,0 +1,26 @@
+{
+  "name": "cim-share-static",
+  "description": "CIM Share platform with persistent static deployment",
+  "runtime": "nodejs20",
+  "buildCommand": "./build-static.sh",
+  "startCommand": "node start.js",
+  "port": 5000,
+  "environment": "production",
+  "healthCheck": {
+    "path": "/",
+    "timeout": 10,
+    "interval": 30
+  },
+  "staticFiles": true,
+  "persistentStorage": true,
+  "requiredEnvVars": [
+    "DATABASE_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY", 
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRICE_ID_STANDARD",
+    "SENDGRID_API_KEY",
+    "PERPLEXITY_API_KEY",
+    "OPENAI_API_KEY"
+  ]
+}
