@@ -23,12 +23,12 @@ if (!process.env.DATABASE_URL) {
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
   max: isProduction ? 30 : (isReplit ? 20 : 10), // Production: 30, Replit dev: 20, local: 10
-  min: isProduction ? 5 : 0, // Keep 5 connections warm in production
-  idleTimeoutMillis: isReplit ? 60000 : 30000, // Longer idle timeout for Replit
-  connectionTimeoutMillis: isReplit ? 12000 : 8000, // More generous timeout for Replit
+  min: isProduction ? 2 : 0, // Minimal warm connections for faster startup
+  idleTimeoutMillis: isReplit ? 30000 : 15000, // Faster connection cleanup for deployment
+  connectionTimeoutMillis: isReplit ? 5000 : 3000, // Faster timeout for health checks
   allowExitOnIdle: !isProduction, // Keep connections in production, allow exit in dev
-  statement_timeout: isReplit ? 20000 : 15000, // Longer statement timeout for Replit
-  query_timeout: isReplit ? 20000 : 15000, // Longer query timeout for Replit
+  statement_timeout: isReplit ? 10000 : 8000, // Faster statement timeout for deployment
+  query_timeout: isReplit ? 10000 : 8000, // Faster query timeout for deployment
 };
 
 export const pool = new Pool(poolConfig);
