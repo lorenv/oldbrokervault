@@ -5662,77 +5662,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(400).json({ error: "This CIM does not require NDA signing" });
       }
 
-      // Check if user already signed
-      console.log("Checking existing signature for CIM:", cimDoc.id, "Email:", signerEmail);
-      const existingSignature = await storage.checkNdaSignature(cimDoc.id, signerEmail);
-      console.log("Existing signature found:", !!existingSignature);
-      
-      if (existingSignature) {
-        console.log("User already signed, getting existing access token...");
-        
-        // Get existing access token for this signature
-        const { ndaAccessTokens } = await import('@shared/schema');
-        const { and, eq } = await import('drizzle-orm');
-        const existingTokens = await db.select().from(ndaAccessTokens)
-          .where(and(
-            eq(ndaAccessTokens.cimDocumentId, cimDoc.id),
-            eq(ndaAccessTokens.signerEmail, signerEmail),
-            eq(ndaAccessTokens.isActive, true)
-          ));
-        
-        let accessToken = null;
-        if (existingTokens.length > 0) {
-          accessToken = existingTokens[0].token;
-          console.log("Found existing access token");
-        }
-        
-        // Send access email even for existing signers
-        console.log("Sending access email for existing signer...");
-        const owner = await storage.getUser(cimDoc.userId);
-        if (!owner) {
-          console.log("ERROR: Document owner not found for existing signer");
-          throw new Error("Document owner not found");
-        }
-        const redirectUrl = accessToken ? `${req.protocol}://${req.get('host')}/cims/${shareSlug}?token=${accessToken}` : null;
-        
-        let emailSent = false;
-        if (redirectUrl) {
-          try {
-            const { sendCimLinkEmail } = await import('./email');
-            // Get owner profile for CIM link email
-            const ownerProfile = await storage.getUserProfile(cimDoc.userId);
-            const ownerProfileData = {
-              name: owner.name || owner.email,
-              email: owner.email,
-              phone: ownerProfile?.phoneNumber || undefined,
-              title: ownerProfile?.title || undefined,
-              businessName: ownerProfile?.businessName || undefined,
-              profilePhotoUrl: ownerProfile?.profilePhoto || undefined,
-              businessLogoUrl: ownerProfile?.businessLogo || undefined
-            };
-            
-            emailSent = await sendCimLinkEmail(
-              signerEmail.trim(),
-              signerName.trim(),
-              cimDoc.title,
-              redirectUrl,
-              ownerProfileData
-            );
-            console.log("Access email sent to existing signer:", emailSent);
-          } catch (error) {
-            console.error("Failed to send access email to existing signer:", error);
-          }
-        }
-
-        return res.json({ 
-          success: true, 
-          message: emailSent ? "Check your email for the document access link" : "NDA already signed",
-          signature: existingSignature,
-          accessToken: accessToken,
-          requiresApproval: cimDoc.ndaApprovalRequired || false,
-          redirectUrl: redirectUrl
-        });
-      }
+      // Always process NDA signing and send all emails (no distinction between new/existing signers)
+      console.log("Processing NDA signing for CIM:", cimDoc.id, "Email:", signerEmail);
 
       // Get NDA template
       console.log("Getting NDA templates for user:", cimDoc.userId);
