@@ -598,7 +598,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const urlProcessingStart = Date.now();
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
-      const baseUrl = `${protocol}://${host}`;
+      
+      // Use production domain for image URLs in production environment
+      let baseUrl;
+      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
+        baseUrl = 'https://cimshare.com';
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
 
       // Enhanced URL processing function for all image types
       const processImageUrl = (url: string | null) => {
