@@ -213,6 +213,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Database backup endpoints
+  app.post("/api/admin/backup/create", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const user = await storage.getUser(req.user!.id);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      const { backupManager } = await import('./database-backup');
+      const { label = 'manual' } = req.body;
+      const backupPath = await backupManager.createFullBackup(label);
+      
+      res.json({ 
+        success: true, 
+        message: "Backup created successfully",
+        backupPath 
+      });
+    } catch (error) {
+      console.error('Backup creation failed:', error);
+      res.status(500).json({ 
+        error: "Failed to create backup",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/admin/backup/list", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const user = await storage.getUser(req.user!.id);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      const { backupManager } = await import('./database-backup');
+      const backups = backupManager.listBackups();
+      
+      res.json({ 
+        success: true, 
+        backups 
+      });
+    } catch (error) {
+      console.error('Failed to list backups:', error);
+      res.status(500).json({ 
+        error: "Failed to list backups",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/admin/backup/clean", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const user = await storage.getUser(req.user!.id);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      const { backupManager } = await import('./database-backup');
+      backupManager.cleanOldBackups();
+      
+      res.json({ 
+        success: true, 
+        message: "Old backups cleaned successfully" 
+      });
+    } catch (error) {
+      console.error('Failed to clean backups:', error);
+      res.status(500).json({ 
+        error: "Failed to clean backups",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Serve uploaded file content for sharing
   app.get("/api/share/:shareSlug/file", async (req, res) => {
     try {
