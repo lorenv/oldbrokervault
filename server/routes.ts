@@ -5698,14 +5698,25 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         let emailSent = false;
         if (redirectUrl) {
           try {
-            const { sendNdaAccessEmail } = await import('./email');
-            emailSent = await sendNdaAccessEmail(
+            const { sendCimLinkEmail } = await import('./email');
+            // Get owner profile for CIM link email
+            const ownerProfile = await storage.getUserProfile(cimDoc.userId);
+            const ownerProfileData = {
+              name: owner.name || owner.email,
+              email: owner.email,
+              phone: ownerProfile?.phoneNumber || undefined,
+              title: ownerProfile?.title || undefined,
+              businessName: ownerProfile?.businessName || undefined,
+              profilePhotoUrl: ownerProfile?.profilePhoto || undefined,
+              businessLogoUrl: ownerProfile?.businessLogo || undefined
+            };
+            
+            emailSent = await sendCimLinkEmail(
               signerEmail.trim(),
-              owner.email,
-              owner.name || owner.email,
+              signerName.trim(),
               cimDoc.title,
               redirectUrl,
-              signerName.trim()
+              ownerProfileData
             );
             console.log("Access email sent to existing signer:", emailSent);
           } catch (error) {
