@@ -171,7 +171,7 @@ export class DatabaseBackupManager {
         WHERE table_schema = 'public' 
         AND table_type = 'BASE TABLE'
       `);
-      return (result as any).map((row: any) => row.table_name);
+      return Array.isArray(result) ? result.map((row: any) => row.table_name) : [];
     } catch (error) {
       console.warn('Failed to get table names:', error);
       return [];

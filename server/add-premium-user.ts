@@ -1,79 +1,81 @@
+#!/usr/bin/env tsx
+/**
+ * Add Premium User Script
+ * Creates admin user with premium access until 2035
+ */
 
-import { storage } from "./storage";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
+import { db } from './db';
+import { users } from '../shared/schema';
+import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function main() {
-  // Check if user exists
-  const email = "robert@dealve.cc";
-  let user = await storage.getUserByEmail(email);
-  
-  if (!user) {
-    // Create user with premium status
-    console.log(`Creating new user: ${email}`);
-    user = await storage.createUser({
+async function addPremiumUser() {
+  try {
+    console.log('🔐 Creating admin user with premium access...');
+    
+    const email = 'robert@dealve.cc';
+    const password = 'Flydccstone500!';
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Set subscription end date to 2035 
+    const subscriptionEndsAt = new Date('2035-12-31T23:59:59Z');
+    
+    const [user] = await db.insert(users).values({
       email,
-      password: await hashPassword("Flydccstone500!"),
-      isAdmin: true, // Setting as admin for unlimited access
-    });
-    console.log(`User created with ID: ${user.id}`);
-  } else {
-    console.log(`User exists with ID: ${user.id}`);
-    // Update password if user exists
-    const hashedPassword = await hashPassword("Flydccstone500!");
-    await storage.updateUserPassword(user.id, hashedPassword);
-    console.log("Password updated");
+      password: hashedPassword,
+      name: 'Robert Smith',
+      title: 'CIM Share Administrator',
+      isAdmin: true,
+      subscriptionStatus: 'premium',
+      subscriptionEndsAt,
+      monthlyDocumentsCreated: 0,
+      monthlyRegenerationsUsed: 0,
+      businessName: 'CIM Share',
+      phoneNumber: '(555) 123-4567'
+    }).returning();
+    
+    console.log('✅ Admin user created successfully:');
+    console.log(`   📧 Email: ${user.email}`);
+    console.log(`   👤 Name: ${user.name}`);
+    console.log(`   🔑 Admin: ${user.isAdmin ? 'Yes' : 'No'}`);
+    console.log(`   💎 Premium until: ${user.subscriptionEndsAt?.toDateString()}`);
+    console.log(`   🆔 User ID: ${user.id}`);
+    
+  } catch (error: any) {
+    if (error.message?.includes('duplicate key')) {
+      console.log('👤 Admin user already exists');
+      
+      // Update existing user to ensure admin status
+      const [updatedUser] = await db.update(users)
+        .set({
+          isAdmin: true,
+          subscriptionStatus: 'premium',
+          subscriptionEndsAt: new Date('2035-12-31T23:59:59Z'),
+          name: 'Robert Smith',
+          title: 'CIM Share Administrator',
+          businessName: 'CIM Share',
+          phoneNumber: '(555) 123-4567'
+        })
+        .where(eq(users.email, 'robert@dealve.cc'))
+        .returning();
+        
+      console.log('✅ Admin user updated successfully:');
+      console.log(`   📧 Email: ${updatedUser.email}`);
+      console.log(`   👤 Name: ${updatedUser.name}`);
+      console.log(`   🔑 Admin: ${updatedUser.isAdmin ? 'Yes' : 'No'}`);
+      console.log(`   💎 Premium until: ${updatedUser.subscriptionEndsAt?.toDateString()}`);
+      console.log(`   🆔 User ID: ${updatedUser.id}`);
+    } else {
+      console.error('❌ Failed to create admin user:', error);
+      throw error;
+    }
   }
-  
-  // Set premium subscription with unlimited access
-  const endsAt = new Date();
-  endsAt.setFullYear(endsAt.getFullYear() + 10); // 10 years premium for unlimited access
-  
-  await storage.updateSubscription(user.id, "premium", endsAt);
-  console.log(`Subscription updated to premium until ${endsAt.toISOString()}`);
-  
-  // Set admin status for unlimited features
-  const { db } = await import("./db");
-  const { users } = await import("@shared/schema");
-  const { eq } = await import("drizzle-orm");
-  
-  await db.update(users).set({ 
-    isAdmin: true,
-    monthlyDocumentsCreated: 0, // Reset counter
-    monthlyRegenerationsUsed: 0 // Reset counter
-  }).where(eq(users.id, user.id));
-  
-  console.log("Admin status granted for unlimited access");
-  
-  // Print summary
-  const updatedUser = await storage.getUser(user.id);
-  console.log("User details:", {
-    id: updatedUser.id,
-    email: updatedUser.email,
-    status: updatedUser.subscriptionStatus,
-    isAdmin: updatedUser.isAdmin,
-    endsAt: updatedUser.subscriptionEndsAt,
-    documentsCreated: updatedUser.monthlyDocumentsCreated,
-    regenerationsUsed: updatedUser.monthlyRegenerationsUsed
-  });
-  
-  console.log("\n✅ Premium unlimited account created successfully!");
-  console.log("📧 Email: robert@dealve.cc");
-  console.log("🔑 Password: Flydccstone500!");
-  console.log("🚀 Features: Unlimited CIM creations, regenerations, and all premium features");
-  
-  process.exit(0);
 }
 
-main().catch(error => {
-  console.error("Error:", error);
+addPremiumUser().then(() => {
+  console.log('🎉 Script completed successfully');
+  process.exit(0);
+}).catch((error) => {
+  console.error('💥 Script failed:', error);
   process.exit(1);
 });
