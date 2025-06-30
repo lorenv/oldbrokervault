@@ -25,12 +25,12 @@ The application follows a modern client-server architecture with clear separatio
 - **Session Store**: PostgreSQL-backed session storage
 
 ### Deployment Strategy
-- **Platform**: Replit Native Deployment (provides persistent filesystem storage)
+- **Platform**: Replit Static Deployment (provides persistent filesystem storage)
 - **Environment**: Node.js 20 with PostgreSQL 16
 - **Build Process**: Vite for frontend, ESBuild for backend bundling
 - **Static Assets**: Served via Express with proper caching headers
-- **File Storage**: Persistent filesystem via Replit (eliminates image loss during deployments)
-- **Previous Issue**: CloudRun had ephemeral containers that deleted user images - **RESOLVED** by switching to Replit
+- **File Storage**: Persistent filesystem via static deployment (eliminates image loss during deployments)
+- **Critical Fix**: Changed from CloudRun (ephemeral) to static deployment for persistent storage
 
 ## Key Components
 
