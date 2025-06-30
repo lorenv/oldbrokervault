@@ -2342,9 +2342,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         
         // Add financial files section with hyperlinks
         if (financialFiles && financialFiles.length > 0) {
-          console.log("Processing financial files for PDF:", financialFiles);
+          console.log("Processing financial files for PDF:", financialFiles.length, "files");
+          console.log("First financial file sample:", JSON.stringify(financialFiles[0], null, 2));
           const includedFiles = financialFiles.filter(file => file.included !== false);
-          console.log("Included financial files:", includedFiles);
+          console.log("Included financial files:", includedFiles.length, "files");
           
           if (includedFiles.length > 0) {
             doc.moveDown(1);

@@ -639,6 +639,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       console.log("Data fetch time:", Date.now() - dataFetchStart + "ms");
+      console.log("Financial files for PDF export:", documentFinancialFiles?.length || 0, "files");
+      if (documentFinancialFiles?.length > 0) {
+        console.log("Sample financial file:", JSON.stringify(documentFinancialFiles[0], null, 2));
+      }
 
       if (!userProfile) {
         return res.status(404).json({ error: "Document owner not found" });
