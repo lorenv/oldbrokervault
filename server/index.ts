@@ -5,7 +5,8 @@ import { setupSecurity } from "./security";
 import { imagePersistenceManager } from "./image-persistence";
 
 const app = express();
-const PORT = parseInt(process.env.PORT ?? "5000", 10);
+// Static deployment uses PORT 80, development uses 5000
+const PORT = parseInt(process.env.PORT ?? (process.env.NODE_ENV === 'production' ? "80" : "5000"), 10);
 
 // Enhanced environment variable validation for deployment
 function validateDeploymentEnvironment() {
