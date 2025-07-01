@@ -9,7 +9,6 @@ channel = "stable-24_05"
 build = ["./build-static.sh"]
 run = ["node", "start.js"]
 deploymentTarget = "static"
-publicDir = "dist"
 
 [[ports]]
 localPort = 80

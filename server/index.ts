@@ -103,64 +103,51 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Setup all middleware BEFORE starting server for immediate response
-try {
-  log('Setting up middleware and routes...');
-  
-  // Basic JSON parsing
-  app.use(express.json({ limit: '100mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-  
-  // Setup security middleware
-  setupSecurity(app);
-  
-  // Register API routes
-  registerRoutes(app);
-  
-  // Error handling middleware - must be AFTER routes
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    log(`Error ${status}: ${message}`);
-    res.status(status).json({ message });
-  });
-  
-  log('All middleware and routes configured');
-  
-} catch (error) {
-  log(`Server setup error: ${error instanceof Error ? error.message : String(error)}`);
-}
-
-// Enhanced server startup optimized for static deployment
+// Start server FIRST for immediate health check response (Agent Suggestion #2)
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);
   log('✅ Health checks responding immediately with full configuration');
-  
-  // Setup Vite/static serving immediately (critical for deployment)
-  if (app.get("env") === "development") {
-    setupVite(app, server).catch(err => {
-      log(`⚠️ Vite setup error: ${err.message}`, 'vite');
-    });
-  } else {
-    serveStatic(app);
-  }
-  
-  // Initialize image persistence system in background AFTER server is ready
+});
+
+// Move ALL middleware setup AFTER server.listen() (Agent Suggestion #2)
+server.on('listening', () => {
   setTimeout(() => {
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true';
+    log('Setting up middleware and routes...');
     
-    if (isProduction) {
-      log('🔄 Production deployment detected - Restoring missing images from database backups...');
-      imagePersistenceManager.restoreMissingImages().catch(err => {
-        log(`⚠️ Image restoration error: ${err.message}`, 'image-persistence');
+    try {
+      // Basic JSON parsing
+      app.use(express.json({ limit: '100mb' }));
+      app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+      
+      // Setup security middleware
+      setupSecurity(app);
+      
+      // Register API routes
+      registerRoutes(app);
+      
+      // Error handling middleware - must be AFTER routes
+      app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+        log(`Error ${status}: ${message}`);
+        res.status(status).json({ message });
       });
-    } else {
-      log('🔄 Development mode - Creating image backups for persistence...');
-      imagePersistenceManager.createImageBackups().catch(err => {
-        log(`⚠️ Image backup error: ${err.message}`, 'image-persistence');
-      });
+      
+      log('All middleware and routes configured');
+      
+      // Setup Vite/static serving after middleware
+      if (app.get("env") === "development") {
+        setupVite(app, server).catch(err => {
+          log(`⚠️ Vite setup error: ${err.message}`, 'vite');
+        });
+      } else {
+        serveStatic(app);
+      }
+      
+    } catch (error) {
+      log(`Post-startup configuration error: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, 1000); // Defer heavy operations for 1 second to allow health checks
+  }, 10); // Minimal delay to allow health checks to respond first
 });
 
 // Enhanced error handling for server startup
