@@ -2,6 +2,7 @@
 // Root start.js - delegates to dist/start.js for static deployment
 process.env.NODE_ENV = 'production';
 process.env.DEPLOYMENT_TARGET = 'static';
+process.env.PORT = '3000';
 
 console.log('🚀 CIM Share - Static Deployment Launcher');
 console.log('📍 Root directory:', process.cwd());
