@@ -35,6 +35,7 @@ cat > dist/start.js << 'EOF'
 // Static deployment start script optimized for Replit
 process.env.NODE_ENV = 'production';
 process.env.DEPLOYMENT_TARGET = 'static';
+process.env.PORT = '3000';
 
 console.log('🚀 Starting CIM Share in static deployment mode...');
 console.log('📍 Working directory:', process.cwd());
@@ -57,6 +58,7 @@ cat > start.js << 'EOF'
 // Root start.js - delegates to dist/start.js for static deployment
 process.env.NODE_ENV = 'production';
 process.env.DEPLOYMENT_TARGET = 'static';
+process.env.PORT = '3000';
 
 console.log('🚀 CIM Share - Static Deployment Launcher');
 console.log('📍 Root directory:', process.cwd());

@@ -5,8 +5,8 @@ import { setupSecurity } from "./security";
 import { imagePersistenceManager } from "./image-persistence";
 
 const app = express();
-// Static deployment uses PORT 80, development uses 5000
-const PORT = parseInt(process.env.PORT ?? (process.env.NODE_ENV === 'production' ? "80" : "5000"), 10);
+// Use port 5000 for development (workflow compatibility) and 3000 for production (Autoscale)
+const PORT = parseInt(process.env.PORT ?? (process.env.NODE_ENV === 'production' ? "3000" : "5000"), 10);
 
 // Enhanced environment variable validation for deployment
 function validateDeploymentEnvironment() {
@@ -147,7 +147,7 @@ server.on('listening', () => {
     } catch (error) {
       log(`Post-startup configuration error: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, 10); // Minimal delay to allow health checks to respond first
+  }, 1); // Minimal delay to allow health checks to respond first
 });
 
 // Enhanced error handling for server startup
