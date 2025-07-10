@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
+import { objectStorageImageManager } from './image-manager-object-storage';
+import { log } from './vite';
 
 export interface ImageMetadata {
   id: string;
@@ -74,9 +76,38 @@ export class ImageManager {
   }
 
   /**
-   * Save an image from buffer data
+   * Save an image from buffer data (Now uses Object Storage with filesystem fallback)
    */
   async saveImageFromBuffer(
+    buffer: Buffer,
+    originalName: string,
+    mimeType: string,
+    userId: number,
+    type: 'logos' | 'business-images' | 'profile-photos' | 'custom-sections' = 'business-images',
+    options: { optimize?: boolean; maxWidth?: number; maxHeight?: number } = {}
+  ): Promise<ImageMetadata> {
+    try {
+      // Primary: Use Object Storage
+      log(`📦 Saving image to object storage: ${originalName} (user: ${userId}, type: ${type})`);
+      return await objectStorageImageManager.saveImageFromBuffer(
+        buffer,
+        originalName,
+        mimeType,
+        userId,
+        type,
+        options
+      );
+    } catch (error) {
+      // Fallback: Use filesystem
+      log(`⚠️ Object storage failed, falling back to filesystem: ${error instanceof Error ? error.message : String(error)}`);
+      return await this.saveImageFromBufferFilesystem(buffer, originalName, mimeType, userId, type, options);
+    }
+  }
+
+  /**
+   * Filesystem fallback method (original implementation)
+   */
+  private async saveImageFromBufferFilesystem(
     buffer: Buffer,
     originalName: string,
     mimeType: string,
