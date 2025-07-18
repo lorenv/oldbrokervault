@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
+import { fileStorageManager } from "./file-storage";
 import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
@@ -1707,32 +1708,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating CIM document from upload with directions:", data.directions);
       console.log("Financial data for upload route:", parsedFinancials);
       
-      // Handle financial files upload
+      // Handle financial files upload using object storage
       let uploadedFinancialFiles = [];
       const financialFileFields = files.filter(file => file.fieldname.startsWith('financialFile_'));
       
       console.log("Found financial files to upload:", financialFileFields.length);
       
       if (financialFileFields.length > 0) {
-        const financialFilesDir = path.join(process.cwd(), 'financial-files');
-        if (!fsSync.existsSync(financialFilesDir)) {
-          fsSync.mkdirSync(financialFilesDir, { recursive: true });
-        }
-        
         for (const file of financialFileFields) {
-          const fileExtension = path.extname(file.originalname);
-          const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
-          const filePath = path.join(financialFilesDir, uniqueFileName);
-          
-          fsSync.writeFileSync(filePath, file.buffer);
-          
-          uploadedFinancialFiles.push({
-            fileName: uniqueFileName,
-            originalName: file.originalname,
-            filePath,
-            fileSize: file.size,
-            mimeType: file.mimetype
-          });
+          try {
+            console.log(`Uploading financial file: ${file.originalname} (${file.size} bytes)`);
+            const fileMetadata = await fileStorageManager.saveFileFromBuffer(
+              file.buffer,
+              file.originalname,
+              file.mimetype,
+              req.user!.id,
+              'financial-files'
+            );
+            
+            uploadedFinancialFiles.push({
+              fileName: fileMetadata.fileName,
+              originalName: fileMetadata.originalName,
+              filePath: fileMetadata.filePath, // This is the object storage key
+              fileSize: fileMetadata.fileSize,
+              mimeType: fileMetadata.mimeType,
+              publicPath: fileMetadata.publicPath
+            });
+            
+            console.log(`Financial file uploaded to object storage: ${fileMetadata.publicPath}`);
+          } catch (error) {
+            console.error(`Failed to upload financial file ${file.originalname}:`, error);
+            // Continue with other files even if one fails
+          }
         }
         console.log("Uploaded financial files:", uploadedFinancialFiles.length);
       }
@@ -1990,33 +1997,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "File not available for download" });
       }
 
-      // Check if file exists on disk
-      const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
-      if (!fileExists) {
-        return res.status(404).json({ error: "File not found on disk" });
+      // Download file from object storage
+      try {
+        const fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+        
+        // Get MIME type from file extension
+        const ext = path.extname(file.filename).toLowerCase();
+        const mimeTypes: { [key: string]: string } = {
+          '.pdf': 'application/pdf',
+          '.doc': 'application/msword',
+          '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          '.xls': 'application/vnd.ms-excel',
+          '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.png': 'image/png'
+        };
+        const mimeType = mimeTypes[ext] || 'application/octet-stream';
+        
+        // Set appropriate headers
+        res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+        res.setHeader('Content-Type', mimeType);
+
+        // Send the file buffer
+        res.send(fileBuffer);
+      } catch (downloadError) {
+        console.error('Error downloading file from object storage:', downloadError);
+        return res.status(404).json({ error: "File not found in storage" });
       }
-
-      // Get MIME type from file extension
-      const ext = path.extname(file.filename).toLowerCase();
-      const mimeTypes: { [key: string]: string } = {
-        '.pdf': 'application/pdf',
-        '.doc': 'application/msword',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.xls': 'application/vnd.ms-excel',
-        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png'
-      };
-      const mimeType = mimeTypes[ext] || 'application/octet-stream';
-      
-      // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
-      res.setHeader('Content-Type', mimeType);
-
-      // Stream the file
-      const fileStream = await fs.readFile(file.filePath);
-      res.send(fileStream);
     } catch (error) {
       console.error('Error downloading shared financial file:', error);
       res.status(500).json({ error: "Failed to download file" });
@@ -2059,11 +2067,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const file of includedFiles) {
         try {
-          const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
-          if (fileExists) {
-            const fileBuffer = await fs.readFile(file.filePath);
-            archive.append(fileBuffer, { name: file.filename });
-          }
+          const fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+          archive.append(fileBuffer, { name: file.filename });
         } catch (fileError) {
           console.error(`Error adding file ${file.filename} to archive:`, fileError);
         }
@@ -6325,26 +6330,18 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Generate unique filename while preserving original name
-      const fileExtension = path.extname(file.originalname);
-      const baseName = path.basename(file.originalname, fileExtension);
-      const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${baseName}${fileExtension}`;
-      const filePath = path.join(financialFilesDir, uniqueFileName);
+      // Upload file to object storage
+      console.log("Uploading file to object storage...");
+      const fileMetadata = await fileStorageManager.saveFileFromBuffer(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        req.user.id,
+        'financial-files'
+      );
       
-      console.log("Generated file path:", filePath);
-      console.log("Financial files directory:", financialFilesDir);
-
-      // Ensure directory exists
-      await fs.mkdir(financialFilesDir, { recursive: true });
-      console.log("Directory ensured to exist");
-
-      // Save file to secure directory
-      await fs.writeFile(filePath, file.buffer);
-      console.log("File written to disk successfully");
-
-      // Verify file was written
-      const fileStats = await fs.stat(filePath);
-      console.log("File verification - size on disk:", fileStats.size, "bytes");
+      console.log("File uploaded to object storage:", fileMetadata.publicPath);
+      console.log("File storage key:", fileMetadata.filePath);
 
       // Save file record to database with original filename for display
       const [fileRecord] = await db
@@ -6352,7 +6349,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         .values({
           cimDocumentId: cimId,
           filename: file.originalname, // Store original filename for display
-          filePath,
+          filePath: fileMetadata.filePath, // Store object storage key
           fileSize: file.size
         })
         .returning();
@@ -6382,19 +6379,20 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(404).json({ error: "File not found" });
       }
 
-      // Check if file exists on disk
-      const fileExists = await fs.access(file.filePath).then(() => true).catch(() => false);
-      if (!fileExists) {
-        return res.status(404).json({ error: "File not found on disk" });
+      // Download file from object storage
+      try {
+        const fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+        
+        // Set appropriate headers
+        res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+
+        // Send the file buffer
+        res.send(fileBuffer);
+      } catch (downloadError) {
+        console.error('Error downloading file from object storage:', downloadError);
+        return res.status(404).json({ error: "File not found in storage" });
       }
-
-      // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
-      res.setHeader('Content-Type', 'application/octet-stream');
-
-      // Stream the file
-      const fileStream = await fs.readFile(file.filePath);
-      res.send(fileStream);
     } catch (error) {
       console.error('Error downloading financial file:', error);
       res.status(500).json({ error: "Failed to download file" });
@@ -6423,11 +6421,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const [file] = await db.select().from(financialFiles).where(eq(financialFiles.id, fileId));
       
       if (file) {
-        // Delete physical file
+        // Delete file from object storage
         try {
-          await fs.unlink(file.filePath);
+          await fileStorageManager.deleteFile(file.filePath);
         } catch (error) {
-          console.error('Error deleting physical file:', error);
+          console.error('Error deleting file from object storage:', error);
         }
 
         // Delete database record
@@ -6462,10 +6460,10 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       for (const file of files) {
         try {
-          const fileContent = await fs.readFile(file.filePath);
+          const fileContent = await fileStorageManager.downloadFile(file.filePath);
           zip.file(file.filename, fileContent);
         } catch (error) {
-          console.error(`Error reading file ${file.filename}:`, error);
+          console.error(`Error downloading file ${file.filename} from object storage:`, error);
         }
       }
 

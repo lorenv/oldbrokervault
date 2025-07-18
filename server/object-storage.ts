@@ -115,6 +115,17 @@ class ObjectStorageService {
   }
 
   /**
+   * Generate storage key for user file
+   * @param userId - User ID
+   * @param category - File category (financial-files, uploaded-cims, documents)
+   * @param filename - Original filename
+   * @returns Storage key
+   */
+  generateFileKey(userId: string, category: 'financial-files' | 'uploaded-cims' | 'documents', filename: string): string {
+    return `users/${userId}/${category}/${filename}`;
+  }
+
+  /**
    * Generate public URL for image
    * @param key - Storage key
    * @returns Public URL
