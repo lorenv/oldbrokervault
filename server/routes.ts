@@ -1831,38 +1831,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create upload directory if it doesn't exist
-      const uploadedCimsDir = path.join(process.cwd(), 'uploaded-cims');
-      await fs.mkdir(uploadedCimsDir, { recursive: true });
-
       // Create CIM document record first
       const cimDoc = await storage.createUploadedCimDocument(req.user!.id, {
         title: title.trim()
       });
 
-      // Process and save each file
+      // Process and save each file to object storage
       const savedFiles = [];
       for (const file of files) {
-        // Generate unique filename
-        const timestamp = Date.now();
-        const randomStr = Math.random().toString(36).substring(2, 8);
-        const ext = path.extname(file.originalname);
-        const fileName = `${timestamp}_${randomStr}${ext}`;
-        const filePath = path.join(uploadedCimsDir, fileName);
+        try {
+          console.log(`Uploading CIM file: ${file.originalname} (${file.size} bytes)`);
+          const fileMetadata = await fileStorageManager.saveFileFromBuffer(
+            file.buffer,
+            file.originalname,
+            file.mimetype,
+            req.user!.id,
+            'uploaded-cims'
+          );
 
-        // Save file to disk
-        await fs.writeFile(filePath, file.buffer);
+          // Store file record in uploadedFiles table
+          const uploadedFile = await storage.createUploadedFile({
+            cimDocumentId: cimDoc.id,
+            fileName: file.originalname,
+            filePath: fileMetadata.filePath, // Store object storage key
+            fileSize: file.size,
+            mimeType: file.mimetype
+          });
 
-        // Store file record in uploadedFiles table
-        const uploadedFile = await storage.createUploadedFile({
-          cimDocumentId: cimDoc.id,
-          fileName: file.originalname,
-          filePath,
-          fileSize: file.size,
-          mimeType: file.mimetype
-        });
-
-        savedFiles.push(uploadedFile);
+          savedFiles.push(uploadedFile);
+          console.log(`CIM file uploaded to object storage: ${fileMetadata.publicPath}`);
+        } catch (error) {
+          console.error(`Failed to upload CIM file ${file.originalname}:`, error);
+          // Continue with other files even if one fails
+        }
       }
 
       console.log(`Successfully uploaded ${savedFiles.length} files for CIM ${cimDoc.id}`);
