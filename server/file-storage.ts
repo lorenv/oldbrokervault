@@ -80,8 +80,9 @@ export class FileStorageManager {
         throw new Error(`Upload failed: ${result.error.message}`);
       }
       
-      // Generate public URL for Replit Object Storage
-      const publicUrl = `https://storage.googleapis.com/${bucketName}/${key}`;
+      // Generate server-side URL for Replit Object Storage
+      // Object storage files must be served through our application server
+      const publicUrl = `/api/object-storage/${key}`;
       log(`✅ File uploaded successfully: ${key}`);
       return publicUrl;
     } catch (error) {
@@ -144,7 +145,7 @@ export class FileStorageManager {
    */
   getPublicUrl(storageKey: string): string {
     const bucketName = objectStorage['bucketName'];
-    return `https://storage.googleapis.com/${bucketName}/${storageKey}`;
+    return `/api/object-storage/${storageKey}`;
   }
 
   /**
