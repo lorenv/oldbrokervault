@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
-import { insertCimDocumentSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
+import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
@@ -1552,8 +1552,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transcriptFile = files.find(file => file.fieldname === 'transcript');
       const transcript = transcriptFile ? transcriptFile.buffer.toString('utf-8') : req.body.transcript;
       
-      // Parse selectedImages from FormData string to array before schema validation
+      // Parse JSON fields from FormData strings before schema validation
       let parsedBody = { ...req.body };
+      
+      // Parse selectedImages from FormData string to array
       if (req.body.selectedImages && typeof req.body.selectedImages === 'string') {
         try {
           parsedBody.selectedImages = JSON.parse(req.body.selectedImages);
@@ -1564,7 +1566,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const data = insertCimDocumentSchema.parse({
+      // Parse coverImagePosition from FormData string (it's already a JSON string, so keep it as string)
+      if (req.body.coverImagePosition && typeof req.body.coverImagePosition === 'string') {
+        // coverImagePosition should remain as string since schema expects text field
+        parsedBody.coverImagePosition = req.body.coverImagePosition;
+        console.log("Parsed coverImagePosition from FormData:", parsedBody.coverImagePosition);
+      }
+      
+      const data = insertUploadedCimSchema.parse({
         ...parsedBody,
         transcript
       });
