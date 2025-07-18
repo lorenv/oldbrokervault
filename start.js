@@ -1,21 +1,18 @@
 #!/usr/bin/env node
-// Root start.js - delegates to dist/start.js for static deployment
+// Root start.js for auto-scale deployment
 process.env.NODE_ENV = 'production';
-process.env.DEPLOYMENT_TARGET = 'static';
-process.env.PORT = '3000';
+process.env.DEPLOYMENT_TARGET = 'autoscale';
 
-console.log('🚀 CIM Share - Static Deployment Launcher');
-console.log('📍 Root directory:', process.cwd());
-console.log('🔗 Delegating to dist/start.js...');
+// Auto-scale deployment port configuration
+const PORT = process.env.PORT || 3000;
+process.env.PORT = PORT;
 
-// Import the main start script from dist
-import('./dist/start.js').catch(err => {
-  console.error('❌ Failed to start from root:', err);
-  console.error('❌ Trying direct dist/index.js import...');
-  
-  // Fallback: try importing the built server directly
-  import('./dist/index.js').catch(fallbackErr => {
-    console.error('❌ All startup methods failed:', fallbackErr);
-    process.exit(1);
-  });
+console.log('🚀 CIM Share - Auto-scale Deployment');
+console.log('📍 Port:', PORT);
+console.log('🔗 Starting from dist/index.js...');
+
+// Import the built server directly
+import('./dist/index.js').catch(err => {
+  console.error('❌ Auto-scale startup failed:', err);
+  process.exit(1);
 });
