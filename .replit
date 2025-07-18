@@ -6,13 +6,12 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 channel = "stable-24_05"
 
 [deployment]
-build = ["./build-static.sh"]
+build = ["./build-autoscale.sh"]
 run = ["node", "start.js"]
-deploymentTarget = "static"
-
+deploymentTarget = "autoscale"
 [[ports]]
-localPort = 80
-externalPort = 3002
+localPort = 3000
+externalPort = 80
 
 [[ports]]
 localPort = 3000
