@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
+import { objectStorageImageManager } from "./image-manager-object-storage";
 import { fileStorageManager } from "./file-storage";
 import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
 import { searchService, versionService, analyticsService } from "./premium-services";
@@ -3200,13 +3201,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { afterSection } = req.body;
       
-      // Process and save all images using persistent storage
+      // Process and save all images using object storage for consistency
       const imageUrls: string[] = [];
       
       for (const file of req.files) {
         try {
-          // Use imageManager for persistent storage instead of ephemeral uploads directory
-          const metadata = await imageManager.saveImageFromBuffer(
+          // Use object storage image manager for consistency with other images
+          const metadata = await objectStorageImageManager.saveImageFromBuffer(
             file.buffer,
             file.originalname,
             file.mimetype,
@@ -3216,7 +3217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           
           imageUrls.push(metadata.publicPath);
-          console.log('Custom section image saved to persistent storage:', metadata.publicPath);
+          console.log('Custom section image saved to object storage:', metadata.publicPath);
         } catch (imageError) {
           console.error('Failed to save custom section image to persistent storage:', imageError);
           // Continue with other images instead of failing completely
