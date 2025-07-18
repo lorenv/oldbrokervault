@@ -329,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const firstFile = uploadedFiles[0];
         
         try {
-          const fileBuffer = await fs.readFile(firstFile.filePath);
+          const fileBuffer = await fileStorageManager.downloadFile(firstFile.filePath);
           
           // Set appropriate content type
           res.setHeader('Content-Type', firstFile.mimeType);
@@ -349,14 +349,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
           
         } catch (fileError) {
-          console.error("Error reading uploaded file from uploadedFiles table:", fileError);
+          console.error("Error reading uploaded file from object storage:", fileError);
         }
       }
 
-      // Fallback to old uploadedFilePath system
+      // Fallback to old uploadedFilePath system (try object storage first, then filesystem)
       if (cimDoc.uploadedFilePath) {
         try {
-          const fileBuffer = await fs.readFile(cimDoc.uploadedFilePath);
+          let fileBuffer;
+          
+          // Try object storage first (for migrated files)
+          try {
+            fileBuffer = await fileStorageManager.downloadFile(cimDoc.uploadedFilePath);
+          } catch (objectStorageError) {
+            // Fallback to filesystem for legacy files
+            try {
+              fileBuffer = await fs.readFile(cimDoc.uploadedFilePath);
+              console.log("Served legacy file from filesystem:", cimDoc.uploadedFilePath);
+            } catch (fsError) {
+              throw new Error("File not found in object storage or filesystem");
+            }
+          }
           
           // Set appropriate content type based on file type
           let contentType = 'application/octet-stream';
@@ -384,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.send(fileBuffer);
           
         } catch (fileError) {
-          console.error("Error reading uploaded file from legacy path:", fileError);
+          console.error("Error reading uploaded file:", fileError);
           res.status(404).json({ error: "File not found" });
         }
       } else {
@@ -1899,19 +1912,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (doc.isUploadedFile && doc.uploadedFilePath) {
-        // Check if file exists
         try {
-          await fs.access(doc.uploadedFilePath);
+          let fileBuffer;
+          
+          // Try object storage first (for migrated files)
+          try {
+            fileBuffer = await fileStorageManager.downloadFile(doc.uploadedFilePath);
+          } catch (objectStorageError) {
+            // Fallback to filesystem for legacy files
+            try {
+              await fs.access(doc.uploadedFilePath);
+              fileBuffer = await fs.readFile(doc.uploadedFilePath);
+              console.log("Served legacy file from filesystem:", doc.uploadedFilePath);
+            } catch (fsError) {
+              throw new Error("File not found in object storage or filesystem");
+            }
+          }
           
           // Set appropriate headers
           res.setHeader('Content-Type', doc.uploadedFileMimeType || 'application/octet-stream');
           res.setHeader('Content-Disposition', `attachment; filename="${doc.uploadedFileName}"`);
           
           // Stream the file
-          const fileBuffer = await fs.readFile(doc.uploadedFilePath);
           res.send(fileBuffer);
         } catch (fileError) {
-          return res.status(404).json({ error: "File not found on disk" });
+          return res.status(404).json({ error: "File not found" });
         }
       } else {
         return res.status(400).json({ error: "This document is not an uploaded file" });
@@ -2099,19 +2124,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "File not found" });
       }
 
-      // Check if file exists on disk
       try {
-        await fs.access(file.filePath);
+        let fileBuffer;
+        
+        // Try object storage first (for migrated files)
+        try {
+          fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+        } catch (objectStorageError) {
+          // Fallback to filesystem for legacy files
+          try {
+            await fs.access(file.filePath);
+            fileBuffer = await fs.readFile(file.filePath);
+            console.log("Served legacy shared file from filesystem:", file.filePath);
+          } catch (fsError) {
+            throw new Error("File not found in object storage or filesystem");
+          }
+        }
         
         // Set appropriate headers
         res.setHeader('Content-Type', file.mimeType);
         res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
         
         // Stream the file
-        const fileBuffer = await fs.readFile(file.filePath);
         res.send(fileBuffer);
       } catch (fileError) {
-        return res.status(404).json({ error: "File not found on disk" });
+        return res.status(404).json({ error: "File not found" });
       }
     } catch (error) {
       console.error("Shared file download error:", error);
@@ -2140,7 +2177,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add each file to the ZIP
       for (const file of files) {
         try {
-          const fileBuffer = await fs.readFile(file.filePath);
+          let fileBuffer;
+          
+          // Try object storage first (for migrated files)
+          try {
+            fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+          } catch (objectStorageError) {
+            // Fallback to filesystem for legacy files
+            try {
+              fileBuffer = await fs.readFile(file.filePath);
+              console.log("Added legacy file from filesystem to ZIP:", file.filePath);
+            } catch (fsError) {
+              console.warn(`Could not add file ${file.fileName} to ZIP - not found in object storage or filesystem:`, fsError);
+              continue;
+            }
+          }
+          
           zip.file(file.fileName, fileBuffer);
         } catch (fileError) {
           console.warn(`Could not add file ${file.fileName} to ZIP:`, fileError);
@@ -6176,22 +6228,30 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const savedFiles = [];
       
       for (const file of files) {
-        const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const fileName = `${timestamp}_${randomSuffix}.${file.originalname.split('.').pop()}`;
-        const filePath = path.join(uploadedCimsDir, fileName);
+        try {
+          console.log(`Uploading additional CIM file: ${file.originalname} (${file.size} bytes)`);
+          const fileMetadata = await fileStorageManager.saveFileFromBuffer(
+            file.buffer,
+            file.originalname,
+            file.mimetype,
+            req.user!.id,
+            'uploaded-cims'
+          );
 
-        await fs.writeFile(filePath, file.buffer);
+          const uploadedFile = await storage.createUploadedFile({
+            cimDocumentId: cimId,
+            fileName: file.originalname,
+            filePath: fileMetadata.filePath, // Store object storage key
+            fileSize: file.size,
+            mimeType: file.mimetype
+          });
 
-        const uploadedFile = await storage.createUploadedFile({
-          cimDocumentId: cimId,
-          fileName: file.originalname,
-          filePath,
-          fileSize: file.size,
-          mimeType: file.mimetype
-        });
-
-        savedFiles.push(uploadedFile);
+          savedFiles.push(uploadedFile);
+          console.log(`Additional CIM file uploaded to object storage: ${fileMetadata.publicPath}`);
+        } catch (error) {
+          console.error(`Failed to upload additional CIM file ${file.originalname}:`, error);
+          // Continue with other files even if one fails
+        }
       }
 
       res.json({
@@ -6226,14 +6286,27 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       }
       
       try {
-        const fileBuffer = await fs.readFile(file.filePath);
+        let fileBuffer;
+        
+        // Try object storage first (for migrated files)
+        try {
+          fileBuffer = await fileStorageManager.downloadFile(file.filePath);
+        } catch (objectStorageError) {
+          // Fallback to filesystem for legacy files
+          try {
+            fileBuffer = await fs.readFile(file.filePath);
+            console.log("Served legacy uploaded file from filesystem:", file.filePath);
+          } catch (fsError) {
+            throw new Error("File not found in object storage or filesystem");
+          }
+        }
         
         res.setHeader('Content-Type', file.mimeType);
         res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
         res.send(fileBuffer);
-      } catch (fsError) {
-        console.error("Error reading file:", fsError);
-        res.status(404).json({ error: "File not found on disk" });
+      } catch (error) {
+        console.error("Error reading file:", error);
+        res.status(404).json({ error: "File not found" });
       }
     } catch (error) {
       console.error('Error downloading uploaded file:', error);
@@ -6261,11 +6334,17 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         return res.status(404).json({ error: "File not found" });
       }
       
-      // Delete file from filesystem
+      // Delete file from object storage (try object storage first, then filesystem for legacy)
       try {
-        await fs.unlink(file.filePath);
-      } catch (fsError) {
-        console.warn("Could not delete file from filesystem:", fsError);
+        await fileStorageManager.deleteFile(file.filePath);
+      } catch (objectStorageError) {
+        // Try filesystem for legacy files
+        try {
+          await fs.unlink(file.filePath);
+          console.log("Deleted legacy file from filesystem:", file.filePath);
+        } catch (fsError) {
+          console.warn("Could not delete file from object storage or filesystem:", fsError);
+        }
       }
       
       // Delete from database
