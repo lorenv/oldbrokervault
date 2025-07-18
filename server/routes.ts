@@ -1187,6 +1187,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Extract financial data from request
       const financials = data.financials;
+      console.log("=== FINANCIAL DATA DEBUG ===");
+      console.log("Financial data received:", {
+        hasFinancials: !!financials,
+        enabled: financials?.enabled,
+        askingPrice: financials?.askingPrice,
+        revenue: financials?.revenue,
+        ebitda: financials?.ebitda,
+        fullFinancials: financials
+      });
       
       // Extract cover image data from request (handling nested object structure)
       const coverImage = data.coverImage;
@@ -2325,6 +2334,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (doc.userId !== req.user!.id && !req.user!.isAdmin) {
         return res.status(403).json({ error: "You don't have permission to view this document" });
       }
+      
+      // Debug: Log the exact document data being returned
+      console.log(`=== CIM DOCUMENT API RESPONSE (ID: ${docId}) ===`);
+      console.log("selectedImages field:", doc.selectedImages);
+      console.log("selectedImages type:", typeof doc.selectedImages);
+      console.log("selectedImages length:", Array.isArray(doc.selectedImages) ? doc.selectedImages.length : 'not array');
+      console.log("financialsEnabled:", doc.financialsEnabled);
+      console.log("revenue:", doc.revenue);
+      console.log("ebitda:", doc.ebitda);
+      console.log("askingPrice:", doc.askingPrice);
       
       res.json(doc);
     } catch (error) {
