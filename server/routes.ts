@@ -1573,6 +1573,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Parsed coverImagePosition from FormData:", parsedBody.coverImagePosition);
       }
       
+      // Debug: Log what we're sending to schema validation
+      console.log("=== SCHEMA VALIDATION DEBUG ===");
+      console.log("coverImagePosition type:", typeof parsedBody.coverImagePosition);
+      console.log("coverImagePosition value:", parsedBody.coverImagePosition);
+      console.log("Raw req.body.coverImagePosition:", req.body.coverImagePosition);
+      console.log("Is coverImagePosition a string?", typeof parsedBody.coverImagePosition === 'string');
+      
       const data = insertUploadedCimSchema.parse({
         ...parsedBody,
         transcript

@@ -357,7 +357,7 @@ export function CimGenerator() {
           }),
           ...(selectedCoverImage && {
             coverImageUrl: selectedCoverImage,
-            coverImagePosition,
+            coverImagePosition: JSON.stringify(coverImagePosition),
             ...(coverImageAttribution && { coverImageAttribution })
           })
         };
