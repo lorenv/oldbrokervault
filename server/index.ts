@@ -80,20 +80,8 @@ try {
   }
 }
 
-// IMMEDIATE HEALTH CHECK ENDPOINTS FOR STATIC DEPLOYMENT
-// Root endpoint required for Replit static deployment health checks
-app.get('/', (req, res) => {
-  if (process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === 'true') {
-    res.status(200).json({ 
-      status: 'healthy', 
-      timestamp: new Date().toISOString(),
-      deployment: 'static' 
-    });
-  } else {
-    // In development, let Vite handle the root
-    res.redirect('/api/health');
-  }
-});
+// HEALTH CHECK ENDPOINTS FOR DEPLOYMENT
+// Note: Root route (/) will be handled by Vite (dev) or static serving (production)
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
