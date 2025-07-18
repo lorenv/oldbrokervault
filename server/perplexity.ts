@@ -1,4 +1,5 @@
-// the newest Perplexity model is llama-3.1-sonar-small-128k-online, use this by default
+// Current Perplexity models: sonar-pro (recommended), sonar, sonar-reasoning-pro
+// Legacy models: llama-3.1-sonar-small-128k-online, llama-3.1-sonar-large-128k-online
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 // New flexible document structure for free-form CIM generation
@@ -292,7 +293,7 @@ Create a comprehensive CIM document following the analysis parameters and custom
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.PERPLEXITY_API_KEY ? "llama-3.1-sonar-large-128k-online" : "gpt-4-turbo-preview",
+      model: process.env.PERPLEXITY_API_KEY ? "sonar-pro" : "gpt-4-turbo-preview",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -464,7 +465,7 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "llama-3.1-sonar-large-128k-online", // Use larger model for better handling
+      model: "sonar-pro", // Use sonar-pro for better handling with real-time search
       messages,
       max_tokens: 4500, // Reduce token limit to prevent truncation
       temperature: 0.05, // Even lower temperature for more consistent JSON
