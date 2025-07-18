@@ -1272,6 +1272,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Check for financial files in the regular generation route (JSON only, no file uploads)
+      // Note: Regular generation route cannot handle file uploads, only the upload route can
+      if (financials && (financials.enabled || financials.askingPrice || financials.revenue || financials.ebitda)) {
+        console.log("=== FINANCIAL DATA SUMMARY ===");
+        console.log("Financial data present in regular generation route (no files supported here)");
+        console.log("Financial data saved to CIM document:", {
+          enabled: financials.enabled,
+          askingPrice: financials.askingPrice,
+          revenue: financials.revenue,
+          ebitda: financials.ebitda
+        });
+        console.log("Note: For financial file uploads, use the /api/cim/upload endpoint with FormData");
+      }
+
       res.json(doc);
     } catch (error) {
       console.error("=== CIM GENERATION ERROR ===");
@@ -1685,8 +1699,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Extract financial data from request
-      const financials = data.financials;
+      // Extract financial data from request - use parsedFinancials from req.body.financials
+      const financials = parsedFinancials;
       
       // Extract and process cover image data from request
       let coverImageUrl = data.coverImageUrl || null;
