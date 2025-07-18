@@ -1205,6 +1205,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating CIM document with directions:", data.directions);
       
+      // Debug: Check financial data before document creation
+      const financialDataToSave = {
+        financialsEnabled: financials?.enabled || false,
+        askingPrice: financials?.askingPrice || null,
+        askingPriceIncluded: financials?.askingPriceIncluded || false,
+        revenue: financials?.revenue || null,
+        revenueIncluded: financials?.revenueIncluded || false,
+        ebitda: financials?.ebitda || null,
+        ebitdaIncluded: financials?.ebitdaIncluded || false,
+      };
+      console.log("Financial data to be saved:", financialDataToSave);
+      
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
@@ -2335,15 +2347,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You don't have permission to view this document" });
       }
       
-      // Debug: Log the exact document data being returned
-      console.log(`=== CIM DOCUMENT API RESPONSE (ID: ${docId}) ===`);
-      console.log("selectedImages field:", doc.selectedImages);
-      console.log("selectedImages type:", typeof doc.selectedImages);
-      console.log("selectedImages length:", Array.isArray(doc.selectedImages) ? doc.selectedImages.length : 'not array');
-      console.log("financialsEnabled:", doc.financialsEnabled);
-      console.log("revenue:", doc.revenue);
-      console.log("ebitda:", doc.ebitda);
-      console.log("askingPrice:", doc.askingPrice);
+      // Debug: Log basic document info
+      console.log(`Fetched CIM document ${docId} for user ${req.user!.id}`);
       
       res.json(doc);
     } catch (error) {
