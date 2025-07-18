@@ -18,6 +18,7 @@ import multer from 'multer';
 import { promises as fs } from 'fs';
 import * as fsSync from 'fs';
 import path from 'path';
+import { objectStorage } from './object-storage';
 import { generateWordDocument, generatePDF, generateHtml, formatTextContent } from "./document-export";
 import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates } from "./wordpress-export";
 // Geoip will be imported dynamically in the function where it's used
@@ -6514,6 +6515,47 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     } catch (error) {
       console.error('Error downloading financial file:', error);
       res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  // Serve object storage images endpoint
+  app.get("/api/object-storage/*", async (req, res) => {
+    try {
+      // Extract the storage key from the URL path
+      const storageKey = req.params[0]; // Everything after /api/object-storage/
+      
+      if (!storageKey) {
+        return res.status(400).json({ error: "No storage key provided" });
+      }
+      
+      console.log(`Serving object storage image: ${storageKey}`);
+      
+      // Download image from object storage
+      const imageBuffer = await objectStorage.downloadImage(storageKey);
+      
+      // Determine content type from file extension
+      const extension = path.extname(storageKey).toLowerCase();
+      const contentTypeMap: { [key: string]: string } = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml'
+      };
+      
+      const contentType = contentTypeMap[extension] || 'image/jpeg';
+      
+      // Set headers for image serving
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.setHeader('ETag', `"${storageKey}"`);
+      
+      // Send the image buffer
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error(`Error serving object storage image:`, error);
+      res.status(404).json({ error: "Image not found" });
     }
   });
 
