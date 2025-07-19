@@ -248,6 +248,14 @@ export function CimDisplay({
     }
   }, [selectedImages]);
   
+  // Also reset broken images when localSelectedImages changes
+  useEffect(() => {
+    if (localSelectedImages && localSelectedImages.length > 0) {
+      console.log("Reset broken images for localSelectedImages:", localSelectedImages);
+      setBrokenImages(new Set());
+    }
+  }, [localSelectedImages]);
+  
   // State for tracking broken images
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
   const [logoError, setLogoError] = useState(false);
@@ -772,10 +780,22 @@ export function CimDisplay({
                         onClick={() => openLightbox(index)}
                         onError={(e) => {
                           console.error(`Image failed to load: ${image}`, e);
+                          console.error('Image error details:', {
+                            src: e.currentTarget.src,
+                            naturalWidth: e.currentTarget.naturalWidth,
+                            naturalHeight: e.currentTarget.naturalHeight,
+                            complete: e.currentTarget.complete
+                          });
                           setBrokenImages(prev => new Set([...prev, index]));
                         }}
                         onLoad={() => {
                           console.log(`Image loaded successfully: ${image}`);
+                          // Remove from broken images if it was previously broken
+                          setBrokenImages(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(index);
+                            return newSet;
+                          });
                         }}
                       />
                     ) : (
