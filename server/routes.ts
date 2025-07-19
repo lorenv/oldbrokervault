@@ -1201,9 +1201,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Extract cover image data from request (handling nested object structure)
       const coverImage = data.coverImage;
-      const coverImageUrl = coverImage?.url || null;
-      const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : null;
-      const coverImageAttribution = coverImage?.attribution || null;
+      const coverImageUrl = coverImage?.url || data.coverImageUrl || null;
+      const coverImagePosition = coverImage?.position ? JSON.stringify(coverImage.position) : data.coverImagePosition || null;
+      const coverImageAttribution = coverImage?.attribution || data.coverImageAttribution || null;
+      
+      console.log("=== REGULAR ROUTE COVER IMAGE DEBUG ===");
+      console.log("Cover image from nested object:", coverImage);
+      console.log("Cover image URL from data:", data.coverImageUrl);
+      console.log("Final cover image URL:", coverImageUrl);
+      console.log("Cover image position:", coverImagePosition);
       
       console.log("Creating CIM document with directions:", data.directions);
       
@@ -1654,6 +1660,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (e) {
           console.error("Failed to parse financials:", e);
         }
+      } else {
+        // If no financials field in FormData, but frontend defaults to enabled, create default structure
+        console.log("No financials field in FormData, checking if frontend sent default enabled state");
+        parsedFinancials = {
+          enabled: true, // Default frontend state
+          askingPrice: '',
+          revenue: '',
+          ebitda: '',
+          askingPriceIncluded: true,
+          revenueIncluded: true,
+          ebitdaIncluded: true
+        };
+        console.log("Using default financial structure:", parsedFinancials);
       }
       console.log("Customizations from upload:", customizations);
 
@@ -1726,9 +1745,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const financials = parsedFinancials;
       
       // Extract and process cover image data from request
-      let coverImageUrl = data.coverImageUrl || null;
-      const coverImagePosition = data.coverImagePosition || null;
-      const coverImageAttribution = data.coverImageAttribution || null;
+      let coverImageUrl = req.body.coverImageUrl || data.coverImageUrl || null;
+      const coverImagePosition = req.body.coverImagePosition || data.coverImagePosition || null;
+      const coverImageAttribution = req.body.coverImageAttribution || data.coverImageAttribution || null;
+      
+      console.log("=== COVER IMAGE DEBUG ===");
+      console.log("Cover image URL from form:", req.body.coverImageUrl);
+      console.log("Cover image URL from data:", data.coverImageUrl);
+      console.log("Final cover image URL:", coverImageUrl);
+      console.log("Cover image position:", coverImagePosition);
       
       // Handle cover image upload and save to persistent storage
       if (coverImageUrl && coverImageUrl.startsWith('blob:')) {
