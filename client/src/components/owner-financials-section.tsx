@@ -194,17 +194,7 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // File inclusion feature removed - database doesn't support this functionality
 
   const handleFieldUpdate = (field: string, value: string | boolean) => {
-    // When enabling financials for the first time, automatically check all three fields
-    if (field === 'enabled' && value === true && !financials?.enabled) {
-      updateFinancialsMutation.mutate({ 
-        enabled: true,
-        askingPriceIncluded: true,
-        revenueIncluded: true,
-        ebitdaIncluded: true
-      });
-    } else {
-      updateFinancialsMutation.mutate({ [field]: value });
-    }
+    updateFinancialsMutation.mutate({ [field]: value });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,72 +237,34 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
       </CardHeader>
 
       <CardContent className="space-y-6 pt-6 px-8 pb-8">
-        {/* Enable/Disable Toggle */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div>
-            <Label className="text-base font-medium">Include Financial Information</Label>
-            <p className="text-sm text-gray-600 mt-1">
-              When enabled, financial data will appear in your CIM and shared documents
-            </p>
-          </div>
-          <Switch
-            checked={financials?.enabled || false}
-            onCheckedChange={(checked) => handleFieldUpdate('enabled', checked)}
-          />
-        </div>
-
-        {/* Financial Fields - Always visible in owner view */}
+        {/* Financial Fields - Simplified, always included */}
         <div className="grid md:grid-cols-3 gap-6">
           {/* Asking Price */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={financials?.askingPriceIncluded || false}
-                  onCheckedChange={(checked) => 
-                    handleFieldUpdate('askingPriceIncluded', checked)
-                  }
-                />
-                <Label>Asking Price</Label>
-              </div>
-              <Input
-                placeholder="$1,000,000"
-                value={financials?.askingPrice || ''}
-                onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Asking Price</Label>
+            <Input
+              placeholder="$1,000,000"
+              value={financials?.askingPrice || ''}
+              onChange={(e) => handleFieldUpdate('askingPrice', e.target.value)}
+            />
+          </div>
 
-            {/* Revenue */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={financials?.revenueIncluded || false}
-                  onCheckedChange={(checked) => 
-                    handleFieldUpdate('revenueIncluded', checked)
-                  }
-                />
-                <Label>Annual Revenue</Label>
-              </div>
-              <Input
-                placeholder="$500,000"
-                value={financials?.revenue || ''}
-                onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
-              />
-            </div>
+          {/* Revenue */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Annual Revenue</Label>
+            <Input
+              placeholder="$500,000"
+              value={financials?.revenue || ''}
+              onChange={(e) => handleFieldUpdate('revenue', e.target.value)}
+            />
+          </div>
 
-            {/* EBITDA */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={financials?.ebitdaIncluded || false}
-                  onCheckedChange={(checked) => 
-                    handleFieldUpdate('ebitdaIncluded', checked)
-                  }
-                />
-                <Label>EBITDA</Label>
-              </div>
-              <Input
-                placeholder="$150,000"
-                value={financials?.ebitda || ''}
+          {/* EBITDA */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">EBITDA</Label>
+            <Input
+              placeholder="$150,000"
+              value={financials?.ebitda || ''}
                 onChange={(e) => handleFieldUpdate('ebitda', e.target.value)}
               />
             </div>
