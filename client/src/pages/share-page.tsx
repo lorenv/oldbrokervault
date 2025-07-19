@@ -617,7 +617,7 @@ export function SharePage() {
                               <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(shareData.cim.askingPrice).toLocaleString()}
+                              {shareData.cim.askingPrice}
                             </p>
                           </div>
                         )}
@@ -628,7 +628,7 @@ export function SharePage() {
                               <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(shareData.cim.revenue).toLocaleString()}
+                              {shareData.cim.revenue}
                             </p>
                           </div>
                         )}
@@ -639,7 +639,7 @@ export function SharePage() {
                               <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                             </div>
                             <p className="text-3xl font-bold text-purple-600">
-                              ${parseInt(shareData.cim.ebitda).toLocaleString()}
+                              {shareData.cim.ebitda}
                             </p>
                           </div>
                         )}
