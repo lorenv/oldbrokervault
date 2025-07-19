@@ -234,7 +234,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
               {isSharedView ? (
                 financials?.askingPriceIncluded && financials?.askingPrice && (
                   <div className="text-lg font-semibold text-green-600">
-                    {formatCurrency(financials.askingPrice)}
+                    {financials.askingPrice}
                   </div>
                 )
               ) : (
@@ -263,7 +263,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
               {isSharedView ? (
                 financials?.revenueIncluded && financials?.revenue && (
                   <div className="text-lg font-semibold text-blue-600">
-                    {formatCurrency(financials.revenue)}
+                    {financials.revenue}
                   </div>
                 )
               ) : (
@@ -292,7 +292,7 @@ export function FinancialsSection({ docId, isSharedView = false, cimDocument: pr
               {isSharedView ? (
                 financials?.ebitdaIncluded && financials?.ebitda && (
                   <div className="text-lg font-semibold text-purple-600">
-                    {formatCurrency(financials.ebitda)}
+                    {financials.ebitda}
                   </div>
                 )
               ) : (

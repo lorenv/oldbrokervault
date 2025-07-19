@@ -261,7 +261,7 @@ export function CimDisplay({
                     <DollarSign className="h-5 w-5 text-green-600" />
                     <div>
                       <div className="text-sm text-gray-600">Asking Price</div>
-                      <div className="font-semibold">${parseInt(cimDocument.askingPrice || '0').toLocaleString()}</div>
+                      <div className="font-semibold">{cimDocument.askingPrice}</div>
                     </div>
                   </div>
                 )}
@@ -270,7 +270,7 @@ export function CimDisplay({
                     <TrendingUpIcon className="h-5 w-5 text-blue-600" />
                     <div>
                       <div className="text-sm text-gray-600">Annual Revenue</div>
-                      <div className="font-semibold">${parseInt(cimDocument.revenue || '0').toLocaleString()}</div>
+                      <div className="font-semibold">{cimDocument.revenue}</div>
                     </div>
                   </div>
                 )}
@@ -279,7 +279,7 @@ export function CimDisplay({
                     <Banknote className="h-5 w-5 text-purple-600" />
                     <div>
                       <div className="text-sm text-gray-600">EBITDA</div>
-                      <div className="font-semibold">${parseInt(cimDocument.ebitda || '0').toLocaleString()}</div>
+                      <div className="font-semibold">{cimDocument.ebitda}</div>
                     </div>
                   </div>
                 )}

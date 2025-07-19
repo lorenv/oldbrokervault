@@ -2316,13 +2316,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Create a table-like layout for financial data
         const tableData = [];
         if (financialData.askingPriceIncluded && financialData.askingPrice) {
-          tableData.push(['Asking Price:', `$${parseInt(financialData.askingPrice).toLocaleString()}`]);
+          tableData.push(['Asking Price:', financialData.askingPrice]);
         }
         if (financialData.revenueIncluded && financialData.revenue) {
-          tableData.push(['Annual Revenue:', `$${parseInt(financialData.revenue).toLocaleString()}`]);
+          tableData.push(['Annual Revenue:', financialData.revenue]);
         }
         if (financialData.ebitdaIncluded && financialData.ebitda) {
-          tableData.push(['EBITDA:', `$${parseInt(financialData.ebitda).toLocaleString()}`]);
+          tableData.push(['EBITDA:', financialData.ebitda]);
         }
 
         // Draw financial data in a clean, aligned format
