@@ -661,16 +661,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("URL processing time:", Date.now() - urlProcessingStart + "ms");
 
-      // PERFORMANCE OPTIMIZATION 5: Streamlined profile sanitization
+      // PERFORMANCE OPTIMIZATION 5: Streamlined profile sanitization with URL processing
       const sanitizedUserProfile = {
         name: userProfile.name,
         title: userProfile.title,
         email: userProfile.email,
         phoneNumber: userProfile.phone,
         businessName: userProfile.businessName,
-        businessLogo: userProfile.businessLogo,
-        profilePhoto: userProfile.profile_photo || userProfile.profilePhoto // Use actual profile photo from database
+        businessLogo: processImageUrl(userProfile.businessLogo), // Process business logo URL
+        profilePhoto: processImageUrl(userProfile.profile_photo || userProfile.profilePhoto) // Process profile photo URL
       };
+      
+      console.log("=== USER PROFILE IMAGE DEBUG ===");
+      console.log("Original business logo:", userProfile.businessLogo);
+      console.log("Processed business logo:", sanitizedUserProfile.businessLogo);
+      console.log("Original profile photo:", userProfile.profile_photo || userProfile.profilePhoto);
+      console.log("Processed profile photo:", sanitizedUserProfile.profilePhoto);
 
       // Ensure view tracking completes (but don't wait for it)
       viewTrackingPromise.catch(error => 
