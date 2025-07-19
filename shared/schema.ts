@@ -95,14 +95,14 @@ export const cimDocuments = pgTable("cim_documents", {
   ndaProtected: boolean("nda_protected").default(false).notNull(),
   ndaTemplateId: integer("nda_template_id"),
   ndaApprovalRequired: boolean("nda_approval_required").default(false).notNull(),
-  // Financial data fields
-  financialsEnabled: boolean("financials_enabled").default(false).notNull(),
+  // Financial data fields - always enabled by default
+  financialsEnabled: boolean("financials_enabled").default(true).notNull(),
   askingPrice: text("asking_price"),
-  askingPriceIncluded: boolean("asking_price_included").default(false).notNull(),
+  askingPriceIncluded: boolean("asking_price_included").default(true).notNull(),
   revenue: text("revenue"),
-  revenueIncluded: boolean("revenue_included").default(false).notNull(),
+  revenueIncluded: boolean("revenue_included").default(true).notNull(),
   ebitda: text("ebitda"),
-  ebitdaIncluded: boolean("ebitda_included").default(false).notNull(),
+  ebitdaIncluded: boolean("ebitda_included").default(true).notNull(),
   // Collaboration fields
   currentEditorId: integer("current_editor_id"),
   currentEditorName: text("current_editor_name"),

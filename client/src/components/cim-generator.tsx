@@ -76,14 +76,10 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
-  const [financialsEnabled, setFinancialsEnabled] = useState(true); // Default to enabled
   const [financialData, setFinancialData] = useState({
     askingPrice: '',
     revenue: '',
     ebitda: '',
-    askingPriceIncluded: false,
-    revenueIncluded: false,
-    ebitdaIncluded: false,
   });
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,17 +105,7 @@ export function CimGenerator() {
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-enable financial data checkboxes when section is enabled by default
-  useEffect(() => {
-    if (financialsEnabled) {
-      setFinancialData(prev => ({
-        ...prev,
-        askingPriceIncluded: true,
-        revenueIncluded: true,
-        ebitdaIncluded: true
-      }));
-    }
-  }, []);
+
 
   // Extend the schema with URL validation
   const formSchema = insertCimDocumentSchema.extend({
@@ -286,13 +272,11 @@ export function CimGenerator() {
           formData.append('docId', currentDocId.toString());
         }
 
-        // Add financial data if enabled
-        if (financialsEnabled) {
-          formData.append('financials', JSON.stringify({
-            enabled: true,
-            ...financialData
-          }));
-        }
+        // Add financial data (always enabled)
+        formData.append('financials', JSON.stringify({
+          enabled: true,
+          ...financialData
+        }));
 
         // Add financial files to FormData
         financialFiles.forEach((file, index) => {
@@ -349,12 +333,10 @@ export function CimGenerator() {
           ...(hasWebsiteUrl && { websiteUrl: data.websiteUrl }),
           ...(selectedImages.length > 0 && { selectedImages }),
           ...(currentDocId && { docId: currentDocId }),
-          ...(financialsEnabled && { 
-            financials: {
-              enabled: true,
-              ...financialData
-            }
-          }),
+          financials: {
+            enabled: true,
+            ...financialData
+          },
           ...(selectedCoverImage && {
             coverImageUrl: selectedCoverImage,
             coverImagePosition: JSON.stringify(coverImagePosition),
@@ -860,103 +842,53 @@ export function CimGenerator() {
                 </div>
               </div>
 
-              {/* Financial Information Section */}
+              {/* Financial Information Section - Simplified */}
               <div className="space-y-4">
                 <div className="border-l-4 border-purple-500 pl-4">
                   <h3 className="text-lg font-semibold text-gray-900">Financial Information</h3>
                   <p className="text-sm text-gray-600">Add key financial metrics to enhance your CIM</p>
                 </div>
                 
-                <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {financialsEnabled && <Badge variant="secondary">Enabled</Badge>}
+                <div className="ml-4 space-y-6 p-4 border rounded-lg bg-background">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {/* Asking Price */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Asking Price</Label>
+                      <Input
+                        placeholder="$1,000,000"
+                        value={financialData.askingPrice}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
+                        }
+                        className="h-9"
+                      />
                     </div>
-                    <Switch
-                      id="financials-enabled"
-                    checked={financialsEnabled}
-                    onCheckedChange={(checked) => {
-                      setFinancialsEnabled(checked);
-                      if (checked && !financialsEnabled) {
-                        setFinancialData(prev => ({
-                          ...prev,
-                          askingPriceIncluded: true,
-                          revenueIncluded: true,
-                          ebitdaIncluded: true
-                        }));
-                      }
-                    }}
-                  />
-                </div>
-                
-                {financialsEnabled && (
-                  <div className="space-y-6">
-                    <div className="grid md:grid-cols-3 gap-4">
-                      {/* Asking Price */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={financialData.askingPriceIncluded}
-                            onCheckedChange={(checked) => 
-                              setFinancialData(prev => ({ ...prev, askingPriceIncluded: checked as boolean }))
-                            }
-                            className="h-4 w-4"
-                          />
-                          <Label className="text-xs text-muted-foreground">Asking Price</Label>
-                        </div>
-                        <Input
-                          placeholder="$1,000,000"
-                          value={financialData.askingPrice}
-                          onChange={(e) => 
-                            setFinancialData(prev => ({ ...prev, askingPrice: e.target.value }))
-                          }
-                          className="h-9"
-                        />
-                      </div>
 
-                      {/* Annual Revenue */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={financialData.revenueIncluded}
-                            onCheckedChange={(checked) => 
-                              setFinancialData(prev => ({ ...prev, revenueIncluded: checked as boolean }))
-                            }
-                            className="h-4 w-4"
-                          />
-                          <Label className="text-xs text-muted-foreground">Annual Revenue</Label>
-                        </div>
-                        <Input
-                          placeholder="$500,000"
-                          value={financialData.revenue}
-                          onChange={(e) => 
-                            setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
-                          }
-                          className="h-9"
-                        />
-                      </div>
+                    {/* Annual Revenue */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Annual Revenue</Label>
+                      <Input
+                        placeholder="$500,000"
+                        value={financialData.revenue}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, revenue: e.target.value }))
+                        }
+                        className="h-9"
+                      />
+                    </div>
 
-                      {/* EBITDA */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={financialData.ebitdaIncluded}
-                            onCheckedChange={(checked) => 
-                              setFinancialData(prev => ({ ...prev, ebitdaIncluded: checked as boolean }))
-                            }
-                            className="h-4 w-4"
-                          />
-                          <Label className="text-xs text-muted-foreground">EBITDA</Label>
-                        </div>
-                        <Input
-                          placeholder="$150,000"
-                          value={financialData.ebitda}
-                          onChange={(e) => 
-                            setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
-                          }
-                          className="h-9"
-                        />
-                      </div>
+                    {/* EBITDA */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">EBITDA</Label>
+                      <Input
+                        placeholder="$150,000"
+                        value={financialData.ebitda}
+                        onChange={(e) => 
+                          setFinancialData(prev => ({ ...prev, ebitda: e.target.value }))
+                        }
+                        className="h-9"
+                      />
+                    </div>
                     </div>
                     
                     <div className="space-y-3 mt-4">
@@ -1016,9 +948,7 @@ export function CimGenerator() {
                       )}
                     </div>
                   </div>
-                )}
                 </div>
-              </div>
 
               {/* Analysis Directions Section */}
               <div className="space-y-4">
@@ -1222,8 +1152,8 @@ export function CimGenerator() {
                 {generateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {websiteAnalysisStage === 'analyzing' && 'Analyzing website...'}
-                    {websiteAnalysisStage === 'enhancing' && 'Enhancing with website data...'}
+                    {websiteAnalysisStage === 'analyzing' && 'Analyzing... this may take a minute'}
+                    {websiteAnalysisStage === 'enhancing' && 'Analyzing... this may take a minute'}
                     {!websiteAnalysisStage && 'Generating CIM...'}
                   </>
                 ) : (

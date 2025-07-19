@@ -674,7 +674,7 @@ export function CimDisplay({
         )}
 
         {/* Financial Information Section at Top */}
-        {!isSharedView && (
+        {cimDocument && cimDocument.financialsEnabled && (
           <OwnerFinancialsSection docId={docId} />
         )}
 

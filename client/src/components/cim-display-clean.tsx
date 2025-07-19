@@ -246,7 +246,7 @@ export function CimDisplay({
         )}
 
         {/* Financial Information Section at Top */}
-        {!isSharedView && cimDocument && (
+        {cimDocument && cimDocument.financialsEnabled && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
