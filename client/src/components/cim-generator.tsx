@@ -1222,8 +1222,8 @@ export function CimGenerator() {
                 {generateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {websiteAnalysisStage === 'analyzing' && 'Analyzing website...'}
-                    {websiteAnalysisStage === 'enhancing' && 'Enhancing with website data...'}
+                    {websiteAnalysisStage === 'analyzing' && 'Analyzing... this may take a minute'}
+                    {websiteAnalysisStage === 'enhancing' && 'Analyzing... this may take a minute'}
                     {!websiteAnalysisStage && 'Generating CIM...'}
                   </>
                 ) : (
