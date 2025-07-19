@@ -628,8 +628,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!url) return null;
         if (url.startsWith('data:') || url.startsWith('http')) return url;
         
+        // Handle object storage URLs - these should be served as-is since they're internal API paths
+        if (url.startsWith('/api/object-storage/')) {
+          return `${baseUrl}${url}`;
+        }
+        
         // For custom section images and other user-specific images, ensure proper serving
         if (url.startsWith('/user-images/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // For legacy logos/images without object storage prefix
+        if (url.startsWith('/logos/') || url.startsWith('/business-images/') || url.startsWith('/profile-photos/')) {
           return `${baseUrl}${url}`;
         }
         
@@ -642,6 +652,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         processImageUrl(cimDoc.logoUrl),
         cimDoc.ndaProtected ? `${baseUrl}/nda/${shareSlug}` : null
       ];
+      
+      console.log("=== SHARE ROUTE IMAGE DEBUG ===");
+      console.log("Original logo URL:", cimDoc.logoUrl);
+      console.log("Processed logo URL:", absoluteLogoUrl);
+      console.log("Original selected images:", cimDoc.selectedImages);
+      console.log("Processed selected images:", absoluteSelectedImages);
 
       console.log("URL processing time:", Date.now() - urlProcessingStart + "ms");
 
@@ -668,7 +684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: cimDoc.id,
           title: cimDoc.title,
           analysis: cimDoc.analysis,
-          logoUrl: cimDoc.logoUrl,
+          logoUrl: absoluteLogoUrl,
           selectedImages: absoluteSelectedImages,
           financialsEnabled: cimDoc.financialsEnabled,
           askingPrice: cimDoc.askingPrice,

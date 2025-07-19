@@ -600,53 +600,53 @@ export function SharePage() {
                     </CardHeader>
                     <CardContent className="p-8">
                       {/* Website extracted logo inside financial box */}
-                      {shareData.logoUrl && (
+                      {shareData.cim.logoUrl && (
                         <div className="flex justify-center mb-8 pb-6 border-b border-gray-200">
                           <img 
-                            src={shareData.logoUrl} 
+                            src={shareData.cim.logoUrl} 
                             alt="Company Logo" 
                             className="h-24 md:h-36 object-contain"
                           />
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {cimData.askingPrice && (
+                        {shareData.cim.askingPrice && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <DollarSign className="h-5 w-5 text-blue-600" />
                               <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(cimData.askingPrice).toLocaleString()}
+                              ${parseInt(shareData.cim.askingPrice).toLocaleString()}
                             </p>
                           </div>
                         )}
-                        {cimData.revenue && (
+                        {shareData.cim.revenue && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <TrendingUp className="h-5 w-5 text-blue-600" />
                               <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                             </div>
                             <p className="text-3xl font-bold text-blue-600">
-                              ${parseInt(cimData.revenue).toLocaleString()}
+                              ${parseInt(shareData.cim.revenue).toLocaleString()}
                             </p>
                           </div>
                         )}
-                        {cimData.ebitda && (
+                        {shareData.cim.ebitda && (
                           <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
                             <div className="flex items-center justify-center gap-2 mb-3">
                               <BarChart3 className="h-5 w-5 text-purple-600" />
                               <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                             </div>
                             <p className="text-3xl font-bold text-purple-600">
-                              ${parseInt(cimData.ebitda).toLocaleString()}
+                              ${parseInt(shareData.cim.ebitda).toLocaleString()}
                             </p>
                           </div>
                         )}
                       </div>
                       
                       {/* Financial Documents Download Section */}
-                      <FinancialDocumentsDisplay cimId={cimData.id} shareSlug={shareSlug!} />
+                      <FinancialDocumentsDisplay cimId={shareData.cim.id} shareSlug={shareSlug!} />
                     </CardContent>
                   </Card>
                 )}
