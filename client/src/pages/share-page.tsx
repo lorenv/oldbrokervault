@@ -493,7 +493,7 @@ export function SharePage() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main content area */}
           <div className="flex-1 min-w-0 space-y-6">
-            {shareData.cim.isUploadedFile ? (
+            {shareData.cim.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
                   <div className="flex justify-center py-8">
@@ -682,15 +682,15 @@ export function SharePage() {
                 )}
 
                 <CimDisplay 
-                  analysis={cimData.analysis}
+                  analysis={shareData.cim.analysis}
                   isSharedView={true}
-                  docId={cimData.id}
+                  docId={shareData.cim.id}
                   websiteUrl={shareData.websiteUrl}
-                  logoUrl={shareData.logoUrl}
+                  logoUrl={shareData.cim.logoUrl}
                   selectedImages={shareData.cim.selectedImages}
-                  title={cimData.title}
-                  userProfile={cimData.userProfile}
-                  cimDocument={cimData}
+                  title={shareData.cim.title}
+                  userProfile={shareData.cim.userProfile}
+                  cimDocument={shareData.cim}
                   customSections={shareData.customSections}
                 />
               </>
@@ -701,9 +701,9 @@ export function SharePage() {
           <div className="lg:w-[28rem] flex-shrink-0">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
-              cimTitle={cimData.title}
-              userProfile={shareData.userProfileData || cimData.userProfile}
-              logoUrl={shareData.logoUrl}
+              cimTitle={shareData.cim.title}
+              userProfile={shareData.userProfileData || shareData.cim.userProfile}
+              logoUrl={shareData.cim.logoUrl}
             />
           </div>
         </div>
