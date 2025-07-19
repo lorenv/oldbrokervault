@@ -615,9 +615,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       
-      // Use production domain for image URLs in production environment
+      // Use production domain for image URLs - force cimshare.com for any production request
       let baseUrl;
-      if (process.env.NODE_ENV === 'production' || host?.includes('cimshare.com')) {
+      if (host?.includes('cimshare.com') || req.headers['x-forwarded-host']?.includes('cimshare.com') || req.headers.host?.includes('cimshare.com')) {
         baseUrl = 'https://cimshare.com';
       } else {
         baseUrl = `${protocol}://${host}`;
