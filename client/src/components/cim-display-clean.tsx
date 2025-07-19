@@ -246,7 +246,7 @@ export function CimDisplay({
         )}
 
         {/* Financial Information Section at Top */}
-        {cimDocument && cimDocument.financialsEnabled && (
+        {cimDocument && (cimDocument.askingPrice || cimDocument.revenue || cimDocument.ebitda) && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -256,7 +256,7 @@ export function CimDisplay({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {cimDocument.askingPriceIncluded && (
+                {cimDocument.askingPrice && (
                   <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
                     <DollarSign className="h-5 w-5 text-green-600" />
                     <div>
@@ -265,7 +265,7 @@ export function CimDisplay({
                     </div>
                   </div>
                 )}
-                {cimDocument.revenueIncluded && (
+                {cimDocument.revenue && (
                   <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
                     <TrendingUpIcon className="h-5 w-5 text-blue-600" />
                     <div>
@@ -274,7 +274,7 @@ export function CimDisplay({
                     </div>
                   </div>
                 )}
-                {cimDocument.ebitdaIncluded && (
+                {cimDocument.ebitda && (
                   <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
                     <Banknote className="h-5 w-5 text-purple-600" />
                     <div>
