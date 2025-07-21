@@ -587,9 +587,8 @@ export function SharePage() {
               </div>
             ) : (
               <>
-                {/* Financial Information Section - Show if financials are enabled or if there's data */}
-                {(shareData.cim.financialsEnabled !== false || shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
+                {/* Financial Information Section - Always show */}
+                <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-300 rounded-lg">
@@ -643,7 +642,6 @@ export function SharePage() {
                       <FinancialDocumentsDisplay cimId={shareData.cim.id} shareSlug={shareSlug!} />
                     </CardContent>
                   </Card>
-                )}
 
                 {/* Website URL Section */}
                 {shareData.websiteUrl && (
