@@ -278,6 +278,15 @@ export function CimGenerator() {
           ...financialData
         }));
 
+        // Debug: Log what we're sending via FormData
+        console.log("=== FRONTEND FORMDATA DEBUG ===");
+        console.log("Financial data state:", financialData);
+        console.log("Financial files state:", financialFiles);
+        console.log("FormData financials:", JSON.stringify({
+          enabled: true,
+          ...financialData
+        }));
+
         // Add financial files to FormData
         financialFiles.forEach((file, index) => {
           formData.append(`financialFile_${index}`, file);
@@ -343,6 +352,14 @@ export function CimGenerator() {
             ...(coverImageAttribution && { coverImageAttribution })
           })
         };
+
+        // Debug: Log what we're sending to the server
+        console.log("=== FRONTEND PAYLOAD DEBUG ===");
+        console.log("Financial data state:", financialData);
+        console.log("Financial files state:", financialFiles);
+        console.log("Payload financials:", payload.financials);
+        console.log("Full payload keys:", Object.keys(payload));
+        console.log("Payload size:", JSON.stringify(payload).length);
 
         try {
           if (hasWebsiteUrl) {
