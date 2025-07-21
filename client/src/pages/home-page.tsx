@@ -332,7 +332,7 @@ export default function HomePage() {
             {/* Arbor Partners Image Card */}
             <div 
               className="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
-              onClick={() => window.open('https://cimshare.com/share/cim-wwkz3j', '_blank')}
+              onClick={() => window.open('https://cimshare.com/share/cim-2axr79', '_blank')}
             >
               <img 
                 src="/arbor-partners-preview.png" 
