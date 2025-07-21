@@ -1674,13 +1674,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("=== UPLOAD ENDPOINT FINANCIAL DEBUG ===");
       console.log("Raw financials from form:", req.body.financials);
       console.log("financialsEnabled from parsed data:", data.financialsEnabled);
+      console.log("Type of req.body.financials:", typeof req.body.financials);
+      console.log("Length of req.body.financials:", req.body.financials?.length);
+      
       let parsedFinancials = null;
       if (req.body.financials) {
         try {
           parsedFinancials = JSON.parse(req.body.financials);
-          console.log("Parsed financials:", parsedFinancials);
+          console.log("Parsed financials successfully:", parsedFinancials);
+          console.log("Parsed financials type:", typeof parsedFinancials);
+          console.log("Parsed financials keys:", Object.keys(parsedFinancials));
+          console.log("Individual values:");
+          console.log("- enabled:", parsedFinancials.enabled, "(type:", typeof parsedFinancials.enabled, ")");
+          console.log("- askingPrice:", parsedFinancials.askingPrice, "(type:", typeof parsedFinancials.askingPrice, ")");
+          console.log("- revenue:", parsedFinancials.revenue, "(type:", typeof parsedFinancials.revenue, ")");
+          console.log("- ebitda:", parsedFinancials.ebitda, "(type:", typeof parsedFinancials.ebitda, ")");
         } catch (e) {
           console.error("Failed to parse financials:", e);
+          console.error("Raw value that failed to parse:", req.body.financials);
         }
       } else {
         // If no financials field in FormData, but frontend defaults to enabled, create default structure
@@ -1804,6 +1815,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating CIM document from upload with directions:", data.directions);
       console.log("Financial data for upload route:", parsedFinancials);
+      
+      // Debug: Log exactly what we're passing to createCimDocument
+      console.log("=== FINANCIAL DATA DEBUG FOR STORAGE ===");
+      console.log("parsedFinancials?.enabled:", parsedFinancials?.enabled);
+      console.log("parsedFinancials?.askingPrice:", parsedFinancials?.askingPrice);
+      console.log("parsedFinancials?.revenue:", parsedFinancials?.revenue);
+      console.log("parsedFinancials?.ebitda:", parsedFinancials?.ebitda);
+      console.log("Will set financialsEnabled to:", parsedFinancials?.enabled || false);
+      console.log("Will set askingPrice to:", parsedFinancials?.askingPrice || null);
+      console.log("Will set revenue to:", parsedFinancials?.revenue || null);
+      console.log("Will set ebitda to:", parsedFinancials?.ebitda || null);
       
       // Handle financial files upload using object storage
       let uploadedFinancialFiles = [];
