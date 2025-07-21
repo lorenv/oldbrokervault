@@ -587,15 +587,8 @@ export function SharePage() {
               </div>
             ) : (
               <>
-                {/* Financial Information Section */}
-                {/* Debug financial data */}
-                {console.log('Financial data check:', {
-                  financialsEnabled: shareData.cim.financialsEnabled,
-                  askingPrice: shareData.cim.askingPrice,
-                  revenue: shareData.cim.revenue,
-                  ebitda: shareData.cim.ebitda
-                })}
-                {(shareData.cim.financialsEnabled !== false && (shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda)) && (
+                {/* Financial Information Section - Show if financials are enabled or if there's data */}
+                {(shareData.cim.financialsEnabled !== false || shareData.cim.askingPrice || shareData.cim.revenue || shareData.cim.ebitda) && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
@@ -617,39 +610,33 @@ export function SharePage() {
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {shareData.cim.askingPrice && (
-                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <DollarSign className="h-5 w-5 text-blue-600" />
-                              <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
-                            </div>
-                            <p className="text-3xl font-bold text-blue-600">
-                              {shareData.cim.askingPrice}
-                            </p>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <DollarSign className="h-5 w-5 text-blue-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                           </div>
-                        )}
-                        {shareData.cim.revenue && (
-                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <TrendingUp className="h-5 w-5 text-blue-600" />
-                              <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
-                            </div>
-                            <p className="text-3xl font-bold text-blue-600">
-                              {shareData.cim.revenue}
-                            </p>
+                          <p className="text-3xl font-bold text-blue-600">
+                            {shareData.cim.askingPrice || "Not specified"}
+                          </p>
+                        </div>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                           </div>
-                        )}
-                        {shareData.cim.ebitda && (
-                          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex items-center justify-center gap-2 mb-3">
-                              <BarChart3 className="h-5 w-5 text-purple-600" />
-                              <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
-                            </div>
-                            <p className="text-3xl font-bold text-purple-600">
-                              {shareData.cim.ebitda}
-                            </p>
+                          <p className="text-3xl font-bold text-blue-600">
+                            {shareData.cim.revenue || "Not specified"}
+                          </p>
+                        </div>
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                            <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                           </div>
-                        )}
+                          <p className="text-3xl font-bold text-purple-600">
+                            {shareData.cim.ebitda || "Not specified"}
+                          </p>
+                        </div>
                       </div>
                       
                       {/* Financial Documents Download Section */}
