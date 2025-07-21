@@ -1039,7 +1039,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Request body selectedImages:", req.body.selectedImages);
       console.log("=== CIM REQUEST DEBUG END ===");
       
+      console.log("=== BEFORE ZOD PARSING ===");
+      console.log("Raw req.body.financials:", req.body.financials);
+      
       const data = insertCimDocumentSchema.parse(req.body);
+      
+      console.log("=== AFTER ZOD PARSING ===");
+      console.log("Parsed data.financials:", data.financials);
+      console.log("Data keys:", Object.keys(data));
+      
       const docId = data.docId; // For regeneration
       const customizations = data.customizations || {};
       
