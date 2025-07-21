@@ -251,7 +251,7 @@ export function CimGenerator() {
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
       
-      if (data.transcript.length > 4000) {
+      if (data.transcript.length > 4000 || financialFiles.length > 0) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
         formData.append('transcript', file, 'transcript.txt');
