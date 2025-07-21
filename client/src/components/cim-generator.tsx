@@ -625,25 +625,6 @@ export function CimGenerator() {
       {!analysis ? (
         <Card>
           <CardContent className="pt-6">
-            {/* Show progress during generation */}
-            {generateMutation.isPending && generationStage && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="text-sm text-blue-600 mb-2 font-medium">
-                  Generating your CIM document...
-                </div>
-                <CimGenerationProgress
-                  stage={generationStage}
-                  hasFinancials={
-                    financialFiles.length > 0 || 
-                    !!financialData.askingPrice || 
-                    !!financialData.revenue || 
-                    !!financialData.ebitda
-                  }
-                  hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
-                />
-              </div>
-            )}
-            
             <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
               
               {/* Document Information Section */}
@@ -1231,6 +1212,25 @@ export function CimGenerator() {
                   "Generate CIM"
                 )}
               </Button>
+
+              {/* Show progress during generation */}
+              {generateMutation.isPending && generationStage && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-sm text-blue-600 mb-2 font-medium">
+                    Generating your CIM document...
+                  </div>
+                  <CimGenerationProgress
+                    stage={generationStage}
+                    hasFinancials={
+                      financialFiles.length > 0 || 
+                      !!financialData.askingPrice || 
+                      !!financialData.revenue || 
+                      !!financialData.ebitda
+                    }
+                    hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+                  />
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
