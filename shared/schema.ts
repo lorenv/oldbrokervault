@@ -350,7 +350,13 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   selectedImages: z.array(z.string()).optional(),
   coverImageUrl: z.string().nullable().optional(),
   coverImagePosition: z.string().nullable().optional(),
-  coverImageAttribution: z.string().nullable().optional()
+  coverImageAttribution: z.string().nullable().optional(),
+  financials: z.any().optional(),
+  customizations: z.any().optional(),
+  docId: z.string().optional(),
+  purpose: z.string().optional(),
+  tone: z.string().optional(),
+  audience: z.string().optional()
 });
 
 export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
