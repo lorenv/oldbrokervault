@@ -254,8 +254,10 @@ export function CimGenerator() {
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       // Initialize progress tracking
+      console.log("🚀 Starting CIM generation with progress tracking");
       setGenerationStage("initializing");
       setProgressStartTime(Date.now());
+      console.log("📊 Progress stage set to: initializing");
       
       // Determine content characteristics for progress estimation
       const hasFinancials = financialFiles.length > 0 || 
@@ -327,10 +329,16 @@ export function CimGenerator() {
 
         try {
           // Stage 3: Analyzing content
-          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          setTimeout(() => {
+            console.log("📊 Progress stage set to: analyzing_content (FormData)");
+            setGenerationStage("analyzing_content");
+          }, 1000);
           
           // Stage 4: Generating document (before API call)
-          setTimeout(() => setGenerationStage("generating_document"), 2000);
+          setTimeout(() => {
+            console.log("📊 Progress stage set to: generating_document (FormData)");
+            setGenerationStage("generating_document");
+          }, 2000);
           
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
@@ -389,10 +397,16 @@ export function CimGenerator() {
 
         try {
           // Stage 3: Analyzing content
-          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          setTimeout(() => {
+            console.log("📊 Progress stage set to: analyzing_content (Regular)");
+            setGenerationStage("analyzing_content");
+          }, 1000);
           
           // Stage 4: Generating document (before API call)
-          setTimeout(() => setGenerationStage("generating_document"), 2000);
+          setTimeout(() => {
+            console.log("📊 Progress stage set to: generating_document (Regular)");
+            setGenerationStage("generating_document");
+          }, 2000);
           
           const response = await apiRequest("POST", "/api/cim/generate", payload);
           
@@ -628,6 +642,7 @@ export function CimGenerator() {
             {/* Show progress during generation */}
             {generateMutation.isPending && generationStage && (
               <div className="mb-6">
+                {console.log("🎯 Rendering progress bar with stage:", generationStage, "isPending:", generateMutation.isPending)}
                 <CimGenerationProgress
                   stage={generationStage}
                   hasFinancials={
