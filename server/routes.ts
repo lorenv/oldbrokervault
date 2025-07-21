@@ -808,6 +808,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         baseUrl = `${protocol}://${host}`;
       }
 
+      // Process user profile images for PDF generation using same logic as share route
+      const processImageUrl = (url: string | null) => {
+        if (!url) return null;
+        if (url.startsWith('data:') || url.startsWith('http')) return url;
+        
+        // Handle object storage URLs
+        if (url.startsWith('/api/object-storage/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // For user-specific images
+        if (url.startsWith('/user-images/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // For legacy logos/images
+        if (url.startsWith('/logos/') || url.startsWith('/business-images/') || url.startsWith('/profile-photos/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
+      };
+
+      // Create processed user profile for PDF generation with proper image URLs
+      const processedUserProfile = {
+        ...userProfile,
+        businessLogo: processImageUrl(userProfile.businessLogo),
+        profilePhoto: processImageUrl(userProfile.profile_photo || userProfile.profilePhoto)
+      };
+
+      console.log("=== PDF EXPORT USER PROFILE IMAGE DEBUG ===");
+      console.log("Original business logo:", userProfile.businessLogo);
+      console.log("Processed business logo:", processedUserProfile.businessLogo);
+      console.log("Original profile photo:", userProfile.profile_photo || userProfile.profilePhoto);
+      console.log("Processed profile photo:", processedUserProfile.profilePhoto);
+      console.log("===========================================");
+
       // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
       const pdfGenStart = Date.now();
       const pdfBuffer = await generatePDF(
@@ -815,7 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cimDoc.logoUrl, // Use cached logo URL  
         cimDoc.websiteUrl || undefined,
         cimDoc.selectedImages || [], // Use cached images - no reprocessing
-        userProfile,
+        processedUserProfile, // Use processed user profile with correct image URLs
         financialData,
         documentFinancialFiles,
         baseUrl,
