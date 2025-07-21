@@ -1235,15 +1235,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating CIM document with directions:", data.directions);
       
-      // Debug: Check financial data before document creation
+      // Debug: Check financial data before document creation (always enabled)
       const financialDataToSave = {
-        financialsEnabled: financials?.enabled || false,
+        financialsEnabled: true, // Always enabled
         askingPrice: financials?.askingPrice || null,
-        askingPriceIncluded: financials?.askingPriceIncluded || false,
+        askingPriceIncluded: true, // Always included
         revenue: financials?.revenue || null,
-        revenueIncluded: financials?.revenueIncluded || false,
+        revenueIncluded: true, // Always included
         ebitda: financials?.ebitda || null,
-        ebitdaIncluded: financials?.ebitdaIncluded || false,
+        ebitdaIncluded: true, // Always included
       };
       console.log("Financial data to be saved:", financialDataToSave);
       
@@ -1263,14 +1263,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         coverImageUrl,
         coverImagePosition,
         coverImageAttribution,
-        // Add financial data directly to the document
-        financialsEnabled: financials?.enabled || false,
+        // Add financial data directly to the document (always enabled)
+        financialsEnabled: true, // Always enabled
         askingPrice: financials?.askingPrice || null,
-        askingPriceIncluded: financials?.askingPriceIncluded || false,
+        askingPriceIncluded: true, // Always included
         revenue: financials?.revenue || null,
-        revenueIncluded: financials?.revenueIncluded || false,
+        revenueIncluded: true, // Always included
         ebitda: financials?.ebitda || null,
-        ebitdaIncluded: financials?.ebitdaIncluded || false,
+        ebitdaIncluded: true, // Always included
         // Enable sharing by default with generated slug
         shareEnabled: true,
         shareSlug: shareSlug,
@@ -1694,10 +1694,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Raw value that failed to parse:", req.body.financials);
         }
       } else {
-        // If no financials field in FormData, but frontend defaults to enabled, create default structure
-        console.log("No financials field in FormData, checking if frontend sent default enabled state");
+        // If no financials field in FormData, create default structure (always enabled)
+        console.log("No financials field in FormData, creating default enabled structure");
         parsedFinancials = {
-          enabled: true, // Default frontend state
+          enabled: true, // Always enabled
           askingPrice: '',
           revenue: '',
           ebitda: '',
@@ -1879,14 +1879,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         coverImageUrl,
         coverImagePosition,
         coverImageAttribution,
-        // Add financial data directly to the document (upload route uses parsedFinancials)
-        financialsEnabled: parsedFinancials?.enabled || false,
+        // Add financial data directly to the document (always enabled)
+        financialsEnabled: true, // Always enabled
         askingPrice: parsedFinancials?.askingPrice || null,
-        askingPriceIncluded: parsedFinancials?.askingPriceIncluded || false,
+        askingPriceIncluded: true, // Always included
         revenue: parsedFinancials?.revenue || null,
-        revenueIncluded: parsedFinancials?.revenueIncluded || false,
+        revenueIncluded: true, // Always included
         ebitda: parsedFinancials?.ebitda || null,
-        ebitdaIncluded: parsedFinancials?.ebitdaIncluded || false,
+        ebitdaIncluded: true, // Always included
         // Enable sharing by default with generated slug
         shareEnabled: true,
         shareSlug: shareSlug,

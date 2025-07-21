@@ -11,13 +11,13 @@ import { Upload, FileText, X, Download, CheckCircle, Loader2, BarChart3, DollarS
 import { useCimDocument, useFinancialFiles } from "@/hooks/use-cim-document";
 
 interface Financials {
-  enabled: boolean;
+  enabled: boolean; // Kept for backward compatibility but always true
   askingPrice: string | null;
-  askingPriceIncluded: boolean;
+  askingPriceIncluded: boolean; // Always true
   revenue: string | null;
-  revenueIncluded: boolean;
+  revenueIncluded: boolean; // Always true
   ebitda: string | null;
-  ebitdaIncluded: boolean;
+  ebitdaIncluded: boolean; // Always true
 }
 
 interface FinancialFile {
@@ -45,28 +45,28 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // Use prop data if available, otherwise use fetched data
   const cimDocument = propCimDocument || fetchedCimDocument;
 
-  // Extract financial data from main CIM document - make it reactive to updates
+  // Extract financial data from main CIM document - make it reactive to updates (always enabled)
   const getFinancials = (): Financials => {
     if (!cimDocument) {
       return {
-        enabled: false,
+        enabled: true, // Always enabled
         askingPrice: null,
-        askingPriceIncluded: false,
+        askingPriceIncluded: true, // Always included
         revenue: null,
-        revenueIncluded: false,
+        revenueIncluded: true, // Always included
         ebitda: null,
-        ebitdaIncluded: false,
+        ebitdaIncluded: true, // Always included
       };
     }
     
     return {
-      enabled: (cimDocument as any).financialsEnabled || (cimDocument as any).financials_enabled || false,
+      enabled: true, // Always enabled regardless of database value
       askingPrice: (cimDocument as any).askingPrice || (cimDocument as any).asking_price || null,
-      askingPriceIncluded: (cimDocument as any).askingPriceIncluded || (cimDocument as any).asking_price_included || false,
+      askingPriceIncluded: true, // Always included
       revenue: (cimDocument as any).revenue || null,
-      revenueIncluded: (cimDocument as any).revenueIncluded || (cimDocument as any).revenue_included || false,
+      revenueIncluded: true, // Always included
       ebitda: (cimDocument as any).ebitda || null,
-      ebitdaIncluded: (cimDocument as any).ebitdaIncluded || (cimDocument as any).ebitda_included || false,
+      ebitdaIncluded: true, // Always included
     };
   };
   
@@ -82,15 +82,15 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // Update financials mutation - save to main CIM document
   const updateFinancialsMutation = useMutation({
     mutationFn: async (data: Partial<Financials>) => {
-      // Convert Financials format to CIM document format
+      // Convert Financials format to CIM document format (always enabled)
       const cimUpdateData: any = {};
-      if (data.enabled !== undefined) cimUpdateData.financialsEnabled = data.enabled;
+      cimUpdateData.financialsEnabled = true; // Always enabled
       if (data.askingPrice !== undefined) cimUpdateData.askingPrice = data.askingPrice;
-      if (data.askingPriceIncluded !== undefined) cimUpdateData.askingPriceIncluded = data.askingPriceIncluded;
+      cimUpdateData.askingPriceIncluded = true; // Always included
       if (data.revenue !== undefined) cimUpdateData.revenue = data.revenue;
-      if (data.revenueIncluded !== undefined) cimUpdateData.revenueIncluded = data.revenueIncluded;
+      cimUpdateData.revenueIncluded = true; // Always included
       if (data.ebitda !== undefined) cimUpdateData.ebitda = data.ebitda;
-      if (data.ebitdaIncluded !== undefined) cimUpdateData.ebitdaIncluded = data.ebitdaIncluded;
+      cimUpdateData.ebitdaIncluded = true; // Always included
       
       const response = await fetch(`/api/cim/${docId}`, {
         method: 'PATCH',
@@ -115,17 +115,17 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
       // Snapshot the previous value
       const previousCim = queryClient.getQueryData([`/api/cim/${docId}`]);
       
-      // Optimistically update to the new value
+      // Optimistically update to the new value (always enabled)
       queryClient.setQueryData([`/api/cim/${docId}`], (old: any) => {
         if (!old) return old;
         const updated = { ...old };
-        if (newData.enabled !== undefined) updated.financialsEnabled = newData.enabled;
+        updated.financialsEnabled = true; // Always enabled
         if (newData.askingPrice !== undefined) updated.askingPrice = newData.askingPrice;
-        if (newData.askingPriceIncluded !== undefined) updated.askingPriceIncluded = newData.askingPriceIncluded;
+        updated.askingPriceIncluded = true; // Always included
         if (newData.revenue !== undefined) updated.revenue = newData.revenue;
-        if (newData.revenueIncluded !== undefined) updated.revenueIncluded = newData.revenueIncluded;
+        updated.revenueIncluded = true; // Always included
         if (newData.ebitda !== undefined) updated.ebitda = newData.ebitda;
-        if (newData.ebitdaIncluded !== undefined) updated.ebitdaIncluded = newData.ebitdaIncluded;
+        updated.ebitdaIncluded = true; // Always included
         return updated;
       });
       
