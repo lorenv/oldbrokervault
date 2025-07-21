@@ -1018,7 +1018,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // CIM Document Routes with file upload support
   app.post("/api/cim/generate", async (req, res) => {
-    console.log("🚀 CIM POST ROUTE ACCESSED");
+    console.log("🚀 CIM GENERATE ROUTE ACCESSED");
+    console.log("=== INITIAL FINANCIAL DEBUG - GENERATE ROUTE ===");
+    console.log("Request body keys:", Object.keys(req.body));
+    console.log("Has financials:", !!req.body.financials);
+    console.log("Raw financials:", req.body.financials);
+    console.log("Financials type:", typeof req.body.financials);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -1602,6 +1607,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     });
   }, async (req, res) => {
+    console.log("🚀 CIM UPLOAD ROUTE ACCESSED");
+    console.log("=== INITIAL FINANCIAL DEBUG - UPLOAD ROUTE ===");
+    console.log("Request body keys:", Object.keys(req.body));
+    console.log("Has financials:", !!req.body.financials);
+    console.log("Raw financials:", req.body.financials);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
