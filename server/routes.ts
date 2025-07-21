@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: userProfile.name,
         title: userProfile.title,
         email: userProfile.email,
-        phoneNumber: userProfile.phone,
+        phoneNumber: userProfile.phoneNumber || userProfile.phone, // Handle both field names
         businessName: userProfile.businessName,
         businessLogo: processImageUrl(userProfile.businessLogo), // Process business logo URL
         profilePhoto: processImageUrl(userProfile.profile_photo || userProfile.profilePhoto) // Process profile photo URL
@@ -677,6 +677,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Processed business logo:", sanitizedUserProfile.businessLogo);
       console.log("Original profile photo:", userProfile.profile_photo || userProfile.profilePhoto);
       console.log("Processed profile photo:", sanitizedUserProfile.profilePhoto);
+      
+      console.log("=== USER PROFILE PHONE DEBUG ===");
+      console.log("userProfile.phoneNumber:", userProfile.phoneNumber);
+      console.log("userProfile.phone:", userProfile.phone);
+      console.log("Final phoneNumber:", sanitizedUserProfile.phoneNumber);
 
       // Ensure view tracking completes (but don't wait for it)
       viewTrackingPromise.catch(error => 

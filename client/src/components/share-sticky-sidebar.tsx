@@ -167,11 +167,11 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       </a>
                     </div>
                   )}
-                  {userProfile.phoneNumber && (
+                  {(userProfile.phoneNumber || userProfile.phone) && (
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                       <Phone className="h-4 w-4 text-slate-600 flex-shrink-0" />
                       <a 
-                        href={`tel:${userProfile.phoneNumber}`} 
+                        href={`tel:${userProfile.phoneNumber || userProfile.phone}`} 
                         className="text-slate-600 text-sm font-medium hover:text-slate-700 transition-colors"
                       >
                         {userProfile.phoneNumber}
