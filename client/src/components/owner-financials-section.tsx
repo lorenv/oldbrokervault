@@ -360,7 +360,7 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
             </div>
             
             <div className="grid gap-3">
-              {files.map((file) => (
+              {files.map((file: any) => (
                 <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-gray-500" />
