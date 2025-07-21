@@ -681,8 +681,8 @@ export function CimDisplay({
           />
         )}
 
-        {/* Financial Information Section at Top */}
-        {cimDocument && (
+        {/* Financial Information Section at Top - Only show owner section in edit view */}
+        {cimDocument && !isSharedView && (
           <OwnerFinancialsSection docId={docId} />
         )}
 
