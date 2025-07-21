@@ -362,9 +362,10 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
 export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
   title: true,
 }).extend({
-  isUploadedFile: z.boolean().default(true),
-  uploadedFileName: z.string(),
+  isUploadedFile: z.boolean().default(false).optional(),
+  uploadedFileName: z.string().optional(),
   directions: z.string().optional(),
+  transcript: z.string().optional(),
   websiteUrl: z.string().optional(),
   selectedImages: z.array(z.string()).optional(),
   coverImageUrl: z.string().nullable().optional(),
@@ -376,9 +377,9 @@ export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
   purpose: z.string().optional(),
   tone: z.string().optional(),
   audience: z.string().optional(),
-  uploadedFilePath: z.string(),
-  uploadedFileSize: z.number(),
-  uploadedFileMimeType: z.string()
+  uploadedFilePath: z.string().optional(),
+  uploadedFileSize: z.number().optional(),
+  uploadedFileMimeType: z.string().optional()
 });
 
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).pick({
