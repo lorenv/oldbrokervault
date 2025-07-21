@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 
 import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { CimGenerationProgress, type CimGenerationStage } from "@/components/ui/cim-generation-progress";
 import { DocumentExport } from './document-export';
 import { CimDisplay } from './cim-display';
 import { CimFileUpload } from './cim-file-upload';
@@ -76,6 +77,10 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
+  
+  // CIM Generation Progress State
+  const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
+  const [progressStartTime, setProgressStartTime] = useState<number | null>(null);
   const [financialData, setFinancialData] = useState({
     askingPrice: '',
     revenue: '',
@@ -248,8 +253,22 @@ export function CimGenerator() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      // Initialize progress tracking
+      setGenerationStage("initializing");
+      setProgressStartTime(Date.now());
+      
+      // Determine content characteristics for progress estimation
+      const hasFinancials = financialFiles.length > 0 || 
+        financialData.askingPrice || 
+        financialData.revenue || 
+        financialData.ebitda;
+      const hasLargeContent = data.transcript.length > 4000;
+      
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
+      
+      // Stage 2: Processing transcript
+      setTimeout(() => setGenerationStage("processing_transcript"), 500);
       
       if (data.transcript.length > 4000 || financialFiles.length > 0) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
@@ -307,9 +326,11 @@ export function CimGenerator() {
         }
 
         try {
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('analyzing');
-          }
+          // Stage 3: Analyzing content
+          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          
+          // Stage 4: Generating document (before API call)
+          setTimeout(() => setGenerationStage("generating_document"), 2000);
           
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
@@ -322,8 +343,13 @@ export function CimGenerator() {
             throw new Error(error.error || "Failed to generate CIM");
           }
           
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('enhancing');
+          // Stage 5: Processing financials (if any), then finalizing
+          if (hasFinancials) {
+            setGenerationStage("processing_financials");
+            // Give a moment for the financial processing stage to show
+            setTimeout(() => setGenerationStage("finalizing"), 500);
+          } else {
+            setGenerationStage("finalizing");
           }
           
           return res.json();
@@ -362,14 +388,21 @@ export function CimGenerator() {
         console.log("Payload size:", JSON.stringify(payload).length);
 
         try {
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('analyzing');
-          }
+          // Stage 3: Analyzing content
+          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          
+          // Stage 4: Generating document (before API call)
+          setTimeout(() => setGenerationStage("generating_document"), 2000);
           
           const response = await apiRequest("POST", "/api/cim/generate", payload);
           
-          if (hasWebsiteUrl) {
-            setWebsiteAnalysisStage('enhancing');
+          // Stage 5: Processing financials (if any), then finalizing
+          if (hasFinancials) {
+            setGenerationStage("processing_financials");
+            // Give a moment for the financial processing stage to show
+            setTimeout(() => setGenerationStage("finalizing"), 500);
+          } else {
+            setGenerationStage("finalizing");
           }
           
           return response.json();
@@ -380,24 +413,28 @@ export function CimGenerator() {
       }
     },
     onSuccess: (result) => {
+      // Complete the progress
+      setGenerationStage("complete");
       setWebsiteAnalysisStage(null);
       
-      const websiteUrl = form.getValues('websiteUrl');
       toast({
         title: "CIM Generated Successfully",
-        description: websiteUrl 
-          ? "Your document has been created with website analysis and image extraction!"
-          : "Your document has been created successfully!",
+        description: "Your document has been created successfully!",
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
       
-      // Redirect to the document editing interface with edit tab active
+      // Show completion for a moment, then redirect
       setTimeout(() => {
+        setGenerationStage(null);
+        setProgressStartTime(null);
         window.location.assign(`/documents/${result.id}?tab=edit`);
-      }, 1500);
+      }, 2000);
     },
     onError: (error) => {
+      // Reset progress state on error
+      setGenerationStage(null);
+      setProgressStartTime(null);
       setWebsiteAnalysisStage(null);
       
       console.error("Generation error:", error);
@@ -588,6 +625,22 @@ export function CimGenerator() {
       {!analysis ? (
         <Card>
           <CardContent className="pt-6">
+            {/* Show progress during generation */}
+            {generateMutation.isPending && generationStage && (
+              <div className="mb-6">
+                <CimGenerationProgress
+                  stage={generationStage}
+                  hasFinancials={
+                    financialFiles.length > 0 || 
+                    !!financialData.askingPrice || 
+                    !!financialData.revenue || 
+                    !!financialData.ebitda
+                  }
+                  hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+                />
+              </div>
+            )}
+            
             <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
               
               {/* Document Information Section */}
@@ -1169,9 +1222,7 @@ export function CimGenerator() {
                 {generateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {websiteAnalysisStage === 'analyzing' && 'Analyzing... this may take a minute'}
-                    {websiteAnalysisStage === 'enhancing' && 'Analyzing... this may take a minute'}
-                    {!websiteAnalysisStage && 'Generating CIM...'}
+                    {generationStage ? 'Generating your CIM document...' : 'Starting generation...'}
                   </>
                 ) : (
                   "Generate CIM"
@@ -1182,6 +1233,22 @@ export function CimGenerator() {
         </Card>
       ) : (
         <div className="space-y-6">
+          {/* Show progress when generating */}
+          {generationStage && (
+            <div className="mb-6">
+              <CimGenerationProgress
+                stage={generationStage}
+                hasFinancials={
+                  financialFiles.length > 0 || 
+                  financialData.askingPrice || 
+                  financialData.revenue || 
+                  financialData.ebitda
+                }
+                hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+              />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Generated CIM</h2>
             <div className="flex gap-2">
