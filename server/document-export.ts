@@ -2858,6 +2858,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const base64Data = userProfile.profilePhoto.split(',')[1];
               imageBuffer = Buffer.from(base64Data, 'base64');
               photoFound = true;
+            } else if (userProfile.profilePhoto.startsWith('http')) {
+              // It's a full URL - convert to localhost HTTP for internal fetching
+              let fetchUrl = userProfile.profilePhoto;
+              if (fetchUrl.includes('localhost:5000') || fetchUrl.includes('localhost:3000')) {
+                fetchUrl = fetchUrl.replace('https://', 'http://');
+              }
+              
+              console.log("Profile photo is full URL, attempting to fetch:", fetchUrl);
+              try {
+                const fetch = await import('node-fetch');
+                const response = await fetch.default(fetchUrl);
+                if (response.ok) {
+                  imageBuffer = Buffer.from(await response.arrayBuffer());
+                  photoFound = true;
+                  console.log("Successfully fetched profile photo from URL");
+                } else {
+                  console.log("Failed to fetch profile photo from URL:", response.status);
+                }
+              } catch (fetchError) {
+                console.log("Error fetching profile photo from URL:", fetchError);
+              }
             } else {
               // Try to resolve as file path
               const profilePhotoPath = resolveImagePath(userProfile.profilePhoto, documentId, userProfile?.id);
@@ -2972,6 +2993,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const base64Data = userProfile.businessLogo.split(',')[1];
               imageBuffer = Buffer.from(base64Data, 'base64');
               logoFound = true;
+            } else if (userProfile.businessLogo.startsWith('http')) {
+              // It's a full URL - convert to localhost HTTP for internal fetching
+              let fetchUrl = userProfile.businessLogo;
+              if (fetchUrl.includes('localhost:5000') || fetchUrl.includes('localhost:3000')) {
+                fetchUrl = fetchUrl.replace('https://', 'http://');
+              }
+              
+              console.log("Business logo is full URL, attempting to fetch:", fetchUrl);
+              try {
+                const fetch = await import('node-fetch');
+                const response = await fetch.default(fetchUrl);
+                if (response.ok) {
+                  imageBuffer = Buffer.from(await response.arrayBuffer());
+                  logoFound = true;
+                  console.log("Successfully fetched business logo from URL");
+                } else {
+                  console.log("Failed to fetch business logo from URL:", response.status);
+                }
+              } catch (fetchError) {
+                console.log("Error fetching business logo from URL:", fetchError);
+              }
             } else {
               // Try to resolve as file path
               const businessLogoPath = resolveImagePath(userProfile.businessLogo, documentId, userProfile?.id);
