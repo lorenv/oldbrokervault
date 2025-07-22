@@ -3884,8 +3884,31 @@ Professional CIM Generation Platform`;
         // Import PDF generation function
         const { generatePDF } = await import('./document-export');
         
-        // Generate PDF buffer
-        const pdfBuffer = await generatePDF(cimDoc.id, sender.id);
+        // Generate PDF buffer with proper parameters
+        const pdfBuffer = await generatePDF(
+          cimDocument.analysis,
+          cimDocument.logoUrl,
+          cimDocument.websiteUrl,
+          cimDocument.selectedImages || [],
+          sender,
+          {
+            enabled: cimDocument.financialsEnabled || false,
+            askingPrice: cimDocument.askingPrice,
+            askingPriceIncluded: cimDocument.askingPriceIncluded || false,
+            revenue: cimDocument.revenue,
+            revenueIncluded: cimDocument.revenueIncluded || false,
+            ebitda: cimDocument.ebitda,
+            ebitdaIncluded: cimDocument.ebitdaIncluded || false
+          },
+          [], // financialFiles - not needed for email attachments
+          baseUrl,
+          cimDocument.title,
+          customSections,
+          cimDocument.coverImageUrl,
+          cimDocument.coverImagePosition,
+          cimDocument.id,
+          sender.pdfBackgroundTemplate || 'classic'
+        );
         const filename = `${documentTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}_CIM.pdf`;
         
         pdfAttachment = {
@@ -4021,7 +4044,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       const emailSent = await sendEmail({
         to: ownerProfile.email,
-        from: 'noreply@cimshare.com',
+        from: 'system@cimshare.com',
         replyTo: viewerEmail,
         subject: emailSubject,
         text: emailBody
