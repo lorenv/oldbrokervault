@@ -303,12 +303,6 @@ export function DocumentDetailPage() {
             <div className="space-y-3">
               <EditableTitle title={cimDocument.title} docId={docId} />
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge 
-                  variant={cimDocument.shareEnabled ? "default" : "secondary"}
-                  className={`${cimDocument.shareEnabled ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                >
-                  {cimDocument.shareEnabled ? "Shared" : "Private"}
-                </Badge>
                 {cimDocument.ndaProtected && (
                   <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
                     <FileSignature className="h-3 w-3 mr-1" />
@@ -330,56 +324,90 @@ export function DocumentDetailPage() {
           </div>
         </div>
         
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="edit" className="flex items-center gap-2">
-              <Edit className="h-4 w-4" />
-              Edit CIM
-            </TabsTrigger>
-            <TabsTrigger value="nda" className="flex items-center gap-2">
-              <FileSignature className="h-4 w-4" />
-              NDA Signatures
-            </TabsTrigger>
-            <TabsTrigger value="share" className="flex items-center gap-2">
-              <Share2 className="h-4 w-4" />
-              Share CIM
-            </TabsTrigger>
-          </TabsList>
+        {/* Sidebar Layout */}
+        <div className="flex gap-8 mt-8">
+          {/* Sidebar Navigation */}
+          <div className="w-64 flex-shrink-0">
+            <nav className="space-y-2">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                  activeTab === 'analytics' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <BarChart3 className="h-5 w-5" />
+                Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('edit')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                  activeTab === 'edit' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Edit className="h-5 w-5" />
+                Edit CIM
+              </button>
+              <button
+                onClick={() => setActiveTab('nda')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                  activeTab === 'nda' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <FileSignature className="h-5 w-5" />
+                NDA Signatures
+              </button>
+              <button
+                onClick={() => setActiveTab('share')}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                  activeTab === 'share' 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Share2 className="h-5 w-5" />
+                Share CIM
+              </button>
+            </nav>
+          </div>
           
-          <TabsContent value="analytics" className="mt-6">
-            <DocumentAnalyticsTab 
-              cimDocument={cimDocument}
-              ndaSignatures={ndaSignatures || []}
-            />
-          </TabsContent>
-          
-          <TabsContent value="edit" className="mt-6">
-            <DocumentEditTab 
-              cimDocument={cimDocument}
-              financialFiles={financialFiles || []}
-              customSections={customSections || []}
-            />
-          </TabsContent>
-          
-          <TabsContent value="nda" className="mt-6">
-            <DocumentNdaTab 
-              cimDocument={cimDocument}
-              ndaSignatures={ndaSignatures || []}
-            />
-          </TabsContent>
-          
-          <TabsContent value="share" className="mt-6">
-            <DocumentShareTab 
-              cimDocument={cimDocument}
-              user={user}
-            />
-          </TabsContent>
-        </Tabs>
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            {activeTab === 'analytics' && (
+              <DocumentAnalyticsTab 
+                cimDocument={cimDocument}
+                ndaSignatures={ndaSignatures || []}
+              />
+            )}
+            
+            {activeTab === 'edit' && (
+              <DocumentEditTab 
+                cimDocument={cimDocument}
+                financialFiles={financialFiles || []}
+                customSections={customSections || []}
+              />
+            )}
+            
+            {activeTab === 'nda' && (
+              <DocumentNdaTab 
+                cimDocument={cimDocument}
+                ndaSignatures={ndaSignatures || []}
+              />
+            )}
+            
+            {activeTab === 'share' && (
+              <DocumentShareTab 
+                cimDocument={cimDocument}
+                user={user}
+              />
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );
