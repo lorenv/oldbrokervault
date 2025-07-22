@@ -282,6 +282,14 @@ function resolveImagePath(imagePath: string, documentId?: number, userId?: numbe
     return imagePath;
   }
   
+  // Handle object storage URLs by converting to download endpoint URLs
+  if (imagePath.startsWith('/api/object-storage/')) {
+    console.log(`Processing object storage URL: ${imagePath}`);
+    // Convert object storage URL to a downloadable endpoint format
+    // This will be handled by downloadAndCacheImage function for external URLs
+    return imagePath; // Return as-is, will be processed as external URL
+  }
+  
   // If it starts with '/', assume it's relative to the project root public folder
   if (imagePath.startsWith('/')) {
     const publicPath = path.resolve(process.cwd(), 'public', imagePath.substring(1));
@@ -2728,6 +2736,27 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               }
             }
             
+            // Handle object storage URLs by downloading them first
+            if (selectedImages[i].startsWith('/api/object-storage/')) {
+              console.log(`Processing object storage image ${i}: ${selectedImages[i]}`);
+              const fullObjectStorageUrl = baseUrl ? `${baseUrl}${selectedImages[i]}` : `https://cimshare.com${selectedImages[i]}`;
+              console.log(`Downloading object storage image from: ${fullObjectStorageUrl}`);
+              
+              const cachedImagePath = await downloadAndCacheImage(fullObjectStorageUrl);
+              if (cachedImagePath && fs.existsSync(cachedImagePath)) {
+                console.log(`Successfully cached object storage image: ${cachedImagePath}`);
+                doc.image(cachedImagePath, finalX, finalY, {
+                  width: imageWidth,
+                  height: imageHeight
+                });
+                console.log(`Added object storage image ${i} (${imageWidth}x${imageHeight})`);
+                continue;
+              } else {
+                console.error(`Failed to download object storage image: ${selectedImages[i]}`);
+                continue;
+              }
+            }
+            
             // Handle file path images
             const imagePath = resolveImagePath(selectedImages[i], documentId, userProfile?.id);
             console.log(`Processing file path image ${i}: ${selectedImages[i]} -> ${imagePath}`);
@@ -2993,26 +3022,33 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const base64Data = userProfile.businessLogo.split(',')[1];
               imageBuffer = Buffer.from(base64Data, 'base64');
               logoFound = true;
-            } else if (userProfile.businessLogo.startsWith('http')) {
-              // It's a full URL - convert to localhost HTTP for internal fetching
+            } else if (userProfile.businessLogo.startsWith('http') || userProfile.businessLogo.startsWith('/api/object-storage/')) {
+              // Handle object storage URLs and external URLs
               let fetchUrl = userProfile.businessLogo;
+              
+              // Convert object storage paths to full URLs
+              if (userProfile.businessLogo.startsWith('/api/object-storage/')) {
+                fetchUrl = baseUrl ? `${baseUrl}${userProfile.businessLogo}` : `https://cimshare.com${userProfile.businessLogo}`;
+              }
+              
+              // Convert localhost HTTPS to HTTP for internal fetching
               if (fetchUrl.includes('localhost:5000') || fetchUrl.includes('localhost:3000')) {
                 fetchUrl = fetchUrl.replace('https://', 'http://');
               }
               
-              console.log("Business logo is full URL, attempting to fetch:", fetchUrl);
+              console.log("Business logo is URL/object storage, attempting to fetch:", fetchUrl);
               try {
                 const fetch = await import('node-fetch');
                 const response = await fetch.default(fetchUrl);
                 if (response.ok) {
                   imageBuffer = Buffer.from(await response.arrayBuffer());
                   logoFound = true;
-                  console.log("Successfully fetched business logo from URL");
+                  console.log("Successfully fetched business logo from URL/object storage");
                 } else {
-                  console.log("Failed to fetch business logo from URL:", response.status);
+                  console.log("Failed to fetch business logo from URL/object storage:", response.status);
                 }
               } catch (fetchError) {
-                console.log("Error fetching business logo from URL:", fetchError);
+                console.log("Error fetching business logo from URL/object storage:", fetchError);
               }
             } else {
               // Try to resolve as file path
