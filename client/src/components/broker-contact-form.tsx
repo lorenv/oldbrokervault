@@ -57,6 +57,9 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
     setIsSubmitting(true);
 
     try {
+      console.log('Submitting contact form with data:', formData);
+      console.log('Share slug:', shareSlug);
+      
       const response = await fetch(`/api/share/${shareSlug}/contact`, {
         method: 'POST',
         headers: {
@@ -65,10 +68,17 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
         body: JSON.stringify(formData)
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response data:', errorData);
         throw new Error(errorData.error || 'Failed to send message');
       }
+
+      const successData = await response.json();
+      console.log('Success response data:', successData);
 
       setIsSubmitted(true);
       toast({
@@ -86,6 +96,12 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
 
     } catch (error) {
       console.error('Error sending broker contact:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error
+      });
+      
       toast({
         title: "Failed to send message",
         description: error instanceof Error ? error.message : "Please try again later.",
