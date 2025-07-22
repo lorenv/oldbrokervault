@@ -328,7 +328,7 @@ export function DocumentDetailPage() {
         <div className="flex gap-8 mt-8">
           {/* Sidebar Navigation */}
           <div className="w-64 flex-shrink-0">
-            <nav className="space-y-2">
+            <nav className="space-y-2 sticky top-6">
               <button
                 onClick={() => setActiveTab('analytics')}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
