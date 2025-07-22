@@ -234,76 +234,84 @@ export function EnhancedCimDisplay({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-
+    <div className="space-y-10">
+      <div className="space-y-8">
 
         {/* Financial Information Section at Top */}
         {!isSharedView && cimDocument && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Financial Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Website extracted logo inside financial box */}
-              {logoUrl && (
-                <div className="flex justify-center mb-6 pb-4 border-b border-gray-200">
+          <div className="mb-10">
+            {/* Website extracted logo */}
+            {logoUrl && (
+              <div className="flex justify-center mb-10">
+                <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
                   <img 
                     src={logoUrl} 
                     alt="Company Logo" 
-                    className="h-24 object-contain"
+                    className="h-20 object-contain"
                   />
                 </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {cimDocument.askingPriceIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">Asking Price</div>
-                      <div className="font-semibold">${parseInt(cimDocument.askingPrice || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-                {cimDocument.revenueIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                    <TrendingUpIcon className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">Annual Revenue</div>
-                      <div className="font-semibold">${parseInt(cimDocument.revenue || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-                {cimDocument.ebitdaIncluded && (
-                  <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
-                    <Banknote className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <div className="text-sm text-gray-600">EBITDA</div>
-                      <div className="font-semibold">${parseInt(cimDocument.ebitda || '0').toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
               </div>
-              <OwnerFinancialsSection docId={docId} />
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Financial Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              {cimDocument.askingPriceIncluded && (
+                <div className="flex items-center gap-4 p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200">
+                  <div className="p-3 bg-green-200 rounded-xl">
+                    <DollarSign className="h-6 w-6 text-green-700" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-green-700">Asking Price</div>
+                    <div className="text-xl font-bold text-green-900">${parseInt(cimDocument.askingPrice || '0').toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+              {cimDocument.revenueIncluded && (
+                <div className="flex items-center gap-4 p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
+                  <div className="p-3 bg-blue-200 rounded-xl">
+                    <TrendingUpIcon className="h-6 w-6 text-blue-700" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-blue-700">Annual Revenue</div>
+                    <div className="text-xl font-bold text-blue-900">${parseInt(cimDocument.revenue || '0').toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+              {cimDocument.ebitdaIncluded && (
+                <div className="flex items-center gap-4 p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200">
+                  <div className="p-3 bg-purple-200 rounded-xl">
+                    <Banknote className="h-6 w-6 text-purple-700" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-purple-700">EBITDA</div>
+                    <div className="text-xl font-bold text-purple-900">${parseInt(cimDocument.ebitda || '0').toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Financial Management Section */}
+            <OwnerFinancialsSection docId={docId} cimDocument={cimDocument} />
+          </div>
         )}
         
         {/* Business Images */}
         {selectedImages && selectedImages.length > 0 && (
-          <div className="mb-6">
-            <h3 className="font-medium mb-3">Business Images</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mb-10">
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">Business Images</h3>
+              <p className="text-gray-600">Visual representation of your business operations and facilities</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {selectedImages.map((image, index) => (
-                <img 
-                  key={index} 
-                  src={image} 
-                  alt={`Business image ${index + 1}`}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <div key={index} className="group relative overflow-hidden rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
+                  <img 
+                    src={image} 
+                    alt={`Business image ${index + 1}`}
+                    className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
               ))}
             </div>
           </div>
@@ -323,19 +331,19 @@ export function EnhancedCimDisplay({
               const sectionId = section.id || section.title || `section-${index}`;
               return (
                 <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                  <Card className="mb-4 relative group">
+                  <Card className="mb-8 relative group bg-white shadow-sm rounded-2xl border-0 hover:shadow-lg transition-all duration-200">
                     {!isSharedView && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 z-10"
                         onClick={() => setConfirmDeleteSectionId(sectionId)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
-                    <CardHeader>
-                      <CardTitle className="text-lg pr-8">
+                    <CardHeader className="pb-6 pt-8 px-8">
+                      <CardTitle className="text-xl pr-10 font-semibold text-slate-800">
                         {!isSharedView ? (
                           <FlexibleSectionEditor
                             value={section.title}
@@ -372,8 +380,8 @@ export function EnhancedCimDisplay({
                         )}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none">
+                    <CardContent className="px-8 pb-8 pt-0">
+                      <div className="prose prose-base max-w-none text-slate-700 leading-relaxed">
                         {!isSharedView ? (
                           <FlexibleSectionEditor
                             value={section.content}
