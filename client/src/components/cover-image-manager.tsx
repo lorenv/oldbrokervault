@@ -312,30 +312,23 @@ export function CoverImageManager({
           <CardContent className="space-y-4 pt-0">
             {selectedImage && (
               <div className="space-y-4">
-                <DraggableImagePositioner
-                  imageUrl={selectedImage}
-                  position={imagePosition}
-                  onPositionChange={handleDragPositionChange}
-                  disabled={updateCoverImageMutation.isPending}
-                />
-                
-                {attribution && (
-                  <div 
-                    className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
-                    dangerouslySetInnerHTML={{ __html: attribution }}
+                <div className="relative group">
+                  <DraggableImagePositioner
+                    imageUrl={selectedImage}
+                    position={imagePosition}
+                    onPositionChange={handleDragPositionChange}
+                    disabled={updateCoverImageMutation.isPending}
                   />
-                )}
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => removeCoverImageMutation.mutate()}
-                  disabled={removeCoverImageMutation.isPending}
-                  className="w-full"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Remove Cover Image
-                </Button>
+                  {/* Overlay Remove Button */}
+                  <button
+                    onClick={() => removeCoverImageMutation.mutate()}
+                    disabled={removeCoverImageMutation.isPending}
+                    className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                    title="Remove cover image"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             )}
             

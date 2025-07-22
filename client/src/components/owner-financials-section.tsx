@@ -49,6 +49,9 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // Debounce timer ref
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Drag and drop state
+  const [isDragOver, setIsDragOver] = useState(false);
+
   // Use centralized hook to eliminate duplicate API calls
   const { data: fetchedCimDocument, isLoading: cimLoading } = useCimDocument(docId, !propCimDocument);
   
@@ -256,6 +259,42 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
     }
   };
 
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set false if leaving the drag area completely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles.length === 0) return;
+
+    // Upload files one by one
+    Array.from(droppedFiles).forEach(file => {
+      uploadFileMutation.mutate(file);
+    });
+  }, [uploadFileMutation]);
+
   const handleBulkDownload = async () => {
     try {
       const response = await fetch(`/api/cim/${docId}/financial-files/bulk-download`);
@@ -333,75 +372,49 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
           </div>
         </div>
 
-        {/* File Upload Section - Always Visible */}
-        <div className="space-y-6">
-          <div className="border-t border-gray-100 pt-8">
-            <Label className="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-6">
-              <FileText className="h-5 w-5 text-indigo-600" />
+        {/* File Upload Section - Compact Design */}
+        <div className="space-y-4">
+          <div className="border-t border-gray-100 pt-6">
+            <Label className="text-base font-semibold text-slate-800 flex items-center gap-2 mb-4">
+              <FileText className="h-4 w-4 text-indigo-600" />
               Financial Documents
             </Label>
-            <div className={`border-2 border-dashed rounded-xl p-8 transition-all duration-300 ${
-              uploadFileMutation.isPending 
-                ? 'border-blue-300 bg-blue-50' 
-                : uploadFileMutation.isSuccess 
-                  ? 'border-green-300 bg-green-50' 
-                  : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-            }`}>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-4 transition-all duration-300 ${
+                isDragOver ? 'border-blue-400 bg-blue-50' :
+                uploadFileMutation.isPending 
+                  ? 'border-blue-300 bg-blue-50' 
+                  : uploadFileMutation.isSuccess 
+                    ? 'border-green-300 bg-green-50' 
+                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+            >
               <div className="text-center">
-                <div className="mx-auto h-16 w-16 flex items-center justify-center mb-6">
+                <div className="flex items-center justify-center gap-3 mb-2">
                   {uploadFileMutation.isPending ? (
-                    <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                   ) : uploadFileMutation.isSuccess ? (
-                    <CheckCircle className="h-10 w-10 text-green-500 animate-pulse" />
+                    <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : (
-                    <Upload className="h-12 w-12 text-gray-400" />
+                    <Upload className="h-5 w-5 text-gray-400" />
                   )}
-                </div>
-                <div className="space-y-4">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadFileMutation.isPending}
-                    className={`h-12 px-8 text-base transition-all duration-200 ${
-                      uploadFileMutation.isPending 
-                        ? 'bg-blue-50 border-blue-300' 
-                        : uploadFileMutation.isSuccess 
-                          ? 'bg-green-50 border-green-300' 
-                          : 'hover:bg-blue-50 hover:border-blue-300'
-                    }`}
+                    className="h-8 px-4 text-sm"
                   >
-                    {uploadFileMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : uploadFileMutation.isSuccess ? (
-                      <>
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        Upload Complete
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-5 w-5" />
-                        Upload Financial Files
-                      </>
-                    )}
+                    {uploadFileMutation.isPending ? 'Uploading...' : 'Browse Files'}
                   </Button>
-                  <p className={`text-sm transition-colors duration-200 ${
-                    uploadFileMutation.isPending 
-                      ? 'text-blue-600' 
-                      : uploadFileMutation.isSuccess 
-                        ? 'text-green-600' 
-                        : 'text-gray-500'
-                  }`}>
-                    {uploadFileMutation.isPending 
-                      ? 'Uploading your document...' 
-                      : uploadFileMutation.isSuccess 
-                        ? 'Document uploaded successfully!' 
-                        : 'Upload financial statements, tax returns, or other relevant documents'
-                    }
-                  </p>
                 </div>
+                <p className="text-xs text-gray-500">
+                  {isDragOver ? 'Drop files here' : 'Drag & drop files here or click to browse'}
+                </p>
               </div>
               <input
                 ref={fileInputRef}
@@ -415,40 +428,41 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
           </div>
         </div>
 
-        {/* Uploaded Files */}
+        {/* Uploaded Files - Compact */}
         {files.length > 0 && (
-          <div className="space-y-6">
-            <div className="border-t border-gray-100 pt-8">
-              <div className="flex items-center justify-between mb-6">
-                <Label className="text-lg font-semibold text-slate-800">Uploaded Documents</Label>
+          <div className="space-y-3">
+            <div className="border-t border-gray-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm font-semibold text-slate-800">Uploaded Documents ({files.length})</Label>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleBulkDownload}
-                  className="h-10 px-4"
+                  className="h-8 px-3 text-xs"
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="h-3 w-3 mr-1" />
                   Download All
                 </Button>
               </div>
               
-              <div className="grid gap-4">
+              <div className="grid gap-2">
                 {files.map((file: any) => (
-                  <div key={file.id} className="flex items-center justify-between p-5 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors bg-white hover:bg-gray-50">
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <FileText className="h-5 w-5 text-blue-600" />
+                  <div key={file.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors bg-white hover:bg-gray-50">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="p-1.5 bg-blue-50 rounded">
+                        <FileText className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <a
                           href={`/api/cim/${docId}/financial-files/${file.id}/download`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-slate-800 hover:text-blue-600 hover:underline transition-colors"
+                          className="font-medium text-sm text-slate-800 hover:text-blue-600 hover:underline transition-colors block truncate"
+                          title={file.filename}
                         >
                           {file.filename}
                         </a>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500">
                           {file.fileSize >= 1024 * 1024 ? 
                             `${(file.fileSize / 1024 / 1024).toFixed(2)} MB` : 
                             `${(file.fileSize / 1024).toFixed(1)} KB`}
@@ -456,17 +470,15 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteFileMutation.mutate(file.id)}
-                        disabled={deleteFileMutation.isPending}
-                        className="h-9 w-9 p-0 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteFileMutation.mutate(file.id)}
+                      disabled={deleteFileMutation.isPending}
+                      className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors flex-shrink-0 ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
                 ))}
               </div>
