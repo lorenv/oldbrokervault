@@ -3979,6 +3979,11 @@ Professional CIM Generation Platform`;
 
   // Broker contact endpoint with rate limiting
   app.post("/api/share/:shareSlug/contact", async (req, res) => {
+    console.log('=== CONTACT FORM SUBMISSION RECEIVED ===');
+    console.log('Share slug:', req.params.shareSlug);
+    console.log('Request body:', req.body);
+    console.log('Headers:', req.headers);
+    
     try {
       const { shareSlug } = req.params;
       const { viewerName, viewerEmail, viewerPhone, question } = req.body;
@@ -4078,8 +4083,19 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       });
 
     } catch (error) {
+      console.error("=== CONTACT FORM ERROR ===");
       console.error("Error sending broker contact email:", error);
-      res.status(500).json({ error: "Failed to send message. Please try again later." });
+      console.error("Error type:", typeof error);
+      console.error("Error message:", error?.message);
+      console.error("Error stack:", error?.stack);
+      console.error("Share slug:", req.params.shareSlug);
+      console.error("Request body:", req.body);
+      console.error("=== END CONTACT FORM ERROR ===");
+      
+      res.status(500).json({ 
+        error: "Failed to send message. Please try again later.",
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      });
     }
   });
   
