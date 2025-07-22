@@ -31,6 +31,19 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log('- Has attachments:', !!params.attachments?.length);
     console.log('- API Key configured:', !!process.env.SENDGRID_API_KEY);
     console.log('- API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
+    console.log('- Environment:', process.env.NODE_ENV || 'unknown');
+    console.log('- Platform:', process.platform);
+    
+    // Additional validation for production
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('❌ SENDGRID_API_KEY not found in environment variables');
+      return false;
+    }
+    
+    if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+      console.error('❌ SENDGRID_API_KEY format appears invalid (should start with SG.)');
+      return false;
+    }
     
     const emailData = {
       to: params.to,
@@ -63,6 +76,9 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     console.error('❌ SendGrid email error:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
+    console.error('Error type:', typeof error);
+    console.error('Error name:', error.name);
+    
     if (error.response) {
       console.error('SendGrid response status:', error.response.status);
       console.error('SendGrid response body:', error.response.body);
@@ -70,6 +86,22 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
         console.error('SendGrid errors:', error.response.body.errors);
       }
     }
+    
+    // Additional debugging for production deployment issues
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error('❌ Network connectivity issue - check internet connection');
+    }
+    
+    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+      console.error('❌ API Key authentication failed');
+      console.error('   Check SENDGRID_API_KEY is valid and starts with "SG."');
+    }
+    
+    if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+      console.error('❌ SendGrid account permissions issue');
+      console.error('   Check account status and sender verification');
+    }
+    
     console.error('=== END SENDGRID ERROR ===');
     return false;
   }
