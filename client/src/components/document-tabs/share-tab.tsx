@@ -198,9 +198,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const handlePdfExport = async () => {
     setIsPdfLoading(true);
     try {
-      const response = await fetch(`/api/cim/${cimDocument.id}/export/pdf`, {
-        method: 'GET',
-        credentials: 'include'
+      const response = await fetch(`/api/cim/export/pdf/${cimDocument.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
       if (!response.ok) throw new Error('PDF export failed');
