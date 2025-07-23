@@ -4057,6 +4057,15 @@ This message was sent through your shared CIM link. You can reply directly to th
 View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       `.trim();
 
+      console.log("=== CONTACT FORM EMAIL DEBUG ===");
+      console.log("Owner email:", ownerProfile.email);
+      console.log("From email:", 'system@cimshare.com');
+      console.log("Reply-to email:", finalEmail);
+      console.log("Subject:", emailSubject);
+      console.log("Body length:", emailBody.length);
+      console.log("SendGrid API Key available:", !!process.env.SENDGRID_API_KEY);
+      console.log("SendGrid API Key starts with SG:", process.env.SENDGRID_API_KEY?.startsWith('SG.') || 'NOT_AVAILABLE');
+      
       const emailSent = await sendEmail({
         to: ownerProfile.email,
         from: 'system@cimshare.com',
@@ -4065,7 +4074,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         text: emailBody
       });
 
+      console.log("Email sent result:", emailSent);
+      console.log("=== END CONTACT FORM EMAIL DEBUG ===");
+
       if (!emailSent) {
+        console.error("❌ Contact form email failed - SendGrid returned false");
         return res.status(500).json({ error: "Failed to send email. Please try again." });
       }
 

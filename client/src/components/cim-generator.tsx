@@ -16,7 +16,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -46,12 +45,13 @@ import { ImageIcon, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
+import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 
 export function CimGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
-  
+
   // Fetch user limits
   const { data: userLimits, isLoading: limitsLoading } = useQuery({
     queryKey: ["/api/user/limits"],
@@ -77,7 +77,7 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
-  
+
   // CIM Generation Progress State
   const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
   const [progressStartTime, setProgressStartTime] = useState<number | null>(null);
@@ -88,7 +88,7 @@ export function CimGenerator() {
   });
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // New analysis template state
   const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
   const [selectedTone, setSelectedTone] = useState<string>('professional');
@@ -141,7 +141,7 @@ export function CimGenerator() {
     directions: string;
     websiteUrl?: string;
   };
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -162,13 +162,13 @@ export function CimGenerator() {
   // Function to extract images from website
   const extractImages = async (websiteUrl: string) => {
     if (!websiteUrl.trim()) return;
-    
+
     setIsExtractingImages(true);
     try {
       const encodedUrl = encodeURIComponent(websiteUrl);
       const response = await apiRequest("GET", `/api/website-images/${encodedUrl}`);
       const data = await response.json();
-      
+
       if (data.images && data.images.length > 0) {
         setExtractedImages(data.images);
         toast({
@@ -205,7 +205,7 @@ export function CimGenerator() {
 
   const searchUnsplash = async () => {
     if (!unsplashSearchQuery.trim()) return;
-    
+
     setIsSearchingUnsplash(true);
     try {
       const response = await apiRequest("GET", `/api/unsplash/search?query=${encodeURIComponent(unsplashSearchQuery)}`);
@@ -236,11 +236,11 @@ export function CimGenerator() {
     } catch (error) {
       console.error('Failed to trigger Unsplash download event:', error);
     }
-    
+
     const photographerUrl = `${image.user.links.html}?utm_source=CIM_Generator&utm_medium=referral`;
     const unsplashUrl = `https://unsplash.com/?utm_source=CIM_Generator&utm_medium=referral`;
     const attribution = `Photo by <a href="${photographerUrl}" target="_blank" rel="noopener noreferrer">${image.user.name}</a> on <a href="${unsplashUrl}" target="_blank" rel="noopener noreferrer">Unsplash</a>`;
-    
+
     setSelectedCoverImage(image.urls.regular);
     setCoverImageFile(null); // Clear file state when selecting Unsplash image
     setCoverImageAttribution(attribution);
@@ -256,20 +256,20 @@ export function CimGenerator() {
       // Initialize progress tracking
       setGenerationStage("initializing");
       setProgressStartTime(Date.now());
-      
+
       // Determine content characteristics for progress estimation
       const hasFinancials = financialFiles.length > 0 || 
         financialData.askingPrice || 
         financialData.revenue || 
         financialData.ebitda;
       const hasLargeContent = data.transcript.length > 4000;
-      
+
       // Set up website analysis tracking
       const hasWebsiteUrl = !!data.websiteUrl?.trim();
-      
+
       // Stage 2: Processing transcript
       setTimeout(() => setGenerationStage("processing_transcript"), 500);
-      
+
       if (data.transcript.length > 4000 || financialFiles.length > 0) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
         const formData = new FormData();
@@ -279,14 +279,14 @@ export function CimGenerator() {
         formData.append('purpose', selectedPurpose);
         formData.append('tone', selectedTone);
         formData.append('audience', selectedAudience);
-        
+
         if (hasWebsiteUrl) {
           formData.append('websiteUrl', data.websiteUrl!);
           if (selectedImages.length > 0) {
             formData.append('selectedImages', JSON.stringify(selectedImages));
           }
         }
-        
+
         if (currentDocId) {
           formData.append('docId', currentDocId.toString());
         }
@@ -318,7 +318,7 @@ export function CimGenerator() {
           if (coverImageAttribution) {
             formData.append('coverImageAttribution', coverImageAttribution);
           }
-          
+
           // If it's a blob URL (user uploaded file), also append the file
           if (selectedCoverImage.startsWith('blob:') && coverImageFile) {
             formData.append('coverImage', coverImageFile);
@@ -328,10 +328,10 @@ export function CimGenerator() {
         try {
           // Stage 3: Analyzing content
           setTimeout(() => setGenerationStage("analyzing_content"), 1000);
-          
+
           // Stage 4: Generating document (before API call)
           setTimeout(() => setGenerationStage("generating_document"), 2000);
-          
+
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
             body: formData,
@@ -342,7 +342,7 @@ export function CimGenerator() {
             const error = await res.json();
             throw new Error(error.error || "Failed to generate CIM");
           }
-          
+
           // Stage 5: Processing financials (if any), then finalizing
           if (hasFinancials) {
             setGenerationStage("processing_financials");
@@ -351,7 +351,7 @@ export function CimGenerator() {
           } else {
             setGenerationStage("finalizing");
           }
-          
+
           return res.json();
         } catch (error) {
           setWebsiteAnalysisStage(null);
@@ -390,12 +390,12 @@ export function CimGenerator() {
         try {
           // Stage 3: Analyzing content
           setTimeout(() => setGenerationStage("analyzing_content"), 1000);
-          
+
           // Stage 4: Generating document (before API call)
           setTimeout(() => setGenerationStage("generating_document"), 2000);
-          
+
           const response = await apiRequest("POST", "/api/cim/generate", payload);
-          
+
           // Stage 5: Processing financials (if any), then finalizing
           if (hasFinancials) {
             setGenerationStage("processing_financials");
@@ -404,7 +404,7 @@ export function CimGenerator() {
           } else {
             setGenerationStage("finalizing");
           }
-          
+
           return response.json();
         } catch (error) {
           setWebsiteAnalysisStage(null);
@@ -416,14 +416,14 @@ export function CimGenerator() {
       // Complete the progress
       setGenerationStage("complete");
       setWebsiteAnalysisStage(null);
-      
+
       toast({
         title: "CIM Generated Successfully",
         description: "Your document has been created successfully!",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
-      
+
       // Show completion for a moment, then redirect
       setTimeout(() => {
         setGenerationStage(null);
@@ -436,7 +436,7 @@ export function CimGenerator() {
       setGenerationStage(null);
       setProgressStartTime(null);
       setWebsiteAnalysisStage(null);
-      
+
       console.error("Generation error:", error);
       toast({
         title: "Error Generating CIM",
@@ -460,7 +460,7 @@ export function CimGenerator() {
         websiteUrl: data.websiteUrl,
         selectedImages
       };
-      
+
       const response = await apiRequest("POST", "/api/cim/regenerate", payload);
       return response.json();
     },
@@ -468,9 +468,9 @@ export function CimGenerator() {
       if (result.analysis) {
         setAnalysis(result.analysis);
       }
-      
+
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${currentDocId}`] });
-      
+
       toast({
         title: "Analysis Regenerated",
         description: "Your document has been updated with new analysis.",
@@ -621,19 +621,19 @@ export function CimGenerator() {
           </Button>
         </div>
       )}
-      
+
       {!analysis ? (
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
-              
+
               {/* Document Information Section */}
               <div className="space-y-4">
                 <div className="border-l-4 border-blue-500 pl-4">
                   <h3 className="text-lg font-semibold text-gray-900">Document Information</h3>
                   <p className="text-sm text-gray-600">Basic details about your CIM document</p>
                 </div>
-                
+
                 <div className="space-y-4 ml-4">
                   <div>
                     <Input
@@ -682,14 +682,14 @@ export function CimGenerator() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Business Notes Section */}
               <div className="space-y-4">
                 <div className="border-l-4 border-green-500 pl-4">
                   <h3 className="text-lg font-semibold text-gray-900">Business Notes</h3>
                   <p className="text-sm text-gray-600">Paste your business meeting transcript or notes</p>
                 </div>
-                
+
                 <div className="ml-4">
                   <Textarea
                     placeholder="Paste your business notes here..."
@@ -710,7 +710,7 @@ export function CimGenerator() {
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium">Website Images</h4>
                   </div>
-                  
+
                   {extractedImages.length > 0 && (
                     <div className="space-y-3">
                       <div className="text-xs text-muted-foreground">
@@ -753,7 +753,7 @@ export function CimGenerator() {
                       )}
                     </div>
                   )}
-                  
+
                   {extractedImages.length === 0 && !isExtractingImages && (
                     <div className="text-xs text-muted-foreground">
                       Click "Extract Images" to find images from the website
@@ -780,14 +780,14 @@ export function CimGenerator() {
                         onPositionChange={setCoverImagePosition}
                         className="w-full"
                       />
-                      
+
                       {coverImageAttribution && (
                         <div 
                           className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
                           dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
                         />
                       )}
-                      
+
                       <Button 
                         type="button"
                         variant="outline" 
@@ -804,7 +804,7 @@ export function CimGenerator() {
                       </Button>
                     </div>
                   )}
-                  
+
                   {!selectedCoverImage && (
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
@@ -813,7 +813,7 @@ export function CimGenerator() {
                       </p>
                     </div>
                   )}
-                  
+
                   <div className="flex gap-2">
                     <Button 
                       type="button"
@@ -824,7 +824,7 @@ export function CimGenerator() {
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Image
                     </Button>
-                    
+
                     <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
@@ -832,7 +832,7 @@ export function CimGenerator() {
                           variant="outline" 
                           className="flex-1"
                         >
-                          <Search className="h-4 w-4 mr-2" />
+                          <UnsplashIcon className="h-4 w-4 mr-2" />
                           Search Unsplash
                         </Button>
                       </DialogTrigger>
@@ -843,7 +843,7 @@ export function CimGenerator() {
                             Find professional cover images for your CIM document
                           </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="space-y-4">
                           <div className="flex gap-2">
                             <Input
@@ -856,7 +856,7 @@ export function CimGenerator() {
                               {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                             </Button>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
                             {unsplashResults.map((image, index) => (
                               <div
@@ -875,7 +875,7 @@ export function CimGenerator() {
                               </div>
                             ))}
                           </div>
-                          
+
                           {unsplashResults.length === 0 && !isSearchingUnsplash && (
                             <div className="text-center py-8 text-muted-foreground">
                               Search for images above to get started
@@ -885,7 +885,7 @@ export function CimGenerator() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                  
+
                   <input
                     type="file"
                     ref={coverImageFileInputRef}
@@ -902,7 +902,7 @@ export function CimGenerator() {
                   <h3 className="text-lg font-semibold text-gray-900">Financial Information</h3>
                   <p className="text-sm text-gray-600">Add key financial metrics to enhance your CIM</p>
                 </div>
-                
+
                 <div className="ml-4 space-y-6 p-4 border rounded-lg bg-background">
                   <div className="grid md:grid-cols-3 gap-4">
                     {/* Asking Price */}
@@ -944,7 +944,7 @@ export function CimGenerator() {
                       />
                     </div>
                     </div>
-                    
+
                     <div className="space-y-3 mt-4">
                       <Label className="text-xs text-muted-foreground">Financial Documents (Optional)</Label>
                       <div className="border-2 border-dashed border-muted rounded-lg p-4">
@@ -973,7 +973,7 @@ export function CimGenerator() {
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                         />
                       </div>
-                      
+
                       {financialFiles.length > 0 && (
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Uploaded Files:</Label>
@@ -1010,7 +1010,7 @@ export function CimGenerator() {
                   <h3 className="text-lg font-semibold text-gray-900">Analysis Directions</h3>
                   <p className="text-sm text-gray-600">Customize how AI analyzes your transcript</p>
                 </div>
-                
+
                 <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
                   <div className="flex items-center justify-between">
                     <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
@@ -1027,7 +1027,7 @@ export function CimGenerator() {
                           Create, save, and load custom analysis direction templates
                         </DialogDescription>
                       </DialogHeader>
-                      
+
                       <div className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                           {/* Current Directions Editor */}
@@ -1042,7 +1042,7 @@ export function CimGenerator() {
                               }}
                               placeholder="Enter your custom analysis directions..."
                             />
-                            
+
                             <div className="space-y-2">
                               <Label className="text-sm font-medium">Template Name</Label>
                               <Input
@@ -1051,7 +1051,7 @@ export function CimGenerator() {
                                 placeholder="Enter template name..."
                               />
                             </div>
-                            
+
                             <Button 
                               size="sm" 
                               onClick={() => {
@@ -1251,7 +1251,7 @@ export function CimGenerator() {
               />
             </div>
           )}
-          
+
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Generated CIM</h2>
             <div className="flex gap-2">
