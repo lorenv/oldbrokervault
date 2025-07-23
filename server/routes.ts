@@ -4065,6 +4065,28 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       console.log("Body length:", emailBody.length);
       console.log("SendGrid API Key available:", !!process.env.SENDGRID_API_KEY);
       console.log("SendGrid API Key starts with SG:", process.env.SENDGRID_API_KEY?.startsWith('SG.') || 'NOT_AVAILABLE');
+      console.log("SendGrid API Key length:", process.env.SENDGRID_API_KEY?.length || 0);
+      console.log("NODE_ENV:", process.env.NODE_ENV);
+      console.log("Platform:", process.platform);
+      
+      // Critical environment validation
+      if (!process.env.SENDGRID_API_KEY) {
+        console.error("🚨 CRITICAL: SENDGRID_API_KEY environment variable is missing");
+        console.error("Available environment variables containing 'SENDGRID':", Object.keys(process.env).filter(k => k.includes('SENDGRID')));
+        console.error("This is the root cause of the contact form failure");
+        return res.status(500).json({ 
+          error: "Email service not properly configured. Please contact support.",
+          debug: "SENDGRID_API_KEY missing in production environment"
+        });
+      }
+      
+      if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+        console.error("🚨 CRITICAL: SENDGRID_API_KEY format is invalid");
+        return res.status(500).json({ 
+          error: "Email service configuration error. Please contact support.",
+          debug: "SENDGRID_API_KEY format invalid"
+        });
+      }
       
       const emailSent = await sendEmail({
         to: ownerProfile.email,
