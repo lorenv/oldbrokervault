@@ -850,20 +850,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Processed profile photo:", processedUserProfile.profilePhoto);
       console.log("===========================================");
 
+      // Process logo URL and selected images with proper URL conversion for PDF export
+      const processedLogoUrl = processImageUrl(cimDoc.logoUrl);
+      const processedSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
+      const processedCoverImageUrl = processImageUrl(cimDoc.coverImageUrl);
+
+      console.log("=== PDF EXPORT IMAGE URL PROCESSING ===");
+      console.log("Original logo URL:", cimDoc.logoUrl);
+      console.log("Processed logo URL:", processedLogoUrl);
+      console.log("Original selected images:", cimDoc.selectedImages);
+      console.log("Processed selected images:", processedSelectedImages);
+      console.log("Original cover image URL:", cimDoc.coverImageUrl);
+      console.log("Processed cover image URL:", processedCoverImageUrl);
+      console.log("==========================================");
+
       // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
       const pdfGenStart = Date.now();
       const pdfBuffer = await generatePDF(
         cimDoc.analysis, // Use cached analysis - no regeneration
-        cimDoc.logoUrl, // Use cached logo URL  
+        processedLogoUrl, // Use processed logo URL with proper base URL  
         cimDoc.websiteUrl || undefined,
-        cimDoc.selectedImages || [], // Use cached images - no reprocessing
+        processedSelectedImages, // Use processed images with proper base URLs
         processedUserProfile, // Use processed user profile with correct image URLs
         financialData,
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
         customSections,
-        cimDoc.coverImageUrl,
+        processedCoverImageUrl, // Use processed cover image URL
         cimDoc.coverImagePosition,
         cimDoc.id,
         pdfTemplate, // Pass user's template preference
@@ -3630,8 +3644,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user's PDF template preference
       const pdfTemplate = userProfile.pdfBackgroundTemplate || 'classic';
       
+      // Process image URLs for PDF export using the same logic as share route
+      const processImageUrl = (url: string | null) => {
+        if (!url) return null;
+        if (url.startsWith('data:') || url.startsWith('http')) return url;
+        
+        // Handle object storage URLs
+        if (url.startsWith('/api/object-storage/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // For user-specific images
+        if (url.startsWith('/user-images/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        // For legacy logos/images
+        if (url.startsWith('/logos/') || url.startsWith('/business-images/') || url.startsWith('/profile-photos/')) {
+          return `${baseUrl}${url}`;
+        }
+        
+        return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
+      };
+
+      // Process logo URL and selected images with proper URL conversion for PDF export
+      const processedLogoUrl = processImageUrl(doc.logoUrl);
+      const processedSelectedImages = (doc.selectedImages || []).map(processImageUrl).filter(Boolean);
+      const processedCoverImageUrl = processImageUrl(doc.coverImageUrl);
+
+      console.log("=== REGULAR PDF EXPORT IMAGE URL PROCESSING ===");
+      console.log("Original logo URL:", doc.logoUrl);
+      console.log("Processed logo URL:", processedLogoUrl);
+      console.log("Original selected images:", doc.selectedImages);
+      console.log("Processed selected images:", processedSelectedImages);
+      console.log("Original cover image URL:", doc.coverImageUrl);
+      console.log("Processed cover image URL:", processedCoverImageUrl);
+      console.log("===============================================");
+      
       // Pass all document data to the PDF generator
-      const buffer = await generatePDF(doc.analysis, doc.logoUrl || undefined, doc.websiteUrl || undefined, doc.selectedImages ? doc.selectedImages : undefined, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, doc.coverImageUrl || undefined, doc.coverImagePosition, doc.id, pdfTemplate);
+      const buffer = await generatePDF(doc.analysis, processedLogoUrl, doc.websiteUrl || undefined, processedSelectedImages, userProfile, financialData, documentFinancialFiles, baseUrl, doc.title, customSections, processedCoverImageUrl, doc.coverImagePosition, doc.id, pdfTemplate);
       console.log(`PDF document generated, size: ${buffer.length} bytes`);
       
       res.setHeader("Content-Type", "application/pdf");
