@@ -1,7 +1,13 @@
 import { MailService } from '@sendgrid/mail';
 
+// Critical: Check for SENDGRID_API_KEY with detailed production debugging
 if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+  console.error("🚨 CRITICAL: SENDGRID_API_KEY environment variable not found");
+  console.error("Environment:", process.env.NODE_ENV || 'unknown');
+  console.error("Platform:", process.platform);
+  console.error("Available env vars with SENDGRID:", Object.keys(process.env).filter(k => k.includes('SENDGRID')));
+  console.error("This will cause all email functionality to fail");
+  throw new Error("SENDGRID_API_KEY environment variable must be set - check deployment configuration");
 }
 
 const mailService = new MailService();
