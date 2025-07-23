@@ -2006,102 +2006,55 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         try {
           console.log("Adding cover image from coverImageUrl:", coverImageUrl);
           
-          if (coverImageUrl.startsWith('data:')) {
-            // Handle base64 data URI
-            const base64Data = coverImageUrl.split(',')[1];
-            const imageBuffer = Buffer.from(base64Data, 'base64');
+          const coverImageData = await resolveImageData(coverImageUrl);
+          
+          if (coverImageData) {
+            console.log("Successfully resolved cover image data using unified approach");
             
             // Calculate banner dimensions - 20% of page height, full width
             const bannerHeight = doc.page.height * 0.2; // 20% of page height
             const bannerWidth = doc.page.width; // Full page width
             
-            doc.image(imageBuffer, 0, 0, {
-              width: bannerWidth,
-              height: bannerHeight
-            });
-            
-            // Move cursor below the banner image
-            doc.y = bannerHeight + 60; // Add larger margin below banner
-            console.log("Successfully added base64 cover image banner");
-          } else if (coverImageUrl.startsWith('http://') || coverImageUrl.startsWith('https://')) {
-            // Handle external URL - download and cache first
-            console.log("Downloading external cover image:", coverImageUrl);
-            const cachedImagePath = await downloadAndCacheImage(coverImageUrl);
-            
-            if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              // Calculate banner dimensions - 20% of page height, full width
-              const bannerHeight = doc.page.height * 0.2; // 20% of page height
-              const bannerWidth = doc.page.width; // Full page width
-              
-              // Create cropped image buffer based on position
-              console.log("Attempting to crop image with position:", imagePosition);
-              const croppedBuffer = await createCroppedImageBuffer(cachedImagePath, imagePosition, bannerWidth, bannerHeight);
-              
-              if (croppedBuffer) {
-                doc.image(croppedBuffer, 0, 0, {
-                  width: bannerWidth,
-                  height: bannerHeight
-                });
-                console.log("Successfully added cropped external cover image banner");
-              } else {
-                // Fallback to original stretching if cropping fails
-                console.log("Cropping failed, falling back to stretch");
-                doc.image(cachedImagePath, 0, 0, {
-                  width: bannerWidth,
-                  height: bannerHeight
-                });
-                console.log("Added external cover image banner (fallback to stretch)");
-              }
-              
-              // Move cursor below the banner image
-              doc.y = bannerHeight + 60; // Add larger margin below banner
-            } else {
-              console.log("Failed to download or cache external cover image");
-            }
-          } else {
-            // Handle local file path
-            const imagePath = resolveImagePath(coverImageUrl, documentId, userProfile?.id);
-            
-            let coverImageFound = false;
-            let finalCoverImagePath = imagePath;
-            
-            if (fs.existsSync(imagePath)) {
-              coverImageFound = true;
-            } else {
-              console.log("Cover image not found at primary path, trying alternatives");
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', coverImageUrl.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), coverImageUrl.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', coverImageUrl.replace(/^\/+/, ''))
-              ];
-              
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative cover image path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalCoverImagePath = altPath;
-                  coverImageFound = true;
-                  console.log("Found cover image at alternative path:", altPath);
-                  break;
+            // For non-base64 images (URLs), try to apply cropping if position is specified
+            if (!coverImageData.isBase64 && coverImagePosition) {
+              try {
+                console.log("Attempting to crop image with position:", imagePosition);
+                const croppedBuffer = await createCroppedImageBuffer(coverImageData.originalPath, imagePosition, bannerWidth, bannerHeight);
+                
+                if (croppedBuffer) {
+                  doc.image(croppedBuffer, 0, 0, {
+                    width: bannerWidth,
+                    height: bannerHeight
+                  });
+                  console.log("Successfully added cropped cover image banner");
+                } else {
+                  // Fallback to original without cropping
+                  doc.image(coverImageData.buffer, 0, 0, {
+                    width: bannerWidth,
+                    height: bannerHeight
+                  });
+                  console.log("Added cover image banner without cropping");
                 }
+              } catch (cropError) {
+                console.log("Cropping failed, using original image");
+                doc.image(coverImageData.buffer, 0, 0, {
+                  width: bannerWidth,
+                  height: bannerHeight
+                });
               }
-            }
-            
-            if (coverImageFound) {
-              // Calculate banner dimensions - 20% of page height, full width
-              const bannerHeight = doc.page.height * 0.2; // 20% of page height
-              const bannerWidth = doc.page.width; // Full page width
-              
-              doc.image(finalCoverImagePath, 0, 0, {
+            } else {
+              // Use image as-is
+              doc.image(coverImageData.buffer, 0, 0, {
                 width: bannerWidth,
                 height: bannerHeight
               });
-              
-              // Move cursor below the banner image with increased spacing
-              doc.y = bannerHeight + 60; // Increased margin below banner from 20 to 60
-              console.log("Successfully added file-based cover image banner");
-            } else {
-              console.log("Cover image file does not exist:", imagePath);
+              console.log("Successfully added cover image banner");
             }
+            
+            // Move cursor below the banner image
+            doc.y = bannerHeight + 60; // Add larger margin below banner
+          } else {
+            console.log("Failed to resolve cover image data");
           }
         } catch (error) {
           console.error("Failed to add cover image:", error);
@@ -2199,77 +2152,50 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         try {
           console.log("Processing website logo URL:", logoUrl);
           
-          let logoFound = false;
+          const logoData = await resolveImageData(logoUrl);
           let imageBuffer: Buffer | undefined;
           
-          // Check if it's a base64 data URL first
-          if (logoUrl.startsWith('data:image/')) {
-            console.log("Processing base64 logo with optimization");
-            const base64Data = logoUrl.split(',')[1];
-            // Optimize base64 processing with memory-efficient conversion
-            const rawBuffer = Buffer.from(base64Data, 'base64');
+          if (logoData) {
+            console.log("Successfully resolved logo data using unified approach");
+            imageBuffer = logoData.buffer;
             
             // Optimize image for PDF to reduce processing time
             try {
-              imageBuffer = await sharp(rawBuffer)
+              imageBuffer = await sharp(logoData.buffer)
                 .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
                 .jpeg({ quality: 85 })
                 .toBuffer();
-              logoFound = true;
+              console.log("Logo optimized with Sharp");
             } catch (sharpError) {
               console.log("Sharp optimization failed, using original buffer");
-              imageBuffer = rawBuffer;
-              logoFound = true;
-            }
-          } else {
-            // Try to resolve as file path
-            const logoPath = resolveImagePath(logoUrl, documentId, userProfile?.id);
-            console.log("Resolved website logo path:", logoPath);
-            
-            let finalLogoPath = logoPath;
-            
-            if (fs.existsSync(logoPath)) {
-              logoFound = true;
-            } else {
-              console.log("Website logo file does not exist, checking alternative paths");
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', logoUrl.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), logoUrl.replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', logoUrl.replace(/^\/+/, ''))
-              ];
-              
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative website logo path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalLogoPath = altPath;
-                  logoFound = true;
-                  console.log("Successfully found website logo at alternative path:", altPath);
-                  break;
-                }
-              }
-            }
-            
-            if (logoFound) {
-              imageBuffer = fs.readFileSync(finalLogoPath);
+              imageBuffer = logoData.buffer;
             }
           }
           
-          if (logoFound && imageBuffer) {
-            console.log("Website logo found, adding to first page with proper aspect ratio");
+          if (imageBuffer) {
+            console.log("Website logo resolved, adding to first page with proper aspect ratio");
             
             let originalWidth = 200;
             let originalHeight = 100;
             
             // Try to get actual image dimensions
-            const jpegDims = getJpegDimensions(imageBuffer);
-            const pngDims = getPngDimensions(imageBuffer);
-            
-            if (jpegDims) {
-              originalWidth = jpegDims.width;
-              originalHeight = jpegDims.height;
-            } else if (pngDims) {
-              originalWidth = pngDims.width;
-              originalHeight = pngDims.height;
+            try {
+              const sharp = require('sharp');
+              const metadata = await sharp(imageBuffer).metadata();
+              originalWidth = metadata.width || 200;
+              originalHeight = metadata.height || 100;
+            } catch (dimError) {
+              // Fallback to manual dimension reading
+              const jpegDims = getJpegDimensions(imageBuffer);
+              const pngDims = getPngDimensions(imageBuffer);
+              
+              if (jpegDims) {
+                originalWidth = jpegDims.width;
+                originalHeight = jpegDims.height;
+              } else if (pngDims) {
+                originalWidth = pngDims.width;
+                originalHeight = pngDims.height;
+              }
             }
             
             // Calculate scaled dimensions maintaining aspect ratio
@@ -2734,121 +2660,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 console.error(`Failed to add business image ${i}:`, error);
                 continue;
               }
-            }
-            
-            // Handle object storage URLs by downloading them first
-            if (selectedImages[i].startsWith('/api/object-storage/')) {
-              console.log(`Processing object storage image ${i}: ${selectedImages[i]}`);
-              const fullObjectStorageUrl = baseUrl ? `${baseUrl}${selectedImages[i]}` : `https://cimshare.com${selectedImages[i]}`;
-              console.log(`Downloading object storage image from: ${fullObjectStorageUrl}`);
-              
-              const cachedImagePath = await downloadAndCacheImage(fullObjectStorageUrl);
-              if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-                console.log(`Successfully cached object storage image: ${cachedImagePath}`);
-                doc.image(cachedImagePath, finalX, finalY, {
-                  width: imageWidth,
-                  height: imageHeight
-                });
-                console.log(`Added object storage image ${i} (${imageWidth}x${imageHeight})`);
-                continue;
-              } else {
-                console.error(`Failed to download object storage image: ${selectedImages[i]}`);
-                continue;
-              }
-            }
-            
-            // Handle file path images
-            const imagePath = resolveImagePath(selectedImages[i], documentId, userProfile?.id);
-            console.log(`Processing file path image ${i}: ${selectedImages[i]} -> ${imagePath}`);
-            
-            let imageFound = false;
-            let finalImagePath = imagePath;
-            
-            if (fs.existsSync(imagePath)) {
-              imageFound = true;
             } else {
-              // Try alternative paths for business images
-              console.log(`Business image not found at ${imagePath}, trying alternatives`);
-              const alternativePaths = [
-                path.resolve(process.cwd(), 'public', selectedImages[i].replace(/^\/+/, '')),
-                path.resolve(process.cwd(), selectedImages[i].replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'attached_assets', selectedImages[i].replace(/^\/+/, '')),
-                path.resolve(process.cwd(), 'public', 'business-images', path.basename(selectedImages[i]))
-              ];
-              
-              for (const altPath of alternativePaths) {
-                console.log("Trying alternative business image path:", altPath);
-                if (fs.existsSync(altPath)) {
-                  finalImagePath = altPath;
-                  imageFound = true;
-                  console.log("Found business image at alternative path:", altPath);
-                  break;
-                }
-              }
-            }
-            
-            if (imageFound) {
-              // Calculate position in grid
-              const col = i % imagesPerRow;
-              const row = Math.floor(i / imagesPerRow);
-              
-              // Check if we need a new page
-              const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
-              if (imageY + imageHeight > doc.page.height - pageMargin) {
-                doc.addPage();
-                
-                // Add section header on new page
-                doc.fontSize(18)
-                   .font('Helvetica-Bold')
-                   .fillColor('#1e3a8a')
-                   .text('BUSINESS IMAGES (continued)')
-                   .fillColor('#000000');
-                
-                doc.moveDown(2);
-                currentY = doc.y;
-                currentRow = row;
-              }
-              
-              // Calculate final position
-              const finalX = startX + (col * (imageWidth + horizontalMargin));
-              const finalY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
-              
-              // Get image dimensions and maintain aspect ratio
-              let actualWidth = imageWidth;
-              let actualHeight = imageHeight;
-              
-              try {
-                const imageBuffer = fs.readFileSync(finalImagePath);
-                const jpegDims = getJpegDimensions(imageBuffer);
-                const pngDims = getPngDimensions(imageBuffer);
-                
-                if (jpegDims || pngDims) {
-                  const dims = jpegDims || pngDims;
-                  if (dims) {
-                    const aspectRatio = dims.width / dims.height;
-                  
-                    if (aspectRatio > 1) {
-                      // Landscape image
-                      actualHeight = imageWidth / aspectRatio;
-                    } else {
-                      // Portrait image  
-                      actualWidth = imageHeight * aspectRatio;
-                    }
-                  }
-                }
-              } catch (dimError) {
-                console.log("Could not determine file image dimensions, using default");
-              }
-              
-              // Add the image with proper aspect ratio
-              doc.image(finalImagePath, finalX, finalY, {
-                width: actualWidth,
-                height: actualHeight
-              });
-              
-              console.log(`Successfully added business image ${i} with rounded corners at ${finalX}, ${finalY}`);
-            } else {
-              console.log(`Business image file not found in any location: ${selectedImages[i]}`);
+              console.log(`Could not resolve business image data for: ${selectedImages[i]}`);
             }
           } catch (error) {
             console.error(`Failed to add business image ${selectedImages[i]} to PDF:`, error);

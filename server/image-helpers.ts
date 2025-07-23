@@ -1,6 +1,7 @@
 import { imageManager } from './image-manager';
 import fs from 'fs';
 import path from 'path';
+import fetch from 'node-fetch';
 
 /**
  * Helper functions for handling images in both base64 and file-based formats
@@ -16,12 +17,15 @@ export interface ImageData {
 
 /**
  * Resolve an image path/URL to actual image data
- * Handles both base64 and file paths during migration
+ * Handles base64, file paths, and full URLs (including object storage URLs)
  */
 export async function resolveImageData(imagePath: string): Promise<ImageData | null> {
   try {
+    console.log(`[resolveImageData] Processing: ${imagePath.substring(0, 100)}...`);
+    
     // Check if it's base64 data
     if (imagePath.startsWith('data:')) {
+      console.log(`[resolveImageData] Processing base64 data`);
       const matches = imagePath.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches) {
         throw new Error('Invalid base64 data format');
@@ -39,6 +43,52 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
       };
     }
     
+    // Check if it's a full URL (http or https)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      console.log(`[resolveImageData] Processing full URL: ${imagePath}`);
+      try {
+        const response = await fetch(imagePath, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error(`[resolveImageData] Failed to fetch URL: ${response.status} ${response.statusText}`);
+          return null;
+        }
+        
+        const buffer = Buffer.from(await response.arrayBuffer());
+        
+        // Determine MIME type from response headers or URL extension
+        let mimeType = response.headers.get('content-type') || 'image/jpeg';
+        if (!mimeType.startsWith('image/')) {
+          // Fallback to determining from URL extension
+          const extension = path.extname(new URL(imagePath).pathname).toLowerCase();
+          const mimeTypes: { [key: string]: string } = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.svg': 'image/svg+xml'
+          };
+          mimeType = mimeTypes[extension] || 'image/jpeg';
+        }
+        
+        console.log(`[resolveImageData] Successfully downloaded URL, buffer size: ${buffer.length}, mimeType: ${mimeType}`);
+        return {
+          buffer,
+          mimeType,
+          isBase64: false,
+          originalPath: imagePath
+        };
+      } catch (fetchError) {
+        console.error(`[resolveImageData] Failed to download URL: ${imagePath}`, fetchError);
+        return null;
+      }
+    }
+    
     // Check if it's a file path
     let fullPath: string;
     
@@ -53,8 +103,10 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
       fullPath = path.join(process.cwd(), 'public', imagePath);
     }
     
+    console.log(`[resolveImageData] Checking file path: ${fullPath}`);
+    
     if (!fs.existsSync(fullPath)) {
-      console.warn(`Image file not found: ${fullPath}`);
+      console.warn(`[resolveImageData] Image file not found: ${fullPath}`);
       return null;
     }
     
@@ -73,6 +125,7 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
     
     const mimeType = mimeTypes[extension] || 'image/jpeg';
     
+    console.log(`[resolveImageData] Successfully loaded file, buffer size: ${buffer.length}, mimeType: ${mimeType}`);
     return {
       buffer,
       mimeType,
@@ -81,7 +134,7 @@ export async function resolveImageData(imagePath: string): Promise<ImageData | n
     };
     
   } catch (error) {
-    console.error(`Failed to resolve image data for: ${imagePath}`, error);
+    console.error(`[resolveImageData] Failed to resolve image data for: ${imagePath}`, error);
     return null;
   }
 }
