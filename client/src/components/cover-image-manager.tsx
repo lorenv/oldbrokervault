@@ -12,6 +12,7 @@ import { ImageIcon, Upload, Search, X, ChevronDown, ChevronRight, Move } from "l
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
+import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 
 interface CoverImageManagerProps {
   docId: number;
@@ -90,7 +91,7 @@ export function CoverImageManager({
       setAttribution(currentAttribution || "");
     }
   }, [currentAttribution, attribution, hasUserInteracted]);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -103,7 +104,7 @@ export function CoverImageManager({
       file?: File;
     }) => {
       const formData = new FormData();
-      
+
       if (data.file) {
         formData.append('coverImage', data.file);
       }
@@ -116,28 +117,28 @@ export function CoverImageManager({
       if (data.coverImageAttribution) {
         formData.append('coverImageAttribution', data.coverImageAttribution);
       }
-      
+
       const response = await fetch(`/api/cim/${docId}/cover-image`, {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update cover image');
       }
-      
+
       return response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
       queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-      
+
       // Update local state to show the image immediately
       setSelectedImage(data.coverImageUrl);
       if (data.coverImageAttribution) {
         setAttribution(data.coverImageAttribution);
       }
-      
+
       toast({
         title: "Cover image updated",
         description: "Your cover image has been successfully updated.",
@@ -158,11 +159,11 @@ export function CoverImageManager({
       const response = await fetch(`/api/cim/${docId}/cover-image`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to remove cover image');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -198,16 +199,16 @@ export function CoverImageManager({
 
   const handleUnsplashSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setIsSearching(true);
     try {
       const response = await fetch(`/api/unsplash/search?query=${encodeURIComponent(searchQuery)}&per_page=12`);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to search images');
       }
-      
+
       const data = await response.json();
       setUnsplashResults(data.results || []);
     } catch (error) {
@@ -223,7 +224,7 @@ export function CoverImageManager({
 
   const handleUnsplashImageSelect = async (image: UnsplashImage) => {
     setHasUserInteracted(true);
-    
+
     // Trigger Unsplash download event
     try {
       console.log('Triggering Unsplash download for:', image.links.download_location);
@@ -236,7 +237,7 @@ export function CoverImageManager({
           downloadUrl: image.links.download_location
         })
       });
-      
+
       if (response.ok) {
         console.log('Unsplash download event triggered successfully');
       } else {
@@ -245,12 +246,12 @@ export function CoverImageManager({
     } catch (error) {
       console.error('Failed to trigger Unsplash download event:', error);
     }
-    
+
     // Create attribution with UTM parameters
     const photographerUrl = `${image.user.links.html}?utm_source=CIM_Generator&utm_medium=referral`;
     const unsplashUrl = `https://unsplash.com/?utm_source=CIM_Generator&utm_medium=referral`;
     const attribution = `Photo by <a href="${photographerUrl}" target="_blank" rel="noopener noreferrer">${image.user.name}</a> on <a href="${unsplashUrl}" target="_blank" rel="noopener noreferrer">Unsplash</a>`;
-    
+
     updateCoverImageMutation.mutate({
       coverImageUrl: image.urls.regular,
       coverImagePosition: JSON.stringify(imagePosition),
@@ -263,7 +264,7 @@ export function CoverImageManager({
     setHasUserInteracted(true);
     const newPosition = { ...imagePosition, [axis]: value[0] };
     setImagePosition(newPosition);
-    
+
     if (selectedImage) {
       updateCoverImageMutation.mutate({
         coverImageUrl: selectedImage,
@@ -281,7 +282,7 @@ export function CoverImageManager({
   // Debounced API call to prevent excessive requests - only after user interaction
   useEffect(() => {
     if (!selectedImage || !hasUserInteracted) return;
-    
+
     const timeoutId = setTimeout(() => {
       updateCoverImageMutation.mutate({
         coverImageUrl: selectedImage,
@@ -307,7 +308,7 @@ export function CoverImageManager({
             </div>
           </CardHeader>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
             {selectedImage && (
@@ -331,7 +332,7 @@ export function CoverImageManager({
                 </div>
               </div>
             )}
-            
+
             {!selectedImage && (
               <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
                 <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -340,7 +341,7 @@ export function CoverImageManager({
                 </p>
               </div>
             )}
-            
+
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -351,15 +352,15 @@ export function CoverImageManager({
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Image
               </Button>
-              
+
               <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
                 <DialogTrigger asChild>
                   <Button 
-                    variant="outline" 
-                    disabled={updateCoverImageMutation.isPending}
+                    type="button"
+                    variant="outline"
                     className="flex-1"
                   >
-                    <Search className="h-4 w-4 mr-2" />
+                    <UnsplashIcon className="h-4 w-4 mr-2" />
                     Unsplash
                   </Button>
                 </DialogTrigger>
@@ -382,7 +383,7 @@ export function CoverImageManager({
                         Search
                       </Button>
                     </div>
-                    
+
                     {unsplashResults.length > 0 && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                         {unsplashResults.map((image) => (
@@ -407,7 +408,7 @@ export function CoverImageManager({
                 </DialogContent>
               </Dialog>
             </div>
-            
+
             <input
               ref={fileInputRef}
               type="file"

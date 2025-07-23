@@ -92,7 +92,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
       setSectionType(null);
       setSelectedImages([]);
       setIsOpen(false);
-      
+
       // Notify parent component
       onSectionAdded();
     } catch (error) {
@@ -147,7 +147,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
 
     const uploadedUrls = await Promise.all(uploadPromises);
     const validUrls = uploadedUrls.filter(url => url !== null);
-    
+
     if (validUrls.length > 0) {
       setSelectedImages(prev => [...prev, ...validUrls]);
       toast({
@@ -193,7 +193,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
           downloadUrl: image.links.download_location
         })
       });
-      
+
       if (response.ok) {
         console.log('Unsplash download event triggered successfully');
       } else {
@@ -202,7 +202,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
     } catch (error) {
       console.error('Failed to trigger Unsplash download event:', error);
     }
-    
+
     const imageUrl = image.urls?.regular || image.urls?.small;
     if (imageUrl && !selectedImages.includes(imageUrl)) {
       setSelectedImages(prev => [...prev, imageUrl]);
