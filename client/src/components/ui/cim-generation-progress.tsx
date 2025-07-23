@@ -63,15 +63,22 @@ export function CimGenerationProgress({
   const [currentProgress, setCurrentProgress] = useState(0);
   const targetProgress = stageConfig[stage].progress;
   
-  // Smooth progress animation
+  // Smooth progress animation with faster completion for final stages
   useEffect(() => {
+    // Helper to detect if we're in a completion stage
+    const isCompletionStage = targetProgress >= 85;
+    
     const interval = setInterval(() => {
       setCurrentProgress(prev => {
         if (prev >= targetProgress) return prev;
-        const increment = Math.max(1, (targetProgress - prev) / 10);
+        
+        // Speed up animation for final completion stages (85%+) for better UX
+        const animationSpeed = isCompletionStage ? 5 : 10; // Faster for completion stages
+        const increment = Math.max(1, (targetProgress - prev) / animationSpeed);
+        
         return Math.min(prev + increment, targetProgress);
       });
-    }, 100);
+    }, isCompletionStage ? 50 : 100); // Faster interval for completion stages
     
     return () => clearInterval(interval);
   }, [targetProgress]);

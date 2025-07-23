@@ -413,9 +413,31 @@ export function CimGenerator() {
       }
     },
     onSuccess: (result) => {
-      // Complete the progress
-      setGenerationStage("complete");
-      setWebsiteAnalysisStage(null);
+      // Quick visual completion sequence for better UX
+      const hasFinancials = financialFiles.length > 0 || 
+        !!financialData.askingPrice || 
+        !!financialData.revenue || 
+        !!financialData.ebitda;
+
+      // Show remaining stages quickly for visual completion
+      if (hasFinancials) {
+        // Already at processing_financials or show it briefly
+        setGenerationStage("processing_financials");
+        setTimeout(() => {
+          setGenerationStage("finalizing");
+          setTimeout(() => {
+            setGenerationStage("complete");
+            setWebsiteAnalysisStage(null);
+          }, 300); // Quick 300ms to show finalizing
+        }, 400); // Quick 400ms to show processing_financials
+      } else {
+        // Skip to finalizing then complete
+        setGenerationStage("finalizing");
+        setTimeout(() => {
+          setGenerationStage("complete");
+          setWebsiteAnalysisStage(null);
+        }, 400); // Quick 400ms to show finalizing
+      }
 
       toast({
         title: "CIM Generated Successfully",
@@ -429,7 +451,7 @@ export function CimGenerator() {
         setGenerationStage(null);
         setProgressStartTime(null);
         window.location.assign(`/documents/${result.id}?tab=edit`);
-      }, 2000);
+      }, 2500); // Slightly longer to accommodate the quick completion sequence
     },
     onError: (error) => {
       // Reset progress state on error
