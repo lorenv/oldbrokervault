@@ -3986,10 +3986,20 @@ Professional CIM Generation Platform`;
     
     try {
       const { shareSlug } = req.params;
-      const { viewerName, viewerEmail, viewerPhone, question } = req.body;
+      // Support both field name formats for compatibility
+      const { viewerName, viewerEmail, viewerPhone, question, name, email, message } = req.body;
+      
+      // Use the provided fields with fallback support
+      const finalName = viewerName || name;
+      const finalEmail = viewerEmail || email;
+      const finalQuestion = question || message;
 
       // Input validation
-      if (!viewerName?.trim() || !viewerEmail?.trim() || !question?.trim()) {
+      if (!finalName?.trim() || !finalEmail?.trim() || !finalQuestion?.trim()) {
+        console.log("=== VALIDATION DEBUG ===");
+        console.log("viewerName:", viewerName, "name:", name, "finalName:", finalName);
+        console.log("viewerEmail:", viewerEmail, "email:", email, "finalEmail:", finalEmail);
+        console.log("question:", question, "message:", message, "finalQuestion:", finalQuestion);
         return res.status(400).json({ 
           error: "Name, email, and question are required fields" 
         });
@@ -3997,7 +4007,7 @@ Professional CIM Generation Platform`;
 
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(viewerEmail)) {
+      if (!emailRegex.test(finalEmail)) {
         return res.status(400).json({ 
           error: "Please provide a valid email address" 
         });
@@ -4006,7 +4016,7 @@ Professional CIM Generation Platform`;
       // Rate limiting: 2 questions per email per hour
       const now = Date.now();
       const oneHourAgo = now - (60 * 60 * 1000);
-      const userRequests = contactRateLimit.get(viewerEmail) || [];
+      const userRequests = contactRateLimit.get(finalEmail) || [];
       
       // Clean old requests
       const recentRequests = userRequests.filter(timestamp => timestamp > oneHourAgo);
@@ -4030,19 +4040,19 @@ Professional CIM Generation Platform`;
       }
 
       // Send email to the document owner
-      const emailSubject = `Question about "${cimDoc.title}" from ${viewerName}`;
+      const emailSubject = `Question about "${cimDoc.title}" from ${finalName}`;
       const emailBody = `
 You have received a question about your CIM document "${cimDoc.title}".
 
-From: ${viewerName}
-Email: ${viewerEmail}
+From: ${finalName}
+Email: ${finalEmail}
 ${viewerPhone ? `Phone: ${viewerPhone}` : ''}
 
 Question:
-${question}
+${finalQuestion}
 
 ---
-This message was sent through your shared CIM link. You can reply directly to this email to respond to ${viewerName}.
+This message was sent through your shared CIM link. You can reply directly to this email to respond to ${finalName}.
 
 View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       `.trim();
@@ -4050,7 +4060,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const emailSent = await sendEmail({
         to: ownerProfile.email,
         from: 'system@cimshare.com',
-        replyTo: viewerEmail,
+        replyTo: finalEmail,
         subject: emailSubject,
         text: emailBody
       });
@@ -4061,7 +4071,7 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       // Update rate limiting
       recentRequests.push(now);
-      contactRateLimit.set(viewerEmail, recentRequests);
+      contactRateLimit.set(finalEmail, recentRequests);
 
       // Clean up old rate limit entries periodically
       if (Math.random() < 0.1) { // 10% chance to clean up
