@@ -78,6 +78,19 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     console.error('Error message:', error.message);
     console.error('Error type:', typeof error);
     console.error('Error name:', error.name);
+    console.error('Error stack:', error.stack?.substring(0, 500));
+    
+    // Critical production environment debugging
+    console.error('=== PRODUCTION DEBUG INFO ===');
+    console.error('- SENDGRID_API_KEY exists:', !!process.env.SENDGRID_API_KEY);
+    console.error('- SENDGRID_API_KEY length:', process.env.SENDGRID_API_KEY?.length || 0);
+    console.error('- SENDGRID_API_KEY starts with SG:', process.env.SENDGRID_API_KEY?.startsWith('SG.') || false);
+    console.error('- NODE_ENV:', process.env.NODE_ENV);
+    console.error('- Platform:', process.platform);
+    console.error('- Process version:', process.version);
+    console.error('- Sendgrid module available:', typeof mailService);
+    console.error('- All env vars with SENDGRID:', Object.keys(process.env).filter(k => k.includes('SENDGRID')));
+    console.error('=== END PRODUCTION DEBUG ===');
     
     if (error.response) {
       console.error('SendGrid response status:', error.response.status);
@@ -89,17 +102,19 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     
     // Additional debugging for production deployment issues
     if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-      console.error('❌ Network connectivity issue - check internet connection');
+      console.error('❌ Network connectivity issue - production environment may lack internet access');
     }
     
     if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-      console.error('❌ API Key authentication failed');
-      console.error('   Check SENDGRID_API_KEY is valid and starts with "SG."');
+      console.error('❌ API Key authentication failed - environment variable missing or invalid in production');
     }
     
     if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-      console.error('❌ SendGrid account permissions issue');
-      console.error('   Check account status and sender verification');
+      console.error('❌ SendGrid account permissions issue - check sender verification');
+    }
+    
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('🚨 CRITICAL: SENDGRID_API_KEY environment variable is completely missing in production');
     }
     
     console.error('=== END SENDGRID ERROR ===');
