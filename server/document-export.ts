@@ -2282,12 +2282,22 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
                 : `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
+              console.log("Generated financial file download URL:", downloadUrl);
+              console.log("Base URL used:", domain);
+              console.log("ShareSlug:", shareSlug);
+              console.log("File ID:", file.id);
+              
               // Add file name as clickable link - use filename field from schema
               const fileName = file.filename || file.originalName || 'Financial Document';
+              
+              // Ensure the URL is properly formatted as an absolute URL for PDF hyperlinks
+              const absoluteDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `https://${downloadUrl}`;
+              console.log("Final absolute download URL for PDF hyperlink:", absoluteDownloadUrl);
+              
               doc.font('Helvetica')
                  .fillColor('#2563eb')
                  .text(`• ${fileName}`, {
-                   link: downloadUrl,
+                   link: absoluteDownloadUrl,
                    underline: true
                  });
               
