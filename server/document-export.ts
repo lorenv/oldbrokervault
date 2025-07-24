@@ -2974,6 +2974,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       try {
         const originalPdfBuffer = Buffer.concat(buffers);
         console.log("PDFKit generation completed, original PDF size:", originalPdfBuffer.length);
+        console.log("🚨 FINANCIAL FILES COUNT AT PDF END:", financialFiles ? financialFiles.length : "NO FILES");
+        console.log("🚨 SHARE SLUG AT PDF END:", shareSlug || "NO SLUG");
         
         // If we have a background template, apply it to pages after the first page
         if (backgroundTemplate) {
