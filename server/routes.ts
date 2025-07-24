@@ -803,13 +803,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Prepare financial data from cached document properties
       const financialData = {
-        enabled: cimDoc.financialsEnabled || false,
-        askingPrice: cimDoc.askingPrice,
-        askingPriceIncluded: cimDoc.askingPriceIncluded || false,
+        enabled: cimDoc.financials_enabled || false,
+        askingPrice: cimDoc.asking_price,
+        askingPriceIncluded: cimDoc.asking_price_included || false,
         revenue: cimDoc.revenue,
-        revenueIncluded: cimDoc.revenueIncluded || false,
+        revenueIncluded: cimDoc.revenue_included || false,
         ebitda: cimDoc.ebitda,
-        ebitdaIncluded: cimDoc.ebitdaIncluded || false
+        ebitdaIncluded: cimDoc.ebitda_included || false
       };
 
       console.log("Using cached analysis data - no reprocessing needed for shared PDF export");
