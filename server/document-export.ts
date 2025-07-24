@@ -1967,12 +1967,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("Analysis received:", !!analysis ? "present" : "missing");
       console.log("Analysis type:", typeof analysis);
       console.log("Analysis sections:", analysis?.sections ? analysis.sections.length : "no sections");
-      console.log("Analysis structure:", JSON.stringify(analysis, null, 2));
-      console.log("User Profile received:", JSON.stringify(userProfile, null, 2));
-      console.log("Custom Sections count:", customSections ? customSections.length : 0);
-      console.log("Custom Sections data:", JSON.stringify(customSections, null, 2));
-      console.log("Selected Images count:", selectedImages ? selectedImages.length : 0);
-      console.log("Selected Images data:", selectedImages);
+      console.log("Financial files in analysis:", analysis?.financialFiles ? analysis.financialFiles.length : "no financial files in analysis");
+      if (analysis?.financialFiles) {
+        console.log("Analysis financial files:", JSON.stringify(analysis.financialFiles, null, 2));
+      }
+      console.log("Financial files parameter:", financialFiles ? financialFiles.length : "no financial files param");
+      if (financialFiles) {
+        console.log("Financial files param data:", JSON.stringify(financialFiles, null, 2));
+      }
       console.log("===========================");
       
       // Parse cover image position data
