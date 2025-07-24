@@ -2260,10 +2260,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
         
         // Add financial files section with hyperlinks
+        console.log("=== FINANCIAL FILES DEBUG START ===");
+        console.log("Financial files parameter received:", !!financialFiles);
+        console.log("Financial files array:", financialFiles);
+        console.log("Financial files length:", financialFiles?.length);
+        console.log("=== FINANCIAL FILES DEBUG END ===");
+        
         if (financialFiles && financialFiles.length > 0) {
           console.log("Processing financial files for PDF:", financialFiles.length, "files");
           console.log("First financial file sample:", JSON.stringify(financialFiles[0], null, 2));
-          const includedFiles = financialFiles.filter(file => file.included !== false);
+          
+          // All financial files are included by default since there's no included field in the schema
+          const includedFiles = financialFiles;
           console.log("Included financial files:", includedFiles.length, "files");
           
           if (includedFiles.length > 0) {
@@ -2274,13 +2282,13 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             doc.moveDown(0.5);
             
             includedFiles.forEach((file: any) => {
-              console.log("Adding financial file to PDF:", file.filename || file.originalName);
+              console.log("Adding financial file to PDF:", file.filename);
               // Use the dynamic base URL for file downloads - handle both regular and shared document downloads
               const domain = baseUrl || 'https://cimshare.com';
               // Use share URL if shareSlug is provided, otherwise use regular authenticated URL
               const downloadUrl = shareSlug 
                 ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
-                : `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
+                : `${domain}/api/cim/${file.cimDocumentId || file.cim_document_id}/financial-files/${file.id}/download`;
               
               console.log("Generated financial file download URL:", downloadUrl);
               console.log("Base URL used:", domain);
@@ -2288,7 +2296,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("File ID:", file.id);
               
               // Add file name as clickable link - use filename field from schema
-              const fileName = file.filename || file.originalName || 'Financial Document';
+              const fileName = file.filename || 'Financial Document';
               
               // Ensure the URL is properly formatted as an absolute URL for PDF hyperlinks
               const absoluteDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `https://${downloadUrl}`;
@@ -2305,7 +2313,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               doc.font('Helvetica')
                  .fillColor('#666666')
                  .fontSize(10)
-                 .text(`  Size: ${(file.fileSize / (1024 * 1024)).toFixed(2)} MB`, {
+                 .text(`  Size: ${(file.file_size / (1024 * 1024)).toFixed(2)} MB`, {
                    indent: 20
                  });
               
