@@ -2221,6 +2221,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.addPage();
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
+      console.log("=== FINANCIAL SECTION PROCESSING ===");
+      console.log("Financial data enabled:", financialData?.enabled);
+      console.log("Financial files param:", !!financialFiles);
+      console.log("Financial files count:", financialFiles?.length);
+      console.log("=== END FINANCIAL SECTION PROCESSING ===");
+      
       if (financialData && financialData.enabled) {
         doc.fontSize(18)
            .font('Helvetica-Bold')
@@ -2310,10 +2316,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                  });
               
               // Add file size information  
+              const fileSize = file.fileSize || file.file_size || 0;
               doc.font('Helvetica')
                  .fillColor('#666666')
                  .fontSize(10)
-                 .text(`  Size: ${(file.file_size / (1024 * 1024)).toFixed(2)} MB`, {
+                 .text(`  Size: ${(fileSize / (1024 * 1024)).toFixed(2)} MB`, {
                    indent: 20
                  });
               
