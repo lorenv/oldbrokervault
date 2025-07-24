@@ -2221,14 +2221,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Add page break before generated content to create proper cover page
       doc.addPage();
 
-      // Financial Information Section (if enabled) - remove icons and clean formatting
-      console.log("🚨 FINANCIAL SECTION CHECK - Financial data:", JSON.stringify(financialData, null, 2));
-      console.log("🚨 FINANCIAL SECTION CHECK - Financial data enabled:", financialData?.enabled);
-      console.log("🚨 FINANCIAL SECTION CHECK - Financial files param:", !!financialFiles);
-      console.log("🚨 FINANCIAL SECTION CHECK - Financial files count:", financialFiles?.length);
-      console.log("🚨 FINANCIAL SECTION CHECK - Will enter section?", !!(financialData && financialData.enabled));
+      // Financial Information Section - always include
+      console.log("🚨 FINANCIAL SECTION - Financial data:", JSON.stringify(financialData, null, 2));
+      console.log("🚨 FINANCIAL SECTION - Financial files count:", financialFiles?.length);
       
-      if (financialData && financialData.enabled) {
+      // Always show financial section
         console.log("🚨 ENTERING FINANCIAL SECTION - Processing financial data and files");
         doc.fontSize(18)
            .font('Helvetica-Bold')
@@ -2347,7 +2344,6 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         }
         
         doc.moveDown(2);
-      }
 
       // Website URL Section (moved after financials)
       if (websiteUrl) {
