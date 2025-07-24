@@ -2388,18 +2388,89 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           doc.moveDown(1);
           
           if (section.content) {
-            // Handle markdown-style content by converting to plain text
-            const content = section.content
+            console.log("🔗 PROCESSING SECTION:", section.title);
+            console.log("🔗 SECTION CONTENT:", section.content.substring(0, 500) + "...");
+            
+            // Extract markdown links first before processing content
+            const markdownLinks: { text: string; url: string; }[] = [];
+            const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+            let match;
+            
+            while ((match = linkRegex.exec(section.content)) !== null) {
+              markdownLinks.push({
+                text: match[1],
+                url: match[2]
+              });
+              console.log("🔗 FOUND MARKDOWN LINK:", match[1], "->", match[2]);
+            }
+            
+            // Handle content with hyperlinks preserved
+            let content = section.content
               .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
               .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
               .replace(/^#+\s+/gm, '') // Remove headers
               .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
               .trim();
             
-            doc.font('Helvetica').text(content, {
-              align: 'left',
-              lineGap: 4
-            });
+            // If we found markdown links, process them specially
+            if (markdownLinks.length > 0) {
+              console.log("🔗 PROCESSING", markdownLinks.length, "HYPERLINKS IN SECTION");
+              
+              // Split content by lines to handle each line
+              const lines = content.split('\n');
+              
+              lines.forEach(line => {
+                // Check if this line contains a markdown link
+                const linkMatch = /\[([^\]]+)\]\(([^)]+)\)/.exec(line);
+                
+                if (linkMatch) {
+                  const linkText = linkMatch[1];
+                  const linkUrl = linkMatch[2];
+                  
+                  console.log("🔗 CREATING HYPERLINK:", linkText, "->", linkUrl);
+                  
+                  // Text before the link
+                  const beforeLink = line.substring(0, linkMatch.index);
+                  if (beforeLink.trim()) {
+                    doc.font('Helvetica').text(beforeLink, { continued: true });
+                  }
+                  
+                  // The clickable link
+                  doc.fillColor('#2563eb')
+                     .text(linkText, {
+                       link: linkUrl,
+                       underline: true,
+                       continued: true
+                     });
+                  
+                  // Text after the link
+                  const afterLink = line.substring(linkMatch.index + linkMatch[0].length);
+                  if (afterLink.trim()) {
+                    doc.fillColor('#000000')
+                       .text(afterLink);
+                  } else {
+                    doc.fillColor('#000000').text(''); // End the line
+                  }
+                } else {
+                  // Regular text line without links
+                  doc.fillColor('#000000')
+                     .font('Helvetica')
+                     .text(line, {
+                       align: 'left',
+                       lineGap: 4
+                     });
+                }
+              });
+            } else {
+              // No links found, process as regular text
+              const finalContent = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1'); // Remove any remaining markdown links as text
+              doc.fillColor('#000000')
+                 .font('Helvetica')
+                 .text(finalContent, {
+                   align: 'left',
+                   lineGap: 4
+                 });
+            }
           }
           
           doc.moveDown(2);
