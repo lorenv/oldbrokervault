@@ -47,10 +47,6 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
       <div className="space-y-3">
         {files
-          .filter((file: any) => {
-            console.log('Financial file filter check:', file.filename, 'included:', file.included, 'passes filter:', file.included !== false);
-            return file.included !== false;
-          })
           .map((file: any) => (
             <Button
               key={file.id}
@@ -76,7 +72,7 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
             </Button>
           ))}
         
-        {files.filter((file: any) => file.included !== false).length > 1 && (
+        {files.length > 1 && (
           <Button
             variant="outline"
             className="flex items-center gap-3 justify-center h-auto p-4 w-full border-2 border-dashed"
