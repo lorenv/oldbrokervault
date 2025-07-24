@@ -2310,7 +2310,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               
               // Ensure the URL is properly formatted as an absolute URL for PDF hyperlinks
               const absoluteDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `https://${downloadUrl}`;
-              console.log("Final absolute download URL for PDF hyperlink:", absoluteDownloadUrl);
+              console.log("🔗 HYPERLINK DEBUG - Final absolute download URL for PDF hyperlink:", absoluteDownloadUrl);
+              console.log("🔗 HYPERLINK DEBUG - File name for hyperlink:", fileName);
+              console.log("🔗 HYPERLINK DEBUG - File object structure:", JSON.stringify(file, null, 2));
               
               doc.font('Helvetica')
                  .fillColor('#2563eb')
