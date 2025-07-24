@@ -780,6 +780,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Financial files for PDF export:", documentFinancialFiles?.length || 0, "files");
       if (documentFinancialFiles?.length > 0) {
         console.log("Sample financial file:", JSON.stringify(documentFinancialFiles[0], null, 2));
+        console.log("ALL financial files for debugging:");
+        documentFinancialFiles.forEach((file, index) => {
+          console.log(`File ${index}:`, {
+            id: file.id,
+            filename: file.filename,
+            originalName: file.originalName,
+            included: file.included,
+            cimDocumentId: file.cimDocumentId
+          });
+        });
+      } else {
+        console.log("ERROR: No financial files found for CIM document ID:", cimDoc.id);
       }
 
       if (!userProfile) {
