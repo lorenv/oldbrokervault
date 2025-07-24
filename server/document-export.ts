@@ -1965,19 +1965,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
     try {
       // Debug logging for PDF generation
-      console.log("=== PDF Generation Debug ===");
-      console.log("Analysis received:", !!analysis ? "present" : "missing");
-      console.log("Analysis type:", typeof analysis);
-      console.log("Analysis sections:", analysis?.sections ? analysis.sections.length : "no sections");
-      console.log("Financial files in analysis:", analysis?.financialFiles ? analysis.financialFiles.length : "no financial files in analysis");
+      console.log("🔍 ANALYSIS DEBUG - Analysis received:", !!analysis ? "present" : "missing");
+      console.log("🔍 ANALYSIS DEBUG - Analysis sections:", analysis?.sections ? analysis.sections.length : "no sections");
+      console.log("🔍 ANALYSIS DEBUG - Financial files in analysis:", analysis?.financialFiles ? analysis.financialFiles.length : "no financial files in analysis");
       if (analysis?.financialFiles) {
-        console.log("Analysis financial files:", JSON.stringify(analysis.financialFiles, null, 2));
+        console.log("🔍 ANALYSIS DEBUG - Analysis financial files:", JSON.stringify(analysis.financialFiles, null, 2));
       }
-      console.log("Financial files parameter:", financialFiles ? financialFiles.length : "no financial files param");
+      console.log("🔍 PARAMETER DEBUG - Financial files parameter:", financialFiles ? financialFiles.length : "no financial files param");
       if (financialFiles) {
-        console.log("Financial files param data:", JSON.stringify(financialFiles, null, 2));
+        console.log("🔍 PARAMETER DEBUG - Financial files param data:", JSON.stringify(financialFiles, null, 2));
       }
-      console.log("===========================");
       
       // Parse cover image position data
       let imagePosition = { x: 50, y: 50 }; // Default center position
