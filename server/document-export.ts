@@ -1842,30 +1842,15 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
   // Add profile photo if available
   if (userProfile?.profilePhoto) {
     try {
-      let imageData: Buffer;
-      let photoFound = false;
+      const profilePhotoData = await resolveImageData(userProfile.profilePhoto);
       
-      // Check if it's a base64 data URL
-      if (userProfile.profilePhoto.startsWith('data:image/')) {
-        console.log("Profile photo is base64 data URL for Word document");
-        const base64Data = userProfile.profilePhoto.split(',')[1];
-        imageData = Buffer.from(base64Data, 'base64');
-        photoFound = true;
-      } else {
-        // Try to resolve as file path
-        const profilePhotoPath = resolveImagePath(userProfile.profilePhoto, documentId, userProfile?.id);
-        if (fs.existsSync(profilePhotoPath)) {
-          imageData = fs.readFileSync(profilePhotoPath);
-          photoFound = true;
-        }
-      }
-      
-      if (photoFound && imageData) {
+      if (profilePhotoData) {
+        console.log("Profile photo resolved for Word document using unified approach");
         paragraphs.push(
           new docx.Paragraph({
             children: [
               new docx.ImageRun({
-                data: imageData,
+                data: profilePhotoData.buffer,
                 transformation: {
                   width: 120,
                   height: 120
@@ -2289,7 +2274,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             doc.moveDown(0.5);
             
             includedFiles.forEach((file: any) => {
-              console.log("Adding financial file to PDF:", file.originalName);
+              console.log("Adding financial file to PDF:", file.filename || file.originalName);
               // Use the dynamic base URL for file downloads - handle both regular and shared document downloads
               const domain = baseUrl || 'https://cimshare.com';
               // Use share URL if shareSlug is provided, otherwise use regular authenticated URL
@@ -2297,10 +2282,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
                 : `${domain}/api/cim/${file.cimDocumentId}/financial-files/${file.id}/download`;
               
-              // Add file name as clickable link
+              // Add file name as clickable link - use filename field from schema
+              const fileName = file.filename || file.originalName || 'Financial Document';
               doc.font('Helvetica')
                  .fillColor('#2563eb')
-                 .text(`• ${file.originalName}`, {
+                 .text(`• ${fileName}`, {
                    link: downloadUrl,
                    underline: true
                  });
