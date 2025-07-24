@@ -1924,6 +1924,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
   return new Promise(async (resolve, reject) => {
     const pdfStartTime = Date.now();
     console.log("⚡ Starting ULTRA-OPTIMIZED PDF generation with template:", pdfTemplate || 'classic');
+    console.log("🚨 FINANCIAL FILES DEBUG - ENTRY POINT:", financialFiles ? financialFiles.length : "NO FILES");
+    console.log("🚨 SHARE SLUG DEBUG:", shareSlug || "NO SLUG");
     
     // PERFORMANCE OPTIMIZATION: Load background template asynchronously if needed
     const backgroundTemplatePromise = pdfTemplate && pdfTemplate !== 'none' 
