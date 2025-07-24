@@ -876,6 +876,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Processed cover image URL:", processedCoverImageUrl);
       console.log("==========================================");
 
+      // Debug financial files before PDF generation
+      console.log("=== PDF EXPORT FINANCIAL FILES DEBUG ===");
+      console.log("documentFinancialFiles count:", documentFinancialFiles?.length || 0);
+      if (documentFinancialFiles && documentFinancialFiles.length > 0) {
+        console.log("Financial files data structure:");
+        documentFinancialFiles.forEach((file, index) => {
+          console.log(`File ${index}:`, {
+            id: file.id,
+            filename: file.filename,
+            file_size: file.file_size,
+            fileSize: file.fileSize,
+            cim_document_id: file.cim_document_id,
+            cimDocumentId: file.cimDocumentId,
+            filePath: file.filePath,
+            file_path: file.file_path
+          });
+        });
+      } else {
+        console.log("No financial files found for PDF generation");
+      }
+      console.log("shareSlug being passed:", shareSlug);
+      console.log("==========================================");
+
       // PERFORMANCE OPTIMIZATION: Direct PDF generation with cached data
       const pdfGenStart = Date.now();
       const pdfBuffer = await generatePDF(
