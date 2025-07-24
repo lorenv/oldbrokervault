@@ -2225,13 +2225,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       doc.addPage();
 
       // Financial Information Section (if enabled) - remove icons and clean formatting
-      console.log("=== FINANCIAL SECTION PROCESSING ===");
-      console.log("Financial data enabled:", financialData?.enabled);
-      console.log("Financial files param:", !!financialFiles);
-      console.log("Financial files count:", financialFiles?.length);
-      console.log("=== END FINANCIAL SECTION PROCESSING ===");
+      console.log("🚨 FINANCIAL SECTION CHECK - Financial data:", JSON.stringify(financialData, null, 2));
+      console.log("🚨 FINANCIAL SECTION CHECK - Financial data enabled:", financialData?.enabled);
+      console.log("🚨 FINANCIAL SECTION CHECK - Financial files param:", !!financialFiles);
+      console.log("🚨 FINANCIAL SECTION CHECK - Financial files count:", financialFiles?.length);
+      console.log("🚨 FINANCIAL SECTION CHECK - Will enter section?", !!(financialData && financialData.enabled));
       
       if (financialData && financialData.enabled) {
+        console.log("🚨 ENTERING FINANCIAL SECTION - Processing financial data and files");
         doc.fontSize(18)
            .font('Helvetica-Bold')
            .fillColor('#1e3a8a')
