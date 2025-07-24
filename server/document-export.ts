@@ -2226,52 +2226,52 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       console.log("🚨 FINANCIAL SECTION - Financial files count:", financialFiles?.length);
       
       // Always show financial section
-        console.log("🚨 ENTERING FINANCIAL SECTION - Processing financial data and files");
-        doc.fontSize(18)
-           .font('Helvetica-Bold')
-           .fillColor('#1e3a8a')
-           .text('FINANCIAL INFORMATION')
-           .fillColor('#000000')
-           .font('Helvetica')
-           .fontSize(12);
-        
-        doc.moveDown(1);
+      console.log("🚨 ENTERING FINANCIAL SECTION - Processing financial data and files");
+      doc.fontSize(18)
+         .font('Helvetica-Bold')
+         .fillColor('#1e3a8a')
+         .text('FINANCIAL INFORMATION')
+         .fillColor('#000000')
+         .font('Helvetica')
+         .fontSize(12);
+      
+      doc.moveDown(1);
 
-        // Create a table-like layout for financial data
-        const tableData = [];
-        if (financialData.askingPriceIncluded && financialData.askingPrice) {
-          tableData.push(['Asking Price:', financialData.askingPrice]);
-        }
-        if (financialData.revenueIncluded && financialData.revenue) {
-          tableData.push(['Annual Revenue:', financialData.revenue]);
-        }
-        if (financialData.ebitdaIncluded && financialData.ebitda) {
-          tableData.push(['EBITDA:', financialData.ebitda]);
-        }
+      // Create a table-like layout for financial data
+      const tableData = [];
+      if (financialData.askingPriceIncluded && financialData.askingPrice) {
+        tableData.push(['Asking Price:', financialData.askingPrice]);
+      }
+      if (financialData.revenueIncluded && financialData.revenue) {
+        tableData.push(['Annual Revenue:', financialData.revenue]);
+      }
+      if (financialData.ebitdaIncluded && financialData.ebitda) {
+        tableData.push(['EBITDA:', financialData.ebitda]);
+      }
 
-        // Draw financial data in a clean, aligned format
-        if (tableData.length > 0) {
-          tableData.forEach(([label, value]) => {
-            doc.font('Helvetica-Bold')
-               .fillColor('#000000')
-               .text(label, { continued: true });
-            
-            doc.font('Helvetica')
-               .fillColor('#2563eb')
-               .text(`  ${value}`);
-            
-            doc.moveDown(0.5);
-          });
-        }
-        
-        // Add financial files section with hyperlinks
-        console.log("=== FINANCIAL FILES DEBUG START ===");
-        console.log("Financial files parameter received:", !!financialFiles);
-        console.log("Financial files array:", financialFiles);
-        console.log("Financial files length:", financialFiles?.length);
-        console.log("=== FINANCIAL FILES DEBUG END ===");
-        
-        if (financialFiles && financialFiles.length > 0) {
+      // Draw financial data in a clean, aligned format
+      if (tableData.length > 0) {
+        tableData.forEach(([label, value]) => {
+          doc.font('Helvetica-Bold')
+             .fillColor('#000000')
+             .text(label, { continued: true });
+          
+          doc.font('Helvetica')
+             .fillColor('#2563eb')
+             .text(`  ${value}`);
+          
+          doc.moveDown(0.5);
+        });
+      }
+      
+      // Add financial files section with hyperlinks
+      console.log("=== FINANCIAL FILES DEBUG START ===");
+      console.log("Financial files parameter received:", !!financialFiles);
+      console.log("Financial files array:", financialFiles);
+      console.log("Financial files length:", financialFiles?.length);
+      console.log("=== FINANCIAL FILES DEBUG END ===");
+      
+      if (financialFiles && financialFiles.length > 0) {
           console.log("Processing financial files for PDF:", financialFiles.length, "files");
           console.log("First financial file sample:", JSON.stringify(financialFiles[0], null, 2));
           
