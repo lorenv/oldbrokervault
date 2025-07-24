@@ -2314,24 +2314,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("🔗 HYPERLINK DEBUG - URL valid format:", absoluteDownloadUrl.startsWith('http'));
               console.log("🔗 HYPERLINK DEBUG - File object structure:", JSON.stringify(file, null, 2));
               
-              // Add hyperlinked filename first - try alternative approach
+              // Add hyperlinked filename using same pattern as working website URL
               console.log("🔗 ATTEMPTING TO ADD HYPERLINK:", absoluteDownloadUrl);
-              doc.font('Helvetica')
-                 .fontSize(12)
-                 .fillColor('#2563eb');
               
-              // Try using the link method directly
-              try {
-                doc.text(`• ${fileName}`, {
-                  link: absoluteDownloadUrl,
-                  underline: true
-                });
-                console.log("🔗 HYPERLINK ADDED SUCCESSFULLY");
-              } catch (linkError) {
-                console.error("🔗 HYPERLINK ERROR:", linkError);
-                // Fallback to plain text if hyperlink fails
-                doc.text(`• ${fileName} (${absoluteDownloadUrl})`);
-              }
+              doc.fontSize(12)
+                 .fillColor('#2563eb')
+                 .text(`• ${fileName}`, {
+                   link: absoluteDownloadUrl,
+                   underline: true
+                 });
+              console.log("🔗 HYPERLINK ADDED SUCCESSFULLY");
               
               // Add file size information on new line  
               const fileSize = file.fileSize || file.file_size || 0;
