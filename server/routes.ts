@@ -785,9 +785,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`File ${index}:`, {
             id: file.id,
             filename: file.filename,
-            originalName: file.originalName,
-            included: file.included,
-            cimDocumentId: file.cimDocumentId
+            cimDocumentId: file.cimDocumentId,
+            filePath: file.filePath,
+            fileSize: file.fileSize
           });
         });
       } else {
@@ -2233,10 +2233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Financial file not found" });
       }
 
-      // Check if file is included
-      if (file.included === false) {
-        return res.status(404).json({ error: "File not available for download" });
-      }
+      // All files are available since there's no included field in current schema
 
       // Download file from object storage
       try {
@@ -2293,7 +2290,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(financialFiles.cimDocumentId, cimDoc.id))
         .orderBy(desc(financialFiles.uploadedAt));
 
-      const includedFiles = files.filter(file => file.included !== false);
+      // All files are included since there's no included field in current schema
+      const includedFiles = files;
 
       if (includedFiles.length === 0) {
         return res.status(404).json({ error: "No financial files available" });
