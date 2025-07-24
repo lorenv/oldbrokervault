@@ -2310,25 +2310,40 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const absoluteDownloadUrl = downloadUrl.startsWith('http') ? downloadUrl : `https://${downloadUrl}`;
               console.log("🔗 HYPERLINK DEBUG - Final absolute download URL for PDF hyperlink:", absoluteDownloadUrl);
               console.log("🔗 HYPERLINK DEBUG - File name for hyperlink:", fileName);
+              console.log("🔗 HYPERLINK DEBUG - URL length:", absoluteDownloadUrl.length);
+              console.log("🔗 HYPERLINK DEBUG - URL valid format:", absoluteDownloadUrl.startsWith('http'));
               console.log("🔗 HYPERLINK DEBUG - File object structure:", JSON.stringify(file, null, 2));
               
+              // Add hyperlinked filename first - try alternative approach
+              console.log("🔗 ATTEMPTING TO ADD HYPERLINK:", absoluteDownloadUrl);
               doc.font('Helvetica')
-                 .fillColor('#2563eb')
-                 .text(`• ${fileName}`, {
-                   link: absoluteDownloadUrl,
-                   underline: true
-                 });
+                 .fontSize(12)
+                 .fillColor('#2563eb');
               
-              // Add file size information  
+              // Try using the link method directly
+              try {
+                doc.text(`• ${fileName}`, {
+                  link: absoluteDownloadUrl,
+                  underline: true
+                });
+                console.log("🔗 HYPERLINK ADDED SUCCESSFULLY");
+              } catch (linkError) {
+                console.error("🔗 HYPERLINK ERROR:", linkError);
+                // Fallback to plain text if hyperlink fails
+                doc.text(`• ${fileName} (${absoluteDownloadUrl})`);
+              }
+              
+              // Add file size information on new line  
               const fileSize = file.fileSize || file.file_size || 0;
               doc.font('Helvetica')
                  .fillColor('#666666')
                  .fontSize(10)
-                 .text(`  Size: ${(fileSize / (1024 * 1024)).toFixed(2)} MB`, {
-                   indent: 20
-                 });
+                 .text(`  Size: ${(fileSize / (1024 * 1024)).toFixed(2)} MB`);
               
-              doc.fillColor('#000000').fontSize(12);
+              // Reset formatting for next iteration
+              doc.fillColor('#000000')
+                 .fontSize(12)
+                 .font('Helvetica');
               doc.moveDown(0.4);
             });
             console.log("Successfully added all financial files to PDF");
