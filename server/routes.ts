@@ -532,6 +532,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No expiration date set - link never expires");
       }
 
+      // Check password protection
+      if (cimDoc.sharePassword) {
+        const { password } = req.query;
+        console.log("Password protection check:", {
+          hasPassword: !!cimDoc.sharePassword,
+          providedPassword: !!password,
+          passwordsMatch: password === cimDoc.sharePassword
+        });
+        
+        if (!password || password !== cimDoc.sharePassword) {
+          console.log("ERROR: Invalid or missing password for protected document");
+          return res.status(401).json({ 
+            error: "Password required",
+            requiresPassword: true 
+          });
+        }
+        console.log("Password authentication successful");
+      }
+
       // PERFORMANCE OPTIMIZATION 2: Async view tracking (non-blocking)
       console.log("Starting async view tracking for document:", cimDoc.id);
       
@@ -768,6 +787,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
+      // Check password protection for PDF export
+      if (cimDoc.sharePassword) {
+        const { password } = req.body;
+        console.log("PDF export password protection check:", {
+          hasPassword: !!cimDoc.sharePassword,
+          providedPassword: !!password,
+          passwordsMatch: password === cimDoc.sharePassword
+        });
+        
+        if (!password || password !== cimDoc.sharePassword) {
+          console.log("ERROR: Invalid or missing password for protected document PDF export");
+          return res.status(401).json({ 
+            error: "Password required for PDF export",
+            requiresPassword: true 
+          });
+        }
+        console.log("PDF export password authentication successful");
+      }
+
       // PERFORMANCE OPTIMIZATION: Parallel data fetching for shared PDF export
       const dataFetchStart = Date.now();
       const [userProfile, documentFinancialFiles, customSections] = await Promise.all([
@@ -970,6 +1008,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check expiration
       if (cimDoc.shareExpiresAt && new Date() > cimDoc.shareExpiresAt) {
         return res.status(410).json({ error: "This shared link has expired" });
+      }
+
+      // Check password protection for Word export
+      if (cimDoc.sharePassword) {
+        const { password } = req.body;
+        console.log("Word export password protection check:", {
+          hasPassword: !!cimDoc.sharePassword,
+          providedPassword: !!password,
+          passwordsMatch: password === cimDoc.sharePassword
+        });
+        
+        if (!password || password !== cimDoc.sharePassword) {
+          console.log("ERROR: Invalid or missing password for protected document Word export");
+          return res.status(401).json({ 
+            error: "Password required for Word export",
+            requiresPassword: true 
+          });
+        }
+        console.log("Word export password authentication successful");
       }
 
       // Get user profile for contact information
