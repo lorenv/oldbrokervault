@@ -31,15 +31,25 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
       end: new Date()
     });
 
+    // DEBUG: Log the data being used for chart
+    console.log("🔍 CHART DATA DEBUG:", {
+      viewStats,
+      dailyViews: viewStats?.dailyViews,
+      totalViews: viewStats?.totalViews
+    });
+
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       const daySignatures = ndaSignatures.filter(sig => 
         format(new Date(sig.signedAt), 'yyyy-MM-dd') === dayStr
       ).length;
       
-      // For now, we'll use signature count as a proxy for views
-      // This should be replaced with actual view tracking data
       const dayViews = viewStats?.dailyViews?.[dayStr] || 0;
+      
+      // DEBUG: Log individual day calculation
+      if (dayViews > 0 || daySignatures > 0) {
+        console.log("🔍 DAY DATA:", { dayStr, dayViews, daySignatures });
+      }
       
       return {
         date: format(day, 'MMM dd'),
