@@ -68,7 +68,7 @@ export function DocumentExport({
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isWordLoading, setIsWordLoading] = useState(false);
   const [beaverBuilderTemplates, setBeaverBuilderTemplates] = useState<Array<{id: number, title: string, type: string}>>([]);
-  
+
   // Share dialog state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareSettings, setShareSettings] = useState({
@@ -83,7 +83,7 @@ export function DocumentExport({
   const [shareUrl, setShareUrl] = useState('');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
   const [isLoadingShareSettings, setIsLoadingShareSettings] = useState(false);
-  
+
   // NDA related state
   // Using React Query data instead of local state
   const [isUploadingNda, setIsUploadingNda] = useState(false);
@@ -93,7 +93,7 @@ export function DocumentExport({
     isDefault: false
   });
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
-  
+
   // Email sharing state
   const [emailShareDialog, setEmailShareDialog] = useState<{
     open: boolean;
@@ -108,7 +108,7 @@ export function DocumentExport({
     border: true,
     responsive: true
   });
-  
+
   // Use external dialog state if provided, otherwise use internal state
   const isWordPressDialogOpen = externalIsWordPressDialogOpen !== undefined ? externalIsWordPressDialogOpen : internalIsWordPressDialogOpen;
   const setIsWordPressDialogOpen = externalSetIsWordPressDialogOpen || internalSetIsWordPressDialogOpen;
@@ -140,13 +140,13 @@ export function DocumentExport({
       console.log('❌ updateShareSettings: No docId provided');
       return;
     }
-    
+
     console.log('🔄 Starting share settings update...', {
       docId,
       shareSettings,
       userId: user?.id
     });
-    
+
     // Validate NDA template selection when NDA protection is enabled
     if (shareSettings.ndaProtected && !shareSettings.ndaTemplateId) {
       console.log('❌ NDA validation failed: NDA protection enabled but no template selected');
@@ -157,12 +157,12 @@ export function DocumentExport({
       });
       return;
     }
-    
+
     setIsUpdatingShare(true);
     try {
       const slug = shareSettings.shareEnabled ? (shareSettings.shareSlug || generateShareSlug()) : null;
       const expiresAt = shareSettings.shareExpiresAt ? new Date(shareSettings.shareExpiresAt) : null;
-      
+
       const payload = {
         shareEnabled: shareSettings.shareEnabled,
         shareSlug: slug,
@@ -172,11 +172,11 @@ export function DocumentExport({
         ndaProtected: shareSettings.ndaProtected,
         ndaTemplateId: shareSettings.ndaTemplateId
       };
-      
+
       console.log('📡 Sending share settings update request:', payload);
-      
+
       const response = await apiRequest('POST', `/api/cim/${docId}/share`, payload);
-      
+
       console.log('📡 Share settings update response:', {
         status: response.status,
         statusText: response.statusText,
@@ -186,7 +186,7 @@ export function DocumentExport({
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Share settings updated successfully:', result);
-        
+
         if (result.shareSlug) {
           const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
           const url = `${baseUrl}/share/${result.shareSlug}`;
@@ -297,7 +297,7 @@ export function DocumentExport({
     try {
       const response = await fetch(`/api/nda-templates/${templateId}/download`);
       if (!response.ok) throw new Error('Download failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -307,7 +307,7 @@ export function DocumentExport({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Download started",
         description: "Your NDA template is being downloaded"
@@ -362,23 +362,23 @@ export function DocumentExport({
 
   const generateEmbedCode = () => {
     if (!shareUrl) return '';
-    
+
     const { width, height, border, responsive } = embedSettings;
-    
+
     let iframe = `<iframe src="${shareUrl}" width="${width}" height="${height}px"`;
-    
+
     if (!border) {
       iframe += ` style="border: none;"`;
     }
-    
+
     iframe += ` frameborder="0" allowfullscreen></iframe>`;
-    
+
     if (responsive && width === '100%') {
       return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000;">
   ${iframe.replace(`height="${height}px"`, 'style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"')}
 </div>`;
     }
-    
+
     return iframe;
   };
 
@@ -400,12 +400,12 @@ export function DocumentExport({
       console.log('❌ fetchShareSettings: No docId provided');
       return;
     }
-    
+
     // Use cached data if available, otherwise make API call
     if (cimDocumentData && Object.keys(cimDocumentData).length > 0) {
       const doc = cimDocumentData as any;
       console.log('📋 Using cached document data');
-      
+
       const newSettings = {
         shareEnabled: doc.shareEnabled || false,
         shareSlug: doc.shareSlug || '',
@@ -415,9 +415,9 @@ export function DocumentExport({
         ndaProtected: doc.ndaProtected || false,
         ndaTemplateId: doc.ndaTemplateId || null
       };
-      
+
       setShareSettings(newSettings);
-      
+
       // Set share URL if sharing is enabled
       if (doc.shareEnabled && doc.shareSlug) {
         const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
@@ -428,14 +428,14 @@ export function DocumentExport({
       }
       return;
     }
-    
+
     console.log('🔍 Fetching share settings for document:', docId);
     setIsLoadingShareSettings(true);
-    
+
     try {
       const response = await apiRequest('GET', `/api/cim/${docId}`);
       console.log('📡 Share settings response status:', response.status);
-      
+
       if (response.ok) {
         const doc = await response.json();
         console.log('📋 Document data received:', {
@@ -444,7 +444,7 @@ export function DocumentExport({
           ndaProtected: doc.ndaProtected,
           ndaTemplateId: doc.ndaTemplateId
         });
-        
+
         const newSettings = {
           shareEnabled: doc.shareEnabled || false,
           shareSlug: doc.shareSlug || '',
@@ -454,10 +454,10 @@ export function DocumentExport({
           ndaProtected: doc.ndaProtected || false,
           ndaTemplateId: doc.ndaTemplateId || null
         };
-        
+
         console.log('🔄 Setting new share settings:', newSettings);
         setShareSettings(newSettings);
-        
+
         // Set share URL if sharing is enabled
         if (doc.shareEnabled && doc.shareSlug) {
           const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
@@ -501,11 +501,11 @@ export function DocumentExport({
       setShouldOpenShareDialog(false);
     }
   }, [shouldOpenShareDialog, setShouldOpenShareDialog]);
-  
+
   // Fetch Beaver Builder templates when credentials are available
   const fetchBeaverBuilderTemplates = async () => {
     const { wpUrl, username, password } = wordpressForm;
-    
+
     if (!wpUrl || !username || !password) {
       toast({
         title: "Missing Credentials",
@@ -514,20 +514,20 @@ export function DocumentExport({
       });
       return;
     }
-    
+
     try {
       setIsFetchingTemplates(true);
-      
+
       const response = await fetch("/api/wordpress/fetch-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ wpUrl, username, password })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // Check if the error response includes additional details
         if (errorData.details) {
           throw new Error(`${errorData.error || 'Failed to fetch templates'}\n\n${errorData.details}`);
@@ -537,9 +537,9 @@ export function DocumentExport({
           throw new Error('Failed to fetch templates');
         }
       }
-      
+
       const { templates } = await response.json();
-      
+
       if (!templates || templates.length === 0) {
         toast({
           title: "No Templates Found",
@@ -547,7 +547,7 @@ export function DocumentExport({
         });
         return;
       }
-      
+
       setBeaverBuilderTemplates(templates);
       toast({
         title: "Templates Loaded",
@@ -567,10 +567,10 @@ export function DocumentExport({
   const copyToClipboard = () => {
     try {
       const text = formatTextContent(analysis);
-      
+
       // Browser-compatible clipboard copy using fallback methods
       copyTextToClipboard(text);
-      
+
       toast({
         title: "Copied to clipboard",
         description: "The CIM content has been copied to your clipboard as plain text",
@@ -584,7 +584,7 @@ export function DocumentExport({
       });
     }
   };
-  
+
   // Cross-browser clipboard copy function
   const copyTextToClipboard = (text: string) => {
     // Try the modern Clipboard API first (works in most browsers)
@@ -596,44 +596,44 @@ export function DocumentExport({
         console.warn("Clipboard API failed, trying fallback method", err);
       }
     }
-    
+
     // Fallback method for browsers (especially Safari) that might have issues
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    
+
     // Make the textarea out of viewport to prevent visual glitches
     textArea.style.position = "fixed";
     textArea.style.left = "-999999px";
     textArea.style.top = "-999999px";
     document.body.appendChild(textArea);
-    
+
     // Select and copy
     textArea.focus();
     textArea.select();
-    
+
     let successful = false;
     try {
       successful = document.execCommand('copy');
     } catch (err) {
       console.error("execCommand error", err);
     }
-    
+
     // Clean up
     document.body.removeChild(textArea);
-    
+
     if (!successful) {
       throw new Error("Could not copy text");
     }
   };
-  
+
   const copyHtmlToClipboard = async () => {
     try {
       // console.log("Starting HTML export for document ID:", docId);
-      
+
       if (!docId) {
         throw new Error('Document ID is missing. Please ensure you have a valid document selected.');
       }
-      
+
       // Create a dialog to show during export
       const exportDialog = document.createElement('div');
       exportDialog.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
@@ -644,17 +644,17 @@ export function DocumentExport({
         </div>
       `;
       document.body.appendChild(exportDialog);
-      
+
       const response = await fetch(`/api/cim/export/html/${docId}`, {
         method: 'POST',
         credentials: 'include'
       });
 
       // console.log("HTML export response status:", response.status);
-      
+
       // Remove the dialog now that we've received a response
       document.body.removeChild(exportDialog);
-      
+
       if (!response.ok) {
         // Try to get error details from the response
         let errorMessage = 'Failed to generate HTML content';
@@ -672,14 +672,14 @@ export function DocumentExport({
 
       const responseData = await response.json();
       // console.log("HTML export response received, has HTML:", Boolean(responseData.html));
-      
+
       if (!responseData.html) {
         throw new Error('Server returned an empty HTML response');
       }
-      
+
       // Copy HTML content using our cross-browser method
       copyTextToClipboard(responseData.html);
-      
+
       toast({
         title: "HTML copied to clipboard",
         description: "HTML code has been copied. Paste it into a webpage, email, or any editor that accepts HTML to preserve formatting.",
@@ -698,16 +698,16 @@ export function DocumentExport({
     setIsWordLoading(true);
     try {
       let response;
-      
+
       if (isSharedView) {
         // Get share slug from current URL for shared exports
         const currentPath = window.location.pathname;
         const shareSlug = currentPath.split('/share/')[1];
-        
+
         if (!shareSlug) {
           throw new Error('Share link not found');
         }
-        
+
         response = await fetch(`/api/share/${shareSlug}/export/word`, {
           method: 'POST',
           credentials: 'include'
@@ -732,7 +732,7 @@ export function DocumentExport({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Word Document Downloaded",
         description: "Your CIM has been exported as a Word document",
@@ -752,16 +752,16 @@ export function DocumentExport({
     setIsPdfLoading(true);
     try {
       let response;
-      
+
       if (isSharedView) {
         // Get share slug from current URL for shared exports
         const currentPath = window.location.pathname;
         const shareSlug = currentPath.split('/share/')[1];
-        
+
         if (!shareSlug) {
           throw new Error('Share link not found');
         }
-        
+
         response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
           method: 'POST',
           credentials: 'include'
@@ -786,7 +786,7 @@ export function DocumentExport({
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       toast({
         title: "PDF Downloaded",
         description: "Your CIM has been exported as a PDF",
@@ -835,9 +835,9 @@ export function DocumentExport({
   const exportToWordPress = async () => {
     try {
       setIsWordPressExporting(true);
-      
+
       const { wpUrl, username, password, status, template, useToolsetFields } = wordpressForm;
-      
+
       // Validate form
       if (!wpUrl || !username || !password) {
         throw new Error("Please fill in all required fields");
@@ -863,7 +863,7 @@ export function DocumentExport({
 
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // Check if the error response includes additional details
         if (errorData.details) {
           throw new Error(`${errorData.error || 'Failed to export to WordPress'}\n\n${errorData.details}`);
@@ -875,7 +875,7 @@ export function DocumentExport({
       }
 
       const result = await response.json();
-      
+
       toast({
         title: "WordPress Export Successful",
         description: `The document has been exported to WordPress as a ${status} post.${result.url ? ' View it on your site.' : ''}`,
@@ -884,7 +884,7 @@ export function DocumentExport({
       if (result.url) {
         window.open(result.url, '_blank');
       }
-      
+
       setIsWordPressDialogOpen(false);
     } catch (error) {
       toast({
@@ -907,7 +907,7 @@ export function DocumentExport({
         setIsShareDialogOpen(true);
         onShareTriggered?.();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [autoTriggerShare, isSharedView, onShareTriggered]);
@@ -956,8 +956,8 @@ export function DocumentExport({
                   // Get document title from analysis or use fallback
                   const documentTitle = analysis?.story?.businessSummary ? 
                     `${analysis.story.businessSummary.slice(0, 50)}...` : 
-                    `CIM Document #${docId}`;
-                  
+                    `CIMDocument #${docId}`;
+
                   setEmailShareDialog({
                     open: true,
                     documentTitle,
@@ -1097,7 +1097,7 @@ export function DocumentExport({
                     <SelectItem value="premium">Premium Template</SelectItem>
                     <SelectItem value="showcase">Showcase Template</SelectItem>
                     <SelectItem value="featured">Featured Template</SelectItem>
-                    
+
                     {/* Beaver Builder templates */}
                     {beaverBuilderTemplates.length > 0 && (
                       <>
@@ -1121,7 +1121,7 @@ export function DocumentExport({
                 </p>
               </div>
             </div>
-            
+
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -1226,25 +1226,21 @@ export function DocumentExport({
                       />
                     )}
                   </div>
-            
+
             {shareSettings.shareEnabled && (
               <>
                 {shareUrl && (
                   <div className="space-y-2">
                     <Label>Share Link</Label>
                     <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" onClick={copyShareUrl} className="bg-white text-black border border-gray-300">
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Input
                         value={shareUrl}
                         readOnly
                         className="bg-gray-50"
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={copyShareUrl}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -1530,7 +1526,7 @@ export function DocumentExport({
                         {newNdaTemplate.file ? newNdaTemplate.file.name : "No file chosen"}
                       </span>
                     </div>
-                    
+
                     {newNdaTemplate.file && (
                       <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border">
                         <div className="flex items-center gap-2">
@@ -1553,7 +1549,7 @@ export function DocumentExport({
                         </Button>
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-muted-foreground">
                       Supported formats: PDF, Word (.docx, .doc). Word documents will be converted to PDF automatically.
                     </p>
@@ -1667,7 +1663,7 @@ export function DocumentExport({
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-medium">Signed NDAs ({ndaSignatures.length})</h4>
                       </div>
-                      
+
                       {/* Search functionality */}
                       <div className="relative">
                         <Input
@@ -1678,7 +1674,7 @@ export function DocumentExport({
                           className="mb-4"
                         />
                       </div>
-                      
+
                       <div className="flex justify-between items-center">
                         {ndaSignatures.length > 0 && (
                           <Button
@@ -1690,7 +1686,7 @@ export function DocumentExport({
                                   method: 'GET',
                                   credentials: 'include'
                                 });
-                                
+
                                 if (response.ok) {
                                   const blob = await response.blob();
                                   const url = window.URL.createObjectURL(blob);
@@ -1701,7 +1697,7 @@ export function DocumentExport({
                                   a.click();
                                   window.URL.revokeObjectURL(url);
                                   document.body.removeChild(a);
-                                  
+
                                   toast({
                                     title: "Download Started",
                                     description: "All signed NDAs are being downloaded as a ZIP file."
@@ -1723,7 +1719,7 @@ export function DocumentExport({
                           </Button>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2">
                         {ndaSignatures
                           .filter((signature: any) => {
@@ -1752,7 +1748,7 @@ export function DocumentExport({
                                       method: 'GET',
                                       credentials: 'include'
                                     });
-                                    
+
                                     if (response.ok) {
                                       const blob = await response.blob();
                                       const url = window.URL.createObjectURL(blob);
@@ -1763,7 +1759,7 @@ export function DocumentExport({
                                       a.click();
                                       window.URL.revokeObjectURL(url);
                                       document.body.removeChild(a);
-                                      
+
                                       toast({
                                         title: "Download Started",
                                         description: `NDA for ${signature.signerName} is being downloaded.`

@@ -301,17 +301,18 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={copyShareUrl}
+                className="bg-white text-black border border-gray-300"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
               <Input
                 value={shareUrl}
                 readOnly
                 className="flex-1"
               />
-              <Button
-                variant="outline"
-                onClick={copyShareUrl}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -382,6 +383,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               shareUrl: shareUrl
             })}
             disabled={!shareSettings.shareEnabled}
+            className="bg-white text-black border border-gray-300 hover:bg-gray-50"
           >
             <Mail className="h-4 w-4 mr-2" />
             Send Email
@@ -417,7 +419,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           {shareSettings.shareEnabled && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="custom-slug">Custom Link (Optional)</Label>
+                <Label htmlFor="custom-slug">Customize Share Link</Label>
                 <Input
                   id="custom-slug"
                   placeholder="my-company-cim"
@@ -427,7 +429,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Leave empty for auto-generated link
+                  Customize the end of your share link. Example: https://cimshare.com/share/customexample
                 </p>
               </div>
 
@@ -461,6 +463,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           <Button 
             onClick={updateShareSettings}
             disabled={isUpdatingShare}
+            className="bg-white text-black border border-gray-300 hover:bg-gray-50"
           >
             {isUpdatingShare ? "Updating..." : "Update Share Settings"}
           </Button>
