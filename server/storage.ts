@@ -991,6 +991,7 @@ export class DatabaseStorage implements IStorage {
     ndaSignerViews: number;
     uniqueNdaSigners: number;
     recentViews: any[];
+    dailyViews: Record<string, number>;
   }> {
     // Get total view counts by type
     const viewCounts = await db
@@ -1030,6 +1031,35 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(documentViews.viewedAt))
       .limit(50);
 
+    // Get daily view breakdown for the last 30 days
+    const dailyViewsQuery = await db
+      .select({
+        date: sql<string>`DATE(${documentViews.viewedAt})`,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(documentViews)
+      .where(
+        and(
+          eq(documentViews.cimDocumentId, documentId),
+          sql`${documentViews.viewedAt} >= CURRENT_DATE - INTERVAL '30 days'`
+        )
+      )
+      .groupBy(sql`DATE(${documentViews.viewedAt})`)
+      .orderBy(sql`DATE(${documentViews.viewedAt})`);
+
+    // Convert daily views to object format
+    const dailyViews: Record<string, number> = {};
+    dailyViewsQuery.forEach(row => {
+      dailyViews[row.date] = Number(row.count);
+    });
+
+    // DEBUG: Log daily views calculation
+    console.log("🔍 DAILY VIEWS DEBUG:", {
+      documentId,
+      dailyViewsQuery,
+      dailyViews
+    });
+
     const anonymousViews = viewCounts.find(vc => vc.viewerType === 'anonymous')?.count || 0;
     const ndaSignerViews = viewCounts.find(vc => vc.viewerType === 'nda_signer')?.count || 0;
     
@@ -1049,7 +1079,8 @@ export class DatabaseStorage implements IStorage {
       anonymousViews,
       ndaSignerViews,
       uniqueNdaSigners: uniqueSigners?.count || 0,
-      recentViews
+      recentViews,
+      dailyViews
     };
   }
 

@@ -2689,7 +2689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ndaProtected: cim.ndaProtected,
         documentType: cim.ndaProtected ? 'nda_protected' : 'public',
         recentViews: viewStats.recentViews,
-        dailyViews: {} // Can be enhanced later with daily breakdown
+        dailyViews: viewStats.dailyViews
       };
       
       res.json(analytics);
