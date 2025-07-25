@@ -867,6 +867,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const processedSelectedImages = (cimDoc.selectedImages || []).map(processImageUrl).filter(Boolean);
       const processedCoverImageUrl = processImageUrl(cimDoc.coverImageUrl);
 
+      // Process custom section images for PDF export (similar to share route processing)
+      const processedCustomSections = customSections ? customSections.map(section => ({
+        ...section,
+        imageUrls: section.imageUrls ? section.imageUrls.map(processImageUrl).filter(Boolean) : [],
+        imageUrl: section.imageUrl ? processImageUrl(section.imageUrl) : null
+      })) : [];
+
       console.log("=== PDF EXPORT IMAGE URL PROCESSING ===");
       console.log("Original logo URL:", cimDoc.logoUrl);
       console.log("Processed logo URL:", processedLogoUrl);
@@ -874,6 +881,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Processed selected images:", processedSelectedImages);
       console.log("Original cover image URL:", cimDoc.coverImageUrl);
       console.log("Processed cover image URL:", processedCoverImageUrl);
+      console.log("Custom sections count:", customSections?.length || 0);
+      if (customSections && customSections.length > 0) {
+        console.log("Custom sections image processing:");
+        customSections.forEach((section, index) => {
+          console.log(`Section ${index}:`, {
+            type: section.type,
+            originalImageUrls: section.imageUrls,
+            processedImageUrls: processedCustomSections[index]?.imageUrls
+          });
+        });
+      }
       console.log("==========================================");
 
       // Debug financial files before PDF generation
@@ -911,7 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentFinancialFiles,
         baseUrl,
         cimDoc.title,
-        customSections,
+        processedCustomSections, // Use processed custom sections with proper image URLs
         processedCoverImageUrl, // Use processed cover image URL
         cimDoc.coverImagePosition,
         cimDoc.id,
