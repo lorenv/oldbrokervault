@@ -103,8 +103,15 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         // Get the original content page
         const originalContentPage = originalPages[i];
         
-        // Copy the original page WITH all annotations preserved
-        const [originalPageWithAnnotations] = await finalDoc.copyPages(originalDoc, [i]);
+        // Get the original page with annotations 
+        const originalPageWithAnnotations = originalPages[i];
+        
+        // Copy all annotations from the original page to the new page
+        const originalAnnots = originalPageWithAnnotations.node.Annots;
+        if (originalAnnots) {
+          console.log(`Found ${originalAnnots instanceof pdfLib.PDFArray ? originalAnnots.size() : 1} annotations on page ${i + 1}`);
+          newPage.node.set(pdfLib.PDFName.of('Annots'), originalAnnots);
+        }
         
         // Optimized content area with 0.5-inch margins
         const marginSize = 36;
@@ -122,8 +129,6 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
           color: pdfLib.rgb(1, 1, 1),
           opacity: 0.8
         });
-        
-        // Note: Hyperlinks will be re-added using addHyperlinksToFinalPdf function after PDF generation
         
         // Embed content page efficiently
         const contentForm = await finalDoc.embedPage(originalContentPage);
