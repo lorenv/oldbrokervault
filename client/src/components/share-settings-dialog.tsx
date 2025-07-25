@@ -119,20 +119,21 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
           <div className="space-y-2">
             <Label>Share URL</Label>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={copyShareUrl} className="bg-white text-black border border-gray-300">
+                <Copy className="h-4 w-4" />
+              </Button>
               <Input 
                 value={shareUrl} 
                 readOnly 
                 className="flex-1"
               />
-              <Button variant="outline" size="sm" onClick={copyShareUrl}>
-                <Copy className="h-4 w-4" />
-              </Button>
             </div>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
               onClick={() => regenerateSlugMutation.mutate()}
               disabled={regenerateSlugMutation.isPending}
+              className="bg-white text-black border border-gray-300"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${regenerateSlugMutation.isPending ? 'animate-spin' : ''}`} />
               Generate New Link
