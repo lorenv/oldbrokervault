@@ -2522,7 +2522,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         // Sort custom sections by position
         const sortedCustomSections = [...customSections].sort((a, b) => a.position - b.position);
         
-        sortedCustomSections.forEach((customSection) => {
+        for (const customSection of sortedCustomSections) {
           doc.fontSize(18)
              .font('Helvetica-Bold')
              .fillColor('#1e3a8a')
@@ -2558,56 +2558,45 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const startX = (doc.page.width - totalImageWidth) / 2;
             let currentY = doc.y;
             
-            customSection.imageUrls.forEach((imageUrl: string, index: number) => {
+            for (let index = 0; index < customSection.imageUrls.length; index++) {
               try {
-                const imagePath = resolveImagePath(imageUrl, documentId, userProfile?.id);
-                console.log(`Trying to add custom section image: ${imageUrl} -> ${imagePath}`);
+                const imageUrl = customSection.imageUrls[index];
+                console.log(`\n--- Processing custom section image ${index} ---`);
+                console.log(`Original custom image URL: ${imageUrl}`);
                 
-                let imageFound = false;
-                let finalImagePath = imagePath;
-                
-                if (fs.existsSync(imagePath)) {
-                  imageFound = true;
-                } else {
-                  // Try alternative paths for custom images
-                  console.log(`Custom image not found at ${imagePath}, trying alternatives`);
-                  const alternativePaths = [
-                    path.resolve(process.cwd(), 'public', imageUrl.replace(/^\/+/, '')),
-                    path.resolve(process.cwd(), imageUrl.replace(/^\/+/, '')),
-                    path.resolve(process.cwd(), 'attached_assets', imageUrl.replace(/^\/+/, '')),
-                    path.resolve(process.cwd(), 'public', 'business-images', path.basename(imageUrl))
-                  ];
+                // Use resolveImageData for unified image processing (handles object storage, base64, and file paths)
+                const imageData = await resolveImageData(imageUrl);
+                if (imageData) {
+                  console.log(`Processing custom image ${index}: ${imageData.isBase64 ? 'base64' : 'file/URL'}`);
                   
-                  for (const altPath of alternativePaths) {
-                    console.log("Trying alternative custom image path:", altPath);
-                    if (fs.existsSync(altPath)) {
-                      finalImagePath = altPath;
-                      imageFound = true;
-                      console.log("Found custom image at alternative path:", altPath);
-                      break;
-                    }
-                  }
-                }
-                
-                if (imageFound) {
                   const col = index % imagesPerRow;
                   const row = Math.floor(index / imagesPerRow);
                   
                   const finalX = startX + (col * (imageWidth + horizontalMargin));
                   const finalY = currentY + (row * (imageHeight + verticalMargin));
                   
-                  doc.image(finalImagePath, finalX, finalY, {
-                    fit: [imageWidth, imageHeight],
-                    align: 'center'
-                  });
-                  console.log(`Successfully added custom section image at ${finalX}, ${finalY}`);
+                  if (imageData.isBase64) {
+                    // Handle base64 data
+                    doc.image(imageData.buffer, finalX, finalY, {
+                      fit: [imageWidth, imageHeight],
+                      align: 'center'
+                    });
+                    console.log(`Successfully added custom section base64 image at ${finalX}, ${finalY}`);
+                  } else {
+                    // Handle file buffer
+                    doc.image(imageData.buffer, finalX, finalY, {
+                      fit: [imageWidth, imageHeight],
+                      align: 'center'
+                    });
+                    console.log(`Successfully added custom section file image at ${finalX}, ${finalY}`);
+                  }
                 } else {
-                  console.log(`Custom section image file not found in any location: ${imageUrl}`);
+                  console.log(`Custom section image could not be processed: ${imageUrl}`);
                 }
               } catch (error) {
-                console.error(`Failed to add custom section image ${imageUrl} to PDF:`, error);
+                console.error(`Failed to add custom section image ${customSection.imageUrls[index]} to PDF:`, error);
               }
-            });
+            }
             
             // Calculate how much space the images took
             const rows = Math.ceil(customSection.imageUrls.length / imagesPerRow);
@@ -2616,7 +2605,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           }
           
           doc.moveDown(2);
-        });
+        }
       }
 
       // Business Images Section - separate from content sections
