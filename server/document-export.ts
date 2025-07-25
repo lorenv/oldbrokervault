@@ -2332,7 +2332,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Add hyperlinked filename using same pattern as working website URL
               console.log("🔗 ATTEMPTING TO ADD HYPERLINK:", absoluteDownloadUrl);
               
-              doc.fontSize(12)
+              doc.font('Helvetica')
+                 .fontSize(12)
                  .fillColor('#2563eb')
                  .text(`• ${fileName}`, {
                    link: absoluteDownloadUrl,
