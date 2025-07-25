@@ -1032,7 +1032,17 @@ export class DatabaseStorage implements IStorage {
 
     const anonymousViews = viewCounts.find(vc => vc.viewerType === 'anonymous')?.count || 0;
     const ndaSignerViews = viewCounts.find(vc => vc.viewerType === 'nda_signer')?.count || 0;
-    const totalViews = anonymousViews + ndaSignerViews;
+    
+    // DEBUG: Log the actual values and types
+    console.log("🔍 VIEW COUNT DEBUG:", {
+      viewCounts,
+      anonymousViews,
+      ndaSignerViews,
+      anonymousType: typeof anonymousViews,
+      ndaSignerType: typeof ndaSignerViews
+    });
+    
+    const totalViews = Number(anonymousViews) + Number(ndaSignerViews);
 
     return {
       totalViews,

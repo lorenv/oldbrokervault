@@ -2671,6 +2671,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get comprehensive view statistics using new tracking system
       const viewStats = await storage.getDocumentViewStats(docId);
       
+      // DEBUG: Log analytics calculation
+      console.log("🔍 ANALYTICS DEBUG:", {
+        docId,
+        rawViewStats: viewStats,
+        totalViewsType: typeof viewStats.totalViews,
+        totalViewsValue: viewStats.totalViews
+      });
+      
       // Return enhanced analytics with NDA-aware view tracking
       const analytics = {
         totalViews: viewStats.totalViews,
