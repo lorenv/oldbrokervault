@@ -6290,15 +6290,27 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           console.log("Fetching owner profile information...");
           const ownerProfile = await storage.getUserProfile(cimDoc.userId);
           
-          // Prepare owner profile data for email
+          // Prepare owner profile data for email with full URLs for images
+          const processImageUrlForEmail = (url: string | null) => {
+            if (!url) return undefined;
+            if (url.startsWith('data:') || url.startsWith('http')) return url;
+            
+            // Handle object storage URLs - convert to full domain URLs for emails
+            if (url.startsWith('/api/object-storage/')) {
+              return `https://cimshare.com${url}`;
+            }
+            
+            return url;
+          };
+          
           const ownerProfileData = {
             name: owner.name || owner.email,
             email: owner.email,
             phone: ownerProfile?.phoneNumber || undefined,
             title: ownerProfile?.title || undefined,
             businessName: ownerProfile?.businessName || undefined,
-            profilePhotoUrl: ownerProfile?.profilePhoto || undefined,
-            businessLogoUrl: ownerProfile?.businessLogo || undefined
+            profilePhotoUrl: processImageUrlForEmail(ownerProfile?.profilePhoto),
+            businessLogoUrl: processImageUrlForEmail(ownerProfile?.businessLogo)
           };
 
           // Send immediate access email with separate NDA confirmation and CIM link emails
