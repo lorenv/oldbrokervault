@@ -141,7 +141,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
 
           {/* Custom URL */}
           <div className="space-y-2">
-            <Label htmlFor="custom-slug">Customize Share Link (optional)</Label>
+            <Label htmlFor="custom-slug">Customize Share Link</Label>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">cimshare.com/share/</span>
               <Input

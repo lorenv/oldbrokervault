@@ -256,11 +256,11 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         method: 'GET',
         credentials: 'include'
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -275,7 +275,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         title: "Download started",
         description: "Your document is being downloaded as a PDF.",
       });
-  
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -433,11 +433,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="share-password">Password Protection (Optional)</Label>
-                <Input
-                  id="share-password"
-                  type="password"
+              
+                <div className="space-y-2">
+                  <Label htmlFor="share-password">Password Protection</Label>
+                  <Input
+                    id="share-password"
+                    type="password"
                   placeholder="Enter password"
                   value={shareSettings.sharePassword}
                   onChange={(e) => 
@@ -446,11 +447,12 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="expires-at">Expiration Date (Optional)</Label>
-                <Input
-                  id="expires-at"
-                  type="datetime-local"
+              
+                <div className="space-y-2">
+                  <Label htmlFor="expires-at">Expiration Date</Label>
+                  <Input
+                    id="expires-at"
+                    type="datetime-local"
                   value={shareSettings.shareExpiresAt}
                   onChange={(e) => 
                     setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
