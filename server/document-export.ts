@@ -2220,6 +2220,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Add page break before generated content to create proper cover page
       doc.addPage();
+      
+      console.log("🚨 TEST LOG: Reached financial section area");
 
       // Financial Information Section - always include
       console.log("🚨 FINANCIAL SECTION - Financial data:", JSON.stringify(financialData, null, 2));
