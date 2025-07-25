@@ -141,7 +141,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
 
           {/* Custom URL */}
           <div className="space-y-2">
-            <Label htmlFor="custom-slug">Custom URL (optional)</Label>
+            <Label htmlFor="custom-slug">Customize Share Link (optional)</Label>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">cimshare.com/share/</span>
               <Input
@@ -152,7 +152,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
               />
             </div>
             <p className="text-xs text-gray-500">
-              Use letters, numbers, hyphens, and underscores only
+              Customize the end of your share link. Example: https://cimshare.com/share/customexample
             </p>
           </div>
 
