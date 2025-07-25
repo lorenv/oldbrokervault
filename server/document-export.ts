@@ -2321,6 +2321,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Track position before adding text (for hyperlink restoration later)
               const currentY = doc.y;
               const currentPage = currentPageNumber - 1; // Convert to 0-based index
+              console.log(`🔗 TRACKING POSITION: ${fileName} at page ${currentPage}, y=${currentY}, pageNumber=${currentPageNumber}`);
               trackFinancialFilePosition(fileName, currentPage, currentY, file.id);
               
               // Add hyperlinked filename using same pattern as working website URL
@@ -3142,8 +3143,10 @@ async function addHyperlinksToFinalPdf(pdfBuffer: Buffer, financialFiles: any[],
           
           // Create link annotation rectangle [x1, y1, x2, y2]
           // Convert PDFKit coordinates to pdf-lib coordinates (Y axis is inverted)
-          const pdfLibY = targetPage.getHeight() - position.y - 15;
-          const linkRect = [80, pdfLibY, 400, pdfLibY + 15];
+          // PDFKit Y coordinate is from top, pdf-lib is from bottom
+          const pageHeight = targetPage.getHeight();
+          const pdfLibY = pageHeight - position.y - 30; // Adjust for font height
+          const linkRect = [80, pdfLibY, 450, pdfLibY + 15]; // Wider clickable area
           
           // Add hyperlink annotation using pdf-lib
           const linkAnnotation = pdfDoc.context.obj({
