@@ -71,7 +71,7 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
     // Create a new PDF document for the final result
     const finalDoc = await pdfLib.PDFDocument.create();
     
-    // Copy first page without background (title page)
+    // Copy first page without background (title page) and preserve all annotations
     console.log("Copying first page without background...");
     const [firstPage] = await finalDoc.copyPages(originalDoc, [0]);
     finalDoc.addPage(firstPage);
@@ -83,7 +83,7 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
     const backgroundForm = await finalDoc.embedPage(backgroundPageCopy);
     console.log("Template embed time:", Date.now() - templateEmbedStart + "ms");
     
-    // Process remaining pages with optimized background template
+    // Process remaining pages with optimized background template and preserve annotations
     console.log(`Processing ${originalPages.length - 1} pages with pre-embedded background...`);
     const pageProcessStart = Date.now();
     
@@ -103,6 +103,9 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
         // Get the original content page
         const originalContentPage = originalPages[i];
         
+        // Copy the original page WITH all annotations preserved
+        const [originalPageWithAnnotations] = await finalDoc.copyPages(originalDoc, [i]);
+        
         // Optimized content area with 0.5-inch margins
         const marginSize = 36;
         const pageWidth = newPage.getWidth();
@@ -119,6 +122,8 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
           color: pdfLib.rgb(1, 1, 1),
           opacity: 0.8
         });
+        
+        // Note: Hyperlinks will be re-added using addHyperlinksToFinalPdf function after PDF generation
         
         // Embed content page efficiently
         const contentForm = await finalDoc.embedPage(originalContentPage);
@@ -2313,6 +2318,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("🔗 HYPERLINK DEBUG - URL valid format:", absoluteDownloadUrl.startsWith('http'));
               console.log("🔗 HYPERLINK DEBUG - File object structure:", JSON.stringify(file, null, 2));
               
+              // Track position before adding text (for hyperlink restoration later)
+              const currentY = doc.y;
+              const currentPage = currentPageNumber - 1; // Convert to 0-based index
+              trackFinancialFilePosition(fileName, currentPage, currentY, file.id);
+              
               // Add hyperlinked filename using same pattern as working website URL
               console.log("🔗 ATTEMPTING TO ADD HYPERLINK:", absoluteDownloadUrl);
               
@@ -2380,6 +2390,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           // Add page break before Executive Summary section
           if (section.title && section.title.toLowerCase().includes('executive summary')) {
             doc.addPage();
+            currentPageNumber++;
           }
           
           doc.fontSize(18)
@@ -2604,6 +2615,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Business Images Section - separate from content sections
       if (selectedImages && selectedImages.length > 0) {
         doc.addPage();
+        currentPageNumber++;
         
         doc.fontSize(18)
            .font('Helvetica-Bold')
@@ -2664,6 +2676,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const imageY = currentY + (row - currentRow) * (imageHeight + verticalMargin);
                 if (imageY + imageHeight > doc.page.height - pageMargin) {
                   doc.addPage();
+                  currentPageNumber++;
                   doc.fontSize(18)
                      .font('Helvetica-Bold')
                      .fillColor('#1e3a8a')
@@ -2766,6 +2779,7 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Contact Information Footer
       if (userProfile && (userProfile.name || userProfile.email || userProfile.phoneNumber)) {
         doc.addPage();
+        currentPageNumber++;
         
         doc.fontSize(18)
            .font('Helvetica-Bold')
@@ -3057,9 +3071,17 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
         if (backgroundTemplate) {
           console.log("Applying optimized PDF background template...");
           const startTime = Date.now();
-          const finalPdfBuffer = await applyBackgroundToPages(originalPdfBuffer, backgroundTemplate);
+          let finalPdfBuffer = await applyBackgroundToPages(originalPdfBuffer, backgroundTemplate);
           const processingTime = Date.now() - startTime;
           console.log(`Background template applied in ${processingTime}ms, final PDF size:`, finalPdfBuffer.length);
+          
+          // Add hyperlinks back to the PDF after background template application
+          if (financialFiles && financialFiles.length > 0) {
+            console.log("Adding financial file hyperlinks to final PDF...");
+            finalPdfBuffer = await addHyperlinksToFinalPdf(finalPdfBuffer, financialFiles, shareSlug, baseUrl);
+            console.log("Financial file hyperlinks added to final PDF");
+          }
+          
           resolve(finalPdfBuffer);
         } else {
           console.log("No background template available, returning original PDF");
@@ -3072,5 +3094,158 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       }
     });
   });
+}
+
+// Global variable to track financial file positions during PDF generation
+let globalFinancialFilePositions: Array<{filename: string, page: number, y: number, id: any}> = [];
+
+// Helper function to track financial file positions during PDF generation
+function trackFinancialFilePosition(filename: string, page: number, y: number, id: any) {
+  globalFinancialFilePositions.push({filename, page, y, id});
+  console.log(`Tracked financial file position: ${filename} at page ${page}, y=${y}`);
+}
+
+// Add hyperlinks to PDF using pdf-lib after background template application
+async function addHyperlinksToFinalPdf(pdfBuffer: Buffer, financialFiles: any[], shareSlug?: string, baseUrl?: string): Promise<Buffer> {
+  try {
+    if (!financialFiles || financialFiles.length === 0) {
+      console.log("No financial files to add hyperlinks for");
+      return pdfBuffer;
+    }
+
+    console.log("Adding hyperlinks to final PDF using pdf-lib...");
+    console.log("Tracked positions:", globalFinancialFilePositions);
+    
+    const pdfDoc = await pdfLib.PDFDocument.load(pdfBuffer);
+    const pages = pdfDoc.getPages();
+    
+    // Generate URLs for each financial file
+    const domain = baseUrl || 'https://cimshare.com';
+    
+    // Use tracked positions if available, otherwise fall back to estimated positions
+    if (globalFinancialFilePositions.length > 0) {
+      console.log("Using tracked positions for hyperlinks");
+      
+      globalFinancialFilePositions.forEach((position) => {
+        const file = financialFiles.find(f => f.id === position.id || f.filename === position.filename);
+        if (!file) return;
+        
+        const downloadUrl = shareSlug 
+          ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
+          : `${domain}/api/cim/${file.cimDocumentId || file.cim_document_id}/financial-files/${file.id}/download`;
+        
+        console.log(`Adding hyperlink for: ${position.filename} -> ${downloadUrl} at page ${position.page}, y=${position.y}`);
+        
+        // Ensure page exists
+        if (position.page >= 0 && position.page < pages.length) {
+          const targetPage = pages[position.page];
+          
+          // Create link annotation rectangle [x1, y1, x2, y2]
+          // Convert PDFKit coordinates to pdf-lib coordinates (Y axis is inverted)
+          const pdfLibY = targetPage.getHeight() - position.y - 15;
+          const linkRect = [80, pdfLibY, 400, pdfLibY + 15];
+          
+          // Add hyperlink annotation using pdf-lib
+          const linkAnnotation = pdfDoc.context.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: linkRect,
+            Border: [0, 0, 0],
+            A: {
+              Type: 'Action',
+              S: 'URI',
+              URI: pdfLib.PDFString.of(downloadUrl)
+            }
+          });
+          
+          const linkAnnotationRef = pdfDoc.context.register(linkAnnotation);
+          
+          // Add annotation to page
+          const existingAnnots = targetPage.node.Annots;
+          if (existingAnnots) {
+            if (existingAnnots instanceof pdfLib.PDFArray) {
+              existingAnnots.push(linkAnnotationRef);
+            }
+          } else {
+            targetPage.node.set(pdfLib.PDFName.of('Annots'), pdfDoc.context.obj([linkAnnotationRef]));
+          }
+        }
+      });
+    } else {
+      console.log("No tracked positions available, using fallback positioning");
+      
+      // Fallback: Look for financial files section on pages 2-4 typically
+      let targetPage = null;
+      let targetPageIndex = -1;
+      
+      for (let i = 1; i < Math.min(pages.length, 4); i++) {
+        targetPage = pages[i];
+        targetPageIndex = i;
+        break;
+      }
+      
+      if (targetPage) {
+        console.log(`Adding hyperlinks to page ${targetPageIndex + 1} using fallback positioning`);
+        
+        let yPosition = 450; // Starting Y position for fallback
+        
+        financialFiles.forEach((file, index) => {
+          const downloadUrl = shareSlug 
+            ? `${domain}/api/share/${shareSlug}/financial-files/${file.id}/download`
+            : `${domain}/api/cim/${file.cimDocumentId || file.cim_document_id}/financial-files/${file.id}/download`;
+          
+          const fileName = file.filename || 'Financial Document';
+          
+          console.log(`Adding fallback hyperlink for: ${fileName} -> ${downloadUrl}`);
+          
+          // Create link annotation rectangle [x1, y1, x2, y2]
+          const linkRect = [80, yPosition - 5, 400, yPosition + 15];
+          
+          // Add hyperlink annotation using pdf-lib
+          const linkAnnotation = pdfDoc.context.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: linkRect,
+            Border: [0, 0, 0],
+            A: {
+              Type: 'Action',
+              S: 'URI',
+              URI: pdfLib.PDFString.of(downloadUrl)
+            }
+          });
+          
+          const linkAnnotationRef = pdfDoc.context.register(linkAnnotation);
+          
+          // Add annotation to page
+          const existingAnnots = targetPage.node.Annots;
+          if (existingAnnots) {
+            if (existingAnnots instanceof pdfLib.PDFArray) {
+              existingAnnots.push(linkAnnotationRef);
+            }
+          } else {
+            targetPage.node.set(pdfLib.PDFName.of('Annots'), pdfDoc.context.obj([linkAnnotationRef]));
+          }
+          
+          yPosition -= 30; // Move down for next file
+        });
+      }
+    }
+    
+    console.log(`Successfully added ${financialFiles.length} hyperlinks to PDF`);
+    
+    // Clear tracked positions for next PDF generation
+    globalFinancialFilePositions = [];
+    
+    // Save the PDF with hyperlinks
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+    
+  } catch (error) {
+    console.error("Error adding hyperlinks to PDF:", error);
+    // Clear tracked positions on error
+    globalFinancialFilePositions = [];
+    // Return original PDF if hyperlink addition fails
+    return pdfBuffer;
+  }
 }
 
