@@ -306,57 +306,22 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
               </CardContent>
             </Card>
 
-            {/* Signature Field Types */}
+            {/* Signature Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Drag Field Types</CardTitle>
+                <CardTitle>Signature Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600 mb-3">
-                  Drag these field types onto the PDF
-                </p>
-                <div className="space-y-2">
-                  {FIELD_TYPES.map((fieldType) => (
-                    <div
-                      key={fieldType.type}
-                      draggable={true}
-                      className={`p-3 border-2 border-dashed rounded-lg cursor-grab transition-all ${
-                        fieldType.color
-                      } hover:scale-105 select-none`}
-                      style={{ 
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        MozUserSelect: 'none',
-                        msUserSelect: 'none'
-                      }}
-                      onDragStart={(e) => {
-                        console.log('🚀 Drag started for field type:', fieldType.type);
-                        console.log('🔍 DataTransfer object:', e.dataTransfer);
-                        
-                        // Set the data to transfer
-                        e.dataTransfer.setData('text/plain', fieldType.type);
-                        e.dataTransfer.setData('application/field-type', fieldType.type);
-                        e.dataTransfer.effectAllowed = 'copy';
-                        
-                        // Set opacity for visual feedback
-                        e.currentTarget.style.opacity = '0.5';
-                        
-                        console.log('✅ Drag data set successfully');
-                      }}
-                      onDragEnd={(e) => {
-                        console.log('🏁 Drag ended for field type:', fieldType.type);
-                        e.currentTarget.style.opacity = '1';
-                      }}
-                      onMouseDown={(e) => {
-                        console.log('🖱️ Mouse down on field:', fieldType.type);
-                      }}
-                    >
-                      <div className="flex items-center gap-2 pointer-events-none">
-                        <fieldType.icon className="w-4 h-4" />
-                        <span className="text-sm font-medium">{fieldType.label}</span>
-                      </div>
-                    </div>
-                  ))}
+              <CardContent>
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <FileSignature className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-900 font-medium mb-1">
+                      Automatic Signature Page
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      A signature page with name and date will be appended to the PDF after it's completed by a signer.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

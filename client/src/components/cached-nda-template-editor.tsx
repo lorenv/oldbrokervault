@@ -160,7 +160,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
 
   const handleSave = useCallback(async () => {
     const finalTemplateName = templateName.trim() || `Template ${Date.now()}`;
-    
+
     if (!finalTemplateName) {
       toast({
         title: "Name required",
@@ -196,7 +196,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="container mx-auto px-4 py-8">
-        
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Template Configuration */}
@@ -225,7 +225,7 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
                   isNewTemplate: !initialTemplate,
                   shouldShowSave: !initialTemplate && pdfBase64
                 })}
-                
+
                 {!initialTemplate && pdfBase64 && (
                   <Button 
                     onClick={handleSave}
@@ -275,48 +275,22 @@ export default function CachedNdaTemplateEditor({ initialTemplate, onSave, isLoa
               </CardContent>
             </Card>
 
-            {/* Signature Field Types */}
+            {/* Signature Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Drag Field Types</CardTitle>
+                <CardTitle>Signature Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-600 mb-3">
-                  Drag these field types onto the PDF
-                </p>
-                <div className="space-y-2">
-                  {FIELD_TYPES.map((fieldType) => (
-                    <div
-                      key={fieldType.type}
-                      draggable
-                      className={`p-3 border-2 border-dashed rounded-lg cursor-grab transition-all ${
-                        fieldType.color
-                      } hover:scale-105 select-none active:cursor-grabbing`}
-                      onDragStart={(e) => {
-                        console.log('🚀 DRAG START:', fieldType.type);
-                        e.dataTransfer.setData('application/field-type', fieldType.type);
-                        e.dataTransfer.setData('text/plain', fieldType.type); // Fallback
-                        e.dataTransfer.effectAllowed = 'copy';
-                        
-                        // Simple visual feedback
-                        e.currentTarget.style.opacity = '0.5';
-                        
-                        console.log('📋 Data set in dataTransfer:', {
-                          fieldType: fieldType.type,
-                          types: Array.from(e.dataTransfer.types)
-                        });
-                      }}
-                      onDragEnd={(e) => {
-                        console.log('🏁 DRAG END:', fieldType.type);
-                        e.currentTarget.style.opacity = '1';
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <fieldType.icon className="w-4 h-4" />
-                        <span className="text-sm font-medium">{fieldType.label}</span>
-                      </div>
-                    </div>
-                  ))}
+              <CardContent>
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <FileSignature className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-900 font-medium mb-1">
+                      Automatic Signature Page
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      A signature page with name and date will be appended to the PDF after it's completed by a signer.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
