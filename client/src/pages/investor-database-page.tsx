@@ -308,7 +308,7 @@ export default function InvestorDatabasePage() {
     { value: 'first_seen', label: 'First Seen', type: 'date' }
   ];
 
-  // Fetch contacts with pagination
+  // Fetch contacts with pagination - optimized for performance
   const { data: contactsResponse, isLoading, refetch } = useQuery({
     queryKey: ['/api/investor-contacts', currentPage, pageSize, searchTerm, statusFilter, cimFilter, sortBy, sortOrder],
     queryFn: async () => {
@@ -341,14 +341,17 @@ export default function InvestorDatabasePage() {
         };
       };
     },
-    refetchInterval: 30000,
-    refetchIntervalInBackground: true,
-    staleTime: 10000
+    // Performance optimizations
+    staleTime: 60000, // Keep data fresh for 1 minute
+    gcTime: 300000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
+    retry: 2 // Retry failed requests only twice
   });
 
   const allContacts = contactsResponse?.contacts?.map(contact => ({
     ...contact,
-    inferredCompany: inferCompanyFromEmail(contact.email)
+    inferredCompany: inferCompanyFromEmail(contact.email) || 'Unknown'
   })) || [];
   
   const pagination = contactsResponse?.pagination;
@@ -1127,7 +1130,7 @@ export default function InvestorDatabasePage() {
 
       {/* Contact Detail Modal */}
       <Dialog open={!!viewingContact} onOpenChange={() => setViewingContact(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -1139,82 +1142,159 @@ export default function InvestorDatabasePage() {
           </DialogHeader>
           
           {viewingContact && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Contact Information */}
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                  <p className="text-lg font-semibold">{viewingContact.name}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono flex-1">{viewingContact.email}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(viewingContact.email);
-                        toast({
-                          title: "Email copied",
-                          description: "Email address has been copied to clipboard"
-                        });
-                      }}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
+            <div className="space-y-6 mt-6">
+              {/* Contact Information Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                      <p className="text-lg font-semibold mt-1">{viewingContact.name}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="font-mono text-sm flex-1">{viewingContact.email}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(viewingContact.email);
+                            toast({
+                              title: "Email copied",
+                              description: "Email address copied to clipboard"
+                            });
+                          }}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Company</Label>
+                      <p className="text-sm mt-1">
+                        {(() => {
+                          const domain = viewingContact.email.split('@')[1];
+                          const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
+                          return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Inferred Company</Label>
-                  <p className="text-sm">
-                    {(() => {
-                      const domain = viewingContact.email.split('@')[1];
-                      const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
-                      return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
-                    })()}
-                  </p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                  <p className="text-sm">
-                    {viewingContact.location || 'Unknown'}
-                    {viewingContact.isPotentialVpn && (
-                      <span className="text-amber-600 ml-2">• Likely using privacy tool</span>
-                    )}
-                  </p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Select 
-                    value={viewingContact.status} 
-                    onValueChange={(value) => {
-                      // Update the contact status immediately in local state
-                      setViewingContact({...viewingContact, status: value});
-                    }}
-                  >
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
-                            {status.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                      <p className="text-sm mt-1">
+                        {viewingContact.location || 'Unknown'}
+                        {viewingContact.isPotentialVpn && (
+                          <span className="text-amber-600 ml-2">• Privacy tool detected</span>
+                        )}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                      <Select 
+                        value={viewingContact.status} 
+                        onValueChange={(value) => {
+                          setViewingContact({...viewingContact, status: value});
+                        }}
+                      >
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                                {status.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
+                      <div className="space-y-1 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Actions Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Next Follow-up Date</Label>
+                      <Input
+                        type="date"
+                        value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value ? new Date(e.target.value) : null;
+                          setViewingContact({
+                            ...viewingContact,
+                            nextFollowUpDate: selectedDate ? selectedDate : null
+                          });
+                        }}
+                        className="mt-1"
+                      />
+                      {viewingContact.nextFollowUpDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Scheduled for {new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Document Activity</Label>
+                      <div className="mt-1 p-3 bg-muted/50 rounded-md">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tags Management Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Tags
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
                     <div className="flex gap-1">
@@ -1334,79 +1414,43 @@ export default function InvestorDatabasePage() {
                     {viewingContact.tags.length === 0 && (
                       <p className="text-xs text-muted-foreground">No tags assigned</p>
                     )}
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <Label className="text-xs font-normal text-gray-400">First Seen</Label>
-                  <p className="text-xs text-gray-500">{viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-xs font-normal text-gray-400">Last Activity</Label>
-                  <p className="text-xs text-gray-500">{viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}</p>
-                </div>
-                
-                {viewingContact.lastContactDate && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Last Contacted</Label>
-                    <p>{new Date(viewingContact.lastContactDate).toLocaleDateString()}</p>
-                  </div>
-                )}
-                
-                {viewingContact.nextFollowUpDate && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Next Follow-up</Label>
-                    <p>{new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                </CardContent>
+              </Card>
+
+              {/* Notes Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <Textarea
                     placeholder="Add notes about this contact..."
                     value={viewingContact.notes || ''}
                     onChange={(e) => setViewingContact({...viewingContact, notes: e.target.value})}
-                    className="mt-1"
-                    rows={3}
+                    className="min-h-[100px]"
+                    rows={4}
                   />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* Action Items & Document History */}
-              <div className="space-y-4">
-                {/* Quick Actions */}
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Quick Actions</Label>
-                  <div className="mt-2 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Next Follow-up</Label>
-                        <Input
-                          type="date"
-                          value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            // Update contact follow-up date
-                            // This will trigger an API call to update the contact
-                          }}
-                          className="text-xs"
-                        />
+              {/* Document History Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Document History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-3 bg-muted/50 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
                       </div>
-
                     </div>
-
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Document Activity</Label>
-                  <div className="mt-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4" />
-                      <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
-                    </div>
-                  </div>
-                </div>
                 
                 {viewingContact.documents && viewingContact.documents.length > 0 && (
                   <div>
@@ -1438,7 +1482,9 @@ export default function InvestorDatabasePage() {
                     <p className="text-sm text-muted-foreground">No documents associated yet</p>
                   </div>
                 )}
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
           
@@ -1454,7 +1500,8 @@ export default function InvestorDatabasePage() {
                     data: {
                       status: viewingContact.status,
                       notes: viewingContact.notes || '',
-                      tags: viewingContact.tags || []
+                      tags: viewingContact.tags || [],
+                      nextFollowUpDate: viewingContact.nextFollowUpDate
                     }
                   });
                 }
