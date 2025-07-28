@@ -526,8 +526,8 @@ export default function InvestorDatabasePage() {
       id: editingContact.id,
       data: {
         ...editForm,
-        lastContactDate: editForm.lastContactDate ? new Date(editForm.lastContactDate) : null,
-        nextFollowUpDate: editForm.nextFollowUpDate ? new Date(editForm.nextFollowUpDate) : null
+        lastContactDate: editForm.lastContactDate ? new Date(editForm.lastContactDate + 'T00:00:00') : null,
+        nextFollowUpDate: editForm.nextFollowUpDate ? new Date(editForm.nextFollowUpDate + 'T00:00:00') : null
       }
     });
   };
@@ -1257,10 +1257,10 @@ export default function InvestorDatabasePage() {
                         type="date"
                         value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
                         onChange={(e) => {
-                          const selectedDate = e.target.value ? new Date(e.target.value) : null;
+                          const selectedDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
                           setViewingContact({
                             ...viewingContact,
-                            nextFollowUpDate: selectedDate ? selectedDate : null
+                            nextFollowUpDate: selectedDate
                           });
                         }}
                         className="mt-1"
@@ -1501,7 +1501,7 @@ export default function InvestorDatabasePage() {
                       status: viewingContact.status,
                       notes: viewingContact.notes || '',
                       tags: viewingContact.tags || [],
-                      nextFollowUpDate: viewingContact.nextFollowUpDate
+                      nextFollowUpDate: viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate) : null
                     }
                   });
                 }
