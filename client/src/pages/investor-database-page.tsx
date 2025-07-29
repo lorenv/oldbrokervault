@@ -1143,277 +1143,241 @@ export default function InvestorDatabasePage() {
           
           {viewingContact && (
             <div className="space-y-6 mt-6">
-              {/* Contact Information Card */}
+              {/* Main Contact Information Card */}
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Contact Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                      <p className="text-lg font-semibold mt-1">{viewingContact.name}</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="font-mono text-sm flex-1">{viewingContact.email}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(viewingContact.email);
-                            toast({
-                              title: "Email copied",
-                              description: "Email address copied to clipboard"
-                            });
-                          }}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Company</Label>
-                      <p className="text-sm mt-1">
-                        {(() => {
-                          const domain = viewingContact.email.split('@')[1];
-                          const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
-                          return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                      <p className="text-sm mt-1">
-                        {viewingContact.location || 'Unknown'}
-                        {viewingContact.isPotentialVpn && (
-                          <span className="text-amber-600 ml-2">• Privacy tool detected</span>
-                        )}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                      <Select 
-                        value={viewingContact.status} 
-                        onValueChange={(value) => {
-                          setViewingContact({...viewingContact, status: value});
-                        }}
-                      >
-                        <SelectTrigger className="w-full mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
-                                {status.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
-                      <div className="space-y-1 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Actions Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Next Follow-up Date</Label>
-                      <Input
-                        type="date"
-                        value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
-                        onChange={(e) => {
-                          const selectedDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
-                          setViewingContact({
-                            ...viewingContact,
-                            nextFollowUpDate: selectedDate
-                          });
-                        }}
-                        className="mt-1"
-                      />
-                      {viewingContact.nextFollowUpDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Scheduled for {new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Document Activity</Label>
-                      <div className="mt-1 p-3 bg-muted/50 rounded-md">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signatures</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tags Management Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Tag className="h-5 w-5" />
-                    Tags
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddTag(!showAddTag)}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Tag
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowTagManager(true)}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <Tag className="h-3 w-3 mr-1" />
-                        Manage
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {showAddTag && (
-                    <div className="space-y-2 mt-2">
-                      {/* Existing tags suggestions */}
-                      {customTags.length > 0 && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Choose from existing tags:</Label>
-                          <div className="flex gap-1 flex-wrap mt-1">
-                            {customTags.filter(tag => !viewingContact.tags.includes(tag.name)).map((tag) => (
-                              <Button
-                                key={tag.id}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addTagToContact(viewingContact.id, tag.name)}
-                                className="h-6 px-2 text-xs"
-                              >
-                                <div className={`w-2 h-2 rounded-full ${tag.color} mr-1`}></div>
-                                {tag.name}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Create new tag */}
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-4">
                       <div>
-                        <Label className="text-xs text-muted-foreground">Or create a new tag:</Label>
-                        <div className="flex gap-2 mt-1">
-                          <Input
-                            placeholder="Enter new tag name..."
-                            value={newTagInput}
-                            onChange={(e) => setNewTagInput(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                if (customTags.find(tag => tag.name === newTagInput)) {
-                                  addTagToContact(viewingContact.id, newTagInput);
-                                } else {
-                                  addCustomTag(newTagInput);
-                                  addTagToContact(viewingContact.id, newTagInput);
-                                }
-                                setNewTagInput('');
-                                setShowAddTag(false);
-                              }
-                            }}
-                            className="text-xs"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              if (customTags.find(tag => tag.name === newTagInput)) {
-                                addTagToContact(viewingContact.id, newTagInput);
-                              } else {
-                                addCustomTag(newTagInput);
-                                addTagToContact(viewingContact.id, newTagInput);
-                              }
-                              setNewTagInput('');
-                              setShowAddTag(false);
-                            }}
-                            disabled={!newTagInput}
-                            className="h-8"
-                          >
-                            Add
-                          </Button>
-                        </div>
+                        <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                        <p className="text-lg font-semibold mt-1">{viewingContact.name}</p>
                       </div>
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowAddTag(false)}
-                        className="h-6 px-2 text-xs text-muted-foreground"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-1 flex-wrap mt-1">
-                    {viewingContact.tags.map((tag, index) => (
-                      <div key={index} className="flex items-center">
-                        <Badge className={`${getTagColor(tag)} text-white pr-1`}>
-                          {tag}
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="font-mono text-sm flex-1">{viewingContact.email}</p>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeTagFromContact(viewingContact.id, tag)}
-                            className="h-4 w-4 p-0 ml-1 hover:bg-white/20"
+                            onClick={() => {
+                              navigator.clipboard.writeText(viewingContact.email);
+                              toast({
+                                title: "Email copied",
+                                description: "Email address copied to clipboard"
+                              });
+                            }}
+                            className="h-6 w-6 p-0"
                           >
-                            <X className="h-2 w-2" />
+                            <Copy className="h-3 w-3" />
                           </Button>
-                        </Badge>
+                        </div>
                       </div>
-                    ))}
-                    {viewingContact.tags.length === 0 && (
-                      <p className="text-xs text-muted-foreground">No tags assigned</p>
-                    )}
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Company</Label>
+                        <p className="text-sm mt-1">
+                          {(() => {
+                            const domain = viewingContact.email.split('@')[1];
+                            const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com', 'protonmail.com', 'hey.com'];
+                            return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                        <p className="text-sm mt-1">
+                          {viewingContact.location || 'Unknown'}
+                          {viewingContact.isPotentialVpn && (
+                            <span className="text-amber-600 ml-2">• Privacy tool detected</span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                        <Select 
+                          value={viewingContact.status} 
+                          onValueChange={(value) => {
+                            setViewingContact({...viewingContact, status: value});
+                          }}
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((status) => (
+                              <SelectItem key={status.value} value={status.value}>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${status.color}`}></div>
+                                  {status.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
+                        <div className="space-y-1 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Next Follow-up Date</Label>
+                        <Input
+                          type="date"
+                          value={viewingContact.nextFollowUpDate ? new Date(viewingContact.nextFollowUpDate).toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const selectedDate = e.target.value ? new Date(e.target.value + 'T00:00:00') : null;
+                            setViewingContact({
+                              ...viewingContact,
+                              nextFollowUpDate: selectedDate
+                            });
+                          }}
+                          className="mt-1"
+                        />
+                        {viewingContact.nextFollowUpDate && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Scheduled for {new Date(viewingContact.nextFollowUpDate).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAddTag(!showAddTag)}
+                              className="h-6 px-2 text-xs"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Tag
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowTagManager(true)}
+                              className="h-6 px-2 text-xs"
+                            >
+                              <Tag className="h-3 w-3 mr-1" />
+                              Manage
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {showAddTag && (
+                          <div className="space-y-2 mt-2">
+                            {/* Existing tags suggestions */}
+                            {customTags.length > 0 && (
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Choose from existing tags:</Label>
+                                <div className="flex gap-1 flex-wrap mt-1">
+                                  {customTags.filter(tag => !viewingContact.tags.includes(tag.name)).map((tag) => (
+                                    <Button
+                                      key={tag.id}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addTagToContact(viewingContact.id, tag.name)}
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      <div className={`w-2 h-2 rounded-full ${tag.color} mr-1`}></div>
+                                      {tag.name}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Create new tag */}
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Or create a new tag:</Label>
+                              <div className="flex gap-2 mt-1">
+                                <Input
+                                  placeholder="Enter new tag name..."
+                                  value={newTagInput}
+                                  onChange={(e) => setNewTagInput(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      if (customTags.find(tag => tag.name === newTagInput)) {
+                                        addTagToContact(viewingContact.id, newTagInput);
+                                      } else {
+                                        addCustomTag(newTagInput);
+                                        addTagToContact(viewingContact.id, newTagInput);
+                                      }
+                                      setNewTagInput('');
+                                      setShowAddTag(false);
+                                    }
+                                  }}
+                                  className="text-xs"
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (customTags.find(tag => tag.name === newTagInput)) {
+                                      addTagToContact(viewingContact.id, newTagInput);
+                                    } else {
+                                      addCustomTag(newTagInput);
+                                      addTagToContact(viewingContact.id, newTagInput);
+                                    }
+                                    setNewTagInput('');
+                                    setShowAddTag(false);
+                                  }}
+                                  disabled={!newTagInput}
+                                  className="h-8"
+                                >
+                                  Add
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAddTag(false)}
+                              className="h-6 px-2 text-xs text-muted-foreground"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+                        
+                        <div className="flex gap-1 flex-wrap mt-1">
+                          {viewingContact.tags.map((tag, index) => (
+                            <div key={index} className="flex items-center">
+                              <Badge className={`${getTagColor(tag)} text-white pr-1`}>
+                                {tag}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeTagFromContact(viewingContact.id, tag)}
+                                  className="h-4 w-4 p-0 ml-1 hover:bg-white/20"
+                                >
+                                  <X className="h-2 w-2" />
+                                </Button>
+                              </Badge>
+                            </div>
+                          ))}
+                          {viewingContact.tags.length === 0 && (
+                            <p className="text-xs text-muted-foreground">No tags assigned</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
