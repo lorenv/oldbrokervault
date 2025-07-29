@@ -1430,7 +1430,49 @@ export default function InvestorDatabasePage() {
                                 {new Date(doc.signedAt).toLocaleDateString()} at {new Date(doc.signedAt).toLocaleTimeString()}
                               </p>
                             </div>
-                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`/api/cim/${doc.cimDocumentId}/nda-signatures/${doc.signatureId}/download`, {
+                                      method: 'GET',
+                                      credentials: 'include'
+                                    });
+
+                                    if (response.ok) {
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = `nda-${doc.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      window.URL.revokeObjectURL(url);
+                                      document.body.removeChild(a);
+
+                                      toast({
+                                        title: "Download Started",
+                                        description: `Signed NDA for ${doc.signerName} is being downloaded.`
+                                      });
+                                    } else {
+                                      throw new Error('Failed to download NDA');
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      title: "Download Failed",
+                                      description: "Failed to download the signed NDA. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
+                                title="Download signed NDA"
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            </div>
                           </div>
                         </div>
                       ))}
