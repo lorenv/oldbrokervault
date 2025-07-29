@@ -1146,7 +1146,7 @@ export default function InvestorDatabasePage() {
               {/* Main Contact Information Card */}
               <Card>
                 <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Name</Label>
@@ -1183,6 +1183,18 @@ export default function InvestorDatabasePage() {
                             return personalDomains.includes(domain.toLowerCase()) ? 'Personal Email' : domain;
                           })()}
                         </p>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
+                        <div className="space-y-1 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     
@@ -1221,20 +1233,6 @@ export default function InvestorDatabasePage() {
                         </Select>
                       </div>
                       
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Activity Timeline</Label>
-                        <div className="space-y-1 mt-1">
-                          <p className="text-xs text-muted-foreground">
-                            First seen: {viewingContact.firstSeenAt ? new Date(viewingContact.firstSeenAt).toLocaleDateString() : 'Unknown'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Last activity: {viewingContact.lastSeenAt ? new Date(viewingContact.lastSeenAt).toLocaleDateString() : 'Never'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Next Follow-up Date</Label>
                         <Input
