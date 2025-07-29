@@ -353,17 +353,7 @@ export default function InvestorDatabasePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
-      return response.json() as {
-        contacts: EnrichedContact[];
-        pagination: {
-          page: number;
-          limit: number;
-          total: number;
-          totalPages: number;
-          hasNext: boolean;
-          hasPrev: boolean;
-        };
-      };
+      return response.json();
     },
     // Performance optimizations
     staleTime: 60000, // Keep data fresh for 1 minute
@@ -373,7 +363,7 @@ export default function InvestorDatabasePage() {
     retry: 2 // Retry failed requests only twice
   });
 
-  const allContacts = contactsResponse?.contacts?.map(contact => ({
+  const allContacts = contactsResponse?.contacts?.map((contact: any) => ({
     ...contact,
     inferredCompany: inferCompanyFromEmail(contact.email) || 'Unknown'
   })) || [];
@@ -793,10 +783,11 @@ export default function InvestorDatabasePage() {
               
               // Use advanced filters to show only follow-up contacts
               setAdvancedFilters([{
+                id: Date.now().toString(),
                 field: 'next_follow_up_date',
                 operator: 'less_equal',
                 value: new Date().toISOString().split('T')[0],
-                logic: 'and'
+                logicOperator: 'AND'
               }]);
             }
           }}
@@ -1484,7 +1475,8 @@ export default function InvestorDatabasePage() {
                                     console.log('Download button clicked:', { 
                                       cimDocumentId: doc.cimDocumentId, 
                                       signatureId: doc.signatureId,
-                                      documentId: doc.documentId
+                                      documentId: doc.documentId,
+                                      fullDoc: doc
                                     });
                                     
                                     // Use the correct field names and validate
@@ -1492,7 +1484,8 @@ export default function InvestorDatabasePage() {
                                     const sigId = doc.signatureId;
                                     
                                     if (!docId || !sigId) {
-                                      throw new Error('Missing document or signature ID');
+                                      console.error('Missing required IDs:', { docId, sigId, availableFields: Object.keys(doc) });
+                                      throw new Error(`Missing document ID (${docId}) or signature ID (${sigId})`);
                                     }
                                     
                                     const response = await fetch(`/api/cim/${docId}/nda-signatures/${sigId}/download`, {
@@ -1519,9 +1512,10 @@ export default function InvestorDatabasePage() {
                                       throw new Error('Failed to download NDA');
                                     }
                                   } catch (error) {
+                                    console.error('NDA Download Error:', error);
                                     toast({
                                       title: "Download Failed",
-                                      description: "Failed to download the signed NDA. Please try again.",
+                                      description: error instanceof Error ? error.message : "Failed to download the signed NDA. Please try again.",
                                       variant: "destructive"
                                     });
                                   }

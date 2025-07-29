@@ -7282,9 +7282,11 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           totalNdaSignatures: stats?.totalSignatures || 0,
           documents: docs.map(doc => ({
             documentId: doc.documentId,
+            cimDocumentId: doc.documentId, // Add this for consistency
             documentTitle: doc.documentTitle,
             signedAt: doc.signedAt,
-            signerName: doc.signerName
+            signerName: doc.signerName,
+            signatureId: doc.signatureId // Add the missing signatureId
           })),
           lastNdaSigned: stats?.lastSignedAt ? new Date(stats.lastSignedAt).getTime() : null
         };
