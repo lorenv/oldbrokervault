@@ -226,6 +226,7 @@ export default function InvestorDatabasePage() {
       case 'last_nda_signed': return contact.lastNdaSigned || null;
       case 'first_seen': return contact.firstSeenAt || null;
       case 'last_activity': return contact.lastSeenAt || null;
+      case 'next_follow_up_date': return contact.nextFollowUpDate || null;
       case 'cim_document': {
         // Get the CIM document titles for this contact
         const documentTitles = contact.documents?.map(doc => doc.documentTitle).join(', ') || '';
@@ -248,10 +249,30 @@ export default function InvestorDatabasePage() {
       case 'ends_with': return strValue.endsWith(filterStr);
       case 'is_empty': return !value || value === '';
       case 'is_not_empty': return value && value !== '';
-      case 'greater_than': return Number(value) > Number(filterValue);
-      case 'less_than': return Number(value) < Number(filterValue);
-      case 'greater_equal': return Number(value) >= Number(filterValue);
-      case 'less_equal': return Number(value) <= Number(filterValue);
+      case 'greater_than': {
+        if (value instanceof Date || (typeof value === 'string' && value.includes('-'))) {
+          return new Date(value) > new Date(filterValue);
+        }
+        return Number(value) > Number(filterValue);
+      }
+      case 'less_than': {
+        if (value instanceof Date || (typeof value === 'string' && value.includes('-'))) {
+          return new Date(value) < new Date(filterValue);
+        }
+        return Number(value) < Number(filterValue);
+      }
+      case 'greater_equal': {
+        if (value instanceof Date || (typeof value === 'string' && value.includes('-'))) {
+          return new Date(value) >= new Date(filterValue);
+        }
+        return Number(value) >= Number(filterValue);
+      }
+      case 'less_equal': {
+        if (value instanceof Date || (typeof value === 'string' && value.includes('-'))) {
+          return new Date(value) <= new Date(filterValue);
+        }
+        return Number(value) <= Number(filterValue);
+      }
       default: return true;
     }
   };
@@ -307,7 +328,8 @@ export default function InvestorDatabasePage() {
     { value: 'cim_document', label: 'CIM', type: 'select', options: cimDocuments?.map((doc: any) => ({ value: doc.id.toString(), label: doc.title })) || [] },
     { value: 'total_nda_signatures', label: 'NDA Count', type: 'number' },
     { value: 'last_activity', label: 'Last Activity', type: 'date' },
-    { value: 'first_seen', label: 'First Seen', type: 'date' }
+    { value: 'first_seen', label: 'First Seen', type: 'date' },
+    { value: 'next_follow_up_date', label: 'Next Follow-up Date', type: 'date' }
   ];
 
   // Fetch contacts with pagination - optimized for performance
@@ -732,7 +754,7 @@ export default function InvestorDatabasePage() {
         </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
@@ -755,19 +777,30 @@ export default function InvestorDatabasePage() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Prospects</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {contacts.filter(c => ['interested', 'under_review'].includes(c.status)).length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => {
+            // Filter to show only contacts that need follow-up
+            const needsFollowUpContacts = contacts.filter(c => 
+              c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()
+            );
+            
+            if (needsFollowUpContacts.length > 0) {
+              // Set a filter to show only follow-up contacts
+              setSearchTerm('');
+              setStatusFilter('all');
+              setCimFilter('all');
+              
+              // Use advanced filters to show only follow-up contacts
+              setAdvancedFilters([{
+                field: 'next_follow_up_date',
+                operator: 'less_equal',
+                value: new Date().toISOString().split('T')[0],
+                logic: 'and'
+              }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Needs Follow-up</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -776,6 +809,7 @@ export default function InvestorDatabasePage() {
             <div className="text-2xl font-bold">
               {contacts.filter(c => c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()).length}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Click to filter</p>
           </CardContent>
         </Card>
       </div>
@@ -1446,7 +1480,22 @@ export default function InvestorDatabasePage() {
                                 size="sm"
                                 onClick={async () => {
                                   try {
-                                    const response = await fetch(`/api/cim/${doc.cimDocumentId}/nda-signatures/${doc.signatureId}/download`, {
+                                    // Add debugging to track values
+                                    console.log('Download button clicked:', { 
+                                      cimDocumentId: doc.cimDocumentId, 
+                                      signatureId: doc.signatureId,
+                                      documentId: doc.documentId
+                                    });
+                                    
+                                    // Use the correct field names and validate
+                                    const docId = doc.cimDocumentId || doc.documentId;
+                                    const sigId = doc.signatureId;
+                                    
+                                    if (!docId || !sigId) {
+                                      throw new Error('Missing document or signature ID');
+                                    }
+                                    
+                                    const response = await fetch(`/api/cim/${docId}/nda-signatures/${sigId}/download`, {
                                       method: 'GET',
                                       credentials: 'include'
                                     });
