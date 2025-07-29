@@ -40,6 +40,8 @@ interface DocumentInfo {
   documentTitle: string;
   signedAt: string;
   signerName: string;
+  cimDocumentId: number;
+  signatureId: number;
 }
 
 interface EnrichedContact extends InvestorContact {
@@ -439,10 +441,18 @@ export default function InvestorDatabasePage() {
   // Update contact mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      // Process nextFollowUpDate to ensure proper format
+      const processedData = {
+        ...data,
+        nextFollowUpDate: data.nextFollowUpDate ? 
+          (data.nextFollowUpDate instanceof Date ? data.nextFollowUpDate.toISOString() : data.nextFollowUpDate) 
+          : null
+      };
+      
       const response = await fetch(`/api/investor-contacts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(processedData),
         credentials: 'include'
       });
       if (!response.ok) {

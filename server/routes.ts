@@ -7191,7 +7191,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
                 documentId: sig.cimDocumentId,
                 documentTitle: doc?.title || 'Unknown Document',
                 signedAt: sig.signedAt,
-                signerName: sig.signerName
+                signerName: sig.signerName,
+                cimDocumentId: sig.cimDocumentId,
+                signatureId: sig.id
               };
             });
             
@@ -7244,7 +7246,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
           documentId: ndaSignatures.cimDocumentId,
           documentTitle: cimDocuments.title,
           signedAt: ndaSignatures.signedAt,
-          signerName: ndaSignatures.signerName
+          signerName: ndaSignatures.signerName,
+          cimDocumentId: ndaSignatures.cimDocumentId,
+          signatureId: ndaSignatures.id
         })
         .from(ndaSignatures)
         .innerJoin(cimDocuments, eq(ndaSignatures.cimDocumentId, cimDocuments.id))
@@ -7317,12 +7321,16 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       const { investorContacts } = await import('@shared/schema');
       const { and } = await import('drizzle-orm');
       
+      // Process request body to handle date fields properly
+      const updateData = {
+        ...req.body,
+        nextFollowUpDate: req.body.nextFollowUpDate ? new Date(req.body.nextFollowUpDate) : null,
+        updatedAt: new Date()
+      };
+      
       const [updated] = await db
         .update(investorContacts)
-        .set({
-          ...req.body,
-          updatedAt: new Date()
-        })
+        .set(updateData)
         .where(and(
           eq(investorContacts.id, contactId),
           eq(investorContacts.userId, req.user.id)
