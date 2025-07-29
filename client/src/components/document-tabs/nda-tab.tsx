@@ -678,6 +678,46 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/cim/${cimDocument.id}/nda-signatures/${signature.id}/download`, {
+                                method: 'GET',
+                                credentials: 'include'
+                              });
+
+                              if (response.ok) {
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `nda-${signature.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+
+                                toast({
+                                  title: "Download Started",
+                                  description: `Signed NDA for ${signature.signerName} is being downloaded.`
+                                });
+                              } else {
+                                throw new Error('Failed to download NDA');
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Download Failed",
+                                description: "Failed to download the signed NDA. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                          title="Download signed NDA"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => revokeShareLink(signature)}
                           title="Revoke access"
                         >
