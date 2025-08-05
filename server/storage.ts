@@ -548,8 +548,10 @@ export class DatabaseStorage implements IStorage {
         shareSlug: cimDocuments.shareSlug,
         isUploadedFile: cimDocuments.isUploadedFile,
         uploadedFileName: cimDocuments.uploadedFileName,
-        // Minimal fields for recent documents display
-        regenerationCount: cimDocuments.regenerationCount
+        regenerationCount: cimDocuments.regenerationCount,
+        ndaProtected: cimDocuments.ndaProtected,
+        shareViewCount: cimDocuments.shareViewCount,
+        logoUrl: cimDocuments.logoUrl
       })
       .from(cimDocuments)
       .where(whereCondition)
@@ -564,13 +566,10 @@ export class DatabaseStorage implements IStorage {
       transcript: '',
       directions: '',
       analysis: {},
-      logoUrl: null,
       websiteUrl: null,
       selectedImages: null,
       sharePassword: null,
       shareExpiresAt: null,
-      shareViewCount: 0,
-      ndaProtected: false,
       ndaTemplateId: null,
       financialsEnabled: false,
       askingPrice: null,
