@@ -247,7 +247,7 @@ export default function AuthPage() {
 
 function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPassword: () => void }) {
   const { toast } = useToast();
-  
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -267,13 +267,13 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         body: JSON.stringify(data),
         credentials: "include",
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         const message = errorData.message || "Invalid email or password. Please check your credentials and try again.";
         throw new Error(message);
       }
-      
+
       return await res.json();
     },
     onSuccess: (data) => {
@@ -374,7 +374,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 function RegisterForm({ mutation }: { mutation: any }) {
   const [businessLogo, setBusinessLogo] = useState<File | null>(null);
   const { toast } = useToast();
-  
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -395,13 +395,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
         body: formData,
         credentials: "include",
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         const message = errorData.message || "Failed to create account. Please try again.";
         throw new Error(message);
       }
-      
+
       return await res.json();
     },
     onSuccess: (data) => {
@@ -433,7 +433,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         if (data.adminCode) formData.append('adminCode', data.adminCode);
         formData.append('agreeToTerms', data.agreeToTerms.toString());
         if (businessLogo) formData.append('businessLogo', businessLogo);
-        
+
         registerMutation.mutate(formData);
       })} className="space-y-4">
         <FormField
@@ -472,7 +472,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="businessName"
@@ -489,7 +489,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="phoneNumber"
@@ -507,7 +507,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <div className="space-y-2">
           <label className="text-sm font-medium">Business Logo (optional)</label>
           <Input
@@ -521,7 +521,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
           />
           <p className="text-xs text-gray-500">Upload your company logo (PNG, JPG, or SVG)</p>
         </div>
-        
+
         <FormField
           control={form.control}
           name="adminCode"
@@ -539,7 +539,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="agreeToTerms"
@@ -554,8 +554,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm font-normal">
                   I agree to the{" "}
-                  <Link href="/eula">
-                    <a className="text-primary hover:underline">Terms and Conditions</a>
+                  <Link href="/terms-of-service">
+                    <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
                   </Link>
                 </FormLabel>
                 <FormMessage />
@@ -563,7 +563,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <Button 
           type="submit" 
           className="w-full"

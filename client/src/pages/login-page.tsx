@@ -431,7 +431,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="agreeToTerms"
@@ -446,8 +446,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm font-normal">
                   I agree to the{" "}
-                  <Link href="/eula">
-                    <a className="text-primary hover:underline">Terms and Conditions</a>
+                  <Link href="/terms-of-service">
+                    <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
                   </Link>
                 </FormLabel>
                 <FormMessage />
@@ -455,7 +455,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
+
         <Button 
           type="submit" 
           className="w-full"
