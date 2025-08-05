@@ -18,11 +18,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
+import { format } from 'date-fns'; // Import format function
 
 // Define interface for CIM documents with analysis
 interface CimDocumentWithAnalysis extends CimDocument {
   shareViewCount?: number;
   hasNdaSignatures?: boolean;
+  ndaProtected?: boolean; // Assuming ndaProtected is a property from the backend
+  ndaSignatureCount?: number; // Assuming ndaSignatureCount is a property from the backend
 }
 
 export default function DocumentsPage() {
@@ -36,7 +39,7 @@ export default function DocumentsPage() {
     shareToken?: string;
   }>({ open: false });
   const [exportingDocId, setExportingDocId] = useState<number | null>(null);
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -80,12 +83,12 @@ export default function DocumentsPage() {
     staleTime: 60000,
     refetchOnWindowFocus: false
   });
-  
+
   const documents = paginatedData?.documents || [];
   const totalDocuments = paginatedData?.total || 0;
   const hasMore = paginatedData?.hasMore || false;
   const totalPages = Math.ceil(totalDocuments / 12);
-  
+
   // Delete document mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -111,13 +114,13 @@ export default function DocumentsPage() {
   // Handle PDF export
   const handleExport = async (docId: number, format: 'pdf' | 'word') => {
     setExportingDocId(docId);
-    
+
     // Show immediate loading toast
     toast({
       title: "Export Starting",
       description: `Generating ${format.toUpperCase()} document...`
     });
-    
+
     try {
       const response = await fetch(`/api/cim/export/${format}/${docId}`, {
         method: 'POST',
@@ -126,9 +129,9 @@ export default function DocumentsPage() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) throw new Error(`${format.toUpperCase()} export failed`);
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -138,7 +141,7 @@ export default function DocumentsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Export Complete",
         description: `Your CIM has been downloaded as a ${format.toUpperCase()}`
@@ -247,7 +250,7 @@ export default function DocumentsPage() {
                     </CardContent>
                   </Card>
                 </Link>
-                
+
                 {/* Dropdown Menu positioned absolutely to avoid Link nesting */}
                 <div className="absolute top-3 right-3 z-10">
                   <DropdownMenu>
@@ -306,7 +309,7 @@ export default function DocumentsPage() {
                         <Mail className="mr-2 h-4 w-4" />
                         Share via Email
                       </DropdownMenuItem>
-                      
+
                       {/* Show additional options only for generated CIMs, not uploaded files */}
                       {!doc.isUploadedFile && user?.subscriptionStatus !== "free" && (
                         <>
@@ -324,7 +327,7 @@ export default function DocumentsPage() {
                           </DropdownMenuItem>
                         </>
                       )}
-                      
+
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         onClick={() => setConfirmDelete(doc.id)} 
@@ -367,7 +370,7 @@ export default function DocumentsPage() {
                 </span>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
@@ -378,7 +381,7 @@ export default function DocumentsPage() {
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              
+
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
@@ -391,7 +394,7 @@ export default function DocumentsPage() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <Button
                       key={pageNum}
@@ -405,7 +408,7 @@ export default function DocumentsPage() {
                   );
                 })}
               </div>
-              
+
               <Button
                 variant="outline"
                 size="sm"
