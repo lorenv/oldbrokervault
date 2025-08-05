@@ -492,7 +492,7 @@ export function SharePage() {
       <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main content area */}
-          <div className="flex-1 min-w-0 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          <div className="flex-1 min-w-0 space-y-6 animate-in fade-in duration-500">
             {shareData.cim.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
@@ -673,20 +673,18 @@ export function SharePage() {
                   </Card>
                 )}
 
-                <div className="animate-in fade-in slide-in-from-bottom-6 duration-600 delay-700">
-                  <CimDisplay 
-                    analysis={shareData.cim.analysis}
-                    isSharedView={true}
-                    docId={shareData.cim.id}
-                    websiteUrl={shareData.websiteUrl}
-                    logoUrl={shareData.cim.logoUrl}
-                    selectedImages={shareData.cim.selectedImages}
-                    title={shareData.cim.title}
-                    userProfile={shareData.cim.userProfile}
-                    cimDocument={shareData.cim}
-                    customSections={shareData.customSections}
-                  />
-                </div>
+                <CimDisplay 
+                  analysis={shareData.cim.analysis}
+                  isSharedView={true}
+                  docId={shareData.cim.id}
+                  websiteUrl={shareData.websiteUrl}
+                  logoUrl={shareData.cim.logoUrl}
+                  selectedImages={shareData.cim.selectedImages}
+                  title={shareData.cim.title}
+                  userProfile={shareData.cim.userProfile}
+                  cimDocument={shareData.cim}
+                  customSections={shareData.customSections}
+                />
               </>
             )}
           </div>
