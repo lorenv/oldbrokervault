@@ -221,10 +221,12 @@ export default function DocumentsPage() {
                               <Clock className="h-3 w-3" />
                               {new Date(doc.createdAt).toLocaleDateString()}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <PenTool className="h-3 w-3" />
-                              NDA
-                            </div>
+                            {doc.ndaProtected && (
+                              <div className="flex items-center gap-1">
+                                <PenTool className="h-3 w-3" />
+                                NDA
+                              </div>
+                            )}
                             <div className="flex items-center gap-1">
                               <Eye className="h-3 w-3" />
                               {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
