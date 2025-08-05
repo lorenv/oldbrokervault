@@ -195,26 +195,45 @@ export default function PricingPage() {
             </CardContent>
             <CardFooter>
               {!user ? (
-                // For non-authenticated users, show account creation message
+                // For non-authenticated users, show different buttons based on plan type
                 <div className="w-full text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {plan.isEnterprise ? 'Contact us for Enterprise pricing' : 'Create an account to get started'}
-                  </p>
                   {plan.isEnterprise ? (
-                    <Button 
-                      className="w-full"
-                      onClick={() => window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank')}
-                    >
-                      Contact Us
-                    </Button>
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Contact us for Enterprise pricing
+                      </p>
+                      <Button 
+                        className="w-full"
+                        onClick={() => window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank')}
+                      >
+                        Contact Us
+                      </Button>
+                    </>
+                  ) : plan.name === 'Free Trial' ? (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Start your free trial today
+                      </p>
+                      <Button 
+                        className="w-full"
+                        onClick={() => window.location.href = '/register'}
+                      >
+                        Register
+                      </Button>
+                    </>
                   ) : (
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      disabled
-                    >
-                      Sign Up Required
-                    </Button>
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Create an account to upgrade
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        disabled
+                      >
+                        Sign Up Required
+                      </Button>
+                    </>
                   )}
                 </div>
               ) : plan.current ? (
