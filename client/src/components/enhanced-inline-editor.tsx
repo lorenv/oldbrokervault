@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Edit, Save, X, Trash2, Type } from "lucide-react";
+import { Save, X, Type } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RichTextEditor, htmlToPlainText, plainTextWithFormattingToHtml } from "./rich-text-editor";
 
@@ -187,7 +187,10 @@ export function EnhancedInlineEditor({
   }
 
   return (
-    <div className="group relative">
+    <div 
+      className={`group relative ${!readOnly ? 'cursor-pointer hover:bg-gray-50 rounded p-1' : ''}`}
+      onClick={() => !readOnly && onEdit(fieldPath)}
+    >
       <div className="min-h-[2rem] py-1">
         {enableRichText && displayValue.includes('<') && displayValue.includes('>') ? (
           <div 
@@ -200,29 +203,6 @@ export function EnhancedInlineEditor({
           </span>
         )}
       </div>
-      
-      {!readOnly && (
-        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onEdit(fieldPath)}
-            className="h-6 w-6 p-0"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-          {onDelete && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onDelete(fieldPath)}
-              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
