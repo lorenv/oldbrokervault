@@ -447,11 +447,11 @@ export function CimGenerator() {
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
 
-      // Show completion for a moment, then redirect
+      // Show completion for a moment, then redirect with first-time parameter
       setTimeout(() => {
         setGenerationStage(null);
         setProgressStartTime(null);
-        window.location.assign(`/documents/${result.id}?tab=edit`);
+        window.location.assign(`/documents/${result.id}?tab=edit&first-time=true`);
       }, 2500); // Slightly longer to accommodate the quick completion sequence
     },
     onError: (error) => {

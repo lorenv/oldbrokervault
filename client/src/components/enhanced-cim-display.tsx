@@ -331,7 +331,7 @@ export function EnhancedCimDisplay({
               const sectionId = section.id || section.title || `section-${index}`;
               return (
                 <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                  <Card className="mb-8 relative group bg-white shadow-sm rounded-2xl border-0 hover:shadow-lg transition-all duration-200">
+                  <Card className={`mb-8 relative group bg-white shadow-sm rounded-2xl border-0 hover:shadow-lg transition-all duration-200 cim-section ${index === 0 ? 'cim-section-first' : ''}`}>
                     {!isSharedView && (
                       <Button
                         variant="ghost"
