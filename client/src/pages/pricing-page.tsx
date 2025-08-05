@@ -74,7 +74,15 @@ export default function PricingPage() {
           plan: 'standard'
         });
         const { url } = await response.json();
-        window.open(url, '_self');
+        console.log('Opening Stripe checkout URL:', url);
+        
+        // Try to open in new tab, with fallback to same window
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+          // Popup was blocked, fallback to same window
+          console.log('Popup blocked, redirecting in same window');
+          window.location.href = url;
+        }
         return;
       }
       
@@ -82,7 +90,7 @@ export default function PricingPage() {
         // For existing subscribers, create a Customer Portal session
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
-        window.open(url, '_self');
+        window.open(url, '_blank');
       }
     } catch (error) {
       console.error("Subscription action error:", error);
@@ -112,7 +120,15 @@ export default function PricingPage() {
       });
       const { url } = await response.json();
       setShowEmailDialog(false);
-      window.open(url, '_self');
+      console.log('Opening Stripe checkout URL:', url);
+      
+      // Try to open in new tab, with fallback to same window
+      const newWindow = window.open(url, '_blank');
+      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        // Popup was blocked, fallback to same window
+        console.log('Popup blocked, redirecting in same window');
+        window.location.href = url;
+      }
     } catch (error) {
       console.error("Email subscription error:", error);
       toast({
