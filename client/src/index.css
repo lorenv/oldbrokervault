@@ -11,3 +11,86 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Smooth animations that start from invisible state */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    opacity: 0;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.7s ease-out forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  
+  .animate-slide-right {
+    animation: slideRight 0.7s ease-out forwards;
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  
+  /* Delay variants */
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-500 { animation-delay: 0.5s; }
+  .delay-700 { animation-delay: 0.7s; }
+  .delay-1000 { animation-delay: 1s; }
+  
+  /* Staggered delays for lists */
+  .stagger-100:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-100:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-100:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-100:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-100:nth-child(5) { animation-delay: 0.5s; }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -311,7 +311,7 @@ export function SharePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!cimData.isUploadedFile && cimData.coverImageUrl ? (
-        <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden animate-in fade-in duration-700">
+        <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden animate-fade-in">
           {/* Cover Image with Parallax */}
           <div 
             className="absolute inset-0 bg-cover bg-center"
@@ -420,7 +420,7 @@ export function SharePage() {
         </div>
       ) : (
         // Fallback header when no cover image - only show logo if no cover image exists
-        <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/50 shadow-sm animate-slide-down">
           <div className="max-w-6xl mx-auto px-6 py-12">
             <div className="text-center">
               {/* Website extracted logo above title - only when no cover image */}
@@ -492,7 +492,7 @@ export function SharePage() {
       <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main content area */}
-          <div className="flex-1 min-w-0 space-y-6 animate-in fade-in duration-500">
+          <div className="flex-1 min-w-0 space-y-6 animate-fade-in delay-200">
             {shareData.cim.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
@@ -507,7 +507,7 @@ export function SharePage() {
                     uploadedFiles={uploadedFiles}
                   />
                 ) : uploadedFiles.length > 0 ? (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-600 delay-300">
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300">
                     <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -522,7 +522,7 @@ export function SharePage() {
                     <CardContent className="p-8 space-y-6">
                       <div className="space-y-4">
                         {uploadedFiles.map((file: any, index: number) => (
-                          <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${400 + (index * 100)}ms` }}>
+                          <div key={file.id} className="flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/90 hover:shadow-lg transition-all duration-200 animate-slide-up stagger-100">
                             <div className="flex items-center gap-4">
                               <div className="p-3 bg-blue-50 rounded-lg">
                                 <FileText className="h-6 w-6 text-blue-600" />
@@ -588,7 +588,7 @@ export function SharePage() {
             ) : (
               <>
                 {/* Financial Information Section - Always show */}
-                <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-600 delay-300">
+                <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300">
                     <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-blue-300 rounded-lg">
@@ -609,7 +609,7 @@ export function SharePage() {
                         </div>
                       )}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-500">
                           <div className="flex items-center justify-center gap-2 mb-3">
                             <DollarSign className="h-5 w-5 text-blue-600" />
                             <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
@@ -618,7 +618,7 @@ export function SharePage() {
                             {shareData.cim.askingPrice || "Not specified"}
                           </p>
                         </div>
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-700">
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-700">
                           <div className="flex items-center justify-center gap-2 mb-3">
                             <TrendingUp className="h-5 w-5 text-blue-600" />
                             <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
@@ -627,7 +627,7 @@ export function SharePage() {
                             {shareData.cim.revenue || "Not specified"}
                           </p>
                         </div>
-                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-1000">
+                        <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 animate-slide-up delay-1000">
                           <div className="flex items-center justify-center gap-2 mb-3">
                             <BarChart3 className="h-5 w-5 text-purple-600" />
                             <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
@@ -645,7 +645,7 @@ export function SharePage() {
 
                 {/* Website URL Section */}
                 {shareData.websiteUrl && (
-                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-600 delay-500">
+                  <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-500">
                     <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-6 pt-8 px-8 border-b border-green-200/50">
                       <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
                         <div className="p-2 bg-green-100 rounded-lg">
@@ -690,7 +690,7 @@ export function SharePage() {
           </div>
 
           {/* Sticky Sidebar */}
-          <div className="lg:w-[28rem] flex-shrink-0 animate-in fade-in slide-in-from-right-4 duration-700 delay-400">
+          <div className="lg:w-[28rem] flex-shrink-0 animate-slide-right delay-300">
             <ShareStickySidebar 
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
