@@ -149,6 +149,41 @@ export class ObjectStorageImageManager {
   }
 
   /**
+   * Save business image/logo from buffer to object storage
+   */
+  async saveBusinessImage(
+    buffer: Buffer,
+    fileName: string,
+    userId: string
+  ): Promise<string> {
+    const userIdNumber = parseInt(userId);
+    if (isNaN(userIdNumber)) {
+      throw new Error('Invalid user ID');
+    }
+
+    // Determine mime type from buffer or filename
+    let mimeType = 'image/jpeg';
+    if (fileName.toLowerCase().endsWith('.png')) {
+      mimeType = 'image/png';
+    } else if (fileName.toLowerCase().endsWith('.gif')) {
+      mimeType = 'image/gif';
+    } else if (fileName.toLowerCase().endsWith('.webp')) {
+      mimeType = 'image/webp';
+    }
+
+    const imageMetadata = await this.saveImageFromBuffer(
+      buffer,
+      fileName,
+      mimeType,
+      userIdNumber,
+      'logos',
+      { optimize: true, maxWidth: 500, maxHeight: 500 }
+    );
+
+    return imageMetadata.publicPath;
+  }
+
+  /**
    * Get image buffer from object storage
    */
   async getImageBuffer(storageKey: string): Promise<Buffer> {

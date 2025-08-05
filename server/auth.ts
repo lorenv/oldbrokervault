@@ -4,6 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import multer from "multer";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
@@ -13,6 +14,26 @@ import { sanitizeUser } from "./data-sanitizer";
 const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
 const emailCache = new Map<string, { user: SelectUser; timestamp: number }>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes for better performance
+
+// Set up multer for file uploads during registration
+const registrationUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for business logos
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'businessLogo') {
+      // Accept images only
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed for business logo'));
+      }
+    } else {
+      cb(null, true);
+    }
+  }
+});
 
 function getCachedUser(id: number): SelectUser | null {
   const cached = userCache.get(id);
@@ -188,9 +209,19 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", registerValidation, handleValidationErrors, auditLogger('REGISTER'), async (req, res) => {
+  app.post("/api/register", registrationUpload.single('businessLogo'), async (req, res) => {
     try {
-      const existingUser = await storage.getUserByEmail(req.body.email);
+      // Handle JSON body parsing (FormData contains text fields)
+      const { email, password, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      
+      // Basic validation
+      if (!email || !password || !agreeToTerms || agreeToTerms !== 'true') {
+        return res.status(400).json({
+          message: "Please fill in all required fields and agree to the terms"
+        });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({
           message: "An account with this email already exists"
@@ -198,15 +229,49 @@ export function setupAuth(app: Express) {
       }
 
       // Special admin code check - only grant admin if both adminCode is provided and matches env var
-      const isAdmin = req.body.adminCode && 
+      const isAdmin = adminCode && 
                      process.env.ADMIN_CODE && 
-                     req.body.adminCode === process.env.ADMIN_CODE;
+                     adminCode === process.env.ADMIN_CODE;
+
+      // Handle business logo upload if present
+      let businessLogoPath = null;
+      if (req.file) {
+        try {
+          // Import image manager and save the logo
+          const { objectStorageImageManager } = await import("./image-manager-object-storage");
+          const logoBuffer = req.file.buffer;
+          const logoFilename = `business-logo-${Date.now()}.${req.file.mimetype.split('/')[1]}`;
+          businessLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, 'temp-user');
+        } catch (logoError) {
+          console.error('Failed to save business logo:', logoError);
+          // Don't fail registration if logo upload fails, just continue without it
+        }
+      }
 
       const user = await storage.createUser({
-        email: req.body.email,
-        password: await hashPassword(req.body.password),
+        email,
+        password: await hashPassword(password),
+        businessName: businessName || null,
+        phoneNumber: phoneNumber || null,
+        businessLogo: businessLogoPath,
         isAdmin,
       });
+
+      // Update the business logo path with the actual user ID
+      if (businessLogoPath && req.file) {
+        try {
+          const { objectStorageImageManager } = await import("./image-manager-object-storage");
+          const logoBuffer = req.file.buffer;
+          const logoFilename = `business-logo-${Date.now()}.${req.file.mimetype.split('/')[1]}`;
+          const finalLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, user.id.toString());
+          
+          // Update the user with the correct logo path
+          await storage.updateUser(user.id, { businessLogo: finalLogoPath });
+          user.businessLogo = finalLogoPath;
+        } catch (logoError) {
+          console.error('Failed to update business logo with user ID:', logoError);
+        }
+      }
 
       // Create default NDA template for the new user
       try {
@@ -279,8 +344,8 @@ export function setupAuth(app: Express) {
         
         if (!user) {
           console.log("Authentication failed for:", req.body.email, "Info:", info);
-          return res.status(401).json({
-            message: info?.message || "Invalid email or password"
+          return res.status(400).json({
+            message: "Invalid email or password. Please check your credentials and try again."
           });
         }
         

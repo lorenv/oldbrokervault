@@ -327,6 +327,9 @@ export const investorContacts = pgTable("investor_contacts", {
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
+  businessName: true,
+  phoneNumber: true,
+  businessLogo: true,
 }).extend({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
@@ -336,6 +339,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
     .regex(/(?=.*\d)/, "Password must contain at least one number")
     .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character"),
   email: z.string().email("Please enter a valid email address"),
+  businessName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  businessLogo: z.string().optional(),
   adminCode: z.string().optional()
 });
 
