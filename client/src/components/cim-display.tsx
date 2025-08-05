@@ -28,6 +28,7 @@ import { CoverImageManager } from "./cover-image-manager";
 import { CoverImageDisplay } from "./cover-image-display";
 import { DocumentExport } from "./document-export";
 import { useCustomSections } from "@/hooks/use-cim-document";
+import { EnhancedInlineEditor } from "./enhanced-inline-editor";
 
 import ReactMarkdown from 'react-markdown';
 import {
@@ -56,73 +57,46 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// Simple inline editor for flexible CIM sections
+// Enhanced inline editor for flexible CIM sections with rich text support
 interface FlexibleSectionEditorProps {
   value: string;
   onSave: (value: string) => Promise<void>;
   placeholder?: string;
   multiline?: boolean;
+  enableRichText?: boolean;
 }
 
-function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", multiline = false }: FlexibleSectionEditorProps) {
+function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", multiline = false, enableRichText = false }: FlexibleSectionEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
+  const [currentFieldPath] = useState('content');
 
-  // Update editValue when value prop changes
-  useEffect(() => {
-    setEditValue(value);
-  }, [value]);
+  const handleEdit = (fieldPath: string) => {
+    setIsEditing(true);
+  };
 
-  const handleSave = async () => {
-    await onSave(editValue);
-    setIsEditing(false);
+  const handleSave = async (fieldPath: string, newValue: string | string[]) => {
+    if (typeof newValue === 'string') {
+      await onSave(newValue);
+      setIsEditing(false);
+    }
   };
 
   const handleCancel = () => {
-    setEditValue(value);
     setIsEditing(false);
   };
 
-  if (isEditing) {
-    return (
-      <div className="space-y-2">
-        {multiline ? (
-          <textarea
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            className="w-full min-h-[100px] max-h-[400px] p-2 border rounded resize-y"
-            placeholder={placeholder}
-            autoFocus
-          />
-        ) : (
-          <input
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            className="w-full p-2 border rounded"
-            placeholder={placeholder}
-            autoFocus
-          />
-        )}
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleSave}>Save</Button>
-          <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
-        </div>
-        {multiline && <MarkdownGuide />}
-      </div>
-    );
-  }
-
   return (
-    <div 
-      className="group cursor-pointer hover:bg-gray-50 p-1 rounded min-h-[24px]" 
-      onClick={() => setIsEditing(true)}
-    >
-      <div className="flex items-center gap-2">
-        <span className={multiline ? "whitespace-pre-wrap" : ""}>{value || placeholder}</span>
-        <Edit className="h-4 w-4 opacity-0 group-hover:opacity-100 text-gray-400" />
-      </div>
-    </div>
+    <EnhancedInlineEditor
+      value={value}
+      fieldPath={currentFieldPath}
+      isEditing={isEditing}
+      onEdit={handleEdit}
+      onSave={handleSave}
+      onCancel={handleCancel}
+      multiline={multiline}
+      placeholder={placeholder}
+      enableRichText={enableRichText}
+    />
   );
 }
 
@@ -505,7 +479,7 @@ export function CimDisplay({
   const handleDeleteImage = async (imageIndex: number) => {
     try {
       // Immediately update local state for instant UI feedback
-      const updatedImages = localSelectedImages.filter((_, index) => index !== imageIndex);
+      const updatedImages = localSelectedImages.filter((_: any, index: number) => index !== imageIndex);
       setLocalSelectedImages(updatedImages);
       
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
@@ -770,7 +744,7 @@ export function CimDisplay({
             </div>
             {localSelectedImages && localSelectedImages.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {localSelectedImages.map((image, index) => (
+                {localSelectedImages.map((image: any, index: number) => (
                   <div key={index} className="relative group">
                     {!brokenImages.has(index) ? (
                       <img 
@@ -786,13 +760,13 @@ export function CimDisplay({
                             naturalHeight: e.currentTarget.naturalHeight,
                             complete: e.currentTarget.complete
                           });
-                          setBrokenImages(prev => new Set([...prev, index]));
+                          setBrokenImages((prev: any) => new Set([...Array.from(prev), index]));
                         }}
                         onLoad={() => {
                           console.log(`Image loaded successfully: ${image}`);
                           // Remove from broken images if it was previously broken
-                          setBrokenImages(prev => {
-                            const newSet = new Set(prev);
+                          setBrokenImages((prev: Set<number>) => {
+                            const newSet = new Set(Array.from(prev));
                             newSet.delete(index);
                             return newSet;
                           });
@@ -937,6 +911,7 @@ export function CimDisplay({
                               }}
                               placeholder="Section content"
                               multiline={true}
+                              enableRichText={true}
                             />
                           ) : (
                             <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
@@ -951,10 +926,10 @@ export function CimDisplay({
                                 }}
                               >
                                 {processMarkdownWithEscaping(section.content
-                                  .replace(/```[\s\S]*?```/g, (match) => {
+                                  .replace(/```[\s\S]*?```/g, (match: any) => {
                                     // Convert code blocks to bullet points
                                     const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
-                                    return content.split('\n').filter(line => line.trim()).map(line => `- ${line.trim()}`).join('\n');
+                                    return content.split('\n').filter((line: any) => line.trim()).map((line: any) => `- ${line.trim()}`).join('\n');
                                   })
                                   .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
                                 )}
@@ -981,7 +956,7 @@ export function CimDisplay({
                             try {
                               const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
                               if (response.ok) {
-                                setCustomSections(prev => prev.filter(s => s.id !== customSection.id));
+                                setCustomSections((prev: any) => prev.filter((s: any) => s.id !== customSection.id));
                                 toast({ title: "Section Deleted", description: "Custom section removed successfully." });
                               }
                             } catch (error) {
@@ -1045,19 +1020,24 @@ export function CimDisplay({
                                 }}
                                 placeholder="Click to edit this text section..."
                                 multiline={true}
+                                enableRichText={true}
                               />
                             ) : (
                               <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
-                                <ReactMarkdown 
-                                  components={{
-                                    ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                    text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
-                                  }}
-                                >
-                                  {processMarkdownWithEscaping(customSection.content)}
-                                </ReactMarkdown>
+                                {customSection.content.includes('<') && customSection.content.includes('>') ? (
+                                  <div dangerouslySetInnerHTML={{ __html: customSection.content }} />
+                                ) : (
+                                  <ReactMarkdown 
+                                    components={{
+                                      ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                      text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
+                                    }}
+                                  >
+                                    {processMarkdownWithEscaping(customSection.content)}
+                                  </ReactMarkdown>
+                                )}
                               </div>
                             )}
                           </div>
