@@ -225,7 +225,7 @@ async function sendCimLinkEmail(
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         
         <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #333;">Your Contact Information</h3>
+          <h3 style="margin-top: 0; color: #333;">Broker's Contact Information</h3>
           
           <div style="text-align: center; margin-bottom: 20px;">
             ${profilePhotoHtml}
@@ -263,7 +263,7 @@ async function sendCimLinkEmail(
       
       View CIM Document: ${shareLink}
       
-      Your Contact Information:
+      Broker's Contact Information:
       Name: ${ownerProfile.name}
       ${ownerProfile.title ? `Title: ${ownerProfile.title}` : ''}
       ${ownerProfile.businessName ? `Business: ${ownerProfile.businessName}` : ''}

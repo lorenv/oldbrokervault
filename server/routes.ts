@@ -4030,6 +4030,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </a>
           </div>
           
+          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+          
+          <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Broker's Contact Information</h3>
+            
+            <div style="text-align: center;">
+              <h4 style="margin: 10px 0; font-size: 18px; color: #333;">${sender.name}</h4>
+              ${sender.title ? `<p style="margin: 5px 0; color: #666; font-style: italic;">${sender.title}</p>` : ''}
+              ${sender.businessName ? `<p style="margin: 5px 0; color: #666; font-weight: bold;">${sender.businessName}</p>` : ''}
+              
+              <div style="margin-top: 15px;">
+                <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:${sender.email}">${sender.email}</a></p>
+                ${sender.phoneNumber ? `<p style="margin: 5px 0;"><strong>Phone:</strong> <a href="tel:${sender.phoneNumber}">${sender.phoneNumber}</a></p>` : ''}
+              </div>
+            </div>
+          </div>
+          
+          <p style="color: #666; text-align: center;">
+            Please feel free to reach out if you have any questions about the opportunity.
+          </p>
+          
           <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
             <p style="color: #9ca3af; font-size: 14px; text-align: center;">
               This document contains confidential information. Please do not share this link with unauthorized parties.
@@ -4052,6 +4073,15 @@ ${customMessage?.trim() ? `Personal Message:\n${customMessage.trim()}\n\n` : ''}
 
 Please find the confidential document attached as a PDF file.
 You can also view it online at: ${shareUrl}
+
+Broker's Contact Information:
+Name: ${sender.name}
+${sender.title ? `Title: ${sender.title}` : ''}
+${sender.businessName ? `Business: ${sender.businessName}` : ''}
+Email: ${sender.email}
+${sender.phoneNumber ? `Phone: ${sender.phoneNumber}` : ''}
+
+Please feel free to reach out if you have any questions about the opportunity.
 
 This document contains confidential information. Please do not share without authorization.
 
