@@ -58,6 +58,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
+  updateUser(id: number, updates: Partial<User>): Promise<User>;
   updateSubscription(userId: number, status: string, endsAt: Date): Promise<void>;
   updateUserUsage(userId: number): Promise<void>;
   updateDocumentCreationUsage(userId: number): Promise<void>;
@@ -228,6 +229,9 @@ export class DatabaseStorage implements IStorage {
       .values({
         email: insertUser.email,
         password: insertUser.password,
+        businessName: insertUser.businessName || null,
+        phoneNumber: insertUser.phoneNumber || null,
+        businessLogo: insertUser.businessLogo || null,
         isAdmin: insertUser.isAdmin,
         // If user is admin, set subscription status to "admin" to grant unlimited privileges
         subscriptionStatus: insertUser.isAdmin ? "admin" : "free",
@@ -237,6 +241,15 @@ export class DatabaseStorage implements IStorage {
     // Add default NDA template for new users
     await this.createDefaultNdaTemplate(user.id);
     
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
     return user;
   }
 

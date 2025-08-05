@@ -246,6 +246,8 @@ export default function AuthPage() {
 }
 
 function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPassword: () => void }) {
+  const { toast } = useToast();
+  
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -254,9 +256,46 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
     },
   });
 
+  // Create a custom mutation for login with better error handling
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormData) => {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const message = errorData.message || "Invalid email or password. Please check your credentials and try again.";
+        throw new Error(message);
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Welcome Back",
+        description: "You have successfully logged in.",
+      });
+      // Trigger a page reload to update authentication state
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -307,9 +346,9 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         <Button 
           type="submit" 
           className="w-full"
-          disabled={mutation.isPending}
+          disabled={loginMutation.isPending}
         >
-          {mutation.isPending ? (
+          {loginMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Logging in...
@@ -326,25 +365,77 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
 const registerSchema = insertUserSchema.extend({
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
-  })
+  }),
+  businessLogo: z.any().optional(), // File upload will be handled separately
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 function RegisterForm({ mutation }: { mutation: any }) {
+  const [businessLogo, setBusinessLogo] = useState<File | null>(null);
+  const { toast } = useToast();
+  
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
       password: "",
+      businessName: "",
+      phoneNumber: "",
       adminCode: "",
       agreeToTerms: false,
     },
   });
 
+  // Create a custom mutation for FormData submission
+  const registerMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const message = errorData.message || "Failed to create account. Please try again.";
+        throw new Error(message);
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Account Created Successfully",
+        description: "Welcome to CIM Share! You can now create your first document.",
+      });
+      // Trigger a page reload to update authentication state
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => {
+        // Create FormData to handle file upload
+        const formData = new FormData();
+        formData.append('email', data.email);
+        formData.append('password', data.password);
+        if (data.businessName) formData.append('businessName', data.businessName);
+        if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
+        if (data.adminCode) formData.append('adminCode', data.adminCode);
+        formData.append('agreeToTerms', data.agreeToTerms.toString());
+        if (businessLogo) formData.append('businessLogo', businessLogo);
+        
+        registerMutation.mutate(formData);
+      })} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -381,6 +472,56 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="businessName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Business Name (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Your company or business name"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="tel"
+                  placeholder="Your phone number"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Business Logo (optional)</label>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              setBusinessLogo(file || null);
+            }}
+            className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+          <p className="text-xs text-gray-500">Upload your company logo (PNG, JPG, or SVG)</p>
+        </div>
+        
         <FormField
           control={form.control}
           name="adminCode"
@@ -426,9 +567,9 @@ function RegisterForm({ mutation }: { mutation: any }) {
         <Button 
           type="submit" 
           className="w-full"
-          disabled={mutation.isPending}
+          disabled={registerMutation.isPending}
         >
-          {mutation.isPending ? (
+          {registerMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating account...
