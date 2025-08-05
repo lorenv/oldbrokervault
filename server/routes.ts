@@ -556,12 +556,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const viewTrackingPromise = (async () => {
         try {
-          if (cimDoc.ndaProtected) {
-            console.log("NDA-protected document - view will be tracked via token access");
-          } else {
-            const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-            const userAgent = req.get('User-Agent') || 'unknown';
-            
+          const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+          const userAgent = req.get('User-Agent') || 'unknown';
+          
+          if (cimDoc.ndaProtected && token) {
+            // Track NDA signer view when accessing CIM content with token
+            console.log("Tracking NDA signer view for token access to CIM content");
+            const accessToken = await storage.getNdaAccessToken(token as string);
+            if (accessToken && accessToken.isActive) {
+              await Promise.all([
+                storage.trackDocumentView(cimDoc.id, 'nda_signer', {
+                  ndaAccessTokenId: accessToken.id,
+                  signerEmail: accessToken.signerEmail,
+                  ipAddress: clientIp,
+                  userAgent: userAgent
+                }),
+                storage.incrementShareViewCount(cimDoc.id)
+              ]);
+            }
+          } else if (!cimDoc.ndaProtected) {
+            // Track anonymous view for non-NDA protected documents
             await Promise.all([
               storage.trackDocumentView(cimDoc.id, 'anonymous', {
                 ipAddress: clientIp,
@@ -6506,17 +6520,8 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       // Update token last accessed and track NDA signer view
       await storage.updateTokenLastAccessed(accessToken.token);
       
-      // Track NDA signer view
-      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-      const userAgent = req.get('User-Agent') || 'unknown';
-      
-      console.log("Tracking NDA signer view for document:", accessToken.cimDocumentId, "Signer:", accessToken.signerEmail);
-      await storage.trackDocumentView(accessToken.cimDocumentId, 'nda_signer', {
-        ndaAccessTokenId: accessToken.id,
-        signerEmail: accessToken.signerEmail,
-        ipAddress: clientIp,
-        userAgent: userAgent
-      });
+      // Note: Views are tracked only when users access the actual CIM content, not the NDA page
+      console.log("NDA access granted for document:", accessToken.cimDocumentId, "Signer:", accessToken.signerEmail);
       
       // Get CIM document
       const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
