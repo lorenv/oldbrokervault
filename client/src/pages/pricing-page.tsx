@@ -74,7 +74,7 @@ export default function PricingPage() {
           plan: 'standard'
         });
         const { url } = await response.json();
-        window.location.href = url;
+        window.open(url, '_self');
         return;
       }
       
@@ -82,7 +82,7 @@ export default function PricingPage() {
         // For existing subscribers, create a Customer Portal session
         const response = await apiRequest("POST", "/api/subscription/create-portal-session");
         const { url } = await response.json();
-        window.location.href = url;
+        window.open(url, '_self');
       }
     } catch (error) {
       console.error("Subscription action error:", error);
@@ -112,7 +112,7 @@ export default function PricingPage() {
       });
       const { url } = await response.json();
       setShowEmailDialog(false);
-      window.location.href = url;
+      window.open(url, '_self');
     } catch (error) {
       console.error("Email subscription error:", error);
       toast({
