@@ -26,7 +26,7 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
 
   if (isLoading) {
     return (
-      <div className="mt-8 p-6 bg-slate-50 rounded-xl">
+      <div className="mt-8 p-6 bg-slate-50 rounded-xl animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
         <p className="text-gray-500">Loading documents...</p>
       </div>
@@ -35,7 +35,7 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
 
   if (!files || files.length === 0) {
     return (
-      <div className="mt-8 p-6 bg-slate-50 rounded-xl">
+      <div className="mt-8 p-6 bg-slate-50 rounded-xl animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
         <p className="text-gray-500">No financial documents available</p>
       </div>
@@ -43,15 +43,15 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
   }
 
   return (
-    <div className="mt-8 p-4 md:p-6 bg-slate-50 rounded-xl">
+    <div className="mt-8 p-4 md:p-6 bg-slate-50 rounded-xl animate-fade-in">
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Financial Documents</h4>
       <div className="space-y-3">
         {files
-          .map((file: any) => (
+          .map((file: any, index: number) => (
             <Button
               key={file.id}
               variant="outline"
-              className="flex items-center gap-2 md:gap-3 justify-start h-auto p-3 md:p-4 w-full"
+              className="flex items-center gap-2 md:gap-3 justify-start h-auto p-3 md:p-4 w-full animate-slide-up stagger-100"
               onClick={() => window.open(
                 shareSlug 
                   ? `/api/share/${shareSlug}/financial-files/${file.id}/download`
@@ -75,7 +75,7 @@ export function FinancialDocumentsDisplay({ cimId, shareSlug }: FinancialDocumen
         {files.length > 1 && (
           <Button
             variant="outline"
-            className="flex items-center gap-3 justify-center h-auto p-4 w-full border-2 border-dashed"
+            className="flex items-center gap-3 justify-center h-auto p-4 w-full border-2 border-dashed animate-slide-up delay-300"
             onClick={() => window.open(
               shareSlug 
                 ? `/api/share/${shareSlug}/financial-files/bulk-download`
