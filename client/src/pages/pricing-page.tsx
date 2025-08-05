@@ -7,16 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+// Dialog and form imports removed - no longer needed
 import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,8 +18,7 @@ export default function PricingPage() {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showEmailDialog, setShowEmailDialog] = useState(false);
-  const [email, setEmail] = useState("");
+  // Email dialog no longer needed since we require account creation
 
   // Try to get user data with fallback for database issues
   useEffect(() => {
@@ -63,9 +53,13 @@ export default function PricingPage() {
       }
       
       if (planId === 'standard') {
-        // If user is not authenticated, show email collection dialog
+        // Only authenticated users can create checkout sessions
         if (!user) {
-          setShowEmailDialog(true);
+          toast({
+            title: "Account Required",
+            description: "Please sign up for an account to subscribe to the Standard plan.",
+            variant: "destructive",
+          });
           return;
         }
         
@@ -102,42 +96,7 @@ export default function PricingPage() {
     }
   };
 
-  const handleEmailSubmit = async () => {
-    if (!email || !email.includes('@')) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Create checkout session with email for non-authenticated user
-      const response = await apiRequest("POST", "/api/subscription/create-checkout", {
-        plan: 'standard',
-        email: email
-      });
-      const { url } = await response.json();
-      setShowEmailDialog(false);
-      console.log('Opening Stripe checkout URL:', url);
-      
-      // Try to open in new tab, with fallback to same window
-      const newWindow = window.open(url, '_blank');
-      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-        // Popup was blocked, fallback to same window
-        console.log('Popup blocked, redirecting in same window');
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error("Email subscription error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create subscription. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Email submission removed - users must create accounts first
 
   const plans = [
     {
@@ -199,7 +158,10 @@ export default function PricingPage() {
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Select the perfect plan for your business needs. Upgrade or downgrade at any time.
+          {!user 
+            ? "Explore our pricing options. Sign up for a free account to get started with CIM Share."
+            : "Select the perfect plan for your business needs. Upgrade or downgrade at any time."
+          }
         </p>
       </div>
 
@@ -232,7 +194,30 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              {plan.current ? (
+              {!user ? (
+                // For non-authenticated users, show account creation message
+                <div className="w-full text-center">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {plan.isEnterprise ? 'Contact us for Enterprise pricing' : 'Create an account to get started'}
+                  </p>
+                  {plan.isEnterprise ? (
+                    <Button 
+                      className="w-full"
+                      onClick={() => window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank')}
+                    >
+                      Contact Us
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      disabled
+                    >
+                      Sign Up Required
+                    </Button>
+                  )}
+                </div>
+              ) : plan.current ? (
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -253,49 +238,7 @@ export default function PricingPage() {
         ))}
       </div>
 
-      {/* Email Collection Dialog for Non-Authenticated Users */}
-      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Subscribe to Standard Plan</DialogTitle>
-            <DialogDescription>
-              Enter your email to subscribe to the Standard Plan at $99/month. You'll be redirected to Stripe to complete your payment.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="col-span-3"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleEmailSubmit();
-                  }
-                }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setShowEmailDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" onClick={handleEmailSubmit}>
-              Continue to Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Email dialog removed - users must create accounts first */}
     </div>
   );
 }
