@@ -1288,19 +1288,7 @@ export function CimDisplay({
         </DialogContent>
       </Dialog>
       
-      {/* Markdown Reference Guide - Only in Edit View - Bottom of Interface */}
-      {!isSharedView && (
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Formatting Reference</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MarkdownGuide />
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      
     </div>
   );
 }
