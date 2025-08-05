@@ -344,14 +344,14 @@ export function SharePage() {
             }}
           >
             <div className="max-w-6xl mx-auto text-center">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 tracking-tight break-words px-4"
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 tracking-tight break-words px-4 animate-slide-up delay-300"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
                   }}>
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4"
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4 animate-slide-up delay-500"
                    style={{
                      textShadow: '0 1px 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2)'
                    }}>
@@ -360,7 +360,7 @@ export function SharePage() {
               )}
               
               {/* Export Button */}
-              <div className="mt-8">
+              <div className="mt-8 animate-slide-up delay-700">
                 <Button
                   variant="outline"
                   onClick={async () => {
@@ -425,21 +425,21 @@ export function SharePage() {
             <div className="text-center">
               {/* Website extracted logo above title - only when no cover image */}
               {shareData.logoUrl && (
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-6 animate-fade-in delay-200">
                   <img src={shareData.logoUrl} alt="Company Logo" className="h-16 md:h-20 max-w-[200px] object-contain" />
                 </div>
               )}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4 animate-slide-up delay-300">
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
-                <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4">
+                <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed mb-8 break-words px-4 animate-slide-up delay-500">
                   {shareData.cim.description}
                 </p>
               )}
               
               {/* Export Button */}
-              <div className="mt-8">
+              <div className="mt-8 animate-slide-up delay-700">
                 <Button
                   variant="outline"
                   onClick={async () => {
@@ -577,12 +577,14 @@ export function SharePage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <UploadedFileViewer 
-                    cimDocument={shareData.cim}
-                    shareSlug={shareSlug!}
-                    userProfile={shareData.cim.userProfile}
-                    uploadedFiles={uploadedFiles}
-                  />
+                  <div className="animate-slide-up delay-300">
+                    <UploadedFileViewer 
+                      cimDocument={shareData.cim}
+                      shareSlug={shareSlug!}
+                      userProfile={shareData.cim.userProfile}
+                      uploadedFiles={uploadedFiles}
+                    />
+                  </div>
                 )}
               </div>
             ) : (
@@ -600,7 +602,7 @@ export function SharePage() {
                     <CardContent className="p-8">
                       {/* Website extracted logo inside financial box */}
                       {shareData.cim.logoUrl && (
-                        <div className="flex justify-center mb-8 pb-6 border-b border-gray-200">
+                        <div className="flex justify-center mb-8 pb-6 border-b border-gray-200 animate-fade-in delay-500">
                           <img 
                             src={shareData.cim.logoUrl} 
                             alt="Company Logo" 
@@ -639,7 +641,9 @@ export function SharePage() {
                       </div>
                       
                       {/* Financial Documents Download Section */}
-                      <FinancialDocumentsDisplay cimId={shareData.cim.id} shareSlug={shareSlug!} />
+                      <div className="animate-slide-up delay-1000">
+                        <FinancialDocumentsDisplay cimId={shareData.cim.id} shareSlug={shareSlug!} />
+                      </div>
                     </CardContent>
                   </Card>
 
