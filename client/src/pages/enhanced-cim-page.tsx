@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EnhancedCimDisplay } from "@/components/enhanced-cim-display";
 import { DocumentExport } from "@/components/document-export";
 import { EmailShareDialog } from "@/components/email-share-dialog";
+import { CimEditTour, useCimEditTour } from "@/components/cim-edit-tour";
 import { ArrowLeft, Share2, Download, ExternalLink, Copy, Mail, FileDown, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -21,6 +22,7 @@ export default function EnhancedCimPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [emailShareDialog, setEmailShareDialog] = useState({ open: false, documentTitle: "", shareToken: "" });
   const { toast } = useToast();
+  const { shouldShowTour, completeTour } = useCimEditTour();
 
   const { data: cimDocument, isLoading } = useQuery({
     queryKey: ['/api/cim', parseInt(id!)],
@@ -162,7 +164,7 @@ export default function EnhancedCimPage() {
           {/* Share Button with Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" data-tour="share-button">
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
@@ -180,7 +182,7 @@ export default function EnhancedCimPage() {
                 <Mail className="h-4 w-4 mr-2" />
                 Share via Email
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadPdf}>
+              <DropdownMenuItem onClick={downloadPdf} data-tour="export-button">
                 <FileDown className="h-4 w-4 mr-2" />
                 Export to PDF
               </DropdownMenuItem>
@@ -196,14 +198,22 @@ export default function EnhancedCimPage() {
       </div>
 
       {/* Enhanced CIM Display */}
-      <EnhancedCimDisplay
-        analysis={cimDocument.analysis}
-        docId={parseInt(id!)}
-        logoUrl={cimDocument.logoUrl}
-        selectedImages={cimDocument.selectedImages}
-        websiteUrl={cimDocument.websiteUrl}
-        isSharedView={false}
-        cimDocument={cimDocument}
+      <div className="cim-document-container">
+        <EnhancedCimDisplay
+          analysis={cimDocument.analysis}
+          docId={parseInt(id!)}
+          logoUrl={cimDocument.logoUrl}
+          selectedImages={cimDocument.selectedImages}
+          websiteUrl={cimDocument.websiteUrl}
+          isSharedView={false}
+          cimDocument={cimDocument}
+        />
+      </div>
+
+      {/* CIM Edit Tour for first-time users */}
+      <CimEditTour 
+        isFirstTime={shouldShowTour}
+        onComplete={completeTour}
       />
 
       {/* Comprehensive Share Dialog */}

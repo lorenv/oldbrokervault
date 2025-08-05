@@ -136,6 +136,10 @@ export function CimGenerationProgress({
           <p className="text-sm text-green-600 dark:text-green-400 mt-1">
             Your confidential information memorandum has been successfully created.
           </p>
+          <div className="flex items-center justify-center mt-3 text-sm text-green-600 dark:text-green-400">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent mr-2"></div>
+            <span>Redirecting to edit interface...</span>
+          </div>
         </div>
       </div>
     );
