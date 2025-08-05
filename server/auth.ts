@@ -84,8 +84,8 @@ const scryptAsync = promisify(scrypt);
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
-  // Reduced key length for better performance while maintaining security
-  const buf = (await scryptAsync(password, salt, 32)) as Buffer;
+  // Optimized key length for better performance while maintaining security
+  const buf = (await scryptAsync(password, salt, 24)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
@@ -130,43 +130,26 @@ export function setupAuth(app: Express) {
       async (email, password, done) => {
         const authStart = Date.now();
         try {
-          console.log(`Authentication attempt for email: ${email}`);
-          
-          // Check email cache first
-          const cacheStart = Date.now();
+          // Check email cache first for faster lookups
           let user = getCachedUserByEmail(email);
-          console.log(`Email cache lookup took: ${Date.now() - cacheStart}ms`);
           
           if (!user) {
-            console.log(`User not in cache, fetching from database`);
-            const userStart = Date.now();
             const dbUser = await storage.getUserByEmail(email);
-            console.log(`Database lookup took: ${Date.now() - userStart}ms`);
             
             if (!dbUser) {
-              console.log(`No user found for email: ${email}`);
               return done(null, false, { message: "Invalid email or password" });
             }
             
             user = dbUser;
             // Cache the user for future requests
-            console.log(`Caching user ${user.id} for email ${email}`);
             setCachedUser(user);
-          } else {
-            console.log(`User found in email cache: ${user.id}`);
           }
           
-          console.log(`User found for ${email}, checking password`);
-          const passwordStart = Date.now();
           const passwordMatch = await comparePasswords(password, user.password);
-          console.log(`Password check took: ${Date.now() - passwordStart}ms`);
           
           if (!passwordMatch) {
-            console.log(`Password mismatch for user: ${email}`);
             return done(null, false, { message: "Invalid email or password" });
           }
-          
-          console.log(`Authentication successful for user: ${email} (total: ${Date.now() - authStart}ms)`);
           // Cache the authenticated user
           setCachedUser(user);
           return done(null, user);
@@ -315,11 +298,7 @@ export function setupAuth(app: Express) {
     }, 30000);
 
     try {
-      const passportStart = Date.now();
       passport.authenticate("local", (err, user, info) => {
-        const passportEnd = Date.now();
-        console.log(`Passport authentication took: ${passportEnd - passportStart}ms`);
-        
         clearTimeout(timeout);
         
         if (err) {
@@ -349,20 +328,8 @@ export function setupAuth(app: Express) {
           });
         }
         
-        console.log("User authenticated successfully:", user.email);
-        console.log(`Attempting to establish session for user ${user.id}`);
-        
-        const sessionStart = Date.now();
         req.login(user, (err) => {
-          const sessionEnd = Date.now();
-          console.log(`Session establishment took: ${sessionEnd - sessionStart}ms`);
-          
           if (err) {
-            console.error("Session establishment error:", err);
-            console.error("Session error type:", err.constructor.name);
-            console.error("Session error code:", err.code);
-            console.error("Session error stack:", err.stack);
-            
             // Check if it's a session store error
             if (err.message.includes('session') || err.message.includes('store')) {
               return res.status(503).json({
@@ -377,9 +344,6 @@ export function setupAuth(app: Express) {
             });
           }
           
-          console.log("Session established successfully for:", user.email);
-          console.log(`Final session ID: ${req.sessionID}`);
-          console.log(`Total login process took: ${Date.now() - loginStart}ms`);
           // SECURITY: Return sanitized user data without sensitive fields
           return res.json(sanitizeUser(user));
         });
