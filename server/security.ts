@@ -37,12 +37,12 @@ const uploadLimiter = rateLimit({
   },
 });
 
-// Slow down repeated requests
+// Optimized slow down for better login performance
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 2, // Allow 2 requests per windowMs at full speed
-  delayMs: () => 500, // Add 500ms delay per request after delayAfter
-  maxDelayMs: 20000, // Maximum delay of 20 seconds
+  delayAfter: 3, // Allow 3 requests per windowMs at full speed
+  delayMs: () => 200, // Reduced delay for better user experience
+  maxDelayMs: 5000, // Reduced maximum delay to 5 seconds
   validate: { delayMs: false }
 });
 
@@ -232,10 +232,14 @@ export function setupSecurity(app: Express) {
       return publicLimiter(req, res, next);
     }
     
-    // Apply normal limits for authenticated routes
-    speedLimiter(req, res, () => {
+    // Skip speed limiter for better performance on non-sensitive routes
+    if (req.path.startsWith('/api/login') || req.path.startsWith('/api/register')) {
+      speedLimiter(req, res, () => {
+        apiLimiter(req, res, next);
+      });
+    } else {
       apiLimiter(req, res, next);
-    });
+    }
   });
 
   // Stricter limits for sensitive endpoints

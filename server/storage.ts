@@ -22,7 +22,7 @@ function initializeSessionStore() {
       tableName: 'session',
       createTableIfMissing: true,
       ttl: 24 * 60 * 60,
-      disableTouch: false,
+      disableTouch: true, // Disable session touching for better performance
       schemaName: 'public',
       pruneSessionInterval: 3600,
       // Improved error logging with connection resilience
