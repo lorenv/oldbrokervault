@@ -730,14 +730,11 @@ export default function AccountPage() {
       {/* Enhanced Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg">
-            <Settings className="h-6 w-6 text-white" />
-          </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Account Settings
           </h1>
         </div>
-        <p className="text-gray-600 ml-12">Manage your account, security, and preferences</p>
+        <p className="text-gray-600">Manage your account, security, and preferences</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -846,7 +843,7 @@ export default function AccountPage() {
                   <Button
                     type="submit"
                     disabled={isUpdating}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg"
+                    className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white border-0 shadow-lg"
                   >
                     {isUpdating ? "Updating..." : "Save Changes"}
                   </Button>
