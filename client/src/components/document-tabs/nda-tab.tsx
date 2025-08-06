@@ -371,14 +371,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     <div className="space-y-6">
       {/* NDA Protection Settings - Enhanced Professional Design */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-cyan-600 to-cyan-700 pb-6 pt-8 px-8 shadow-lg">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
-            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-              <Shield className="h-6 w-6 text-white" />
+        <CardHeader className="bg-gradient-to-r from-cyan-600 to-cyan-700 pb-4 pt-6 px-6 shadow-lg">
+          <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+            <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+              <Shield className="h-5 w-5 text-white" />
             </div>
             NDA Protection Settings
           </CardTitle>
-          <CardDescription className="text-emerald-50 mt-2 text-base">
+          <CardDescription className="text-emerald-50 mt-1 text-sm">
             Control who can access your confidential information
           </CardDescription>
         </CardHeader>
@@ -421,9 +421,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 </Label>
                 <Select
                   value={ndaSettings.ndaTemplateId?.toString() || ""}
-                  onValueChange={(value) => 
-                    handleSettingChange('ndaTemplateId', parseInt(value))
-                  }
+                  onValueChange={(value) => {
+                    if (value === "manage-templates") {
+                      setLocation('/account?tab=templates');
+                    } else {
+                      handleSettingChange('ndaTemplateId', parseInt(value));
+                    }
+                  }}
                   disabled={updateNdaSettingsMutation.isPending}
                 >
                   <SelectTrigger className="w-full">
@@ -438,6 +442,12 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         {template.name}
                       </SelectItem>
                     ))}
+                    <SelectItem 
+                      value="manage-templates"
+                      className="text-blue-600 font-medium border-t border-gray-200"
+                    >
+                      Manage Templates
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {ndaTemplates.length === 0 && (
@@ -473,25 +483,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
           )}
 
-          {/* Template Management - Simplified Call-to-Action */}
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-700">Template Management</p>
-                <p className="text-xs text-gray-500">
-                  Create and customize your NDA templates
-                </p>
-              </div>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation('/account?tab=templates')}
-                className="text-sm"
-              >
-                Manage Templates
-              </Button>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
 
@@ -501,15 +493,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
       {/* NDA Signatures Table */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-8 pt-8 px-8 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                <FileSignature className="h-6 w-6 text-white" />
+            <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                <FileSignature className="h-5 w-5 text-white" />
               </div>
               NDA Signatures ({ndaSignatures.length})
               {cimDocument.ndaApprovalRequired && (
-                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 shadow-sm">
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 shadow-sm text-xs">
                   {ndaSignatures.filter(sig => !sig.approved).length} Pending Approval
                 </Badge>
               )}
@@ -566,7 +558,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {filteredSignatures.length > 0 ? (
             <Table>
               <TableHeader>
