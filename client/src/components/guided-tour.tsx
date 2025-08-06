@@ -23,31 +23,26 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
       title: "Welcome to CIM Share! 🎉",
       content: "You've successfully created your account! Let's take a quick tour of your new document management platform.",
       icon: <Sparkles className="w-8 h-8 text-blue-600" />,
-      highlight: "Get started with creating professional CIM documents in minutes",
     },
     {
       title: "Create Your First CIM",
       content: "Click the 'Create New CIM' button to start building professional Confidential Information Memorandums using our AI-powered tools.",
       icon: <FileText className="w-8 h-8 text-green-600" />,
-      highlight: "AI analyzes your business data and generates structured documents",
     },
     {
       title: "Secure Document Sharing",
       content: "Share your CIM documents with built-in NDA protection, access controls, and detailed view tracking for maximum security.",
       icon: <Share2 className="w-8 h-8 text-purple-600" />,
-      highlight: "Token-based sharing with expiration dates and IP tracking",
     },
     {
       title: "NDA Management",
       content: "Manage digital NDAs, collect signatures, and maintain audit trails for all document access and agreements.",
       icon: <Shield className="w-8 h-8 text-orange-600" />,
-      highlight: "Digital signatures with location tracking and compliance features",
     },
     {
       title: "Analytics & Insights",
       content: "Track document performance with detailed analytics, view counts, and engagement metrics to optimize your outreach.",
       icon: <BarChart3 className="w-8 h-8 text-indigo-600" />,
-      highlight: "Real-time analytics with daily views and engagement tracking",
     }
   ];
 
@@ -123,16 +118,6 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
             <p className="text-gray-600 leading-relaxed">
               {currentTourStep.content}
             </p>
-            
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 text-blue-800 font-medium text-sm mb-1">
-                <Sparkles className="w-4 h-4" />
-                Key Feature
-              </div>
-              <p className="text-blue-700 text-sm">
-                {currentTourStep.highlight}
-              </p>
-            </div>
           </div>
 
           <div className="flex items-center justify-between pt-4">
@@ -148,7 +133,7 @@ export function GuidedTour({ onComplete }: GuidedTourProps) {
 
             <div className="flex gap-2">
               <Button variant="ghost" onClick={handleComplete}>
-                Skip Tour
+                Skip Quick Start Guide
               </Button>
               <Button 
                 onClick={handleNext}
