@@ -300,6 +300,15 @@ export function setupAuth(app: Express) {
         // Don't fail registration if NDA template creation fails
       }
 
+      // Create example CIM document for new user
+      try {
+        await storage.createExampleCimDocument(user.id);
+        console.log(`Created example CIM document for new user ${user.id}`);
+      } catch (cimError) {
+        console.error(`Failed to create example CIM document for user ${user.id}:`, cimError);
+        // Don't fail registration if example CIM creation fails
+      }
+
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({
