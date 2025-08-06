@@ -437,11 +437,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "This shared link has expired" });
       }
 
+      // Check if the current user is the document owner
+      const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
+      
       const result = {
-        requiresNda: Boolean(cimDoc.ndaProtected),
+        requiresNda: Boolean(cimDoc.ndaProtected) && !isOwner, // Bypass NDA for owner
         requiresApproval: Boolean(cimDoc.ndaApprovalRequired),
         title: cimDoc.title || 'Untitled Document',
-        documentId: cimDoc.id
+        documentId: cimDoc.id,
+        isOwner: isOwner,
+        currentUserId: req.user?.id || null
       };
 
       // Skip caching to avoid import issues
@@ -559,7 +564,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
           const userAgent = req.get('User-Agent') || 'unknown';
           
-          if (cimDoc.ndaProtected && token) {
+          // Check if the current user is the document owner
+          const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
+          
+          if (isOwner) {
+            // Track owner view but don't increment general view count to avoid inflating analytics
+            console.log("Tracking document owner view");
+            await storage.trackDocumentView(cimDoc.id, 'owner', {
+              userId: req.user.id,
+              ipAddress: clientIp,
+              userAgent: userAgent
+            });
+          } else if (cimDoc.ndaProtected && token) {
             // Track NDA signer view when accessing CIM content with token
             console.log("Tracking NDA signer view for token access to CIM content");
             const accessToken = await storage.getNdaAccessToken(token as string);
@@ -723,6 +739,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Total optimized response time:", Date.now() - startTime + "ms");
 
+      // Check if the current user is the document owner
+      const isOwner = req.isAuthenticated() && req.user && req.user.id === cimDoc.userId;
+      
       const responseData = {
         cim: {
           id: cimDoc.id,
@@ -741,20 +760,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           coverImagePosition: cimDoc.coverImagePosition,
           coverImageAttribution: cimDoc.coverImageAttribution,
           createdAt: cimDoc.createdAt ? cimDoc.createdAt.toISOString() : null,
-          userProfile: sanitizedUserProfile
+          userProfile: sanitizedUserProfile,
+          userId: cimDoc.userId,
+          shareSlug: cimDoc.shareSlug
         },
         websiteUrl: cimDoc.websiteUrl || '',
         selectedImages: absoluteSelectedImages,
         logoUrl: absoluteLogoUrl,
         userProfileData: sanitizedUserProfile,
-        requiresNda: cimDoc.ndaProtected || false,
+        requiresNda: (cimDoc.ndaProtected || false) && !isOwner, // Bypass NDA for owner
         ndaUrl,
         customSections: customSections ? customSections.map(section => ({
           ...section,
           imageUrls: section.imageUrls ? section.imageUrls.map(processImageUrl).filter(Boolean) : [],
           imageUrl: section.imageUrl ? processImageUrl(section.imageUrl) : null
         })) : [],
-        ndaApprovalStatus
+        ndaApprovalStatus,
+        isOwner: isOwner,
+        currentUserId: req.user?.id || null
       };
 
       // PERFORMANCE OPTIMIZATION 7: Cache successful responses (except when using tokens)
