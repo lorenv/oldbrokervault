@@ -18,7 +18,8 @@ import {
   Calendar,
   Lock,
   Eye,
-  FileDown
+  FileDown,
+  Settings // Imported Settings icon, assuming it was intended for Share Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -394,9 +395,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Share Settings */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-orange-600 to-slate-600 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Share2 className="h-5 w-5" />
+            <Settings className="h-5 w-5" />
             Share Settings
           </CardTitle>
         </CardHeader>
@@ -434,7 +435,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 </p>
               </div>
 
-              
+
                 <div className="space-y-2">
                   <Label htmlFor="share-password">Password Protection</Label>
                   <Input
@@ -448,7 +449,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 />
               </div>
 
-              
+
                 <div className="space-y-2">
                   <Label htmlFor="expires-at">Expiration Date</Label>
                   <Input
