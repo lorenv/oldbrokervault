@@ -62,12 +62,12 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
 
   if (isEditing) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {multiline ? (
           <textarea
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="w-full min-h-[100px] p-2 border rounded resize-none"
+            className="w-full min-h-[120px] p-3 border rounded-lg resize-none text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder={placeholder}
             autoFocus
           />
@@ -76,14 +76,14 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
             type="text"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder={placeholder}
             autoFocus
           />
         )}
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleSave}>Save</Button>
-          <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
+          <Button size="sm" onClick={handleSave} className="min-h-[44px] px-4">Save</Button>
+          <Button size="sm" variant="outline" onClick={handleCancel} className="min-h-[44px] px-4">Cancel</Button>
         </div>
       </div>
     );
@@ -91,12 +91,14 @@ function FlexibleSectionEditor({ value, onSave, placeholder = "Enter text...", m
 
   return (
     <div 
-      className="group cursor-pointer hover:bg-gray-50 p-1 rounded min-h-[24px]" 
+      className="group cursor-pointer hover:bg-gray-50 p-2 rounded-lg min-h-[44px] lg:min-h-[24px] transition-colors" 
       onClick={() => setIsEditing(true)}
     >
       <div className="flex items-center gap-2">
-        <span className={multiline ? "whitespace-pre-wrap" : ""}>{value || placeholder}</span>
-        <Edit className="h-4 w-4 opacity-0 group-hover:opacity-100 text-gray-400" />
+        <span className={`${multiline ? "whitespace-pre-wrap" : ""} ${!value ? "text-gray-400 italic" : ""} text-base lg:text-sm`}>
+          {value || placeholder}
+        </span>
+        <Edit className="h-4 w-4 opacity-0 group-hover:opacity-100 text-gray-400 flex-shrink-0" />
       </div>
     </div>
   );
