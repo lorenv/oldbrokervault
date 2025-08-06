@@ -51,32 +51,35 @@ export function ResizableRichTextEditor({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
     startYRef.current = e.clientY;
     startHeightRef.current = height;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      e.preventDefault();
+      
+      const deltaY = e.clientY - startYRef.current;
+      const newHeight = Math.min(maxHeight, Math.max(minHeight, startHeightRef.current + deltaY));
+      setHeight(newHeight);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing) return;
-    
-    const deltaY = e.clientY - startYRef.current;
-    const newHeight = Math.min(maxHeight, Math.max(minHeight, startHeightRef.current + deltaY));
-    setHeight(newHeight);
-  };
-
-  const handleMouseUp = () => {
-    setIsResizing(false);
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
-
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      // Cleanup any remaining event listeners on unmount
+      setIsResizing(false);
     };
   }, []);
 
@@ -169,11 +172,12 @@ export function ResizableRichTextEditor({
         ref={resizeRef}
         onMouseDown={handleMouseDown}
         className={cn(
-          "h-3 bg-gray-100 border-t cursor-ns-resize flex items-center justify-center hover:bg-gray-200 transition-colors",
-          isResizing && "bg-blue-200"
+          "h-4 bg-gray-50 border-t cursor-ns-resize flex items-center justify-center hover:bg-gray-100 transition-colors select-none touch-none",
+          isResizing && "bg-blue-100 cursor-ns-resize"
         )}
+        style={{ cursor: isResizing ? 'ns-resize' : 'ns-resize' }}
       >
-        <div className="w-8 h-1 bg-gray-400 rounded-full"></div>
+        <div className="w-12 h-1 bg-gray-400 rounded-full"></div>
       </div>
     </div>
   );
