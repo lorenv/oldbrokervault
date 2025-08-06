@@ -340,18 +340,10 @@ export class DatabaseStorage implements IStorage {
       return true; // After reset, user can create documents
     }
 
-    // Count only non-example documents towards the subscription limit
-    const nonExampleDocuments = await db
-      .select({ count: count() })
-      .from(cimDocuments)
-      .where(and(
-        eq(cimDocuments.userId, userId),
-        eq(cimDocuments.isExample, false)
-      ));
-
-    const actualDocumentCount = nonExampleDocuments[0]?.count || 0;
+    // Use the monthly documents created counter to prevent delete-and-recreate loophole
+    // This counts total documents created this month, regardless of deletions
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    return actualDocumentCount < plan.limit;
+    return user.monthlyDocumentsCreated < plan.limit;
   }
 
   async checkRegenerationLimit(userId: number): Promise<boolean> {
@@ -786,8 +778,10 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       throw new Error("Document not found");
     }
     
-    // Note: We intentionally do NOT decrement monthlyUsage to preserve accurate 
-    // generation counts for subscription billing purposes
+    console.log(`🗑️ Deleting CIM document ${id} for user ${doc.userId} (monthlyDocumentsCreated counter preserved to prevent subscription bypass)`);
+    
+    // Note: We intentionally do NOT decrement monthlyDocumentsCreated to prevent 
+    // subscription bypass attacks where users delete and recreate documents to exceed limits
     
     // Delete related records in proper order to avoid foreign key constraints
     await db.delete(customSections).where(eq(customSections.cimDocumentId, id));
