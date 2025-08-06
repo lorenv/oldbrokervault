@@ -105,8 +105,10 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {userProfile && (
           <>
             <CardHeader className="pb-4 pt-6 px-6">
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-700">
-                <User className="h-5 w-5 text-blue-600" />
+              <CardTitle className="flex items-center gap-2 text-base font-medium text-slate-600">
+                <div className="p-1.5 bg-blue-100/60 rounded-lg">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
                 Contact Information
               </CardTitle>
             </CardHeader>
@@ -189,8 +191,10 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Ask Questions Section */}
         <div className="border-t border-gray-200/50">
           <CardHeader className="pb-4 pt-6 px-6 border-t border-gray-200/50">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-700">
-              <MessageSquare className="h-5 w-5 text-purple-600" />
+            <CardTitle className="flex items-center gap-2 text-base font-medium text-slate-600">
+              <div className="p-1.5 bg-purple-100/60 rounded-lg">
+                <MessageSquare className="h-4 w-4 text-purple-600" />
+              </div>
               Ask Questions
             </CardTitle>
           </CardHeader>
