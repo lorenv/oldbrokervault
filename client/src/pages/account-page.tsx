@@ -96,7 +96,7 @@ function TemplatesContent() {
       );
     },
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   // Create template mutation
@@ -253,26 +253,28 @@ function TemplatesContent() {
   return (
     <div className="space-y-6">
       {/* NDA Templates Section */}
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+        <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileSignature className="h-5 w-5" />
-                NDA Templates
-              </CardTitle>
-              <CardDescription>
-                Create and manage your NDA templates with signature fields
-              </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                <FileSignature className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-white">NDA Templates</CardTitle>
+                <CardDescription className="text-orange-100 mt-1">
+                  Create and manage your NDA templates with signature fields
+                </CardDescription>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {templates.length > 0 && (
-                <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50">
+                <div className="flex items-center border border-white/30 rounded-lg p-1 bg-white/10">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewMode('grid')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white/30 shadow-sm text-white' : 'text-orange-100 hover:text-white hover:bg-white/20'}`}
                   >
                     <Grid3X3 className="w-4 h-4" />
                   </Button>
@@ -280,7 +282,7 @@ function TemplatesContent() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white/30 shadow-sm text-white' : 'text-orange-100 hover:text-white hover:bg-white/20'}`}
                   >
                     <List className="w-4 h-4" />
                   </Button>
@@ -288,7 +290,8 @@ function TemplatesContent() {
               )}
               <Button 
                 onClick={() => setShowNewTemplateEditor(true)}
-                className="flex items-center gap-2"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 flex items-center gap-2"
+                variant="outline"
               >
                 <Plus className="w-4 h-4" />
                 Add New Template
@@ -377,7 +380,7 @@ function TemplatesContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        <span>{template.signatureFields?.length || 0} signature fields</span>
+                        <span>{(template.signatureFields as any[])?.length || 0} signature fields</span>
                       </div>
                     </div>
                   </CardContent>
@@ -399,7 +402,7 @@ function TemplatesContent() {
                     <div>
                       <h3 className="font-medium group-hover:text-blue-600 transition-colors">{template.name}</h3>
                       <p className="text-sm text-gray-500">
-                        Created {format(new Date(template.createdAt), 'MMM d, yyyy')} • {template.signatureFields?.length || 0} signature fields
+                        Created {format(new Date(template.createdAt), 'MMM d, yyyy')} • {(template.signatureFields as any[])?.length || 0} signature fields
                       </p>
                     </div>
                   </div>
@@ -724,7 +727,18 @@ export default function AccountPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+      {/* Enhanced Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <Settings className="h-6 w-6 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            Account Settings
+          </h1>
+        </div>
+        <p className="text-gray-600 ml-12">Manage your account, security, and preferences</p>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className={`grid w-full ${isAuthorizedAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'}`}>
@@ -754,15 +768,19 @@ export default function AccountPage() {
 
         {/* Account & Security Tab */}
         <TabsContent value="account" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Login Credentials
-              </CardTitle>
-              <CardDescription>
-                Manage your email address and authentication settings
-              </CardDescription>
+          <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 pb-6 pt-8 px-8 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                  <Lock className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold text-white">Login Credentials</CardTitle>
+                  <CardDescription className="text-blue-100 mt-1">
+                    Manage your email address and authentication settings
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -838,15 +856,19 @@ export default function AccountPage() {
         <TabsContent value="profile" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-                <CardDescription>
-                  Contact details that appear in your CIM documents
-                </CardDescription>
+            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+              <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 pb-6 pt-8 px-8 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-white">Personal Information</CardTitle>
+                    <CardDescription className="text-emerald-100 mt-1">
+                      Contact details that appear in your CIM documents
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
@@ -885,15 +907,19 @@ export default function AccountPage() {
             </Card>
 
             {/* Profile Photo */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-5 w-5" />
-                  Profile Photo
-                </CardTitle>
-                <CardDescription>
-                  Your photo appears on share links and PDF exports
-                </CardDescription>
+            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+              <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 pb-6 pt-8 px-8 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-white">Profile Photo</CardTitle>
+                    <CardDescription className="text-purple-100 mt-1">
+                      Your photo appears on share links and PDF exports
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
@@ -955,15 +981,19 @@ export default function AccountPage() {
           </div>
 
           {/* Business Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Business Information
-              </CardTitle>
-              <CardDescription>
-                Company details for professional CIM branding
-              </CardDescription>
+          <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                  <Building className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold text-white">Business Information</CardTitle>
+                  <CardDescription className="text-slate-100 mt-1">
+                    Company details for professional CIM branding
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-2">
