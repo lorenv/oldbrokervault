@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 import { 
-  FileSignature, 
+  Shield, 
   ExternalLink, 
   Mail, 
   MapPin,
@@ -21,7 +21,8 @@ import {
   Link2Off,
   Loader2,
   Eye,
-  Download
+  Download,
+  FileSignature
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -37,7 +38,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  
+
   // State for NDA settings - sync with document data
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
@@ -53,7 +54,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
     });
   }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
-  
+
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
@@ -89,7 +90,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         description: "NDA settings updated successfully",
         duration: 2000
       });
-      
+
       // Update local state with server response to prevent reversion
       if (data) {
         console.log('Server response data:', data);
@@ -101,7 +102,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         console.log('Updating local state to:', newSettings);
         setNdaSettings(newSettings);
       }
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
@@ -177,14 +178,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const handleSettingChange = (setting: string, value: any) => {
     const newSettings = { ...ndaSettings, [setting]: value };
     setNdaSettings(newSettings);
-    
+
     // Auto-save to backend with proper mapping
     const backendSettings: any = {
       ndaProtected: newSettings.ndaProtected,
       ndaApprovalRequired: newSettings.ndaApprovalRequired,
       ndaTemplateId: newSettings.ndaTemplateId // Always include template ID
     };
-    
+
     console.log('Auto-saving NDA settings:', { setting, value, backendSettings });
     updateNdaSettingsMutation.mutate(backendSettings);
   };
@@ -373,7 +374,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         <CardHeader className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 pb-6 pt-8 px-8 shadow-lg">
           <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-              <FileSignature className="h-6 w-6 text-white" />
+              <Shield className="h-6 w-6 text-white" />
             </div>
             NDA Protection Settings
           </CardTitle>
@@ -409,7 +410,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               />
             </div>
           </div>
-          
+
           {/* Protected Content Settings - Cleaner Nested Options */}
           {ndaSettings.ndaProtected && (
             <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
@@ -445,7 +446,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   </p>
                 )}
               </div>
-              
+
               {/* Manual Approval Toggle - Simplified */}
               <div className="flex items-center justify-between py-3 px-4 rounded-md border border-gray-200 bg-gray-50/50">
                 <div className="space-y-1">
@@ -471,7 +472,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               </div>
             </div>
           )}
-          
+
           {/* Template Management - Simplified Call-to-Action */}
           <div className="pt-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
