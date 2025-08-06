@@ -113,14 +113,14 @@ export function PdfTemplateSelector() {
 
   return (
     <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-      <CardHeader className="bg-gradient-to-r from-violet-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+      <CardHeader className="border-l-4 border-violet-600 bg-gradient-to-r from-violet-50 to-slate-50 pb-6 pt-8 px-8 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-            <FileImage className="h-6 w-6 text-white" />
+          <div className="p-2 bg-violet-100 rounded-xl shadow-sm">
+            <FileImage className="h-6 w-6 text-violet-600" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold text-white">PDF Background Templates</CardTitle>
-            <CardDescription className="text-slate-100 mt-1">
+            <CardTitle className="text-xl font-bold text-slate-800">PDF Background Templates</CardTitle>
+            <CardDescription className="text-slate-600 mt-1">
               Choose a background template for your CIM PDF exports. This applies to all PDF downloads from your documents.
             </CardDescription>
           </div>
