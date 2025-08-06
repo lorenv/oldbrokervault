@@ -91,7 +91,7 @@ function TemplatesContent() {
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/nda-templates');
       const data = await response.json();
-      return data.sort((a: NdaTemplate, b: NdaTemplate) => 
+      return data.sort((a: NdaTemplate, b: NdaTemplate) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     },
@@ -209,8 +209,8 @@ function TemplatesContent() {
             <h2 className="text-2xl font-bold text-gray-900">Create New NDA Template</h2>
             <p className="text-gray-600 mt-1">Upload a PDF and configure signature fields</p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowNewTemplateEditor(false)}
           >
             Back to Templates
@@ -233,8 +233,8 @@ function TemplatesContent() {
             <h2 className="text-2xl font-bold text-gray-900">Edit NDA Template</h2>
             <p className="text-gray-600 mt-1">Modify template settings and signature fields</p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setEditingTemplate(null)}
           >
             Back to Templates
@@ -288,7 +288,7 @@ function TemplatesContent() {
                   </Button>
                 </div>
               )}
-              <Button 
+              <Button
                 onClick={() => setShowNewTemplateEditor(true)}
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 flex items-center gap-2"
                 variant="outline"
@@ -299,7 +299,7 @@ function TemplatesContent() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-8 pb-8 pt-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -311,7 +311,7 @@ function TemplatesContent() {
               <p className="text-gray-600 mb-4">
                 Create your first NDA template to get started with document protection
               </p>
-              <Button 
+              <Button
                 onClick={() => setShowNewTemplateEditor(true)}
                 className="flex items-center gap-2"
               >
@@ -322,8 +322,8 @@ function TemplatesContent() {
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {templates.map((template: NdaTemplate) => (
-                <Card 
-                  key={template.id} 
+                <Card
+                  key={template.id}
                   className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-200 hover:border-blue-200"
                   onClick={() => setEditingTemplate(template)}
                 >
@@ -339,8 +339,8 @@ function TemplatesContent() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
                             onClick={(e) => e.stopPropagation()}
@@ -349,7 +349,7 @@ function TemplatesContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingTemplate(template);
@@ -358,7 +358,7 @@ function TemplatesContent() {
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDelete(template.id, template.name);
@@ -390,7 +390,7 @@ function TemplatesContent() {
           ) : (
             <div className="space-y-2">
               {templates.map((template: NdaTemplate) => (
-                <div 
+                <div
                   key={template.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer group"
                   onClick={() => setEditingTemplate(template)}
@@ -408,8 +408,8 @@ function TemplatesContent() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => e.stopPropagation()}
@@ -418,7 +418,7 @@ function TemplatesContent() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingTemplate(template);
@@ -427,7 +427,7 @@ function TemplatesContent() {
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDelete(template.id, template.name);
@@ -730,7 +730,7 @@ export default function AccountPage() {
       {/* Enhanced Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg">
+          <div className="p-2 bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl shadow-lg">
             <Settings className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
@@ -769,14 +769,14 @@ export default function AccountPage() {
         {/* Account & Security Tab */}
         <TabsContent value="account" className="space-y-6">
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 pb-6 pt-8 px-8 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 pb-6 pt-8 px-8 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                   <Lock className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-xl font-bold text-white">Login Credentials</CardTitle>
-                  <CardDescription className="text-blue-100 mt-1">
+                  <CardDescription className="text-slate-100 mt-1">
                     Manage your email address and authentication settings
                   </CardDescription>
                 </div>
@@ -843,9 +843,9 @@ export default function AccountPage() {
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
-                    disabled={isUpdating} 
+                  <Button
+                    type="submit"
+                    disabled={isUpdating}
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg"
                   >
                     {isUpdating ? "Updating..." : "Save Changes"}
@@ -861,14 +861,14 @@ export default function AccountPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <User className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-white">Personal Information</CardTitle>
-                    <CardDescription className="text-emerald-100 mt-1">
+                    <CardDescription className="text-slate-100 mt-1">
                       Contact details that appear in your CIM documents
                     </CardDescription>
                   </div>
@@ -912,14 +912,14 @@ export default function AccountPage() {
 
             {/* Profile Photo */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <Camera className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-white">Profile Photo</CardTitle>
-                    <CardDescription className="text-purple-100 mt-1">
+                    <CardDescription className="text-slate-100 mt-1">
                       Your photo appears on share links and PDF exports
                     </CardDescription>
                   </div>
@@ -929,23 +929,23 @@ export default function AccountPage() {
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
                   {profileForm.profilePhoto ? (
                     <div className="space-y-4">
-                      <img 
-                        src={profileForm.profilePhoto} 
-                        alt="Profile Photo" 
+                      <img
+                        src={profileForm.profilePhoto}
+                        alt="Profile Photo"
                         className="w-24 h-24 mx-auto rounded-full object-cover border-2 border-border"
                       />
                       <div className="flex gap-2 justify-center">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           size="sm"
                           onClick={() => document.getElementById('profilePhoto')?.click()}
                         >
                           Change Photo
                         </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleInputChange("profilePhoto", "")}
                         >
@@ -959,9 +959,9 @@ export default function AccountPage() {
                       <p className="text-sm text-muted-foreground mb-4">
                         Upload your profile photo
                       </p>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         size="sm"
                         onClick={() => document.getElementById('profilePhoto')?.click()}
                       >
@@ -1019,23 +1019,23 @@ export default function AccountPage() {
                   <div className="border-2 border-dashed border-muted rounded-lg p-4 text-center">
                     {profileForm.businessLogo ? (
                       <div className="space-y-3">
-                        <img 
-                          src={profileForm.businessLogo} 
-                          alt="Business Logo" 
+                        <img
+                          src={profileForm.businessLogo}
+                          alt="Business Logo"
                           className="max-h-16 mx-auto object-contain"
                         />
                         <div className="flex gap-2 justify-center">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => document.getElementById('businessLogo')?.click()}
                           >
                             Change Logo
                           </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleInputChange("businessLogo", "")}
                           >
@@ -1049,9 +1049,9 @@ export default function AccountPage() {
                         <p className="text-sm text-muted-foreground mb-2">
                           Upload your business logo
                         </p>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
+                        <Button
+                          type="button"
+                          variant="outline"
                           size="sm"
                           onClick={() => document.getElementById('businessLogo')?.click()}
                         >
@@ -1074,8 +1074,8 @@ export default function AccountPage() {
               </div>
 
               <div className="border-t pt-6">
-                <Button 
-                  onClick={handleProfileSave} 
+                <Button
+                  onClick={handleProfileSave}
                   disabled={updateProfileMutation.isPending}
                   className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white border-0 shadow-lg"
                 >
@@ -1094,9 +1094,9 @@ export default function AccountPage() {
 
         {/* Subscription & Billing Tab */}
         <TabsContent value="billing" className="space-y-6">
-          <SubscriptionCard 
-            status={user?.subscriptionStatus} 
-            endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
+          <SubscriptionCard
+            status={user?.subscriptionStatus}
+            endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
             monthlyUsage={user?.monthlyUsage}
             monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
             monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
