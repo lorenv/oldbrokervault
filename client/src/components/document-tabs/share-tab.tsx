@@ -408,7 +408,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6 p-8 pt-12">{/* Main Toggle */}
+        <CardContent className="space-y-6 p-8 pt-10">{/* Main Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="share-enabled">Enable Public Sharing</Label>
@@ -497,7 +497,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6 p-8 pt-12">
+          <CardContent className="space-y-6 p-8 pt-10">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="embed-width">Width</Label>
