@@ -344,14 +344,14 @@ export function CimGenerator() {
             throw new Error(error.error || "Failed to generate CIM");
           }
 
-          // Stage 5: Processing financials (if any), then finalizing
-          if (hasFinancials) {
-            setGenerationStage("processing_financials");
-            // Give a moment for the financial processing stage to show
-            setTimeout(() => setGenerationStage("finalizing"), 500);
-          } else {
-            setGenerationStage("finalizing");
-          }
+          // Smooth completion sequence after AI response received
+          // Stage 5: Processing financials (quick transition to show progress)
+          setGenerationStage("processing_financials");
+          await new Promise(resolve => setTimeout(resolve, 400));
+          
+          // Stage 6: Finalizing (another quick visual update)
+          setGenerationStage("finalizing");
+          await new Promise(resolve => setTimeout(resolve, 300));
 
           return res.json();
         } catch (error) {
@@ -397,14 +397,14 @@ export function CimGenerator() {
 
           const response = await apiRequest("POST", "/api/cim/generate", payload);
 
-          // Stage 5: Processing financials (if any), then finalizing
-          if (hasFinancials) {
-            setGenerationStage("processing_financials");
-            // Give a moment for the financial processing stage to show
-            setTimeout(() => setGenerationStage("finalizing"), 500);
-          } else {
-            setGenerationStage("finalizing");
-          }
+          // Smooth completion sequence after AI response received
+          // Stage 5: Processing financials (quick transition to show progress)
+          setGenerationStage("processing_financials");
+          await new Promise(resolve => setTimeout(resolve, 400));
+          
+          // Stage 6: Finalizing (another quick visual update)
+          setGenerationStage("finalizing");
+          await new Promise(resolve => setTimeout(resolve, 300));
 
           return response.json();
         } catch (error) {
@@ -414,15 +414,23 @@ export function CimGenerator() {
       }
     },
     onSuccess: (result) => {
-      // Quick visual completion sequence for better UX
+      // Final completion stage for visual satisfaction
+      setGenerationStage("complete");
+      
+      // Reset progress after a brief moment to show completion
+      setTimeout(() => {
+        setGenerationStage(null);
+        setProgressStartTime(null);
+      }, 800);
+
+      // Show remaining stages quickly for visual completion
       const hasFinancials = financialFiles.length > 0 || 
         !!financialData.askingPrice || 
         !!financialData.revenue || 
         !!financialData.ebitda;
 
-      // Show remaining stages quickly for visual completion
       if (hasFinancials) {
-        // Already at processing_financials or show it briefly
+        // Already handled in the API call completion sequence
         setGenerationStage("processing_financials");
         setTimeout(() => {
           setGenerationStage("finalizing");
