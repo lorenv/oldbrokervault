@@ -437,7 +437,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         formData.append('email', data.email);
         formData.append('password', data.password);
         formData.append('agreeToTerms', 'true'); // Always send as string 'true' for backend validation
-        
+
         // Add optional business profile fields only if they have values
         if (data.businessName && data.businessName.trim()) {
           formData.append('businessName', data.businessName.trim());
@@ -451,7 +451,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         if (data.businessLogo) {
           formData.append('businessLogo', data.businessLogo);
         }
-        
+
         mutation.mutate(formData as any);
       })} className="space-y-5 mt-6">
         <FormField
@@ -473,122 +473,6 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        
-        {/* Business Profile Fields */}
-        <div className="space-y-5 bg-slate-50/50 p-5 rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
-            </svg>
-            Business Information <span className="text-gray-400 font-normal">(optional)</span>
-          </div>
-          
-          <FormField
-            control={form.control}
-            name="businessName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-600">Company Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your company name"
-                    type="text"
-                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-600">Phone Number</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="(555) 123-4567"
-                    type="tel"
-                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="profilePhoto"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    Profile Photo
-                    {uploadStatus.profilePhoto && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Uploaded
-                      </div>
-                    )}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        field.onChange(file);
-                        handleFileUpload('profilePhoto', file);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="businessLogo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    Business Logo
-                    {uploadStatus.businessLogo && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Uploaded
-                      </div>
-                    )}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        field.onChange(file);
-                        handleFileUpload('businessLogo', file);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
 
         <FormField
           control={form.control}
@@ -699,17 +583,129 @@ function RegisterForm({ mutation }: { mutation: any }) {
           )}
         />
 
+        {/* Business Profile Fields */}
+        <div className="space-y-5 bg-slate-50/50 p-5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+            </svg>
+            Business Information <span className="text-gray-400 font-normal">(optional)</span>
+          </div>
 
-        {/* Elegant divider line */}
+          <FormField
+            control={form.control}
+            name="businessName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Company Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Your company name"
+                    type="text"
+                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Phone Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="(555) 123-4567"
+                    type="tel"
+                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="profilePhoto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Profile Photo
+                    {uploadStatus.profilePhoto && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Uploaded
+                      </div>
+                    )}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('profilePhoto', file);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="businessLogo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Business Logo
+                    {uploadStatus.businessLogo && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Uploaded
+                      </div>
+                    )}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('businessLogo', file);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Simple divider line */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-4 text-gray-500 font-medium">Agreement</span>
-          </div>
         </div>
-        
+
         <FormField
           control={form.control}
           name="agreeToTerms"
@@ -735,7 +731,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
+          className="w-full h-12 bg-gradient-to-r from-blue-600 to-slate-600 hover:from-blue-700 hover:to-slate-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
