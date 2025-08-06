@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock } from "lucide-react";
+import { Lock, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -70,16 +70,34 @@ export function SubscriptionCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Subscription Status
-          <Badge variant={isAdmin ? "destructive" : isPremium ? "default" : isStandard ? "secondary" : "outline"}>
+    <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+      <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 pb-6 pt-8 px-8 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+              <CreditCard className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold text-white">Subscription Status</CardTitle>
+              <p className="text-green-100 mt-1 text-sm">
+                {status === "admin" ? "Administrator account with unlimited access" : 
+                 status !== "free" ? "Your subscription details and usage" : 
+                 "Upgrade to generate more CIMs per month"}
+              </p>
+            </div>
+          </div>
+          <Badge 
+            variant="outline" 
+            className={`${isAdmin ? "bg-red-500/20 text-red-100 border-red-400/50" : 
+                        isPremium ? "bg-purple-500/20 text-purple-100 border-purple-400/50" : 
+                        isStandard ? "bg-blue-500/20 text-blue-100 border-blue-400/50" : 
+                        "bg-white/20 text-white border-white/30"}`}
+          >
             {status?.toUpperCase() || "FREE"}
           </Badge>
-        </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-8">
         <div className="space-y-4">
           <div>
             {status === "admin" ? (
@@ -139,8 +157,7 @@ export function SubscriptionCard({
 
           {!isPremium && !isAdmin && (
             <Button
-              className="w-full"
-              variant={subtle ? "outline" : "default"}
+              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg"
               size={subtle ? "sm" : "default"}
               onClick={handleUpgrade}
             >
@@ -150,7 +167,7 @@ export function SubscriptionCard({
 
           {(isPremium || isStandard) && !isAdmin && (
             <Button
-              className="w-full"
+              className="w-full bg-white/20 hover:bg-white/30 text-green-700 border-green-600/50 shadow-lg"
               variant="outline"
               size={subtle ? "sm" : "default"}
               onClick={handleCustomerPortal}
