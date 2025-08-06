@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ResizableRichTextEditor } from "@/components/resizable-rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, User, Mail, Phone, Building2 } from "lucide-react";
 
@@ -190,14 +190,13 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
 
           <div className="space-y-2">
             <Label htmlFor="question" className="text-sm font-medium">Your Question *</Label>
-            <Textarea
-              id="question"
+            <ResizableRichTextEditor
               value={formData.question}
-              onChange={(e) => handleInputChange('question', e.target.value)}
+              onChange={(value) => handleInputChange('question', value)}
               placeholder="Ask about financials, operations, growth opportunities, or any other details about this business..."
-              rows={4}
-              className="text-sm sm:text-base min-h-[80px] sm:min-h-[100px] resize-none"
-              required
+              className="text-sm sm:text-base"
+              minHeight={100}
+              maxHeight={300}
             />
           </div>
 
