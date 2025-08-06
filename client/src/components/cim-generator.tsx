@@ -621,21 +621,19 @@ export function CimGenerator() {
       )}
 
       {!analysis ? (
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
 
-              {/* Document Information Section */}
-              <div className="space-y-4">
-                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
-                  <FileText className="h-5 w-5" />
-                  <div>
-                    <h3 className="font-semibold">Document Information</h3>
-                    <p className="text-sm text-slate-300">Basic details about your CIM document</p>
-                  </div>
-                </div>
+          {/* Document Information Section */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <FileText className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Document Information</h3>
+                <p className="text-sm text-slate-200">Basic details about your CIM document</p>
+              </div>
+            </div>
 
-                <div className="space-y-4 ml-4">
+            <div className="space-y-4 p-4 border border-t-0 rounded-b-lg bg-white">
                   <div>
                     <Input
                       placeholder="Document Title"
@@ -684,17 +682,17 @@ export function CimGenerator() {
                 </div>
               </div>
 
-              {/* Business Notes Section */}
-              <div className="space-y-4">
-                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
-                  <NotebookPen className="h-5 w-5" />
-                  <div>
-                    <h3 className="font-semibold">Business Notes</h3>
-                    <p className="text-sm text-slate-300">Paste your business meeting transcript or notes</p>
-                  </div>
-                </div>
+          {/* Business Notes Section */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <NotebookPen className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Business Notes</h3>
+                <p className="text-sm text-slate-200">Paste your business meeting transcript or notes</p>
+              </div>
+            </div>
 
-                <div className="ml-4">
+            <div className="p-4 border border-t-0 rounded-b-lg bg-white">
                   <Textarea
                     placeholder="Paste your business notes here..."
                     className="min-h-[200px]"
@@ -705,11 +703,11 @@ export function CimGenerator() {
                       {form.formState.errors.transcript.message as string}
                     </p>
                   )}
-                </div>
-              </div>
+            </div>
+          </div>
 
-              {/* Image extraction and selection section */}
-              {form.watch("websiteUrl") && (
+          {/* Image extraction and selection section */}
+          {form.watch("websiteUrl") && (
                 <div className="mt-4 p-4 border rounded-lg bg-muted/50">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium">Website Images</h4>
@@ -900,17 +898,17 @@ export function CimGenerator() {
                 </div>
               </div>
 
-              {/* Financial Information Section - Simplified */}
-              <div className="space-y-4">
-                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
-                  <DollarSign className="h-5 w-5" />
-                  <div>
-                    <h3 className="font-semibold">Financial Information</h3>
-                    <p className="text-sm text-slate-300">Add key financial metrics to enhance your CIM</p>
-                  </div>
-                </div>
+          {/* Financial Information Section - Simplified */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <DollarSign className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Financial Information</h3>
+                <p className="text-sm text-slate-200">Add key financial metrics to enhance your CIM</p>
+              </div>
+            </div>
 
-                <div className="ml-4 space-y-6 p-4 border rounded-lg bg-background">
+            <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
                   <div className="grid md:grid-cols-3 gap-4">
                     {/* Asking Price */}
                     <div className="space-y-2">
@@ -1008,20 +1006,20 @@ export function CimGenerator() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
-              {/* Analysis Directions Section */}
-              <div className="space-y-4">
-                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
-                  <Settings2 className="h-5 w-5" />
-                  <div>
-                    <h3 className="font-semibold">Analysis Directions</h3>
-                    <p className="text-sm text-slate-300">Customize how AI analyzes your transcript</p>
-                  </div>
-                </div>
+          {/* Analysis Directions Section */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <Settings2 className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Analysis Directions</h3>
+                <p className="text-sm text-slate-200">Customize how AI analyzes your transcript</p>
+              </div>
+            </div>
 
-                <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
+            <div className="space-y-4 p-4 border border-t-0 rounded-b-lg bg-white">
                   <div className="flex items-center justify-between">
                     <TemplatesLibrary onSelectTemplate={handleTemplateSelection} />
                     {selectedTemplateTitle && (
@@ -1033,23 +1031,23 @@ export function CimGenerator() {
 
 
 
-                {/* Custom directions with grey title */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Custom Directions</Label>
-                  <Textarea
-                    className="min-h-[160px] text-xs resize-y"
-                    value={customDirections}
-                    onChange={(e) => {
-                      setCustomDirections(e.target.value);
-                      form.setValue("directions", e.target.value);
-                    }}
-                    placeholder="Custom directions will appear here..."
-                  />
-                </div>
-                </div>
+              {/* Custom directions with grey title */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Custom Directions</Label>
+                <Textarea
+                  className="min-h-[160px] text-xs resize-y"
+                  value={customDirections}
+                  onChange={(e) => {
+                    setCustomDirections(e.target.value);
+                    form.setValue("directions", e.target.value);
+                  }}
+                  placeholder="Custom directions will appear here..."
+                />
               </div>
+            </div>
+          </div>
 
-              <Button 
+          <Button 
                 type="submit" 
                 className="w-full" 
                 disabled={generateMutation.isPending}
@@ -1082,9 +1080,7 @@ export function CimGenerator() {
                   />
                 </div>
               )}
-            </form>
-          </CardContent>
-        </Card>
+        </form>
       ) : (
         <div className="space-y-6">
           {/* Show progress when generating */}
