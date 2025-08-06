@@ -104,15 +104,13 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8 border-b border-gray-200/50">
-              <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="h-6 w-6 text-blue-600" />
-                </div>
+            <CardHeader className="pb-4 pt-6 px-6">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-700">
+                <User className="h-5 w-5 text-blue-600" />
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="px-6 pb-6">
               <div className="space-y-6">
                 {/* Profile Photo */}
                 {userProfile.profilePhoto && (
@@ -190,15 +188,13 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
         {/* Ask Questions Section */}
         <div className="border-t border-gray-200/50">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 pb-6 pt-8 px-8 border-b border-purple-200/50">
-            <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <MessageSquare className="h-6 w-6 text-purple-600" />
-              </div>
+          <CardHeader className="pb-4 pt-6 px-6 border-t border-gray-200/50">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-700">
+              <MessageSquare className="h-5 w-5 text-purple-600" />
               Ask Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="px-6 pb-6">
             {isSubmitted ? (
               <div className="text-center py-6">
                 <div className="flex justify-center mb-3">
