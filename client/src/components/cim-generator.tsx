@@ -627,9 +627,9 @@ export function CimGenerator() {
 
               {/* Document Information Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Document Information</h3>
-                  <p className="text-sm text-gray-600">Basic details about your CIM document</p>
+                <div className="border-l-4 border-blue-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
+                  <h3 className="text-sm font-semibold text-gray-800">Document Information</h3>
+                  <p className="text-xs text-gray-600">Basic details about your CIM document</p>
                 </div>
 
                 <div className="space-y-4 ml-4">
@@ -683,9 +683,9 @@ export function CimGenerator() {
 
               {/* Business Notes Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-green-500 pl-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Business Notes</h3>
-                  <p className="text-sm text-gray-600">Paste your business meeting transcript or notes</p>
+                <div className="border-l-4 border-green-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
+                  <h3 className="text-sm font-semibold text-gray-800">Business Notes</h3>
+                  <p className="text-xs text-gray-600">Paste your business meeting transcript or notes</p>
                 </div>
 
                 <div className="ml-4">
@@ -896,9 +896,9 @@ export function CimGenerator() {
 
               {/* Financial Information Section - Simplified */}
               <div className="space-y-4">
-                <div className="border-l-4 border-purple-500 pl-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Financial Information</h3>
-                  <p className="text-sm text-gray-600">Add key financial metrics to enhance your CIM</p>
+                <div className="border-l-4 border-purple-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
+                  <h3 className="text-sm font-semibold text-gray-800">Financial Information</h3>
+                  <p className="text-xs text-gray-600">Add key financial metrics to enhance your CIM</p>
                 </div>
 
                 <div className="ml-4 space-y-6 p-4 border rounded-lg bg-background">
@@ -1004,9 +1004,9 @@ export function CimGenerator() {
 
               {/* Analysis Directions Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-orange-500 pl-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Analysis Directions</h3>
-                  <p className="text-sm text-gray-600">Customize how AI analyzes your transcript</p>
+                <div className="border-l-4 border-orange-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
+                  <h3 className="text-sm font-semibold text-gray-800">Analysis Directions</h3>
+                  <p className="text-xs text-gray-600">Customize how AI analyzes your transcript</p>
                 </div>
 
                 <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
