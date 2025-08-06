@@ -457,7 +457,7 @@ export default function AccountPage() {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [, navigate] = useLocation();
-  
+
   // Get tab from URL query parameter
   const searchParams = new URLSearchParams(window.location.search);
   const tabFromUrl = searchParams.get('tab');
@@ -521,7 +521,7 @@ export default function AccountPage() {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         // Calculate new dimensions
         let { width, height } = img;
@@ -529,28 +529,28 @@ export default function AccountPage() {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Check if image has transparency by examining the original file type
         const hasTransparency = file.type === 'image/png' || file.type === 'image/gif';
-        
+
         if (!hasTransparency) {
           // For non-transparent images, fill with white background
           ctx!.fillStyle = 'white';
           ctx!.fillRect(0, 0, width, height);
         }
-        
+
         // Draw the image
         ctx?.drawImage(img, 0, 0, width, height);
-        
+
         // Use PNG for transparent images, JPEG for others
         const outputFormat = hasTransparency ? 'image/png' : 'image/jpeg';
         const compressedDataUrl = canvas.toDataURL(outputFormat, quality);
         resolve(compressedDataUrl);
       };
-      
+
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = URL.createObjectURL(file);
     });
@@ -573,7 +573,7 @@ export default function AccountPage() {
     try {
       // Compress image before uploading
       const compressedDataUrl = await compressImage(file, 800, 0.8);
-      
+
       // Check compressed size (should be under 2MB base64)
       if (compressedDataUrl.length > 2 * 1024 * 1024) {
         // Try with higher compression
@@ -590,7 +590,7 @@ export default function AccountPage() {
       } else {
         handleInputChange(field, compressedDataUrl);
       }
-      
+
       toast({
         title: "Image Processed",
         description: "Image has been compressed and optimized for upload.",
@@ -707,7 +707,7 @@ export default function AccountPage() {
       // Invalidate user and profile queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-      
+
       form.reset({
         email: values.email,
         currentPassword: "",
@@ -1010,7 +1010,7 @@ export default function AccountPage() {
                     placeholder="Enter your business name"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <Upload className="h-4 w-4" />
