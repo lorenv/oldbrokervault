@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResizableRichTextEditor } from "@/components/resizable-rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Mail, Phone, User, Building2, CheckCircle } from "lucide-react";
+import { MessageSquare, Mail, Phone, User, Building2, CheckCircle, Expand } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ShareStickySidebarProps {
   shareSlug: string;
@@ -18,6 +20,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     viewerName: '',
     viewerEmail: '',
@@ -252,15 +255,54 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     />
                   </div>
 
-                  <div>
-                    <ResizableRichTextEditor
+                  <div className="relative">
+                    <Textarea
+                      id="question"
                       value={formData.question}
-                      onChange={(value) => handleInputChange('question', value)}
+                      onChange={(e) => handleInputChange('question', e.target.value)}
                       placeholder="Ask about financials, operations, growth opportunities, or any other details..."
-                      className="text-sm"
-                      minHeight={120}
-                      maxHeight={400}
+                      className="text-sm min-h-20 resize-none pr-10"
+                      required
                     />
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-gray-100"
+                          title="Expand to fullscreen"
+                        >
+                          <Expand className="h-4 w-4 text-gray-500" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5" />
+                            Write Your Message
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-1 mt-4">
+                          <Textarea
+                            value={formData.question}
+                            onChange={(e) => handleInputChange('question', e.target.value)}
+                            placeholder="Ask about financials, operations, growth opportunities, or any other details..."
+                            className="w-full h-full resize-none text-base"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDialogOpen(false)}
+                          >
+                            Done
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
 
