@@ -59,7 +59,15 @@ const resetPasswordSchema = z.object({
 type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
 type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
-const registerSchema = insertUserSchema.omit({ adminCode: true }).extend({
+const registerSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be less than 128 characters")
+    .regex(/(?=.*[a-z])/, "Password must contain at least one lowercase letter")
+    .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
+    .regex(/(?=.*\d)/, "Password must contain at least one number")
+    .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character"),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
   }),
@@ -428,13 +436,21 @@ function RegisterForm({ mutation }: { mutation: any }) {
         const formData = new FormData();
         formData.append('email', data.email);
         formData.append('password', data.password);
-        formData.append('agreeToTerms', data.agreeToTerms.toString());
+        formData.append('agreeToTerms', 'true'); // Always send as string 'true' for backend validation
         
-        // Add optional business profile fields
-        if (data.businessName) formData.append('businessName', data.businessName);
-        if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
-        if (data.profilePhoto) formData.append('profilePhoto', data.profilePhoto);
-        if (data.businessLogo) formData.append('businessLogo', data.businessLogo);
+        // Add optional business profile fields only if they have values
+        if (data.businessName && data.businessName.trim()) {
+          formData.append('businessName', data.businessName.trim());
+        }
+        if (data.phoneNumber && data.phoneNumber.trim()) {
+          formData.append('phoneNumber', data.phoneNumber.trim());
+        }
+        if (data.profilePhoto) {
+          formData.append('profilePhoto', data.profilePhoto);
+        }
+        if (data.businessLogo) {
+          formData.append('businessLogo', data.businessLogo);
+        }
         
         mutation.mutate(formData as any);
       })} className="space-y-5 mt-6">
