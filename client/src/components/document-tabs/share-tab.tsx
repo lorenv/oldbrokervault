@@ -7,11 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Share2, 
-  Copy, 
-  Mail, 
-  Download, 
+import {
+  Share2,
+  Copy,
+  Mail,
+  Download,
   Code,
   Globe,
   Link,
@@ -294,7 +294,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-cyan-600 to-teal-700 text-white rounded-t-xl shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-slate-300 to-blue-400 text-gray-800 rounded-t-xl shadow-lg">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Link className="h-5 w-5" />
               Share Link
@@ -342,7 +342,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Export Document */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-t-xl shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-emerald-300 to-cyan-400 text-gray-800 rounded-t-xl shadow-lg">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Download className="h-5 w-5" />
             Export Document
@@ -368,7 +368,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Send via Email */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-rose-600 to-pink-700 text-white rounded-t-xl shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-rose-300 to-orange-400 text-gray-800 rounded-t-xl shadow-lg">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Mail className="h-5 w-5" />
             Send via Email
@@ -395,7 +395,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Share Settings */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-gray-700 text-white rounded-t-xl shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-300 to-purple-400 text-gray-800 rounded-t-xl shadow-lg">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Settings className="h-5 w-5" />
             Share Settings
@@ -412,7 +412,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             <Switch
               id="share-enabled"
               checked={shareSettings.shareEnabled}
-              onCheckedChange={(checked) => 
+              onCheckedChange={(checked) =>
                 setShareSettings(prev => ({ ...prev, shareEnabled: checked }))
               }
             />
@@ -426,7 +426,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   id="custom-slug"
                   placeholder="my-company-cim"
                   value={shareSettings.customSlug}
-                  onChange={(e) => 
+                  onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
                   }
                 />
@@ -443,7 +443,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                     type="password"
                   placeholder="Enter password"
                   value={shareSettings.sharePassword}
-                  onChange={(e) => 
+                  onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, sharePassword: e.target.value }))
                   }
                 />
@@ -456,7 +456,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                     id="expires-at"
                     type="datetime-local"
                   value={shareSettings.shareExpiresAt}
-                  onChange={(e) => 
+                  onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
                   }
                 />
@@ -464,10 +464,10 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             </>
           )}
 
-          <Button 
+          <Button
             onClick={updateShareSettings}
             disabled={isUpdatingShare}
-            className="bg-slate-600 text-white hover:bg-slate-700 border-slate-600 hover:border-slate-700"
+            className="bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700"
           >
             {isUpdatingShare ? "Updating..." : "Update Share Settings"}
           </Button>
@@ -477,7 +477,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-t-xl shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-amber-300 to-yellow-400 text-gray-800 rounded-t-xl shadow-lg">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Code className="h-5 w-5" />
               Embed Code
@@ -490,7 +490,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Input
                   id="embed-width"
                   value={embedSettings.width}
-                  onChange={(e) => 
+                  onChange={(e) =>
                     setEmbedSettings(prev => ({ ...prev, width: e.target.value }))
                   }
                 />
@@ -500,7 +500,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Input
                   id="embed-height"
                   value={embedSettings.height}
-                  onChange={(e) => 
+                  onChange={(e) =>
                     setEmbedSettings(prev => ({ ...prev, height: e.target.value }))
                   }
                 />
@@ -512,7 +512,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Switch
                   id="embed-border"
                   checked={embedSettings.border}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setEmbedSettings(prev => ({ ...prev, border: checked }))
                   }
                 />
@@ -522,7 +522,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                 <Switch
                   id="embed-responsive"
                   checked={embedSettings.responsive}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setEmbedSettings(prev => ({ ...prev, responsive: checked }))
                   }
                 />
