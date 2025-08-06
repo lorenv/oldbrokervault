@@ -104,15 +104,15 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 pb-4 pt-6 px-6 border-b border-blue-300/30 shadow-lg">
-              <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                  <User className="h-5 w-5 text-white" />
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8 border-b border-gray-200/50">
+              <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-6 w-6 text-blue-600" />
                 </div>
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pb-6 pt-8">
+            <CardContent className="p-8">
               <div className="space-y-6">
                 {/* Profile Photo */}
                 {userProfile.profilePhoto && (
@@ -190,15 +190,15 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
 
         {/* Ask Questions Section */}
         <div className="border-t border-gray-200/50">
-          <CardHeader className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 pb-4 pt-6 px-6 border-b border-purple-300/30 shadow-lg">
-            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                <MessageSquare className="h-5 w-5 text-white" />
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 pb-6 pt-8 px-8 border-b border-purple-200/50">
+            <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <MessageSquare className="h-6 w-6 text-purple-600" />
               </div>
               Ask Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-6 pb-6 pt-6">
+          <CardContent className="p-8">
             {isSubmitted ? (
               <div className="text-center py-6">
                 <div className="flex justify-center mb-3">
