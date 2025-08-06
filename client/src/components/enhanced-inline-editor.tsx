@@ -36,7 +36,6 @@ export function EnhancedInlineEditor({
   enableRichText = false
 }: EnhancedInlineEditorProps) {
   const [editValue, setEditValue] = useState<string>("");
-  const [useRichText, setUseRichText] = useState(enableRichText);
 
   useEffect(() => {
     if (isEditing) {
@@ -44,13 +43,7 @@ export function EnhancedInlineEditor({
         setEditValue(value.join('\n'));
       } else {
         const textValue = typeof value === 'string' ? value : String(value);
-        // If it contains HTML tags, keep it as HTML for rich text editor
-        if (enableRichText && textValue.includes('<') && textValue.includes('>')) {
-          setEditValue(textValue);
-          setUseRichText(true);
-        } else {
-          setEditValue(textValue);
-        }
+        setEditValue(textValue);
       }
     }
   }, [isEditing, value, isArray, enableRichText]);
@@ -64,22 +57,11 @@ export function EnhancedInlineEditor({
     }
   };
 
-  const handleRichTextChange = (html: string) => {
-    setEditValue(html);
+  const handleRichTextChange = (newValue: string) => {
+    setEditValue(newValue);
   };
 
-  const toggleRichText = () => {
-    if (useRichText) {
-      // Convert HTML to plain text
-      setEditValue(htmlToPlainText(editValue));
-    } else {
-      // Convert plain text to HTML
-      setEditValue(plainTextWithFormattingToHtml(editValue));
-    }
-    setUseRichText(!useRichText);
-  };
-
-  const displayValue = isArray && Array.isArray(value) 
+  const displayValue = isArray && Array.isArray(value)
     ? value.map(item => {
         if (typeof item === 'object' && item !== null) {
           // Handle objects in arrays (like Key Personnel)
@@ -88,7 +70,7 @@ export function EnhancedInlineEditor({
           if ((item as any).name) parts.push(`Name: ${(item as any).name}`);
           if ((item as any).tenure) parts.push(`Tenure: ${(item as any).tenure}`);
           if ((item as any).background) parts.push(`Background: ${(item as any).background}`);
-          
+
           if (parts.length === 0) {
             // Fallback for objects without expected properties - convert to string
             const entries = Object.entries(item);
@@ -97,14 +79,14 @@ export function EnhancedInlineEditor({
               .map(([key, val]) => `${key}: ${String(val)}`)
               .join(', ');
           }
-          
+
           return parts.join(', ');
         }
         return String(item);
       }).join(' | ')
-    : typeof value === 'string' ? value 
-    : typeof value === 'object' && value !== null ? 
-        (Object.keys(value).length === 0 ? '' : 
+    : typeof value === 'string' ? value
+    : typeof value === 'object' && value !== null ?
+        (Object.keys(value).length === 0 ? '' :
          Object.entries(value)
            .map(([key, val]) => {
              // Make field names more readable
@@ -122,20 +104,11 @@ export function EnhancedInlineEditor({
       <>
         {enableRichText && multiline && !isArray && (
           <div className="mb-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={toggleRichText}
-              className="h-8"
-            >
-              <Type className="h-4 w-4 mr-1" />
-              {useRichText ? 'Plain Text' : 'Rich Text'}
-            </Button>
+            {/* Removed the Plain Text toggle button */}
           </div>
         )}
-        
-        {useRichText && enableRichText && multiline && !isArray ? (
+
+        {enableRichText && multiline && !isArray ? (
           <RichTextEditor
             value={editValue}
             onChange={handleRichTextChange}
@@ -187,13 +160,13 @@ export function EnhancedInlineEditor({
   }
 
   return (
-    <div 
+    <div
       className={`group relative ${!readOnly ? 'cursor-pointer hover:bg-gray-50 rounded p-1' : ''}`}
       onClick={() => !readOnly && onEdit(fieldPath)}
     >
       <div className="min-h-[2rem] py-1">
         {enableRichText && displayValue.includes('<') && displayValue.includes('>') ? (
-          <div 
+          <div
             className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: displayValue }}
           />
