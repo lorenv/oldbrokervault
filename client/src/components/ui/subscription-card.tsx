@@ -70,16 +70,16 @@ export function SubscriptionCard({
   };
 
   return (
-    <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-      <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 pb-6 pt-8 px-8 shadow-lg">
+    <Card className="border border-gray-200 shadow-sm bg-white rounded-lg overflow-hidden">
+      <CardHeader className="bg-gray-50 border-b border-gray-200 pb-4 pt-6 px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-              <CreditCard className="h-6 w-6 text-white" />
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <CreditCard className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-white">Subscription Status</CardTitle>
-              <p className="text-emerald-100 mt-1 text-sm">
+              <CardTitle className="text-lg font-semibold text-gray-900">Subscription Status</CardTitle>
+              <p className="text-gray-600 mt-1 text-sm">
                 {status === "admin" ? "Administrator account with unlimited access" : 
                  status !== "free" ? "Your subscription details and usage" : 
                  "Upgrade to generate more CIMs per month"}
@@ -87,11 +87,8 @@ export function SubscriptionCard({
             </div>
           </div>
           <Badge 
-            variant="outline" 
-            className={`${isAdmin ? "bg-red-500/20 text-red-100 border-red-400/50" : 
-                        isPremium ? "bg-purple-500/20 text-purple-100 border-purple-400/50" : 
-                        isStandard ? "bg-blue-500/20 text-blue-100 border-blue-400/50" : 
-                        "bg-white/20 text-white border-white/30"}`}
+            variant={status === "free" ? "secondary" : "default"}
+            className="text-xs"
           >
             {status?.toUpperCase() || "FREE"}
           </Badge>
@@ -157,7 +154,7 @@ export function SubscriptionCard({
 
           {!isPremium && !isAdmin && (
             <Button
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white border-0 shadow-lg"
+              className="w-full"
               size={subtle ? "sm" : "default"}
               onClick={handleUpgrade}
             >
@@ -167,7 +164,7 @@ export function SubscriptionCard({
 
           {(isPremium || isStandard) && !isAdmin && (
             <Button
-              className="w-full bg-white/20 hover:bg-white/30 text-emerald-700 border-emerald-600/50 shadow-lg"
+              className="w-full"
               variant="outline"
               size={subtle ? "sm" : "default"}
               onClick={handleCustomerPortal}
