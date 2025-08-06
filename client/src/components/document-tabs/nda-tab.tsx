@@ -566,7 +566,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {filteredSignatures.length > 0 ? (
             <Table>
               <TableHeader>
