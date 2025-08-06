@@ -62,8 +62,7 @@ type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 const registerSchema = insertUserSchema.omit({ adminCode: true }).extend({
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
-  }),
-  captcha: z.string().min(1, "Please complete the captcha")
+  })
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -336,38 +335,19 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
 }
 
 function RegisterForm({ mutation }: { mutation: any }) {
-  const [captchaAnswer, setCaptchaAnswer] = useState<number>(0);
-  const [captchaQuestion, setCaptchaQuestion] = useState<string>("");
-
-  // Generate simple math captcha
-  useEffect(() => {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    setCaptchaAnswer(num1 + num2);
-    setCaptchaQuestion(`${num1} + ${num2} = ?`);
-  }, []);
-
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
       password: "",
       agreeToTerms: false,
-      captcha: "",
     },
   });
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => {
-        // Validate captcha before submission
-        if (parseInt(data.captcha) !== captchaAnswer) {
-          form.setError("captcha", { message: "Incorrect answer" });
-          return;
-        }
-        // Remove captcha from submission data
-        const { captcha, ...submitData } = data;
-        mutation.mutate(submitData);
+        mutation.mutate(data);
       })} className="space-y-4">
         <FormField
           control={form.control}
@@ -405,32 +385,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="captcha"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Security Check: {captchaQuestion}</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  placeholder="Enter the answer"
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e.target.value);
-                    // Validate captcha answer
-                    if (parseInt(e.target.value) !== captchaAnswer) {
-                      form.setError("captcha", { message: "Incorrect answer" });
-                    } else {
-                      form.clearErrors("captcha");
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
 
         <FormField
           control={form.control}
@@ -446,9 +401,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm font-normal">
                   I agree to the{" "}
-                  <Link href="/terms-of-service">
-                    <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
-                  </Link>
+                  <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms and Conditions</a>
                 </FormLabel>
                 <FormMessage />
               </div>
