@@ -368,31 +368,37 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   return (
     <div className="space-y-6">
-      {/* NDA Protection Settings - Cleaner, Less Aggressive Design */}
-      <Card className="border-gray-200">
-        <CardHeader className="pb-6">
-          <CardTitle className="flex items-center gap-3 text-lg text-gray-900">
-            <FileSignature className="h-5 w-5 text-gray-600" />
+      {/* NDA Protection Settings - Enhanced Professional Design */}
+      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+        <CardHeader className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 pb-6 pt-8 px-8 shadow-lg">
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+              <FileSignature className="h-6 w-6 text-white" />
+            </div>
             NDA Protection Settings
           </CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardDescription className="text-emerald-50 mt-2 text-base">
             Control who can access your confidential information
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Main Protection Toggle - Simplified Design */}
-          <div className="flex items-center justify-between py-4 px-6 rounded-lg border border-gray-200 bg-gray-50/30">
-            <div className="space-y-1">
-              <Label htmlFor="nda-protection" className="text-base font-medium text-gray-900">
+          {/* Main Protection Toggle - Enhanced Design */}
+          <div className="flex items-center justify-between py-6 px-8 rounded-2xl border-2 border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg">
+            <div className="space-y-2">
+              <Label htmlFor="nda-protection" className="text-lg font-semibold text-emerald-900">
                 Require NDA Before Access
               </Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-emerald-700 max-w-md">
                 Visitors must sign an agreement before viewing this document
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">
-                {ndaSettings.ndaProtected ? 'Protected' : 'Open'}
+            <div className="flex items-center gap-4">
+              <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${
+                ndaSettings.ndaProtected 
+                  ? 'text-emerald-700 bg-emerald-100' 
+                  : 'text-gray-600 bg-gray-100'
+              }`}>
+                {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
               </span>
               <Switch
                 id="nda-protection"
@@ -493,14 +499,16 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
 
       {/* NDA Signatures Table */}
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+        <CardHeader className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileSignature className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                <FileSignature className="h-6 w-6 text-white" />
+              </div>
               NDA Signatures ({ndaSignatures.length})
               {cimDocument.ndaApprovalRequired && (
-                <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 shadow-sm">
                   {ndaSignatures.filter(sig => !sig.approved).length} Pending Approval
                 </Badge>
               )}
