@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -394,14 +394,21 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       </Card>
 
       {/* Share Settings */}
-      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-t-xl">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Settings className="h-5 w-5" />
-            Share Settings
-          </CardTitle>
+      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 pb-8 pt-8 px-8 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+              <Settings className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold text-white">Share Settings</CardTitle>
+              <CardDescription className="text-blue-100 mt-1">
+                Configure your shareable link and access controls
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6 p-8 pt-10">{/* Main Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="share-enabled">Enable Public Sharing</Label>
@@ -476,14 +483,21 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
-        <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-t-xl">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Code className="h-5 w-5" />
-              Embed Code
-            </CardTitle>
+        <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+          <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 pb-8 pt-8 px-8 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                <Code className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-white">Embed Code</CardTitle>
+                <CardDescription className="text-indigo-100 mt-1">
+                  Embed your CIM directly into websites
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 p-8 pt-10">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="embed-width">Width</Label>
