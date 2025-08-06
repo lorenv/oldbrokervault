@@ -257,13 +257,11 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                   </div>
 
                   <div className="relative">
-                    <Textarea
-                      id="question"
+                    <RichTextEditor
                       value={formData.question}
-                      onChange={(e) => handleInputChange('question', e.target.value)}
+                      onChange={(value) => handleInputChange('question', value)}
                       placeholder="Ask about financials, operations, growth opportunities, or any other details..."
-                      className="text-sm min-h-20 resize-none pr-10"
-                      required
+                      className="text-sm min-h-20"
                     />
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
