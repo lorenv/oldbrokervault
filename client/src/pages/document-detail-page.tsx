@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Menu, ChevronLeft } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -167,6 +167,7 @@ export function DocumentDetailPage() {
   // Get current tab from URL or default to edit for new documents
   const urlTab = new URLSearchParams(window.location.search).get('tab') || 'edit';
   const [activeTab, setActiveTab] = useState(urlTab);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Fetch document data
   const { data: cimDocument, isLoading: docLoading, error: docError } = useCimDocument(docId, !!docId);
@@ -187,6 +188,7 @@ export function DocumentDetailPage() {
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    setIsMobileSidebarOpen(false); // Close mobile sidebar when tab changes
   };
   
   if (!matched || !docId) {
@@ -324,10 +326,105 @@ export function DocumentDetailPage() {
           </div>
         </div>
         
-        {/* Sidebar Layout */}
+        {/* Mobile Navigation Header */}
+        <div className="lg:hidden mt-6">
+          <div className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
+            <div className="flex items-center gap-2">
+              {activeTab === 'analytics' && <><BarChart3 className="h-5 w-5 text-blue-600" /><span className="font-medium">Analytics</span></>}
+              {activeTab === 'edit' && <><Edit className="h-5 w-5 text-blue-600" /><span className="font-medium">Edit CIM</span></>}
+              {activeTab === 'nda' && <><FileSignature className="h-5 w-5 text-blue-600" /><span className="font-medium">NDA Signatures</span></>}
+              {activeTab === 'share' && <><Share2 className="h-5 w-5 text-blue-600" /><span className="font-medium">Share CIM</span></>}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="min-h-[44px] px-4"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Switch Tab
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Sidebar Overlay */}
+        {isMobileSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
+
+        {/* Mobile Sidebar */}
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out
+          ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:hidden
+        `}>
+          <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h2 className="text-lg font-semibold text-gray-800">Navigation</h2>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <div className="p-4 space-y-2">
+            <button
+              onClick={() => handleTabChange('analytics')}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors min-h-[44px] ${
+                activeTab === 'analytics' 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <BarChart3 className="h-5 w-5" />
+              Analytics
+            </button>
+            <button
+              onClick={() => handleTabChange('edit')}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors min-h-[44px] ${
+                activeTab === 'edit' 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Edit className="h-5 w-5" />
+              Edit CIM
+            </button>
+            <button
+              onClick={() => handleTabChange('nda')}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors min-h-[44px] ${
+                activeTab === 'nda' 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <FileSignature className="h-5 w-5" />
+              NDA Signatures
+            </button>
+            <button
+              onClick={() => handleTabChange('share')}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors min-h-[44px] ${
+                activeTab === 'share' 
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Share2 className="h-5 w-5" />
+              Share CIM
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Sidebar Layout */}
         <div className="flex gap-8 mt-8">
-          {/* Sidebar Navigation */}
-          <div className="w-64 flex-shrink-0">
+          {/* Desktop Sidebar Navigation */}
+          <div className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="space-y-2 sticky top-6">
               <button
                 onClick={() => setActiveTab('analytics')}
@@ -377,7 +474,7 @@ export function DocumentDetailPage() {
           </div>
           
           {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 lg:ml-0">
             {activeTab === 'analytics' && (
               <DocumentAnalyticsTab 
                 cimDocument={cimDocument}
