@@ -222,36 +222,75 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome to CIM Share</CardTitle>
-          <CardDescription>
-            The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and PDF export capability.
-            <br /><br />
-            <strong>Create a free CIM today!</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-blue-400/10 blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-indigo-400/10 blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-cyan-400/5 blur-3xl"></div>
+      </div>
 
-            <TabsContent value="login" className="mt-4">
-              <LoginForm 
-                mutation={loginMutation} 
-                onForgotPassword={() => setShowForgotPassword(true)}
-              />
-            </TabsContent>
+      <div className="relative w-full max-w-lg">
+        {/* Main Card */}
+        <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
+          {/* Header Section */}
+          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-12 text-center">
+            {/* Logo/Icon */}
+            <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+            </div>
+            
+            <h1 className="text-3xl font-bold text-white mb-3">
+              Welcome to CIM Share
+            </h1>
+            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto mb-4">
+              Create professional Confidential Information Memorandums with advanced NDA protection and seamless collaboration
+            </p>
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm font-medium">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Start your free trial today
+            </div>
+          </div>
 
-            <TabsContent value="register" className="mt-4">
-              <RegisterForm mutation={registerMutation} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+          <CardContent className="p-8">
+            <Tabs defaultValue="login" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium transition-all duration-200"
+                >
+                  Login
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="register"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium transition-all duration-200"
+                >
+                  Register
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="login" className="space-y-0">
+                <LoginForm 
+                  mutation={loginMutation} 
+                  onForgotPassword={() => setShowForgotPassword(true)}
+                />
+              </TabsContent>
+
+              <TabsContent value="register" className="space-y-0">
+                <RegisterForm mutation={registerMutation} />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -267,18 +306,19 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-5 mt-6">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email address</FormLabel>
+              <FormLabel className="text-sm font-semibold text-gray-700">Email address</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   type="email"
                   autoComplete="email"
+                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
                   {...field}
                 />
               </FormControl>
@@ -292,12 +332,12 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
                 <Button
                   type="button"
                   variant="link"
                   size="sm"
-                  className="px-0 h-auto text-sm"
+                  className="px-0 h-auto text-sm text-blue-600 hover:text-blue-700 font-medium"
                   onClick={onForgotPassword}
                 >
                   Forgot password?
@@ -308,6 +348,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
                   type="password"
                   placeholder="Enter your password"
                   autoComplete="current-password"
+                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
                   {...field}
                 />
               </FormControl>
@@ -317,16 +358,21 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         />
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Logging in...
+              Signing in...
             </>
           ) : (
-            "Login"
+            <>
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Sign In
+            </>
           )}
         </Button>
       </form>
@@ -375,18 +421,19 @@ function RegisterForm({ mutation }: { mutation: any }) {
           agreeToTerms: data.agreeToTerms.toString()
         };
         mutation.mutate(formData as any);
-      })} className="space-y-4">
+      })} className="space-y-5 mt-6">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email address</FormLabel>
+              <FormLabel className="text-sm font-semibold text-gray-700">Email address</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   type="email"
                   autoComplete="email"
+                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
                   {...field}
                 />
               </FormControl>
@@ -399,12 +446,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
               <FormControl>
                 <Input
                   type="password"
-                  placeholder="Choose a secure password (min. 8 characters)"
+                  placeholder="Choose a secure password"
                   autoComplete="new-password"
+                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
@@ -503,24 +551,32 @@ function RegisterForm({ mutation }: { mutation: any }) {
         />
 
 
-        {/* Subtle divider line */}
-        <div className="border-t border-gray-200 my-4"></div>
+        {/* Elegant divider line */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-4 text-gray-500 font-medium">Agreement</span>
+          </div>
+        </div>
         
         <FormField
           control={form.control}
           name="agreeToTerms"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 bg-slate-50 p-4 rounded-lg border border-slate-200">
               <FormControl>
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className="mt-0.5"
                 />
               </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="text-sm font-normal">
+              <div className="space-y-1 leading-none flex-1">
+                <FormLabel className="text-sm font-normal text-gray-700">
                   I agree to the{" "}
-                  <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Terms and Conditions</a>
+                  <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">Terms and Conditions</a>
                 </FormLabel>
                 <FormMessage />
               </div>
@@ -530,16 +586,21 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating account...
+              Creating your account...
             </>
           ) : (
-            "Create Account"
+            <>
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+              </svg>
+              Create Account
+            </>
           )}
         </Button>
       </form>
