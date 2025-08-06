@@ -369,7 +369,12 @@ function RegisterForm({ mutation }: { mutation: any }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => {
-        mutation.mutate(data);
+        // Convert agreeToTerms boolean to string for backend compatibility
+        const formData = {
+          ...data,
+          agreeToTerms: data.agreeToTerms.toString()
+        };
+        mutation.mutate(formData as any);
       })} className="space-y-4">
         <FormField
           control={form.control}
@@ -407,85 +412,85 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   }}
                 />
               </FormControl>
-              {/* Password Requirements Checklist */}
-              <div className="mt-2 space-y-1 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+              {/* Modern Password Requirements Checklist */}
+              <div className="mt-3 space-y-2 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
                     passwordChecks.minLength 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                      : 'border-gray-300 bg-gray-50'
                   }`}>
                     {passwordChecks.minLength && (
-                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
                   </div>
-                  <span className={passwordChecks.minLength ? 'text-green-600' : ''}>
+                  <span className={`transition-colors duration-300 ${passwordChecks.minLength ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
                     At least 8 characters
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
                     passwordChecks.hasLowercase 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                      : 'border-gray-300 bg-gray-50'
                   }`}>
                     {passwordChecks.hasLowercase && (
-                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
                   </div>
-                  <span className={passwordChecks.hasLowercase ? 'text-green-600' : ''}>
+                  <span className={`transition-colors duration-300 ${passwordChecks.hasLowercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
                     One lowercase letter
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
                     passwordChecks.hasUppercase 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                      : 'border-gray-300 bg-gray-50'
                   }`}>
                     {passwordChecks.hasUppercase && (
-                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
                   </div>
-                  <span className={passwordChecks.hasUppercase ? 'text-green-600' : ''}>
+                  <span className={`transition-colors duration-300 ${passwordChecks.hasUppercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
                     One uppercase letter
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
                     passwordChecks.hasNumber 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                      : 'border-gray-300 bg-gray-50'
                   }`}>
                     {passwordChecks.hasNumber && (
-                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
                   </div>
-                  <span className={passwordChecks.hasNumber ? 'text-green-600' : ''}>
+                  <span className={`transition-colors duration-300 ${passwordChecks.hasNumber ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
                     One number
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
                     passwordChecks.hasSpecial 
-                      ? 'bg-green-500 border-green-500' 
-                      : 'border-gray-300'
+                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                      : 'border-gray-300 bg-gray-50'
                   }`}>
                     {passwordChecks.hasSpecial && (
-                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
                   </div>
-                  <span className={passwordChecks.hasSpecial ? 'text-green-600' : ''}>
+                  <span className={`transition-colors duration-300 ${passwordChecks.hasSpecial ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
                     One special character
                   </span>
                 </div>
