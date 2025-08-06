@@ -47,6 +47,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
 import { UnsplashIcon } from "@/components/ui/unsplash-icon";
+import { TemplatesLibrary } from "./templates-library";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -90,14 +91,9 @@ export function CimGenerator() {
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // New analysis template state
-  const [selectedPurpose, setSelectedPurpose] = useState<string>('business_overview');
-  const [selectedTone, setSelectedTone] = useState<string>('professional');
-  const [selectedAudience, setSelectedAudience] = useState<string>('investors');
-  const [customDirections, setCustomDirections] = useState<string>(DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections);
-  const [templateName, setTemplateName] = useState<string>('');
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
-  const [templateNameInput, setTemplateNameInput] = useState<string>('');
+  // Template state
+  const [customDirections, setCustomDirections] = useState<string>('');
+  const [selectedTemplateTitle, setSelectedTemplateTitle] = useState<string>('');
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
@@ -204,6 +200,16 @@ export function CimGenerator() {
     );
   };
 
+  // Handle template selection
+  const handleTemplateSelection = (template: any) => {
+    setCustomDirections(template.prompt);
+    setSelectedTemplateTitle(template.title);
+    toast({
+      title: "Template Applied",
+      description: `${template.title} template has been applied to your analysis directions.`,
+    });
+  };
+
   const searchUnsplash = async () => {
     if (!unsplashSearchQuery.trim()) return;
 
@@ -277,9 +283,6 @@ export function CimGenerator() {
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
-        formData.append('purpose', selectedPurpose);
-        formData.append('tone', selectedTone);
-        formData.append('audience', selectedAudience);
 
         if (hasWebsiteUrl) {
           formData.append('websiteUrl', data.websiteUrl!);
@@ -363,9 +366,6 @@ export function CimGenerator() {
           title: data.title,
           transcript: data.transcript,
           directions: data.directions,
-          purpose: selectedPurpose,
-          tone: selectedTone,
-          audience: selectedAudience,
           ...(hasWebsiteUrl && { websiteUrl: data.websiteUrl }),
           ...(selectedImages.length > 0 && { selectedImages }),
           ...(currentDocId && { docId: currentDocId }),
@@ -485,9 +485,6 @@ export function CimGenerator() {
         title: data.title,
         transcript: data.transcript,
         directions: data.directions,
-        purpose: selectedPurpose,
-        tone: selectedTone,
-        audience: selectedAudience,
         websiteUrl: data.websiteUrl,
         selectedImages
       };
@@ -518,37 +515,7 @@ export function CimGenerator() {
   });
 
   // Template management mutations
-  const createTemplateMutation = useMutation({
-    mutationFn: async (templateData: { name: string; customDirections: string }) => {
-      return apiRequest("POST", "/api/analysis-templates", templateData);
-    },
-    onSuccess: () => {
-      refetchTemplates();
-      setTemplateName('');
-      setIsTemplateDialogOpen(false);
-      toast({
-        title: "Template Saved",
-        description: "Your template has been saved successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to save template. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
 
-  const loadTemplate = (template: any) => {
-    setCustomDirections(template.customDirections);
-    form.setValue("directions", template.customDirections);
-    setIsTemplateDialogOpen(false);
-    toast({
-      title: "Template Loaded",
-      description: `Loaded template: ${template.name}`,
-    });
-  };
 
   // File handling functions
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1044,174 +1011,15 @@ export function CimGenerator() {
 
                 <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
                   <div className="flex items-center justify-between">
-                    <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Settings className="h-4 w-4" />
-                        Templates
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Manage Direction Templates</DialogTitle>
-                        <DialogDescription>
-                          Create, save, and load custom analysis direction templates
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      <div className="space-y-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          {/* Current Directions Editor */}
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium">Current Directions</Label>
-                            <Textarea
-                              className="min-h-[300px] text-sm"
-                              value={customDirections}
-                              onChange={(e) => {
-                                setCustomDirections(e.target.value);
-                                form.setValue("directions", e.target.value);
-                              }}
-                              placeholder="Enter your custom analysis directions..."
-                            />
-
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Template Name</Label>
-                              <Input
-                                value={templateName}
-                                onChange={(e) => setTemplateName(e.target.value)}
-                                placeholder="Enter template name..."
-                              />
-                            </div>
-
-                            <Button 
-                              size="sm" 
-                              onClick={() => {
-                                if (!templateName.trim()) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Please enter a template name.",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                createTemplateMutation.mutate({
-                                  name: templateName.trim(),
-                                  customDirections: customDirections
-                                });
-                              }}
-                              disabled={createTemplateMutation.isPending}
-                              className="w-full"
-                            >
-                              {createTemplateMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Save className="h-4 w-4 mr-2" />
-                              )}
-                              Save as Template
-                            </Button>
-                          </div>
-
-                          {/* Saved Templates List */}
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium">Saved Templates</Label>
-                            <div className="border rounded-lg max-h-[350px] overflow-y-auto">
-                              {analysisTemplates.length === 0 ? (
-                                <div className="p-4 text-center text-muted-foreground">
-                                  No saved templates yet. Create your first template!
-                                </div>
-                              ) : (
-                                <div className="space-y-2 p-2">
-                                  {analysisTemplates.map((template: any) => (
-                                    <div key={template.id} className="p-3 border rounded hover:bg-muted/50 cursor-pointer"
-                                         onClick={() => loadTemplate(template)}>
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <h4 className="font-medium text-sm">{template.name}</h4>
-                                          <p className="text-xs text-muted-foreground">
-                                            {template.customDirections.slice(0, 80)}...
-                                          </p>
-                                        </div>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            loadTemplate(template);
-                                          }}
-                                        >
-                                          <FolderOpen className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Purpose</Label>
-                    <Select
-                      value={selectedPurpose}
-                      onValueChange={(value) => {
-                        setSelectedPurpose(value);
-                      }}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="business_overview">Business Overview</SelectItem>
-                        <SelectItem value="investment_memo">Investment Memo</SelectItem>
-                        <SelectItem value="sale_preparation">Sale Preparation</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <TemplatesLibrary onSelectTemplate={handleTemplateSelection} />
+                    {selectedTemplateTitle && (
+                      <Badge variant="outline" className="text-xs">
+                        Using: {selectedTemplateTitle}
+                      </Badge>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Tone</Label>
-                    <Select
-                      value={selectedTone}
-                      onValueChange={(value) => {
-                        setSelectedTone(value);
-                      }}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="professional">Professional</SelectItem>
-                        <SelectItem value="conversational">Conversational</SelectItem>
-                        <SelectItem value="executive_summary">Executive Summary</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Audience</Label>
-                    <Select
-                      value={selectedAudience}
-                      onValueChange={(value) => {
-                        setSelectedAudience(value);
-                      }}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="investors">Investors</SelectItem>
-                        <SelectItem value="internal_team">Internal Team</SelectItem>
-                        <SelectItem value="high_school_level">High School Level</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
                 {/* Custom directions with grey title */}
                 <div className="space-y-2">
@@ -1274,9 +1082,9 @@ export function CimGenerator() {
                 stage={generationStage}
                 hasFinancials={
                   financialFiles.length > 0 || 
-                  financialData.askingPrice || 
-                  financialData.revenue || 
-                  financialData.ebitda
+                  !!financialData.askingPrice || 
+                  !!financialData.revenue || 
+                  !!financialData.ebitda
                 }
                 hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
               />
@@ -1300,7 +1108,7 @@ export function CimGenerator() {
               </Button>
               <DocumentExport
                 analysis={analysis}
-                docId={currentDocId}
+                docId={currentDocId || 0}
                 title={form.getValues("title")}
                 logoUrl={analysis.logoUrl}
                 selectedImages={selectedImages}
@@ -1310,7 +1118,7 @@ export function CimGenerator() {
 
           <CimDisplay
             analysis={analysis}
-            docId={currentDocId}
+            docId={currentDocId || 0}
             websiteUrl={form.getValues("websiteUrl")}
             logoUrl={analysis.logoUrl}
             selectedImages={selectedImages}
