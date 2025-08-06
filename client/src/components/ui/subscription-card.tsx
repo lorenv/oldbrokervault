@@ -71,7 +71,7 @@ export function SubscriptionCard({
 
   return (
     <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-      <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 pb-6 pt-8 px-8 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 pb-6 pt-8 px-8 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
@@ -79,7 +79,7 @@ export function SubscriptionCard({
             </div>
             <div>
               <CardTitle className="text-xl font-bold text-white">Subscription Status</CardTitle>
-              <p className="text-green-100 mt-1 text-sm">
+              <p className="text-emerald-100 mt-1 text-sm">
                 {status === "admin" ? "Administrator account with unlimited access" : 
                  status !== "free" ? "Your subscription details and usage" : 
                  "Upgrade to generate more CIMs per month"}
@@ -157,7 +157,7 @@ export function SubscriptionCard({
 
           {!isPremium && !isAdmin && (
             <Button
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-0 shadow-lg"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white border-0 shadow-lg"
               size={subtle ? "sm" : "default"}
               onClick={handleUpgrade}
             >
@@ -167,7 +167,7 @@ export function SubscriptionCard({
 
           {(isPremium || isStandard) && !isAdmin && (
             <Button
-              className="w-full bg-white/20 hover:bg-white/30 text-green-700 border-green-600/50 shadow-lg"
+              className="w-full bg-white/20 hover:bg-white/30 text-emerald-700 border-emerald-600/50 shadow-lg"
               variant="outline"
               size={subtle ? "sm" : "default"}
               onClick={handleCustomerPortal}
