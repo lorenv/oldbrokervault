@@ -412,87 +412,89 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   }}
                 />
               </FormControl>
-              {/* Modern Password Requirements Checklist */}
-              <div className="mt-3 space-y-2 text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                    passwordChecks.minLength 
-                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                      : 'border-gray-300 bg-gray-50'
-                  }`}>
-                    {passwordChecks.minLength && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+              {/* Modern Password Requirements Checklist - Two Columns */}
+              <div className="mt-3 text-xs">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
+                      passwordChecks.minLength 
+                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {passwordChecks.minLength && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`transition-colors duration-300 ${passwordChecks.minLength ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                      8+ characters
+                    </span>
                   </div>
-                  <span className={`transition-colors duration-300 ${passwordChecks.minLength ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                    At least 8 characters
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                    passwordChecks.hasLowercase 
-                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                      : 'border-gray-300 bg-gray-50'
-                  }`}>
-                    {passwordChecks.hasLowercase && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
+                      passwordChecks.hasLowercase 
+                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {passwordChecks.hasLowercase && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`transition-colors duration-300 ${passwordChecks.hasLowercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                      Lowercase
+                    </span>
                   </div>
-                  <span className={`transition-colors duration-300 ${passwordChecks.hasLowercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                    One lowercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                    passwordChecks.hasUppercase 
-                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                      : 'border-gray-300 bg-gray-50'
-                  }`}>
-                    {passwordChecks.hasUppercase && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
+                      passwordChecks.hasUppercase 
+                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {passwordChecks.hasUppercase && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`transition-colors duration-300 ${passwordChecks.hasUppercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                      Uppercase
+                    </span>
                   </div>
-                  <span className={`transition-colors duration-300 ${passwordChecks.hasUppercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                    One uppercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                    passwordChecks.hasNumber 
-                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                      : 'border-gray-300 bg-gray-50'
-                  }`}>
-                    {passwordChecks.hasNumber && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
+                      passwordChecks.hasNumber 
+                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {passwordChecks.hasNumber && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`transition-colors duration-300 ${passwordChecks.hasNumber ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                      Number
+                    </span>
                   </div>
-                  <span className={`transition-colors duration-300 ${passwordChecks.hasNumber ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                    One number
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                    passwordChecks.hasSpecial 
-                      ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                      : 'border-gray-300 bg-gray-50'
-                  }`}>
-                    {passwordChecks.hasSpecial && (
-                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
+                      passwordChecks.hasSpecial 
+                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
+                        : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {passwordChecks.hasSpecial && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className={`transition-colors duration-300 ${passwordChecks.hasSpecial ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                      Special char
+                    </span>
                   </div>
-                  <span className={`transition-colors duration-300 ${passwordChecks.hasSpecial ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                    One special character
-                  </span>
                 </div>
               </div>
               <FormMessage />
@@ -501,6 +503,9 @@ function RegisterForm({ mutation }: { mutation: any }) {
         />
 
 
+        {/* Subtle divider line */}
+        <div className="border-t border-gray-200 my-4"></div>
+        
         <FormField
           control={form.control}
           name="agreeToTerms"
