@@ -122,7 +122,7 @@ class ObjectStorageService {
    * @param filename - Original filename
    * @returns Storage key
    */
-  generateFileKey(userId: string, category: 'financial-files' | 'uploaded-cims' | 'documents', filename: string): string {
+  generateFileKey(userId: string, category: 'financial-files' | 'uploaded-cims' | 'documents' | 'cover-images', filename: string): string {
     return `users/${userId}/${category}/${filename}`;
   }
 
