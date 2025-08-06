@@ -344,6 +344,28 @@ function RegisterForm({ mutation }: { mutation: any }) {
     },
   });
 
+  // Password validation states for visual feedback
+  const [password, setPassword] = useState("");
+  const [passwordChecks, setPasswordChecks] = useState({
+    minLength: false,
+    hasLowercase: false,
+    hasUppercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+  });
+
+  // Update password checks in real-time
+  const updatePasswordChecks = (value: string) => {
+    setPassword(value);
+    setPasswordChecks({
+      minLength: value.length >= 8,
+      hasLowercase: /[a-z]/.test(value),
+      hasUppercase: /[A-Z]/.test(value),
+      hasNumber: /\d/.test(value),
+      hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(value),
+    });
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => {
@@ -379,8 +401,95 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   placeholder="Choose a secure password (min. 8 characters)"
                   autoComplete="new-password"
                   {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    updatePasswordChecks(e.target.value);
+                  }}
                 />
               </FormControl>
+              {/* Password Requirements Checklist */}
+              <div className="mt-2 space-y-1 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                    passwordChecks.minLength 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {passwordChecks.minLength && (
+                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={passwordChecks.minLength ? 'text-green-600' : ''}>
+                    At least 8 characters
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                    passwordChecks.hasLowercase 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {passwordChecks.hasLowercase && (
+                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={passwordChecks.hasLowercase ? 'text-green-600' : ''}>
+                    One lowercase letter
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                    passwordChecks.hasUppercase 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {passwordChecks.hasUppercase && (
+                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={passwordChecks.hasUppercase ? 'text-green-600' : ''}>
+                    One uppercase letter
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                    passwordChecks.hasNumber 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {passwordChecks.hasNumber && (
+                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={passwordChecks.hasNumber ? 'text-green-600' : ''}>
+                    One number
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-sm border transition-all duration-200 ${
+                    passwordChecks.hasSpecial 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-300'
+                  }`}>
+                    {passwordChecks.hasSpecial && (
+                      <svg className="w-2 h-2 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={passwordChecks.hasSpecial ? 'text-green-600' : ''}>
+                    One special character
+                  </span>
+                </div>
+              </div>
               <FormMessage />
             </FormItem>
           )}
