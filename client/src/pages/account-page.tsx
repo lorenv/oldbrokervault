@@ -254,7 +254,7 @@ function TemplatesContent() {
     <div className="space-y-6">
       {/* NDA Templates Section */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 pb-6 pt-8 px-8 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
@@ -262,7 +262,7 @@ function TemplatesContent() {
               </div>
               <div>
                 <CardTitle className="text-xl font-bold text-white">NDA Templates</CardTitle>
-                <CardDescription className="text-orange-100 mt-1">
+                <CardDescription className="text-indigo-100 mt-1">
                   Create and manage your NDA templates with signature fields
                 </CardDescription>
               </div>
@@ -274,7 +274,7 @@ function TemplatesContent() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewMode('grid')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white/30 shadow-sm text-white' : 'text-orange-100 hover:text-white hover:bg-white/20'}`}
+                    className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-white/30 shadow-sm text-white' : 'text-indigo-100 hover:text-white hover:bg-white/20'}`}
                   >
                     <Grid3X3 className="w-4 h-4" />
                   </Button>
@@ -282,7 +282,7 @@ function TemplatesContent() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewMode('list')}
-                    className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white/30 shadow-sm text-white' : 'text-orange-100 hover:text-white hover:bg-white/20'}`}
+                    className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-white/30 shadow-sm text-white' : 'text-indigo-100 hover:text-white hover:bg-white/20'}`}
                   >
                     <List className="w-4 h-4" />
                   </Button>
@@ -730,7 +730,7 @@ export default function AccountPage() {
       {/* Enhanced Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl shadow-lg">
+          <div className="p-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg">
             <Settings className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
@@ -769,14 +769,14 @@ export default function AccountPage() {
         {/* Account & Security Tab */}
         <TabsContent value="account" className="space-y-6">
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 pb-6 pt-8 px-8 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 pb-6 pt-8 px-8 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                   <Lock className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-xl font-bold text-white">Login Credentials</CardTitle>
-                  <CardDescription className="text-slate-100 mt-1">
+                  <CardDescription className="text-blue-100 mt-1">
                     Manage your email address and authentication settings
                   </CardDescription>
                 </div>
@@ -861,14 +861,14 @@ export default function AccountPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-teal-600 to-teal-700 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <User className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-white">Personal Information</CardTitle>
-                    <CardDescription className="text-slate-100 mt-1">
+                    <CardDescription className="text-teal-100 mt-1">
                       Contact details that appear in your CIM documents
                     </CardDescription>
                   </div>
@@ -912,14 +912,14 @@ export default function AccountPage() {
 
             {/* Profile Photo */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-cyan-600 to-cyan-700 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <Camera className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-white">Profile Photo</CardTitle>
-                    <CardDescription className="text-slate-100 mt-1">
+                    <CardDescription className="text-cyan-100 mt-1">
                       Your photo appears on share links and PDF exports
                     </CardDescription>
                   </div>
