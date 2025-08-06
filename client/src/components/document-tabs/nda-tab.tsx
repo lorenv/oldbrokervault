@@ -22,7 +22,8 @@ import {
   Loader2,
   Eye,
   Download,
-  FileSignature
+  FileSignature,
+  UserCheck
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +44,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null,
-    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+    ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
   });
 
   // Sync local state with document data when it changes
@@ -51,9 +52,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     setNdaSettings({
       ndaProtected: cimDocument.ndaProtected || false,
       ndaTemplateId: cimDocument.ndaTemplateId || null,
-      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+      ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
     });
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -460,7 +461,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               {/* Manual Approval Toggle - Simplified */}
               <div className="flex items-center justify-between py-3 px-4 rounded-md border border-gray-200 bg-gray-50/50">
                 <div className="space-y-1">
-                  <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-gray-500" />
                     Manual Approval
                   </Label>
                   <p className="text-xs text-gray-500">
@@ -468,9 +470,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {ndaSettings.ndaApprovalRequired ? 'Manual' : 'Auto'}
-                  </span>
                   <Switch
                     id="manual-approval"
                     checked={ndaSettings.ndaApprovalRequired}
