@@ -382,7 +382,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             Control who can access your confidential information
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-8">
           {/* Main Protection Toggle - Enhanced Design */}
           <div className="flex items-center justify-between py-6 px-8 rounded-2xl border-2 border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg">
             <div className="space-y-2">
