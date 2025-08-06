@@ -33,14 +33,14 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 shadow-xl">
-        <div className="container mx-auto px-4 py-8">
+      <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
+        <div className="container mx-auto px-4 py-12">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">
+              <h1 className="text-4xl font-bold text-white mb-3">
                 {welcomeMessage}
               </h1>
-              <p className="text-blue-100 mt-2 text-lg">Create professional CIM documents with AI-powered analysis</p>
+              <p className="text-slate-200 text-lg font-medium">Create professional CIM documents with AI-powered analysis</p>
             </div>
             
           </div>
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-2">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border-0 ring-1 ring-gray-200/50 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="p-8">
                 <CimGenerator />
               </div>
@@ -61,12 +61,10 @@ export default function DashboardPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recent Documents Card */}
-            <Card className="bg-white/95 backdrop-blur-sm shadow-xl border-0 ring-1 ring-gray-200/50 hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600 pb-6 pt-8 px-6 shadow-lg">
-                <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                    <Clock className="w-5 h-5 text-white" />
-                  </div>
+            <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-200 rounded-xl">
+              <CardHeader className="pb-4 pt-6 px-6">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                  <Clock className="w-5 h-5 text-blue-600" />
                   <span>Recent Documents</span>
                 </CardTitle>
               </CardHeader>
@@ -95,23 +93,19 @@ export default function DashboardPage() {
                         <a 
                           href={`/documents/${doc.id}`} 
                           key={doc.id} 
-                          className="group block p-5 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-xl hover:from-indigo-100 hover:via-purple-100 hover:to-pink-100 transition-all duration-300 border-2 border-indigo-200/30 hover:border-purple-300/50 hover:shadow-lg transform hover:scale-[1.02]"
+                          className="group block p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                              <h3 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
                                 {doc.title}
                               </h3>
-                              <p className="text-sm text-gray-600 mt-2 flex items-center gap-2">
-                                <div className="p-1 bg-purple-100 rounded-md">
-                                  <Clock className="w-3 h-3 text-purple-600" />
-                                </div>
+                              <p className="text-sm text-gray-500 mt-1 flex items-center space-x-1">
+                                <Clock className="w-3 h-3" />
                                 <span>{new Date(doc.createdAt || doc.created_at).toLocaleDateString()}</span>
                               </p>
                             </div>
-                            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 group-hover:bg-purple-200 rounded-full transition-all duration-300">
-                              <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-0.5 transition-all" />
-                            </div>
+                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                           </div>
                         </a>
                       ))
@@ -125,9 +119,9 @@ export default function DashboardPage() {
                   {documents.length > 3 && (
                     <a 
                       href="/documents" 
-                      className="block text-sm text-purple-600 hover:text-purple-700 font-semibold text-center mt-6 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-2 border-purple-200/30 hover:border-purple-300/50 transition-all duration-300 transform hover:scale-[1.02]"
+                      className="block text-sm text-blue-600 hover:text-blue-700 font-medium text-center mt-4 p-3 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 hover:border-blue-300"
                     >
-                      View all documents ({documents.length}) →
+                      View all documents ({documents.length})
                     </a>
                   )}
                 </div>
@@ -135,7 +129,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Subscription Card */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border-0 ring-1 ring-gray-200/50 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <SubscriptionCard 
                 status={user?.subscriptionStatus} 
                 endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 

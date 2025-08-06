@@ -292,26 +292,26 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     <div className="space-y-6">
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-xl">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Link className="h-5 w-5" />
               Share Link
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 onClick={copyShareUrl}
-                className="bg-white text-black border border-gray-300"
+                className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300"
               >
                 <Copy className="h-4 w-4" />
               </Button>
               <Input
                 value={shareUrl}
                 readOnly
-                className="flex-1"
+                className="flex-1 font-mono text-sm bg-gray-50"
               />
             </div>
 
@@ -340,40 +340,41 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       )}
 
       {/* Export Document */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
+        <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Download className="h-5 w-5" />
             Export Document
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={handlePdfExport}
               disabled={isPdfLoading}
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300"
             >
               <FileDown className="h-4 w-4 mr-2" />
               {isPdfLoading ? "Exporting..." : "Export PDF"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-gray-600">
             Download your CIM as PDF document for offline sharing
           </p>
         </CardContent>
       </Card>
 
       {/* Send via Email */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
+        <CardHeader className="bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Mail className="h-5 w-5" />
             Send via Email
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
+        <CardContent className="p-6">
+          <p className="text-sm text-gray-600 mb-4">
             Share this document directly via email with custom message
           </p>
           <Button
@@ -383,7 +384,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               shareUrl: shareUrl
             })}
             disabled={!shareSettings.shareEnabled}
-            className="bg-white text-black border border-gray-300 hover:bg-gray-50"
+            className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:border-purple-300"
           >
             <Mail className="h-4 w-4 mr-2" />
             Send Email
@@ -392,9 +393,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       </Card>
 
       {/* Share Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
+        <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Share2 className="h-5 w-5" />
             Share Settings
           </CardTitle>
@@ -465,7 +466,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           <Button 
             onClick={updateShareSettings}
             disabled={isUpdatingShare}
-            className="bg-white text-black border border-gray-300 hover:bg-gray-50"
+            className="bg-slate-600 text-white hover:bg-slate-700 border-slate-600 hover:border-slate-700"
           >
             {isUpdatingShare ? "Updating..." : "Update Share Settings"}
           </Button>
@@ -474,9 +475,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
+          <CardHeader className="bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-t-xl">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Code className="h-5 w-5" />
               Embed Code
             </CardTitle>
