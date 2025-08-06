@@ -485,7 +485,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={() => setLocation('/nda-templates')}
+                onClick={() => setLocation('/account?tab=templates')}
                 className="text-sm"
               >
                 Manage Templates
