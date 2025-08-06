@@ -193,12 +193,6 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
-                      <FileText className="h-4 w-4 mr-2" />
-                      NDA Templates
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
                     <Link href="/account" className="flex items-center cursor-pointer w-full">
                       <Settings className="h-4 w-4 mr-2" />
                       My Account
