@@ -900,25 +900,29 @@ export function CimDisplay({
                             />
                           ) : (
                             <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
-                              <ReactMarkdown 
-                                components={{
-                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
-                                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                  code: ({ children }) => <>{children}</>, // Render code as plain text
-                                  pre: ({ children }) => <>{children}</>, // Render code blocks as plain text
-                                  text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
-                                }}
-                              >
-                                {processMarkdownWithEscaping(section.content
-                                  .replace(/```[\s\S]*?```/g, (match: any) => {
-                                    // Convert code blocks to bullet points
-                                    const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
-                                    return content.split('\n').filter((line: any) => line.trim()).map((line: any) => `- ${line.trim()}`).join('\n');
-                                  })
-                                  .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
-                                )}
-                              </ReactMarkdown>
+                              {section.content.includes('<') && section.content.includes('>') ? (
+                                <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                              ) : (
+                                <ReactMarkdown 
+                                  components={{
+                                    ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                    code: ({ children }) => <>{children}</>, // Render code as plain text
+                                    pre: ({ children }) => <>{children}</>, // Render code blocks as plain text
+                                    text: ({ children }) => <>{restoreEscapedCharacters(String(children))}</>
+                                  }}
+                                >
+                                  {processMarkdownWithEscaping(section.content
+                                    .replace(/```[\s\S]*?```/g, (match: any) => {
+                                      // Convert code blocks to bullet points
+                                      const content = match.replace(/```[\w]*\n?/, '').replace(/```$/, '');
+                                      return content.split('\n').filter((line: any) => line.trim()).map((line: any) => `- ${line.trim()}`).join('\n');
+                                    })
+                                    .replace(/`([^`]+)`/g, '$1') // Remove inline code formatting
+                                  )}
+                                </ReactMarkdown>
+                              )}
                             </div>
                           )}
                         </div>
