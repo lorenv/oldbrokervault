@@ -170,36 +170,36 @@ export function EnhancedMessageCenter() {
   }
 
   return (
-    <div className="flex h-[800px] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col lg:flex-row min-h-[500px] lg:h-[800px] bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Thread List */}
-      <div className="w-1/3 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Messages</h2>
+      <div className={`${selectedThread ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gray-200 flex-col`}>
+        <div className="p-3 md:p-4 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <h2 className="text-lg md:text-xl font-semibold">Messages</h2>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 md:gap-2 w-full sm:w-auto justify-center text-sm"
             >
               {showArchived ? (
                 <>
-                  <ArchiveRestore className="h-4 w-4" />
-                  Active
+                  <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Show Active</span>
                 </>
               ) : (
                 <>
-                  <Archive className="h-4 w-4" />
-                  Archived
+                  <Archive className="h-3 w-3 md:h-4 md:w-4" />
+                  <span>Show Archived</span>
                 </>
               )}
             </Button>
           </div>
           
           {/* Enhanced email sync indicator */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 p-2 rounded">
-            <Mail className="h-4 w-4" />
-            <span>Email replies sync automatically</span>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 bg-blue-50 p-2 rounded">
+            <Mail className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="text-xs md:text-sm">Email replies sync automatically</span>
           </div>
         </div>
 
@@ -264,15 +264,27 @@ export function EnhancedMessageCenter() {
       </div>
 
       {/* Message Details */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${selectedThread ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
         {selectedThread ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="p-3 md:p-4 border-b border-gray-200 bg-gray-50">
               <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedThread.subject}</h3>
-                  <p className="text-sm text-gray-600">
+                <div className="flex-1 min-w-0">
+                  {/* Mobile back button */}
+                  <div className="lg:hidden mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedThread(null)}
+                      className="p-1 h-auto text-sm"
+                    >
+                      ← Back to Messages
+                    </Button>
+                  </div>
+                  
+                  <h3 className="text-base md:text-lg font-semibold truncate">{selectedThread.subject}</h3>
+                  <p className="text-xs md:text-sm text-gray-600 truncate">
                     Conversation with {selectedThread.inquirerName}
                   </p>
                   <p className="text-xs text-gray-500">
@@ -287,17 +299,17 @@ export function EnhancedMessageCenter() {
                     archive: !showArchived 
                   })}
                   disabled={archiveMutation.isPending}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3"
                 >
                   {showArchived ? (
                     <>
-                      <ArchiveRestore className="h-4 w-4" />
-                      Reactivate
+                      <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline">Reactivate</span>
                     </>
                   ) : (
                     <>
-                      <Archive className="h-4 w-4" />
-                      Archive
+                      <Archive className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline">Archive</span>
                     </>
                   )}
                 </Button>
@@ -305,7 +317,7 @@ export function EnhancedMessageCenter() {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-2 md:p-4">
               {messagesLoading ? (
                 <div className="flex justify-center items-center h-32">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -322,7 +334,7 @@ export function EnhancedMessageCenter() {
                         }`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
+                          className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 ${
                             message.senderType === 'owner'
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-100 text-gray-900'
@@ -361,30 +373,30 @@ export function EnhancedMessageCenter() {
 
             {/* Reply Box */}
             {!showArchived && (
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
                 <div className="space-y-2">
                   <Textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your reply... (will be sent via email)"
-                    className="min-h-[80px]"
+                    className="min-h-[60px] md:min-h-[80px] text-sm md:text-base"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                         handleSendMessage();
                       }
                     }}
                   />
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-500 flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span>Reply will be sent via email to {selectedThread.inquirerEmail}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 sm:gap-2">
+                      <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="truncate">Reply will be sent via email</span>
                     </div>
                     <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto text-sm"
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3 w-3 sm:h-4 sm:w-4" />
                       {sendMessageMutation.isPending ? 'Sending...' : 'Send Reply'}
                     </Button>
                   </div>
@@ -393,8 +405,11 @@ export function EnhancedMessageCenter() {
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            Select a conversation to view messages
+          <div className="flex-1 flex items-center justify-center text-gray-500 p-4">
+            <div className="text-center">
+              <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm md:text-base">Select a conversation to view messages</p>
+            </div>
           </div>
         )}
       </div>
