@@ -96,7 +96,7 @@ function TemplatesContent() {
       );
     },
     staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
   });
 
   // Create template mutation
@@ -377,7 +377,7 @@ function TemplatesContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4" />
-                        <span>{Array.isArray(template.signatureFields) ? template.signatureFields.length : 0} signature fields</span>
+                        <span>{template.signatureFields?.length || 0} signature fields</span>
                       </div>
                     </div>
                   </CardContent>
@@ -399,7 +399,7 @@ function TemplatesContent() {
                     <div>
                       <h3 className="font-medium group-hover:text-blue-600 transition-colors">{template.name}</h3>
                       <p className="text-sm text-gray-500">
-                        Created {format(new Date(template.createdAt), 'MMM d, yyyy')} • {Array.isArray(template.signatureFields) ? template.signatureFields.length : 0} signature fields
+                        Created {format(new Date(template.createdAt), 'MMM d, yyyy')} • {template.signatureFields?.length || 0} signature fields
                       </p>
                     </div>
                   </div>
@@ -723,60 +723,31 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-900 bg-clip-text text-transparent mb-2">
-          Account Settings
-        </h1>
-        <p className="text-slate-600 text-lg">
-          Manage your account, profile, templates, and subscription preferences
-        </p>
-        </div>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/50 p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAuthorizedAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'} bg-gradient-to-r from-slate-100 via-blue-50 to-slate-100 p-1.5 rounded-xl border border-slate-200/60 shadow-sm backdrop-blur-sm`}>
-          <TabsTrigger 
-            value="account" 
-            className="flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 data-[state=active]:border-0 hover:bg-white/80 hover:shadow-sm text-slate-700 font-medium"
-          >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className={`grid w-full ${isAuthorizedAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsTrigger value="account" className="flex items-center gap-2">
             <Lock className="h-4 w-4" />
-            <span className="hidden sm:inline">Account & Security</span>
-            <span className="sm:hidden">Account</span>
+            Account & Security
           </TabsTrigger>
-          <TabsTrigger 
-            value="profile" 
-            className="flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25 data-[state=active]:border-0 hover:bg-white/80 hover:shadow-sm text-slate-700 font-medium"
-          >
+          <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Profile & Business</span>
-            <span className="sm:hidden">Profile</span>
+            Profile & Business
           </TabsTrigger>
-          <TabsTrigger 
-            value="templates" 
-            className="flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 data-[state=active]:border-0 hover:bg-white/80 hover:shadow-sm text-slate-700 font-medium"
-          >
+          <TabsTrigger value="templates" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Templates</span>
-            <span className="sm:hidden">Templates</span>
+            Templates
           </TabsTrigger>
-          <TabsTrigger 
-            value="billing" 
-            className="flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25 data-[state=active]:border-0 hover:bg-white/80 hover:shadow-sm text-slate-700 font-medium"
-          >
+          <TabsTrigger value="billing" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Subscription</span>
-            <span className="sm:hidden">Billing</span>
+            Subscription
           </TabsTrigger>
           {isAuthorizedAdmin(user) && (
-            <TabsTrigger 
-              value="admin" 
-              className="flex items-center gap-2 py-3 px-4 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 data-[state=active]:border-0 hover:bg-white/80 hover:shadow-sm text-slate-700 font-medium"
-            >
+            <TabsTrigger value="admin" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Admin Tools</span>
-              <span className="sm:hidden">Admin</span>
+              Admin Tools
             </TabsTrigger>
           )}
         </TabsList>
@@ -1105,9 +1076,7 @@ export default function AccountPage() {
             <SecurityDashboard />
           </TabsContent>
         )}
-        </Tabs>
-        </div>
-      </div>
+      </Tabs>
     </div>
   );
 }
