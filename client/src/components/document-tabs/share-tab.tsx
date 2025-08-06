@@ -294,7 +294,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-t-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Link className="h-5 w-5" />
               Share Link
@@ -342,7 +342,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Export Document */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-green-700 to-green-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Download className="h-5 w-5" />
             Export Document
@@ -354,7 +354,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               variant="outline"
               onClick={handlePdfExport}
               disabled={isPdfLoading}
-              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300"
+              className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300"
             >
               <FileDown className="h-4 w-4 mr-2" />
               {isPdfLoading ? "Exporting..." : "Export PDF"}
@@ -368,7 +368,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Send via Email */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-purple-700 to-purple-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-violet-600 to-violet-700 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Mail className="h-5 w-5" />
             Send via Email
@@ -385,7 +385,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               shareUrl: shareUrl
             })}
             disabled={!shareSettings.shareEnabled}
-            className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:border-purple-300"
+            className="bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300"
           >
             <Mail className="h-4 w-4 mr-2" />
             Send Email
@@ -395,7 +395,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Share Settings */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-orange-600 to-slate-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Settings className="h-5 w-5" />
             Share Settings
@@ -477,7 +477,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white rounded-t-xl">
+          <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Code className="h-5 w-5" />
               Embed Code
