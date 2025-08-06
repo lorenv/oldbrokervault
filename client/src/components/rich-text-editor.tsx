@@ -154,7 +154,7 @@ export function RichTextEditor({
                   variant="default"
                   size="sm"
                   onClick={handleSave}
-                  className="h-8 px-2"
+                  className="h-8 px-2 mr-3"
                   title="Save"
                 >
                   <Save className="h-4 w-4 mr-1" />
@@ -171,7 +171,7 @@ export function RichTextEditor({
                   className="h-8 px-2"
                   title="Cancel"
                 >
-                  <X className="h-4 w-4 mr-1" />
+                  <X className="h-4 w-4 mr-0.5" />
                   Cancel
                 </Button>
               )}

@@ -41,7 +41,7 @@ export function NdaOwnerBypass({ onComplete, documentTitle }: NdaOwnerBypassProp
           </div>
           
           <p className="text-gray-600">
-            As the owner of <strong>{documentTitle}</strong>, you don't need to sign the NDA.
+            Bypassing the NDA page since you're the document owner.
           </p>
           
           <div className="bg-blue-50 p-4 rounded-lg">
