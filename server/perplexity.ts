@@ -1,5 +1,5 @@
 // Current Perplexity models: sonar-pro (recommended), sonar, sonar-reasoning-pro
-// Legacy models: llama-3.1-sonar-small-128k-online, llama-3.1-sonar-large-128k-online
+// Updated models: sonar, sonar-pro (2025)
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
 // New flexible document structure for free-form CIM generation
@@ -151,7 +151,7 @@ async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null>
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'sonar-pro',
         messages: [
           {
             role: 'system',
@@ -978,7 +978,7 @@ export async function generateCimWithWebsiteAnalysis(
       console.log('⚠️ No website URL provided, skipping website analysis');
     }
     
-    const result = await generateFlexibleCim(transcript, customDirections, purpose, tone, audience, financials, websiteData);
+    const result = await generateFlexibleCim(transcript, customDirections, purpose, tone, audience, financials, websiteData || undefined);
     console.log('✅ CIM generation with website analysis successful');
     return result;
   } catch (error) {

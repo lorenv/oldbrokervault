@@ -26,8 +26,8 @@ The application employs a client-server architecture.
 - **Session Store**: PostgreSQL-backed
 
 ### AI & Document Generation
-- **AI Services**: Perplexity API (primary, for document analysis), OpenAI GPT-4o (secondary, for enhanced analysis)
-- **Capabilities**: Website content analysis, business transcript processing, structured document generation.
+- **AI Services**: Perplexity API (primary, using sonar-pro model for real-time website analysis), OpenAI GPT-4o (secondary, for enhanced analysis)
+- **Capabilities**: Real-time website content analysis, business transcript processing, structured document generation, intelligent data merging.
 
 ### Authentication & Authorization
 - **Method**: Session-based with secure cookies
@@ -56,10 +56,19 @@ The application employs a client-server architecture.
 - Professional presentation for CIM documents, including customizable branding and template systems.
 
 ## External Dependencies
-- **Perplexity API**: AI content analysis and generation.
+- **Perplexity API**: Real-time website analysis using sonar-pro model (updated Aug 2025).
 - **OpenAI API**: Enhanced AI document analysis.
 - **Stripe**: Payment gateway for subscriptions and billing.
 - **SendGrid**: Email delivery for notifications and sharing.
 - **Neon Database**: Serverless PostgreSQL hosting.
 - **Replit Hosting**: Development and deployment platform.
 - **Google Cloud Storage**: Used via Replit Object Storage for file persistence.
+
+## Recent Changes (August 2025)
+### Website Crawler Feature Implementation
+- **Issue Fixed**: Updated deprecated Perplexity model from `llama-3.1-sonar-small-128k-online` to `sonar-pro`
+- **Website Analysis**: Fully functional real-time analysis of company websites during CIM generation
+- **URL Handling**: Robust support for various URL formats (with/without protocol, with/without www)
+- **User Control**: Optional website analysis toggle with progress tracking
+- **Data Integration**: Website data intelligently merged with user transcripts, with transcript taking precedence
+- **Progress Tracking**: Added "Analyzing website content" stage to generation progress
