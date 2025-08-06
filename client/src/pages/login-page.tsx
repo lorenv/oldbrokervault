@@ -246,7 +246,7 @@ export default function LoginPage() {
         {/* Main Card */}
         <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
           {/* Compact Header Section */}
-          <div className="relative bg-gradient-to-r from-slate-600 to-blue-600 px-8 py-8 text-center">
+          <div className="relative bg-gradient-to-r from-blue-600 to-slate-600 px-8 py-8 text-center">
             <h1 className="text-2xl font-bold text-white mb-2">
               Welcome to CIM Share
             </h1>
@@ -353,7 +353,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         />
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          className="w-full h-12 bg-gradient-to-r from-blue-600 to-slate-600 hover:from-blue-700 hover:to-slate-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
@@ -699,13 +699,6 @@ function RegisterForm({ mutation }: { mutation: any }) {
           </div>
         </div>
 
-        {/* Simple divider line */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-        </div>
-
         <FormField
           control={form.control}
           name="agreeToTerms"
@@ -731,7 +724,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-slate-600 hover:from-blue-700 hover:to-slate-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
+          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
