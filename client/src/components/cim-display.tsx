@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Eye
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import { CoverImageManager } from "./cover-image-manager";
@@ -175,12 +176,12 @@ export function CimDisplay({
   // State for section management - convert sections object to array if needed
   const initializeSections = () => {
     if (!analysis?.sections) return [];
-    
+
     // If sections is already an array, use it directly
     if (Array.isArray(analysis.sections)) {
       return analysis.sections;
     }
-    
+
     // If sections is an object, convert to array format
     if (typeof analysis.sections === 'object') {
       return Object.entries(analysis.sections).map(([key, value]: [string, any]) => ({
@@ -190,13 +191,13 @@ export function CimDisplay({
         ...value
       }));
     }
-    
+
     return [];
   };
-  
+
   const [sections, setSections] = useState(initializeSections());
   const [customSections, setCustomSections] = useState<any[]>([]);
-  
+
   // Update sections when analysis changes (e.g., when switching documents)
   useEffect(() => {
     setSections(initializeSections());
@@ -204,7 +205,7 @@ export function CimDisplay({
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
   const [isAddingSectionLoading, setIsAddingSectionLoading] = useState(false);
-  
+
   // Local state for immediate UI updates - properly initialize from cimDocument
   const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(
     logoUrl || cimDocument?.logoUrl || undefined
@@ -212,7 +213,7 @@ export function CimDisplay({
   const [localSelectedImages, setLocalSelectedImages] = useState(
     selectedImages || cimDocument?.selectedImages || []
   );
-  
+
   // Update local state when props change (important for shared views)
   useEffect(() => {
     if (selectedImages && selectedImages.length > 0) {
@@ -221,7 +222,7 @@ export function CimDisplay({
       setBrokenImages(new Set()); // Reset broken images when new images arrive
     }
   }, [selectedImages]);
-  
+
   // Also reset broken images when localSelectedImages changes
   useEffect(() => {
     if (localSelectedImages && localSelectedImages.length > 0) {
@@ -229,11 +230,11 @@ export function CimDisplay({
       setBrokenImages(new Set());
     }
   }, [localSelectedImages]);
-  
+
   // State for tracking broken images
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
   const [logoError, setLogoError] = useState(false);
-  
+
   // Debug selectedImages prop
   useEffect(() => {
     console.log("CimDisplay selectedImages prop:", selectedImages);
@@ -244,7 +245,7 @@ export function CimDisplay({
 
   // Share settings dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  
+
   // Lightbox state for business images
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -258,7 +259,7 @@ export function CimDisplay({
       setLogoError(false);
       setBrokenImages(new Set());
     }, 50);
-    
+
     return () => clearTimeout(timer);
   }, [logoUrl, selectedImages, cimDocument?.logoUrl, cimDocument?.selectedImages]);
 
@@ -310,18 +311,18 @@ export function CimDisplay({
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
       // Reorder the unified sections
       const reorderedSections = arrayMove(unifiedSections, activeIndex, overIndex);
-      
+
       // Separate back into regular and custom sections with new positions
       const newRegularSections: any[] = [];
       const updatedCustomSections: any[] = [];
-      
+
       reorderedSections.forEach((item, index) => {
         if (item.type === 'regular') {
           newRegularSections.push(item.data);
         } else {
           // For custom sections, determine their insertAfterSection based on position
           let insertAfterSection = 'start';
-          
+
           // Look backwards to find the last regular section
           for (let i = index - 1; i >= 0; i--) {
             if (reorderedSections[i].type === 'regular') {
@@ -330,14 +331,14 @@ export function CimDisplay({
               break;
             }
           }
-          
+
           // If no regular section found before this, and there are regular sections after, use 'start'
           // If no regular sections at all or all are after, use 'end'
           const hasRegularAfter = reorderedSections.slice(index + 1).some(s => s.type === 'regular');
           if (insertAfterSection === 'start' && !hasRegularAfter && newRegularSections.length > 0) {
             insertAfterSection = 'end';
           }
-          
+
           updatedCustomSections.push({
             ...item.data,
             insertAfterSection,
@@ -363,7 +364,7 @@ export function CimDisplay({
             position: s.position,
             insertAfterSection: s.insertAfterSection
           }));
-          
+
           await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
             sections: customSectionUpdates
           });
@@ -390,7 +391,7 @@ export function CimDisplay({
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
         analysis: updatedAnalysis
       });
-      
+
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -416,7 +417,7 @@ export function CimDisplay({
     // Add custom sections with calculated sort order based on their insertAfterSection
     const customSectionItems = customSections.map((customSection: any) => {
       let sortOrder = 0;
-      
+
       if (customSection.insertAfterSection === 'start') {
         // Custom sections at start get negative sort order
         sortOrder = -1000 + customSection.position;
@@ -429,7 +430,7 @@ export function CimDisplay({
           const sectionId = section.id || section.title || `section-${index}`;
           return sectionId === customSection.insertAfterSection;
         });
-        
+
         if (afterSectionIndex !== -1) {
           // Place after the found section with micro-positioning
           sortOrder = (afterSectionIndex * 100) + 50 + customSection.position;
@@ -450,7 +451,7 @@ export function CimDisplay({
     // Combine and sort by sortOrder
     const allSections = [...regularSectionItems, ...customSectionItems];
     allSections.sort((a, b) => a.sortOrder - b.sortOrder);
-    
+
     return allSections;
   };
 
@@ -459,7 +460,7 @@ export function CimDisplay({
     try {
       // Immediately update local state for instant UI feedback
       setLocalLogoUrl(undefined);
-      
+
       const response = await apiRequest("DELETE", `/api/cim/${docId}/logo`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
@@ -481,7 +482,7 @@ export function CimDisplay({
       // Immediately update local state for instant UI feedback
       const updatedImages = localSelectedImages.filter((_: any, index: number) => index !== imageIndex);
       setLocalSelectedImages(updatedImages);
-      
+
       const response = await apiRequest("DELETE", `/api/cim/${docId}/business-image/${imageIndex}`);
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
@@ -518,7 +519,7 @@ export function CimDisplay({
       }
 
       setIsLogoUploading(true);
-      
+
       const formData = new FormData();
       formData.append('logo', file);
 
@@ -530,10 +531,10 @@ export function CimDisplay({
       if (response.ok) {
         const result = await response.json();
         setLocalLogoUrl(result.logoUrl);
-        
+
         // Invalidate specific query only to avoid affecting modal state
         queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-        
+
         toast({ title: "Logo Updated", description: "Logo uploaded successfully." });
       } else {
         const error = await response.json();
@@ -580,10 +581,10 @@ export function CimDisplay({
           const result = await response.json();
           // Update local state immediately
           setLocalSelectedImages(prev => [...prev, result.imagePath]);
-          
+
           // Invalidate specific query only to avoid affecting modal state
           queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
-          
+
           toast({ title: "Upload Successful", description: `${file.name} uploaded successfully.` });
         } else {
           const error = await response.json();
@@ -714,7 +715,7 @@ export function CimDisplay({
             )}
           </div>
         )}
-        
+
         {/* Business Images */}
         {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (
           <div className="mb-6">
@@ -812,7 +813,7 @@ export function CimDisplay({
             ) : null}
           </div>
         )}
-        
+
         {/* Combined Draggable Sections */}
         <DndContext
           sensors={sensors}
@@ -855,13 +856,13 @@ export function CimDisplay({
                                     return sec;
                                   });
                                   setSections(updatedSections);
-                                  
+
                                   const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
+
                                   const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                                     analysis: updatedAnalysis
                                   });
-                                  
+
                                   if (response.ok) {
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -893,13 +894,13 @@ export function CimDisplay({
                                     return sec;
                                   });
                                   setSections(updatedSections);
-                                  
+
                                   const updatedAnalysis = { ...analysis, sections: updatedSections };
-                                  
+
                                   const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
                                     analysis: updatedAnalysis
                                   });
-                                  
+
                                   if (response.ok) {
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
@@ -977,7 +978,7 @@ export function CimDisplay({
                                   const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
                                     title: newTitle
                                   });
-                                  
+
                                   if (response.ok) {
                                     setCustomSections(prev => prev.map(s => 
                                       s.id === customSection.id ? { ...s, title: newTitle } : s
@@ -1007,7 +1008,7 @@ export function CimDisplay({
                                     const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
                                       content: newContent
                                     });
-                                    
+
                                     if (response.ok) {
                                       setCustomSections(prev => prev.map(s => 
                                         s.id === customSection.id ? { ...s, content: newContent } : s
@@ -1133,7 +1134,7 @@ export function CimDisplay({
                         Add a custom text section with your own content
                       </span>
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       className="h-auto p-4 flex flex-col items-start gap-2"
@@ -1231,7 +1232,7 @@ export function CimDisplay({
       )}
 
       </div>
-      
+
       {/* Image Lightbox Dialog */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 border-0 bg-black [&>button]:hidden">
@@ -1243,7 +1244,7 @@ export function CimDisplay({
                   alt={`Business image ${currentImageIndex + 1}`}
                   className="w-full h-auto max-h-[80vh] object-contain"
                 />
-                
+
                 {/* Navigation buttons */}
                 {localSelectedImages.length > 1 && (
                   <>
@@ -1265,7 +1266,7 @@ export function CimDisplay({
                     </Button>
                   </>
                 )}
-                
+
                 {/* Close button */}
                 <Button
                   variant="ghost"
@@ -1275,7 +1276,7 @@ export function CimDisplay({
                 >
                   <X className="h-6 w-6" />
                 </Button>
-                
+
                 {/* Image counter */}
                 {localSelectedImages.length > 1 && (
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
@@ -1287,8 +1288,8 @@ export function CimDisplay({
           </div>
         </DialogContent>
       </Dialog>
-      
-      
+
+
     </div>
   );
 }
