@@ -116,7 +116,9 @@ export const cimDocuments = pgTable("cim_documents", {
   // Search and version tracking (premium features)
   searchVector: text("search_vector"), // Full-text search vector
   version: integer("version").default(1).notNull(),
-  lastModifiedBy: integer("last_modified_by")
+  lastModifiedBy: integer("last_modified_by"),
+  // Example document flag - doesn't count towards subscription limits
+  isExample: boolean("is_example").default(false).notNull()
 });
 
 export const uploadedFiles = pgTable("uploaded_files", {
