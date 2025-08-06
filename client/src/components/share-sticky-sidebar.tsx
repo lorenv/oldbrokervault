@@ -100,7 +100,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
   return (
     <div className="sticky top-8">
       {/* Combined Contact Information and Form Card */}
-      <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+      <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl ring-1 ring-gray-200/50">
         {/* Contact Information Section */}
         {userProfile && (
           <>
@@ -128,17 +128,17 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 {/* Name and Title */}
                 <div className="text-center space-y-2">
                   {userProfile.name && (
-                    <h3 className="text-lg font-bold text-slate-900 break-words">
+                    <h3 className="text-lg font-bold text-slate-900 break-words overflow-wrap-anywhere">
                       {userProfile.name}
                     </h3>
                   )}
                   {userProfile.title && (
-                    <p className="text-sm text-blue-600 font-medium break-words">{userProfile.title}</p>
+                    <p className="text-sm text-blue-600 font-medium break-words overflow-wrap-anywhere">{userProfile.title}</p>
                   )}
                   {userProfile.businessName && (
                     <p className="text-sm text-slate-600 font-medium flex items-center justify-center gap-1 break-words">
                       <Building2 className="h-3 w-3 flex-shrink-0" />
-                      <span className="break-words">{userProfile.businessName}</span>
+                      <span className="break-words overflow-wrap-anywhere max-w-full">{userProfile.businessName}</span>
                     </p>
                   )}
 
@@ -163,7 +163,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       </div>
                       <a
                         href={`mailto:${userProfile.email}`}
-                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors truncate"
+                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors break-all min-w-0 flex-1"
                       >
                         {userProfile.email}
                       </a>
@@ -176,7 +176,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       </div>
                       <a
                         href={`tel:${userProfile.phoneNumber || userProfile.phone}`}
-                        className="text-emerald-700 text-sm font-semibold hover:text-emerald-800 transition-colors"
+                        className="text-emerald-700 text-sm font-semibold hover:text-emerald-800 transition-colors break-all min-w-0 flex-1"
                       >
                         {userProfile.phoneNumber}
                       </a>
@@ -253,14 +253,13 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                   </div>
 
                   <div>
-                    <Label htmlFor="question" className="text-sm font-medium">What would you like to know about this opportunity? *</Label>
                     <ResizableRichTextEditor
                       value={formData.question}
                       onChange={(value) => handleInputChange('question', value)}
                       placeholder="Ask about financials, operations, growth opportunities, or any other details..."
                       className="text-sm"
                       minHeight={120}
-                      maxHeight={250}
+                      maxHeight={400}
                     />
                   </div>
                 </div>
