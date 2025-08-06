@@ -107,7 +107,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="pb-4 pt-6 px-6 bg-blue-50/30">
+            <CardHeader className="pb-2 pt-6 px-6 bg-blue-50/30">
               <CardTitle className="flex items-center gap-2 text-base font-medium text-slate-700">
                 <div className="p-1.5 bg-blue-100/80 rounded-lg">
                   <User className="h-4 w-4 text-blue-600" />
@@ -115,7 +115,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pb-6">
+            <CardContent className="px-6 pb-6 pt-4">
               <div className="space-y-6">
                 {/* Profile Photo */}
                 {userProfile.profilePhoto && (

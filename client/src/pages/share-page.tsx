@@ -648,7 +648,7 @@ export function SharePage() {
                             <DollarSign className="h-5 w-5 text-blue-600" />
                             <h4 className="text-lg font-semibold text-gray-600">Asking Price</h4>
                           </div>
-                          <p className="text-3xl font-bold text-blue-600">
+                          <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
                             {shareData.cim.askingPrice || "Not specified"}
                           </p>
                         </div>
@@ -657,7 +657,7 @@ export function SharePage() {
                             <TrendingUp className="h-5 w-5 text-blue-600" />
                             <h4 className="text-lg font-semibold text-gray-600">Annual Revenue</h4>
                           </div>
-                          <p className="text-3xl font-bold text-blue-600">
+                          <p className="text-2xl sm:text-3xl font-bold text-blue-600 break-words">
                             {shareData.cim.revenue || "Not specified"}
                           </p>
                         </div>
@@ -666,7 +666,7 @@ export function SharePage() {
                             <BarChart3 className="h-5 w-5 text-purple-600" />
                             <h4 className="text-lg font-semibold text-gray-600">EBITDA</h4>
                           </div>
-                          <p className="text-3xl font-bold text-purple-600">
+                          <p className="text-2xl sm:text-3xl font-bold text-purple-600 break-words">
                             {shareData.cim.ebitda || "Not specified"}
                           </p>
                         </div>
