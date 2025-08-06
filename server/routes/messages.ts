@@ -9,8 +9,9 @@ router.get("/threads", async (req, res) => {
   
   try {
     const userId = req.user!.id;
+    const archived = req.query.archived === 'true';
 
-    const threads = await messageService.getThreadsForUser(userId);
+    const threads = await messageService.getThreadsForUser(userId, archived);
     res.json(threads);
   } catch (error) {
     console.error("Error fetching message threads:", error);
@@ -38,7 +39,7 @@ router.get("/threads/:threadId/messages", async (req, res) => {
     res.json(messages);
   } catch (error) {
     console.error("Error fetching thread messages:", error);
-    if (error.message.includes("not found or access denied")) {
+    if ((error as Error).message.includes("not found or access denied")) {
       return res.status(404).json({ error: "Thread not found" });
     }
     res.status(500).json({ error: "Failed to fetch messages" });
@@ -63,7 +64,7 @@ router.post("/threads/:threadId/reply", async (req, res) => {
     res.json(message);
   } catch (error) {
     console.error("Error replying to thread:", error);
-    if (error.message.includes("not found or access denied")) {
+    if ((error as Error).message.includes("not found or access denied")) {
       return res.status(404).json({ error: "Thread not found" });
     }
     res.status(500).json({ error: "Failed to send reply" });
@@ -143,7 +144,7 @@ router.post("/contact", async (req, res) => {
     }
 
     // Get the CIM document to find the owner
-    const { cimDocuments } = await import("../shared/schema");
+    const { cimDocuments } = await import("../../shared/schema");
     const { db } = await import("../lib/db");
     const { eq } = await import("drizzle-orm");
 
@@ -205,6 +206,20 @@ router.post("/webhook/inbound", async (req, res) => {
   } catch (error) {
     console.error("Error processing inbound email:", error);
     res.status(500).json({ error: "Failed to process inbound email" });
+  }
+});
+
+// Get email sync status for a thread (Phase 2)
+router.get("/sync-status/:threadId", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  
+  try {
+    const threadId = parseInt(req.params.threadId);
+    const syncStatus = await messageService.getEmailSyncStatus(threadId, req.user!.id);
+    res.json(syncStatus);
+  } catch (error) {
+    console.error("Failed to get sync status:", error);
+    res.status(500).json({ error: "Failed to get sync status" });
   }
 });
 

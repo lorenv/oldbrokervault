@@ -2964,6 +2964,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SendGrid Inbound Email Webhook (Phase 2)
+  app.post('/api/webhook/sendgrid/inbound', express.json(), async (req, res) => {
+    console.log("📧 SendGrid inbound webhook received");
+    
+    try {
+      await messageService.processInboundEmailWebhook(req.body);
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error("Failed to process inbound email webhook:", error);
+      res.status(500).send('Error processing webhook');
+    }
+  });
+
+  // SendGrid Event Webhook (for delivery tracking)
+  app.post('/api/webhook/sendgrid/events', express.json(), async (req, res) => {
+    console.log("📊 SendGrid event webhook received");
+    
+    try {
+      const events = Array.isArray(req.body) ? req.body : [req.body];
+      
+      for (const event of events) {
+        await messageService.processEmailEvent(event);
+      }
+      
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error("Failed to process email events:", error);
+      res.status(500).send('Error processing events');
+    }
+  });
+
   // Stripe webhook endpoint with enhanced error handling
   app.post("/api/webhook/stripe", async (req, res) => {
     // Validate webhook signature
