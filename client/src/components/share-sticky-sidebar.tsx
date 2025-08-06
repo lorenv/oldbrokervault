@@ -100,7 +100,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
   return (
     <div className="sticky top-8">
       {/* Combined Contact Information and Form Card */}
-      <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+      <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl ring-1 ring-gray-200/50">
         {/* Contact Information Section */}
         {userProfile && (
           <>
@@ -259,7 +259,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       placeholder="Ask about financials, operations, growth opportunities, or any other details..."
                       className="text-sm"
                       minHeight={120}
-                      maxHeight={250}
+                      maxHeight={400}
                     />
                   </div>
                 </div>
