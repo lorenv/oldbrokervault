@@ -12,6 +12,7 @@ import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
+import ProfilePage from "@/pages/profile-page";
 import PricingPage from "@/pages/pricing-page";
 
 import ContactPage from "@/pages/contact-page";
@@ -52,6 +53,7 @@ function Router() {
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/messages" component={Messages} />
             <ProtectedRoute path="/account" component={AccountPage} />
+            <ProtectedRoute path="/profile" component={ProfilePage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
