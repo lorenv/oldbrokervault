@@ -198,18 +198,17 @@ export class MessageService {
   async getUnreadCountForUser(userId: number): Promise<number> {
     const result = await db
       .select({
-        count: sql<number>`
-          COUNT(*) FROM ${messages} 
-          INNER JOIN ${messageThreads} ON ${messages.threadId} = ${messageThreads.id}
-          WHERE ${messageThreads.userId} = ${userId}
-          AND ${messages.senderType} = 'inquirer'
-          AND ${messages.isRead} = false
-        `
+        count: sql<number>`COUNT(*)`
       })
-      .from(messageThreads)
-      .where(eq(messageThreads.userId, userId));
+      .from(messages)
+      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+      .where(and(
+        eq(messageThreads.userId, userId),
+        eq(messages.senderType, "inquirer"),
+        eq(messages.isRead, false)
+      ));
 
-    return result[0]?.count || 0;
+    return Number(result[0]?.count) || 0;
   }
 
   // Reply to a thread (from app)
@@ -271,8 +270,8 @@ export class MessageService {
           threadEmailAddress: messageThreads.threadEmailAddress
         })
         .from(messageThreads)
-        .leftJoin(sql`users ON users.id = ${messageThreads.userId}`)
-        .leftJoin(sql`cim_documents ON cim_documents.id = ${messageThreads.cimDocumentId}`)
+        .leftJoin(users, eq(users.id, messageThreads.userId))
+        .leftJoin(cimDocuments, eq(cimDocuments.id, messageThreads.cimDocumentId))
         .where(eq(messageThreads.id, threadId));
 
       if (!threadDetails) return;
@@ -402,8 +401,7 @@ export class MessageService {
         senderType: "inquirer",
         senderEmail: fromEmail,
         content,
-        messageType: "email_reply",
-        sendgridMessageId
+        messageType: "email_reply"
       });
 
       // Log successful sync
