@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Users, Calendar, TrendingUp, Globe, FileSignature, Shield } from "lucide-react";
+import { Eye, Users, Calendar, TrendingUp, Globe, FileSignature } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
@@ -76,31 +76,27 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-slate-50 ring-1 ring-blue-100/50">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">Total Views</CardTitle>
-            <div className="p-1.5 bg-blue-100 rounded-lg">
-              <Eye className="h-4 w-4 text-blue-600" />
-            </div>
+            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-800">{totalViews}</div>
-            <p className="text-xs text-slate-500">
+            <div className="text-2xl font-bold">{totalViews}</div>
+            <p className="text-xs text-muted-foreground">
               Document page views
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-50 to-slate-50 ring-1 ring-emerald-100/50">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">NDA Signatures</CardTitle>
-            <div className="p-1.5 bg-emerald-100 rounded-lg">
-              <FileSignature className="h-4 w-4 text-emerald-600" />
-            </div>
+            <CardTitle className="text-sm font-medium">NDA Signatures</CardTitle>
+            <FileSignature className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-800">{totalSignatures}</div>
-            <p className="text-xs text-slate-500">
+            <div className="text-2xl font-bold">{totalSignatures}</div>
+            <p className="text-xs text-muted-foreground">
               Signed agreements
             </p>
           </CardContent>
@@ -108,11 +104,11 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
       </div>
 
       {/* Activity Chart */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50 ring-1 ring-slate-200/50">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-t-lg">
-          <CardTitle className="text-white">Activity Over Time (Last 30 Days)</CardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle>Activity Over Time (Last 30 Days)</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -143,25 +139,20 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
 
       {/* Document Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-slate-50 ring-1 ring-amber-100/50">
-          <CardHeader className="bg-gradient-to-r from-amber-600 to-slate-700 text-white rounded-t-lg">
-            <CardTitle className="text-white flex items-center gap-2">
-              <div className="p-1.5 bg-white/20 rounded-lg">
-                <Shield className="h-4 w-4" />
-              </div>
-              Document Status
-            </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Document Status</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Sharing Status</span>
+              <span className="text-sm">Sharing Status</span>
               <Badge variant={cimDocument.shareEnabled ? "default" : "secondary"}>
                 {cimDocument.shareEnabled ? "Public" : "Private"}
               </Badge>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">NDA Protection</span>
+              <span className="text-sm">NDA Protection</span>
               <Badge variant={cimDocument.ndaProtected ? "default" : "secondary"}>
                 {cimDocument.ndaProtected ? "Enabled" : "Disabled"}
               </Badge>
@@ -169,25 +160,25 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
             
             {cimDocument.shareEnabled && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-700">Share URL</span>
+                <span className="text-sm">Share URL</span>
                 <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-emerald-600" />
-                  <span className="text-xs text-emerald-600 font-medium">Active</span>
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Active</span>
                 </div>
               </div>
             )}
             
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Created</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-sm">Created</span>
+              <span className="text-xs text-muted-foreground">
                 {new Date(cimDocument.createdAt).toLocaleDateString()}
               </span>
             </div>
             
             {cimDocument.updatedAt && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-700">Last Modified</span>
-                <span className="text-xs text-slate-500">
+                <span className="text-sm">Last Modified</span>
+                <span className="text-xs text-muted-foreground">
                   {new Date(cimDocument.updatedAt).toLocaleDateString()}
                 </span>
               </div>
@@ -195,29 +186,24 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-violet-50 to-slate-50 ring-1 ring-violet-100/50">
-          <CardHeader className="bg-gradient-to-r from-violet-600 to-slate-700 text-white rounded-t-lg">
-            <CardTitle className="text-white flex items-center gap-2">
-              <div className="p-1.5 bg-white/20 rounded-lg">
-                <Users className="h-4 w-4" />
-              </div>
-              Recent Activity
-            </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent>
             {recentSignatures.length > 0 ? (
               <div className="space-y-3">
                 {recentSignatures.map((signature, index) => (
-                  <div key={signature.id} className="flex items-center justify-between py-2 border-b border-violet-100 last:border-b-0">
+                  <div key={signature.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                     <div>
-                      <p className="text-sm font-medium text-slate-700">{signature.signerName}</p>
-                      <p className="text-xs text-slate-500">{signature.signerEmail}</p>
+                      <p className="text-sm font-medium">{signature.signerName}</p>
+                      <p className="text-xs text-muted-foreground">{signature.signerEmail}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {format(new Date(signature.signedAt), 'MMM dd, yyyy')}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {signature.signerLocation || 'Unknown location'}
                       </p>
                     </div>
@@ -226,9 +212,9 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
               </div>
             ) : (
               <div className="text-center py-8">
-                <FileSignature className="h-8 w-8 text-violet-400 mx-auto mb-2" />
-                <p className="text-sm text-slate-600">No signatures yet</p>
-                <p className="text-xs text-slate-500">Enable NDA protection to start collecting signatures</p>
+                <FileSignature className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No signatures yet</p>
+                <p className="text-xs text-muted-foreground">Enable NDA protection to start collecting signatures</p>
               </div>
             )}
           </CardContent>
