@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -22,7 +22,7 @@ import { format } from 'date-fns'; // Import format function
 
 // Define interface for CIM documents with analysis
 interface CimDocumentWithAnalysis extends CimDocument {
-  shareViewCount?: number;
+  shareViewCount: number;
   hasNdaSignatures?: boolean;
   ndaProtected?: boolean; // Assuming ndaProtected is a property from the backend
   ndaSignatureCount?: number; // Assuming ndaSignatureCount is a property from the backend
@@ -159,25 +159,28 @@ export default function DocumentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:justify-between items-start md:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold">My CIM Documents</h1>
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <div className="relative flex-grow">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold">My CIM Documents</h1>
+            <Link href="/dashboard" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm sm:text-base">
+                <Plus className="h-4 w-4" />
+                <span>Create New CIM</span>
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="w-full">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search documents..."
-                className="pl-9"
+                className="pl-9 w-full text-sm sm:text-base"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Link href="/dashboard">
-              <Button className="w-full sm:w-auto whitespace-nowrap">
-                <FileText className="mr-2 h-4 w-4" />
-                Create New CIM
-              </Button>
-            </Link>
           </div>
         </div>
 
@@ -191,13 +194,13 @@ export default function DocumentsPage() {
 
         {/* Documents Grid */}
         {!documentsLoading && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {documents?.map((doc) => (
               <div key={doc.id} className="relative">
                 <Link href={`/documents/${doc.id}`}>
                   <Card className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start gap-3">
+                    <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+                      <div className="flex justify-between items-start gap-2 sm:gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {doc.logoUrl && (
@@ -205,47 +208,48 @@ export default function DocumentsPage() {
                                 <img 
                                   src={doc.logoUrl} 
                                   alt="Company logo" 
-                                  className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-gray-200"
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                   }}
                                 />
                               </div>
                             )}
-                            <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
+                            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
                               {doc.title}
                             </CardTitle>
                           </div>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {new Date(doc.createdAt).toLocaleDateString()}
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className="hidden sm:inline">{new Date(doc.createdAt).toLocaleDateString()}</span>
+                              <span className="sm:hidden">{new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </div>
                             {doc.ndaProtected && (
                               <div className="flex items-center gap-1">
-                                <PenTool className="h-3 w-3" />
-                                NDA
+                                <PenTool className="h-3 w-3 flex-shrink-0" />
+                                <span>NDA</span>
                               </div>
                             )}
                             <div className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}
+                              <Eye className="h-3 w-3 flex-shrink-0" />
+                              <span>{doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className="pt-0 p-3 sm:p-6 sm:pt-0">
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         {doc.shareEnabled ? (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full">
-                            <Globe className="h-3 w-3" />
-                            Shared
+                          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
+                            <Globe className="h-3 w-3 flex-shrink-0" />
+                            <span>Shared</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full">
-                            <Lock className="h-3 w-3" />
-                            Private
+                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
+                            <Lock className="h-3 w-3 flex-shrink-0" />
+                            <span>Private</span>
                           </div>
                         )}
                       </div>
@@ -254,14 +258,14 @@ export default function DocumentsPage() {
                 </Link>
 
                 {/* Dropdown Menu positioned absolutely to avoid Link nesting */}
-                <div className="absolute top-3 right-3 z-10">
+                <div className="absolute top-2 sm:top-3 right-2 sm:right-3 z-10">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-60 hover:opacity-100 transition-opacity">
-                        <Share2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 opacity-60 hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm">
+                        <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem 
                         onClick={() => {
                           window.location.href = `/documents/${doc.id}?tab=share`;

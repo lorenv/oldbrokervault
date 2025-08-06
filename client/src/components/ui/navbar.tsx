@@ -72,81 +72,137 @@ export function Navbar() {
         )}
 
         {user && (
-          <div className="flex items-center space-x-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className={`flex items-center gap-2 ${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
-                >
-                  Menu
-                  {(profile as any)?.profilePhoto ? (
-                    <img 
-                      src={(profile as any).profilePhoto} 
-                      alt="Profile" 
-                      className="w-6 h-6 rounded-full object-cover border border-border"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Menu</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="flex items-center cursor-pointer w-full">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Create New CIM
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/documents" className="flex items-center cursor-pointer w-full">
-                    <FileText className="h-4 w-4 mr-2" />
-                    My CIMs
-                  </Link>
-                </DropdownMenuItem>
-                {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
+          <>
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Navigation</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/investor-database" className="flex items-center cursor-pointer w-full">
-                      <Database className="h-4 w-4 mr-2" />
-                      Investor Database
+                    <Link href="/dashboard" className="w-full cursor-pointer">
+                      <FileText className="mr-2 h-4 w-4" />
+                      My CIMs
                     </Link>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/messages" className="flex items-center cursor-pointer w-full">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Messages
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
-                    <FileText className="h-4 w-4 mr-2" />
-                    NDA Templates
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account" className="flex items-center cursor-pointer w-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    My Account
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  Support
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="w-full cursor-pointer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="w-full cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  {user.isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin" className="w-full cursor-pointer">
+                        <Database className="mr-2 h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Support
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    className="text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className={`flex items-center gap-2 ${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
+                  >
+                    Menu
+                    {(profile as any)?.profilePhoto ? (
+                      <img 
+                        src={(profile as any).profilePhoto} 
+                        alt="Profile" 
+                        className="w-6 h-6 rounded-full object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Menu</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="flex items-center cursor-pointer w-full">
+                      <Zap className="h-4 w-4 mr-2" />
+                      Create New CIM
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/documents" className="flex items-center cursor-pointer w-full">
+                      <FileText className="h-4 w-4 mr-2" />
+                      My CIMs
+                    </Link>
+                  </DropdownMenuItem>
+                  {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/investor-database" className="flex items-center cursor-pointer w-full">
+                        <Database className="h-4 w-4 mr-2" />
+                        Investor Database
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="flex items-center cursor-pointer w-full">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Messages
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
+                      <FileText className="h-4 w-4 mr-2" />
+                      NDA Templates
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/account" className="flex items-center cursor-pointer w-full">
+                      <Settings className="h-4 w-4 mr-2" />
+                      My Account
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    Support
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </>
         )}
       </div>
       <SupportDialog open={isSupportOpen} onOpenChange={setIsSupportOpen} />
