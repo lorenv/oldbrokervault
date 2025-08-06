@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { ResizableRichTextEditor } from "@/components/resizable-rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Mail, Phone, User, Building2, CheckCircle } from "lucide-react";
 
@@ -117,9 +117,9 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 {/* Profile Photo */}
                 {userProfile.profilePhoto && (
                   <div className="flex justify-center">
-                    <img 
-                      src={userProfile.profilePhoto} 
-                      alt="Profile" 
+                    <img
+                      src={userProfile.profilePhoto}
+                      alt="Profile"
                       className="w-28 h-28 rounded-xl object-cover"
                     />
                   </div>
@@ -145,9 +145,9 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                   {/* User's Business Logo - only show user's actual business logo */}
                   {userProfile.businessLogo && (
                     <div className="flex justify-center pt-2">
-                      <img 
-                        src={userProfile.businessLogo} 
-                        alt="Business Logo" 
+                      <img
+                        src={userProfile.businessLogo}
+                        alt="Business Logo"
                         className="max-w-32 max-h-16 object-contain"
                       />
                     </div>
@@ -161,8 +161,8 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       <div className="p-1.5 bg-blue-500 rounded-lg shadow-sm">
                         <Mail className="h-4 w-4 text-white flex-shrink-0" />
                       </div>
-                      <a 
-                        href={`mailto:${userProfile.email}`} 
+                      <a
+                        href={`mailto:${userProfile.email}`}
                         className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors truncate"
                       >
                         {userProfile.email}
@@ -174,8 +174,8 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                       <div className="p-1.5 bg-emerald-500 rounded-lg shadow-sm">
                         <Phone className="h-4 w-4 text-white flex-shrink-0" />
                       </div>
-                      <a 
-                        href={`tel:${userProfile.phoneNumber || userProfile.phone}`} 
+                      <a
+                        href={`tel:${userProfile.phoneNumber || userProfile.phone}`}
                         className="text-emerald-700 text-sm font-semibold hover:text-emerald-800 transition-colors"
                       >
                         {userProfile.phoneNumber}
@@ -253,13 +253,14 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                   </div>
 
                   <div>
-                    <Textarea
-                      id="question"
+                    <Label htmlFor="question" className="text-sm font-medium">What would you like to know about this opportunity? *</Label>
+                    <ResizableRichTextEditor
                       value={formData.question}
-                      onChange={(e) => handleInputChange('question', e.target.value)}
-                      placeholder="What would you like to know about this opportunity?"
-                      className="text-sm min-h-20 resize-none"
-                      required
+                      onChange={(value) => handleInputChange('question', value)}
+                      placeholder="Ask about financials, operations, growth opportunities, or any other details..."
+                      className="text-sm"
+                      minHeight={120}
+                      maxHeight={250}
                     />
                   </div>
                 </div>
