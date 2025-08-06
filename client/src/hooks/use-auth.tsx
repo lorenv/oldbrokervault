@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    mutationFn: async (credentials: InsertUser | FormData) => {
       // Check if user is in incognito/private mode
       try {
         const isIncognito = await detectIncognitoMode();
