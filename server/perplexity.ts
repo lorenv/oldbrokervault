@@ -960,17 +960,22 @@ export async function generateCimWithWebsiteAnalysis(
     // Analyze website content if URL is provided
     if (websiteUrl?.trim()) {
       console.log('🔍 Analyzing website content:', websiteUrl);
+      console.log('🔍 Website URL validation passed, calling analyzeWebsiteContent...');
       try {
         websiteData = await analyzeWebsiteContent(websiteUrl);
         if (websiteData) {
           console.log('✅ Website analysis completed successfully');
+          console.log('📄 Website data preview:', websiteData.substring(0, 200) + '...');
         } else {
           console.log('⚠️ Website analysis returned no data');
         }
       } catch (error) {
-        console.warn('⚠️ Website analysis failed, continuing without website data:', error);
+        console.error('❌ Website analysis failed with error:', error);
+        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         websiteData = null;
       }
+    } else {
+      console.log('⚠️ No website URL provided, skipping website analysis');
     }
     
     const result = await generateFlexibleCim(transcript, customDirections, purpose, tone, audience, financials, websiteData);
