@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -627,9 +627,12 @@ export function CimGenerator() {
 
               {/* Document Information Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-blue-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
-                  <h3 className="text-sm font-semibold text-gray-800">Document Information</h3>
-                  <p className="text-xs text-gray-600">Basic details about your CIM document</p>
+                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
+                  <FileText className="h-5 w-5" />
+                  <div>
+                    <h3 className="font-semibold">Document Information</h3>
+                    <p className="text-sm text-slate-300">Basic details about your CIM document</p>
+                  </div>
                 </div>
 
                 <div className="space-y-4 ml-4">
@@ -683,9 +686,12 @@ export function CimGenerator() {
 
               {/* Business Notes Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-green-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
-                  <h3 className="text-sm font-semibold text-gray-800">Business Notes</h3>
-                  <p className="text-xs text-gray-600">Paste your business meeting transcript or notes</p>
+                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
+                  <NotebookPen className="h-5 w-5" />
+                  <div>
+                    <h3 className="font-semibold">Business Notes</h3>
+                    <p className="text-sm text-slate-300">Paste your business meeting transcript or notes</p>
+                  </div>
                 </div>
 
                 <div className="ml-4">
@@ -896,9 +902,12 @@ export function CimGenerator() {
 
               {/* Financial Information Section - Simplified */}
               <div className="space-y-4">
-                <div className="border-l-4 border-purple-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
-                  <h3 className="text-sm font-semibold text-gray-800">Financial Information</h3>
-                  <p className="text-xs text-gray-600">Add key financial metrics to enhance your CIM</p>
+                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
+                  <DollarSign className="h-5 w-5" />
+                  <div>
+                    <h3 className="font-semibold">Financial Information</h3>
+                    <p className="text-sm text-slate-300">Add key financial metrics to enhance your CIM</p>
+                  </div>
                 </div>
 
                 <div className="ml-4 space-y-6 p-4 border rounded-lg bg-background">
@@ -1004,9 +1013,12 @@ export function CimGenerator() {
 
               {/* Analysis Directions Section */}
               <div className="space-y-4">
-                <div className="border-l-4 border-orange-500 pl-4 py-3 bg-gradient-to-r from-gray-50 to-transparent rounded-r-lg">
-                  <h3 className="text-sm font-semibold text-gray-800">Analysis Directions</h3>
-                  <p className="text-xs text-gray-600">Customize how AI analyzes your transcript</p>
+                <div className="bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3">
+                  <Settings2 className="h-5 w-5" />
+                  <div>
+                    <h3 className="font-semibold">Analysis Directions</h3>
+                    <p className="text-sm text-slate-300">Customize how AI analyzes your transcript</p>
+                  </div>
                 </div>
 
                 <div className="ml-4 space-y-4 p-4 border rounded-lg bg-background">
