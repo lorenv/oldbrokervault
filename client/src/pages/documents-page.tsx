@@ -197,7 +197,7 @@ export default function DocumentsPage() {
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {documents?.map((doc) => (
               <div key={doc.id} className="relative">
-                <Link href={`/documents/${doc.id}`}>
+                <Link href={`/documents/${doc.id}?tab=analytics`}>
                   <Card className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm">
                     <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
                       <div className="flex justify-between items-start gap-2 sm:gap-3">
