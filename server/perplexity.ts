@@ -131,6 +131,102 @@ type LegacyCimAnalysis = {
   };
 };
 
+// Website content analysis function
+async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null> {
+  try {
+    if (!websiteUrl?.trim()) {
+      return null;
+    }
+
+    // Clean URL - add protocol if missing
+    let cleanUrl = websiteUrl.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-sonar-small-128k-online',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a business intelligence analyst. Analyze the provided website and extract key business information that would be valuable for creating a Confidential Information Memorandum (CIM). Focus on extracting factual, objective information.`
+          },
+          {
+            role: 'user',
+            content: `Analyze this company website: ${cleanUrl}
+
+Please extract and structure the following information if available:
+
+1. COMPANY OVERVIEW:
+   - Company name and tagline
+   - Mission/vision statements
+   - Year founded and company history
+   - Business description and core activities
+
+2. SERVICES & PRODUCTS:
+   - Primary products or services offered
+   - Key features and capabilities
+   - Target markets and customer segments
+   - Unique selling propositions
+
+3. TEAM & LEADERSHIP:
+   - Key executives and leadership team
+   - Team size and organizational structure
+   - Notable backgrounds or expertise
+   - Advisory board or key stakeholders
+
+4. BUSINESS OPERATIONS:
+   - Geographic presence and locations
+   - Operational model and processes
+   - Technology stack or key systems
+   - Partnerships and key relationships
+
+5. MARKET POSITION:
+   - Industry and market focus
+   - Competitive advantages
+   - Awards, certifications, or recognition
+   - Client testimonials or case studies
+
+6. GROWTH & ACHIEVEMENTS:
+   - Recent milestones or achievements
+   - Growth indicators or metrics mentioned
+   - Future plans or expansion initiatives
+   - Press releases or news coverage
+
+Please provide a comprehensive but concise analysis focusing on factual information that would supplement a business analysis. If certain information is not available on the website, simply omit those sections. Format the response as clear, structured text that can be integrated into a business document.`
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.2,
+        top_p: 0.9,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Perplexity API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      return data.choices[0].message.content;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error analyzing website content:', error);
+    return null;
+  }
+}
+
 // New flexible CIM generation function
 async function generateFlexibleCim(
   transcript: string, 
@@ -246,6 +342,15 @@ HTML FORMATTING RULES FOR RICH TEXT:
 - Ensure all HTML tags are properly opened and closed
 - Keep formatting consistent throughout all sections
 
+DATA SOURCE INTEGRATION RULES:
+${websiteData ? `- You have access to both TRANSCRIPT data and WEBSITE data
+- TRANSCRIPT data should ALWAYS take precedence when there are conflicts
+- Use website data to SUPPLEMENT and ENHANCE the transcript information, not replace it
+- When incorporating website data, seamlessly blend it with transcript information
+- If transcript mentions something that website data contradicts, use the transcript version
+- Use website data to fill gaps or add context that wasn't covered in the transcript
+- Do not indicate source differences in the final document - blend information naturally` : '- Base your analysis primarily on the transcript data provided'}
+
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above
 2. Extract and organize information from the transcript according to the custom directions
@@ -253,12 +358,13 @@ INSTRUCTIONS:
 4. Write for ${audience} using the appropriate communication style
 5. Focus on ${purpose} as the primary objective
 6. Include specific details, metrics, and facts from the transcript
-7. Organize content into logical sections with clear headings
-8. STRICTLY follow the formatting requirements for ${tone} style
-9. Ensure all information is factual and based on the transcript
+7. ${websiteData ? 'Intelligently supplement transcript information with relevant website insights' : ''}
+8. Organize content into logical sections with clear headings
+9. STRICTLY follow the formatting requirements for ${tone} style
+10. Ensure all information is factual and prioritizes transcript data over website data
+11. Create a cohesive narrative that naturally integrates all available information sources
 
-${websiteData ? `WEBSITE DATA:
-Use this additional context from the company website:
+${websiteData ? `WEBSITE ANALYSIS DATA (Use to supplement transcript):
 ${websiteData}` : ''}
 
 ${financials ? `FINANCIAL DATA:
@@ -835,6 +941,49 @@ export async function generateFlexibleCimDocument(
     throw new Error(`Failed to generate flexible CIM: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
+// New comprehensive CIM generation function with website analysis
+export async function generateCimWithWebsiteAnalysis(
+  transcript: string,
+  customDirections: string,
+  purpose: string,
+  tone: string,
+  audience: string,
+  financials?: any,
+  websiteUrl?: string
+): Promise<FlexibleCimDocument> {
+  try {
+    console.log('🧠 Generating CIM with optional website analysis');
+    
+    let websiteData: string | null = null;
+    
+    // Analyze website content if URL is provided
+    if (websiteUrl?.trim()) {
+      console.log('🔍 Analyzing website content:', websiteUrl);
+      try {
+        websiteData = await analyzeWebsiteContent(websiteUrl);
+        if (websiteData) {
+          console.log('✅ Website analysis completed successfully');
+        } else {
+          console.log('⚠️ Website analysis returned no data');
+        }
+      } catch (error) {
+        console.warn('⚠️ Website analysis failed, continuing without website data:', error);
+        websiteData = null;
+      }
+    }
+    
+    const result = await generateFlexibleCim(transcript, customDirections, purpose, tone, audience, financials, websiteData);
+    console.log('✅ CIM generation with website analysis successful');
+    return result;
+  } catch (error) {
+    console.error('❌ Error generating CIM with website analysis:', error);
+    throw error;
+  }
+}
+
+// Export the website analysis function for standalone use
+export { analyzeWebsiteContent };
 
 // Export types for use in other files
 export type { FlexibleCimDocument, CimAnalysis };
