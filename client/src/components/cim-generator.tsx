@@ -462,7 +462,7 @@ export function CimGenerator() {
 
       toast({
         title: "CIM Generated Successfully",
-        description: "Your document has been created successfully!",
+        description: "Your document has been created successfully! Redirecting you to the editor...",
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
@@ -1084,7 +1084,7 @@ export function CimGenerator() {
 
           <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white border-0 shadow-lg" 
                 disabled={generateMutation.isPending}
               >
                 {generateMutation.isPending ? (

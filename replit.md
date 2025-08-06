@@ -72,3 +72,10 @@ The application employs a client-server architecture.
 - **User Control**: Optional website analysis toggle with progress tracking
 - **Data Integration**: Website data intelligently merged with user transcripts, with transcript taking precedence
 - **Progress Tracking**: Added "Analyzing website content" stage to generation progress
+
+### Subscription Security Enhancement
+- **Critical Fix**: Closed subscription bypass loophole where users could delete and recreate documents to exceed limits
+- **Root Cause**: Document limit validation used database count instead of monthly counter, allowing deletion bypass
+- **Solution**: Modified `checkUserLimit()` to use `monthlyDocumentsCreated` counter consistently
+- **Security Impact**: Users can no longer circumvent subscription limits through document deletion
+- **Billing Integrity**: Monthly counters track total documents created per month regardless of deletions
