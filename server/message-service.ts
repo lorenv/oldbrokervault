@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { messageThreads, messages, emailSyncLog, cimDocuments } from "../shared/schema";
+import { messageThreads, messages, emailSyncLog, cimDocuments, users } from "../shared/schema";
 import type { 
   MessageThread, 
   InsertMessageThread, 
@@ -88,10 +88,10 @@ export class MessageService {
   }
 
   // Get all threads for a user with unread count
-  async getThreadsForUser(userId: number): Promise<(MessageThread & { 
+  async getThreadsForUser(userId: number, archived: boolean = false): Promise<(MessageThread & { 
     unreadCount: number;
     lastMessage?: Message;
-    cimTitle?: string;
+    cimTitle?: string | null;
   })[]> {
     const threadsWithDetails = await db
       .select({
@@ -119,7 +119,10 @@ export class MessageService {
       })
       .from(messageThreads)
       .leftJoin(cimDocuments, eq(messageThreads.cimDocumentId, cimDocuments.id))
-      .where(eq(messageThreads.userId, userId))
+      .where(and(
+        eq(messageThreads.userId, userId),
+        eq(messageThreads.status, archived ? "archived" : "active")
+      ))
       .orderBy(desc(messageThreads.lastMessageAt));
 
     // Get last message for each thread
@@ -303,7 +306,7 @@ export class MessageService {
       await sendEmail({
         to: threadDetails.ownerEmail,
         from: "noreply@cimshare.com",
-        replyTo: threadDetails.threadEmailAddress,
+        replyTo: threadDetails.threadEmailAddress || undefined,
         subject: `New inquiry: ${threadDetails.subject}`,
         html: emailContent
       });
@@ -361,8 +364,9 @@ export class MessageService {
     threadId: number,
     messageId: number | null,
     direction: "inbound" | "outbound",
-    status: "pending" | "sent" | "delivered" | "bounced" | "failed",
-    errorMessage?: string
+    status: "pending" | "sent" | "delivered" | "bounced" | "failed" | string,
+    errorMessage?: string,
+    sendgridMessageId?: string
   ): Promise<void> {
     await db
       .insert(emailSyncLog)
@@ -370,8 +374,9 @@ export class MessageService {
         threadId,
         messageId,
         direction,
-        status,
-        errorMessage
+        status: status as any,
+        errorMessage,
+        sendgridMessageId
       });
   }
 
@@ -417,6 +422,184 @@ export class MessageService {
     }
   }
 
+  // Phase 2: Process SendGrid inbound email webhook
+  async processInboundEmailWebhook(webhookData: any): Promise<void> {
+    console.log("📧 Processing inbound email webhook:", JSON.stringify(webhookData, null, 2));
+    
+    try {
+      // Parse SendGrid inbound email format
+      // Expected format: { to, from, subject, text, html, dkim, SPF }
+      const toEmail = webhookData.to;
+      const fromEmail = webhookData.from;
+      const subject = webhookData.subject || '';
+      const content = webhookData.text || webhookData.html || '';
+      const messageId = webhookData['message-id'] || undefined;
+      
+      console.log(`Inbound email: ${fromEmail} -> ${toEmail}`);
+      
+      // Extract thread ID from email address (format: thread-123@cimshare.com)
+      const threadMatch = toEmail.match(/thread-(\d+)@/);
+      if (!threadMatch) {
+        console.log("No thread ID found in recipient email:", toEmail);
+        return;
+      }
+      
+      const threadId = parseInt(threadMatch[1]);
+      console.log("Found thread ID:", threadId);
+      
+      // Verify thread exists
+      const [thread] = await db
+        .select()
+        .from(messageThreads)
+        .where(eq(messageThreads.id, threadId));
+        
+      if (!thread) {
+        console.error("Thread not found:", threadId);
+        return;
+      }
+      
+      // Clean content (remove quoted text and signatures)
+      const cleanContent = this.cleanEmailContent(content);
+      
+      // Determine sender type
+      const senderType = fromEmail === thread.inquirerEmail ? 'inquirer' : 
+                        fromEmail.includes('@cimshare.com') ? 'owner' : 'inquirer';
+      
+      // Create the message
+      const message = await this.createMessage({
+        threadId: thread.id,
+        senderType,
+        senderEmail: fromEmail,
+        content: cleanContent,
+        messageType: "email_reply",
+        sendgridMessageId: messageId
+      });
+      
+      // Log successful sync
+      await this.logEmailSync(thread.id, message.id, "inbound", "delivered");
+      
+      // Send notification to the appropriate party
+      if (senderType === 'inquirer') {
+        // Notify owner of new inquiry response
+        await this.notifyOwnerOfNewMessage(thread.id, cleanContent);
+      } else {
+        // Notify inquirer of owner response
+        await this.notifyInquirerOfResponse(thread.id, cleanContent);
+      }
+      
+      console.log("✅ Successfully processed inbound email");
+      
+    } catch (error) {
+      console.error("❌ Failed to process inbound email:", error);
+      throw error;
+    }
+  }
+  
+  // Phase 2: Process SendGrid email events (delivery, open, click tracking)
+  async processEmailEvent(event: any): Promise<void> {
+    try {
+      console.log("📊 Processing email event:", event.event, event.sg_message_id);
+      
+      // Find message by SendGrid message ID
+      if (event.sg_message_id) {
+        const [message] = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.sendgridMessageId, event.sg_message_id));
+          
+        if (message) {
+          // Log delivery event
+          await this.logEmailSync(
+            message.threadId, 
+            message.id, 
+            "outbound", 
+            event.event,
+            undefined,
+            event.sg_message_id
+          );
+        }
+      }
+      
+    } catch (error) {
+      console.error("Failed to process email event:", error);
+    }
+  }
+  
+  // Clean email content by removing quoted text and signatures
+  private cleanEmailContent(content: string): string {
+    // Remove common email signatures and quoted text
+    let cleaned = content
+      // Remove quoted text (lines starting with >)
+      .split('\n')
+      .filter(line => !line.trim().startsWith('>'))
+      .join('\n')
+      // Remove "On ... wrote:" patterns
+      .replace(/On .+ wrote:/g, '')
+      // Remove common signature separators
+      .replace(/^\s*--\s*$/gm, '')
+      // Remove excessive whitespace
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
+      
+    // If content is very short after cleaning, return original
+    if (cleaned.length < 10 && content.length > cleaned.length) {
+      return content;
+    }
+    
+    return cleaned;
+  }
+  
+  // Send notification to inquirer about owner response
+  private async notifyInquirerOfResponse(threadId: number, content: string): Promise<void> {
+    try {
+      const [threadDetails] = await db
+        .select({
+          inquirerEmail: messageThreads.inquirerEmail,
+          inquirerName: messageThreads.inquirerName,
+          subject: messageThreads.subject,
+          cimTitle: sql<string>`cim_documents.title`,
+          threadEmailAddress: messageThreads.threadEmailAddress
+        })
+        .from(messageThreads)
+        .leftJoin(cimDocuments, eq(cimDocuments.id, messageThreads.cimDocumentId))
+        .where(eq(messageThreads.id, threadId));
+
+      if (!threadDetails) return;
+
+      const emailContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Response to Your Inquiry</h2>
+          
+          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Regarding:</strong> ${threadDetails.cimTitle}</p>
+            <p><strong>Subject:</strong> ${threadDetails.subject}</p>
+          </div>
+          
+          <div style="background: white; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <p style="margin: 0;">${content.replace(/\n/g, '<br>')}</p>
+          </div>
+          
+          <div style="margin: 20px 0; padding: 15px; background: #eff6ff; border-radius: 8px;">
+            <p style="margin: 0; font-size: 14px; color: #1e40af;">
+              You can reply directly to this email to continue the conversation.
+            </p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail({
+        to: threadDetails.inquirerEmail,
+        from: "noreply@cimshare.com",
+        replyTo: threadDetails.threadEmailAddress || undefined,
+        subject: `Re: ${threadDetails.subject}`,
+        html: emailContent
+      });
+
+    } catch (error) {
+      console.error("Failed to notify inquirer:", error);
+    }
+  }
+
   // Archive a thread
   async archiveThread(threadId: number, userId: number): Promise<void> {
     await db
@@ -443,6 +626,30 @@ export class MessageService {
         eq(messageThreads.id, threadId),
         eq(messageThreads.userId, userId)
       ));
+  }
+
+  // Get email sync status for a thread (Phase 2)
+  async getEmailSyncStatus(threadId: number, userId: number): Promise<any[]> {
+    // Verify user owns the thread
+    const thread = await db
+      .select()
+      .from(messageThreads)
+      .where(and(
+        eq(messageThreads.id, threadId),
+        eq(messageThreads.userId, userId)
+      ))
+      .limit(1);
+
+    if (thread.length === 0) {
+      throw new Error("Thread not found or access denied");
+    }
+
+    // Get sync status for this thread
+    return await db
+      .select()
+      .from(emailSyncLog)
+      .where(eq(emailSyncLog.threadId, threadId))
+      .orderBy(desc(emailSyncLog.syncAt));
   }
 }
 
