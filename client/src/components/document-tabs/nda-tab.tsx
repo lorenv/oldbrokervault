@@ -372,9 +372,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       {/* NDA Protection Settings - Enhanced Professional Design */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
         <CardHeader className="bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 pb-6 pt-8 px-8 shadow-lg">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-              <Shield className="h-6 w-6 text-white" />
+              <Shield className="h-5 w-5 text-white" />
             </div>
             NDA Protection Settings
           </CardTitle>
@@ -503,9 +503,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
         <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
+            <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                <FileSignature className="h-6 w-6 text-white" />
+                <FileSignature className="h-5 w-5 text-white" />
               </div>
               NDA Signatures ({ndaSignatures.length})
               {cimDocument.ndaApprovalRequired && (
