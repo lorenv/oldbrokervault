@@ -254,7 +254,7 @@ function TemplatesContent() {
     <div className="space-y-6">
       {/* NDA Templates Section */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 to-indigo-700 pb-6 pt-8 px-8 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-400 to-purple-500 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
@@ -769,7 +769,7 @@ export default function AccountPage() {
         {/* Account & Security Tab */}
         <TabsContent value="account" className="space-y-6">
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 pb-6 pt-8 px-8 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-slate-400 to-blue-500 pb-6 pt-8 px-8 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                   <Lock className="h-6 w-6 text-white" />
@@ -861,7 +861,7 @@ export default function AccountPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-teal-600 to-teal-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-emerald-400 to-teal-500 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <User className="h-6 w-6 text-white" />
@@ -912,7 +912,7 @@ export default function AccountPage() {
 
             {/* Profile Photo */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-cyan-600 to-cyan-700 pb-6 pt-8 px-8 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-sky-400 to-cyan-500 pb-6 pt-8 px-8 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                     <Camera className="h-6 w-6 text-white" />
@@ -986,7 +986,7 @@ export default function AccountPage() {
 
           {/* Business Information */}
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-gray-400 to-slate-500 pb-6 pt-8 px-8 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
                   <Building className="h-6 w-6 text-white" />
