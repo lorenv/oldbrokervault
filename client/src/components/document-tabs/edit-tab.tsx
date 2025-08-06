@@ -1,5 +1,6 @@
 import { CimDisplay } from "@/components/cim-display";
 import { UploadedCimFileManager } from "@/components/uploaded-cim-file-manager";
+import { Edit } from "lucide-react";
 
 interface DocumentEditTabProps {
   cimDocument: any;
@@ -14,11 +15,16 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b pb-4">
+      <div className="border-0 bg-gradient-to-r from-indigo-600 to-slate-700 rounded-xl p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Edit Document</h2>
-            <p className="text-gray-600 mt-1">
+            <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                <Edit className="h-6 w-6 text-white" />
+              </div>
+              Edit Document
+            </h2>
+            <p className="text-indigo-100 mt-1">
               {isUploadedFile 
                 ? "Manage your uploaded document and attachments" 
                 : "Customize your CIM content, images, and sections"
@@ -43,8 +49,8 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
               className={`
                 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2
                 ${cimDocument.shareSlug 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-white/20 hover:bg-white/30 text-white border border-white/30 shadow-md hover:shadow-lg transform hover:-translate-y-0.5' 
+                  : 'bg-white/10 text-white/50 cursor-not-allowed border border-white/20'
                 }
               `}
             >
