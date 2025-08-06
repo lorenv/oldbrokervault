@@ -317,9 +317,9 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
   // Always render the financial section in owner view so users can enable it
   return (
     <Card className="bg-white shadow-lg rounded-2xl border-0 mb-12">
-      <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 pb-6 pt-8 px-8">
-        <CardTitle className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-          <BarChart3 className="h-7 w-7" />
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 pb-4 pt-6 px-8">
+        <CardTitle className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5" />
           Financial Information
         </CardTitle>
       </CardHeader>
