@@ -421,9 +421,13 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 </Label>
                 <Select
                   value={ndaSettings.ndaTemplateId?.toString() || ""}
-                  onValueChange={(value) => 
-                    handleSettingChange('ndaTemplateId', parseInt(value))
-                  }
+                  onValueChange={(value) => {
+                    if (value === "manage-templates") {
+                      setLocation('/account?tab=templates');
+                    } else {
+                      handleSettingChange('ndaTemplateId', parseInt(value));
+                    }
+                  }}
                   disabled={updateNdaSettingsMutation.isPending}
                 >
                   <SelectTrigger className="w-full">
@@ -438,6 +442,12 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         {template.name}
                       </SelectItem>
                     ))}
+                    <SelectItem 
+                      value="manage-templates"
+                      className="text-blue-600 font-medium border-t border-gray-200"
+                    >
+                      Manage Templates
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {ndaTemplates.length === 0 && (
@@ -473,25 +483,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
           )}
 
-          {/* Template Management - Simplified Call-to-Action */}
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-700">Template Management</p>
-                <p className="text-xs text-gray-500">
-                  Create and customize your NDA templates
-                </p>
-              </div>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation('/account?tab=templates')}
-                className="text-sm"
-              >
-                Manage Templates
-              </Button>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
 
