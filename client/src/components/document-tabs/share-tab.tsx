@@ -401,7 +401,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             Share Settings
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">{/* Main Toggle */}
+        <CardContent className="space-y-4 pt-8">{/* Main Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="share-enabled">Enable Public Sharing</Label>
