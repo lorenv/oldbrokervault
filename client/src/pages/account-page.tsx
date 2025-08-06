@@ -782,7 +782,7 @@ export default function AccountPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
@@ -843,7 +843,11 @@ export default function AccountPage() {
                     )}
                   />
 
-                  <Button type="submit" disabled={isUpdating} className="w-full">
+                  <Button 
+                    type="submit" 
+                    disabled={isUpdating} 
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg"
+                  >
                     {isUpdating ? "Updating..." : "Save Changes"}
                   </Button>
                 </form>
@@ -870,7 +874,7 @@ export default function AccountPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-8">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -921,7 +925,7 @@ export default function AccountPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-8">
                 <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
                   {profileForm.profilePhoto ? (
                     <div className="space-y-4">
@@ -995,7 +999,7 @@ export default function AccountPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-8">
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Business Name</Label>
@@ -1073,7 +1077,7 @@ export default function AccountPage() {
                 <Button 
                   onClick={handleProfileSave} 
                   disabled={updateProfileMutation.isPending}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white border-0 shadow-lg"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Save Profile Information"}
                 </Button>
