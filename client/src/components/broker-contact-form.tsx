@@ -114,21 +114,21 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
 
   if (isSubmitted) {
     return (
-      <Card className="border-green-200 bg-green-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <MessageSquare className="h-5 w-5" />
-            Message Sent
+      <Card className="border-green-200 bg-green-50 w-full">
+        <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+          <CardTitle className="flex items-center gap-2 text-green-800 text-base sm:text-lg">
+            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span>Message Sent</span>
           </CardTitle>
-          <CardDescription className="text-green-700">
+          <CardDescription className="text-green-700 text-sm sm:text-base">
             Your question has been sent to the broker. They will respond to you directly at {formData.viewerEmail}.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
           <Button 
             variant="outline" 
             onClick={() => setIsSubmitted(false)}
-            className="border-green-300 text-green-800 hover:bg-green-100"
+            className="w-full sm:w-auto border-green-300 text-green-800 hover:bg-green-100 text-sm sm:text-base"
           >
             Send Another Question
           </Button>
@@ -138,61 +138,65 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-blue-600" />
-          Ask the Broker Your Questions
+    <Card className="w-full">
+      <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+          <span className="truncate">Ask the Broker Your Questions</span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm sm:text-base">
           Get detailed information about this opportunity directly from the broker
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="viewerName">Your Name *</Label>
+              <Label htmlFor="viewerName" className="text-sm font-medium">Your Name *</Label>
               <Input
                 id="viewerName"
                 value={formData.viewerName}
                 onChange={(e) => handleInputChange('viewerName', e.target.value)}
                 placeholder="Enter your full name"
+                className="text-sm sm:text-base"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="viewerEmail">Your Email *</Label>
+              <Label htmlFor="viewerEmail" className="text-sm font-medium">Your Email *</Label>
               <Input
                 id="viewerEmail"
                 type="email"
                 value={formData.viewerEmail}
                 onChange={(e) => handleInputChange('viewerEmail', e.target.value)}
                 placeholder="Enter your email address"
+                className="text-sm sm:text-base"
                 required
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="viewerPhone">Your Phone Number (Optional)</Label>
+            <Label htmlFor="viewerPhone" className="text-sm font-medium">Your Phone Number (Optional)</Label>
             <Input
               id="viewerPhone"
               type="tel"
               value={formData.viewerPhone}
               onChange={(e) => handleInputChange('viewerPhone', e.target.value)}
               placeholder="Enter your phone number"
+              className="text-sm sm:text-base"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="question">Your Question *</Label>
+            <Label htmlFor="question" className="text-sm font-medium">Your Question *</Label>
             <Textarea
               id="question"
               value={formData.question}
               onChange={(e) => handleInputChange('question', e.target.value)}
               placeholder="Ask about financials, operations, growth opportunities, or any other details about this business..."
               rows={4}
+              className="text-sm sm:text-base min-h-[80px] sm:min-h-[100px] resize-none"
               required
             />
           </div>
@@ -200,17 +204,17 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="w-full"
+            className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium"
           >
             {isSubmitting ? (
               <>
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Sending Message...
+                <span>Sending Message...</span>
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
-                Send Question to Broker
+                <Send className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span>Send Question to Broker</span>
               </>
             )}
           </Button>

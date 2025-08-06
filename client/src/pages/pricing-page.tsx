@@ -154,10 +154,10 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <div className="text-center mb-8 sm:mb-10">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Choose Your Plan</h1>
+        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto px-2">
           {!user 
             ? "Explore our pricing options. Sign up for a free account to get started with CIM Share."
             : "Select the perfect plan for your business needs. Upgrade or downgrade at any time."
@@ -165,7 +165,7 @@ export default function PricingPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
         {plans.map((plan) => (
           <Card key={plan.name} className={`relative ${plan.current ? 'ring-2 ring-primary' : ''}`}>
             {plan.current && (
@@ -175,20 +175,20 @@ export default function PricingPage() {
                 </span>
               </div>
             )}
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{plan.name}</CardTitle>
-              <CardDescription>{plan.description}</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">{plan.priceLabel || "/month"}</span>
+            <CardHeader className="text-center p-4 sm:p-6">
+              <CardTitle className="text-xl sm:text-2xl">{plan.name}</CardTitle>
+              <CardDescription className="text-sm sm:text-base">{plan.description}</CardDescription>
+              <div className="mt-3 sm:mt-4">
+                <span className="text-2xl sm:text-4xl font-bold">{plan.price}</span>
+                <span className="text-muted-foreground text-sm sm:text-base">{plan.priceLabel || "/month"}</span>
               </div>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
+            <CardContent className="p-4 sm:p-6">
+              <ul className="space-y-2 sm:space-y-3">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">{feature}</span>
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm">{feature}</span>
                   </li>
                 ))}
               </ul>

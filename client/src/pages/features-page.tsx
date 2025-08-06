@@ -134,14 +134,14 @@ export default function FeaturesPage() {
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
             Join thousands of professionals who trust CIM Share for their confidential business documentation needs.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center max-w-md mx-auto">
+            <Link href="/auth" className="w-full sm:w-auto">
+              <Button size="lg" variant="secondary" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3">
                 Start Free Trial
               </Button>
             </Link>
-            <Link href="/pricing">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-blue-600">
+            <Link href="/pricing" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 border-white text-white hover:bg-white hover:text-blue-600">
                 View Pricing
               </Button>
             </Link>

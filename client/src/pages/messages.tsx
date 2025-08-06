@@ -143,10 +143,44 @@ export default function Messages() {
   const selectedThreadData = (threads as MessageThread[]).find((thread: MessageThread) => thread.id === selectedThread);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+      {/* Mobile/Tablet Header */}
+      <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
+          {(unreadData as any)?.count > 0 && (
+            <Badge variant="destructive">
+              {(unreadData as any).count}
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant={!showArchived ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived(false)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5"
+          >
+            <MessageCircle className="h-3 w-3" />
+            <span className="hidden sm:inline">Active</span>
+          </Button>
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived(true)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5"
+          >
+            <Archive className="h-3 w-3" />
+            <span className="hidden sm:inline">Archived</span>
+          </Button>
+        </div>
+      </div>
+
       {/* Sidebar - Thread List */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+      <div className={`${selectedThread ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 bg-white border-r border-gray-200 flex-col`}>
+        {/* Desktop Header */}
+        <div className="hidden lg:block p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
             {(unreadData as any)?.count > 0 && (
@@ -190,36 +224,36 @@ export default function Messages() {
               {filteredThreads.map((thread: MessageThread) => (
                 <div
                   key={thread.id}
-                  className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 ${
+                  className={`p-3 sm:p-4 cursor-pointer transition-colors hover:bg-gray-50 ${
                     selectedThread === thread.id ? "bg-blue-50 border-r-2 border-blue-500" : ""
                   }`}
                   onClick={() => setSelectedThread(thread.id)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{thread.inquirerName}</p>
-                        <p className="text-sm text-gray-500">{thread.inquirerEmail}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-900 truncate text-sm sm:text-base">{thread.inquirerName}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">{thread.inquirerEmail}</p>
                       </div>
                     </div>
                     {thread.unreadCount > 0 && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-xs flex-shrink-0">
                         {thread.unreadCount}
                       </Badge>
                     )}
                   </div>
                   
                   <div className="mb-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                       {thread.subject}
                     </p>
                     {thread.cimTitle && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {thread.cimTitle}
+                      <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{thread.cimTitle}</span>
                       </p>
                     )}
                   </div>
@@ -249,37 +283,49 @@ export default function Messages() {
       </div>
 
       {/* Main Content - Messages */}
-      <div className="flex-1 flex flex-col">
+      <div className={`${selectedThread ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
         {selectedThread ? (
           <>
             {/* Header */}
-            <div className="p-4 bg-white border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+            <div className="p-3 sm:p-4 bg-white border-b border-gray-200">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  {/* Mobile back button */}
+                  <div className="lg:hidden mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedThread(null)}
+                      className="p-1 h-auto"
+                    >
+                      ← Back to Messages
+                    </Button>
+                  </div>
+                  
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                     {selectedThreadData?.subject}
                   </h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500 truncate">
                     {selectedThreadData?.inquirerName} ({selectedThreadData?.inquirerEmail})
                   </p>
                   {selectedThreadData?.cimTitle && (
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      {selectedThreadData.cimTitle}
+                    <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 truncate mt-1">
+                      <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">{selectedThreadData.cimTitle}</span>
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2 ml-2">
                   {selectedThreadData?.status === "active" ? (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleArchive(selectedThread)}
                       disabled={archiveMutation.isPending}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3"
                     >
-                      <Archive className="h-4 w-4" />
-                      Archive
+                      <Archive className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Archive</span>
                     </Button>
                   ) : (
                     <Button
@@ -287,10 +333,10 @@ export default function Messages() {
                       size="sm"
                       onClick={() => handleReactivate(selectedThread)}
                       disabled={reactivateMutation.isPending}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3"
                     >
-                      <RotateCcw className="h-4 w-4" />
-                      Reactivate
+                      <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Reactivate</span>
                     </Button>
                   )}
                 </div>
@@ -298,11 +344,11 @@ export default function Messages() {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-2 sm:p-4">
               {messagesLoading ? (
                 <div className="text-center text-gray-500">Loading messages...</div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {(messages as Message[]).map((message: Message) => (
                     <div
                       key={message.id}
@@ -311,24 +357,25 @@ export default function Messages() {
                       }`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
+                        className={`max-w-[85%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 ${
                           message.senderType === "owner"
                             ? "bg-blue-600 text-white"
                             : "bg-white border border-gray-200"
                         }`}
                       >
-                        <div className="mb-2">
-                          <div className="flex items-center gap-2 text-sm opacity-75">
+                        <div className="mb-1 sm:mb-2">
+                          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm opacity-75">
                             {message.senderType === "owner" ? (
                               <span>You</span>
                             ) : (
-                              <span>{selectedThreadData?.inquirerName}</span>
+                              <span className="truncate">{selectedThreadData?.inquirerName}</span>
                             )}
                             <span>•</span>
-                            <span>{new Date(message.createdAt).toLocaleString()}</span>
+                            <span className="hidden sm:inline">{new Date(message.createdAt).toLocaleString()}</span>
+                            <span className="sm:hidden">{new Date(message.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
-                        <div className="whitespace-pre-wrap">{message.content}</div>
+                        <div className="whitespace-pre-wrap text-sm sm:text-base break-words">{message.content}</div>
                       </div>
                     </div>
                   ))}
@@ -338,13 +385,13 @@ export default function Messages() {
 
             {/* Reply Box */}
             {selectedThreadData?.status === "active" && (
-              <div className="p-4 bg-white border-t border-gray-200">
-                <div className="flex gap-3">
+              <div className="p-3 sm:p-4 bg-white border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Textarea
                     placeholder="Type your reply..."
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
-                    className="flex-1 min-h-[80px]"
+                    className="flex-1 min-h-[60px] sm:min-h-[80px] text-sm sm:text-base"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && e.metaKey) {
                         handleReply();
@@ -354,14 +401,15 @@ export default function Messages() {
                   <Button
                     onClick={handleReply}
                     disabled={!replyContent.trim() || replyMutation.isPending}
-                    className="flex items-center gap-2"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2"
+                    size="sm"
                   >
-                    <Send className="h-4 w-4" />
-                    Send
+                    <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-sm">Send</span>
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  Press ⌘+Enter to send • Reply will be sent via email
+                  <span className="hidden sm:inline">Press ⌘+Enter to send • </span>Reply will be sent via email
                 </p>
               </div>
             )}
