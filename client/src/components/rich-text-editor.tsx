@@ -94,10 +94,10 @@ export function RichTextEditor({
   }
 
   return (
-    <Card className={`border-blue-200 bg-blue-50 ${className}`}>
+    <Card className={`border-gray-200 bg-white ${className}`}>
       <CardContent className="p-0">
         {/* Toolbar */}
-        <div className="flex items-center gap-1 p-2 border-b border-blue-200 bg-blue-100/50">
+        <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
           <Button
             type="button"
             variant={editor.isActive('bold') ? 'default' : 'ghost'}
