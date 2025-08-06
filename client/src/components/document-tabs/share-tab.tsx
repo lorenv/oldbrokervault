@@ -294,7 +294,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Link className="h-5 w-5" />
               Share Link
@@ -342,7 +342,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Export Document */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-green-700 to-green-600 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Download className="h-5 w-5" />
             Export Document
@@ -368,7 +368,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Send via Email */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+        <CardHeader className="bg-gradient-to-r from-purple-700 to-purple-600 text-white rounded-t-xl">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <Mail className="h-5 w-5" />
             Send via Email
@@ -477,7 +477,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-t-xl">
+          <CardHeader className="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white rounded-t-xl">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold">
               <Code className="h-5 w-5" />
               Embed Code
