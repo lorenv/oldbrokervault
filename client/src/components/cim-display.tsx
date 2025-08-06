@@ -624,23 +624,7 @@ export function CimDisplay({
       <div className="space-y-4">
 
 
-        {/* Preview Share Link Button */}
-        {!isSharedView && cimDocument?.shareSlug && (
-          <div className="mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const shareUrl = `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${cimDocument.shareSlug}`;
-                window.open(shareUrl, '_blank');
-              }}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview Share Link
-            </Button>
-          </div>
-        )}
+
 
         {/* Cover Image Manager - Only in Edit View */}
         {!isSharedView && cimDocument && (
