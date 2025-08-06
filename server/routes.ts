@@ -39,6 +39,7 @@ const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
+import { coverImageService } from "./cover-image-service";
 
 
 // Directory paths
@@ -2031,6 +2032,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } else {
           console.warn('Cover image blob URL found but no corresponding file upload detected');
+        }
+      }
+      
+      // Handle external image URLs (e.g., Unsplash) by downloading and storing in object storage
+      if (coverImageUrl && coverImageService.isExternalImageUrl(coverImageUrl)) {
+        console.log("Processing external cover image URL for local storage...");
+        try {
+          const downloadResult = await coverImageService.downloadAndStoreImage(coverImageUrl, req.user!.id);
+          coverImageUrl = downloadResult.publicUrl;
+          console.log('External cover image downloaded and stored:', downloadResult.publicUrl);
+        } catch (downloadError) {
+          console.error('Failed to download external cover image:', downloadError);
+          // Keep original URL as fallback - the image will still work but won't be locally stored
         }
       }
       
@@ -7698,6 +7712,62 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
     }
   });
 
+  // Admin-only migration endpoint to convert external cover images to local storage
+  app.post("/api/admin/migrate-cover-images", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Check if user is admin
+    const user = await storage.getUser(req.user!.id);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    try {
+      console.log("Starting cover image migration...");
+      
+      // Get all CIM documents with external cover images
+      const allDocs = await storage.getAllCimDocuments();
+      const docsToMigrate = allDocs.filter(doc => 
+        doc.coverImageUrl && coverImageService.isExternalImageUrl(doc.coverImageUrl)
+      );
+
+      console.log(`Found ${docsToMigrate.length} documents with external cover images to migrate`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const doc of docsToMigrate) {
+        try {
+          console.log(`Migrating cover image for document ${doc.id}: ${doc.coverImageUrl}`);
+          
+          const downloadResult = await coverImageService.downloadAndStoreImage(doc.coverImageUrl!, doc.userId);
+          
+          await storage.updateCimDocument(doc.id, {
+            coverImageUrl: downloadResult.publicUrl
+          });
+
+          console.log(`✅ Successfully migrated document ${doc.id}: ${downloadResult.publicUrl}`);
+          successCount++;
+        } catch (error) {
+          console.error(`❌ Failed to migrate document ${doc.id}:`, error);
+          failCount++;
+        }
+      }
+
+      res.json({
+        success: true,
+        totalDocuments: docsToMigrate.length,
+        successCount,
+        failCount,
+        message: `Migration completed: ${successCount} successful, ${failCount} failed`
+      });
+
+    } catch (error) {
+      console.error("Cover image migration error:", error);
+      res.status(500).json({ error: "Failed to complete cover image migration" });
+    }
+  });
+
   // Cover Image Management API
   app.post("/api/cim/:id/cover-image", upload.single('coverImage'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -7730,6 +7800,19 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
         } catch (saveError) {
           console.error('Failed to save cover image to persistent storage:', saveError);
           return res.status(500).json({ error: "Failed to save cover image" });
+        }
+      }
+      
+      // Handle external image URLs (e.g., Unsplash) by downloading and storing in object storage
+      if (finalCoverImageUrl && coverImageService.isExternalImageUrl(finalCoverImageUrl)) {
+        console.log("Processing external cover image URL for local storage...");
+        try {
+          const downloadResult = await coverImageService.downloadAndStoreImage(finalCoverImageUrl, req.user!.id);
+          finalCoverImageUrl = downloadResult.publicUrl;
+          console.log('External cover image downloaded and stored:', downloadResult.publicUrl);
+        } catch (downloadError) {
+          console.error('Failed to download external cover image:', downloadError);
+          // Keep original URL as fallback - the image will still work but won't be locally stored
         }
       }
       
