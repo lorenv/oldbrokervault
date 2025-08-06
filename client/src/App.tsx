@@ -2,7 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider, useAuth } from "./hooks/use-auth";
+import { AuthProvider } from "./hooks/use-auth";
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -33,12 +33,10 @@ import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
 
 function Router() {
   const [location] = useLocation();
-  const { user } = useAuth();
   const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
-  const isLoggedIn = !!user;
 
   return (
-    <div className={isLoggedIn ? "luxury-texture" : ""}>
+    <>
       {!isSharePage && <Navbar />}
       <div className={isSharePage ? "" : "min-h-screen flex flex-col"}>
         <div className={isSharePage ? "" : "flex-1"}>
@@ -74,7 +72,7 @@ function Router() {
         </div>
         {!isSharePage && <Footer />}
       </div>
-    </div>
+    </>
   );
 }
 

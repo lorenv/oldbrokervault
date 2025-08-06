@@ -294,13 +294,13 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Share Link */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-t-xl p-4">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <Link className="h-4 w-4" />
+          <CardHeader className="bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-t-xl">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Link className="h-5 w-5" />
               Share Link
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 p-6 pt-8">
+          <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -342,13 +342,13 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Export Document */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-t-xl p-4">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Download className="h-4 w-4" />
+        <CardHeader className="bg-gradient-to-r from-green-700 to-green-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Download className="h-5 w-5" />
             Export Document
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 p-6 pt-8">
+        <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -368,9 +368,9 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Send via Email */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-purple-600 to-teal-600 text-white rounded-t-xl p-4">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Mail className="h-4 w-4" />
+        <CardHeader className="bg-gradient-to-r from-purple-700 to-purple-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Mail className="h-5 w-5" />
             Send via Email
           </CardTitle>
         </CardHeader>
@@ -395,13 +395,13 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
       {/* Share Settings */}
       <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-teal-600 text-white rounded-t-xl p-4">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Settings className="h-4 w-4" />
+        <CardHeader className="bg-gradient-to-r from-orange-600 to-slate-600 text-white rounded-t-xl">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Settings className="h-5 w-5" />
             Share Settings
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="share-enabled">Enable Public Sharing</Label>
@@ -477,13 +477,13 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
       {/* Embed Code */}
       {shareSettings.shareEnabled && shareUrl && (
         <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 to-teal-600 text-white rounded-t-xl p-4">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <Code className="h-4 w-4" />
+          <CardHeader className="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white rounded-t-xl">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Code className="h-5 w-5" />
               Embed Code
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="embed-width">Width</Label>
