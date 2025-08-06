@@ -254,15 +254,15 @@ function TemplatesContent() {
     <div className="space-y-6">
       {/* NDA Templates Section */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-indigo-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                <FileSignature className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                <FileSignature className="h-4 w-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-xl font-bold text-white">NDA Templates</CardTitle>
-                <CardDescription className="text-slate-100 mt-1">
+                <CardTitle className="text-lg font-semibold text-white">NDA Templates</CardTitle>
+                <CardDescription className="text-slate-100 mt-0.5 text-sm">
                   Create and manage your NDA templates with signature fields
                 </CardDescription>
               </div>
@@ -766,14 +766,14 @@ export default function AccountPage() {
         {/* Account & Security Tab */}
         <TabsContent value="account" className="space-y-6">
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                  <Lock className="h-6 w-6 text-white" />
+            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                  <Lock className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold text-white">Login Credentials</CardTitle>
-                  <CardDescription className="text-slate-100 mt-1">
+                  <CardTitle className="text-lg font-semibold text-white">Login Credentials</CardTitle>
+                  <CardDescription className="text-slate-100 mt-0.5 text-sm">
                     Manage your email address and authentication settings
                   </CardDescription>
                 </div>
@@ -858,14 +858,14 @@ export default function AccountPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Personal Information */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-emerald-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                    <User className="h-6 w-6 text-white" />
+              <CardHeader className="bg-gradient-to-r from-emerald-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                    <User className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-white">Personal Information</CardTitle>
-                    <CardDescription className="text-slate-100 mt-1">
+                    <CardTitle className="text-lg font-semibold text-white">Personal Information</CardTitle>
+                    <CardDescription className="text-slate-100 mt-0.5 text-sm">
                       Contact details that appear in your CIM documents
                     </CardDescription>
                   </div>
@@ -909,14 +909,14 @@ export default function AccountPage() {
 
             {/* Profile Photo */}
             <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-sky-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                    <Camera className="h-6 w-6 text-white" />
+              <CardHeader className="bg-gradient-to-r from-sky-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                    <Camera className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-white">Profile Photo</CardTitle>
-                    <CardDescription className="text-slate-100 mt-1">
+                    <CardTitle className="text-lg font-semibold text-white">Profile Photo</CardTitle>
+                    <CardDescription className="text-slate-100 mt-0.5 text-sm">
                       Your photo appears on share links and PDF exports
                     </CardDescription>
                   </div>
@@ -983,14 +983,14 @@ export default function AccountPage() {
 
           {/* Business Information */}
           <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-gray-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
-                  <Building className="h-6 w-6 text-white" />
+            <CardHeader className="bg-gradient-to-r from-gray-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                  <Building className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold text-white">Business Information</CardTitle>
-                  <CardDescription className="text-slate-100 mt-1">
+                  <CardTitle className="text-lg font-semibold text-white">Business Information</CardTitle>
+                  <CardDescription className="text-slate-100 mt-0.5 text-sm">
                     Company details for professional CIM branding
                   </CardDescription>
                 </div>
