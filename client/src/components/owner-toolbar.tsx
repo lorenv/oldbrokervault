@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Edit, 
-  BarChart3, 
-  Settings, 
   ExternalLink, 
   Crown,
   ChevronUp,
@@ -37,15 +35,7 @@ export function OwnerToolbar({ documentId, shareSlug }: OwnerToolbarProps) {
     window.open(`/cims/${documentId}`, '_blank');
   };
 
-  const handleViewAnalytics = () => {
-    // Go to enhanced CIM page with analytics tab
-    window.open(`/enhanced-cim/${documentId}?tab=analytics`, '_blank');
-  };
 
-  const handleShareSettings = () => {
-    // Go to enhanced CIM page with share tab
-    window.open(`/enhanced-cim/${documentId}?tab=share`, '_blank');
-  };
 
   const handleViewDashboard = () => {
     window.open('/dashboard', '_blank');
@@ -88,24 +78,6 @@ export function OwnerToolbar({ documentId, shareSlug }: OwnerToolbarProps) {
               >
                 <Edit className="h-3 w-3 mr-1" />
                 Edit
-              </Button>
-              <Button
-                onClick={handleViewAnalytics}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
-              >
-                <BarChart3 className="h-3 w-3 mr-1" />
-                Analytics
-              </Button>
-              <Button
-                onClick={handleShareSettings}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
-              >
-                <Settings className="h-3 w-3 mr-1" />
-                Share
               </Button>
               <Button
                 onClick={handleViewDashboard}
