@@ -389,6 +389,12 @@ function RegisterForm({ mutation }: { mutation: any }) {
     hasSpecial: false,
   });
 
+  // Upload success states
+  const [uploadStatus, setUploadStatus] = useState({
+    profilePhoto: false,
+    businessLogo: false,
+  });
+
   // Update password checks in real-time
   const updatePasswordChecks = (value: string) => {
     setPassword(value);
@@ -399,6 +405,20 @@ function RegisterForm({ mutation }: { mutation: any }) {
       hasNumber: /\d/.test(value),
       hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?]/.test(value),
     });
+  };
+
+  const handleFileUpload = (fieldName: 'profilePhoto' | 'businessLogo', file: File | null) => {
+    if (file) {
+      setUploadStatus(prev => ({
+        ...prev,
+        [fieldName]: true
+      }));
+    } else {
+      setUploadStatus(prev => ({
+        ...prev,
+        [fieldName]: false
+      }));
+    }
   };
 
   return (
@@ -491,13 +511,27 @@ function RegisterForm({ mutation }: { mutation: any }) {
               name="profilePhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600">Profile Photo</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Profile Photo
+                    {uploadStatus.profilePhoto && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Uploaded
+                      </div>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="file"
                       accept="image/*"
                       className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => field.onChange(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('profilePhoto', file);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -510,13 +544,27 @@ function RegisterForm({ mutation }: { mutation: any }) {
               name="businessLogo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600">Business Logo</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Business Logo
+                    {uploadStatus.businessLogo && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Uploaded
+                      </div>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="file"
                       accept="image/*"
                       className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => field.onChange(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('businessLogo', file);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
