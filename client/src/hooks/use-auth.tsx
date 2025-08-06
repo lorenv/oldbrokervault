@@ -8,6 +8,7 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import confetti from "canvas-confetti";
 
 // Function to detect incognito/private browsing mode
 async function detectIncognitoMode(): Promise<boolean> {
@@ -159,12 +160,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Play success sound
+      const audio = new Audio('/success-sound.mp3');
+      audio.volume = 0.4;
+      audio.play().catch(e => console.log('Could not play success sound:', e));
+      
+      // Trigger celebratory confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      
+      // Additional confetti bursts
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+      }, 200);
+      
+      setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
+      }, 400);
+      
       toast({
-        title: "Welcome!",
+        title: "Welcome to CIM Share! 🎉",
         description: "Your account has been created successfully.",
       });
+      
+      // Mark user as new for guided tour
+      sessionStorage.setItem('isNewUser', 'true');
+      
       // Redirect to dashboard after successful registration
-      setLocation("/dashboard");
+      setTimeout(() => setLocation("/dashboard"), 1000);
     },
     onError: (error: Error) => {
       toast({
