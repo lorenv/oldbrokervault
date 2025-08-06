@@ -1,27 +1,22 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { 
   Edit, 
   BarChart3, 
-  Users, 
-  Eye, 
   Settings, 
   ExternalLink, 
-  Share2,
   Crown,
-  X 
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface OwnerToolbarProps {
   documentId: number;
   shareSlug: string;
-  onClose?: () => void;
 }
 
-export function OwnerToolbar({ documentId, shareSlug, onClose }: OwnerToolbarProps) {
+export function OwnerToolbar({ documentId, shareSlug }: OwnerToolbarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Fetch basic analytics data
@@ -43,115 +38,108 @@ export function OwnerToolbar({ documentId, shareSlug, onClose }: OwnerToolbarPro
   };
 
   const handleViewAnalytics = () => {
-    window.open(`/cims/${documentId}?tab=analytics`, '_blank');
+    // Go to enhanced CIM page with analytics tab
+    window.open(`/enhanced-cim/${documentId}?tab=analytics`, '_blank');
   };
 
   const handleShareSettings = () => {
-    window.open(`/cims/${documentId}?tab=share`, '_blank');
+    // Go to enhanced CIM page with share tab
+    window.open(`/enhanced-cim/${documentId}?tab=share`, '_blank');
   };
 
   const handleViewDashboard = () => {
     window.open('/dashboard', '_blank');
   };
 
-  if (isCollapsed) {
-    return (
-      <div className="fixed top-4 right-4 z-50">
-        <Button
-          onClick={() => setIsCollapsed(false)}
-          variant="outline"
-          size="sm"
-          className="bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-lg"
-        >
-          <Crown className="h-4 w-4 mr-1" />
-          Owner
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
-      <Card className="bg-blue-600 text-white border-blue-700 shadow-xl max-w-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Crown className="h-4 w-4" />
-              <span className="font-semibold text-sm">Document Owner</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                onClick={() => setIsCollapsed(true)}
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-white/80 hover:text-white hover:bg-blue-700"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
+    <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600 text-white shadow-lg border-b border-blue-700">
+      <div className="flex items-center justify-between px-4 py-2">
+        {/* Left side - Owner indicator */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Crown className="h-4 w-4" />
+            <span className="text-sm font-medium">Document Owner</span>
           </div>
-
-          {/* Quick Stats */}
-          {analyticsData && (
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="text-center">
-                <div className="text-lg font-bold">{analyticsData.totalViews || 0}</div>
-                <div className="text-xs text-blue-100">Total Views</div>
+          
+          {/* Quick stats */}
+          {analyticsData && !isCollapsed && (
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">{analyticsData.totalViews || 0}</span>
+                <span className="text-blue-200">views</span>
               </div>
-              <div className="text-center">
-                <div className="text-lg font-bold">{analyticsData.totalSignatures || 0}</div>
-                <div className="text-xs text-blue-100">NDA Signs</div>
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">{analyticsData.totalSignatures || 0}</span>
+                <span className="text-blue-200">signatures</span>
               </div>
             </div>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={handleEditDocument}
-              variant="secondary"
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              <Edit className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
-            <Button
-              onClick={handleViewAnalytics}
-              variant="secondary"
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              <BarChart3 className="h-3 w-3 mr-1" />
-              Analytics
-            </Button>
-            <Button
-              onClick={handleShareSettings}
-              variant="secondary"
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Settings
-            </Button>
-            <Button
-              onClick={handleViewDashboard}
-              variant="secondary"
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              Dashboard
-            </Button>
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-blue-500">
-            <p className="text-xs text-blue-100 text-center">
-              You're viewing your own document as visitors see it
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Right side - Action buttons */}
+        <div className="flex items-center gap-2">
+          {!isCollapsed && (
+            <>
+              <Button
+                onClick={handleEditDocument}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+              <Button
+                onClick={handleViewAnalytics}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
+              >
+                <BarChart3 className="h-3 w-3 mr-1" />
+                Analytics
+              </Button>
+              <Button
+                onClick={handleShareSettings}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Share
+              </Button>
+              <Button
+                onClick={handleViewDashboard}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-white hover:bg-blue-700 border border-blue-500 hover:border-blue-400"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Dashboard
+              </Button>
+            </>
+          )}
+          
+          {/* Collapse/expand button */}
+          <Button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-white hover:bg-blue-700"
+            title={isCollapsed ? "Expand toolbar" : "Collapse toolbar"}
+          >
+            {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+      
+      {/* Info text when collapsed */}
+      {isCollapsed && (
+        <div className="px-4 pb-2">
+          <p className="text-xs text-blue-200">
+            You're viewing your document as visitors see it
+          </p>
+        </div>
+      )}
     </div>
   );
 }
