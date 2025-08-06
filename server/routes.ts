@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { analyzeCimTranscript, generateFlexibleCimDocument, type FlexibleCimDocument } from "./perplexity";
+import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
 import { imageManager } from "./image-manager";
 import { objectStorageImageManager } from "./image-manager-object-storage";
@@ -1304,14 +1304,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tone = data.tone || 'professional';
         const audience = data.audience || 'investors';
         
-        let analysis = await generateFlexibleCimDocument(
+        let analysis = await generateCimWithWebsiteAnalysis(
           data.transcript,
           data.directions,
           purpose,
           tone,
           audience,
           data.financials,
-          undefined // websiteData - will add later if needed
+          data.websiteUrl
         );
         
         // If website URL is provided, extract logo in parallel
@@ -1359,14 +1359,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Audience:", audience);
       console.log("Custom directions:", data.directions);
       
-      let analysis = await generateFlexibleCimDocument(
+      let analysis = await generateCimWithWebsiteAnalysis(
         data.transcript,
         data.directions,
         purpose,
         tone,
         audience,
         data.financials,
-        undefined // websiteData - will add later if needed
+        data.websiteUrl
       );
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");

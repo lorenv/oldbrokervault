@@ -4,7 +4,8 @@ import { Progress } from "@/components/ui/progress";
 
 export type CimGenerationStage = 
   | "initializing"
-  | "processing_transcript" 
+  | "processing_transcript"
+  | "analyzing_website"
   | "analyzing_content"
   | "generating_document"
   | "processing_financials"
@@ -28,10 +29,15 @@ const stageConfig = {
     icon: Upload,
     progress: 20
   },
+  analyzing_website: {
+    label: "Analyzing website content and business intelligence",
+    icon: Zap,
+    progress: 30
+  },
   analyzing_content: {
     label: "Analyzing business data and structure",
     icon: Database,
-    progress: 40
+    progress: 50
   },
   generating_document: {
     label: "Generating comprehensive CIM document",

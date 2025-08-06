@@ -79,6 +79,7 @@ export function CimGenerator() {
   const [extractedImages, setExtractedImages] = useState<string[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isExtractingImages, setIsExtractingImages] = useState(false);
+  const [enableWebsiteAnalysis, setEnableWebsiteAnalysis] = useState(true);
 
   // CIM Generation Progress State
   const [generationStage, setGenerationStage] = useState<CimGenerationStage | null>(null);
@@ -276,6 +277,11 @@ export function CimGenerator() {
 
       // Stage 2: Processing transcript
       setTimeout(() => setGenerationStage("processing_transcript"), 500);
+      
+      // Stage 3: Website analysis (if enabled)
+      if (data.websiteUrl?.trim() && enableWebsiteAnalysis) {
+        setTimeout(() => setGenerationStage("analyzing_website"), 1000);
+      }
 
       if (data.transcript.length > 4000 || financialFiles.length > 0) {
         const file = new Blob([data.transcript], { type: 'text/plain' });
@@ -285,7 +291,9 @@ export function CimGenerator() {
         formData.append('directions', data.directions);
 
         if (hasWebsiteUrl) {
-          formData.append('websiteUrl', data.websiteUrl!);
+          if (enableWebsiteAnalysis) {
+            formData.append('websiteUrl', data.websiteUrl!);
+          }
           if (selectedImages.length > 0) {
             formData.append('selectedImages', JSON.stringify(selectedImages));
           }
@@ -330,11 +338,13 @@ export function CimGenerator() {
         }
 
         try {
-          // Stage 3: Analyzing content
-          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          // Stage 4: Analyzing content
+          const contentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 1500 : 1000;
+          setTimeout(() => setGenerationStage("analyzing_content"), contentStageDelay);
 
-          // Stage 4: Generating document (before API call)
-          setTimeout(() => setGenerationStage("generating_document"), 2000);
+          // Stage 5: Generating document (before API call)
+          const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
+          setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
 
           const res = await fetch('/api/cim/upload', {
             method: 'POST',
@@ -366,7 +376,7 @@ export function CimGenerator() {
           title: data.title,
           transcript: data.transcript,
           directions: data.directions,
-          ...(hasWebsiteUrl && { websiteUrl: data.websiteUrl }),
+          ...(hasWebsiteUrl && enableWebsiteAnalysis && { websiteUrl: data.websiteUrl }),
           ...(selectedImages.length > 0 && { selectedImages }),
           ...(currentDocId && { docId: currentDocId }),
           financials: {
@@ -389,11 +399,13 @@ export function CimGenerator() {
         console.log("Payload size:", JSON.stringify(payload).length);
 
         try {
-          // Stage 3: Analyzing content
-          setTimeout(() => setGenerationStage("analyzing_content"), 1000);
+          // Stage 4: Analyzing content
+          const contentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 1500 : 1000;
+          setTimeout(() => setGenerationStage("analyzing_content"), contentStageDelay);
 
-          // Stage 4: Generating document (before API call)
-          setTimeout(() => setGenerationStage("generating_document"), 2000);
+          // Stage 5: Generating document (before API call)
+          const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
+          setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
 
           const response = await apiRequest("POST", "/api/cim/generate", payload);
 
@@ -646,7 +658,7 @@ export function CimGenerator() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="relative">
                       <Input
                         placeholder="Website URL (optional) - e.g., example.com"
@@ -673,6 +685,29 @@ export function CimGenerator() {
                         )}
                       </Button>
                     </div>
+
+                    {/* Website Analysis Toggle */}
+                    {form.watch("websiteUrl")?.trim() && (
+                      <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <Switch
+                          id="website-analysis"
+                          checked={enableWebsiteAnalysis}
+                          onCheckedChange={setEnableWebsiteAnalysis}
+                        />
+                        <div className="flex-1">
+                          <label 
+                            htmlFor="website-analysis" 
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            Enhanced Website Analysis
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Automatically extract additional business information from the website to enhance your CIM
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {form.formState.errors.websiteUrl && (
                       <p className="text-sm text-destructive">
                         {form.formState.errors.websiteUrl.message as string}
@@ -1117,7 +1152,7 @@ export function CimGenerator() {
               <DocumentExport
                 analysis={analysis}
                 docId={currentDocId || 0}
-                title={form.getValues("title")}
+                websiteUrl={form.getValues("websiteUrl")}
                 logoUrl={analysis.logoUrl}
                 selectedImages={selectedImages}
               />
