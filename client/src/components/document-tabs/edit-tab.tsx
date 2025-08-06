@@ -34,7 +34,7 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
               }
             </p>
           </div>
-          
+
           {/* Preview Share Link Button */}
           <div className="flex-shrink-0">
             <button
@@ -50,22 +50,22 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
               }}
               disabled={!cimDocument.shareSlug}
               className={`
-                px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center gap-3 shadow-lg
+                px-8 py-4 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center gap-3 backdrop-blur-sm border shadow-xl
                 ${cimDocument.shareSlug 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-xl transform hover:-translate-y-1 hover:scale-105' 
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-sm'
+                  ? 'bg-white/95 hover:bg-white text-blue-700 hover:text-blue-800 border-white/30 hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105' 
+                  : 'bg-white/20 text-white/50 cursor-not-allowed border-white/10 shadow-sm'
                 }
               `}
             >
-              <div className="p-1 bg-white/20 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className={`p-2 rounded-lg ${cimDocument.shareSlug ? 'bg-blue-100' : 'bg-white/10'}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
-              <span>Preview Share Link</span>
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <span className="font-bold">Preview Share Link</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </button>
           </div>
