@@ -421,7 +421,7 @@ export function CimGenerator() {
       setTimeout(() => {
         setGenerationStage(null);
         setProgressStartTime(null);
-      }, 800);
+      }, 300);
 
       // Show remaining stages quickly for visual completion
       const hasFinancials = financialFiles.length > 0 || 
