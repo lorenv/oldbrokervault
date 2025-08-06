@@ -44,7 +44,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null,
-    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+    ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
   });
 
   // Sync local state with document data when it changes
@@ -52,9 +52,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     setNdaSettings({
       ndaProtected: cimDocument.ndaProtected || false,
       ndaTemplateId: cimDocument.ndaTemplateId || null,
-      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+      ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
     });
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -470,9 +470,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {ndaSettings.ndaApprovalRequired ? 'Manual' : 'Auto'}
-                  </span>
                   <Switch
                     id="manual-approval"
                     checked={ndaSettings.ndaApprovalRequired}
