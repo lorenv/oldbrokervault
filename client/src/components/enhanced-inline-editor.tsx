@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Save, X, Type } from "lucide-react";
+import { Save, X, Type, Bold, Italic, List, ListOrdered } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { RichTextEditor, htmlToPlainText, plainTextWithFormattingToHtml } from "./rich-text-editor";
+import { RichTextEditor, htmlToPlainText, plainTextToHtml } from "./rich-text-editor";
+import { Editor } from "@tiptap/core";
 
 interface EnhancedInlineEditorProps {
   value: string | string[];
@@ -36,6 +37,8 @@ export function EnhancedInlineEditor({
   enableRichText = false
 }: EnhancedInlineEditorProps) {
   const [editValue, setEditValue] = useState<string>("");
+  const [saveInProgress, setSaveInProgress] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   useEffect(() => {
     if (isEditing) {
@@ -49,16 +52,42 @@ export function EnhancedInlineEditor({
   }, [isEditing, value, isArray, enableRichText]);
 
   const handleSave = () => {
+    setSaveInProgress(true);
     if (isArray) {
       const arrayValue = editValue.split('\n').filter(item => item.trim() !== '');
       onSave(fieldPath, arrayValue);
     } else {
       onSave(fieldPath, editValue);
     }
+    setSaveInProgress(false);
   };
 
   const handleRichTextChange = (newValue: string) => {
     setEditValue(newValue);
+  };
+
+  const toggleBold = () => {
+    if (editor) {
+      editor.chain().focus().toggleBold().run();
+    }
+  };
+
+  const toggleItalic = () => {
+    if (editor) {
+      editor.chain().focus().toggleItalic().run();
+    }
+  };
+
+  const toggleBulletList = () => {
+    if (editor) {
+      editor.chain().focus().toggleBulletList().run();
+    }
+  };
+
+  const toggleOrderedList = () => {
+    if (editor) {
+      editor.chain().focus().toggleOrderedList().run();
+    }
   };
 
   const displayValue = isArray && Array.isArray(value)
@@ -104,7 +133,66 @@ export function EnhancedInlineEditor({
       <>
         {enableRichText && multiline && !isArray && (
           <div className="mb-2">
-            {/* Removed the Plain Text toggle button */}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleBold}
+                  className={`p-2 rounded hover:bg-gray-100 ${
+                    editor?.isActive('bold') ? 'bg-gray-200' : ''
+                  }`}
+                >
+                  <Bold className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleItalic}
+                  className={`p-2 rounded hover:bg-gray-100 ${
+                    editor?.isActive('italic') ? 'bg-gray-200' : ''
+                  }`}
+                >
+                  <Italic className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleBulletList}
+                  className={`p-2 rounded hover:bg-gray-100 ${
+                    editor?.isActive('bulletList') ? 'bg-gray-200' : ''
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleOrderedList}
+                  className={`p-2 rounded hover:bg-gray-100 ${
+                    editor?.isActive('orderedList') ? 'bg-gray-200' : ''
+                  }`}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </button>
+                <Button
+                  onClick={handleSave}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+                  disabled={saveInProgress}
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Save
+                </Button>
+              </div>
+              <div>
+                <Button
+                  onClick={onCancel}
+                  variant="outline"
+                  size="sm"
+                  className="px-4 py-2"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -115,6 +203,7 @@ export function EnhancedInlineEditor({
             placeholder={placeholder || "Enter text..."}
             onSave={handleSave}
             onCancel={onCancel}
+            setEditor={setEditor} // Pass setEditor to RichTextEditor
           />
         ) : (
           <Card className="border-blue-200 bg-blue-50">
@@ -141,15 +230,17 @@ export function EnhancedInlineEditor({
                     Enter each item on a new line
                   </p>
                 )}
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSave}>
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={onCancel}>
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={handleSave}>
+                      <Save className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={onCancel}>
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
