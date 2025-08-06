@@ -100,14 +100,14 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
   return (
     <div className="sticky top-8">
       {/* Combined Contact Information and Form Card */}
-      <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
+      <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
         {/* Contact Information Section */}
         {userProfile && (
           <>
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-4 pt-6 px-6 border-b border-blue-200/50">
-              <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <div className="p-1.5 bg-blue-150 rounded-lg">
-                  <User className="h-4 w-4 text-blue-700" />
+            <CardHeader className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 pb-4 pt-6 px-6 border-b border-blue-300/30 shadow-lg">
+              <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                  <User className="h-5 w-5 text-white" />
                 </div>
                 Contact Information
               </CardTitle>
@@ -155,24 +155,28 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 </div>
 
                 {/* Contact Details */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {userProfile.email && (
-                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                      <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
+                      <div className="p-1.5 bg-blue-500 rounded-lg shadow-sm">
+                        <Mail className="h-4 w-4 text-white flex-shrink-0" />
+                      </div>
                       <a 
                         href={`mailto:${userProfile.email}`} 
-                        className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors truncate"
+                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors truncate"
                       >
                         {userProfile.email}
                       </a>
                     </div>
                   )}
                   {(userProfile.phoneNumber || userProfile.phone) && (
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                      <Phone className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl hover:from-emerald-100 hover:to-emerald-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
+                      <div className="p-1.5 bg-emerald-500 rounded-lg shadow-sm">
+                        <Phone className="h-4 w-4 text-white flex-shrink-0" />
+                      </div>
                       <a 
                         href={`tel:${userProfile.phoneNumber || userProfile.phone}`} 
-                        className="text-slate-600 text-sm font-medium hover:text-slate-700 transition-colors"
+                        className="text-emerald-700 text-sm font-semibold hover:text-emerald-800 transition-colors"
                       >
                         {userProfile.phoneNumber}
                       </a>
@@ -185,11 +189,11 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
         )}
 
         {/* Ask Questions Section */}
-        <div className="border-t border-gray-100">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-4 pt-6 px-6 border-b border-blue-200/50">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <div className="p-1.5 bg-blue-150 rounded-lg">
-                <MessageSquare className="h-4 w-4 text-blue-700" />
+        <div className="border-t border-gray-200/50">
+          <CardHeader className="bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600 pb-4 pt-6 px-6 border-b border-purple-300/30 shadow-lg">
+            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
+                <MessageSquare className="h-5 w-5 text-white" />
               </div>
               Ask Questions
             </CardTitle>
@@ -263,7 +267,7 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 hover:from-purple-700 hover:via-purple-800 hover:to-pink-700 text-white font-semibold text-sm shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ring-2 ring-purple-300/30"
                 >
                   {isSubmitting ? (
                     <>
