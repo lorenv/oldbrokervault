@@ -339,6 +339,8 @@ export function SharePage() {
           shareSlug={cimData.shareSlug || shareSlug || ''}
         />
       )}
+      {/* Add top padding when owner toolbar is visible */}
+      <div className={shareData?.isOwner ? "pt-12" : ""}>
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
       {!cimData.isUploadedFile && cimData.coverImageUrl ? (
         <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden animate-fade-in">
@@ -733,6 +735,7 @@ export function SharePage() {
             />
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

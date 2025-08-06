@@ -43,6 +43,7 @@ The application employs a client-server architecture.
 - **Export Formats**: PDF, Word (DOCX), HTML, WordPress integration
 - **Security**: Watermarking, access controls, expiration dates, token-based sharing, view tracking.
 - **NDAs**: Template system with custom agreements, digital signatures, audit trails, IP-based location estimation.
+- **Owner Features**: Owner toolbar for logged-in document owners with analytics and edit buttons, NDA bypass functionality with explanatory message, separate owner view tracking.
 
 ### Deployment
 - **Platform**: Replit Static Deployment (for persistent filesystem storage)
