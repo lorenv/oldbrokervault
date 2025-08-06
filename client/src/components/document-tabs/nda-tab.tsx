@@ -500,7 +500,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
       {/* NDA Signatures Table */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 pb-6 pt-8 px-8 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-600 pb-6 pt-8 px-8 shadow-lg">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3 text-xl font-bold text-white">
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">

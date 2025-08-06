@@ -4030,6 +4030,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Convert relative URLs to absolute URLs for email images
+      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://cimshare.com' : req.protocol + '://' + req.get('host');
+      const profilePhotoUrl = sender.profilePhotoUrl ? (sender.profilePhotoUrl.startsWith('http') ? sender.profilePhotoUrl : `${baseUrl}${sender.profilePhotoUrl}`) : null;
+      const businessLogoUrl = sender.businessLogoUrl ? (sender.businessLogoUrl.startsWith('http') ? sender.businessLogoUrl : `${baseUrl}${sender.businessLogoUrl}`) : null;
+
       const fromName = senderName || sender.name || sender.email;
       const fromEmail = 'system@cimshare.com'; // Use verified sender email
 
@@ -4071,6 +4076,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #333;">Broker's Contact Information</h3>
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+              ${profilePhotoUrl ? `<img src="${profilePhotoUrl}" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">` : ''}
+              ${businessLogoUrl ? `<img src="${businessLogoUrl}" alt="Business Logo" style="max-width: 150px; max-height: 60px; margin-bottom: 15px;">` : ''}
+            </div>
             
             <div style="text-align: center;">
               <h4 style="margin: 10px 0; font-size: 18px; color: #333;">${sender.name}</h4>
