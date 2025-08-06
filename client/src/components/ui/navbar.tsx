@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -117,6 +117,12 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link href="/messages" className="flex items-center cursor-pointer w-full">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Messages
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/nda-templates" className="flex items-center cursor-pointer w-full">
                     <FileText className="h-4 w-4 mr-2" />

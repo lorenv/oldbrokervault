@@ -273,6 +273,44 @@ export const documentAnalytics = pgTable("document_analytics", {
   sessionId: text("session_id")
 });
 
+// Message Center Tables
+export const messageThreads = pgTable("message_threads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // CIM owner
+  cimDocumentId: integer("cim_document_id").notNull(),
+  inquirerEmail: text("inquirer_email").notNull(),
+  inquirerName: text("inquirer_name").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status").default("active").notNull(), // active, archived, closed
+  threadEmailAddress: text("thread_email_address").unique(), // unique email for this thread
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull()
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  threadId: integer("thread_id").notNull(),
+  senderType: text("sender_type").notNull(), // inquirer, owner
+  senderEmail: text("sender_email").notNull(),
+  content: text("content").notNull(),
+  messageType: text("message_type").notNull(), // contact_form, email_reply, app_message
+  sendgridMessageId: text("sendgrid_message_id"), // for tracking
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+export const emailSyncLog = pgTable("email_sync_log", {
+  id: serial("id").primaryKey(),
+  threadId: integer("thread_id").notNull(),
+  messageId: integer("message_id"),
+  sendgridMessageId: text("sendgrid_message_id"),
+  direction: text("direction").notNull(), // inbound, outbound
+  status: text("status").notNull(), // pending, sent, delivered, bounced, failed
+  errorMessage: text("error_message"),
+  syncAt: timestamp("sync_at").defaultNow().notNull()
+});
+
 // Premium feature: Document search index
 export const searchIndex = pgTable("search_index", {
   id: serial("id").primaryKey(),
@@ -546,6 +584,48 @@ export const insertInvestorContactSchema = createInsertSchema(investorContacts).
   name: z.string().min(1, "Name is required"),
   status: z.enum(["new", "contacted", "interested", "under_review", "declined", "closed"]).optional()
 });
+
+// Message Center Schemas
+export const insertMessageThreadSchema = createInsertSchema(messageThreads).pick({
+  userId: true,
+  cimDocumentId: true,
+  inquirerEmail: true,
+  inquirerName: true,
+  subject: true
+}).extend({
+  inquirerEmail: z.string().email("Please enter a valid email address"),
+  inquirerName: z.string().min(1, "Name is required"),
+  subject: z.string().min(1, "Subject is required")
+});
+
+export const insertMessageSchema = createInsertSchema(messages).pick({
+  threadId: true,
+  senderType: true,
+  senderEmail: true,
+  content: true,
+  messageType: true
+}).extend({
+  senderType: z.enum(["inquirer", "owner"]),
+  messageType: z.enum(["contact_form", "email_reply", "app_message"]),
+  senderEmail: z.string().email("Please enter a valid email address"),
+  content: z.string().min(1, "Message content is required")
+});
+
+export const insertEmailSyncLogSchema = createInsertSchema(emailSyncLog).pick({
+  threadId: true,
+  direction: true,
+  status: true
+}).extend({
+  direction: z.enum(["inbound", "outbound"]),
+  status: z.enum(["pending", "sent", "delivered", "bounced", "failed"])
+});
+
+export type MessageThread = typeof messageThreads.$inferSelect;
+export type InsertMessageThread = z.infer<typeof insertMessageThreadSchema>;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type EmailSyncLog = typeof emailSyncLog.$inferSelect;
+export type InsertEmailSyncLog = z.infer<typeof insertEmailSyncLogSchema>;
 
 export type InsertInvestorContact = z.infer<typeof insertInvestorContactSchema>;
 export type InsertFinancialFile = z.infer<typeof insertFinancialFileSchema>;

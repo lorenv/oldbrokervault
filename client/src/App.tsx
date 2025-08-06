@@ -30,6 +30,7 @@ import { DocumentDetailPage } from "@/pages/document-detail-page";
 import NdaTemplatesPage from "@/pages/nda-templates-page";
 import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
 import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
+import Messages from "@/pages/messages";
 
 function Router() {
   const [location] = useLocation();
@@ -49,6 +50,7 @@ function Router() {
             <ProtectedRoute path="/enhanced-cim/:id" component={EnhancedCimPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
+            <ProtectedRoute path="/messages" component={Messages} />
             <ProtectedRoute path="/account" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />

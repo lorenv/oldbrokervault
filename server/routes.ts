@@ -40,6 +40,7 @@ import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
+import { messageRoutes } from "./routes/messages";
 
 
 // Directory paths
@@ -4235,12 +4236,11 @@ Professional CIM Generation Platform`;
     }
   });
 
-  // Broker contact endpoint with rate limiting
+  // Broker contact endpoint with message center integration
   app.post("/api/share/:shareSlug/contact", async (req, res) => {
     console.log('=== CONTACT FORM SUBMISSION RECEIVED ===');
     console.log('Share slug:', req.params.shareSlug);
     console.log('Request body:', req.body);
-    console.log('Headers:', req.headers);
     
     try {
       const { shareSlug } = req.params;
@@ -4254,10 +4254,6 @@ Professional CIM Generation Platform`;
 
       // Input validation
       if (!finalName?.trim() || !finalEmail?.trim() || !finalQuestion?.trim()) {
-        console.log("=== VALIDATION DEBUG ===");
-        console.log("viewerName:", viewerName, "name:", name, "finalName:", finalName);
-        console.log("viewerEmail:", viewerEmail, "email:", email, "finalEmail:", finalEmail);
-        console.log("question:", question, "message:", message, "finalQuestion:", finalQuestion);
         return res.status(400).json({ 
           error: "Name, email, and question are required fields" 
         });
@@ -4291,76 +4287,27 @@ Professional CIM Generation Platform`;
         return res.status(404).json({ error: "Shared document not found" });
       }
 
-      // Get the document owner's profile
-      const ownerProfile = await storage.getUser(cimDoc.userId);
-      if (!ownerProfile?.email) {
-        return res.status(500).json({ error: "Unable to contact document owner" });
-      }
-
-      // Send email to the document owner
+      // Create message thread using the message center system
+      const { messageService } = await import("./message-service");
+      
       const emailSubject = `Question about "${cimDoc.title}" from ${finalName}`;
-      const emailBody = `
-You have received a question about your CIM document "${cimDoc.title}".
-
+      const messageContent = `
 From: ${finalName}
 Email: ${finalEmail}
 ${viewerPhone ? `Phone: ${viewerPhone}` : ''}
 
 Question:
 ${finalQuestion}
-
----
-This message was sent through your shared CIM link. You can reply directly to this email to respond to ${finalName}.
-
-View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       `.trim();
 
-      console.log("=== CONTACT FORM EMAIL DEBUG ===");
-      console.log("Owner email:", ownerProfile.email);
-      console.log("From email:", 'system@cimshare.com');
-      console.log("Reply-to email:", finalEmail);
-      console.log("Subject:", emailSubject);
-      console.log("Body length:", emailBody.length);
-      console.log("SendGrid API Key available:", !!process.env.SENDGRID_API_KEY);
-      console.log("SendGrid API Key starts with SG:", process.env.SENDGRID_API_KEY?.startsWith('SG.') || 'NOT_AVAILABLE');
-      console.log("SendGrid API Key length:", process.env.SENDGRID_API_KEY?.length || 0);
-      console.log("NODE_ENV:", process.env.NODE_ENV);
-      console.log("Platform:", process.platform);
-      
-      // Critical environment validation
-      if (!process.env.SENDGRID_API_KEY) {
-        console.error("🚨 CRITICAL: SENDGRID_API_KEY environment variable is missing");
-        console.error("Available environment variables containing 'SENDGRID':", Object.keys(process.env).filter(k => k.includes('SENDGRID')));
-        console.error("This is the root cause of the contact form failure");
-        return res.status(500).json({ 
-          error: "Email service not properly configured. Please contact support.",
-          debug: "SENDGRID_API_KEY missing in production environment"
-        });
-      }
-      
-      if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
-        console.error("🚨 CRITICAL: SENDGRID_API_KEY format is invalid");
-        return res.status(500).json({ 
-          error: "Email service configuration error. Please contact support.",
-          debug: "SENDGRID_API_KEY format invalid"
-        });
-      }
-      
-      const emailSent = await sendEmail({
-        to: ownerProfile.email,
-        from: 'system@cimshare.com',
-        replyTo: finalEmail,
-        subject: emailSubject,
-        text: emailBody
-      });
-
-      console.log("Email sent result:", emailSent);
-      console.log("=== END CONTACT FORM EMAIL DEBUG ===");
-
-      if (!emailSent) {
-        console.error("❌ Contact form email failed - SendGrid returned false");
-        return res.status(500).json({ error: "Failed to send email. Please try again." });
-      }
+      const thread = await messageService.createThreadFromContactForm(
+        cimDoc.userId,
+        cimDoc.id,
+        finalEmail,
+        finalName,
+        emailSubject,
+        messageContent
+      );
 
       // Update rate limiting
       recentRequests.push(now);
@@ -4382,17 +4329,15 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
 
       res.json({ 
         success: true, 
-        message: "Your question has been sent to the broker" 
+        message: "Your question has been sent to the broker. You will receive a confirmation email shortly.",
+        threadId: thread.id
       });
 
     } catch (error) {
       console.error("=== CONTACT FORM ERROR ===");
-      console.error("Error sending broker contact email:", error);
-      console.error("Error type:", typeof error);
-      console.error("Error message:", error?.message);
-      console.error("Error stack:", error?.stack);
+      console.error("Error sending broker contact:", error);
+      console.error("Error details:", error);
       console.error("Share slug:", req.params.shareSlug);
-      console.error("Request body:", req.body);
       console.error("=== END CONTACT FORM ERROR ===");
       
       res.status(500).json({ 
@@ -7865,6 +7810,9 @@ View your CIM: ${req.protocol}://${req.get('host')}/cims/${shareSlug}
       res.status(500).json({ error: "Failed to remove cover image" });
     }
   });
+
+  // Register message center routes
+  app.use('/api/messages', messageRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
