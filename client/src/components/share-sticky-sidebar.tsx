@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResizableRichTextEditor } from "@/components/resizable-rich-text-editor";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Mail, Phone, User, Building2, CheckCircle, Expand } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -284,11 +285,11 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                           </DialogTitle>
                         </DialogHeader>
                         <div className="flex-1 mt-4">
-                          <Textarea
+                          <RichTextEditor
                             value={formData.question}
-                            onChange={(e) => handleInputChange('question', e.target.value)}
+                            onChange={(value) => handleInputChange('question', value)}
                             placeholder="Ask about financials, operations, growth opportunities, or any other details..."
-                            className="w-full h-full resize-none text-base"
+                            className="h-full"
                             autoFocus
                           />
                         </div>
