@@ -192,7 +192,10 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", registrationUpload.single('businessLogo'), async (req, res) => {
+  app.post("/api/register", registrationUpload.fields([
+    { name: 'businessLogo', maxCount: 1 },
+    { name: 'profilePhoto', maxCount: 1 }
+  ]), async (req, res) => {
     try {
       // Handle JSON body parsing (FormData contains text fields)
       const { email, password, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
@@ -216,18 +219,30 @@ export function setupAuth(app: Express) {
                      process.env.ADMIN_CODE && 
                      adminCode === process.env.ADMIN_CODE;
 
-      // Handle business logo upload if present
+      // Handle file uploads if present
       let businessLogoPath = null;
-      if (req.file) {
+      let profilePhotoPath = null;
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (files?.businessLogo?.[0]) {
         try {
-          // Import image manager and save the logo
           const { objectStorageImageManager } = await import("./image-manager-object-storage");
-          const logoBuffer = req.file.buffer;
-          const logoFilename = `business-logo-${Date.now()}.${req.file.mimetype.split('/')[1]}`;
+          const logoBuffer = files.businessLogo[0].buffer;
+          const logoFilename = `business-logo-${Date.now()}.${files.businessLogo[0].mimetype.split('/')[1]}`;
           businessLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, 'temp-user');
         } catch (logoError) {
           console.error('Failed to save business logo:', logoError);
-          // Don't fail registration if logo upload fails, just continue without it
+        }
+      }
+      
+      if (files?.profilePhoto?.[0]) {
+        try {
+          const { objectStorageImageManager } = await import("./image-manager-object-storage");
+          const photoBuffer = files.profilePhoto[0].buffer;
+          const photoFilename = `profile-photo-${Date.now()}.${files.profilePhoto[0].mimetype.split('/')[1]}`;
+          profilePhotoPath = await objectStorageImageManager.saveBusinessImage(photoBuffer, photoFilename, 'temp-user');
+        } catch (photoError) {
+          console.error('Failed to save profile photo:', photoError);
         }
       }
 
@@ -237,23 +252,42 @@ export function setupAuth(app: Express) {
         businessName: businessName || null,
         phoneNumber: phoneNumber || null,
         businessLogo: businessLogoPath,
+        profilePhoto: profilePhotoPath || undefined,
         isAdmin,
       });
 
-      // Update the business logo path with the actual user ID
-      if (businessLogoPath && req.file) {
+      // Update file paths with the actual user ID
+      let updateData: any = {};
+      
+      if (businessLogoPath && files?.businessLogo?.[0]) {
         try {
           const { objectStorageImageManager } = await import("./image-manager-object-storage");
-          const logoBuffer = req.file.buffer;
-          const logoFilename = `business-logo-${Date.now()}.${req.file.mimetype.split('/')[1]}`;
+          const logoBuffer = files.businessLogo[0].buffer;
+          const logoFilename = `business-logo-${Date.now()}.${files.businessLogo[0].mimetype.split('/')[1]}`;
           const finalLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, user.id.toString());
-          
-          // Update the user with the correct logo path
-          await storage.updateUser(user.id, { businessLogo: finalLogoPath });
+          updateData.businessLogo = finalLogoPath;
           user.businessLogo = finalLogoPath;
         } catch (logoError) {
           console.error('Failed to update business logo with user ID:', logoError);
         }
+      }
+      
+      if (profilePhotoPath && files?.profilePhoto?.[0]) {
+        try {
+          const { objectStorageImageManager } = await import("./image-manager-object-storage");
+          const photoBuffer = files.profilePhoto[0].buffer;
+          const photoFilename = `profile-photo-${Date.now()}.${files.profilePhoto[0].mimetype.split('/')[1]}`;
+          const finalPhotoPath = await objectStorageImageManager.saveBusinessImage(photoBuffer, photoFilename, user.id.toString());
+          updateData.profilePhoto = finalPhotoPath;
+          user.profilePhoto = finalPhotoPath;
+        } catch (photoError) {
+          console.error('Failed to update profile photo with user ID:', photoError);
+        }
+      }
+      
+      // Update user if we have new file paths
+      if (Object.keys(updateData).length > 0) {
+        await storage.updateUser(user.id, updateData);
       }
 
       // Create default NDA template for the new user

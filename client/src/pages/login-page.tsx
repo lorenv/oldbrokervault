@@ -62,7 +62,11 @@ type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 const registerSchema = insertUserSchema.omit({ adminCode: true }).extend({
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
-  })
+  }),
+  businessName: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  profilePhoto: z.any().optional(),
+  businessLogo: z.any().optional()
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -233,31 +237,14 @@ export default function LoginPage() {
       <div className="relative w-full max-w-lg">
         {/* Main Card */}
         <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
-          {/* Header Section */}
-          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-12 text-center">
-            {/* Logo/Icon */}
-            <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10,9 9,9 8,9"/>
-              </svg>
-            </div>
-            
-            <h1 className="text-3xl font-bold text-white mb-3">
+          {/* Compact Header Section */}
+          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-8 text-center">
+            <h1 className="text-2xl font-bold text-white mb-2">
               Welcome to CIM Share
             </h1>
-            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto mb-4">
+            <p className="text-blue-100 text-sm leading-relaxed max-w-sm mx-auto">
               Create professional Confidential Information Memorandums with advanced NDA protection and seamless collaboration
             </p>
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm font-medium">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Start your free trial today
-            </div>
           </div>
 
           <CardContent className="p-8">
@@ -368,8 +355,8 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
               Sign In
             </>
@@ -386,6 +373,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
     defaultValues: {
       email: "",
       password: "",
+      businessName: "",
+      phoneNumber: "",
       agreeToTerms: false,
     },
   });
@@ -415,11 +404,18 @@ function RegisterForm({ mutation }: { mutation: any }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => {
-        // Convert agreeToTerms boolean to string for backend compatibility
-        const formData = {
-          ...data,
-          agreeToTerms: data.agreeToTerms.toString()
-        };
+        // Create FormData for file upload support
+        const formData = new FormData();
+        formData.append('email', data.email);
+        formData.append('password', data.password);
+        formData.append('agreeToTerms', data.agreeToTerms.toString());
+        
+        // Add optional business profile fields
+        if (data.businessName) formData.append('businessName', data.businessName);
+        if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
+        if (data.profilePhoto) formData.append('profilePhoto', data.profilePhoto);
+        if (data.businessLogo) formData.append('businessLogo', data.businessLogo);
+        
         mutation.mutate(formData as any);
       })} className="space-y-5 mt-6">
         <FormField
@@ -441,6 +437,95 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
+        
+        {/* Business Profile Fields */}
+        <div className="space-y-5 bg-slate-50/50 p-5 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+            </svg>
+            Business Information <span className="text-gray-400 font-normal">(optional)</span>
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="businessName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Company Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Your company name"
+                    type="text"
+                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Phone Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="(555) 123-4567"
+                    type="tel"
+                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="profilePhoto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-600">Profile Photo</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => field.onChange(e.target.files?.[0] || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="businessLogo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-600">Business Logo</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => field.onChange(e.target.files?.[0] || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="password"
