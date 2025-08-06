@@ -336,7 +336,9 @@ HTML FORMATTING RULES FOR RICH TEXT:
 - Use <strong> tags for key terms, company names, and financial figures
 - Use <em> tags for market terms, technical concepts, and emphasis
 - Use <ul><li> for bullet lists and <ol><li> for numbered lists
+- Use <table>, <tr>, <td>, <th> for data tables when presenting financial data or comparisons
 - Wrap all paragraphs in <p> tags
+- Use proper apostrophes (') and quotes (") in natural language - never escape or avoid them
 - NEVER use markdown (**bold** or *italic*) - only HTML tags
 - NEVER use code blocks, backticks, or code formatting
 - Ensure all HTML tags are properly opened and closed
@@ -525,6 +527,21 @@ Create a comprehensive CIM document following the analysis parameters and custom
             break;
           default:
             // Skip other control characters
+            break;
+        }
+      } else if (inString && charCode > 126) {
+        // Preserve common Unicode characters like smart quotes and apostrophes
+        switch (char) {
+          case '\u2019': // Smart apostrophe (')
+          case '\u2018': // Smart apostrophe (')
+          case '\u201C': // Smart quote (")
+          case '\u201D': // Smart quote (")
+          case '\u2013': // En dash (–)
+          case '\u2014': // Em dash (—)
+            cleanedContent += char;
+            break;
+          default:
+            // Skip other high Unicode characters that might break JSON
             break;
         }
       } else {
