@@ -457,6 +457,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExampleCimDocument(userId: number): Promise<CimDocument> {
+    console.log(`Creating example CIM document with assets for user ${userId}`);
+    
+    // Create and upload example assets first
+    const { exampleAssetsCreator } = await import('./example-assets-creator');
+    const exampleAssets = await exampleAssetsCreator.createAndUploadExampleAssets();
+
     // Example data based on Tony's Transmissions CIM
     const exampleData = {
       title: "Tony's Transmissions",
@@ -479,14 +485,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         "Management & Team": "The management team at Tony's Transmission Repair is composed of four key employees whose expertise and leadership are critical to the companys ongoing operations. The two senior repair technicians possess extensive experience in diagnosing and resolving complex transmission issues, ensuring that the business maintains its reputation for technical excellence. The accountant provides robust financial oversight, managing all aspects of accounting, compliance, and reporting to support informed decision-making. The general manager is responsible for coordinating daily operations, managing staff, and maintaining high standards of customer service. The remaining eight employees contribute across various operational roles, supporting the companys service delivery and customer engagement. The organizational structure is designed to promote accountability, efficiency, and knowledge transfer, ensuring continuity and stability through the ownership transition. The commitment of the existing team to remain with the business provides a strong foundation for future growth and operational success."
       },
       websiteUrl: "https://tonystransmissions.com",
-      // Use placeholder image paths that will be copied during creation
-      selectedImages: [
-        "/api/object-storage/users/example/business-images/transmission-shop-1.jpg",
-        "/api/object-storage/users/example/business-images/transmission-shop-2.jpg", 
-        "/api/object-storage/users/example/business-images/transmission-shop-3.jpg",
-        "/api/object-storage/users/example/business-images/transmission-shop-4.jpg"
-      ],
-      logoUrl: "/api/object-storage/users/example/logos/tonys-logo.png",
+      // Use the actual uploaded asset URLs
+      selectedImages: exampleAssets.businessImages,
+      logoUrl: exampleAssets.logoUrl,
       financialsEnabled: true,
       askingPrice: "$5,000,000",
       askingPriceIncluded: true,
@@ -494,9 +495,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       revenueIncluded: true,
       ebitda: "$1,500,000",
       ebitdaIncluded: true,
-      coverImageUrl: null,
-      coverImagePosition: null,
-      coverImageAttribution: "Photo by Kirill Prikhodko on Unsplash",
+      coverImageUrl: exampleAssets.coverImageUrl,
+      coverImagePosition: "center",
+      coverImageAttribution: "Demo business for CIM Share platform",
       shareEnabled: false,
       shareSlug: null,
       sharePassword: null,
@@ -541,7 +542,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .values(insertData)
       .returning();
 
-    console.log(`Created example CIM document for user ${userId}: ${cimDoc.id}`);
+    console.log(`✅ Created example CIM document for user ${userId}: ${cimDoc.id} with ${exampleAssets.businessImages.length} business images and logo`);
     return cimDoc;
   }
 
@@ -1014,7 +1015,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         lastActivityAt: cimDocuments.lastActivityAt,
         lastModifiedBy: cimDocuments.lastModifiedBy,
         searchVector: cimDocuments.searchVector,
-        version: cimDocuments.version
+        version: cimDocuments.version,
+        coverImageBackup: cimDocuments.coverImageBackup,
+        isExample: cimDocuments.isExample
       })
         .from(cimDocuments)
         .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
