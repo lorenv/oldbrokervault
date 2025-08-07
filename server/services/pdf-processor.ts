@@ -24,14 +24,14 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
     // Create temporary directory
     await fs.mkdir(tempDir, { recursive: true });
     
-    // Convert PDF to images using pdf2pic with optimized settings
+    // Convert PDF to images using pdf2pic with optimized settings - preserve original proportions
     const convert = fromBuffer(file.buffer, {
       density: 150,           // Reduced DPI for faster processing
       saveFilename: "page",
       savePath: tempDir,
       format: "png",
-      width: 800,             // Good resolution for display
-      height: 1100,           // Proportional height for A4
+      // Remove fixed width/height to preserve original page proportions
+      // pdf2pic will maintain aspect ratio automatically
       quality: 85             // Good quality with reasonable file size
     });
     
@@ -65,12 +65,16 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
               })
               .toBuffer();
             
+            // Get image metadata for orientation detection
+            const metadata = await sharp(optimizedBuffer).metadata();
+            const isLandscape = (metadata.width || 0) > (metadata.height || 0);
+            
             // Store image in object storage
             const objectStorageService = new ObjectStorageService();
             const storageKey = `private/${isTemplate ? 'templates' : 'documents'}/${id}/pages/page-${pageIndex + 1}.png`;
             const uploadResult = await objectStorageService.uploadBuffer(storageKey, optimizedBuffer, 'image/png');
             
-            console.log(`[PDF_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url}`);
+            console.log(`[PDF_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url} (${metadata.width}x${metadata.height}, ${isLandscape ? 'landscape' : 'portrait'})`);
             
             // Store URL in the correct order
             imageUrls[pageIndex] = uploadResult.url;
