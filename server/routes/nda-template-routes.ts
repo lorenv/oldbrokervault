@@ -52,14 +52,16 @@ export function registerNdaTemplateRoutes(app: Express) {
       console.log("Request body:", {
         name: req.body.name,
         hasFileContent: !!req.body.fileContent,
-        signatureFieldsCount: req.body.signatureFields?.length || 0
+        signatureFieldsCount: req.body.signatureFields?.length || 0,
+        recipientsCount: req.body.recipients?.length || 0
       });
       
       const template = await storage.createNdaTemplate(req.user!.id, {
         name: req.body.name,
         fileContent: req.body.fileContent,
         isDefault: req.body.isDefault || false,
-        signatureFields: req.body.signatureFields || []
+        signatureFields: req.body.signatureFields || [],
+        recipients: req.body.recipients || []
       });
       
       console.log("Template created successfully:", template.id);
@@ -86,7 +88,8 @@ export function registerNdaTemplateRoutes(app: Express) {
       const template = await storage.updateNdaTemplate(templateId, {
         name: req.body.name,
         fileContent: req.body.fileContent,
-        signatureFields: req.body.signatureFields
+        signatureFields: req.body.signatureFields,
+        recipients: req.body.recipients
       });
       
       res.json(template);
