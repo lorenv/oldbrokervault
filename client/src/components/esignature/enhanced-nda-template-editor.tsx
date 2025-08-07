@@ -367,13 +367,24 @@ export default function EnhancedNdaTemplateEditor({
 
                 <div>
                   <Label htmlFor="pdf-upload">PDF Template</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    <label
+                      htmlFor="pdf-upload"
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-md cursor-pointer transition-colors text-sm font-medium text-blue-700"
+                    >
+                      Choose File
+                    </label>
+                    <span className="text-sm text-gray-500">
+                      {isUploading ? 'Processing...' : 'No file chosen'}
+                    </span>
+                  </div>
                   <Input
                     id="pdf-upload"
                     type="file"
                     accept=".pdf"
                     onChange={handleFileUpload}
                     disabled={isUploading}
-                    className="mt-1"
+                    className="hidden"
                   />
                   {isUploading && (
                     <p className="text-sm text-gray-600 mt-1">Uploading and processing PDF...</p>
@@ -545,12 +556,24 @@ export default function EnhancedNdaTemplateEditor({
                       <p className="text-gray-600 mb-4">
                         Upload a PDF document to start creating your e-signature template
                       </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <label
+                          htmlFor="main-pdf-upload"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-md cursor-pointer transition-colors text-sm font-medium text-blue-700"
+                        >
+                          Choose File
+                        </label>
+                        <span className="text-sm text-gray-500">
+                          {isUploading ? 'Processing...' : 'No file chosen'}
+                        </span>
+                      </div>
                       <Input
+                        id="main-pdf-upload"
                         type="file"
                         accept=".pdf"
                         onChange={handleFileUpload}
                         disabled={isUploading}
-                        className="cursor-pointer"
+                        className="hidden"
                       />
                       {isUploading && (
                         <div className="mt-4 flex items-center justify-center">
