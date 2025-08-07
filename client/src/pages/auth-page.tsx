@@ -136,7 +136,7 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Card className="w-full max-w-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
             <Button
               variant="ghost"
               size="sm"
@@ -193,7 +193,7 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Card className="w-full max-w-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
             <CardTitle className="text-white">Set New Password</CardTitle>
             <CardDescription className="text-blue-50">
               Enter your new password below
@@ -213,7 +213,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Card className="w-full max-w-md overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
           <CardTitle className="text-white">Welcome to CIM Share</CardTitle>
           <CardDescription className="text-blue-50">
             The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
@@ -226,13 +226,13 @@ export default function AuthPage() {
             <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-blue-50 to-purple-50">
               <TabsTrigger 
                 value="login" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-300"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-blue-500 data-[state=active]:text-white transition-all duration-300"
               >
                 Login
               </TabsTrigger>
               <TabsTrigger 
                 value="register"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-300"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-blue-500 data-[state=active]:text-white transition-all duration-300"
               >
                 Register
               </TabsTrigger>
