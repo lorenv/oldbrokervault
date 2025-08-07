@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
-import { EnhancedSignatureField, FieldRenderer, DEFAULT_FIELD_DIMENSIONS } from './enhanced-signature-field';
+import { EnhancedSignatureField, FieldRenderer, DEFAULT_FIELD_DIMENSIONS, getRecipientColor } from './enhanced-signature-field';
 import { NdaRecipient } from '@shared/schema';
 
 interface CanvasOverlayProps {
@@ -210,20 +210,25 @@ export default function CanvasOverlay({
     }
   }, [onFieldSelect]);
 
-  // Get recipient color for field
-  const getRecipientColor = (assignedTo?: string) => {
-    if (!assignedTo) return 'bg-gray-100 text-gray-700';
+  // Get recipient color for field using the centralized color system
+  const getFieldColor = (assignedTo?: string) => {
+    if (!assignedTo) return 'border-gray-400 bg-gray-100';
     const recipientIndex = recipients.findIndex(r => r.id?.toString() === assignedTo);
-    const colors = [
-      'bg-blue-100 text-blue-800',
-      'bg-green-100 text-green-800',
-      'bg-purple-100 text-purple-800',
-      'bg-orange-100 text-orange-800',
-      'bg-pink-100 text-pink-800',
-      'bg-indigo-100 text-indigo-800'
-    ];
-    return colors[recipientIndex % colors.length] || 'bg-gray-100 text-gray-700';
+    if (recipientIndex >= 0) {
+      const color = getRecipientColor(recipientIndex);
+      return `${color.border} ${color.bg}`;
+    }
+    return 'border-gray-400 bg-gray-100';
   };
+
+  // Delete field handler
+  const handleDeleteField = useCallback((fieldId: string) => {
+    const updatedFields = fields.filter(f => f.id !== fieldId);
+    onFieldsChange(updatedFields);
+    if (selectedField?.id === fieldId) {
+      onFieldSelect(null);
+    }
+  }, [fields, onFieldsChange, selectedField, onFieldSelect]);
 
   // Grid overlay
   const renderGrid = () => {
@@ -317,7 +322,7 @@ export default function CanvasOverlay({
             <div
               className={`
                 w-full h-full rounded cursor-move transition-all duration-200
-                ${getRecipientColor(field.assignedTo)}
+                ${getFieldColor(field.assignedTo)}
                 ${selectedField?.id === field.id ? 'ring-2 ring-blue-500 shadow-lg' : 'border border-gray-300'}
                 ${!isReadOnly ? 'hover:shadow-md hover:border-gray-400' : ''}
               `}
@@ -332,9 +337,21 @@ export default function CanvasOverlay({
               />
             </div>
 
-            {/* Resize handles */}
+            {/* Control handles */}
             {selectedField?.id === field.id && !isReadOnly && (
               <>
+                {/* Delete button */}
+                <div
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 border border-white rounded-full cursor-pointer flex items-center justify-center hover:bg-red-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteField(field.id);
+                  }}
+                  title="Delete field"
+                >
+                  <div className="w-2 h-0.5 bg-white rounded" />
+                </div>
+
                 {/* Bottom-right resize handle */}
                 <div
                   className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded cursor-se-resize"

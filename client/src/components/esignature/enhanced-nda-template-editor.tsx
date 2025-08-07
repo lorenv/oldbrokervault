@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2, MousePointer } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +22,7 @@ import FieldPalette from './field-palette';
 import CanvasOverlay from './canvas-overlay';
 import ImageDocumentViewer from './image-document-viewer';
 import RecipientModal from './recipient-modal';
-import { EnhancedSignatureField } from './enhanced-signature-field';
+import { EnhancedSignatureField, getRecipientColor } from './enhanced-signature-field';
 import { NdaRecipient, NdaTemplate } from '@shared/schema';
 
 interface PageImage {
@@ -577,59 +577,49 @@ export default function EnhancedNdaTemplateEditor({
               </div>
 
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {recipients.map((recipient, index) => (
-                  <Card key={recipient.id} className="border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                          {index + 1}
+                {recipients.map((recipient, index) => {
+                  const recipientColor = getRecipientColor(index);
+                  const isSelected = selectedRecipient === recipient.id?.toString();
+                  
+                  return (
+                    <Card 
+                      key={recipient.id} 
+                      className={`border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        isSelected 
+                          ? `${recipientColor.border} ${recipientColor.bg} shadow-md` 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedRecipient(recipient.id?.toString() || '')}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm ${recipientColor.solid}`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate">
+                              {recipient.name || 'Unnamed Recipient'}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {recipient.email}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                {recipient.role}
+                              </div>
+                              {isSelected && (
+                                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                  <MousePointer className="w-3 h-3 mr-1" />
+                                  Active
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-gray-900 truncate">
-                            {recipient.name || 'Unnamed Recipient'}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {recipient.email}
-                          </div>
-                          <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 mt-1">
-                            {recipient.role}
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingRecipient(recipient);
-                                setIsRecipientModalOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setRecipients(recipients.filter((_, i) => i !== index));
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {recipients.length === 0 && (
                   <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
