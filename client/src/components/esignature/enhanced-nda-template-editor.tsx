@@ -267,98 +267,182 @@ export default function EnhancedNdaTemplateEditor({
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
           <div className="w-80 bg-white border-r flex flex-col">
-            <Tabs defaultValue="fields" className="flex-1 flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 m-4">
-                <TabsTrigger value="fields">Fields</TabsTrigger>
-                <TabsTrigger value="recipients">Recipients</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+            {/* Recipients Section */}
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Recipients</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    const newRecipient: NdaRecipient = {
+                      id: Date.now(),
+                      name: '',
+                      email: '',
+                      role: 'signer',
+                      status: 'pending',
+                      accessToken: '',
+                      signedAt: null,
+                      ipAddress: null,
+                      userAgent: null,
+                      location: null
+                    };
+                    setRecipients([...recipients, newRecipient]);
+                  }}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <span className="text-lg mr-1">+</span>
+                  Add
+                </Button>
+              </div>
               
-              <div className="flex-1 overflow-auto px-4 pb-4">
-                <TabsContent value="fields" className="mt-0">
-                  <FieldPalette
-                    recipients={recipients as NdaRecipient[]}
-                    selectedRecipient={selectedRecipient}
-                    onRecipientChange={setSelectedRecipient}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="recipients" className="mt-0">
-                  <RecipientManager
-                    recipients={recipients as NdaRecipient[]}
-                    onRecipientsChange={setRecipients}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="settings" className="mt-0">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="w-5 h-5" />
-                        Editor Settings
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Template name */}
-                      <div>
-                        <Label htmlFor="template-name">Template Name</Label>
-                        <Input
-                          id="template-name"
-                          value={templateName}
-                          onChange={(e) => setTemplateName(e.target.value)}
-                          placeholder="Enter template name"
-                        />
-                      </div>
-                      
-                      {/* PDF upload */}
-                      <div>
-                        <Label htmlFor="pdf-upload">PDF Template</Label>
-                        <Input
-                          id="pdf-upload"
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleFileUpload}
-                          disabled={isUploading}
-                        />
-                        {isUploading && (
-                          <p className="text-sm text-gray-600 mt-1">Uploading...</p>
-                        )}
-                      </div>
-                      
-                      {/* Editor options */}
-                      <div className="space-y-3 pt-4">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="show-grid">Show Grid</Label>
-                          <Switch
-                            id="show-grid"
-                            checked={showGrid}
-                            onCheckedChange={setShowGrid}
-                          />
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {recipients.map((recipient, index) => (
+                  <Card key={recipient.id} className="border-blue-200">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                          {index + 1}
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="snap-to-grid">Snap to Grid</Label>
-                          <Switch
-                            id="snap-to-grid"
-                            checked={snapToGrid}
-                            onCheckedChange={setSnapToGrid}
-                          />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">
+                            {recipient.name || 'Unnamed Recipient'}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {recipient.email}
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            {recipient.role}
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="preview-mode">Preview Mode</Label>
-                          <Switch
-                            id="preview-mode"
-                            checked={isPreviewMode}
-                            onCheckedChange={setIsPreviewMode}
-                          />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                        >
+                          ⋯
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {recipients.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No recipients added yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Settings Section */}
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-semibold mb-4">Template Settings</h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="template-name">Template Name</Label>
+                  <Input
+                    id="template-name"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Enter template name"
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="pdf-upload">PDF Template</Label>
+                  <Input
+                    id="pdf-upload"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="mt-1"
+                  />
+                  {isUploading && (
+                    <p className="text-sm text-gray-600 mt-1">Uploading and processing PDF...</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Field Types Section */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <h3 className="text-lg font-semibold mb-4">Field Types</h3>
+              <div className="space-y-3">
+                {[
+                  { 
+                    icon: '✒️', 
+                    name: 'Signature', 
+                    description: 'Electronic signature field',
+                    type: 'signature'
+                  },
+                  { 
+                    icon: 'T', 
+                    name: 'Initials', 
+                    description: 'Initials field',
+                    type: 'initials'
+                  },
+                  { 
+                    icon: '📅', 
+                    name: 'Date', 
+                    description: 'Date stamp field',
+                    type: 'date'
+                  },
+                  { 
+                    icon: '📝', 
+                    name: 'Text', 
+                    description: 'Text input field',
+                    type: 'text'
+                  },
+                  { 
+                    icon: '☑️', 
+                    name: 'Checkbox', 
+                    description: 'Checkbox field',
+                    type: 'checkbox'
+                  },
+                  { 
+                    icon: '👤', 
+                    name: 'Full Name', 
+                    description: 'Full name field',
+                    type: 'name'
+                  }
+                ].map((field) => (
+                  <Card 
+                    key={field.type}
+                    className="border-green-200 cursor-pointer hover:bg-green-50 transition-colors"
+                    onClick={() => {
+                      // Handle field selection for drag and drop
+                      console.log('Selected field type:', field.type);
+                    }}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                          <span className="text-green-600 text-sm">
+                            {field.icon === 'T' ? (
+                              <span className="font-bold text-lg">T</span>
+                            ) : field.icon}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{field.name}</div>
+                          <div className="text-xs text-gray-500">{field.description}</div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                            <span className="text-xs text-gray-600">
+                              {recipients.find(r => r.role === 'signer')?.name || 'Unassigned'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
+                ))}
               </div>
-            </Tabs>
+            </div>
           </div>
 
           {/* Document Editor */}
