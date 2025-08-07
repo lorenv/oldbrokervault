@@ -26,54 +26,82 @@ export type EnhancedSignatureField = z.infer<typeof enhancedSignatureFieldSchema
 
 // Field types with enhanced capabilities
 export const ENHANCED_FIELD_TYPES = [
-  { 
-    type: 'signature', 
-    label: 'Signature', 
-    icon: 'PenTool', 
-    color: 'border-blue-500 bg-blue-50',
-    description: 'Digital signature capture'
+  {
+    type: 'signature',
+    label: 'Signature',
+    icon: 'PenTool',
+    color: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-300',
+      text: 'text-blue-700',
+      hover: 'hover:bg-blue-100'
+    }
   },
-  { 
-    type: 'initials', 
-    label: 'Initials', 
-    icon: 'Type', 
-    color: 'border-cyan-500 bg-cyan-50',
-    description: 'Initial capture'
+  {
+    type: 'initials',
+    label: 'Initials',
+    icon: 'Type',
+    color: {
+      bg: 'bg-green-50',
+      border: 'border-green-300',
+      text: 'text-green-700',
+      hover: 'hover:bg-green-100'
+    }
   },
-  { 
-    type: 'name', 
-    label: 'Name', 
-    icon: 'User', 
-    color: 'border-green-500 bg-green-50',
-    description: 'Full name input'
+  {
+    type: 'name',
+    label: 'Full Name',
+    icon: 'User',
+    color: {
+      bg: 'bg-purple-50',
+      border: 'border-purple-300',
+      text: 'text-purple-700',
+      hover: 'hover:bg-purple-100'
+    }
   },
-  { 
-    type: 'date', 
-    label: 'Date', 
-    icon: 'Calendar', 
-    color: 'border-purple-500 bg-purple-50',
-    description: 'Date selection'
+  {
+    type: 'email',
+    label: 'Email',
+    icon: 'Mail',
+    color: {
+      bg: 'bg-orange-50',
+      border: 'border-orange-300',
+      text: 'text-orange-700',
+      hover: 'hover:bg-orange-100'
+    }
   },
-  { 
-    type: 'email', 
-    label: 'Email', 
-    icon: 'Mail', 
-    color: 'border-orange-500 bg-orange-50',
-    description: 'Email address input'
+  {
+    type: 'date',
+    label: 'Date',
+    icon: 'Calendar',
+    color: {
+      bg: 'bg-indigo-50',
+      border: 'border-indigo-300',
+      text: 'text-indigo-700',
+      hover: 'hover:bg-indigo-100'
+    }
   },
-  { 
-    type: 'text', 
-    label: 'Text', 
-    icon: 'FileText', 
-    color: 'border-gray-500 bg-gray-50',
-    description: 'Custom text input'
+  {
+    type: 'text',
+    label: 'Text Field',
+    icon: 'FileText',
+    color: {
+      bg: 'bg-gray-50',
+      border: 'border-gray-300',
+      text: 'text-gray-700',
+      hover: 'hover:bg-gray-100'
+    }
   },
-  { 
-    type: 'checkbox', 
-    label: 'Checkbox', 
-    icon: 'Square', 
-    color: 'border-indigo-500 bg-indigo-50',
-    description: 'Checkbox selection'
+  {
+    type: 'checkbox',
+    label: 'Checkbox',
+    icon: 'Square',
+    color: {
+      bg: 'bg-teal-50',
+      border: 'border-teal-300',
+      text: 'text-teal-700',
+      hover: 'hover:bg-teal-100'
+    }
   }
 ] as const;
 
@@ -167,7 +195,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
             </div>
           ) : (
             <div className="text-center">
-              <div>{field.type === 'signature' ? '✍️' : '🔤'}</div>
+              {/* Emojis removed */}
               <div className="text-[10px]">{field.label}</div>
             </div>
           )}
