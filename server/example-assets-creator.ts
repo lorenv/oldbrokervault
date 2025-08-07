@@ -16,30 +16,19 @@ export class ExampleAssetsCreator {
     ];
 
     console.log('🔄 Loading real business images from attached_assets...');
+    console.log(`📁 Current working directory: ${process.cwd()}`);
     
     return businessImageFiles.map((filename, index) => {
-      try {
-        const filePath = join(process.cwd(), 'attached_assets', filename);
-        console.log(`📸 Attempting to load: ${filePath}`);
-        const buffer = readFileSync(filePath);
-        console.log(`✅ Successfully loaded ${filename}, size: ${buffer.length} bytes`);
-        return {
-          name: `transmission-shop-${index + 1}.jpg`,
-          buffer
-        };
-      } catch (error) {
-        console.error(`❌ Failed to load business image ${filename}:`, error);
-        console.error(`❌ Current working directory: ${process.cwd()}`);
-        // Create a real fallback SVG instead of placeholder text
-        const fallbackSvg = `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-          <rect width="400" height="300" fill="#f3f4f6"/>
-          <text x="200" y="150" font-family="Arial" font-size="16" text-anchor="middle" fill="#6b7280">Image Loading Error</text>
-        </svg>`;
-        return {
-          name: `transmission-shop-${index + 1}.svg`,
-          buffer: Buffer.from(fallbackSvg, 'utf8')
-        };
-      }
+      const filePath = join(process.cwd(), 'attached_assets', filename);
+      console.log(`📸 Loading: ${filePath}`);
+      
+      const buffer = readFileSync(filePath); // Will throw if file not found
+      console.log(`✅ Loaded ${filename}, size: ${buffer.length} bytes`);
+      
+      return {
+        name: `transmission-shop-${index + 1}.jpg`,
+        buffer
+      };
     });
   }
 
@@ -47,44 +36,26 @@ export class ExampleAssetsCreator {
    * Load real cover image from attached assets
    */
   private loadRealCoverImage(): Buffer {
-    try {
-      const filePath = join(process.cwd(), 'attached_assets', 'cover transmissions_1754605105186.jpg');
-      console.log(`🎨 Attempting to load cover image: ${filePath}`);
-      const buffer = readFileSync(filePath);
-      console.log(`✅ Successfully loaded cover image, size: ${buffer.length} bytes`);
-      return buffer;
-    } catch (error) {
-      console.error('❌ Failed to load cover image:', error);
-      console.error(`❌ Current working directory: ${process.cwd()}`);
-      // Create a real fallback SVG instead of placeholder text
-      const fallbackSvg = `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="800" height="600" fill="#1e40af"/>
-        <text x="400" y="300" font-family="Arial" font-size="24" text-anchor="middle" fill="#ffffff">Cover Image Loading Error</text>
-      </svg>`;
-      return Buffer.from(fallbackSvg, 'utf8');
-    }
+    const filePath = join(process.cwd(), 'attached_assets', 'cover transmissions_1754605105186.jpg');
+    console.log(`🎨 Loading cover image: ${filePath}`);
+    
+    const buffer = readFileSync(filePath); // Will throw if file not found
+    console.log(`✅ Loaded cover image, size: ${buffer.length} bytes`);
+    
+    return buffer;
   }
 
   /**
    * Load real Tony's logo from attached assets
    */
   private loadRealLogo(): Buffer {
-    try {
-      const filePath = join(process.cwd(), 'attached_assets', 'logo_1754604458620.png');
-      console.log(`🏢 Attempting to load logo: ${filePath}`);
-      const buffer = readFileSync(filePath);
-      console.log(`✅ Successfully loaded logo, size: ${buffer.length} bytes`);
-      return buffer;
-    } catch (error) {
-      console.error('❌ Failed to load logo:', error);
-      console.error(`❌ Current working directory: ${process.cwd()}`);
-      // Create a real fallback SVG instead of placeholder text
-      const fallbackSvg = `<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="100" fill="#1f2937"/>
-        <text x="100" y="50" font-family="Arial" font-size="14" text-anchor="middle" fill="#ffffff">Logo Loading Error</text>
-      </svg>`;
-      return Buffer.from(fallbackSvg, 'utf8');
-    }
+    const filePath = join(process.cwd(), 'attached_assets', 'logo_1754604458620.png');
+    console.log(`🏢 Loading logo: ${filePath}`);
+    
+    const buffer = readFileSync(filePath); // Will throw if file not found
+    console.log(`✅ Loaded logo, size: ${buffer.length} bytes`);
+    
+    return buffer;
   }
 
   /**
@@ -98,64 +69,53 @@ export class ExampleAssetsCreator {
     ];
 
     console.log('📊 Loading real financial documents from attached_assets...');
-    const loadedFiles: { name: string; buffer: Buffer; mimeType: string }[] = [];
-
-    financialFiles.forEach((file) => {
-      try {
-        const filePath = join(process.cwd(), 'attached_assets', file.filename);
-        console.log(`📄 Attempting to load: ${filePath}`);
-        const buffer = readFileSync(filePath);
-        console.log(`✅ Successfully loaded ${file.filename}, size: ${buffer.length} bytes`);
-        loadedFiles.push({
-          name: file.filename,
-          buffer,
-          mimeType: file.mimeType
-        });
-      } catch (error) {
-        console.error(`❌ Failed to load financial document ${file.filename}:`, error);
-        console.error(`❌ Current working directory: ${process.cwd()}`);
-        // Continue without this file if it can't be loaded
-      }
+    console.log(`📁 Current working directory: ${process.cwd()}`);
+    
+    return financialFiles.map((file) => {
+      const filePath = join(process.cwd(), 'attached_assets', file.filename);
+      console.log(`📄 Loading: ${filePath}`);
+      
+      const buffer = readFileSync(filePath); // Will throw if file not found
+      console.log(`✅ Loaded ${file.filename}, size: ${buffer.length} bytes`);
+      
+      return {
+        name: file.filename,
+        buffer,
+        mimeType: file.mimeType
+      };
     });
-
-    console.log(`✅ Loaded ${loadedFiles.length} financial documents successfully`);
-    return loadedFiles;
   }
 
   /**
    * Load actual business content from attached assets
    */
   private loadRealBusinessContent(): any {
-    try {
-      const filePath = join(process.cwd(), 'attached_assets', 'Pasted-Business-Summary-Tony-s-Transmission-Repair-has-established-itself-as-a-premier-provider-of-speciali-1754605160605_1754605160605.txt');
-      console.log(`📄 Attempting to load business content: ${filePath}`);
-      const content = readFileSync(filePath, 'utf8');
-      console.log(`✅ Successfully loaded business content, length: ${content.length} characters`);
+    const filePath = join(process.cwd(), 'attached_assets', 'Pasted-Business-Summary-Tony-s-Transmission-Repair-has-established-itself-as-a-premier-provider-of-speciali-1754605160605_1754605160605.txt');
+    console.log(`📄 Loading business content: ${filePath}`);
+    console.log(`📁 Current working directory: ${process.cwd()}`);
+    
+    const content = readFileSync(filePath, 'utf8'); // Will throw if file not found
+    console.log(`✅ Loaded business content, length: ${content.length} characters`);
+    
+    // Parse the content into sections
+    const sections = content.split('\n\n').filter(section => section.trim());
+    console.log(`📋 Parsed ${sections.length} sections from business content`);
+    
+    const analysis: any = {};
+    
+    sections.forEach((section, index) => {
+      const lines = section.trim().split('\n');
+      const title = lines[0];
+      const sectionContent = lines.slice(1).join(' ').trim();
       
-      // Parse the content into sections
-      const sections = content.split('\n\n').filter(section => section.trim());
-      console.log(`📋 Parsed ${sections.length} sections from business content`);
-      
-      const analysis: any = {};
-      
-      sections.forEach((section, index) => {
-        const lines = section.trim().split('\n');
-        const title = lines[0];
-        const sectionContent = lines.slice(1).join(' ').trim();
-        
-        if (title && sectionContent) {
-          analysis[title] = sectionContent;
-          console.log(`📝 Added section: ${title} (${sectionContent.length} chars)`);
-        }
-      });
-      
-      console.log(`✅ Created analysis object with ${Object.keys(analysis).length} sections`);
-      return analysis;
-    } catch (error) {
-      console.error('❌ Failed to load business content:', error);
-      console.error(`❌ Current working directory: ${process.cwd()}`);
-      return null;
-    }
+      if (title && sectionContent) {
+        analysis[title] = sectionContent;
+        console.log(`📝 Added section: ${title} (${sectionContent.length} chars)`);
+      }
+    });
+    
+    console.log(`✅ Created analysis object with ${Object.keys(analysis).length} sections`);
+    return analysis;
   }
 
   /**
