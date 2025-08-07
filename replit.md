@@ -65,6 +65,16 @@ The application employs a client-server architecture.
 - **Google Cloud Storage**: Used via Replit Object Storage for file persistence.
 
 ## Recent Changes (August 2025)
+### Enhanced E-Signature Platform Implementation (August 7, 2025)
+- **Comprehensive Database Schema**: Added 4 new tables for signing sessions, recipients, field assignments, and audit logging
+- **Enhanced Template Editor**: Drag-and-drop field placement with coordinate saving and recipient assignment
+- **Multi-Field Support**: Signature, name, date, email, text, checkbox, and initials fields with validation
+- **Parallel Signing Workflow**: Multiple recipients can sign simultaneously with real-time progress tracking
+- **Advanced Audit System**: Complete IP tracking, user agent logging, location estimation, and action timestamps
+- **ESIGN Act Compliance**: Digital certificate generation, comprehensive audit trails, and secure token-based access
+- **Canvas Overlay Technology**: Transparent HTML5 canvas for precise field positioning with percentage-based coordinates
+- **Email Integration**: Automated signing invitations and completion notifications with custom branding
+- **React DnD Integration**: Professional drag-and-drop interface for field management and placement
 ### Website Crawler Feature Implementation
 - **Issue Fixed**: Updated deprecated Perplexity model from `llama-3.1-sonar-small-128k-online` to `sonar-pro`
 - **Website Analysis**: Fully functional real-time analysis of company websites during CIM generation

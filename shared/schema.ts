@@ -176,6 +176,69 @@ export const shareLinks = pgTable("share_links", {
   viewCount: integer("view_count").default(0).notNull()
 });
 
+// E-Signature Signing Sessions - Master workflow management
+export const ndaSigningSessions = pgTable("nda_signing_sessions", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull(),
+  cimDocumentId: integer("cim_document_id"),
+  shareSlug: text("share_slug").unique(),
+  title: text("title").notNull(),
+  message: text("message"), // Custom message for signers
+  status: text("status").notNull().default("draft"), // draft, active, completed, cancelled
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at"),
+  settings: jsonb("settings").default({}).notNull(), // Signing preferences, reminders, etc.
+});
+
+// E-Signature Recipients - Multi-party signing support
+export const ndaRecipients = pgTable("nda_recipients", {
+  id: serial("id").primaryKey(),
+  signingSessionId: integer("signing_session_id").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("signer"), // signer, cc, approver
+  status: text("status").notNull().default("pending"), // pending, sent, viewed, signed, declined
+  accessToken: text("access_token").unique().notNull(),
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  signedAt: timestamp("signed_at"),
+  declinedAt: timestamp("declined_at"),
+  declineReason: text("decline_reason"),
+  ipAddress: text("ip_address"),
+  location: text("location"), // Geographic location from IP
+  userAgent: text("user_agent"),
+  remindersSent: integer("reminders_sent").default(0).notNull(),
+  lastReminderAt: timestamp("last_reminder_at"),
+});
+
+// Enhanced signature fields with recipient assignments
+export const ndaFieldAssignments = pgTable("nda_field_assignments", {
+  id: serial("id").primaryKey(),
+  fieldId: text("field_id").notNull(), // References field ID in template signatureFields JSON
+  recipientId: integer("recipient_id").notNull(),
+  signingSessionId: integer("signing_session_id").notNull(),
+  required: boolean("required").default(true).notNull(),
+  prefilled: boolean("prefilled").default(false).notNull(),
+  prefilledValue: text("prefilled_value"),
+  completed: boolean("completed").default(false).notNull(),
+  completedAt: timestamp("completed_at"),
+  fieldValue: text("field_value"), // The actual signed/filled value
+});
+
+// Audit trail for e-signature compliance
+export const ndaAuditLog = pgTable("nda_audit_log", {
+  id: serial("id").primaryKey(),
+  signingSessionId: integer("signing_session_id").notNull(),
+  recipientId: integer("recipient_id"),
+  action: text("action").notNull(), // session_created, document_sent, document_viewed, field_signed, document_completed
+  details: jsonb("details").default({}).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 export const ndaSignatures = pgTable("nda_signatures", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
@@ -189,7 +252,8 @@ export const ndaSignatures = pgTable("nda_signatures", {
   approved: boolean("approved").default(false).notNull(),
   approvedAt: timestamp("approved_at"),
   approvedBy: integer("approved_by"), // User ID who approved
-  fieldValues: jsonb("field_values").default({}).notNull() // Field ID to value mapping
+  fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
+  signingSessionId: integer("signing_session_id"), // Link to new signing session
 });
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
@@ -482,7 +546,51 @@ export const insertNdaSignatureSchema = createInsertSchema(ndaSignatures).pick({
   signedNdaContent: true
 }).extend({
   shareSlug: z.string().optional(),
-  fieldValues: z.record(z.string()).optional() // Field ID to value mapping
+  fieldValues: z.record(z.string()).optional(), // Field ID to value mapping
+  signingSessionId: z.number().optional()
+});
+
+// E-Signature Signing Session Schema
+export const insertNdaSigningSessionSchema = createInsertSchema(ndaSigningSessions).pick({
+  templateId: true,
+  title: true,
+  createdBy: true
+}).extend({
+  cimDocumentId: z.number().optional(),
+  message: z.string().optional(),
+  expiresAt: z.date().optional(),
+  settings: z.record(z.any()).optional()
+});
+
+// E-Signature Recipient Schema
+export const insertNdaRecipientSchema = createInsertSchema(ndaRecipients).pick({
+  signingSessionId: true,
+  name: true,
+  email: true
+}).extend({
+  role: z.enum(['signer', 'cc', 'approver']).default('signer')
+});
+
+// E-Signature Field Assignment Schema
+export const insertNdaFieldAssignmentSchema = createInsertSchema(ndaFieldAssignments).pick({
+  fieldId: true,
+  recipientId: true,
+  signingSessionId: true
+}).extend({
+  required: z.boolean().default(true),
+  prefilled: z.boolean().default(false),
+  prefilledValue: z.string().optional()
+});
+
+// E-Signature Audit Log Schema
+export const insertNdaAuditLogSchema = createInsertSchema(ndaAuditLog).pick({
+  signingSessionId: true,
+  action: true
+}).extend({
+  recipientId: z.number().optional(),
+  details: z.record(z.any()).optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional()
 });
 
 export const insertNdaAccessTokenSchema = createInsertSchema(ndaAccessTokens).pick({
@@ -563,6 +671,14 @@ export type NdaTemplate = typeof ndaTemplates.$inferSelect;
 export type InsertNdaTemplate = z.infer<typeof insertNdaTemplateSchema>;
 export type NdaSignature = typeof ndaSignatures.$inferSelect;
 export type InsertNdaSignature = z.infer<typeof insertNdaSignatureSchema>;
+export type NdaSigningSession = typeof ndaSigningSessions.$inferSelect;
+export type InsertNdaSigningSession = z.infer<typeof insertNdaSigningSessionSchema>;
+export type NdaRecipient = typeof ndaRecipients.$inferSelect;
+export type InsertNdaRecipient = z.infer<typeof insertNdaRecipientSchema>;
+export type NdaFieldAssignment = typeof ndaFieldAssignments.$inferSelect;
+export type InsertNdaFieldAssignment = z.infer<typeof insertNdaFieldAssignmentSchema>;
+export type NdaAuditLog = typeof ndaAuditLog.$inferSelect;
+export type InsertNdaAuditLog = z.infer<typeof insertNdaAuditLogSchema>;
 export type NdaAccessToken = typeof ndaAccessTokens.$inferSelect;
 export type InsertNdaAccessToken = z.infer<typeof insertNdaAccessTokenSchema>;
 export type NdaRedirectLink = typeof ndaRedirectLinks.$inferSelect;

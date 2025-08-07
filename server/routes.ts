@@ -37,6 +37,7 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
+import { eSignatureRoutes } from "./routes/esignature-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
@@ -7844,6 +7845,9 @@ ${finalQuestion}
 
   // Register message center routes
   app.use('/api/messages', messageRoutes);
+  
+  // Register e-signature routes
+  app.use('/api/esignature', eSignatureRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
