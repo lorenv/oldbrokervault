@@ -108,11 +108,7 @@ function TemplatesContent() {
       signatureFields: any[];
       recipients: any[];
     }) => {
-      console.log('Account page createTemplate - data:', {
-        name: templateData.name,
-        recipientsCount: templateData.recipients?.length || 0,
-        recipients: templateData.recipients
-      });
+
       const response = await apiRequest('POST', '/api/nda-templates', templateData);
       return response.json();
     },
@@ -143,12 +139,7 @@ function TemplatesContent() {
       recipients: any[];
     }) => {
       const { id, ...data } = templateData;
-      console.log('Account page updateTemplate - data:', {
-        id,
-        name: data.name,
-        recipientsCount: data.recipients?.length || 0,
-        recipients: data.recipients
-      });
+
       const response = await apiRequest('PUT', `/api/nda-templates/${id}`, data);
       return response.json();
     },
