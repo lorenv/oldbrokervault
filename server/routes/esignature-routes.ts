@@ -48,9 +48,8 @@ router.post('/templates/upload', upload.single('pdf'), async (req, res) => {
 
     // Store original PDF file in object storage
     const objectStorageService = new ObjectStorageService();
-    const privateDir = objectStorageService.getPrivateObjectDir();
-    const pdfStorageKey = `${privateDir}/templates/${templateId}/${req.file.originalname}`;
-    const pdfUploadResult = await objectStorageService.uploadFile(pdfStorageKey, req.file.buffer, 'application/pdf');
+    const pdfStorageKey = `private/templates/${templateId}/${req.file.originalname}`;
+    const pdfUploadResult = await objectStorageService.uploadBuffer(pdfStorageKey, req.file.buffer, 'application/pdf');
 
     console.log(`[TEMPLATE_UPLOAD] Successfully processed ${processedDocument.pageCount} pages`);
 
@@ -85,11 +84,10 @@ router.get('/templates/:templateId/image/:pageNumber', async (req, res) => {
     // For now, we'll use the object storage URL directly
     // In a full implementation, you'd retrieve from database
     const objectStorageService = new ObjectStorageService();
-    const privateDir = objectStorageService.getPrivateObjectDir();
-    const imageKey = `${privateDir}/templates/${templateId}/pages/page-${pageNumber}.png`;
+    const imageKey = `private/templates/${templateId}/pages/page-${pageNumber}.png`;
 
     try {
-      const imageBuffer = await objectStorageService.downloadFile(imageKey);
+      const imageBuffer = await objectStorageService.downloadBuffer(imageKey);
       res.set('Content-Type', 'image/png');
       res.send(imageBuffer);
     } catch (error) {
@@ -170,7 +168,6 @@ router.post('/signing-sessions/:id/send', async (req, res) => {
     const userBranding = {
       businessName: req.user.businessName,
       logoUrl: req.user.businessLogo,
-      websiteUrl: req.user.websiteUrl,
     };
 
     const result = await eSignatureService.sendDocument(sessionId, userBranding);

@@ -11,6 +11,34 @@ class ObjectStorageService {
   }
 
   /**
+   * Upload buffer to object storage (generic method)
+   * @param key - Storage key (path)
+   * @param buffer - Buffer to upload
+   * @param contentType - MIME type
+   * @returns Public URL of uploaded file
+   */
+  async uploadBuffer(key: string, buffer: Buffer, contentType?: string): Promise<{ url: string }> {
+    try {
+      const result = await this.client.uploadFromBytes(key, buffer, {
+        compress: false // Don't compress files
+      });
+      
+      if (!result.ok) {
+        throw new Error(`Upload failed: ${result.error.message}`);
+      }
+      
+      // Generate server-side URL for Replit Object Storage
+      // Object storage files must be served through our application server
+      const publicUrl = `/api/object-storage/${key}`;
+      log(`✅ File uploaded successfully: ${key}`);
+      return { url: publicUrl };
+    } catch (error) {
+      log(`❌ Failed to upload file ${key}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  /**
    * Upload image to object storage
    * @param buffer - Image buffer
    * @param key - Storage key (path)
@@ -33,6 +61,24 @@ class ObjectStorageService {
       return publicUrl;
     } catch (error) {
       log(`❌ Failed to upload image ${key}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Download buffer from object storage (generic method)
+   * @param key - Storage key (path)
+   * @returns Buffer
+   */
+  async downloadBuffer(key: string): Promise<Buffer> {
+    try {
+      const result = await this.client.downloadAsBytes(key);
+      if (!result.ok) {
+        throw new Error(`Download failed: ${result.error.message}`);
+      }
+      return result.value[0];
+    } catch (error) {
+      log(`❌ Failed to download file ${key}: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
