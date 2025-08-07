@@ -48,11 +48,13 @@ export default function NdaTemplateEditorPage() {
       name: string;
       fileContent: string;
       signatureFields: any[];
+      recipients: any[];
     }) => {
       console.log('Saving template with data:', {
         name: templateData.name,
         hasFileContent: !!templateData.fileContent,
-        signatureFieldsCount: templateData.signatureFields?.length || 0
+        signatureFieldsCount: templateData.signatureFields?.length || 0,
+        recipientsCount: templateData.recipients?.length || 0
       });
 
       const url = isNewTemplate 
@@ -68,6 +70,7 @@ export default function NdaTemplateEditorPage() {
           name: templateData.name,
           fileContent: templateData.fileContent,
           signatureFields: templateData.signatureFields || [],
+          recipients: templateData.recipients || [],
           isDefault: false
         }
       );
@@ -112,6 +115,7 @@ export default function NdaTemplateEditorPage() {
     name: string;
     fileContent: string;
     signatureFields: any[];
+    recipients: any[];
   }) => {
     await saveTemplateMutation.mutateAsync(templateData);
   };
