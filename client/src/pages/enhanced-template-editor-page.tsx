@@ -2,20 +2,47 @@ import { useParams, useLocation } from "wouter";
 import { EnhancedNdaTemplateEditor } from "@/components/esignature/enhanced-nda-template-editor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EnhancedTemplateEditorPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
-  const handleSave = (data: {
+  const handleSave = async (data: {
     name: string;
     fileContent: string;
     signatureFields: any[];
     recipients?: any[];
   }) => {
     console.log('Template saved:', data);
-    // Navigate back to account settings
-    setLocation('/account');
+    
+    try {
+      // Save the template to backend using apiRequest
+      await apiRequest('POST', '/api/nda-templates', {
+        name: data.name,
+        fileContent: data.fileContent,
+        signatureFields: data.signatureFields
+      });
+
+      toast({
+        title: "Template saved",
+        description: "NDA template has been saved successfully"
+      });
+
+      // Navigate back to account settings templates tab
+      setLocation('/account?tab=templates');
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: "Save failed",
+        description: "Failed to save template",
+        variant: "destructive"
+      });
+      // Still navigate back so user can see their templates
+      setLocation('/account?tab=templates');
+    }
   };
 
   const handleBack = () => {
