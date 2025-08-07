@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.ghostscript
     pkgs.unzip
     pkgs.jq
     pkgs.imagemagick

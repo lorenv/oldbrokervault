@@ -31,7 +31,13 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
       savePath: tempDir,
       format: "png",
       width: 800,             // Good resolution for display
-      height: 1100            // Proportional height for A4
+      height: 1100,           // Proportional height for A4
+      quality: 85,            // Good quality with reasonable file size
+      preserveAspectRatio: true,
+      convertOptions: {
+        '-background': 'white',
+        '-alpha': 'remove'
+      }
     });
     
     console.log(`[PDF_PROC] Converting PDF pages...`);
@@ -99,7 +105,18 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
     console.error('[PDF_PROC] PDF processing error:', error);
     // Clean up on error
     fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    throw new Error(`Failed to process PDF document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('gm/convert binaries')) {
+        throw new Error('PDF processing system dependencies are missing. Please install ImageMagick and Ghostscript.');
+      } else if (error.message.includes('GraphicsMagick')) {
+        throw new Error('Graphics processing tools are not available. PDF conversion requires ImageMagick.');
+      } else {
+        throw new Error(`PDF processing failed: ${error.message}`);
+      }
+    }
+    throw new Error('Failed to process PDF document: Unknown error occurred');
   }
 }
 
