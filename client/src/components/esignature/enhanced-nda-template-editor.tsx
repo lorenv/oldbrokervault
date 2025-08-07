@@ -302,17 +302,30 @@ export default function EnhancedNdaTemplateEditor({
           input.focus();
           input.select();
         } else {
-          // Render clickable title
-          const title = document.createElement('button');
-          title.textContent = templateName;
-          title.className = 'text-xl font-semibold text-left hover:text-blue-600 focus:outline-none focus:text-blue-600 transition-colors cursor-pointer';
-          title.setAttribute('title', 'Click to edit template name');
+          // Render clickable title with hover edit icon
+          const titleContainer = document.createElement('div');
+          titleContainer.className = 'group flex items-center gap-2 cursor-pointer';
+          titleContainer.setAttribute('title', 'Click to edit template name');
           
-          title.addEventListener('click', () => {
+          const title = document.createElement('span');
+          title.textContent = templateName;
+          title.className = 'text-xl font-semibold group-hover:text-blue-600 transition-colors';
+          
+          const editIcon = document.createElement('div');
+          editIcon.innerHTML = `
+            <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          `;
+          
+          titleContainer.appendChild(title);
+          titleContainer.appendChild(editIcon);
+          
+          titleContainer.addEventListener('click', () => {
             setIsEditingName(true);
           });
           
-          container.appendChild(title);
+          container.appendChild(titleContainer);
         }
       }
     }
