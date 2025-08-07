@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.graphicsmagick
     pkgs.ghostscript
     pkgs.unzip
     pkgs.jq
