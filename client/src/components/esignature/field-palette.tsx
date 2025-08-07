@@ -36,17 +36,17 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
     <div
       ref={drag}
       className={`
-        flex items-center gap-3 p-3 border-2 border-dashed rounded-lg cursor-grab transition-all duration-200
-        ${color} hover:shadow-md hover:scale-105
+        flex items-center gap-4 p-6 border-2 border-dashed rounded-xl cursor-grab transition-all duration-200
+        ${color} hover:shadow-lg hover:scale-102 hover:border-solid
         ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'}
       `}
       title={description}
     >
-      <GripVertical className="w-4 h-4 text-gray-400" />
-      <div className="text-lg">{icon}</div>
+      <GripVertical className="w-5 h-5 text-gray-500" />
+      <div className="text-2xl">{icon}</div>
       <div className="flex-1">
-        <div className="font-medium text-sm">{label}</div>
-        <div className="text-xs text-gray-600">{description}</div>
+        <div className="font-semibold text-base mb-1">{label}</div>
+        <div className="text-sm text-gray-600">{description}</div>
       </div>
     </div>
   );
@@ -65,10 +65,10 @@ export default function FieldPalette({
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Palette className="w-5 h-5" />
-          Field Palette
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Palette className="w-6 h-6" />
+          Field Types
         </CardTitle>
         
         {/* Recipient selector */}
