@@ -135,19 +135,19 @@ export default function AuthPage() {
   if (showForgotPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
+        <Card className="w-full max-w-md overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowForgotPassword(false)}
-              className="w-fit mb-2"
+              className="w-fit mb-2 text-blue-100 hover:text-white hover:bg-blue-500/20"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Login
             </Button>
-            <CardTitle>Reset Your Password</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-white">Reset Your Password</CardTitle>
+            <CardDescription className="text-blue-50">
               Enter your email address and we'll send you a link to reset your password
             </CardDescription>
           </CardHeader>
@@ -192,10 +192,10 @@ export default function AuthPage() {
   if (showResetPassword && resetToken) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Set New Password</CardTitle>
-            <CardDescription>
+        <Card className="w-full max-w-md overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
+            <CardTitle className="text-white">Set New Password</CardTitle>
+            <CardDescription className="text-blue-50">
               Enter your new password below
             </CardDescription>
           </CardHeader>
@@ -212,13 +212,13 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome to CIM Share</CardTitle>
-          <CardDescription>
+      <Card className="w-full max-w-md overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 text-white">
+          <CardTitle className="text-white">Welcome to CIM Share</CardTitle>
+          <CardDescription className="text-blue-50">
             The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.
             <br /><br />
-            <strong>Create a free CIM today!</strong>
+            <strong className="text-white">Create a free CIM today!</strong>
           </CardDescription>
         </CardHeader>
         <CardContent>
