@@ -28,50 +28,50 @@ export type EnhancedSignatureField = z.infer<typeof enhancedSignatureFieldSchema
 export const ENHANCED_FIELD_TYPES = [
   { 
     type: 'signature', 
-    label: 'Signature Field', 
-    icon: '✍️', 
+    label: 'Signature', 
+    icon: 'SIG', 
     color: 'border-blue-500 bg-blue-50',
     description: 'Digital signature capture'
   },
   { 
     type: 'initials', 
-    label: 'Initials Field', 
-    icon: '🔤', 
+    label: 'Initials', 
+    icon: 'IN', 
     color: 'border-cyan-500 bg-cyan-50',
     description: 'Initial capture'
   },
   { 
     type: 'name', 
-    label: 'Name Field', 
-    icon: '👤', 
+    label: 'Name', 
+    icon: 'NM', 
     color: 'border-green-500 bg-green-50',
     description: 'Full name input'
   },
   { 
     type: 'date', 
-    label: 'Date Field', 
-    icon: '📅', 
+    label: 'Date', 
+    icon: 'DT', 
     color: 'border-purple-500 bg-purple-50',
     description: 'Date selection'
   },
   { 
     type: 'email', 
-    label: 'Email Field', 
-    icon: '✉️', 
+    label: 'Email', 
+    icon: 'EM', 
     color: 'border-orange-500 bg-orange-50',
     description: 'Email address input'
   },
   { 
     type: 'text', 
-    label: 'Text Field', 
-    icon: '📝', 
+    label: 'Text', 
+    icon: 'TX', 
     color: 'border-gray-500 bg-gray-50',
     description: 'Custom text input'
   },
   { 
     type: 'checkbox', 
     label: 'Checkbox', 
-    icon: '☑️', 
+    icon: 'CB', 
     color: 'border-indigo-500 bg-indigo-50',
     description: 'Checkbox selection'
   }
