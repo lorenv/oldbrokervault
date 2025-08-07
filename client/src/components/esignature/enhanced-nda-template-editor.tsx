@@ -267,51 +267,48 @@ export default function EnhancedNdaTemplateEditor({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
-        {/* Header - only show when not in fullScreen mode */}
-        {!fullScreen && (
-          <div className="bg-white border-b px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {showBackButton && onBack && (
-                  <Button variant="ghost" size="sm" onClick={onBack}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Button>
-                )}
-                <FileText className="w-6 h-6 text-blue-600" />
-                <div>
-                  <h1 className="text-xl font-semibold">Enhanced NDA Template Editor</h1>
-                  <p className="text-sm text-gray-600">Create and configure e-signature templates</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleSave}
-                  disabled={!canSave || isSaving}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Template'}
+        {/* Header - always show */}
+        <div className="bg-white border-b px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {showBackButton && onBack && (
+                <Button variant="ghost" size="sm" onClick={onBack}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
                 </Button>
+              )}
+              <FileText className="w-6 h-6 text-blue-600" />
+              <div>
+                <h1 className="text-xl font-semibold">
+                  {initialTemplate ? 'Edit NDA Template' : 'Create New NDA Template'}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {initialTemplate ? 'Update your e-signature template' : 'Design your e-signature template with drag-and-drop fields'}
+                </p>
               </div>
             </div>
+            
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={!canSave || isSaving}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Template
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        )}
-
-        {/* Save Button for Full Screen Mode */}
-        {fullScreen && (
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              onClick={handleSave}
-              disabled={!canSave || isSaving}
-              className="bg-blue-600 hover:bg-blue-700 shadow-lg"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Template'}
-            </Button>
-          </div>
-        )}
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
