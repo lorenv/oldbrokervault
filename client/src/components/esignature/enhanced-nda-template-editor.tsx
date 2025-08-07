@@ -431,78 +431,7 @@ export default function EnhancedNdaTemplateEditor({
 
           {/* Document Editor */}
           <div className="flex-1 flex flex-col">
-            {/* Toolbar */}
-            <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Page navigation */}
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ←
-                    </Button>
-                    <span className="text-sm">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      →
-                    </Button>
-                  </div>
-                )}
-
-                {/* Field info */}
-                {selectedField && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Badge variant="secondary">
-                      {selectedField.type} field selected
-                    </Badge>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={deleteSelectedField}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Zoom controls */}
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={zoomOut}>
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
-                <Button variant="outline" size="sm" onClick={zoomIn}>
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowGrid(!showGrid)}
-                  className={showGrid ? 'bg-blue-50' : ''}
-                >
-                  <Grid className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsPreviewMode(!isPreviewMode)}
-                  className={isPreviewMode ? 'bg-green-50' : ''}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            
 
             {/* Document Viewer */}
             <div className="flex-1 overflow-hidden">
