@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -255,26 +255,45 @@ export default function EnhancedNdaTemplateEditor({
     if (fullScreen && typeof document !== 'undefined') {
       const container = document.getElementById('save-button-container');
       if (container) {
+        // Clear existing content
         container.innerHTML = '';
-        const buttonWrapper = document.createElement('div');
-        buttonWrapper.innerHTML = `
-          <button 
-            id="save-template-button"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            ${!canSave || isSaving ? 'disabled' : ''}
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-            ${isSaving ? 'Saving...' : 'Save Template'}
-          </button>
+        
+        // Create button element
+        const button = document.createElement('button');
+        button.id = 'save-template-button';
+        button.type = 'button';
+        
+        // Set classes
+        const baseClasses = 'inline-flex items-center px-4 py-2 text-sm font-medium border border-transparent rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors';
+        const enabledClasses = 'text-white bg-blue-600 hover:bg-blue-700';
+        const disabledClasses = 'text-gray-400 bg-gray-200 cursor-not-allowed';
+        
+        button.className = `${baseClasses} ${(canSave && !isSaving) ? enabledClasses : disabledClasses}`;
+        button.disabled = !canSave || isSaving;
+        
+        // Set button content with proper Save icon
+        button.innerHTML = `
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+          ${isSaving ? 'Saving...' : 'Save Template'}
         `;
         
-        const button = buttonWrapper.querySelector('#save-template-button');
-        if (button) {
-          button.addEventListener('click', handleSave);
-          container.appendChild(button);
-        }
+        // Add click handler
+        button.addEventListener('click', handleSave);
+        
+        // Append to container
+        container.appendChild(button);
+        
+        // Debug logging
+        console.log('Save button state:', {
+          canSave,
+          isSaving,
+          templateName: templateName.trim(),
+          hasPdfBase64: !!pdfBase64,
+          recipientsCount: recipients.length,
+          disabled: button.disabled
+        });
       }
     }
     
@@ -285,7 +304,7 @@ export default function EnhancedNdaTemplateEditor({
         container.innerHTML = '';
       }
     };
-  }, [fullScreen, canSave, isSaving, handleSave]);
+  }, [fullScreen, canSave, isSaving, handleSave, templateName, pdfBase64, recipients.length]);
 
   // Recipient modal handlers
   const handleSaveRecipient = (recipientData: Partial<NdaRecipient>) => {
