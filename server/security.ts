@@ -158,7 +158,9 @@ const cspDirectives = {
     "'self'",
     "data:",
     "blob:",
-    "https:"
+    "https:",
+    "https://*.replit.dev", // Allow images from Replit external domains
+    "https://*.replit.app"  // Allow images from Replit deployment domains
   ],
   connectSrc: [
     "'self'",
@@ -205,7 +207,7 @@ export function setupSecurity(app: Express) {
       frameguard: isSharedRoute ? false : { action: 'deny' },
       noSniff: true,
       xssFilter: true,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      referrerPolicy: { policy: isObjectStorage ? 'no-referrer' : 'strict-origin-when-cross-origin' },
       // Allow cross-origin access for object storage images
       crossOriginResourcePolicy: isObjectStorage ? { policy: 'cross-origin' } : { policy: 'same-origin' }
     })(req, res, next);
