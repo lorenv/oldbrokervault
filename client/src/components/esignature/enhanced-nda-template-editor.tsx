@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye } from 'lucide-react';
+import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2 } from 'lucide-react';
 
 import RecipientManager from './recipient-manager';
 import FieldPalette from './field-palette';
@@ -34,12 +34,16 @@ interface EnhancedNdaTemplateEditorProps {
     recipients: Partial<NdaRecipient>[];
   }) => void;
   isLoading?: boolean;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
 export default function EnhancedNdaTemplateEditor({ 
   initialTemplate, 
   onSave, 
-  isLoading 
+  isLoading: externalLoading = false,
+  showBackButton = false,
+  onBack
 }: EnhancedNdaTemplateEditorProps) {
   const [templateName, setTemplateName] = useState(initialTemplate?.name || '');
   const [pdfBase64, setPdfBase64] = useState(initialTemplate?.fileContent || '');
@@ -50,16 +54,16 @@ export default function EnhancedNdaTemplateEditor({
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // Editor settings
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const { toast } = useToast();
 
   // Auto-select first recipient when recipients change
@@ -77,7 +81,7 @@ export default function EnhancedNdaTemplateEditor({
       setPdfBase64(initialTemplate.fileContent || '');
       setFields((initialTemplate.signatureFields as EnhancedSignatureField[]) || []);
       setTotalPages(initialTemplate.totalPages || 1);
-      
+
       // Convert page images if available
       if (initialTemplate.pageImages) {
         setPageImages(initialTemplate.pageImages as PageImage[]);
@@ -100,7 +104,7 @@ export default function EnhancedNdaTemplateEditor({
     }
 
     setIsUploading(true);
-    
+
     try {
       // Upload PDF using the new processing endpoint
       const formData = new FormData();
@@ -119,11 +123,11 @@ export default function EnhancedNdaTemplateEditor({
       }
 
       const result = await response.json();
-      
+
       // Update state with processed data
       setTotalPages(result.pageCount);
       setPdfBase64(result.originalFileUrl || ''); // Store original file URL
-      
+
       // Convert image URLs to PageImage format
       const newPageImages: PageImage[] = result.imageUrls.map((url: string, index: number) => ({
         pageNumber: index + 1,
@@ -131,9 +135,9 @@ export default function EnhancedNdaTemplateEditor({
         width: 800, // Standard width from processing
         height: 1100, // Standard height from processing
       }));
-      
+
       setPageImages(newPageImages);
-      
+
       toast({
         title: "PDF uploaded successfully",
         description: `Processed ${result.pageCount} pages`,
@@ -205,7 +209,7 @@ export default function EnhancedNdaTemplateEditor({
     }
 
     setIsSaving(true);
-    
+
     try {
       await onSave({
         name: templateName,
@@ -213,7 +217,7 @@ export default function EnhancedNdaTemplateEditor({
         signatureFields: fields,
         recipients: recipients
       });
-      
+
       toast({
         title: "Template saved",
         description: "NDA template has been saved successfully",
@@ -249,7 +253,7 @@ export default function EnhancedNdaTemplateEditor({
                 <p className="text-sm text-gray-600">Create and configure e-signature templates</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleSave}
@@ -295,7 +299,7 @@ export default function EnhancedNdaTemplateEditor({
                   Add
                 </Button>
               </div>
-              
+
               <div className="space-y-3 max-h-48 overflow-y-auto">
                 {recipients.map((recipient, index) => (
                   <Card key={recipient.id} className="border-blue-200">
@@ -326,7 +330,7 @@ export default function EnhancedNdaTemplateEditor({
                     </CardContent>
                   </Card>
                 ))}
-                
+
                 {recipients.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -350,7 +354,7 @@ export default function EnhancedNdaTemplateEditor({
                     className="mt-1"
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="pdf-upload">PDF Template</Label>
                   <Input
@@ -474,7 +478,7 @@ export default function EnhancedNdaTemplateEditor({
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Field info */}
                 {selectedField && (
                   <div className="flex items-center gap-2 text-sm">
@@ -491,7 +495,7 @@ export default function EnhancedNdaTemplateEditor({
                   </div>
                 )}
               </div>
-              
+
               {/* Zoom controls */}
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={zoomOut}>

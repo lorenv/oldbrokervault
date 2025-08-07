@@ -212,22 +212,11 @@ function TemplatesContent() {
   if (showNewTemplateEditor) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Create New NDA Template</h2>
-            <p className="text-gray-600 mt-1">Upload a PDF and configure signature fields</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowNewTemplateEditor(false)}
-          >
-            Back to Templates
-          </Button>
-        </div>
-
         <EnhancedNdaTemplateEditor
           onSave={handleCreateTemplate}
           isLoading={createTemplateMutation.isPending}
+          showBackButton={true}
+          onBack={() => setShowNewTemplateEditor(false)}
         />
       </div>
     );
