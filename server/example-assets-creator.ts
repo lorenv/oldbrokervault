@@ -8,7 +8,7 @@ export class ExampleAssetsCreator {
   private createTransmissionShopImages(): { name: string; content: string }[] {
     return [
       {
-        name: 'transmission-shop-1.jpg',
+        name: 'transmission-shop-1.svg',
         content: `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -27,7 +27,7 @@ export class ExampleAssetsCreator {
         </svg>`
       },
       {
-        name: 'transmission-shop-2.jpg',
+        name: 'transmission-shop-2.svg',
         content: `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="300" fill="#1f2937"/>
           <rect x="20" y="20" width="360" height="260" fill="#374151" stroke="#6b7280" stroke-width="2"/>
@@ -40,7 +40,7 @@ export class ExampleAssetsCreator {
         </svg>`
       },
       {
-        name: 'transmission-shop-3.jpg',
+        name: 'transmission-shop-3.svg',
         content: `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="300" fill="#065f46"/>
           <rect x="30" y="50" width="340" height="200" fill="#ecfdf5" stroke="#10b981" stroke-width="3"/>
@@ -53,7 +53,7 @@ export class ExampleAssetsCreator {
         </svg>`
       },
       {
-        name: 'transmission-shop-4.jpg',
+        name: 'transmission-shop-4.svg',
         content: `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="300" fill="#7c2d12"/>
           <rect x="40" y="40" width="320" height="220" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
@@ -223,7 +223,7 @@ Total Liabilities & Equity: $2,250,000`;
       // Create and upload cover image
       const coverContent = this.createCoverImage();
       const coverBuffer = this.svgToBuffer(coverContent);
-      const coverStorageKey = 'users/example/cover-images/tonys-cover.jpg';
+      const coverStorageKey = 'users/example/cover-images/tonys-cover.svg';
       
       await objectStorage.uploadImage(coverBuffer, coverStorageKey);
       const coverImageUrl = `/api/object-storage/${coverStorageKey}`;
