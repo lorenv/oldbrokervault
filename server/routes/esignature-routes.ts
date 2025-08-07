@@ -3,8 +3,105 @@ import { eSignatureService } from '../services/esignature-service';
 import { sanitizeUser } from '../data-sanitizer';
 import { insertNdaSigningSessionSchema, insertNdaRecipientSchema } from '@shared/schema';
 import { z } from 'zod';
+import multer from 'multer';
+import { processPDFToImages } from '../services/pdf-processor';
+import { ObjectStorageService } from '../object-storage';
 
 const router = Router();
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+});
+
+// Upload and process PDF template
+router.post('/templates/upload', upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'PDF file is required' });
+    }
+
+    console.log(`[TEMPLATE_UPLOAD] Processing PDF: ${req.file.originalname}, size: ${req.file.size}`);
+
+    // Generate a unique template ID (you might want to save this to database)
+    const templateId = Date.now();
+
+    // Process PDF to images using the proven method
+    const processedDocument = await processPDFToImages({
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+    }, templateId, true);
+
+    // Store original PDF file in object storage
+    const objectStorageService = new ObjectStorageService();
+    const privateDir = objectStorageService.getPrivateObjectDir();
+    const pdfStorageKey = `${privateDir}/templates/${templateId}/${req.file.originalname}`;
+    const pdfUploadResult = await objectStorageService.uploadFile(pdfStorageKey, req.file.buffer, 'application/pdf');
+
+    console.log(`[TEMPLATE_UPLOAD] Successfully processed ${processedDocument.pageCount} pages`);
+
+    res.json({
+      success: true,
+      templateId,
+      pageCount: processedDocument.pageCount,
+      imageUrls: processedDocument.imageUrls,
+      originalFileUrl: pdfUploadResult.url,
+      originalFileName: req.file.originalname,
+    });
+
+  } catch (error: any) {
+    console.error('[TEMPLATE_UPLOAD] Error processing PDF:', error);
+    res.status(500).json({ 
+      error: 'Failed to process PDF template',
+      details: error.message 
+    });
+  }
+});
+
+// Get template page image
+router.get('/templates/:templateId/image/:pageNumber', async (req, res) => {
+  try {
+    const templateId = parseInt(req.params.templateId);
+    const pageNumber = parseInt(req.params.pageNumber);
+
+    if (isNaN(templateId) || isNaN(pageNumber)) {
+      return res.status(400).json({ error: 'Invalid template ID or page number' });
+    }
+
+    // For now, we'll use the object storage URL directly
+    // In a full implementation, you'd retrieve from database
+    const objectStorageService = new ObjectStorageService();
+    const privateDir = objectStorageService.getPrivateObjectDir();
+    const imageKey = `${privateDir}/templates/${templateId}/pages/page-${pageNumber}.png`;
+
+    try {
+      const imageBuffer = await objectStorageService.downloadFile(imageKey);
+      res.set('Content-Type', 'image/png');
+      res.send(imageBuffer);
+    } catch (error) {
+      console.error(`[TEMPLATE_IMAGE] Error retrieving image: ${imageKey}`, error);
+      res.status(404).json({ error: 'Template image not found' });
+    }
+
+  } catch (error) {
+    console.error('[TEMPLATE_IMAGE] Error:', error);
+    res.status(500).json({ error: 'Failed to retrieve template image' });
+  }
+});
 
 // Create enhanced signing session with recipients and field assignments
 router.post('/signing-sessions', async (req, res) => {

@@ -19,6 +19,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import { generateSecureToken } from '../token-utils';
 import { sendEmail } from '../email';
 import geoip from 'geoip-lite';
+import { processPDFToImages, overlaySignatureFields } from './pdf-processor';
+import { ObjectStorageService } from '../object-storage';
 
 export class ESignatureService {
   // Create a new signing session

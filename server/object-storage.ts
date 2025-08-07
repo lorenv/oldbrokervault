@@ -171,5 +171,6 @@ class ObjectStorageService {
   }
 }
 
-// Export singleton instance
+// Export class and singleton instance
+export { ObjectStorageService };
 export const objectStorage = new ObjectStorageService();
