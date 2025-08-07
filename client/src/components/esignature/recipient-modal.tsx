@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,19 +71,12 @@ export default function RecipientModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">
-              {isEdit ? 'Edit Recipient' : 'Add Recipient'}
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-xl font-semibold">
+            {isEdit ? 'Edit Recipient' : 'Add Recipient'}
+          </DialogTitle>
+          <DialogDescription>
+            {isEdit ? 'Update recipient information and role' : 'Add a new recipient to the signing workflow'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -121,7 +114,6 @@ export default function RecipientModal({
               <SelectContent>
                 <SelectItem value="signer">Signer</SelectItem>
                 <SelectItem value="viewer">Viewer</SelectItem>
-                <SelectItem value="approver">Approver</SelectItem>
               </SelectContent>
             </Select>
           </div>

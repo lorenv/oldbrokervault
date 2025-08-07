@@ -280,8 +280,13 @@ export default function CanvasOverlay({
   return (
     <div
       ref={combinedRef}
-      className={`relative cursor-crosshair ${isOver && canDrop ? 'bg-blue-50' : ''}`}
-      style={{ width: imageWidth, height: imageHeight }}
+      className={`absolute inset-0 cursor-crosshair ${isOver && canDrop ? 'bg-blue-50/30' : ''}`}
+      style={{ 
+        width: '100%', 
+        height: '100%',
+        minHeight: imageHeight,
+        pointerEvents: 'auto'
+      }}
       onClick={handleCanvasClick}
     >
       {/* Grid overlay */}

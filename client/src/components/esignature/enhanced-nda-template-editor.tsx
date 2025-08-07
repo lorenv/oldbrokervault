@@ -419,79 +419,13 @@ export default function EnhancedNdaTemplateEditor({
             </div>
 
             {/* Field Types Section */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              <h3 className="text-lg font-semibold mb-4">Field Types</h3>
-              <div className="space-y-3">
-                {[
-                  { 
-                    icon: '✒️', 
-                    name: 'Signature', 
-                    description: 'Electronic signature field',
-                    type: 'signature'
-                  },
-                  { 
-                    icon: 'T', 
-                    name: 'Initials', 
-                    description: 'Initials field',
-                    type: 'initials'
-                  },
-                  { 
-                    icon: '📅', 
-                    name: 'Date', 
-                    description: 'Date stamp field',
-                    type: 'date'
-                  },
-                  { 
-                    icon: '📝', 
-                    name: 'Text', 
-                    description: 'Text input field',
-                    type: 'text'
-                  },
-                  { 
-                    icon: '☑️', 
-                    name: 'Checkbox', 
-                    description: 'Checkbox field',
-                    type: 'checkbox'
-                  },
-                  { 
-                    icon: '👤', 
-                    name: 'Full Name', 
-                    description: 'Full name field',
-                    type: 'name'
-                  }
-                ].map((field) => (
-                  <Card 
-                    key={field.type}
-                    className="border-green-200 cursor-pointer hover:bg-green-50 transition-colors"
-                    onClick={() => {
-                      // Handle field selection for drag and drop
-                      console.log('Selected field type:', field.type);
-                    }}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
-                          <span className="text-green-600 text-sm">
-                            {field.icon === 'T' ? (
-                              <span className="font-bold text-lg">T</span>
-                            ) : field.icon}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">{field.name}</div>
-                          <div className="text-xs text-gray-500">{field.description}</div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                            <span className="text-xs text-gray-600">
-                              {recipients.find(r => r.role === 'signer')?.name || 'Unassigned'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            <div className="flex-1 overflow-y-auto">
+              <FieldPalette
+                recipients={recipients as NdaRecipient[]}
+                selectedRecipient={selectedRecipient}
+                onRecipientChange={setSelectedRecipient}
+                className="h-full border-0 shadow-none"
+              />
             </div>
           </div>
 
