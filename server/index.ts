@@ -91,6 +91,34 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Test endpoint for asset creation
+app.get('/api/test-asset-creation', async (req, res) => {
+  try {
+    console.log('🧪 Testing asset creation...');
+    const { exampleAssetsCreator } = await import('./example-assets-creator');
+    const result = await exampleAssetsCreator.createAndUploadExampleAssets();
+    
+    console.log('✅ Asset creation test successful');
+    res.json({
+      success: true,
+      result: {
+        logoUrl: result.logoUrl,
+        coverImageUrl: result.coverImageUrl,
+        businessImagesCount: result.businessImages.length,
+        financialDocsCount: result.financialDocuments.length,
+        hasBusinessContent: !!result.businessContent
+      }
+    });
+  } catch (error) {
+    console.error('❌ Asset creation test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+  }
+});
+
 // Start server FIRST for immediate health check response (Agent Suggestion #2)
 const server = app.listen(PORT, "0.0.0.0", () => {
   log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);

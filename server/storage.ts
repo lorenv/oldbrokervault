@@ -468,7 +468,7 @@ export class DatabaseStorage implements IStorage {
     
     const exampleData = {
       title: businessContent?.title || "Tony's Transmissions",
-      transcript: businessContent ? 
+      transcript: businessContent?.sections ? 
         // Extract just the text content from sections for transcript
         businessContent.sections.map((section: any) => `${section.title}\n${section.content.replace(/<[^>]*>/g, '')}`).join('\n\n') :
         `Tony's Transmission Repair has established itself as a premier provider of specialized transmission repair services over the past twenty-three years. The business is recognized for its exceptional reputation, as evidenced by consistently high customer reviews across multiple platforms. Its core value proposition lies in delivering unique and technically advanced transmission repair solutions, which has enabled the company to build enduring relationships with a network of auto body shops throughout Florida and Georgia.
