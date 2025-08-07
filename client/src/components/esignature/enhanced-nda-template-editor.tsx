@@ -9,12 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2 } from 'lucide-react';
+import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import RecipientManager from './recipient-manager';
 import FieldPalette from './field-palette';
 import CanvasOverlay from './canvas-overlay';
 import ImageDocumentViewer from './image-document-viewer';
+import RecipientModal from './recipient-modal';
 import { EnhancedSignatureField } from './enhanced-signature-field';
 import { NdaRecipient, NdaTemplate } from '@shared/schema';
 
@@ -54,6 +61,8 @@ export default function EnhancedNdaTemplateEditor({
   const [selectedField, setSelectedField] = useState<EnhancedSignatureField | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
+  const [editingRecipient, setEditingRecipient] = useState<Partial<NdaRecipient> | null>(null);
   const [totalPages, setTotalPages] = useState(1);
 
   // Editor settings
@@ -241,42 +250,68 @@ export default function EnhancedNdaTemplateEditor({
 
   const canSave = templateName.trim() && pdfBase64 && recipients.length > 0;
 
+  // Recipient modal handlers
+  const handleSaveRecipient = (recipientData: Partial<NdaRecipient>) => {
+    if (editingRecipient) {
+      // Update existing recipient
+      setRecipients(recipients.map(r => 
+        r.id === editingRecipient.id ? recipientData : r
+      ));
+    } else {
+      // Add new recipient
+      setRecipients([...recipients, recipientData]);
+    }
+    setEditingRecipient(null);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
-        {/* Header */}
-        <div className="bg-white border-b px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <FileText className="w-6 h-6 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-semibold">Enhanced NDA Template Editor</h1>
-                <p className="text-sm text-gray-600">Create and configure e-signature templates</p>
+        {/* Header - only show when not in fullScreen mode */}
+        {!fullScreen && (
+          <div className="bg-white border-b px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {showBackButton && onBack && (
+                  <Button variant="ghost" size="sm" onClick={onBack}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                )}
+                <FileText className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h1 className="text-xl font-semibold">Enhanced NDA Template Editor</h1>
+                  <p className="text-sm text-gray-600">Create and configure e-signature templates</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleSave}
+                  disabled={!canSave || isSaving}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? 'Saving...' : 'Save Template'}
+                </Button>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              {(showBackButton || onBack) && (
-                <Button
-                  onClick={onBack}
-                  variant="outline"
-                  className="border-gray-300 hover:bg-gray-50"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Templates
-                </Button>
-              )}
-              <Button
-                onClick={handleSave}
-                disabled={!canSave || isSaving}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Template'}
-              </Button>
-            </div>
           </div>
-        </div>
+        )}
+
+        {/* Save Button for Full Screen Mode */}
+        {fullScreen && (
+          <div className="absolute top-4 right-4 z-10">
+            <Button
+              onClick={handleSave}
+              disabled={!canSave || isSaving}
+              className="bg-blue-600 hover:bg-blue-700 shadow-lg"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Template'}
+            </Button>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -290,19 +325,8 @@ export default function EnhancedNdaTemplateEditor({
                   variant="ghost" 
                   size="sm"
                   onClick={() => {
-                    const newRecipient: NdaRecipient = {
-                      id: Date.now(),
-                      name: '',
-                      email: '',
-                      role: 'signer',
-                      status: 'pending',
-                      accessToken: '',
-                      signedAt: null,
-                      ipAddress: null,
-                      userAgent: null,
-                      location: null
-                    };
-                    setRecipients([...recipients, newRecipient]);
+                    setEditingRecipient(null);
+                    setIsRecipientModalOpen(true);
                   }}
                   className="text-blue-600 hover:text-blue-700"
                 >
@@ -330,13 +354,37 @@ export default function EnhancedNdaTemplateEditor({
                             {recipient.role}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                        >
-                          ⋯
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingRecipient(recipient);
+                                setIsRecipientModalOpen(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setRecipients(recipients.filter((_, i) => i !== index));
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </CardContent>
                   </Card>
@@ -590,6 +638,18 @@ export default function EnhancedNdaTemplateEditor({
             </div>
           </div>
         </div>
+
+        {/* Recipient Modal */}
+        <RecipientModal
+          isOpen={isRecipientModalOpen}
+          onClose={() => {
+            setIsRecipientModalOpen(false);
+            setEditingRecipient(null);
+          }}
+          onSave={handleSaveRecipient}
+          recipient={editingRecipient}
+          isEdit={!!editingRecipient}
+        />
       </div>
     </DndProvider>
   );
