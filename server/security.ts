@@ -190,6 +190,7 @@ export function setupSecurity(app: Express) {
   app.use((req, res, next) => {
     // Apply helmet with conditional frameguard for shared routes
     const isSharedRoute = req.path.startsWith('/share/') || req.path.match(/^\/api\/share\/[^\/]+/);
+    const isObjectStorage = req.path.startsWith('/api/object-storage/');
     
     helmet({
       contentSecurityPolicy: {
@@ -204,7 +205,9 @@ export function setupSecurity(app: Express) {
       frameguard: isSharedRoute ? false : { action: 'deny' },
       noSniff: true,
       xssFilter: true,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      // Allow cross-origin access for object storage images
+      crossOriginResourcePolicy: isObjectStorage ? { policy: 'cross-origin' } : { policy: 'same-origin' }
     })(req, res, next);
   });
 
