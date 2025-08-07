@@ -255,6 +255,16 @@ export default function EnhancedNdaTemplateEditor({
             </div>
 
             <div className="flex items-center gap-3">
+              {(showBackButton || onBack) && (
+                <Button
+                  onClick={onBack}
+                  variant="outline"
+                  className="border-gray-300 hover:bg-gray-50"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Templates
+                </Button>
+              )}
               <Button
                 onClick={handleSave}
                 disabled={!canSave || isSaving}
