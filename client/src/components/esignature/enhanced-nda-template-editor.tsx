@@ -250,6 +250,43 @@ export default function EnhancedNdaTemplateEditor({
 
   const canSave = templateName.trim() && pdfBase64 && recipients.length > 0;
 
+  // Render save button in page header for full screen mode
+  useEffect(() => {
+    if (fullScreen && typeof document !== 'undefined') {
+      const container = document.getElementById('save-button-container');
+      if (container) {
+        container.innerHTML = '';
+        const buttonWrapper = document.createElement('div');
+        buttonWrapper.innerHTML = `
+          <button 
+            id="save-template-button"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            ${!canSave || isSaving ? 'disabled' : ''}
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            ${isSaving ? 'Saving...' : 'Save Template'}
+          </button>
+        `;
+        
+        const button = buttonWrapper.querySelector('#save-template-button');
+        if (button) {
+          button.addEventListener('click', handleSave);
+          container.appendChild(button);
+        }
+      }
+    }
+    
+    return () => {
+      // Cleanup
+      const container = document.getElementById('save-button-container');
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [fullScreen, canSave, isSaving, handleSave]);
+
   // Recipient modal handlers
   const handleSaveRecipient = (recipientData: Partial<NdaRecipient>) => {
     if (editingRecipient) {
@@ -299,19 +336,7 @@ export default function EnhancedNdaTemplateEditor({
           </div>
         )}
 
-        {/* Save Button for Full Screen Mode */}
-        {fullScreen && (
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              onClick={handleSave}
-              disabled={!canSave || isSaving}
-              className="bg-blue-600 hover:bg-blue-700 shadow-lg"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Template'}
-            </Button>
-          </div>
-        )}
+
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
