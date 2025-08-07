@@ -29,49 +29,49 @@ export const ENHANCED_FIELD_TYPES = [
   { 
     type: 'signature', 
     label: 'Signature', 
-    icon: 'SIG', 
+    icon: 'PenTool', 
     color: 'border-blue-500 bg-blue-50',
     description: 'Digital signature capture'
   },
   { 
     type: 'initials', 
     label: 'Initials', 
-    icon: 'IN', 
+    icon: 'Type', 
     color: 'border-cyan-500 bg-cyan-50',
     description: 'Initial capture'
   },
   { 
     type: 'name', 
     label: 'Name', 
-    icon: 'NM', 
+    icon: 'User', 
     color: 'border-green-500 bg-green-50',
     description: 'Full name input'
   },
   { 
     type: 'date', 
     label: 'Date', 
-    icon: 'DT', 
+    icon: 'Calendar', 
     color: 'border-purple-500 bg-purple-50',
     description: 'Date selection'
   },
   { 
     type: 'email', 
     label: 'Email', 
-    icon: 'EM', 
+    icon: 'Mail', 
     color: 'border-orange-500 bg-orange-50',
     description: 'Email address input'
   },
   { 
     type: 'text', 
     label: 'Text', 
-    icon: 'TX', 
+    icon: 'FileText', 
     color: 'border-gray-500 bg-gray-50',
     description: 'Custom text input'
   },
   { 
     type: 'checkbox', 
     label: 'Checkbox', 
-    icon: 'CB', 
+    icon: 'Square', 
     color: 'border-indigo-500 bg-indigo-50',
     description: 'Checkbox selection'
   }
