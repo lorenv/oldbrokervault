@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -328,7 +328,7 @@ export default function EnhancedNdaTemplateEditor({
                   disabled={!canSave || isSaving}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <Save className="w-4 h-4 mr-2" />
+                  <Check className="w-4 h-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Template'}
                 </Button>
               </div>
