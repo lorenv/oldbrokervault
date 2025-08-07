@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { OwnerFinancialsSection } from "./owner-financials-section";
 import ReactMarkdown from 'react-markdown';
-import { SourceContentParser } from './source-content-parser';
 import {
   Dialog,
   DialogContent,
@@ -418,7 +417,17 @@ export function EnhancedCimDisplay({
                           />
                         ) : (
                           <div className="prose prose-sm max-w-none">
-                            <SourceContentParser content={section.content} />
+                            <ReactMarkdown 
+                              components={{
+                                ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                code: ({ children }) => <>{children}</>, // Render code as plain text
+                                pre: ({ children }) => <>{children}</> // Render code blocks as plain text
+                              }}
+                            >
+                              {section.content}
+                            </ReactMarkdown>
                           </div>
                         )}
                       </div>

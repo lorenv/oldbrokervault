@@ -367,17 +367,7 @@ ${websiteData ? `- You have access to both TRANSCRIPT data and WEBSITE data
 - When incorporating website data, seamlessly blend it with transcript information
 - If transcript mentions something that website data contradicts, use the transcript version
 - Use website data to fill gaps or add context that wasn't covered in the transcript
-
-SOURCE ATTRIBUTION REQUIREMENTS:
-- Mark content with source indicators for user transparency
-- For content primarily from transcript: wrap in [TRANSCRIPT]content here[/TRANSCRIPT]
-- For content primarily from website: wrap in [WEBSITE]content here[/WEBSITE]
-- For mixed content: use the predominant source
-- Apply source tags around complete sentences or logical phrases (not individual words)
-- Example: "[TRANSCRIPT]The company was founded in 2010[/TRANSCRIPT] and [WEBSITE]currently serves over 500 clients across North America[/WEBSITE]."
-- Keep source tags within the HTML content, not around HTML tags
-- Correct: <p>[TRANSCRIPT]This is transcript content[/TRANSCRIPT] and [WEBSITE]this is website content[/WEBSITE].</p>
-- Incorrect: [TRANSCRIPT]<p>This is content</p>[/TRANSCRIPT]` : '- Base your analysis primarily on the transcript data provided'}
+- Do not indicate source differences in the final document - blend information naturally` : '- Base your analysis primarily on the transcript data provided'}
 
 INSTRUCTIONS:
 1. Create a comprehensive CIM document following the specific formatting requirements above
