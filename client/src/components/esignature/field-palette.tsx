@@ -32,6 +32,24 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
     }),
   });
 
+  const IconComponent = 
+    icon === 'PenTool' ? PenTool :
+    icon === 'Type' ? Type :
+    icon === 'User' ? User :
+    icon === 'Calendar' ? Calendar :
+    icon === 'Mail' ? Mail :
+    icon === 'FileText' ? FileText :
+    icon === 'Square' ? Square :
+    null;
+
+  // Map the color string to Tailwind CSS classes
+  const colorClasses = {
+    bg: `bg-${color}-50`,
+    border: `border-${color}-200`,
+    hover: `hover:bg-${color}-50 hover:border-${color}-300`,
+    text: `text-${color}-600`
+  };
+
   return (
     <div
       ref={drag}
@@ -43,14 +61,8 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
       title={description}
     >
       <GripVertical className="w-4 h-4 text-gray-400" />
-      <div className="w-8 h-8 rounded bg-blue-50 border border-blue-200 flex items-center justify-center">
-        {icon === 'PenTool' && <PenTool className="w-4 h-4 text-blue-600" />}
-        {icon === 'Type' && <Type className="w-4 h-4 text-cyan-600" />}
-        {icon === 'User' && <User className="w-4 h-4 text-green-600" />}
-        {icon === 'Calendar' && <Calendar className="w-4 h-4 text-purple-600" />}
-        {icon === 'Mail' && <Mail className="w-4 h-4 text-orange-600" />}
-        {icon === 'FileText' && <FileText className="w-4 h-4 text-gray-600" />}
-        {icon === 'Square' && <Square className="w-4 h-4 text-indigo-600" />}
+      <div className={`w-8 h-8 rounded flex items-center justify-center ${colorClasses.bg} ${colorClasses.border}`}>
+        {IconComponent && <IconComponent className={`w-4 h-4 ${colorClasses.text}`} />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm text-gray-900 truncate">{label}</div>
@@ -60,11 +72,11 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
   );
 }
 
-export default function FieldPalette({ 
-  recipients, 
-  selectedRecipient, 
-  onRecipientChange, 
-  className = '' 
+export default function FieldPalette({
+  recipients,
+  selectedRecipient,
+  onRecipientChange,
+  className = ''
 }: FieldPaletteProps) {
   const getRecipientColor = (index: number) => {
     const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
@@ -78,7 +90,7 @@ export default function FieldPalette({
           <Palette className="w-6 h-6" />
           Field Types
         </CardTitle>
-        
+
         {/* Recipient selector */}
         {recipients.length > 0 && (
           <div className="space-y-2">
@@ -93,8 +105,8 @@ export default function FieldPalette({
                 {recipients.filter(r => r.role === 'signer').map((recipient, index) => (
                   <SelectItem key={recipient.id} value={recipient.id?.toString() || ''}>
                     <div className="flex items-center gap-2">
-                      <div 
-                        className={`w-3 h-3 rounded-full bg-${getRecipientColor(index)}-500`} 
+                      <div
+                        className={`w-3 h-3 rounded-full bg-${getRecipientColor(index)}-500`}
                       />
                       {recipient.name}
                       <Badge variant="secondary" className="ml-auto">
@@ -108,7 +120,7 @@ export default function FieldPalette({
           </div>
         )}
       </CardHeader>
-      
+
       <CardContent className="space-y-2">
         {recipients.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -119,7 +131,7 @@ export default function FieldPalette({
             <div className="text-xs text-gray-600 mb-3 px-1">
               Drag fields onto the document to place them
             </div>
-            
+
             {ENHANCED_FIELD_TYPES.map((fieldType) => (
               <DraggableField
                 key={fieldType.type}
@@ -133,15 +145,15 @@ export default function FieldPalette({
             ))}
           </>
         )}
-        
+
         {/* Field legend */}
         {recipients.length > 0 && (
           <div className="mt-3 space-y-2">
             <div className="text-xs font-medium text-gray-700">Field Assignment:</div>
             {recipients.filter(r => r.role === 'signer').map((recipient, index) => (
               <div key={recipient.id} className="flex items-center gap-2 text-xs">
-                <div 
-                  className={`w-2 h-2 rounded-full bg-${getRecipientColor(index)}-500`} 
+                <div
+                  className={`w-2 h-2 rounded-full bg-${getRecipientColor(index)}-500`}
                 />
                 <span className="font-medium">{recipient.name}</span>
                 <span className="text-gray-500 truncate">({recipient.email})</span>
