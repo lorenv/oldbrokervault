@@ -109,20 +109,25 @@ export default function EnhancedNdaTemplateEditor({
       setPdfBase64(initialTemplate.fileContent || '');
       setFields((initialTemplate.signatureFields as EnhancedSignatureField[]) || []);
       
-      // Load recipients from signature fields if available
-      const savedRecipients = extractRecipientsFromFields(initialTemplate.signatureFields as EnhancedSignatureField[]);
-      if (savedRecipients.length > 0) {
-        setRecipients(savedRecipients);
+      // Load recipients from template's recipients field first (primary source)
+      if (initialTemplate.recipients && Array.isArray(initialTemplate.recipients) && initialTemplate.recipients.length > 0) {
+        setRecipients(initialTemplate.recipients as Partial<NdaRecipient>[]);
       } else {
-        // If no recipients, ensure we have at least one default recipient
-        const defaultRecipient: Partial<NdaRecipient> = {
-          id: Date.now(),
-          name: '',
-          email: '',
-          role: 'signer',
-          status: 'pending'
-        };
-        setRecipients([defaultRecipient]);
+        // Fallback: try to extract from signature fields if no recipients saved
+        const savedRecipients = extractRecipientsFromFields(initialTemplate.signatureFields as EnhancedSignatureField[]);
+        if (savedRecipients.length > 0) {
+          setRecipients(savedRecipients);
+        } else {
+          // If no recipients, ensure we have at least one default recipient
+          const defaultRecipient: Partial<NdaRecipient> = {
+            id: Date.now(),
+            name: '',
+            email: '',
+            role: 'signer',
+            status: 'pending'
+          };
+          setRecipients([defaultRecipient]);
+        }
       }
       
       // Load page images from the saved template
