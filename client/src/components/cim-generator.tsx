@@ -376,6 +376,7 @@ export function CimGenerator() {
           title: data.title,
           transcript: data.transcript,
           directions: data.directions,
+          enableWebsiteAnalysis: enableWebsiteAnalysis,
           ...(hasWebsiteUrl && enableWebsiteAnalysis && { websiteUrl: data.websiteUrl }),
           ...(selectedImages.length > 0 && { selectedImages }),
           ...(currentDocId && { docId: currentDocId }),
