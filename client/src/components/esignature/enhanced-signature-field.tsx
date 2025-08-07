@@ -81,6 +81,27 @@ export const getRecipientColor = (index: number) => {
   return RECIPIENT_COLORS[index % RECIPIENT_COLORS.length];
 };
 
+// Helper function to get recipient color by recipient ID
+export const getRecipientColorById = (recipients: any[], recipientId: string | undefined) => {
+  if (!recipientId || !recipients.length) return RECIPIENT_COLORS[0];
+  
+  const recipientIndex = recipients.findIndex(r => r.id?.toString() === recipientId);
+  return RECIPIENT_COLORS[recipientIndex >= 0 ? recipientIndex : 0];
+};
+
+// Helper function to calculate dynamic font size based on field dimensions
+export const calculateFontSize = (fieldWidth: number, fieldHeight: number, baseFontSize: number = 12) => {
+  // Calculate scale factor based on field dimensions
+  // Minimum font size of 8px, maximum of 24px
+  const widthFactor = fieldWidth / 15; // Based on typical field width of 15%
+  const heightFactor = fieldHeight / 4; // Based on typical field height of 4%
+  
+  const scaleFactor = Math.min(widthFactor, heightFactor);
+  const dynamicFontSize = Math.max(8, Math.min(24, baseFontSize * scaleFactor));
+  
+  return Math.round(dynamicFontSize);
+};
+
 // Field types with enhanced capabilities
 export const ENHANCED_FIELD_TYPES = [
   {
@@ -166,8 +187,11 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   isHighlighted = false,
   scale = 1
 }) => {
+  // Calculate dynamic font size based on field dimensions
+  const dynamicFontSize = calculateFontSize(field.width, field.height, field.fontSize || 12);
+  
   const baseStyle = {
-    fontSize: `${field.fontSize * scale}px`,
+    fontSize: `${dynamicFontSize * scale}px`,
     transform: `scale(${scale})`,
     transformOrigin: 'center',
   };

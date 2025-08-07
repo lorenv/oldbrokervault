@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
-import { EnhancedSignatureField, FieldRenderer, DEFAULT_FIELD_DIMENSIONS, getRecipientColor } from './enhanced-signature-field';
+import { EnhancedSignatureField, FieldRenderer, DEFAULT_FIELD_DIMENSIONS, getRecipientColor, getRecipientColorById } from './enhanced-signature-field';
 import { NdaRecipient } from '@shared/schema';
 
 interface CanvasOverlayProps {
@@ -188,9 +188,14 @@ export default function CanvasOverlay({
         newHeight = Math.max(2, startHeight + deltaY);
       }
 
-      const updatedFields = fields.map(f =>
-        f.id === field.id ? { ...f, width: newWidth, height: newHeight } : f
-      );
+      const updatedFields = fields.map(f => {
+        if (f.id === field.id) {
+          // Calculate new font size based on the new dimensions
+          const newFontSize = Math.max(8, Math.min(24, 12 * Math.min(newWidth / 15, newHeight / 4)));
+          return { ...f, width: newWidth, height: newHeight, fontSize: Math.round(newFontSize) };
+        }
+        return f;
+      });
       onFieldsChange(updatedFields);
     };
 
@@ -210,15 +215,11 @@ export default function CanvasOverlay({
     }
   }, [onFieldSelect]);
 
-  // Get recipient color for field using the centralized color system
+  // Get recipient color for field using the enhanced color system
   const getFieldColor = (assignedTo?: string) => {
     if (!assignedTo) return 'border-gray-400 bg-gray-100';
-    const recipientIndex = recipients.findIndex(r => r.id?.toString() === assignedTo);
-    if (recipientIndex >= 0) {
-      const color = getRecipientColor(recipientIndex);
-      return `${color.border} ${color.bg}`;
-    }
-    return 'border-gray-400 bg-gray-100';
+    const color = getRecipientColorById(recipients, assignedTo);
+    return `${color.border} ${color.bg}`;
   };
 
   // Delete field handler
@@ -325,8 +326,8 @@ export default function CanvasOverlay({
               className={`
                 w-full h-full rounded cursor-move transition-all duration-200
                 ${getFieldColor(field.assignedTo)}
-                ${selectedField?.id === field.id ? 'ring-2 ring-blue-500 shadow-lg' : 'border border-gray-300'}
-                ${!isReadOnly ? 'hover:shadow-md hover:border-gray-400' : ''}
+                ${selectedField?.id === field.id ? 'ring-2 ring-blue-500 shadow-lg' : 'border-2'}
+                ${!isReadOnly ? 'hover:shadow-md hover:opacity-90' : ''}
               `}
               onMouseDown={(e) => handleFieldMouseDown(e, field)}
               title={field.tooltip || `${field.label} (${recipients.find(r => r.id?.toString() === field.assignedTo)?.name || 'Unassigned'})`}
