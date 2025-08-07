@@ -370,9 +370,14 @@ export default function EnhancedNdaTemplateEditor({
       });
     } catch (error) {
       console.error('Error saving template:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
       toast({
-        title: "Save failed",
-        description: "Failed to save template",
+        title: "Save failed", 
+        description: error instanceof Error ? error.message : "Failed to save template",
         variant: "destructive"
       });
     } finally {
