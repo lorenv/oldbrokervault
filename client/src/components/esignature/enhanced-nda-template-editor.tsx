@@ -90,6 +90,7 @@ export default function EnhancedNdaTemplateEditor({
 
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
 
   const { toast } = useToast();
 
@@ -155,6 +156,7 @@ export default function EnhancedNdaTemplateEditor({
 
   // Function to load page images from saved template
   const loadTemplateImages = async (fileContentUrl: string) => {
+    setIsLoadingImages(true);
     try {
       // Extract the template ID from the file content URL
       // URL format: /api/object-storage/private/templates/{templateId}/filename.pdf
@@ -213,6 +215,8 @@ export default function EnhancedNdaTemplateEditor({
       // Fallback to a single page if we can't load the images
       setTotalPages(1);
       setPageImages([]);
+    } finally {
+      setIsLoadingImages(false);
     }
   };
 
@@ -455,7 +459,9 @@ export default function EnhancedNdaTemplateEditor({
         // Set button content with proper Save icon
         button.innerHTML = `
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+            <polyline stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="17,21 17,13 7,13 7,21"></polyline>
+            <polyline stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="7,3 7,8 15,8"></polyline>
           </svg>
           ${isSaving ? 'Saving...' : 'Save Template'}
         `;
@@ -677,6 +683,22 @@ export default function EnhancedNdaTemplateEditor({
                           <span className="ml-2 text-sm text-gray-600">Processing PDF...</span>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : isLoadingImages ? (
+                <div className="h-full flex items-center justify-center bg-slate-50">
+                  <Card className="w-96">
+                    <CardContent className="text-center py-8">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-blue-400" />
+                      <h3 className="text-lg font-medium mb-2">Loading Template</h3>
+                      <p className="text-gray-600 mb-4">
+                        Loading saved template images and settings...
+                      </p>
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span className="ml-2 text-sm text-gray-600">Loading images...</span>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
