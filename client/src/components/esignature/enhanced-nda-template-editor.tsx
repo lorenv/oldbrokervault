@@ -107,14 +107,114 @@ export default function EnhancedNdaTemplateEditor({
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
       setFields((initialTemplate.signatureFields as EnhancedSignatureField[]) || []);
-      setTotalPages(initialTemplate.totalPages || 1);
-
-      // Convert page images if available
-      if (initialTemplate.pageImages) {
-        setPageImages(initialTemplate.pageImages as PageImage[]);
+      
+      // Load recipients from signature fields if available
+      const savedRecipients = extractRecipientsFromFields(initialTemplate.signatureFields as EnhancedSignatureField[]);
+      if (savedRecipients.length > 0) {
+        setRecipients(savedRecipients);
+      } else {
+        // If no recipients, ensure we have at least one default recipient
+        const defaultRecipient: Partial<NdaRecipient> = {
+          id: Date.now(),
+          name: '',
+          email: '',
+          role: 'signer',
+          status: 'pending'
+        };
+        setRecipients([defaultRecipient]);
+      }
+      
+      // Load page images from the saved template
+      // If we have a fileContent URL, we need to load the converted page images
+      if (initialTemplate.fileContent) {
+        loadTemplateImages(initialTemplate.fileContent);
       }
     }
   }, [initialTemplate]);
+
+  // Extract unique recipients from signature fields
+  const extractRecipientsFromFields = (fields: EnhancedSignatureField[]): Partial<NdaRecipient>[] => {
+    const recipientMap = new Map<string, Partial<NdaRecipient>>();
+    
+    fields.forEach(field => {
+      if (field.assignedTo) {
+        if (!recipientMap.has(field.assignedTo)) {
+          recipientMap.set(field.assignedTo, {
+            id: parseInt(field.assignedTo) || Date.now(),
+            name: `Recipient ${field.assignedTo}`,
+            email: '',
+            role: 'signer',
+            status: 'pending'
+          });
+        }
+      }
+    });
+    
+    return Array.from(recipientMap.values());
+  };
+
+  // Function to load page images from saved template
+  const loadTemplateImages = async (fileContentUrl: string) => {
+    try {
+      // Extract the template ID from the file content URL
+      // URL format: /api/object-storage/private/templates/{templateId}/filename.pdf
+      const templateIdMatch = fileContentUrl.match(/\/templates\/(\d+)\//);
+      if (!templateIdMatch) {
+        console.error('Could not extract template ID from file URL:', fileContentUrl);
+        return;
+      }
+      
+      const templateId = templateIdMatch[1];
+      
+      // For saved templates, we can get page count from the totalPages field
+      // or try to derive it from the existing page images in object storage
+      let pageCount = initialTemplate?.totalPages || 1;
+      
+      // If we don't have totalPages, try to discover page count by checking page images
+      if (!initialTemplate?.totalPages || initialTemplate.totalPages === 1) {
+        try {
+          // Try to fetch page 1 to see if it exists
+          const testResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-1.png`);
+          if (testResponse.ok) {
+            // Count pages by checking which ones exist
+            let discoveredPages = 1;
+            for (let i = 2; i <= 20; i++) { // Check up to 20 pages
+              const checkResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-${i}.png`);
+              if (checkResponse.ok) {
+                discoveredPages = i;
+              } else {
+                break;
+              }
+            }
+            pageCount = discoveredPages;
+          }
+        } catch (error) {
+          console.warn('Could not discover page count, using default:', error);
+        }
+      }
+      
+      setTotalPages(pageCount);
+      
+      // Create page image objects for each page
+      const newPageImages: PageImage[] = [];
+      for (let i = 1; i <= pageCount; i++) {
+        newPageImages.push({
+          pageNumber: i,
+          imageDataUrl: `/api/esignature/templates/${templateId}/image/${i}`,
+          width: 800,
+          height: 1100,
+        });
+      }
+      
+      setPageImages(newPageImages);
+      
+    } catch (error) {
+      console.error('Error loading template images:', error);
+      // Fallback to a single page if we can't load the images
+      setTotalPages(1);
+      setPageImages([]);
+    }
+  };
 
   // Handle file upload using the new PDF processing endpoint
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
