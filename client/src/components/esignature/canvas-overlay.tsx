@@ -293,9 +293,11 @@ export default function CanvasOverlay({
       ref={combinedRef}
       className={`absolute inset-0 cursor-crosshair ${isOver && canDrop ? 'bg-blue-50/30' : ''}`}
       style={{ 
-        width: '100%', 
-        height: '100%',
+        width: imageWidth, 
+        height: imageHeight,
+        minWidth: imageWidth,
         minHeight: imageHeight,
+        maxWidth: 'none', // Allow landscape pages to extend beyond container width
         pointerEvents: 'auto'
       }}
       onClick={handleCanvasClick}

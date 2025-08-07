@@ -102,9 +102,21 @@ export default function ImageDocumentViewer({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          <Badge variant="secondary">
-            Page {currentPage} of {totalPages}
-          </Badge>
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary">
+              Page {currentPage} of {totalPages}
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className={`text-xs ${
+                currentPageImage.width > currentPageImage.height 
+                  ? 'text-orange-600 border-orange-300 bg-orange-50' 
+                  : 'text-blue-600 border-blue-300 bg-blue-50'
+              }`}
+            >
+              {currentPageImage.width > currentPageImage.height ? 'Landscape' : 'Portrait'}
+            </Badge>
+          </div>
           
           <Button
             variant="outline"
@@ -156,13 +168,16 @@ export default function ImageDocumentViewer({
         className="flex-1 overflow-auto bg-slate-100 relative"
         style={{ minHeight: '600px' }}
       >
-        <div className="flex justify-center p-4">
+        {/* Detect orientation and adjust container accordingly */}
+        <div className={`p-4 ${currentPageImage.width > currentPageImage.height ? 'min-w-fit' : 'flex justify-center'}`}>
           <div 
             className="relative bg-white shadow-lg"
             style={{
               transform: `scale(${zoom})`,
-              transformOrigin: 'top center',
+              transformOrigin: currentPageImage.width > currentPageImage.height ? 'top left' : 'top center',
               transition: 'transform 0.2s ease',
+              // Ensure landscape pages have proper width allowance
+              minWidth: currentPageImage.width > currentPageImage.height ? `${currentPageImage.width}px` : 'auto',
             }}
           >
             {/* Document Image */}
