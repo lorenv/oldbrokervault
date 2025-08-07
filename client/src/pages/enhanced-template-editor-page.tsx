@@ -40,9 +40,9 @@ export default function EnhancedTemplateEditorPage() {
             </Button>
             <div className="border-l border-gray-300 h-6"></div>
             <div>
-              <h1 className="text-xl font-semibold">
-                {id ? 'Edit NDA Template' : 'Create New NDA Template'}
-              </h1>
+              <div id="template-name-header">
+                {/* Template name will be rendered here by the editor component */}
+              </div>
               <p className="text-sm text-gray-600">
                 Design your e-signature template with drag-and-drop fields
               </p>
