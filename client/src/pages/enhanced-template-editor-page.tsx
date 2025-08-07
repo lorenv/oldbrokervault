@@ -39,7 +39,8 @@ export default function EnhancedTemplateEditorPage() {
         await apiRequest('PUT', `/api/nda-templates/${id}`, {
           name: data.name,
           fileContent: data.fileContent,
-          signatureFields: data.signatureFields
+          signatureFields: data.signatureFields,
+          recipients: data.recipients || []
         });
 
         toast({
@@ -51,7 +52,8 @@ export default function EnhancedTemplateEditorPage() {
         await apiRequest('POST', '/api/nda-templates', {
           name: data.name,
           fileContent: data.fileContent,
-          signatureFields: data.signatureFields
+          signatureFields: data.signatureFields,
+          recipients: data.recipients || []
         });
 
         toast({
