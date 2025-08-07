@@ -109,10 +109,13 @@ export default function EnhancedNdaTemplateEditor({
       const response = await fetch('/api/esignature/templates/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Include cookies for authentication
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload PDF');
+        const errorData = await response.text();
+        console.error('Upload failed:', response.status, errorData);
+        throw new Error(`Failed to upload PDF: ${response.status} ${errorData}`);
       }
 
       const result = await response.json();
@@ -140,7 +143,7 @@ export default function EnhancedNdaTemplateEditor({
       console.error('Error uploading file:', error);
       toast({
         title: "Upload failed",
-        description: "Failed to upload PDF file",
+        description: error instanceof Error ? error.message : "Failed to upload PDF file",
         variant: "destructive"
       });
     } finally {
