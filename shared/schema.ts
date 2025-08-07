@@ -160,6 +160,7 @@ export const ndaTemplates = pgTable("nda_templates", {
   fileContent: text("file_content").notNull(), // Base64 encoded PDF
   isDefault: boolean("is_default").default(false).notNull(),
   signatureFields: jsonb("signature_fields").default([]).notNull(), // Array of field definitions
+  recipients: jsonb("recipients").default([]).notNull(), // Array of template recipients
   pageImages: jsonb("page_images").default([]).notNull(), // Array of processed page image data
   totalPages: integer("total_pages").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -515,12 +516,22 @@ export const signatureFieldSchema = z.object({
   placeholder: z.string().optional()
 });
 
+// Template recipient schema for editor
+export const templateRecipientSchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  name: z.string(),
+  email: z.string().email(),
+  role: z.enum(['signer', 'cc', 'approver']).default('signer'),
+  status: z.enum(['pending', 'sent', 'viewed', 'signed', 'declined']).default('pending')
+});
+
 export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
   name: true,
   fileContent: true,
 }).extend({
   isDefault: z.boolean().optional(),
   signatureFields: z.array(signatureFieldSchema).optional(),
+  recipients: z.array(templateRecipientSchema).optional(),
   pageImages: z.array(z.object({
     pageNumber: z.number(),
     imagePath: z.string(),

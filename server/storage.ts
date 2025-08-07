@@ -1343,6 +1343,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         fileContent: template.fileContent,
         isDefault: template.isDefault || false,
         signatureFields: template.signatureFields || [],
+        recipients: template.recipients || [],
         pageImages,
         totalPages
       })
@@ -1365,6 +1366,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       name: ndaTemplates.name,
       isDefault: ndaTemplates.isDefault,
       signatureFields: ndaTemplates.signatureFields,
+      recipients: ndaTemplates.recipients,
       pageImages: ndaTemplates.pageImages,
       totalPages: ndaTemplates.totalPages,
       createdAt: ndaTemplates.createdAt,

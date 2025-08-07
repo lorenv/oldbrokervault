@@ -113,7 +113,7 @@ export function PdfTemplateSelector() {
 
   return (
     <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-      <CardHeader className="bg-gradient-to-r from-violet-600 to-slate-700 pb-6 pt-8 px-8 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 pb-6 pt-8 px-8 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl shadow-sm">
             <FileImage className="h-6 w-6 text-white" />
