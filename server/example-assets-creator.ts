@@ -128,63 +128,57 @@ export class ExampleAssetsCreator {
     financialDocuments: { name: string; url: string }[];
     businessContent?: any;
   }> {
-    try {
-      // Load and upload real business images
-      const businessImages = this.loadRealBusinessImages();
-      const uploadedBusinessImages: string[] = [];
+    // Load and upload real business images
+    const businessImages = this.loadRealBusinessImages();
+    const uploadedBusinessImages: string[] = [];
 
-      for (const image of businessImages) {
-        const storageKey = `users/example/business-images/${image.name}`;
-        
-        await objectStorage.uploadImage(image.buffer, storageKey);
-        uploadedBusinessImages.push(`/api/object-storage/${storageKey}`);
-      }
-
-      // Load and upload real logo
-      const logoBuffer = this.loadRealLogo();
-      const logoStorageKey = 'users/example/logos/tonys-logo.png';
+    for (const image of businessImages) {
+      const storageKey = `users/example/business-images/${image.name}`;
       
-      await objectStorage.uploadImage(logoBuffer, logoStorageKey);
-      const logoUrl = `/api/object-storage/${logoStorageKey}`;
-
-      // Load and upload real cover image
-      const coverBuffer = this.loadRealCoverImage();
-      const coverStorageKey = 'users/example/cover-images/tonys-cover.jpg';
-      
-      await objectStorage.uploadImage(coverBuffer, coverStorageKey);
-      const coverImageUrl = `/api/object-storage/${coverStorageKey}`;
-
-      // Load and upload real financial documents
-      const financialDocs = this.loadRealFinancialDocuments();
-      const uploadedFinancialDocs: { name: string; url: string }[] = [];
-
-      for (const doc of financialDocs) {
-        const storageKey = `users/example/financial-files/${doc.name}`;
-        
-        await objectStorage.uploadImage(doc.buffer, storageKey);
-        uploadedFinancialDocs.push({
-          name: doc.name,
-          url: `/api/object-storage/${storageKey}`
-        });
-      }
-
-      // Load real business content
-      const businessContent = this.loadRealBusinessContent();
-
-      console.log('✅ Successfully created and uploaded all real example assets');
-      
-      return {
-        logoUrl,
-        coverImageUrl,
-        businessImages: uploadedBusinessImages,
-        financialDocuments: uploadedFinancialDocs,
-        businessContent
-      };
-
-    } catch (error) {
-      console.error('❌ Failed to create example assets:', error);
-      throw error;
+      await objectStorage.uploadImage(image.buffer, storageKey);
+      uploadedBusinessImages.push(`/api/object-storage/${storageKey}`);
     }
+
+    // Load and upload real logo
+    const logoBuffer = this.loadRealLogo();
+    const logoStorageKey = 'users/example/logos/tonys-logo.png';
+    
+    await objectStorage.uploadImage(logoBuffer, logoStorageKey);
+    const logoUrl = `/api/object-storage/${logoStorageKey}`;
+
+    // Load and upload real cover image
+    const coverBuffer = this.loadRealCoverImage();
+    const coverStorageKey = 'users/example/cover-images/tonys-cover.jpg';
+    
+    await objectStorage.uploadImage(coverBuffer, coverStorageKey);
+    const coverImageUrl = `/api/object-storage/${coverStorageKey}`;
+
+    // Load and upload real financial documents
+    const financialDocs = this.loadRealFinancialDocuments();
+    const uploadedFinancialDocs: { name: string; url: string }[] = [];
+
+    for (const doc of financialDocs) {
+      const storageKey = `users/example/financial-files/${doc.name}`;
+      
+      await objectStorage.uploadImage(doc.buffer, storageKey);
+      uploadedFinancialDocs.push({
+        name: doc.name,
+        url: `/api/object-storage/${storageKey}`
+      });
+    }
+
+    // Load real business content
+    const businessContent = this.loadRealBusinessContent();
+
+    console.log('✅ Successfully created and uploaded all real example assets');
+    
+    return {
+      logoUrl,
+      coverImageUrl,
+      businessImages: uploadedBusinessImages,
+      financialDocuments: uploadedFinancialDocs,
+      businessContent
+    };
   }
 
   /**
