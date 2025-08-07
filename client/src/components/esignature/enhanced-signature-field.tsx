@@ -24,96 +24,108 @@ export const enhancedSignatureFieldSchema = z.object({
 
 export type EnhancedSignatureField = z.infer<typeof enhancedSignatureFieldSchema>;
 
+// Recipient color scheme
+export const RECIPIENT_COLORS = [
+  {
+    name: 'Blue',
+    bg: 'bg-blue-50',
+    border: 'border-blue-300',
+    text: 'text-blue-700',
+    hover: 'hover:bg-blue-100',
+    solid: 'bg-blue-500'
+  },
+  {
+    name: 'Green', 
+    bg: 'bg-green-50',
+    border: 'border-green-300',
+    text: 'text-green-700',
+    hover: 'hover:bg-green-100',
+    solid: 'bg-green-500'
+  },
+  {
+    name: 'Purple',
+    bg: 'bg-purple-50',
+    border: 'border-purple-300', 
+    text: 'text-purple-700',
+    hover: 'hover:bg-purple-100',
+    solid: 'bg-purple-500'
+  },
+  {
+    name: 'Orange',
+    bg: 'bg-orange-50',
+    border: 'border-orange-300',
+    text: 'text-orange-700',
+    hover: 'hover:bg-orange-100',
+    solid: 'bg-orange-500'
+  },
+  {
+    name: 'Pink',
+    bg: 'bg-pink-50',
+    border: 'border-pink-300',
+    text: 'text-pink-700',
+    hover: 'hover:bg-pink-100',
+    solid: 'bg-pink-500'
+  },
+  {
+    name: 'Indigo',
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-300',
+    text: 'text-indigo-700',
+    hover: 'hover:bg-indigo-100',
+    solid: 'bg-indigo-500'
+  },
+];
+
+// Get recipient color by index
+export const getRecipientColor = (index: number) => {
+  return RECIPIENT_COLORS[index % RECIPIENT_COLORS.length];
+};
+
 // Field types with enhanced capabilities
 export const ENHANCED_FIELD_TYPES = [
   {
     type: 'signature',
     label: 'Signature',
     icon: 'PenTool',
-    color: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-300',
-      text: 'text-blue-700',
-      hover: 'hover:bg-blue-100'
-    }
+    description: 'Digital signature field'
   },
   {
     type: 'initials',
     label: 'Initials',
     icon: 'Type',
-    color: {
-      bg: 'bg-green-50',
-      border: 'border-green-300',
-      text: 'text-green-700',
-      hover: 'hover:bg-green-100'
-    }
+    description: 'Initials field'
   },
   {
     type: 'name',
     label: 'Full Name',
     icon: 'User',
-    color: {
-      bg: 'bg-purple-50',
-      border: 'border-purple-300',
-      text: 'text-purple-700',
-      hover: 'hover:bg-purple-100'
-    }
+    description: 'Full name text field'
   },
   {
     type: 'email',
     label: 'Email',
     icon: 'Mail',
-    color: {
-      bg: 'bg-orange-50',
-      border: 'border-orange-300',
-      text: 'text-orange-700',
-      hover: 'hover:bg-orange-100'
-    }
+    description: 'Email address field'
   },
   {
     type: 'date',
     label: 'Date',
     icon: 'Calendar',
-    color: {
-      bg: 'bg-indigo-50',
-      border: 'border-indigo-300',
-      text: 'text-indigo-700',
-      hover: 'hover:bg-indigo-100'
-    }
+    description: 'Date picker field'
   },
   {
     type: 'text',
     label: 'Text Field',
     icon: 'FileText',
-    color: {
-      bg: 'bg-gray-50',
-      border: 'border-gray-300',
-      text: 'text-gray-700',
-      hover: 'hover:bg-gray-100'
-    }
+    description: 'Custom text input'
   },
   {
     type: 'checkbox',
     label: 'Checkbox',
     icon: 'Square',
-    color: {
-      bg: 'bg-teal-50',
-      border: 'border-teal-300',
-      text: 'text-teal-700',
-      hover: 'hover:bg-teal-100'
-    }
+    description: 'Checkbox for agreements'
   }
 ] as const;
-
-// Field colors for different recipient assignments
-export const RECIPIENT_COLORS = {
-  unassigned: 'border-gray-400 bg-gray-50',
-  recipient1: 'border-blue-500 bg-blue-50',
-  recipient2: 'border-green-500 bg-green-50',
-  recipient3: 'border-purple-500 bg-purple-50',
-  recipient4: 'border-orange-500 bg-orange-50',
-  recipient5: 'border-pink-500 bg-pink-50',
-} as const;
 
 // Default field dimensions (as percentages)
 export const DEFAULT_FIELD_DIMENSIONS = {
@@ -162,9 +174,11 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
 
   const getFieldColor = () => {
     if (field.assignedTo) {
-      return RECIPIENT_COLORS[field.assignedTo as keyof typeof RECIPIENT_COLORS] || RECIPIENT_COLORS.unassigned;
+      const recipientIndex = parseInt(field.assignedTo) - 1;
+      const color = RECIPIENT_COLORS[recipientIndex] || RECIPIENT_COLORS[0];
+      return `${color.border} ${color.bg}`;
     }
-    return ENHANCED_FIELD_TYPES.find(type => type.type === field.type)?.color || 'border-gray-400 bg-gray-50';
+    return 'border-gray-400 bg-gray-50';
   };
 
   const fieldClasses = `

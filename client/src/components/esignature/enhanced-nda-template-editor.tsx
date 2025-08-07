@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2, MousePointer } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +22,7 @@ import FieldPalette from './field-palette';
 import CanvasOverlay from './canvas-overlay';
 import ImageDocumentViewer from './image-document-viewer';
 import RecipientModal from './recipient-modal';
-import { EnhancedSignatureField } from './enhanced-signature-field';
+import { EnhancedSignatureField, getRecipientColor } from './enhanced-signature-field';
 import { NdaRecipient, NdaTemplate } from '@shared/schema';
 
 interface PageImage {
@@ -512,31 +512,41 @@ export default function EnhancedNdaTemplateEditor({
       <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
         {/* Header - only show when not in fullScreen mode */}
         {!fullScreen && (
-          <div className="bg-white border-b px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {showBackButton && onBack && (
-                  <Button variant="ghost" size="sm" onClick={onBack}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Button>
-                )}
-                <FileText className="w-6 h-6 text-blue-600" />
-                <div>
-                  <h1 className="text-xl font-semibold">Enhanced NDA Template Editor</h1>
-                  <p className="text-sm text-gray-600">Create and configure e-signature templates</p>
+          <div className="bg-white border-b shadow-sm">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {showBackButton && onBack && (
+                    <Button variant="ghost" size="sm" onClick={onBack} className="text-gray-500 hover:text-gray-700 -ml-2">
+                      <ArrowLeft className="w-4 h-4 mr-1" />
+                      Back to Account
+                    </Button>
+                  )}
+                  <div className="h-8 w-px bg-gray-200" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-semibold text-gray-900">{templateName}</h1>
+                      <p className="text-sm text-gray-500">E-signature template editor</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleSave}
-                  disabled={!canSave || isSaving}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Template'}
-                </Button>
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-500">
+                    {fields.length} field{fields.length !== 1 ? 's' : ''} • {recipients.length} recipient{recipients.length !== 1 ? 's' : ''}
+                  </div>
+                  <Button
+                    onClick={handleSave}
+                    disabled={!canSave || isSaving}
+                    className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isSaving ? 'Saving...' : 'Save Template'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -547,93 +557,82 @@ export default function EnhancedNdaTemplateEditor({
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-80 bg-white border-r flex flex-col">
+          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
             {/* Recipients Section */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Recipients</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Recipients</h3>
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm"
                   onClick={() => {
                     setEditingRecipient(null);
                     setIsRecipientModalOpen(true);
                   }}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                 >
                   <span className="text-lg mr-1">+</span>
                   Add
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-48 overflow-y-auto">
-                {recipients.map((recipient, index) => (
-                  <Card key={recipient.id} className="border-blue-200">
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                          {index + 1}
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {recipients.map((recipient, index) => {
+                  const recipientColor = getRecipientColor(index);
+                  const isSelected = selectedRecipient === recipient.id?.toString();
+                  
+                  return (
+                    <Card 
+                      key={recipient.id} 
+                      className={`border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        isSelected 
+                          ? `${recipientColor.border} ${recipientColor.bg} shadow-md` 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setSelectedRecipient(recipient.id?.toString() || '')}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm ${recipientColor.solid}`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate">
+                              {recipient.name || 'Unnamed Recipient'}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {recipient.email}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                {recipient.role}
+                              </div>
+                              {isSelected && (
+                                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                  <MousePointer className="w-3 h-3 mr-1" />
+                                  Active
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">
-                            {recipient.name || 'Unnamed Recipient'}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {recipient.email}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            {recipient.role}
-                          </div>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingRecipient(recipient);
-                                setIsRecipientModalOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                setRecipients(recipients.filter((_, i) => i !== index));
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {recipients.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recipients added yet</p>
+                    <p className="text-sm font-medium">No recipients added yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Add recipients to assign signature fields</p>
                   </div>
                 )}
               </div>
             </div>
 
-
-
             {/* Field Types Section */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200">
               <FieldPalette
                 recipients={recipients as NdaRecipient[]}
                 selectedRecipient={selectedRecipient}

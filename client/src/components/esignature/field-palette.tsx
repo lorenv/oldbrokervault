@@ -3,7 +3,7 @@ import { useDrag } from 'react-dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ENHANCED_FIELD_TYPES } from './enhanced-signature-field';
+import { ENHANCED_FIELD_TYPES, getRecipientColor } from './enhanced-signature-field';
 import { NdaRecipient } from '@shared/schema';
 import { Palette, GripVertical, PenTool, Type, User, Calendar, Mail, FileText, Square } from 'lucide-react';
 
@@ -18,12 +18,18 @@ interface DraggableFieldProps {
   type: string;
   label: string;
   icon: string;
-  color: string;
   description: string;
   recipientId?: string;
+  recipientColor?: {
+    bg: string;
+    border: string;
+    text: string;
+    hover: string;
+    solid: string;
+  };
 }
 
-function DraggableField({ type, label, icon, color, description, recipientId }: DraggableFieldProps) {
+function DraggableField({ type, label, icon, description, recipientId, recipientColor }: DraggableFieldProps) {
   const [{ isDragging }, drag] = useDrag({
     type: 'FIELD_TYPE',
     item: { type, recipientId },
@@ -42,21 +48,26 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
     icon === 'Square' ? Square :
     null;
 
-  // Map the color string to Tailwind CSS classes
-  const colorClasses = {
-    bg: `bg-${color}-50`,
-    border: `border-${color}-200`,
-    hover: `hover:bg-${color}-50 hover:border-${color}-300`,
-    text: `text-${color}-600`
+  // Use recipient color if available, otherwise use default
+  const colorClasses = recipientColor ? {
+    bg: recipientColor.bg,
+    border: recipientColor.border,
+    hover: recipientColor.hover,
+    text: recipientColor.text
+  } : {
+    bg: 'bg-gray-50',
+    border: 'border-gray-200',
+    hover: 'hover:bg-gray-50 hover:border-gray-300',
+    text: 'text-gray-600'
   };
 
   return (
     <div
       ref={drag}
       className={`
-        flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-grab transition-all duration-200
-        bg-white hover:bg-gray-50 hover:border-blue-300 hover:shadow-sm
-        ${isDragging ? 'opacity-50 scale-95 border-blue-400' : 'opacity-100'}
+        flex items-center gap-3 p-3 border rounded-lg cursor-grab transition-all duration-200
+        bg-white hover:shadow-sm ${colorClasses.hover}
+        ${isDragging ? `opacity-50 scale-95 ${colorClasses.border}` : `opacity-100 ${recipientColor ? colorClasses.border : 'border-gray-200'}`}
       `}
       title={description}
     >
@@ -78,9 +89,8 @@ export default function FieldPalette({
   onRecipientChange,
   className = ''
 }: FieldPaletteProps) {
-  const getRecipientColor = (index: number) => {
-    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
-    return colors[index % colors.length] || 'gray';
+  const getRecipientColorClasses = (index: number) => {
+    return getRecipientColor(index);
   };
 
   return (
@@ -106,7 +116,7 @@ export default function FieldPalette({
                   <SelectItem key={recipient.id} value={recipient.id?.toString() || ''}>
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-3 h-3 rounded-full bg-${getRecipientColor(index)}-500`}
+                        className={`w-3 h-3 rounded-full ${getRecipientColorClasses(index).solid}`}
                       />
                       {recipient.name}
                       <Badge variant="secondary" className="ml-auto">
@@ -132,17 +142,22 @@ export default function FieldPalette({
               Drag fields onto the document to place them
             </div>
 
-            {ENHANCED_FIELD_TYPES.map((fieldType) => (
-              <DraggableField
-                key={fieldType.type}
-                type={fieldType.type}
-                label={fieldType.label}
-                icon={fieldType.icon}
-                color={fieldType.color}
-                description={fieldType.description}
-                recipientId={selectedRecipient}
-              />
-            ))}
+            {ENHANCED_FIELD_TYPES.map((fieldType) => {
+              const recipientIndex = recipients.findIndex(r => r.id?.toString() === selectedRecipient);
+              const recipientColor = recipientIndex >= 0 ? getRecipientColorClasses(recipientIndex) : undefined;
+              
+              return (
+                <DraggableField
+                  key={fieldType.type}
+                  type={fieldType.type}
+                  label={fieldType.label}
+                  icon={fieldType.icon}
+                  description={fieldType.description}
+                  recipientId={selectedRecipient}
+                  recipientColor={recipientColor}
+                />
+              );
+            })}
           </>
         )}
 
@@ -153,7 +168,7 @@ export default function FieldPalette({
             {recipients.filter(r => r.role === 'signer').map((recipient, index) => (
               <div key={recipient.id} className="flex items-center gap-2 text-xs">
                 <div
-                  className={`w-2 h-2 rounded-full bg-${getRecipientColor(index)}-500`}
+                  className={`w-2 h-2 rounded-full ${getRecipientColorClasses(index).solid}`}
                 />
                 <span className="font-medium">{recipient.name}</span>
                 <span className="text-gray-500 truncate">({recipient.email})</span>
