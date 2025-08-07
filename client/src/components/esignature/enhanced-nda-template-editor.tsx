@@ -354,13 +354,7 @@ export default function EnhancedNdaTemplateEditor({
         recipients: recipients
       };
       
-      console.log('Editor handleSave - sending data:', {
-        name: saveData.name,
-        hasFileContent: !!saveData.fileContent,
-        signatureFieldsCount: saveData.signatureFields?.length || 0,
-        recipientsCount: saveData.recipients?.length || 0,
-        recipients: saveData.recipients
-      });
+
       
       await onSave(saveData);
 
@@ -370,11 +364,6 @@ export default function EnhancedNdaTemplateEditor({
       });
     } catch (error) {
       console.error('Error saving template:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
       toast({
         title: "Save failed", 
         description: error instanceof Error ? error.message : "Failed to save template",

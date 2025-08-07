@@ -7,12 +7,6 @@ export function validateZodSchema(schema: ZodSchema) {
       const result = schema.safeParse(req.body);
       
       if (!result.success) {
-        console.error("Validation failed for request:", {
-          url: req.url,
-          method: req.method,
-          body: req.body,
-          errors: result.error.errors
-        });
         return res.status(400).json({
           error: "Validation failed",
           details: result.error.errors

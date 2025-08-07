@@ -71,13 +71,7 @@ export default function NdaTemplateEditorPage() {
         isDefault: false
       };
       
-      console.log('Mutation - sending API request with payload:', {
-        name: requestPayload.name,
-        hasFileContent: !!requestPayload.fileContent,
-        signatureFieldsCount: requestPayload.signatureFields?.length || 0,
-        recipientsCount: requestPayload.recipients?.length || 0,
-        recipients: requestPayload.recipients
-      });
+
 
       const response = await apiRequest(method, url, requestPayload);
       
@@ -123,13 +117,7 @@ export default function NdaTemplateEditorPage() {
     signatureFields: any[];
     recipients: any[];
   }) => {
-    console.log('Page handleSave - received data:', {
-      name: templateData.name,
-      hasFileContent: !!templateData.fileContent,
-      signatureFieldsCount: templateData.signatureFields?.length || 0,
-      recipientsCount: templateData.recipients?.length || 0,
-      recipients: templateData.recipients
-    });
+
     
     await saveTemplateMutation.mutateAsync(templateData);
   };
