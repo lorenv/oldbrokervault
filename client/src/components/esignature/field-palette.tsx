@@ -36,17 +36,19 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
     <div
       ref={drag}
       className={`
-        flex items-center gap-4 p-6 border-2 border-dashed rounded-xl cursor-grab transition-all duration-200
-        ${color} hover:shadow-lg hover:scale-102 hover:border-solid
-        ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'}
+        flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-grab transition-all duration-200
+        bg-white hover:bg-gray-50 hover:border-blue-300 hover:shadow-sm
+        ${isDragging ? 'opacity-50 scale-95 border-blue-400' : 'opacity-100'}
       `}
       title={description}
     >
-      <GripVertical className="w-5 h-5 text-gray-500" />
-      <div className="text-2xl">{icon}</div>
-      <div className="flex-1">
-        <div className="font-semibold text-base mb-1">{label}</div>
-        <div className="text-sm text-gray-600">{description}</div>
+      <GripVertical className="w-4 h-4 text-gray-400" />
+      <div className="w-8 h-8 rounded bg-blue-50 border border-blue-200 flex items-center justify-center">
+        <span className="text-blue-600 text-xs font-medium">{icon}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm text-gray-900 truncate">{label}</div>
+        <div className="text-xs text-gray-500 truncate">{description}</div>
       </div>
     </div>
   );
@@ -101,14 +103,14 @@ export default function FieldPalette({
         )}
       </CardHeader>
       
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {recipients.length === 0 ? (
-          <div className="text-center py-6 text-gray-500">
+          <div className="text-center py-8 text-gray-500">
             <div className="text-sm">Add recipients first to assign fields</div>
           </div>
         ) : (
           <>
-            <div className="text-sm text-gray-600 mb-3">
+            <div className="text-xs text-gray-600 mb-3 px-1">
               Drag fields onto the document to place them
             </div>
             
@@ -127,29 +129,31 @@ export default function FieldPalette({
         )}
         
         {/* Instructions */}
-        <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="text-sm text-blue-800">
-            <div className="font-medium mb-1">How to use:</div>
-            <ul className="space-y-1 text-blue-700 text-xs">
-              <li>1. Select a recipient above</li>
-              <li>2. Drag field types onto the document</li>
-              <li>3. Click fields to select and resize them</li>
-              <li>4. Fields are automatically assigned to the selected recipient</li>
-            </ul>
+        {recipients.length > 0 && (
+          <div className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-200">
+            <div className="text-xs text-blue-800">
+              <div className="font-medium mb-1">How to use:</div>
+              <ul className="space-y-0.5 text-blue-700 text-xs leading-relaxed">
+                <li>1. Select a recipient above</li>
+                <li>2. Drag field types onto the document</li>
+                <li>3. Click fields to select and resize them</li>
+                <li>4. Fields are automatically assigned to the selected recipient</li>
+              </ul>
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Field legend */}
         {recipients.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <div className="text-sm font-medium">Field Assignment:</div>
+          <div className="mt-3 space-y-2">
+            <div className="text-xs font-medium text-gray-700">Field Assignment:</div>
             {recipients.filter(r => r.role === 'signer').map((recipient, index) => (
               <div key={recipient.id} className="flex items-center gap-2 text-xs">
                 <div 
-                  className={`w-3 h-3 rounded-full bg-${getRecipientColor(index)}-500`} 
+                  className={`w-2 h-2 rounded-full bg-${getRecipientColor(index)}-500`} 
                 />
                 <span className="font-medium">{recipient.name}</span>
-                <span className="text-gray-600">({recipient.email})</span>
+                <span className="text-gray-500 truncate">({recipient.email})</span>
               </div>
             ))}
           </div>
