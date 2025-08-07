@@ -212,11 +212,17 @@ export default function CanvasOverlay({
 
   // Get recipient color for field
   const getRecipientColor = (assignedTo?: string) => {
-    if (!assignedTo) return 'border-gray-400 bg-gray-50';
+    if (!assignedTo) return 'bg-gray-100 text-gray-700';
     const recipientIndex = recipients.findIndex(r => r.id?.toString() === assignedTo);
-    const colors = ['blue', 'green', 'purple', 'orange', 'pink', 'indigo'];
-    const color = colors[recipientIndex % colors.length] || 'gray';
-    return `border-${color}-500 bg-${color}-50`;
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-purple-100 text-purple-800',
+      'bg-orange-100 text-orange-800',
+      'bg-pink-100 text-pink-800',
+      'bg-indigo-100 text-indigo-800'
+    ];
+    return colors[recipientIndex % colors.length] || 'bg-gray-100 text-gray-700';
   };
 
   // Grid overlay
@@ -310,10 +316,10 @@ export default function CanvasOverlay({
             {/* Field content */}
             <div
               className={`
-                w-full h-full border-2 rounded cursor-move transition-all duration-200
+                w-full h-full rounded cursor-move transition-all duration-200
                 ${getRecipientColor(field.assignedTo)}
-                ${selectedField?.id === field.id ? 'ring-2 ring-blue-400 shadow-lg' : ''}
-                ${!isReadOnly ? 'hover:shadow-md' : ''}
+                ${selectedField?.id === field.id ? 'ring-2 ring-blue-500 shadow-lg' : 'border border-gray-300'}
+                ${!isReadOnly ? 'hover:shadow-md hover:border-gray-400' : ''}
               `}
               onMouseDown={(e) => handleFieldMouseDown(e, field)}
               title={field.tooltip || `${field.label} (${recipients.find(r => r.id?.toString() === field.assignedTo)?.name || 'Unassigned'})`}

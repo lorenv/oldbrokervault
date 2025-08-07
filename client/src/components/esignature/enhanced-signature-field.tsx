@@ -155,15 +155,9 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   scale = 1
 }) => {
   const baseStyle = {
-    position: 'absolute' as const,
-    left: `${field.x}%`,
-    top: `${field.y}%`,
-    width: `${field.width}%`,
-    height: `${field.height}%`,
     fontSize: `${field.fontSize * scale}px`,
     transform: `scale(${scale})`,
-    transformOrigin: 'top left',
-    zIndex: isHighlighted ? 10 : 5,
+    transformOrigin: 'center',
   };
 
   const getFieldColor = () => {
@@ -174,10 +168,9 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   };
 
   const fieldClasses = `
-    absolute border-2 rounded-md cursor-pointer transition-all duration-200
+    w-full h-full rounded-md cursor-pointer transition-all duration-200 flex items-center justify-center text-center
     ${getFieldColor()}
-    ${isHighlighted ? 'ring-2 ring-blue-400 shadow-lg' : ''}
-    ${isEditing ? 'border-dashed' : 'border-solid'}
+    ${isEditing ? '' : ''}
   `;
 
   if (field.type === 'signature' || field.type === 'initials') {
