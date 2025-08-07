@@ -134,7 +134,10 @@ type LegacyCimAnalysis = {
 // Website content analysis function
 async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null> {
   try {
+    console.log('🔍 analyzeWebsiteContent called with URL:', websiteUrl);
+    
     if (!websiteUrl?.trim()) {
+      console.log('❌ Website URL is empty or invalid');
       return null;
     }
 
@@ -143,6 +146,8 @@ async function analyzeWebsiteContent(websiteUrl: string): Promise<string | null>
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = `https://${cleanUrl}`;
     }
+    
+    console.log('🌐 Making Perplexity API request to analyze:', cleanUrl);
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -215,14 +220,25 @@ Please provide a comprehensive but concise analysis focusing on factual informat
     }
 
     const data = await response.json();
+    console.log('📊 Perplexity API response status:', response.status);
+    console.log('📊 Response data structure:', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length || 0,
+      hasContent: !!(data.choices?.[0]?.message?.content),
+      error: data.error
+    });
     
     if (data.choices && data.choices[0] && data.choices[0].message) {
-      return data.choices[0].message.content;
+      const content = data.choices[0].message.content;
+      console.log('✅ Website analysis content received:', content ? content.substring(0, 200) + '...' : 'Empty content');
+      return content;
     }
 
+    console.log('⚠️ No valid content in Perplexity response');
     return null;
   } catch (error) {
-    console.error('Error analyzing website content:', error);
+    console.error('❌ Error analyzing website content:', error);
+    console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
     return null;
   }
 }
