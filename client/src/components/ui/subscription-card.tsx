@@ -70,8 +70,8 @@ export function SubscriptionCard({
   };
 
   return (
-    <Card className="border border-gray-200 shadow-sm bg-white rounded-lg overflow-hidden">
-      <CardHeader className="bg-gray-50 border-b border-gray-200 pb-4 pt-6 px-6">
+    <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-200 rounded-xl">
+      <CardHeader className="pb-4 pt-6 px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gray-100 rounded-lg">
