@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import CachedNdaTemplateEditor from '@/components/cached-nda-template-editor';
+import EnhancedNdaTemplateEditor from '@/components/esignature/enhanced-nda-template-editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -142,7 +142,7 @@ export default function NdaTemplateEditorPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <CachedNdaTemplateEditor
+        <EnhancedNdaTemplateEditor
           initialTemplate={isNewTemplate ? null : template}
           onSave={handleSave}
           isLoading={saveTemplateMutation.isPending}
