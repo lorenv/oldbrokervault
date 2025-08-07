@@ -323,7 +323,7 @@ function TemplatesContent() {
                 <Card
                   key={template.id}
                   className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-gray-200 hover:border-blue-200"
-                  onClick={() => setEditingTemplate(template)}
+                  onClick={() => navigate(`/template-editor/${template.id}`)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -350,7 +350,7 @@ function TemplatesContent() {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingTemplate(template);
+                              navigate(`/template-editor/${template.id}`);
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
@@ -391,7 +391,7 @@ function TemplatesContent() {
                 <div
                   key={template.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer group"
-                  onClick={() => setEditingTemplate(template)}
+                  onClick={() => navigate(`/template-editor/${template.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
@@ -419,7 +419,7 @@ function TemplatesContent() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingTemplate(template);
+                          navigate(`/template-editor/${template.id}`);
                         }}
                       >
                         <Edit className="w-4 h-4 mr-2" />

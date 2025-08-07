@@ -4,11 +4,26 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export default function EnhancedTemplateEditorPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Check if we're editing an existing template
+  const isEditingTemplate = !!id;
+  
+  // Fetch template data if editing
+  const { data: template, isLoading: templateLoading } = useQuery({
+    queryKey: ['/api/nda-templates', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await apiRequest('GET', `/api/nda-templates/${id}`);
+      return response.json();
+    },
+    enabled: isEditingTemplate
+  });
 
   const handleSave = async (data: {
     name: string;
@@ -19,20 +34,34 @@ export default function EnhancedTemplateEditorPage() {
     console.log('Template saved:', data);
     
     try {
-      // Save the template to backend using apiRequest
-      await apiRequest('POST', '/api/nda-templates', {
-        name: data.name,
-        fileContent: data.fileContent,
-        signatureFields: data.signatureFields
-      });
+      if (isEditingTemplate && id) {
+        // Update existing template
+        await apiRequest('PUT', `/api/nda-templates/${id}`, {
+          name: data.name,
+          fileContent: data.fileContent,
+          signatureFields: data.signatureFields
+        });
+
+        toast({
+          title: "Template updated",
+          description: "NDA template has been updated successfully"
+        });
+      } else {
+        // Create new template
+        await apiRequest('POST', '/api/nda-templates', {
+          name: data.name,
+          fileContent: data.fileContent,
+          signatureFields: data.signatureFields
+        });
+
+        toast({
+          title: "Template saved",
+          description: "NDA template has been saved successfully"
+        });
+      }
 
       // Invalidate the templates cache so it refreshes instantly
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-
-      toast({
-        title: "Template saved",
-        description: "NDA template has been saved successfully"
-      });
 
       // Navigate back to account settings templates tab
       setLocation('/account?tab=templates');
@@ -74,7 +103,7 @@ export default function EnhancedTemplateEditorPage() {
                 {/* Template name will be rendered here by the editor component */}
               </div>
               <p className="text-sm text-gray-600">
-                Design your e-signature template with drag-and-drop fields
+                {isEditingTemplate ? 'Edit your e-signature template' : 'Design your e-signature template with drag-and-drop fields'}
               </p>
             </div>
           </div>
@@ -87,12 +116,19 @@ export default function EnhancedTemplateEditorPage() {
 
       {/* Enhanced Template Editor - Full Width */}
       <div className="flex-1 overflow-hidden">
-        <EnhancedNdaTemplateEditor
-          onSave={handleSave}
-          isLoading={false}
-          showBackButton={false}
-          fullScreen={true}
-        />
+        {templateLoading && isEditingTemplate ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <EnhancedNdaTemplateEditor
+            initialTemplate={isEditingTemplate ? template : null}
+            onSave={handleSave}
+            isLoading={false}
+            showBackButton={false}
+            fullScreen={true}
+          />
+        )}
       </div>
     </div>
   );
