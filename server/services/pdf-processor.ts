@@ -32,12 +32,7 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
       format: "png",
       width: 800,             // Good resolution for display
       height: 1100,           // Proportional height for A4
-      quality: 85,            // Good quality with reasonable file size
-      preserveAspectRatio: true,
-      convertOptions: {
-        '-background': 'white',
-        '-alpha': 'remove'
-      }
+      quality: 85             // Good quality with reasonable file size
     });
     
     console.log(`[PDF_PROC] Converting PDF pages...`);
@@ -72,9 +67,8 @@ export async function processPDFToImages(file: FileUpload, id: number, isTemplat
             
             // Store image in object storage
             const objectStorageService = new ObjectStorageService();
-            const privateDir = objectStorageService.getPrivateObjectDir();
-            const storageKey = `${privateDir}/${isTemplate ? 'templates' : 'documents'}/${id}/pages/page-${pageIndex + 1}.png`;
-            const uploadResult = await objectStorageService.uploadFile(storageKey, optimizedBuffer, 'image/png');
+            const storageKey = `private/${isTemplate ? 'templates' : 'documents'}/${id}/pages/page-${pageIndex + 1}.png`;
+            const uploadResult = await objectStorageService.uploadBuffer(storageKey, optimizedBuffer, 'image/png');
             
             console.log(`[PDF_PROC] Processed page ${pageIndex + 1}: ${uploadResult.url}`);
             
