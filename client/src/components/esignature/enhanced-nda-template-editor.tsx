@@ -347,12 +347,22 @@ export default function EnhancedNdaTemplateEditor({
     setIsSaving(true);
 
     try {
-      await onSave({
+      const saveData = {
         name: templateName,
         fileContent: pdfBase64,
         signatureFields: fields,
         recipients: recipients
+      };
+      
+      console.log('Editor handleSave - sending data:', {
+        name: saveData.name,
+        hasFileContent: !!saveData.fileContent,
+        signatureFieldsCount: saveData.signatureFields?.length || 0,
+        recipientsCount: saveData.recipients?.length || 0,
+        recipients: saveData.recipients
       });
+      
+      await onSave(saveData);
 
       toast({
         title: "Template saved",

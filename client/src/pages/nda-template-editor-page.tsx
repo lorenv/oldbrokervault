@@ -63,17 +63,23 @@ export default function NdaTemplateEditorPage() {
       
       const method = isNewTemplate ? 'POST' : 'PUT';
       
-      const response = await apiRequest(
-        method,
-        url,
-        {
-          name: templateData.name,
-          fileContent: templateData.fileContent,
-          signatureFields: templateData.signatureFields || [],
-          recipients: templateData.recipients || [],
-          isDefault: false
-        }
-      );
+      const requestPayload = {
+        name: templateData.name,
+        fileContent: templateData.fileContent,
+        signatureFields: templateData.signatureFields || [],
+        recipients: templateData.recipients || [],
+        isDefault: false
+      };
+      
+      console.log('Mutation - sending API request with payload:', {
+        name: requestPayload.name,
+        hasFileContent: !!requestPayload.fileContent,
+        signatureFieldsCount: requestPayload.signatureFields?.length || 0,
+        recipientsCount: requestPayload.recipients?.length || 0,
+        recipients: requestPayload.recipients
+      });
+
+      const response = await apiRequest(method, url, requestPayload);
       
       return response.json();
     },
@@ -117,6 +123,14 @@ export default function NdaTemplateEditorPage() {
     signatureFields: any[];
     recipients: any[];
   }) => {
+    console.log('Page handleSave - received data:', {
+      name: templateData.name,
+      hasFileContent: !!templateData.fileContent,
+      signatureFieldsCount: templateData.signatureFields?.length || 0,
+      recipientsCount: templateData.recipients?.length || 0,
+      recipients: templateData.recipients
+    });
+    
     await saveTemplateMutation.mutateAsync(templateData);
   };
 
