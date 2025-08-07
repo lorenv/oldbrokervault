@@ -43,8 +43,9 @@ export default function EnhancedNdaTemplateEditor({
   onSave, 
   isLoading: externalLoading = false,
   showBackButton = false,
-  onBack
-}: EnhancedNdaTemplateEditorProps) {
+  onBack,
+  fullScreen = false
+}: EnhancedNdaTemplateEditorProps & { fullScreen?: boolean }) {
   const [templateName, setTemplateName] = useState(initialTemplate?.name || '');
   const [pdfBase64, setPdfBase64] = useState(initialTemplate?.fileContent || '');
   const [fields, setFields] = useState<EnhancedSignatureField[]>([]);
@@ -242,7 +243,7 @@ export default function EnhancedNdaTemplateEditor({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="flex flex-col h-screen bg-gray-50">
+      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
         {/* Header */}
         <div className="bg-white border-b px-6 py-4">
           <div className="flex items-center justify-between">
@@ -365,31 +366,7 @@ export default function EnhancedNdaTemplateEditor({
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="pdf-upload">PDF Template</Label>
-                  <div className="mt-1 flex items-center gap-3">
-                    <label
-                      htmlFor="pdf-upload"
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded-md cursor-pointer transition-colors text-sm font-medium text-blue-700"
-                    >
-                      Choose File
-                    </label>
-                    <span className="text-sm text-gray-500">
-                      {isUploading ? 'Processing...' : 'No file chosen'}
-                    </span>
-                  </div>
-                  <Input
-                    id="pdf-upload"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    className="hidden"
-                  />
-                  {isUploading && (
-                    <p className="text-sm text-gray-600 mt-1">Uploading and processing PDF...</p>
-                  )}
-                </div>
+
               </div>
             </div>
 
@@ -617,3 +594,6 @@ export default function EnhancedNdaTemplateEditor({
     </DndProvider>
   );
 }
+
+// Named export for backwards compatibility  
+export { EnhancedNdaTemplateEditor };

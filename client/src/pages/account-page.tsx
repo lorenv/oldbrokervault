@@ -81,6 +81,7 @@ const profileSchema = z.object({
 function TemplatesContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showNewTemplateEditor, setShowNewTemplateEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<NdaTemplate | null>(null);
@@ -286,7 +287,7 @@ function TemplatesContent() {
                 </div>
               )}
               <Button
-                onClick={() => setShowNewTemplateEditor(true)}
+                onClick={() => navigate('/template-editor')}
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 flex items-center gap-2"
                 variant="outline"
               >
@@ -309,7 +310,7 @@ function TemplatesContent() {
                 Create your first NDA template to get started with document protection
               </p>
               <Button
-                onClick={() => setShowNewTemplateEditor(true)}
+                onClick={() => navigate('/template-editor')}
                 className="flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />

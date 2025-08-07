@@ -33,6 +33,7 @@ import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
 import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
 import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
+import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 
 function Router() {
   const [location] = useLocation();
@@ -71,6 +72,8 @@ function Router() {
             <ProtectedRoute path="/nda-templates/create" component={NdaTemplateEditorPage} />
             <ProtectedRoute path="/nda-templates/:id/edit" component={NdaTemplateEditorPage} />
             <ProtectedRoute path="/nda-templates/edit/:id" component={NdaTemplateEditorPage} />
+            <ProtectedRoute path="/template-editor" component={EnhancedTemplateEditorPage} />
+            <ProtectedRoute path="/template-editor/:id" component={EnhancedTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route path="/sign/:accessToken" component={SignDocumentPage} />
             <Route component={NotFound} />
