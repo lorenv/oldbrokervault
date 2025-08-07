@@ -456,6 +456,7 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   directions: true,
 }).extend({
   websiteUrl: z.string().optional(),
+  enableWebsiteAnalysis: z.boolean().optional(),
   logoUrl: z.string().nullable().optional(),
   websiteScreenshotUrl: z.string().nullable().optional(),
   selectedImages: z.array(z.string()).optional(),
