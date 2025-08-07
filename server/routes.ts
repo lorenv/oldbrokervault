@@ -1364,6 +1364,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Audience:", audience);
       console.log("Custom directions:", data.directions);
       
+      // Check if website analysis is enabled
+      const shouldAnalyzeWebsite = data.enableWebsiteAnalysis && data.websiteUrl;
+      console.log("=== WEBSITE ANALYSIS DEBUG ===");
+      console.log("enableWebsiteAnalysis flag:", data.enableWebsiteAnalysis);
+      console.log("Has websiteUrl:", !!data.websiteUrl);
+      console.log("Will analyze website:", shouldAnalyzeWebsite);
+      
       let analysis = await generateCimWithWebsiteAnalysis(
         data.transcript,
         data.directions,
@@ -1371,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         data.financials,
-        data.websiteUrl
+        shouldAnalyzeWebsite ? data.websiteUrl : undefined
       );
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
