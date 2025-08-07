@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { EnhancedNdaTemplateEditor } from "@/components/esignature/enhanced-nda-template-editor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function EnhancedTemplateEditorPage() {
@@ -25,6 +25,9 @@ export default function EnhancedTemplateEditorPage() {
         fileContent: data.fileContent,
         signatureFields: data.signatureFields
       });
+
+      // Invalidate the templates cache so it refreshes instantly
+      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
 
       toast({
         title: "Template saved",
