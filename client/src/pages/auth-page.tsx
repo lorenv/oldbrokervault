@@ -174,7 +174,7 @@ export default function AuthPage() {
                     setShowForgotPassword(false);
                     setEmailSent(false);
                   }}
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   Back to Login
                 </Button>
@@ -223,9 +223,19 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-blue-50 to-purple-50">
+              <TabsTrigger 
+                value="login" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-300"
+              >
+                Login
+              </TabsTrigger>
+              <TabsTrigger 
+                value="register"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white transition-all duration-300"
+              >
+                Register
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="mt-4">
@@ -325,7 +335,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
                   type="button"
                   variant="link"
                   size="sm"
-                  className="px-0 h-auto text-sm"
+                  className="px-0 h-auto text-sm text-blue-600 hover:text-purple-600 transition-colors duration-300"
                   onClick={onForgotPassword}
                 >
                   Forgot password?
@@ -345,7 +355,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         />
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           disabled={loginMutation.isPending}
         >
           {loginMutation.isPending ? (
@@ -555,7 +565,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
                 <FormLabel className="text-sm font-normal">
                   I agree to the{" "}
                   <Link href="/terms-of-service">
-                    <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
+                    <a className="text-blue-600 hover:text-purple-600 underline transition-colors duration-300" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
                   </Link>
                 </FormLabel>
                 <FormMessage />
@@ -566,7 +576,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           disabled={registerMutation.isPending}
         >
           {registerMutation.isPending ? (
@@ -614,7 +624,7 @@ function ForgotPasswordForm({ mutation }: { mutation: any }) {
         />
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
@@ -681,7 +691,7 @@ function ResetPasswordForm({ mutation, token }: { mutation: any; token: string }
         />
         <Button 
           type="submit" 
-          className="w-full"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
