@@ -14,6 +14,7 @@ import { Save, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye } from 'luc
 import RecipientManager from './recipient-manager';
 import FieldPalette from './field-palette';
 import CanvasOverlay from './canvas-overlay';
+import ImageDocumentViewer from './image-document-viewer';
 import { EnhancedSignatureField } from './enhanced-signature-field';
 import { NdaRecipient, NdaTemplate } from '@shared/schema';
 
@@ -84,7 +85,7 @@ export default function EnhancedNdaTemplateEditor({
     }
   }, [initialTemplate]);
 
-  // Handle file upload
+  // Handle file upload using the new PDF processing endpoint
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -101,16 +102,40 @@ export default function EnhancedNdaTemplateEditor({
     setIsUploading(true);
     
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target?.result as string;
-        setPdfBase64(base64);
-        
-        // Convert PDF to images
-        await convertPdfToImages(base64);
-      };
-      reader.readAsDataURL(file);
+      // Upload PDF using the new processing endpoint
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const response = await fetch('/api/esignature/templates/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload PDF');
+      }
+
+      const result = await response.json();
+      
+      // Update state with processed data
+      setTotalPages(result.pageCount);
+      setPdfBase64(result.originalFileUrl || ''); // Store original file URL
+      
+      // Convert image URLs to PageImage format
+      const newPageImages: PageImage[] = result.imageUrls.map((url: string, index: number) => ({
+        pageNumber: index + 1,
+        imageDataUrl: `/api/esignature/templates/${result.templateId}/image/${index + 1}`,
+        width: 800, // Standard width from processing
+        height: 1100, // Standard height from processing
+      }));
+      
+      setPageImages(newPageImages);
+      
+      toast({
+        title: "PDF uploaded successfully",
+        description: `Processed ${result.pageCount} pages`,
+      });
+
     } catch (error) {
       console.error('Error uploading file:', error);
       toast({
@@ -123,51 +148,9 @@ export default function EnhancedNdaTemplateEditor({
     }
   }, [toast]);
 
-  // Convert PDF to images for editing
-  const convertPdfToImages = async (base64: string) => {
-    try {
-      const response = await fetch('/api/pdf-to-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfBase64: base64 }),
-      });
-
-      if (!response.ok) throw new Error('Failed to convert PDF');
-
-      const data = await response.json();
-      
-      if (data.pages && data.pages.length > 0) {
-        const images: PageImage[] = await Promise.all(
-          data.pages.map(async (page: any) => {
-            const img = new Image();
-            const imageUrl = `/api/temp-image/${page.filename}`;
-            
-            return new Promise<PageImage>((resolve) => {
-              img.onload = () => {
-                resolve({
-                  pageNumber: page.pageNumber,
-                  imageDataUrl: imageUrl,
-                  width: img.width,
-                  height: img.height,
-                });
-              };
-              img.src = imageUrl;
-            });
-          })
-        );
-        
-        setPageImages(images);
-        setTotalPages(data.pages.length);
-        setCurrentPage(1);
-      }
-    } catch (error) {
-      console.error('Error converting PDF:', error);
-      toast({
-        title: "Conversion failed",
-        description: "Failed to convert PDF to images",
-        variant: "destructive"
-      });
-    }
+  // Image-based document viewer (replaces PDF conversion)
+  const getCurrentPageImage = () => {
+    return pageImages.find(img => img.pageNumber === currentPage);
   };
 
   // Handle field updates
@@ -247,10 +230,6 @@ export default function EnhancedNdaTemplateEditor({
   // Zoom controls
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const zoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
-
-  const getCurrentPageImage = () => {
-    return pageImages.find(img => img.pageNumber === currentPage);
-  };
 
   const canSave = templateName.trim() && pdfBase64 && recipients.length > 0;
 
@@ -454,10 +433,10 @@ export default function EnhancedNdaTemplateEditor({
               </div>
             </div>
 
-            {/* Document Canvas */}
-            <div className="flex-1 overflow-auto bg-gray-100 p-8">
+            {/* Document Viewer */}
+            <div className="flex-1 overflow-hidden">
               {!pdfBase64 ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="h-full flex items-center justify-center bg-slate-50">
                   <Card className="w-96">
                     <CardContent className="text-center py-8">
                       <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -470,55 +449,42 @@ export default function EnhancedNdaTemplateEditor({
                         accept=".pdf"
                         onChange={handleFileUpload}
                         disabled={isUploading}
+                        className="cursor-pointer"
                       />
+                      {isUploading && (
+                        <div className="mt-4 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                          <span className="ml-2 text-sm text-gray-600">Processing PDF...</span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
               ) : (
-                <div className="flex justify-center">
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                    {getCurrentPageImage() ? (
-                      <div 
-                        className="relative"
-                        style={{
-                          transform: `scale(${zoom})`,
-                          transformOrigin: 'top center'
-                        }}
-                      >
-                        {/* Page image */}
-                        <img
-                          src={getCurrentPageImage()!.imageDataUrl}
-                          alt={`Page ${currentPage}`}
-                          className="block"
-                          style={{
-                            width: getCurrentPageImage()!.width,
-                            height: getCurrentPageImage()!.height
-                          }}
-                        />
-                        
-                        {/* Canvas overlay for field placement */}
-                        <CanvasOverlay
-                          pageNumber={currentPage}
-                          fields={fields}
-                          recipients={recipients as NdaRecipient[]}
-                          onFieldsChange={handleFieldsChange}
-                          onFieldSelect={handleFieldSelect}
-                          selectedField={selectedField}
-                          imageWidth={getCurrentPageImage()!.width}
-                          imageHeight={getCurrentPageImage()!.height}
-                          scale={zoom}
-                          snapToGrid={snapToGrid}
-                          showGrid={showGrid}
-                          isReadOnly={isPreviewMode}
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-96 w-96 bg-gray-100">
-                        <p className="text-gray-500">Loading page...</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <ImageDocumentViewer
+                  pageImages={pageImages}
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  className="h-full"
+                >
+                  {/* Field overlay for drag-and-drop placement */}
+                  <CanvasOverlay
+                    pageNumber={currentPage}
+                    fields={fields}
+                    recipients={recipients as NdaRecipient[]}
+                    onFieldsChange={handleFieldsChange}
+                    onFieldSelect={handleFieldSelect}
+                    selectedField={selectedField}
+                    imageWidth={getCurrentPageImage()?.width || 800}
+                    imageHeight={getCurrentPageImage()?.height || 1100}
+                    scale={zoom}
+                    snapToGrid={snapToGrid}
+                    showGrid={showGrid}
+                    isReadOnly={isPreviewMode}
+                  />
+                </ImageDocumentViewer>
               )}
             </div>
           </div>

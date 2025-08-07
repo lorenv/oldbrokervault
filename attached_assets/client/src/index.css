@@ -1,0 +1,357 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Line clamp utilities for text overflow */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Unique Undersigned Design Elements */
+.glass-card {
+  background: var(--glass-white);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsla(260, 85%, 90%, 0.3);
+  box-shadow: 
+    0 8px 32px hsla(260, 40%, 35%, 0.1),
+    0 2px 8px hsla(260, 40%, 35%, 0.05);
+}
+
+.dark .glass-card {
+  background: hsla(225, 20%, 12%, 0.8);
+  border: 1px solid hsla(260, 85%, 60%, 0.2);
+  box-shadow: 
+    0 8px 32px hsla(260, 85%, 5%, 0.3),
+    0 2px 8px hsla(260, 85%, 5%, 0.2);
+}
+
+.signature-gradient {
+  background: linear-gradient(135deg, 
+    hsl(260, 85%, 58%) 0%, 
+    hsl(280, 80%, 65%) 35%, 
+    hsl(300, 75%, 70%) 100%);
+}
+
+.document-texture {
+  background-image: 
+    radial-gradient(circle at 1px 1px, hsla(0, 0%, 0%, 0.02) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.ink-flow {
+  background: linear-gradient(45deg, 
+    hsl(260, 85%, 95%) 0%, 
+    hsl(280, 80%, 96%) 50%, 
+    hsl(260, 85%, 98%) 100%);
+}
+
+.dark .ink-flow {
+  background: linear-gradient(45deg, 
+    hsl(260, 85%, 12%) 0%, 
+    hsl(280, 80%, 15%) 50%, 
+    hsl(260, 85%, 18%) 100%);
+}
+
+.paper-shadow {
+  box-shadow: 
+    0 4px 16px hsla(260, 40%, 35%, 0.08),
+    0 1px 4px hsla(260, 40%, 35%, 0.04),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.6);
+}
+
+.dark .paper-shadow {
+  box-shadow: 
+    0 4px 16px hsla(260, 85%, 5%, 0.2),
+    0 1px 4px hsla(260, 85%, 5%, 0.1),
+    inset 0 1px 0 hsla(260, 85%, 60%, 0.1);
+}
+
+.seal-glow {
+  box-shadow: 
+    0 0 20px hsla(158, 64%, 52%, 0.3),
+    0 0 40px hsla(158, 64%, 52%, 0.1);
+}
+
+.signature-pen {
+  background: linear-gradient(135deg, 
+    hsl(43, 74%, 66%) 0%, 
+    hsl(38, 70%, 60%) 100%);
+  box-shadow: 
+    0 2px 8px hsla(43, 74%, 40%, 0.2),
+    inset 0 1px 0 hsla(43, 74%, 80%, 0.5);
+}
+
+/* Animated Elements */
+.floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.ink-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ink-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: hsla(260, 85%, 58%, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ink-ripple:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ink-violet);
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  opacity: 1;
+}
+
+:root {
+  /* Sophisticated Undersigned Color Palette */
+  --background: hsl(220, 15%, 97%);
+  --foreground: hsl(225, 25%, 12%);
+  --muted: hsl(218, 18%, 92%);
+  --muted-foreground: hsl(225, 12%, 45%);
+  --popover: hsl(220, 25%, 98%);
+  --popover-foreground: hsl(225, 25%, 12%);
+  --card: hsl(220, 25%, 98%);
+  --card-foreground: hsl(225, 25%, 12%);
+  --border: hsl(218, 22%, 88%);
+  --input: hsl(218, 22%, 88%);
+  --primary: hsl(260, 85%, 58%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(218, 18%, 92%);
+  --secondary-foreground: hsl(225, 25%, 12%);
+  --accent: hsl(260, 85%, 95%);
+  --accent-foreground: hsl(260, 85%, 35%);
+  --destructive: hsl(0, 72%, 51%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(260, 85%, 58%);
+  --radius: 0.75rem;
+  
+  /* Unique Undersigned Brand Colors */
+  --ink-violet: hsl(260, 85%, 58%);
+  --ink-violet-light: hsl(260, 85%, 95%);
+  --ink-violet-dark: hsl(260, 85%, 35%);
+  --paper-cream: hsl(45, 25%, 96%);
+  --paper-warm: hsl(35, 15%, 94%);
+  --signature-gold: hsl(43, 74%, 66%);
+  --signature-gold-light: hsl(43, 74%, 94%);
+  --seal-emerald: hsl(158, 64%, 52%);
+  --seal-emerald-light: hsl(158, 64%, 94%);
+  --document-gray: hsl(225, 15%, 85%);
+  --document-gray-dark: hsl(225, 20%, 25%);
+  --shadow-purple: hsl(260, 40%, 85%);
+  --glass-white: hsla(0, 0%, 100%, 0.85);
+  --glass-violet: hsla(260, 85%, 98%, 0.75);
+}
+
+.dark {
+  /* Dark mode with sophisticated purples and warm tones */
+  --background: hsl(225, 20%, 8%);
+  --foreground: hsl(220, 15%, 95%);
+  --muted: hsl(225, 18%, 14%);
+  --muted-foreground: hsl(225, 12%, 65%);
+  --popover: hsl(225, 20%, 10%);
+  --popover-foreground: hsl(220, 15%, 95%);
+  --card: hsl(225, 20%, 10%);
+  --card-foreground: hsl(220, 15%, 95%);
+  --border: hsl(225, 18%, 18%);
+  --input: hsl(225, 18%, 18%);
+  --primary: hsl(260, 85%, 65%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  /* Field overlay styles */
+  .signature-field {
+    @apply absolute border-2 rounded p-2 cursor-pointer transition-all duration-200;
+    border-color: var(--esign-blue);
+    background-color: var(--esign-blue-light);
+  }
+  
+  .signature-field:hover {
+    @apply shadow-md;
+    transform: scale(1.02);
+  }
+  
+  .initials-field {
+    @apply absolute border-2 rounded p-2 cursor-pointer transition-all duration-200;
+    border-color: var(--esign-purple);
+    background-color: var(--esign-purple-light);
+  }
+  
+  .initials-field:hover {
+    @apply shadow-md;
+    transform: scale(1.02);
+  }
+  
+  .date-field {
+    @apply absolute border-2 rounded p-2 cursor-pointer transition-all duration-200;
+    border-color: var(--esign-green);
+    background-color: var(--esign-green-light);
+  }
+  
+  .date-field:hover {
+    @apply shadow-md;
+    transform: scale(1.02);
+  }
+  
+  .text-field {
+    @apply absolute border-2 rounded p-2 cursor-pointer transition-all duration-200;
+    border-color: hsl(45, 93%, 47%);
+    background-color: hsl(45, 93%, 95%);
+  }
+  
+  .text-field:hover {
+    @apply shadow-md;
+    transform: scale(1.02);
+  }
+  
+  /* Drag and drop styles */
+  .field-item {
+    @apply transition-all duration-200;
+  }
+  
+  .field-item:hover {
+    @apply bg-slate-50 border-slate-300;
+  }
+  
+  .field-item.dragging {
+    @apply opacity-50;
+  }
+  
+  .document-page {
+    position: relative;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .drop-zone {
+    @apply transition-colors duration-200;
+    position: relative;
+  }
+  
+  .drop-zone.drag-over {
+    background-color: rgba(59, 130, 246, 0.1);
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.3);
+  }
+  
+  .drop-zone.drag-over::after {
+    content: "Drop field here";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(59, 130, 246, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  
+  /* Recipient color coding */
+  .recipient-1 {
+    --recipient-color: var(--esign-blue);
+    --recipient-bg: var(--esign-blue-light);
+  }
+  
+  .recipient-2 {
+    --recipient-color: var(--esign-green);
+    --recipient-bg: var(--esign-green-light);
+  }
+  
+  .recipient-3 {
+    --recipient-color: var(--esign-purple);
+    --recipient-bg: var(--esign-purple-light);
+  }
+  
+  /* Animation for field placement */
+  @keyframes fieldDrop {
+    0% {
+      transform: scale(1.2);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .field-placed {
+    animation: fieldDrop 0.3s ease-out;
+  }
+}
+
+@layer utilities {
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+}

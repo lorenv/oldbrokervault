@@ -182,6 +182,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register NDA template routes BEFORE other routes to avoid conflicts
   console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
   registerNdaTemplateRoutes(app);
+
+  // Register e-signature routes
+  console.log('=== REGISTERING E-SIGNATURE ROUTES ===');
+  app.use('/api/esignature', eSignatureRoutes);
   console.log('=== NDA TEMPLATE ROUTES REGISTERED ===');
 
   // Public health check endpoint for debugging shared document access
