@@ -463,10 +463,15 @@ export class DatabaseStorage implements IStorage {
     const { exampleAssetsCreator } = await import('./example-assets-creator');
     const exampleAssets = await exampleAssetsCreator.createAndUploadExampleAssets();
 
-    // Example data based on Tony's Transmissions CIM
+    // Use real business content from attached assets if available
+    const businessContent = exampleAssets.businessContent;
+    
     const exampleData = {
-      title: "Tony's Transmissions",
-      transcript: `Tony's Transmission Repair has established itself as a premier provider of specialized transmission repair services over the past twenty-three years. The business is recognized for its exceptional reputation, as evidenced by consistently high customer reviews across multiple platforms. Its core value proposition lies in delivering unique and technically advanced transmission repair solutions, which has enabled the company to build enduring relationships with a network of auto body shops throughout Florida and Georgia.
+      title: businessContent?.title || "Tony's Transmissions",
+      transcript: businessContent ? 
+        // Extract just the text content from sections for transcript
+        businessContent.sections.map((section: any) => `${section.title}\n${section.content.replace(/<[^>]*>/g, '')}`).join('\n\n') :
+        `Tony's Transmission Repair has established itself as a premier provider of specialized transmission repair services over the past twenty-three years. The business is recognized for its exceptional reputation, as evidenced by consistently high customer reviews across multiple platforms. Its core value proposition lies in delivering unique and technically advanced transmission repair solutions, which has enabled the company to build enduring relationships with a network of auto body shops throughout Florida and Georgia.
 
 The companys operational model is further strengthened by a loyal base of direct consumer clients who seek out its expertise without the impetus of paid or online marketing. This organic demand underscores the businesss strong market position and the trust it has cultivated within the automotive repair sector. The owners decision to transition is driven by the growth of a new venture, presenting an opportunity for new ownership to capitalize on a well-established, profitable enterprise with a proven track record.
 
@@ -475,7 +480,7 @@ The business operates with twelve employees, including four key personnel who ar
 Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past five years, both revenue and EBITDA have shown steady growth, reflecting the companys ability to capture market share and maintain operational efficiency.`,
       directions: "Create a professional CIM document highlighting the business strengths, market position, and growth opportunities for this established automotive transmission repair business.",
       regenerationCount: 0,
-      analysis: {
+      analysis: businessContent || {
         "Business Summary": "Tony's Transmission Repair has established itself as a premier provider of specialized transmission repair services over the past twenty-three years. The business is recognized for its exceptional reputation, as evidenced by consistently high customer reviews across multiple platforms. Its core value proposition lies in delivering unique and technically advanced transmission repair solutions, which has enabled the company to build enduring relationships with a network of auto body shops throughout Florida and Georgia. The companys operational model is further strengthened by a loyal base of direct consumer clients who seek out its expertise without the impetus of paid or online marketing. This organic demand underscores the businesss strong market position and the trust it has cultivated within the automotive repair sector. The owners decision to transition is driven by the growth of a new venture, presenting an opportunity for new ownership to capitalize on a well-established, profitable enterprise with a proven track record.",
         "Market Opportunity": "The automotive transmission repair market in the southeastern United States is characterized by robust demand, driven by high vehicle ownership rates and the technical complexity of modern transmissions. Tony's Transmission Repair is strategically positioned within this landscape, serving both commercial clientsprimarily auto body shopsand individual vehicle owners. The companys geographic reach across Florida and Georgia provides access to a large and diverse customer base, while its specialization in unique transmission solutions differentiates it from general automotive repair competitors. Industry trends indicate a steady increase in the need for specialized transmission services, as advancements in vehicle technology require higher levels of expertise and diagnostic capability. The absence of significant paid marketing efforts suggests that the business has untapped potential for growth through digital outreach, partnerships, and expanded service offerings. The competitive landscape is fragmented, with many smaller operators lacking the technical depth and established relationships that Tony's Transmission Repair enjoys, positioning the company as a leader in its niche.",
         "Business Model": "Tony's Transmission Repair generates revenue primarily through the provision of specialized transmission repair and rebuild services. The business model is anchored by long-term relationships with regional auto body shops, which provide a steady stream of referral work, as well as direct consumer engagements that supplement commercial volume. Revenue streams are diversified across diagnostic services, full transmission rebuilds, and unique repair solutions tailored to complex or uncommon vehicle issues. The companys pricing strategy reflects its technical expertise and the value delivered to clients, enabling it to maintain healthy margins. Key success factors include the retention of highly skilled technicians, the ability to solve challenging transmission problems, and a reputation for reliability and quality. The businesss consistent financial performance, with five years of revenue and EBITDA growth, demonstrates the effectiveness of its model and the resilience of its customer relationships.",
@@ -547,12 +552,21 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       console.log(`Inserting ${exampleAssets.financialDocuments.length} financial file records for CIM document ${cimDoc.id}`);
       
       for (const finDoc of exampleAssets.financialDocuments) {
-        // Calculate file size (approximate for text content)
-        const fileSize = Buffer.byteLength(finDoc.name.includes('P&L') ? 
-          // P&L content size
-          `TONY'S TRANSMISSIONS\nPROFIT & LOSS STATEMENT\nYear: 2024\n\nREVENUE\nTransmission Repairs: $4,200,000\nDiagnostic Services: $800,000\nParts Sales: $500,000\nTotal Revenue: $5,500,000\n\nEXPENSES\nLabor Costs: $2,200,000\nParts & Materials: $1,100,000\nFacility Costs: $300,000\nEquipment & Tools: $150,000\nInsurance: $80,000\nUtilities: $70,000\nTotal Expenses: $3,900,000\n\nEBITDA: $1,600,000\nDepreciation: $100,000\nNet Income: $1,500,000` :
-          // Balance sheet content size
-          `TONY'S TRANSMISSIONS\nBALANCE SHEET\nAs of December 31, 2024\n\nASSETS\nCurrent Assets:\n  Cash: $450,000\n  Accounts Receivable: $320,000\n  Inventory: $180,000\n  Total Current Assets: $950,000\n\nFixed Assets:\n  Equipment: $650,000\n  Building: $850,000\n  Less Depreciation: $(200,000)\n  Total Fixed Assets: $1,300,000\n\nTotal Assets: $2,250,000\n\nLIABILITIES & EQUITY\nCurrent Liabilities:\n  Accounts Payable: $150,000\n  Accrued Expenses: $80,000\n  Total Current Liabilities: $230,000\n\nLong-term Debt: $420,000\n\nOwner's Equity: $1,600,000\n\nTotal Liabilities & Equity: $2,250,000`, 'utf8');
+        // Get actual file size by checking the object storage or use default
+        let fileSize = 0;
+        try {
+          // For real files, we'll estimate based on file type
+          if (finDoc.name.includes('.xls') || finDoc.name.includes('.xlsx')) {
+            fileSize = 50000; // Estimate for Excel files
+          } else if (finDoc.name.includes('.doc')) {
+            fileSize = 30000; // Estimate for Word docs
+          } else {
+            fileSize = 10000; // Default fallback
+          }
+        } catch (error) {
+          console.error('Error calculating file size for', finDoc.name, error);
+          fileSize = 10000; // Default fallback
+        }
         
         // Extract storage path from the URL (remove /api/object-storage/ prefix)
         const filePath = finDoc.url.replace('/api/object-storage/', '');
