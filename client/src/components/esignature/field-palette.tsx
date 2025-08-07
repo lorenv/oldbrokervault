@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ENHANCED_FIELD_TYPES } from './enhanced-signature-field';
 import { NdaRecipient } from '@shared/schema';
-import { Palette, GripVertical } from 'lucide-react';
+import { Palette, GripVertical, PenTool, Type, User, Calendar, Mail, FileText, Square } from 'lucide-react';
 
 interface FieldPaletteProps {
   recipients: NdaRecipient[];
@@ -44,7 +44,13 @@ function DraggableField({ type, label, icon, color, description, recipientId }: 
     >
       <GripVertical className="w-4 h-4 text-gray-400" />
       <div className="w-8 h-8 rounded bg-blue-50 border border-blue-200 flex items-center justify-center">
-        <span className="text-blue-600 text-xs font-medium">{icon}</span>
+        {icon === 'PenTool' && <PenTool className="w-4 h-4 text-blue-600" />}
+        {icon === 'Type' && <Type className="w-4 h-4 text-cyan-600" />}
+        {icon === 'User' && <User className="w-4 h-4 text-green-600" />}
+        {icon === 'Calendar' && <Calendar className="w-4 h-4 text-purple-600" />}
+        {icon === 'Mail' && <Mail className="w-4 h-4 text-orange-600" />}
+        {icon === 'FileText' && <FileText className="w-4 h-4 text-gray-600" />}
+        {icon === 'Square' && <Square className="w-4 h-4 text-indigo-600" />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm text-gray-900 truncate">{label}</div>
@@ -126,21 +132,6 @@ export default function FieldPalette({
               />
             ))}
           </>
-        )}
-        
-        {/* Instructions */}
-        {recipients.length > 0 && (
-          <div className="mt-3 p-2 bg-blue-50 rounded-md border border-blue-200">
-            <div className="text-xs text-blue-800">
-              <div className="font-medium mb-1">How to use:</div>
-              <ul className="space-y-0.5 text-blue-700 text-xs leading-relaxed">
-                <li>1. Select a recipient above</li>
-                <li>2. Drag field types onto the document</li>
-                <li>3. Click fields to select and resize them</li>
-                <li>4. Fields are automatically assigned to the selected recipient</li>
-              </ul>
-            </div>
-          </div>
         )}
         
         {/* Field legend */}
