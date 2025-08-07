@@ -126,18 +126,7 @@ export default function FieldPalette({
           </>
         )}
         
-        {/* Instructions */}
-        <div className="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="text-sm text-blue-800">
-            <div className="font-medium mb-1">How to use:</div>
-            <ul className="space-y-1 text-blue-700 text-xs">
-              <li>1. Select a recipient above</li>
-              <li>2. Drag field types onto the document</li>
-              <li>3. Click fields to select and resize them</li>
-              <li>4. Fields are automatically assigned to the selected recipient</li>
-            </ul>
-          </div>
-        </div>
+        
         
         {/* Field legend */}
         {recipients.length > 0 && (
