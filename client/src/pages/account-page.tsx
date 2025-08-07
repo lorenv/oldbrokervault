@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfTemplateSelector } from "@/components/pdf-template-selector";
 import { NdaTemplate } from "@shared/schema";
 import { Plus, FileSignature, Grid3X3, List, Eye, Edit, Trash2, Calendar, MoreVertical, Users } from "lucide-react";
-import NdaTemplateEditor from "@/components/nda-template-editor";
+import EnhancedNdaTemplateEditor from "@/components/esignature/enhanced-nda-template-editor";
 import { format } from "date-fns";
 import {
   DropdownMenu,
@@ -184,19 +184,27 @@ function TemplatesContent() {
     name: string;
     fileContent: string;
     signatureFields: any[];
+    recipients?: any[];
   }) => {
-    createTemplateMutation.mutate(data);
+    createTemplateMutation.mutate({
+      name: data.name,
+      fileContent: data.fileContent,
+      signatureFields: data.signatureFields
+    });
   };
 
   const handleUpdateTemplate = (data: {
     name: string;
     fileContent: string;
     signatureFields: any[];
+    recipients?: any[];
   }) => {
     if (editingTemplate) {
       updateTemplateMutation.mutate({
         id: editingTemplate.id,
-        ...data
+        name: data.name,
+        fileContent: data.fileContent,
+        signatureFields: data.signatureFields
       });
     }
   };
@@ -217,7 +225,7 @@ function TemplatesContent() {
           </Button>
         </div>
 
-        <NdaTemplateEditor
+        <EnhancedNdaTemplateEditor
           onSave={handleCreateTemplate}
           isLoading={createTemplateMutation.isPending}
         />
@@ -241,7 +249,7 @@ function TemplatesContent() {
           </Button>
         </div>
 
-        <NdaTemplateEditor
+        <EnhancedNdaTemplateEditor
           initialTemplate={editingTemplate}
           onSave={handleUpdateTemplate}
           isLoading={updateTemplateMutation.isPending}
