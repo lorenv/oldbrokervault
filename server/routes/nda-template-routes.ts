@@ -105,7 +105,7 @@ export function registerNdaTemplateRoutes(app: Express) {
       console.log("Template updated successfully:", {
         id: template.id,
         name: template.name,
-        recipientsCount: template.recipients?.length || 0,
+        recipientsCount: Array.isArray(template.recipients) ? template.recipients.length : 0,
         recipients: template.recipients
       });
       
