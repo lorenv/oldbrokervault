@@ -542,6 +542,32 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .values(insertData)
       .returning();
 
+    // Insert financial file records into the database
+    if (exampleAssets.financialDocuments.length > 0) {
+      console.log(`Inserting ${exampleAssets.financialDocuments.length} financial file records for CIM document ${cimDoc.id}`);
+      
+      for (const finDoc of exampleAssets.financialDocuments) {
+        // Calculate file size (approximate for text content)
+        const fileSize = Buffer.byteLength(finDoc.name.includes('P&L') ? 
+          // P&L content size
+          `TONY'S TRANSMISSIONS\nPROFIT & LOSS STATEMENT\nYear: 2024\n\nREVENUE\nTransmission Repairs: $4,200,000\nDiagnostic Services: $800,000\nParts Sales: $500,000\nTotal Revenue: $5,500,000\n\nEXPENSES\nLabor Costs: $2,200,000\nParts & Materials: $1,100,000\nFacility Costs: $300,000\nEquipment & Tools: $150,000\nInsurance: $80,000\nUtilities: $70,000\nTotal Expenses: $3,900,000\n\nEBITDA: $1,600,000\nDepreciation: $100,000\nNet Income: $1,500,000` :
+          // Balance sheet content size
+          `TONY'S TRANSMISSIONS\nBALANCE SHEET\nAs of December 31, 2024\n\nASSETS\nCurrent Assets:\n  Cash: $450,000\n  Accounts Receivable: $320,000\n  Inventory: $180,000\n  Total Current Assets: $950,000\n\nFixed Assets:\n  Equipment: $650,000\n  Building: $850,000\n  Less Depreciation: $(200,000)\n  Total Fixed Assets: $1,300,000\n\nTotal Assets: $2,250,000\n\nLIABILITIES & EQUITY\nCurrent Liabilities:\n  Accounts Payable: $150,000\n  Accrued Expenses: $80,000\n  Total Current Liabilities: $230,000\n\nLong-term Debt: $420,000\n\nOwner's Equity: $1,600,000\n\nTotal Liabilities & Equity: $2,250,000`, 'utf8');
+        
+        // Extract storage path from the URL (remove /api/object-storage/ prefix)
+        const filePath = finDoc.url.replace('/api/object-storage/', '');
+        
+        await db.insert(financialFiles).values({
+          cimDocumentId: cimDoc.id,
+          filename: finDoc.name,
+          filePath: filePath,
+          fileSize: fileSize
+        });
+      }
+      
+      console.log(`✅ Inserted ${exampleAssets.financialDocuments.length} financial file records`);
+    }
+
     console.log(`✅ Created example CIM document for user ${userId}: ${cimDoc.id} with ${exampleAssets.businessImages.length} business images and logo`);
     return cimDoc;
   }
