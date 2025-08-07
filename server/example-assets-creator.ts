@@ -15,20 +15,29 @@ export class ExampleAssetsCreator {
       'pexels-pixabay-159293_1754604461526.jpg'
     ];
 
+    console.log('🔄 Loading real business images from attached_assets...');
+    
     return businessImageFiles.map((filename, index) => {
       try {
         const filePath = join(process.cwd(), 'attached_assets', filename);
+        console.log(`📸 Attempting to load: ${filePath}`);
         const buffer = readFileSync(filePath);
+        console.log(`✅ Successfully loaded ${filename}, size: ${buffer.length} bytes`);
         return {
           name: `transmission-shop-${index + 1}.jpg`,
           buffer
         };
       } catch (error) {
-        console.error(`Failed to load business image ${filename}:`, error);
-        // Fallback to a simple placeholder if file not found
+        console.error(`❌ Failed to load business image ${filename}:`, error);
+        console.error(`❌ Current working directory: ${process.cwd()}`);
+        // Create a real fallback SVG instead of placeholder text
+        const fallbackSvg = `<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="300" fill="#f3f4f6"/>
+          <text x="200" y="150" font-family="Arial" font-size="16" text-anchor="middle" fill="#6b7280">Image Loading Error</text>
+        </svg>`;
         return {
-          name: `transmission-shop-${index + 1}.jpg`,
-          buffer: Buffer.from('placeholder')
+          name: `transmission-shop-${index + 1}.svg`,
+          buffer: Buffer.from(fallbackSvg, 'utf8')
         };
       }
     });
@@ -40,11 +49,19 @@ export class ExampleAssetsCreator {
   private loadRealCoverImage(): Buffer {
     try {
       const filePath = join(process.cwd(), 'attached_assets', 'cover transmissions_1754605105186.jpg');
-      return readFileSync(filePath);
+      console.log(`🎨 Attempting to load cover image: ${filePath}`);
+      const buffer = readFileSync(filePath);
+      console.log(`✅ Successfully loaded cover image, size: ${buffer.length} bytes`);
+      return buffer;
     } catch (error) {
-      console.error('Failed to load cover image:', error);
-      // Fallback to placeholder if file not found
-      return Buffer.from('cover-image-placeholder');
+      console.error('❌ Failed to load cover image:', error);
+      console.error(`❌ Current working directory: ${process.cwd()}`);
+      // Create a real fallback SVG instead of placeholder text
+      const fallbackSvg = `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="800" height="600" fill="#1e40af"/>
+        <text x="400" y="300" font-family="Arial" font-size="24" text-anchor="middle" fill="#ffffff">Cover Image Loading Error</text>
+      </svg>`;
+      return Buffer.from(fallbackSvg, 'utf8');
     }
   }
 
@@ -54,11 +71,19 @@ export class ExampleAssetsCreator {
   private loadRealLogo(): Buffer {
     try {
       const filePath = join(process.cwd(), 'attached_assets', 'logo_1754604458620.png');
-      return readFileSync(filePath);
+      console.log(`🏢 Attempting to load logo: ${filePath}`);
+      const buffer = readFileSync(filePath);
+      console.log(`✅ Successfully loaded logo, size: ${buffer.length} bytes`);
+      return buffer;
     } catch (error) {
-      console.error('Failed to load logo:', error);
-      // Fallback to placeholder if file not found
-      return Buffer.from('logo-placeholder');
+      console.error('❌ Failed to load logo:', error);
+      console.error(`❌ Current working directory: ${process.cwd()}`);
+      // Create a real fallback SVG instead of placeholder text
+      const fallbackSvg = `<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="200" height="100" fill="#1f2937"/>
+        <text x="100" y="50" font-family="Arial" font-size="14" text-anchor="middle" fill="#ffffff">Logo Loading Error</text>
+      </svg>`;
+      return Buffer.from(fallbackSvg, 'utf8');
     }
   }
 
@@ -72,23 +97,28 @@ export class ExampleAssetsCreator {
       { filename: 'Contracts_1754605045862.doc', mimeType: 'application/msword' }
     ];
 
+    console.log('📊 Loading real financial documents from attached_assets...');
     const loadedFiles: { name: string; buffer: Buffer; mimeType: string }[] = [];
 
     financialFiles.forEach((file) => {
       try {
         const filePath = join(process.cwd(), 'attached_assets', file.filename);
+        console.log(`📄 Attempting to load: ${filePath}`);
         const buffer = readFileSync(filePath);
+        console.log(`✅ Successfully loaded ${file.filename}, size: ${buffer.length} bytes`);
         loadedFiles.push({
           name: file.filename,
           buffer,
           mimeType: file.mimeType
         });
       } catch (error) {
-        console.error(`Failed to load financial document ${file.filename}:`, error);
+        console.error(`❌ Failed to load financial document ${file.filename}:`, error);
+        console.error(`❌ Current working directory: ${process.cwd()}`);
         // Continue without this file if it can't be loaded
       }
     });
 
+    console.log(`✅ Loaded ${loadedFiles.length} financial documents successfully`);
     return loadedFiles;
   }
 
@@ -98,47 +128,32 @@ export class ExampleAssetsCreator {
   private loadRealBusinessContent(): any {
     try {
       const filePath = join(process.cwd(), 'attached_assets', 'Pasted-Business-Summary-Tony-s-Transmission-Repair-has-established-itself-as-a-premier-provider-of-speciali-1754605160605_1754605160605.txt');
+      console.log(`📄 Attempting to load business content: ${filePath}`);
       const content = readFileSync(filePath, 'utf8');
+      console.log(`✅ Successfully loaded business content, length: ${content.length} characters`);
       
       // Parse the content into sections
       const sections = content.split('\n\n').filter(section => section.trim());
-      const analysis: any = {
-        sections: []
-      };
+      console.log(`📋 Parsed ${sections.length} sections from business content`);
+      
+      const analysis: any = {};
       
       sections.forEach((section, index) => {
         const lines = section.trim().split('\n');
         const title = lines[0];
-        const content = lines.slice(1).join(' ').trim();
+        const sectionContent = lines.slice(1).join(' ').trim();
         
-        if (title && content) {
-          analysis.sections.push({
-            id: `section-${index + 1}`,
-            title: title,
-            content: `<p>${content}</p>`,
-            order: index + 1,
-            type: 'text'
-          });
+        if (title && sectionContent) {
+          analysis[title] = sectionContent;
+          console.log(`📝 Added section: ${title} (${sectionContent.length} chars)`);
         }
       });
       
-      return {
-        title: "Tony's Transmissions - Confidential Information Memorandum",
-        companyName: "Tony's Transmissions",
-        generatedAt: new Date().toISOString(),
-        sections: analysis.sections,
-        metadata: {
-          purpose: "business_overview",
-          tone: "professional",
-          audience: "investors",
-          customDirections: "Professional CIM for transmission repair business",
-          wordCount: content.split(/\s+/).length,
-          hasFinancials: true,
-          hasImages: true
-        }
-      };
+      console.log(`✅ Created analysis object with ${Object.keys(analysis).length} sections`);
+      return analysis;
     } catch (error) {
-      console.error('Failed to load business content:', error);
+      console.error('❌ Failed to load business content:', error);
+      console.error(`❌ Current working directory: ${process.cwd()}`);
       return null;
     }
   }
