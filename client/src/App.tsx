@@ -31,6 +31,7 @@ import { DocumentDetailPage } from "@/pages/document-detail-page";
 import NdaTemplatesPage from "@/pages/nda-templates-page";
 import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
 import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
+import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 
 function Router() {
@@ -71,6 +72,7 @@ function Router() {
             <ProtectedRoute path="/nda-templates/:id/edit" component={NdaTemplateEditorPage} />
             <ProtectedRoute path="/nda-templates/edit/:id" component={NdaTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
+            <Route path="/sign/:accessToken" component={SignDocumentPage} />
             <Route component={NotFound} />
           </Switch>
         </div>
