@@ -53,7 +53,8 @@ export function registerNdaTemplateRoutes(app: Express) {
         name: req.body.name,
         hasFileContent: !!req.body.fileContent,
         signatureFieldsCount: req.body.signatureFields?.length || 0,
-        recipientsCount: req.body.recipients?.length || 0
+        recipientsCount: req.body.recipients?.length || 0,
+        recipients: req.body.recipients
       });
       
       const template = await storage.createNdaTemplate(req.user!.id, {
@@ -85,11 +86,27 @@ export function registerNdaTemplateRoutes(app: Express) {
         return res.status(404).json({ error: "Template not found" });
       }
       
+      console.log("Updating template with data:", {
+        templateId,
+        name: req.body.name,
+        hasFileContent: !!req.body.fileContent,
+        signatureFieldsCount: req.body.signatureFields?.length || 0,
+        recipientsCount: req.body.recipients?.length || 0,
+        recipients: req.body.recipients
+      });
+
       const template = await storage.updateNdaTemplate(templateId, {
         name: req.body.name,
         fileContent: req.body.fileContent,
         signatureFields: req.body.signatureFields,
         recipients: req.body.recipients
+      });
+
+      console.log("Template updated successfully:", {
+        id: template.id,
+        name: template.name,
+        recipientsCount: template.recipients?.length || 0,
+        recipients: template.recipients
       });
       
       res.json(template);
