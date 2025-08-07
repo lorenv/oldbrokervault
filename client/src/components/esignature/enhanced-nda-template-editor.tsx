@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +53,24 @@ export default function EnhancedNdaTemplateEditor({
   onBack,
   fullScreen = false
 }: EnhancedNdaTemplateEditorProps & { fullScreen?: boolean }) {
-  const [templateName, setTemplateName] = useState(initialTemplate?.name || '');
+  // Auto-generate template name with timestamp
+  const generateDefaultTemplateName = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const year = now.getFullYear().toString().slice(-2);
+    const hour = now.getHours();
+    const minute = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    
+    return `New Template ${month}-${day}-${year} ${displayHour}:${minute} ${ampm}`;
+  };
+
+  const [templateName, setTemplateName] = useState(
+    initialTemplate?.name || generateDefaultTemplateName()
+  );
+  const [isEditingName, setIsEditingName] = useState(false);
   const [pdfBase64, setPdfBase64] = useState(initialTemplate?.fileContent || '');
   const [fields, setFields] = useState<EnhancedSignatureField[]>([]);
   const [recipients, setRecipients] = useState<Partial<NdaRecipient>[]>([]);
@@ -250,6 +267,57 @@ export default function EnhancedNdaTemplateEditor({
 
   const canSave = templateName.trim() && pdfBase64 && recipients.length > 0;
 
+  // Render template name in page header for full screen mode
+  useEffect(() => {
+    if (fullScreen && typeof document !== 'undefined') {
+      const container = document.getElementById('template-name-header');
+      if (container) {
+        container.innerHTML = '';
+        
+        if (isEditingName) {
+          // Render input field
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = templateName;
+          input.className = 'text-xl font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 min-w-0 flex-1';
+          input.style.minWidth = '200px';
+          
+          const handleSave = () => {
+            setTemplateName(input.value.trim() || generateDefaultTemplateName());
+            setIsEditingName(false);
+          };
+          
+          const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Enter') {
+              handleSave();
+            } else if (e.key === 'Escape') {
+              setIsEditingName(false);
+            }
+          };
+          
+          input.addEventListener('blur', handleSave);
+          input.addEventListener('keydown', handleKeyDown);
+          
+          container.appendChild(input);
+          input.focus();
+          input.select();
+        } else {
+          // Render clickable title
+          const title = document.createElement('button');
+          title.textContent = templateName;
+          title.className = 'text-xl font-semibold text-left hover:text-blue-600 focus:outline-none focus:text-blue-600 transition-colors cursor-pointer';
+          title.setAttribute('title', 'Click to edit template name');
+          
+          title.addEventListener('click', () => {
+            setIsEditingName(true);
+          });
+          
+          container.appendChild(title);
+        }
+      }
+    }
+  }, [fullScreen, templateName, isEditingName, generateDefaultTemplateName]);
+
   // Render save button in page header for full screen mode
   useEffect(() => {
     if (fullScreen && typeof document !== 'undefined') {
@@ -443,24 +511,7 @@ export default function EnhancedNdaTemplateEditor({
               </div>
             </div>
 
-            {/* Settings Section */}
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold mb-4">Template Settings</h3>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="template-name">Template Name</Label>
-                  <Input
-                    id="template-name"
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="Enter template name"
-                    className="mt-1"
-                  />
-                </div>
 
-
-              </div>
-            </div>
 
             {/* Field Types Section */}
             <div className="flex-1 overflow-y-auto">
