@@ -34,6 +34,7 @@ import EnhancedNdaSigningPage from "@/pages/enhanced-nda-signing-page";
 import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
+import { GetStartedChecklist } from "@/components/get-started-checklist";
 
 function Router() {
   const [location] = useLocation();
@@ -80,6 +81,7 @@ function Router() {
           </Switch>
         </div>
         {!isSharePage && <Footer />}
+        {!isSharePage && <GetStartedChecklist />}
       </div>
     </>
   );

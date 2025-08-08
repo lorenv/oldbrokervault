@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
-import { GetStartedChecklist } from "@/components/get-started-checklist";
+
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
@@ -36,8 +36,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Get Started Checklist for new users */}
-      <GetStartedChecklist />
+      {/* Get Started Checklist moved to App.tsx for global visibility */}
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
         <div className="container mx-auto px-4 py-12">
