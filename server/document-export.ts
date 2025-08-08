@@ -12,6 +12,261 @@ import sharp from 'sharp';
 import { imageManager } from './image-manager';
 import { resolveImageData, getImageDimensions, createImageFallback } from './image-helpers';
 
+// Helper function to convert HTML to formatted text for PDF generation
+function htmlToFormattedText(html: string): { content: string; format: Array<{type: string, text: string, start: number, end: number}> } {
+  if (!html) return { content: '', format: [] };
+  
+  // Remove HTML entities first
+  let text = html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  
+  const formats: Array<{type: string, text: string, start: number, end: number}> = [];
+  let plainText = '';
+  let currentPos = 0;
+  
+  // Process HTML tags and build format array
+  const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6])([^>]*)>/gi;
+  let lastIndex = 0;
+  let match;
+  let listLevel = 0;
+  let isInList = false;
+  
+  while ((match = tagRegex.exec(text)) !== null) {
+    // Add text before the tag
+    const textBefore = text.substring(lastIndex, match.index);
+    if (textBefore) {
+      plainText += textBefore;
+      currentPos += textBefore.length;
+    }
+    
+    const isClosing = !!match[1];
+    const tagName = match[2].toLowerCase();
+    
+    if (tagName === 'p') {
+      if (isClosing) {
+        plainText += '\n\n';
+        currentPos += 2;
+      }
+    } else if (tagName === 'br') {
+      plainText += '\n';
+      currentPos += 1;
+    } else if (tagName === 'ul' || tagName === 'ol') {
+      if (!isClosing) {
+        isInList = true;
+        listLevel++;
+        plainText += '\n';
+        currentPos += 1;
+      } else {
+        listLevel--;
+        if (listLevel === 0) {
+          isInList = false;
+        }
+        plainText += '\n';
+        currentPos += 1;
+      }
+    } else if (tagName === 'li') {
+      if (!isClosing) {
+        const indent = '  '.repeat(Math.max(0, listLevel - 1));
+        const bullet = '• ';
+        plainText += indent + bullet;
+        currentPos += indent.length + bullet.length;
+      } else {
+        plainText += '\n';
+        currentPos += 1;
+      }
+    } else if (tagName === 'strong' || tagName === 'b') {
+      if (!isClosing) {
+        formats.push({
+          type: 'bold_start',
+          text: '',
+          start: currentPos,
+          end: currentPos
+        });
+      } else {
+        formats.push({
+          type: 'bold_end',
+          text: '',
+          start: currentPos,
+          end: currentPos
+        });
+      }
+    } else if (tagName === 'em' || tagName === 'i') {
+      if (!isClosing) {
+        formats.push({
+          type: 'italic_start',
+          text: '',
+          start: currentPos,
+          end: currentPos
+        });
+      } else {
+        formats.push({
+          type: 'italic_end',
+          text: '',
+          start: currentPos,
+          end: currentPos
+        });
+      }
+    } else if (tagName.startsWith('h')) {
+      if (!isClosing) {
+        formats.push({
+          type: 'heading_start',
+          text: tagName,
+          start: currentPos,
+          end: currentPos
+        });
+      } else {
+        formats.push({
+          type: 'heading_end',
+          text: tagName,
+          start: currentPos,
+          end: currentPos
+        });
+        plainText += '\n\n';
+        currentPos += 2;
+      }
+    }
+    
+    lastIndex = tagRegex.lastIndex;
+  }
+  
+  // Add remaining text
+  const remainingText = text.substring(lastIndex);
+  if (remainingText) {
+    plainText += remainingText;
+  }
+  
+  // Clean up extra whitespace and newlines
+  plainText = plainText
+    .replace(/\n\s*\n\s*\n/g, '\n\n') // Multiple newlines to double
+    .replace(/^\s+|\s+$/g, '') // Trim
+    .replace(/[ \t]+/g, ' '); // Multiple spaces to single
+  
+  return {
+    content: plainText,
+    format: formats
+  };
+}
+
+// Function to render formatted text with PDFKit
+function renderFormattedText(doc: PDFDocument, formattedText: { content: string; format: Array<{type: string, text: string, start: number, end: number}> }, options: any = {}) {
+  const { content, format } = formattedText;
+  
+  if (!content.trim()) return;
+  
+  // Sort formats by position
+  const sortedFormats = format.sort((a, b) => a.start - b.start);
+  
+  let currentFont = 'Helvetica';
+  let currentFontSize = options.fontSize || 12;
+  let isBold = false;
+  let isItalic = false;
+  let isHeading = false;
+  
+  // Split content into lines to handle formatting properly
+  const lines = content.split('\n');
+  
+  lines.forEach((line, lineIndex) => {
+    if (!line.trim() && lineIndex < lines.length - 1) {
+      doc.moveDown(0.5);
+      return;
+    }
+    
+    // Check for formatting changes in this line
+    let currentPos = 0;
+    let lineContent = line;
+    
+    // Find formats that apply to this line
+    const lineStart = lines.slice(0, lineIndex).join('\n').length + (lineIndex > 0 ? lineIndex : 0);
+    const lineEnd = lineStart + line.length;
+    
+    const lineFormats = sortedFormats.filter(f => 
+      (f.start >= lineStart && f.start <= lineEnd) ||
+      (f.end >= lineStart && f.end <= lineEnd) ||
+      (f.start <= lineStart && f.end >= lineEnd)
+    );
+    
+    if (lineFormats.length > 0) {
+      // Process line with formatting
+      let segments: Array<{text: string, bold: boolean, italic: boolean, heading: boolean}> = [];
+      let segmentStart = 0;
+      
+      lineFormats.forEach(format => {
+        const relativePos = Math.max(0, format.start - lineStart);
+        
+        if (relativePos > segmentStart) {
+          // Add text before format change
+          segments.push({
+            text: line.substring(segmentStart, relativePos),
+            bold: isBold,
+            italic: isItalic,
+            heading: isHeading
+          });
+        }
+        
+        // Update formatting
+        if (format.type === 'bold_start') isBold = true;
+        else if (format.type === 'bold_end') isBold = false;
+        else if (format.type === 'italic_start') isItalic = true;
+        else if (format.type === 'italic_end') isItalic = false;
+        else if (format.type === 'heading_start') isHeading = true;
+        else if (format.type === 'heading_end') isHeading = false;
+        
+        segmentStart = relativePos;
+      });
+      
+      // Add remaining text
+      if (segmentStart < line.length) {
+        segments.push({
+          text: line.substring(segmentStart),
+          bold: isBold,
+          italic: isItalic,
+          heading: isHeading
+        });
+      }
+      
+      // Render segments
+      segments.forEach((segment, segIndex) => {
+        if (segment.text) {
+          let font = 'Helvetica';
+          let fontSize = currentFontSize;
+          
+          if (segment.heading) {
+            font = 'Helvetica-Bold';
+            fontSize = currentFontSize + 2;
+          } else if (segment.bold && segment.italic) {
+            font = 'Helvetica-BoldOblique';
+          } else if (segment.bold) {
+            font = 'Helvetica-Bold';
+          } else if (segment.italic) {
+            font = 'Helvetica-Oblique';
+          }
+          
+          doc.font(font).fontSize(fontSize);
+          
+          if (segIndex === 0 && lineIndex > 0) {
+            doc.text(segment.text, options);
+          } else {
+            doc.text(segment.text, { ...options, continued: segIndex < segments.length - 1 });
+          }
+        }
+      });
+    } else {
+      // Render plain text
+      doc.font('Helvetica').fontSize(currentFontSize);
+      doc.text(line, options);
+    }
+    
+    if (lineIndex < lines.length - 1) {
+      doc.text(''); // End line
+    }
+  });
+}
+
 // Load PDF background template based on user preference
 async function loadPdfBackgroundTemplate(templateName?: string): Promise<pdfLib.PDFDocument | null> {
   try {
@@ -2427,17 +2682,35 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               console.log("🔗 FOUND MARKDOWN LINK:", match[1], "->", match[2]);
             }
             
-            // Handle content with hyperlinks preserved
-            let content = section.content
-              .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-              .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-              .replace(/^#+\s+/gm, '') // Remove headers
-              .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
-              .trim();
+            // Check if content contains HTML tags (from TipTap editor)
+            const containsHtml = /<[^>]+>/.test(section.content);
+            console.log("🔍 CONTENT TYPE CHECK:", section.title, "contains HTML:", containsHtml);
             
-            // If we found markdown links, process them specially
-            if (markdownLinks.length > 0) {
-              console.log("🔗 PROCESSING", markdownLinks.length, "HYPERLINKS IN SECTION");
+            let content: string;
+            let shouldUseFormattedRenderer = false;
+            let formattedText: { content: string; format: Array<{type: string, text: string, start: number, end: number}> } | null = null;
+            
+            if (containsHtml) {
+              // Process HTML content from TipTap editor
+              console.log("🎨 PROCESSING HTML CONTENT for section:", section.title);
+              formattedText = htmlToFormattedText(section.content);
+              content = formattedText.content;
+              shouldUseFormattedRenderer = true;
+              console.log("✅ HTML PROCESSED - Plain text length:", content.length, "Format tokens:", formattedText.format.length);
+            } else {
+              // Handle traditional markdown content
+              console.log("📝 PROCESSING MARKDOWN CONTENT for section:", section.title);
+              content = section.content
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+                .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+                .replace(/^#+\s+/gm, '') // Remove headers
+                .replace(/^[-*]\s+/gm, '• ') // Convert bullet points
+                .trim();
+            }
+            
+            // If we found markdown links, process them specially (for non-HTML content)
+            if (markdownLinks.length > 0 && !shouldUseFormattedRenderer) {
+              console.log("🔗 PROCESSING", markdownLinks.length, "HYPERLINKS IN MARKDOWN SECTION");
               
               // Split content by lines to handle each line
               const lines = content.split('\n');
@@ -2485,14 +2758,25 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 }
               });
             } else {
-              // No links found, process as regular text
-              const finalContent = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1'); // Remove any remaining markdown links as text
-              doc.fillColor('#000000')
-                 .font('Helvetica')
-                 .text(finalContent, {
-                   align: 'left',
-                   lineGap: 4
-                 });
+              // No links found, choose renderer based on content type
+              if (shouldUseFormattedRenderer && formattedText) {
+                console.log("🎨 RENDERING FORMATTED HTML TEXT for section:", section.title);
+                renderFormattedText(doc, formattedText, {
+                  align: 'left',
+                  lineGap: 4,
+                  fontSize: 12
+                });
+              } else {
+                // Traditional plain text rendering
+                console.log("📝 RENDERING PLAIN TEXT for section:", section.title);
+                const finalContent = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1'); // Remove any remaining markdown links as text
+                doc.fillColor('#000000')
+                   .font('Helvetica')
+                   .text(finalContent, {
+                     align: 'left',
+                     lineGap: 4
+                   });
+              }
             }
           }
           

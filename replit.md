@@ -178,3 +178,14 @@ The application employs a client-server architecture.
 - **Smart Navigation**: Dynamically finds user's example Tony's Transmissions CIM for share link
 - **Progress Tracking**: LocalStorage-based progress persistence with dismiss functionality
 - **Navigation Integration**: Fixed investor database menu visibility for all authenticated users instead of premium-only
+- **Correct Navigation Links**: Profile links to `/account?tab=profile`, Templates to `/account?tab=templates`, Share CIM dynamically resolves user's example document
+
+### HTML-to-PDF Formatting Fix (August 8, 2025)
+- **Root Cause**: TipTap rich text editor outputs HTML tags (`<p>`, `<strong>`, `<ul>`, etc.), but PDF generation was treating HTML as plain text
+- **Solution**: Implemented comprehensive HTML-to-formatted-text converter in `server/document-export.ts`
+- **HTML Parser**: Processes HTML tags and converts to PDFKit-compatible formatted text with styling metadata
+- **Supported Formatting**: Paragraphs, bold (`<strong>`, `<b>`), italic (`<em>`, `<i>`), bullet lists (`<ul>`, `<li>`), numbered lists (`<ol>`), headings (`<h1-h6>`), line breaks (`<br>`)
+- **Smart Content Detection**: Automatically detects HTML vs. markdown content and chooses appropriate renderer
+- **Formatted Text Renderer**: New `renderFormattedText()` function applies proper fonts (Helvetica-Bold, Helvetica-Oblique) and sizing to PDF output
+- **Backward Compatibility**: Preserves existing markdown processing for legacy content while adding HTML support
+- **Enhanced Logging**: Added detailed console logging for debugging content type detection and formatting application
