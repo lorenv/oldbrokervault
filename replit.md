@@ -169,3 +169,12 @@ The application employs a client-server architecture.
 - **Validation**: Removed email/name requirements, simplified save validation
 - **Field Assignment**: Automatic assignment to placeholder recipient (ID: 999999)
 - **UI Simplification**: Removed recipient modals, selection dropdowns, and management interfaces
+
+### Get Started Checklist Implementation (August 8, 2025)
+- **Replaced Onboarding Tour**: Removed existing guided tour and registration success toast messages
+- **Bottom-Right Checklist**: Implemented Webflow-style get started checklist positioned in bottom-right corner
+- **Light Theme Design**: Clean, modern light-themed design with progress bar and completion tracking
+- **Four Key Items**: Complete profile, Choose NDA/PDF settings, View a CIM, Share a CIM
+- **Smart Navigation**: Dynamically finds user's example Tony's Transmissions CIM for share link
+- **Progress Tracking**: LocalStorage-based progress persistence with dismiss functionality
+- **Navigation Integration**: Fixed investor database menu visibility for all authenticated users instead of premium-only
