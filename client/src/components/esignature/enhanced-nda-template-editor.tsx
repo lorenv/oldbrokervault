@@ -682,21 +682,24 @@ export default function EnhancedNdaTemplateEditor({
                   onZoomChange={setZoom}
                   className="h-full"
                 >
-                  {/* Field overlay for drag-and-drop placement */}
-                  <CanvasOverlay
-                    pageNumber={1}
-                    fields={fields}
-                    recipients={recipients as NdaRecipient[]}
-                    onFieldsChange={handleFieldsChange}
-                    onFieldSelect={handleFieldSelect}
-                    selectedField={selectedField}
-                    imageWidth={pageImages[0]?.width || 800}
-                    imageHeight={pageImages[0]?.height || 1100}
-                    scale={zoom}
-                    snapToGrid={snapToGrid}
-                    showGrid={showGrid}
-                    isReadOnly={isPreviewMode}
-                  />
+                  {/* Field overlay for drag-and-drop placement - one for each page */}
+                  {pageImages.map((pageImage) => (
+                    <CanvasOverlay
+                      key={pageImage.pageNumber}
+                      pageNumber={pageImage.pageNumber}
+                      fields={fields}
+                      recipients={recipients as NdaRecipient[]}
+                      onFieldsChange={handleFieldsChange}
+                      onFieldSelect={handleFieldSelect}
+                      selectedField={selectedField}
+                      imageWidth={pageImage.width}
+                      imageHeight={pageImage.height}
+                      scale={zoom}
+                      snapToGrid={snapToGrid}
+                      showGrid={showGrid}
+                      isReadOnly={isPreviewMode}
+                    />
+                  ))}
                 </ImageDocumentViewer>
               )}
             </div>
