@@ -197,8 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Your account has been created successfully.",
       });
       
-      // Mark user as new for guided tour
-      sessionStorage.setItem('isNewUser', 'true');
+      // Mark user as new for get started checklist
+      localStorage.setItem('show-get-started-checklist', 'true');
       
       // Redirect to dashboard after successful registration
       setTimeout(() => setLocation("/dashboard"), 1000);

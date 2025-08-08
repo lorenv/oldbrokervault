@@ -102,14 +102,12 @@ export function Navbar() {
                       Messages
                     </Link>
                   </DropdownMenuItem>
-                  {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/investor-database" className="w-full cursor-pointer">
-                        <Database className="mr-2 h-4 w-4" />
-                        Investor Database
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/investor-database" className="w-full cursor-pointer">
+                      <Database className="mr-2 h-4 w-4" />
+                      Investor Database
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="w-full cursor-pointer">
                       <Settings className="mr-2 h-4 w-4" />
@@ -178,14 +176,12 @@ export function Navbar() {
                       My CIMs
                     </Link>
                   </DropdownMenuItem>
-                  {(user.subscriptionStatus === 'premium' || user.subscriptionStatus === 'standard' || user.isAdmin) && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/investor-database" className="flex items-center cursor-pointer w-full">
-                        <Database className="h-4 w-4 mr-2" />
-                        Investor Database
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/investor-database" className="flex items-center cursor-pointer w-full">
+                      <Database className="h-4 w-4 mr-2" />
+                      Investor Database
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/messages" className="flex items-center cursor-pointer w-full">
                       <MessageCircle className="h-4 w-4 mr-2" />

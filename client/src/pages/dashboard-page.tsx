@@ -1,23 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
-import { GuidedTour } from "@/components/guided-tour";
+import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionCard } from "@/components/ui/subscription-card";
 import { FileText, Clock, ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [showGuidedTour, setShowGuidedTour] = useState(false);
 
-  useEffect(() => {
-    // Check if this is a new user
-    const isNewUser = sessionStorage.getItem('isNewUser') === 'true';
-    if (isNewUser) {
-      setShowGuidedTour(true);
-    }
-  }, []);
+  // Removed guided tour - now using get started checklist instead
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
     queryKey: ["/api/dashboard/recent"],
     staleTime: 1000 * 60 * 10, // 10 minutes - very aggressive caching
@@ -35,17 +28,16 @@ export default function DashboardPage() {
   });
 
   // Extract documents array from the response
-  const documents = documentsResponse?.documents || [];
+  const documents = (documentsResponse as any)?.documents || [];
 
   // Extract first name from user profile
-  const firstName = userProfile?.name ? userProfile.name.split(' ')[0] : '';
+  const firstName = (userProfile as any)?.name ? (userProfile as any).name.split(' ')[0] : '';
   const welcomeMessage = firstName ? `Welcome back, ${firstName}!` : 'Welcome back!';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {showGuidedTour && (
-        <GuidedTour onComplete={() => setShowGuidedTour(false)} />
-      )}
+      {/* Get Started Checklist for new users */}
+      <GetStartedChecklist />
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 border-b border-slate-200 shadow-lg">
         <div className="container mx-auto px-4 py-12">
