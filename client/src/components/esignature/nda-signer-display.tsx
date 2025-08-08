@@ -8,7 +8,7 @@ interface NdaSignerDisplayProps {
 
 export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayProps) {
   return (
-    <Card className={className}>
+    <Card className={`${className} border-0`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="w-5 h-5" />
