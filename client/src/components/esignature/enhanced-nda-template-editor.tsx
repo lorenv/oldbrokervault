@@ -778,6 +778,7 @@ export default function EnhancedNdaTemplateEditor({
                 >
                   {/* Field overlay for drag-and-drop placement */}
                   <CanvasOverlay
+                    pageNumber={1}
                     fields={fields}
                     recipients={recipients as NdaRecipient[]}
                     onFieldsChange={handleFieldsChange}
