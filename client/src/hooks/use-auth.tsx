@@ -192,10 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }, 400);
       
-      toast({
-        title: "Welcome to CIM Share! 🎉",
-        description: "Your account has been created successfully.",
-      });
+
       
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
