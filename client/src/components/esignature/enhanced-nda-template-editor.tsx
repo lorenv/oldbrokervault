@@ -160,60 +160,123 @@ export default function EnhancedNdaTemplateEditor({
   };
 
   // Function to load page images from saved template
-  const loadTemplateImages = async (fileContentUrl: string) => {
+  const loadTemplateImages = async (fileContent: string) => {
     setIsLoadingImages(true);
     try {
-      // Extract the template ID from the file content URL
-      // URL format: /api/object-storage/private/templates/{templateId}/filename.pdf
-      const templateIdMatch = fileContentUrl.match(/\/templates\/(\d+)\//);
-      if (!templateIdMatch) {
-        console.error('Could not extract template ID from file URL:', fileContentUrl);
-        return;
-      }
+      // Check if fileContent is base64 data or a URL
+      const isBase64 = !fileContent.startsWith('/') && !fileContent.startsWith('http');
       
-      const templateId = templateIdMatch[1];
-      
-      // For saved templates, we can get page count from the totalPages field
-      // or try to derive it from the existing page images in object storage
-      let pageCount = initialTemplate?.totalPages || 1;
-      
-      // If we don't have totalPages, try to discover page count by checking page images
-      if (!initialTemplate?.totalPages || initialTemplate.totalPages === 1) {
+      if (isBase64) {
+        console.log('Loading template from base64 content...');
+        // Handle base64 PDF content - convert to page images using the upload endpoint
         try {
-          // Try to fetch page 1 to see if it exists
-          const testResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-1.png`);
-          if (testResponse.ok) {
-            // Count pages by checking which ones exist
-            let discoveredPages = 1;
-            for (let i = 2; i <= 20; i++) { // Check up to 20 pages
-              const checkResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-${i}.png`);
-              if (checkResponse.ok) {
-                discoveredPages = i;
-              } else {
-                break;
-              }
-            }
-            pageCount = discoveredPages;
+          // Create a temporary blob from base64
+          const byteCharacters = atob(fileContent);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
-        } catch (error) {
-          console.warn('Could not discover page count, using default:', error);
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+          
+          // Convert blob to FormData and send to upload endpoint for processing
+          const formData = new FormData();
+          formData.append('pdf', blob, 'template.pdf');
+          
+          const response = await fetch('/api/esignature/templates/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to process PDF: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('Template processing result:', result);
+          
+          // Use the processed template data
+          setTotalPages(result.totalPages || 1);
+          
+          // Create page image objects using the temporary template ID
+          const newPageImages: PageImage[] = [];
+          for (let i = 1; i <= (result.totalPages || 1); i++) {
+            newPageImages.push({
+              pageNumber: i,
+              imageDataUrl: `/api/esignature/templates/${result.templateId}/image/${i}`,
+              width: 800,
+              height: 1100,
+            });
+          }
+          
+          setPageImages(newPageImages);
+          
+        } catch (base64Error) {
+          console.error('Error processing base64 PDF:', base64Error);
+          // Fallback to showing a placeholder
+          setTotalPages(1);
+          setPageImages([{
+            pageNumber: 1,
+            imageDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjExMDAiIHZpZXdCb3g9IjAgMCA4MDAgMTEwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIxMTAwIiBmaWxsPSIjRjlGQUZCIiBzdHJva2U9IiNFNUU3RUIiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSI0MDAiIHk9IjU1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjNkI3MjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2FkaW5nIFBERi4uLjwvdGV4dD4KPHN2Zz4K',
+            width: 800,
+            height: 1100,
+          }]);
         }
+        
+      } else {
+        console.log('Loading template from URL:', fileContent);
+        // Handle URL-based file content (existing logic)
+        const templateIdMatch = fileContent.match(/\/templates\/(\d+)\//);
+        if (!templateIdMatch) {
+          console.error('Could not extract template ID from file URL:', fileContent);
+          return;
+        }
+        
+        const templateId = templateIdMatch[1];
+        
+        // For saved templates, we can get page count from the totalPages field
+        // or try to derive it from the existing page images in object storage
+        let pageCount = initialTemplate?.totalPages || 1;
+        
+        // If we don't have totalPages, try to discover page count by checking page images
+        if (!initialTemplate?.totalPages || initialTemplate.totalPages === 1) {
+          try {
+            // Try to fetch page 1 to see if it exists
+            const testResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-1.png`);
+            if (testResponse.ok) {
+              // Count pages by checking which ones exist
+              let discoveredPages = 1;
+              for (let i = 2; i <= 20; i++) { // Check up to 20 pages
+                const checkResponse = await fetch(`/api/object-storage/private/templates/${templateId}/pages/page-${i}.png`);
+                if (checkResponse.ok) {
+                  discoveredPages = i;
+                } else {
+                  break;
+                }
+              }
+              pageCount = discoveredPages;
+            }
+          } catch (error) {
+            console.warn('Could not discover page count, using default:', error);
+          }
+        }
+        
+        setTotalPages(pageCount);
+        
+        // Create page image objects for each page
+        const newPageImages: PageImage[] = [];
+        for (let i = 1; i <= pageCount; i++) {
+          newPageImages.push({
+            pageNumber: i,
+            imageDataUrl: `/api/esignature/templates/${templateId}/image/${i}`,
+            width: 800,
+            height: 1100,
+          });
+        }
+        
+        setPageImages(newPageImages);
       }
-      
-      setTotalPages(pageCount);
-      
-      // Create page image objects for each page
-      const newPageImages: PageImage[] = [];
-      for (let i = 1; i <= pageCount; i++) {
-        newPageImages.push({
-          pageNumber: i,
-          imageDataUrl: `/api/esignature/templates/${templateId}/image/${i}`,
-          width: 800,
-          height: 1100,
-        });
-      }
-      
-      setPageImages(newPageImages);
       
     } catch (error) {
       console.error('Error loading template images:', error);
