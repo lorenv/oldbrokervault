@@ -24,7 +24,7 @@ export function GetStartedChecklist() {
   // Fetch user's documents to find the example CIM
   const { data: documentsData } = useQuery({
     queryKey: ["/api/documents"],
-    enabled: isVisible, // Only fetch when checklist is visible
+    enabled: !!user && isVisible, // Only fetch when user is logged in and checklist is visible
   });
   
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
@@ -57,7 +57,7 @@ export function GetStartedChecklist() {
       title: 'Share a CIM',
       description: 'Try sharing the example document',
       completed: false,
-      href: '/documents', // Will be updated dynamically
+      href: '/documents', // Will be updated dynamically to /cim/{id}?tab=share
       icon: Share2,
     },
   ]);
@@ -148,6 +148,8 @@ export function GetStartedChecklist() {
       }
     } else {
       console.log('📋 No documents data available:', documentsData);
+      console.log('📋 User available:', !!user);
+      console.log('📋 Checklist visible:', isVisible);
     }
   }, [documentsData, user]);
 
