@@ -79,6 +79,19 @@ export function GetStartedChecklist() {
     }
   }, [user]);
 
+  // Make checklist persistent across navigation - show it on every page load if not dismissed
+  useEffect(() => {
+    if (!user) return;
+    
+    const userId = user.id;
+    const hasCompletedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
+    
+    // Always show if not dismissed, regardless of navigation
+    if (!hasCompletedChecklist) {
+      setIsVisible(true);
+    }
+  }, [user]);
+
   // Load saved progress from localStorage and update share CIM link
   useEffect(() => {
     if (!user) return; // Wait for user data
@@ -107,10 +120,13 @@ export function GetStartedChecklist() {
       );
       
       if (exampleDoc) {
+        console.log('📋 Found example doc:', exampleDoc.id, exampleDoc.businessName);
+        const shareUrl = `/cim/${exampleDoc.id}?tab=share`;
+        console.log('📋 Setting share URL to:', shareUrl);
         setChecklistItems(items => 
           items.map(item => 
             item.id === 'share-cim' 
-              ? { ...item, href: `/cim/${exampleDoc.id}?tab=share` }
+              ? { ...item, href: shareUrl }
               : item
           )
         );
@@ -139,6 +155,7 @@ export function GetStartedChecklist() {
     localStorage.setItem(`get-started-progress-${userId}`, JSON.stringify(progress));
 
     // Navigate to the target page in the same tab
+    console.log('📋 Navigating to:', item.href);
     setLocation(item.href);
   };
 
