@@ -110,7 +110,7 @@ export function GetStartedChecklist() {
         setChecklistItems(items => 
           items.map(item => 
             item.id === 'share-cim' 
-              ? { ...item, href: `/document/${exampleDoc.id}?tab=share` }
+              ? { ...item, href: `/cim/${exampleDoc.id}?tab=share` }
               : item
           )
         );
@@ -138,7 +138,7 @@ export function GetStartedChecklist() {
     }, {} as Record<string, boolean>);
     localStorage.setItem(`get-started-progress-${userId}`, JSON.stringify(progress));
 
-    // Navigate to the target page
+    // Navigate to the target page in the same tab
     setLocation(item.href);
   };
 
