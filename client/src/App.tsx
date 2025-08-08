@@ -35,9 +35,11 @@ import SignDocumentPage from "@/pages/sign-document";
 import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
+import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
   const [location] = useLocation();
+  const { user } = useAuth();
   const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
 
   return (
@@ -81,7 +83,7 @@ function Router() {
           </Switch>
         </div>
         {!isSharePage && <Footer />}
-        {!isSharePage && <GetStartedChecklist />}
+        {!isSharePage && user && <GetStartedChecklist />}
       </div>
     </>
   );
