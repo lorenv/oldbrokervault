@@ -128,44 +128,35 @@ export class ExampleAssetsCreator {
     financialDocuments: { name: string; url: string }[];
     businessContent?: any;
   }> {
-    // Load and upload real business images
-    const businessImages = this.loadRealBusinessImages();
-    const uploadedBusinessImages: string[] = [];
+    // Use static public URLs for business images to avoid cross-origin issues
+    const uploadedBusinessImages = [
+      '/example-assets/business-images/transmission-shop-1.jpg',
+      '/example-assets/business-images/transmission-shop-2.jpg',
+      '/example-assets/business-images/transmission-shop-3.jpg',
+      '/example-assets/business-images/transmission-shop-4.jpg'
+    ];
 
-    for (const image of businessImages) {
-      const storageKey = `users/example/business-images/${image.name}`;
-      
-      await objectStorage.uploadImage(image.buffer, storageKey);
-      uploadedBusinessImages.push(`/api/object-storage/${storageKey}`);
-    }
+    // Use static public URL for logo
+    const logoUrl = '/example-assets/logos/tonys-logo.png';
 
-    // Load and upload real logo
-    const logoBuffer = this.loadRealLogo();
-    const logoStorageKey = 'users/example/logos/tonys-logo.png';
-    
-    await objectStorage.uploadImage(logoBuffer, logoStorageKey);
-    const logoUrl = `/api/object-storage/${logoStorageKey}`;
+    // Use static public URL for cover image
+    const coverImageUrl = '/example-assets/cover-images/tonys-cover.jpg';
 
-    // Load and upload real cover image
-    const coverBuffer = this.loadRealCoverImage();
-    const coverStorageKey = 'users/example/cover-images/tonys-cover.jpg';
-    
-    await objectStorage.uploadImage(coverBuffer, coverStorageKey);
-    const coverImageUrl = `/api/object-storage/${coverStorageKey}`;
-
-    // Load and upload real financial documents
-    const financialDocs = this.loadRealFinancialDocuments();
-    const uploadedFinancialDocs: { name: string; url: string }[] = [];
-
-    for (const doc of financialDocs) {
-      const storageKey = `users/example/financial-files/${doc.name}`;
-      
-      await objectStorage.uploadImage(doc.buffer, storageKey);
-      uploadedFinancialDocs.push({
-        name: doc.name,
-        url: `/api/object-storage/${storageKey}`
-      });
-    }
+    // Use static public URLs for financial documents
+    const uploadedFinancialDocs = [
+      {
+        name: 'Balance Sheets_1754605045862.xls',
+        url: '/example-assets/financial-files/Balance Sheets_1754605045862.xls'
+      },
+      {
+        name: 'Monthly-Profit-Loss-Statement-Template-TemplateLab_1754605045862.xlsx', 
+        url: '/example-assets/financial-files/Monthly-Profit-Loss-Statement-Template-TemplateLab_1754605045862.xlsx'
+      },
+      {
+        name: 'Contracts_1754605045862.doc',
+        url: '/example-assets/financial-files/Contracts_1754605045862.doc'
+      }
+    ];
 
     // Load real business content
     const businessContent = this.loadRealBusinessContent();
