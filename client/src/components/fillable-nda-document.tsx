@@ -233,24 +233,22 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // CONSISTENT POSITIONING: Use same system as template editor (800px fixed width)
-              // Calculate display scale based on consistent 800px width (same as ImagePdfEditor)
+              // FIXED COORDINATE SYSTEM: Template editor saves percentage coordinates (0-100)
+              // Convert percentage coordinates to pixel positions for 800px display width
               const FIXED_DISPLAY_WIDTH = 800;
-              const displayScaleX = FIXED_DISPLAY_WIDTH / pageData.width;
-              const displayScaleY = displayScaleX; // Maintain aspect ratio
+              const displayHeight = (pageData.height / pageData.width) * FIXED_DISPLAY_WIDTH;
               
-              // Convert PDF coordinates to absolute pixel positioning (same as template editor)
-              const fieldXPixels = field.x * displayScaleX;
-              const fieldYPixels = field.y * displayScaleY;
-              // FIXED: Use actual field dimensions from template, not hardcoded sizes
-              const fieldWidthPixels = (field.width || 120) * displayScaleX; // Use template field width
-              const fieldHeightPixels = (field.height || 30) * displayScaleY; // Use template field height
+              // Convert percentage coordinates to pixel positions
+              const fieldXPixels = (field.x / 100) * FIXED_DISPLAY_WIDTH;
+              const fieldYPixels = (field.y / 100) * displayHeight;
+              const fieldWidthPixels = (field.width / 100) * FIXED_DISPLAY_WIDTH;
+              const fieldHeightPixels = (field.height / 100) * displayHeight;
               
-              console.log(`Field ${field.id} consistent positioning:`, {
-                original: { x: field.x, y: field.y, w: field.width, h: field.height },
-                scale: { x: displayScaleX, y: displayScaleY },
+              console.log(`Field ${field.id} coordinate conversion:`, {
+                percentages: { x: field.x, y: field.y, w: field.width, h: field.height },
+                displaySize: { w: FIXED_DISPLAY_WIDTH, h: displayHeight },
                 pixels: { x: fieldXPixels, y: fieldYPixels, w: fieldWidthPixels, h: fieldHeightPixels },
-                pageSize: { w: pageData.width, h: pageData.height }
+                originalPageSize: { w: pageData.width, h: pageData.height }
               });
               
               const style = {
