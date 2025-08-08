@@ -738,47 +738,53 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
       {/* Enhanced Page Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
             Account Settings
           </h1>
         </div>
-        <p className="text-gray-600">Manage your account, security, and preferences</p>
+        <p className="text-sm sm:text-base text-gray-600">Manage your account, security, and preferences</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className={`grid w-full ${isAuthorizedAdmin(user) ? 'grid-cols-5' : 'grid-cols-4'}`}>
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <Lock className="h-4 w-4" />
-            Account & Security
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        {/* Mobile-optimized TabsList with scrollable tabs */}
+        <div className="w-full overflow-x-auto">
+          <TabsList className={`flex w-max min-w-full md:grid md:w-full ${isAuthorizedAdmin(user) ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-1 p-1`}>
+          <TabsTrigger value="account" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+            <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Account & Security</span>
+            <span className="sm:hidden">Account</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Profile & Business
+          <TabsTrigger value="profile" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+            <User className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Profile & Business</span>
+            <span className="sm:hidden">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+          <TabsTrigger value="templates" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
             Templates
           </TabsTrigger>
-          <TabsTrigger value="billing" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Subscription
+          <TabsTrigger value="billing" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+            <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Subscription</span>
+            <span className="sm:hidden">Billing</span>
           </TabsTrigger>
           {isAuthorizedAdmin(user) && (
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Admin Tools
+            <TabsTrigger value="admin" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+              Admin
             </TabsTrigger>
           )}
-        </TabsList>
+          </TabsList>
+        </div>
 
         {/* Account & Security Tab */}
-        <TabsContent value="account" className="space-y-6">
-          <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+        <TabsContent value="account" className="space-y-4 sm:space-y-6">
+          <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-3 sm:pb-4 pt-4 sm:pt-6 px-4 sm:px-6 shadow-lg">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
                   <Lock className="h-4 w-4 text-white" />
@@ -791,9 +797,9 @@ export default function AccountPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-8">
+            <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                   <FormField
                     control={form.control}
                     name="email"
@@ -808,7 +814,7 @@ export default function AccountPage() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField
                       control={form.control}
                       name="newPassword"
@@ -866,11 +872,11 @@ export default function AccountPage() {
         </TabsContent>
 
         {/* Profile & Business Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
+        <TabsContent value="profile" className="space-y-4 sm:space-y-6">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Personal Information */}
-            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-emerald-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+              <CardHeader className="bg-gradient-to-r from-emerald-600 to-slate-700 pb-3 sm:pb-4 pt-4 sm:pt-6 px-4 sm:px-6 shadow-lg">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
                     <User className="h-4 w-4 text-white" />
@@ -883,7 +889,7 @@ export default function AccountPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4 pt-8">
+              <CardContent className="space-y-3 sm:space-y-4 pt-6 sm:pt-8 px-4 sm:px-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
@@ -920,8 +926,8 @@ export default function AccountPage() {
             </Card>
 
             {/* Profile Photo */}
-            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-              <CardHeader className="bg-gradient-to-r from-sky-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
+            <Card className="lg:col-span-1 border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
+              <CardHeader className="bg-gradient-to-r from-sky-600 to-slate-700 pb-3 sm:pb-4 pt-4 sm:pt-6 px-4 sm:px-6 shadow-lg">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
                     <Camera className="h-4 w-4 text-white" />
@@ -934,10 +940,10 @@ export default function AccountPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-8">
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+              <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
+                <div className="border-2 border-dashed border-muted rounded-lg p-4 sm:p-6 text-center">
                   {profileForm.profilePhoto ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <img
                         src={profileForm.profilePhoto}
                         alt="Profile Photo"

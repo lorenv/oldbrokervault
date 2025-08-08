@@ -58,7 +58,7 @@ function Router() {
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/messages" component={Messages} />
             <ProtectedRoute path="/account" component={AccountPage} />
-            <ProtectedRoute path="/profile" component={ProfilePage} />
+            <ProtectedRoute path="/profile" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
