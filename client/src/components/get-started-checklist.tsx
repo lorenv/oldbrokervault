@@ -21,9 +21,9 @@ export function GetStartedChecklist() {
   const [_, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // Fetch user's documents to find the example CIM
+  // Fetch user's documents to find the example CIM (using /api/cim endpoint)
   const { data: documentsData } = useQuery({
-    queryKey: ["/api/documents"],
+    queryKey: ["/api/cim"],
     enabled: !!user && isVisible, // Only fetch when user is logged in and checklist is visible
   });
   
@@ -115,9 +115,16 @@ export function GetStartedChecklist() {
     // Update the share CIM link if we have documents data
     if (documentsData && (documentsData as any).documents) {
       const documents = (documentsData as any).documents;
-      console.log('📋 All documents:', documents.map((d: any) => ({ id: d.id, businessName: d.businessName })));
+      console.log('📋 All documents:', documents.map((d: any) => ({ 
+        id: d.id, 
+        title: d.title, 
+        isExample: d.isExample,
+        hasAnalysis: !!d.analysis || !!d.businessName 
+      })));
       const exampleDoc = documents.find((doc: any) => 
-        doc.businessName && doc.businessName.toLowerCase().includes("tony") && doc.businessName.toLowerCase().includes("transmission")
+        (doc.title && doc.title.toLowerCase().includes("tony") && doc.title.toLowerCase().includes("transmission")) ||
+        (doc.businessName && doc.businessName.toLowerCase().includes("tony") && doc.businessName.toLowerCase().includes("transmission")) ||
+        doc.isExample === true
       );
       
       if (exampleDoc) {
