@@ -153,7 +153,7 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
 }
 
 // Function to render formatted text with PDFKit
-function renderFormattedText(doc: PDFDocument, formattedText: { content: string; format: Array<{type: string, text: string, start: number, end: number}> }, options: any = {}) {
+function renderFormattedText(doc: any, formattedText: { content: string; format: Array<{type: string, text: string, start: number, end: number}> }, options: any = {}) {
   const { content, format } = formattedText;
   
   if (!content.trim()) return;
@@ -2647,8 +2647,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       }
 
       // First render all analysis sections (generated content)
+      // Handle both legacy .sections array format and new object format
+      let sectionsToProcess: Array<{title: string, content: string}> = [];
+      
       if (analysis.sections && Array.isArray(analysis.sections)) {
-        analysis.sections.forEach((section: any, index: number) => {
+        // Legacy format: analysis.sections = [{title: "...", content: "..."}, ...]
+        sectionsToProcess = analysis.sections;
+        console.log("📄 USING LEGACY SECTIONS FORMAT:", sectionsToProcess.length, "sections");
+      } else if (analysis && typeof analysis === 'object') {
+        // New format: analysis = {"Section Title": "content...", "Another Title": "content..."}
+        sectionsToProcess = Object.entries(analysis)
+          .filter(([key, value]) => typeof value === 'string' && value.trim().length > 0)
+          .map(([title, content]) => ({ title, content: content as string }));
+        console.log("📄 USING OBJECT SECTIONS FORMAT:", sectionsToProcess.length, "sections");
+        console.log("📄 SECTION TITLES:", sectionsToProcess.map(s => s.title));
+      }
+      
+      if (sectionsToProcess.length > 0) {
+        sectionsToProcess.forEach((section: any, index: number) => {
           // Add page break before Executive Summary section
           if (section.title && section.title.toLowerCase().includes('executive summary')) {
             doc.addPage();
@@ -2782,7 +2798,14 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           doc.moveDown(2);
         });
-      } else if (analysis.story) {
+      } else {
+        console.log("⚠️  NO ANALYSIS SECTIONS FOUND");
+        console.log("📊 ANALYSIS STRUCTURE:", typeof analysis);
+        console.log("📊 ANALYSIS KEYS:", analysis ? Object.keys(analysis) : 'null');
+      }
+      
+      // Legacy fallback for old format
+      if (analysis && analysis.story) {
         // Fallback to old format if no sections
         doc.fontSize(18)
            .font('Helvetica-Bold')
