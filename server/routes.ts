@@ -6974,6 +6974,14 @@ ${finalQuestion}
     }
   });
 
+  // CORS preflight handler for object storage
+  app.options("/api/object-storage/*", (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.status(200).end();
+  });
+
   // Serve object storage images endpoint
   app.get("/api/object-storage/*", async (req, res) => {
     try {
@@ -7006,6 +7014,11 @@ ${finalQuestion}
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
       res.setHeader('ETag', `"${storageKey}"`);
+      
+      // Add explicit CORS headers for cross-origin image loading
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', '*');
       
       // Send the image buffer
       res.send(imageBuffer);
