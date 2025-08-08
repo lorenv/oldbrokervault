@@ -197,11 +197,11 @@ export default function EnhancedNdaTemplateEditor({
           console.log('Template processing result:', result);
           
           // Use the processed template data
-          setTotalPages(result.totalPages || 1);
+          setTotalPages(result.pageCount || 1);
           
           // Create page image objects using the temporary template ID
           const newPageImages: PageImage[] = [];
-          for (let i = 1; i <= (result.totalPages || 1); i++) {
+          for (let i = 1; i <= (result.pageCount || 1); i++) {
             newPageImages.push({
               pageNumber: i,
               imageDataUrl: `/api/esignature/templates/${result.templateId}/image/${i}`,
