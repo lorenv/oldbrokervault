@@ -18,7 +18,6 @@ interface ChecklistItem {
 export function GetStartedChecklist() {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isDismissing, setIsDismissing] = useState(false);
   const [_, setLocation] = useLocation();
   const { user } = useAuth();
 
@@ -188,12 +187,8 @@ export function GetStartedChecklist() {
 
   const handleDismiss = () => {
     if (!user) return;
-    setIsDismissing(true);
-    // Wait for animation to complete before hiding
-    setTimeout(() => {
-      setIsVisible(false);
-      localStorage.setItem(`get-started-checklist-dismissed-${user.id}`, 'true');
-    }, 400); // Match the animation duration
+    setIsVisible(false);
+    localStorage.setItem(`get-started-checklist-dismissed-${user.id}`, 'true');
   };
 
   const toggleExpanded = () => {
@@ -204,9 +199,7 @@ export function GetStartedChecklist() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80">
-      <Card className={`shadow-lg border border-gray-200 bg-white transition-all duration-400 ${
-        isDismissing ? 'animate-poof' : ''
-      }`}>
+      <Card className="shadow-lg border border-gray-200 bg-white">
         <div className="p-4 pb-2">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
