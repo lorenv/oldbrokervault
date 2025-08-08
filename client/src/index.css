@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Poof animation for checklist dismiss */
+@keyframes poof {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(0) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+.animate-poof {
+  animation: poof 0.4s ease-in-out forwards;
+}
+
 @layer base {
   * {
     border-color: hsl(var(--border));
