@@ -45,21 +45,6 @@ export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayPro
           </div>
         </div>
 
-        {/* Info section */}
-        <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-          <div className="flex items-start gap-3">
-            <FileText className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-amber-800">
-              <div className="font-medium mb-1">NDA Share Link Workflow:</div>
-              <ul className="space-y-1 text-amber-700">
-                <li>• When someone clicks your share link, they'll encounter this NDA first</li>
-                <li>• They must complete all required signature fields to proceed</li>
-                <li>• No pre-registration or email verification needed</li>
-                <li>• Their signature information is captured securely with audit trails</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
