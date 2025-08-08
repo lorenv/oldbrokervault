@@ -208,7 +208,7 @@ export default function DocumentsPage() {
                                 <img 
                                   src={doc.logoUrl} 
                                   alt="Company logo" 
-                                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-gray-200"
+                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-gray-200"
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                   }}
