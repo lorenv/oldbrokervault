@@ -28,7 +28,6 @@ import JSZip from 'jszip';
 import sharp from 'sharp';
 import archiver from 'archiver';
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
-import { addSignatureToNda } from "./pdf-utils";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
@@ -6280,19 +6279,14 @@ ${finalQuestion}
           // Embed fields into PDF
           signedNdaContent = await processor.embedFields(ndaTemplate.signatureFields, processedFieldValues);
           
-          // Add completion certificate
-          await processor.addCompletionCertificate(signerName, signerEmail, signedAt);
+          // Document is complete when all fields are filled - no additional pages needed
           signedNdaContent = await processor.saveAsBase64();
           
         } else {
-          console.log("Using legacy signature processing (no signature fields)");
-          signedNdaContent = await addSignatureToNda(
-            ndaTemplate.fileContent,
-            signerName,
-            signedAt,
-            signerEmail,
-            signerIpAddress
-          );
+          console.log("Using original document without appending signature pages");
+          // For documents without signature fields, just use the original content
+          // The signature will be recorded in the database without modifying the PDF
+          signedNdaContent = ndaTemplate.fileContent;
         }
         console.log("Signed NDA content created successfully");
 
