@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { FileText, PenTool, Users } from 'lucide-react';
+import { Users, FileText } from 'lucide-react';
 
 interface NdaSignerDisplayProps {
   className?: string;
@@ -23,28 +22,23 @@ export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayPro
             {/* Signer indicator */}
             <div className="flex-shrink-0">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                <PenTool className="w-6 h-6" />
+                <FileText className="w-6 h-6" />
               </div>
             </div>
-            
+
             {/* Signer info */}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">NDA Signer</h3>
-                <Badge className="bg-blue-100 text-blue-800">
-                  <PenTool className="w-3 h-3 mr-1" />
-                  Designated Signer
-                </Badge>
               </div>
-              
+
               <p className="text-gray-600 text-sm leading-relaxed">
-                This represents whoever will sign the NDA when they access it through a share link. 
+                This represents whoever will sign the NDA when they access it through a share link.
                 All signature fields you place will be assigned to this designated signer.
               </p>
             </div>
           </div>
         </div>
-
       </CardContent>
     </Card>
   );
