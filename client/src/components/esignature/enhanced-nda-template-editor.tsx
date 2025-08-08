@@ -399,7 +399,14 @@ export default function EnhancedNdaTemplateEditor({
         name: templateName,
         fileContent: pdfBase64,
         signatureFields: fields,
-        recipients: recipients
+        recipients: recipients,
+        totalPages: totalPages,
+        pageImages: pageImages.map(img => ({
+          pageNumber: img.pageNumber,
+          imageDataUrl: img.imageDataUrl,
+          width: img.width,
+          height: img.height
+        }))
       };
       
 

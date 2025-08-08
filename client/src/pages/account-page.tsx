@@ -190,12 +190,16 @@ function TemplatesContent() {
     fileContent: string;
     signatureFields: any[];
     recipients?: any[];
+    totalPages?: number;
+    pageImages?: any[];
   }) => {
     createTemplateMutation.mutate({
       name: data.name,
       fileContent: data.fileContent,
       signatureFields: data.signatureFields,
-      recipients: data.recipients || []
+      recipients: data.recipients || [],
+      totalPages: data.totalPages,
+      pageImages: data.pageImages
     });
   };
 
@@ -204,6 +208,8 @@ function TemplatesContent() {
     fileContent: string;
     signatureFields: any[];
     recipients?: any[];
+    totalPages?: number;
+    pageImages?: any[];
   }) => {
     if (editingTemplate) {
       updateTemplateMutation.mutate({
@@ -211,7 +217,9 @@ function TemplatesContent() {
         name: data.name,
         fileContent: data.fileContent,
         signatureFields: data.signatureFields,
-        recipients: data.recipients || []
+        recipients: data.recipients || [],
+        totalPages: data.totalPages,
+        pageImages: data.pageImages
       });
     }
   };

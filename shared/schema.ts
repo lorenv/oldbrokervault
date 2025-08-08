@@ -534,7 +534,8 @@ export const insertNdaTemplateSchema = createInsertSchema(ndaTemplates).pick({
   recipients: z.array(templateRecipientSchema).optional(),
   pageImages: z.array(z.object({
     pageNumber: z.number(),
-    imagePath: z.string(),
+    imageDataUrl: z.string().optional(),
+    imagePath: z.string().optional(),
     width: z.number(),
     height: z.number()
   })).optional(),

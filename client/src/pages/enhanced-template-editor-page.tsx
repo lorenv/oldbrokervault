@@ -30,6 +30,8 @@ export default function EnhancedTemplateEditorPage() {
     fileContent: string;
     signatureFields: any[];
     recipients?: any[];
+    totalPages?: number;
+    pageImages?: any[];
   }) => {
     console.log('Template saved:', data);
     
@@ -40,7 +42,9 @@ export default function EnhancedTemplateEditorPage() {
           name: data.name,
           fileContent: data.fileContent,
           signatureFields: data.signatureFields,
-          recipients: data.recipients || []
+          recipients: data.recipients || [],
+          totalPages: data.totalPages,
+          pageImages: data.pageImages
         });
 
         toast({
@@ -53,7 +57,9 @@ export default function EnhancedTemplateEditorPage() {
           name: data.name,
           fileContent: data.fileContent,
           signatureFields: data.signatureFields,
-          recipients: data.recipients || []
+          recipients: data.recipients || [],
+          totalPages: data.totalPages,
+          pageImages: data.pageImages
         });
 
         toast({
