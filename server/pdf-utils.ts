@@ -310,6 +310,240 @@ export function addSignatureToNda(
   });
 }
 
+// Function that only adds certificate of completion (no signature page)
+export function addCertificateToNda(
+  originalNdaBase64: string,
+  signerName: string,
+  signedDate: Date,
+  signerEmail?: string,
+  signerIpAddress?: string
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    console.log('🔄 Starting certificate-only NDA processing...');
+    console.log('📄 Original NDA size:', originalNdaBase64.length, 'characters');
+    console.log('✍️ Signer:', signerName);
+    console.log('📅 Date:', signedDate.toISOString());
+    
+    try {
+      
+      // Use pdf-lib for proper PDF manipulation
+      (async () => {
+        try {
+          console.log('📖 Loading original PDF...');
+          // Load the original NDA PDF
+          const originalPdfBytes = Buffer.from(originalNdaBase64, 'base64');
+          console.log('📊 PDF bytes length:', originalPdfBytes.length);
+          
+          const pdfDoc = await pdfLib.PDFDocument.load(originalPdfBytes);
+          console.log('✅ Original PDF loaded successfully, pages:', pdfDoc.getPageCount());
+          
+          // Create Certificate of Completion page (skip signature page)
+          const certificatePage = pdfDoc.addPage([612, 792]);
+          const certWidth = certificatePage.getSize().width;
+          const certHeight = certificatePage.getSize().height;
+          
+          // Draw grey header background (DocuSign style)
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 120,
+            width: certWidth,
+            height: 80,
+            color: pdfLib.rgb(0.9, 0.9, 0.9),
+          });
+          
+          // Certificate header in bold
+          const headerFont = await pdfDoc.embedFont(pdfLib.StandardFonts.HelveticaBold);
+          certificatePage.drawText('Certificate of Completion', {
+            x: 50,
+            y: certHeight - 70,
+            size: 18,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
+          
+          // Status indicator
+          certificatePage.drawText('Status: Completed', {
+            x: certWidth - 150,
+            y: certHeight - 70,
+            size: 12,
+            font: headerFont,
+            color: pdfLib.rgb(0.0, 0.6, 0.0),
+          });
+          
+          // Document details section
+          const regularFont = await pdfDoc.embedFont(pdfLib.StandardFonts.Helvetica);
+          
+          // Document information box
+          certificatePage.drawRectangle({
+            x: 30,
+            y: certHeight - 220,
+            width: certWidth - 60,
+            height: 80,
+            borderColor: pdfLib.rgb(0.8, 0.8, 0.8),
+            borderWidth: 1,
+          });
+          
+          certificatePage.drawText('Document: Non-Disclosure Agreement', {
+            x: 50,
+            y: certHeight - 160,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          certificatePage.drawText(`Signer: ${signerName}`, {
+            x: 50,
+            y: certHeight - 180,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          certificatePage.drawText(`Email: ${signerEmail || 'Not provided'}`, {
+            x: 50,
+            y: certHeight - 200,
+            size: 12,
+            font: regularFont,
+            color: pdfLib.rgb(0.3, 0.3, 0.3),
+          });
+          
+          // Signature section header
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 280,
+            width: certWidth,
+            height: 30,
+            color: pdfLib.rgb(0.95, 0.95, 0.95),
+          });
+          
+          certificatePage.drawText('Signature Events', {
+            x: 50,
+            y: certHeight - 270,
+            size: 14,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
+          
+          // Signature details
+          certificatePage.drawText(`Signed: ${signedDate.toLocaleString()}`, {
+            x: 50,
+            y: certHeight - 320,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText(`IP Address: ${signerIpAddress || 'Not recorded'}`, {
+            x: 50,
+            y: certHeight - 340,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText('Security Level: Email Verification', {
+            x: 50,
+            y: certHeight - 360,
+            size: 12,
+            font: regularFont,
+          });
+          
+          // Record tracking section
+          certificatePage.drawRectangle({
+            x: 0,
+            y: certHeight - 430,
+            width: certWidth,
+            height: 30,
+            color: pdfLib.rgb(0.95, 0.95, 0.95),
+          });
+          
+          certificatePage.drawText('Record Tracking', {
+            x: 50,
+            y: certHeight - 420,
+            size: 14,
+            font: headerFont,
+            color: pdfLib.rgb(0.2, 0.2, 0.2),
+          });
+          
+          certificatePage.drawText('Status: Original', {
+            x: 50,
+            y: certHeight - 460,
+            size: 12,
+            font: regularFont,
+          });
+          
+          certificatePage.drawText(`Document ID: CIM-NDA-${Date.now().toString().slice(-8)}`, {
+            x: 50,
+            y: certHeight - 480,
+            size: 12,
+            font: regularFont,
+          });
+          
+          // Legal compliance footer
+          certificatePage.drawText('Electronic Record and Signature Disclosure:', {
+            x: 50,
+            y: certHeight - 540,
+            size: 10,
+            font: headerFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
+          });
+          
+          certificatePage.drawText('This document has been completed in compliance with the Electronic Signatures', {
+            x: 50,
+            y: certHeight - 560,
+            size: 9,
+            font: regularFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
+          });
+          
+          certificatePage.drawText('in Global and National Commerce Act (ESIGN) and applicable state laws.', {
+            x: 50,
+            y: certHeight - 575,
+            size: 9,
+            font: regularFont,
+            color: pdfLib.rgb(0.4, 0.4, 0.4),
+          });
+          
+          console.log('📝 Adding certificate of completion...');
+          
+          // Save the modified PDF
+          console.log('💾 Saving final PDF...');
+          const pdfBytes = await pdfDoc.save();
+          console.log('📊 Final PDF size:', pdfBytes.length, 'bytes');
+          
+          const base64 = Buffer.from(pdfBytes).toString('base64');
+          console.log('✅ PDF certificate creation completed successfully');
+          console.log('📤 Base64 output size:', base64.length, 'characters');
+          resolve(base64);
+          
+        } catch (error) {
+          console.error('❌ PDF processing error:', error);
+          console.log('🔄 Falling back to simple PDF creation...');
+          // Fallback to simple PDF creation
+          const doc = new PDFDocument();
+          const chunks: Buffer[] = [];
+
+          doc.on('data', (chunk) => chunks.push(chunk));
+          doc.on('end', () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            const base64 = pdfBuffer.toString('base64');
+            resolve(base64);
+          });
+
+          // Simple fallback content - certificate only
+          doc.fontSize(12).text('NDA Document', 50, 50);
+          doc.addPage();
+          doc.fontSize(16).text('Certificate of Completion', 50, 50, { align: 'center' });
+          doc.fontSize(12).text(`Document signed by: ${signerName}`, 50, 100);
+          doc.fontSize(12).text(`Date: ${signedDate.toLocaleDateString()}`, 50, 120);
+          doc.end();
+        }
+      })();
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 // Alternative function for when we have better PDF manipulation
 export async function appendSignatureToExistingPdf(
   originalNdaBase64: string,
