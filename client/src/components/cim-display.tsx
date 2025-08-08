@@ -175,19 +175,22 @@ export function CimDisplay({
 
   // State for section management - convert sections object to array if needed
   const initializeSections = () => {
-    if (!analysis?.sections) return [];
+    // Check if sections are stored in analysis.sections or directly in analysis
+    const sectionsData = analysis?.sections || analysis;
+    
+    if (!sectionsData) return [];
 
     // If sections is already an array, use it directly
-    if (Array.isArray(analysis.sections)) {
-      return analysis.sections;
+    if (Array.isArray(sectionsData)) {
+      return sectionsData;
     }
 
     // If sections is an object, convert to array format
-    if (typeof analysis.sections === 'object') {
-      return Object.entries(analysis.sections).map(([key, value]: [string, any]) => ({
+    if (typeof sectionsData === 'object') {
+      return Object.entries(sectionsData).map(([key, value]: [string, any]) => ({
         id: key,
-        title: value.title || key,
-        content: value.content || value,
+        title: key,
+        content: typeof value === 'string' ? value : value.content || value,
         ...value
       }));
     }
@@ -200,7 +203,16 @@ export function CimDisplay({
 
   // Update sections when analysis changes (e.g., when switching documents)
   useEffect(() => {
-    setSections(initializeSections());
+    const newSections = initializeSections();
+    console.log("🔍 CimDisplay sections debug:", {
+      analysis: analysis,
+      sectionsFromAnalysis: analysis?.sections,
+      sectionsType: typeof analysis?.sections,
+      isArray: Array.isArray(analysis?.sections),
+      newSections: newSections,
+      newSectionsCount: newSections.length
+    });
+    setSections(newSections);
   }, [analysis]);
   const [confirmDeleteSectionId, setConfirmDeleteSectionId] = useState<string | null>(null);
   const [addSectionDialogOpen, setAddSectionDialogOpen] = useState(false);
@@ -406,6 +418,7 @@ export function CimDisplay({
 
   // Create truly unified sections list by merging regular and custom sections into one sortable array
   const createUnifiedSections = () => {
+    console.log("🔍 Creating unified sections, regular sections count:", sections.length, sections);
     // Start with all regular sections
     const regularSectionItems = sections.map((section: any, index: number) => ({
       id: section.id || section.title || `section-${index}`,
