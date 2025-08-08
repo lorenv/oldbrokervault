@@ -415,10 +415,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
       return await res.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Account Created Successfully",
-        description: "Welcome to CIM Share! You can now create your first document.",
-      });
+      // Set flag for get started checklist
+      localStorage.setItem('show-get-started-checklist', 'true');
       // Trigger a page reload to update authentication state
       window.location.reload();
     },
