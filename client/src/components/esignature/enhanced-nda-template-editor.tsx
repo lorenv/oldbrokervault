@@ -77,7 +77,6 @@ export default function EnhancedNdaTemplateEditor({
   const [pageImages, setPageImages] = useState<PageImage[]>([]);
   const [selectedField, setSelectedField] = useState<EnhancedSignatureField | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Partial<NdaRecipient> | null>(null);
   const [totalPages, setTotalPages] = useState(1);
@@ -355,9 +354,6 @@ export default function EnhancedNdaTemplateEditor({
   }, [toast]);
 
   // Image-based document viewer (replaces PDF conversion)
-  const getCurrentPageImage = () => {
-    return pageImages.find(img => img.pageNumber === currentPage);
-  };
 
   // Handle field updates
   const handleFieldsChange = useCallback((updatedFields: EnhancedSignatureField[]) => {
@@ -776,15 +772,13 @@ export default function EnhancedNdaTemplateEditor({
               ) : (
                 <ImageDocumentViewer
                   pageImages={pageImages}
-                  currentPage={currentPage}
-                  onPageChange={setCurrentPage}
                   zoom={zoom}
                   onZoomChange={setZoom}
                   className="h-full"
                 >
                   {/* Field overlay for drag-and-drop placement */}
                   <CanvasOverlay
-                    pageNumber={currentPage}
+                    pageImages={pageImages}
                     fields={fields}
                     recipients={recipients as NdaRecipient[]}
                     onFieldsChange={handleFieldsChange}

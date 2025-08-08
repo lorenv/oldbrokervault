@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,8 +12,6 @@ interface PageImage {
 
 interface ImageDocumentViewerProps {
   pageImages: PageImage[];
-  currentPage: number;
-  onPageChange: (page: number) => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   children?: React.ReactNode; // For field overlays
@@ -22,224 +20,188 @@ interface ImageDocumentViewerProps {
 
 export default function ImageDocumentViewer({
   pageImages,
-  currentPage,
-  onPageChange,
   zoom,
   onZoomChange,
   children,
   className = ''
 }: ImageDocumentViewerProps) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [imageLoadedStates, setImageLoadedStates] = useState<{[key: number]: boolean}>({});
+  const [imageErrorStates, setImageErrorStates] = useState<{[key: number]: boolean}>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const currentPageImage = pageImages.find(img => img.pageNumber === currentPage);
   const totalPages = pageImages.length;
 
-  const handlePreviousPage = useCallback(() => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1);
-      setImageLoaded(false);
-    }
-  }, [currentPage, onPageChange]);
+  const handleImageLoad = useCallback((pageNumber: number) => {
+    setImageLoadedStates(prev => ({ ...prev, [pageNumber]: true }));
+  }, []);
 
-  const handleNextPage = useCallback(() => {
-    if (currentPage < totalPages) {
-      onPageChange(currentPage + 1);
-      setImageLoaded(false);
-    }
-  }, [currentPage, totalPages, onPageChange]);
+  const handleImageError = useCallback((pageNumber: number) => {
+    setImageErrorStates(prev => ({ ...prev, [pageNumber]: true }));
+  }, []);
 
   const handleZoomIn = useCallback(() => {
-    onZoomChange(Math.min(zoom * 1.2, 3));
+    const newZoom = Math.min(zoom * 1.2, 3);
+    onZoomChange(newZoom);
   }, [zoom, onZoomChange]);
 
   const handleZoomOut = useCallback(() => {
-    onZoomChange(Math.max(zoom / 1.2, 0.3));
+    const newZoom = Math.max(zoom / 1.2, 0.25);
+    onZoomChange(newZoom);
   }, [zoom, onZoomChange]);
 
   const handleResetZoom = useCallback(() => {
     onZoomChange(1);
   }, [onZoomChange]);
 
-  const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    setImageError(false);
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setImageLoaded(false);
-    setImageError(true);
-  }, []);
-
-  if (!currentPageImage) {
+  if (!pageImages || pageImages.length === 0) {
     return (
-      <div className={`flex items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-lg ${className}`}>
-        <div className="text-center p-8">
-          <div className="text-slate-400 mb-2">
-            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-1">No document loaded</h3>
-          <p className="text-sm text-slate-500">Upload a PDF to get started</p>
-        </div>
+      <div className={`flex items-center justify-center h-96 bg-gray-100 rounded-lg ${className}`}>
+        <p className="text-gray-500">No document pages available</p>
       </div>
     );
   }
 
   return (
-    <div className={`relative flex flex-col bg-white border border-slate-200 rounded-lg overflow-hidden ${className}`}>
-      {/* Document Controls */}
-      <div className="flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePreviousPage}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex items-center space-x-2">
-            <Badge variant="secondary">
-              Page {currentPage} of {totalPages}
-            </Badge>
-            <Badge 
-              variant="outline" 
-              className={`text-xs ${
-                currentPageImage.width > currentPageImage.height 
-                  ? 'text-orange-600 border-orange-300 bg-orange-50' 
-                  : 'text-blue-600 border-blue-300 bg-blue-50'
-              }`}
-            >
-              {currentPageImage.width > currentPageImage.height ? 'Landscape' : 'Portrait'}
-            </Badge>
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={currentPage >= totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+    <div className={`relative w-full h-full bg-gray-50 ${className}`} ref={containerRef}>
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-white rounded-lg shadow-md p-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleZoomOut}
+          disabled={zoom <= 0.25}
+          className="p-2"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </Button>
+        
+        <div className="flex items-center px-3 py-1 bg-gray-100 rounded text-sm font-medium min-w-[60px] justify-center">
+          {Math.round(zoom * 100)}%
         </div>
-
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleZoomOut}
-            disabled={zoom <= 0.3}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          
-          <Badge variant="outline" className="min-w-16">
-            {Math.round(zoom * 100)}%
-          </Badge>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleZoomIn}
-            disabled={zoom >= 3}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleResetZoom}
-            disabled={zoom === 1}
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleZoomIn}
+          disabled={zoom >= 3}
+          className="p-2"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </Button>
+        
+        <div className="border-l border-gray-300 h-6 my-1"></div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleResetZoom}
+          className="p-2"
+          title="Reset zoom"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </Button>
       </div>
 
-      {/* Document Viewer */}
-      <div 
-        ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-100 relative"
-        style={{ minHeight: '600px' }}
-      >
-        {/* Detect orientation and adjust container accordingly */}
-        <div className={`p-4 ${currentPageImage.width > currentPageImage.height ? 'min-w-fit' : 'flex justify-center'}`}>
-          <div 
-            className="relative bg-white shadow-lg"
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: currentPageImage.width > currentPageImage.height ? 'top left' : 'top center',
-              transition: 'transform 0.2s ease',
-              // Ensure landscape pages have proper width allowance
-              minWidth: currentPageImage.width > currentPageImage.height ? `${currentPageImage.width}px` : 'auto',
-            }}
-          >
-            {/* Document Image */}
-            <div className="relative">
-              {!imageLoaded && !imageError && (
-                <div 
-                  className="absolute inset-0 flex items-center justify-center bg-slate-100 border border-slate-200"
-                  style={{ 
-                    width: currentPageImage.width, 
-                    height: currentPageImage.height 
-                  }}
-                >
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-sm text-slate-500">Loading page...</p>
-                  </div>
+      {/* Document Pages - Vertical Scrollable Layout */}
+      <div className="w-full h-full overflow-auto">
+        <div className="p-8">
+          {pageImages.map((pageImage) => {
+            const isImageLoaded = imageLoadedStates[pageImage.pageNumber] || false;
+            const isImageError = imageErrorStates[pageImage.pageNumber] || false;
+            
+            return (
+              <div 
+                key={pageImage.pageNumber}
+                className="mb-8 flex flex-col items-center"
+              >
+                {/* Page Number Badge */}
+                <div className="mb-4">
+                  <Badge variant="secondary" className="px-3 py-1">
+                    Page {pageImage.pageNumber} of {totalPages}
+                  </Badge>
                 </div>
-              )}
 
-              {imageError && (
-                <div 
-                  className="flex items-center justify-center bg-red-50 border border-red-200 text-red-600"
-                  style={{ 
-                    width: currentPageImage.width, 
-                    height: currentPageImage.height 
-                  }}
-                >
-                  <div className="text-center">
-                    <p className="text-sm">Failed to load page image</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => {
-                        setImageError(false);
-                        setImageLoaded(false);
+                {/* Page Image Container */}
+                <div className="relative bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+                  <div 
+                    className="relative"
+                    style={{
+                      width: pageImage.width * zoom,
+                      height: pageImage.height * zoom,
+                      transformOrigin: 'top center',
+                    }}
+                  >
+                    {/* Loading State */}
+                    {!isImageLoaded && !isImageError && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse"
+                        style={{
+                          width: pageImage.width * zoom,
+                          height: pageImage.height * zoom,
+                        }}
+                      >
+                        <div className="text-gray-500">Loading page {pageImage.pageNumber}...</div>
+                      </div>
+                    )}
+
+                    {/* Error State */}
+                    {isImageError && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-gray-100 text-red-500"
+                        style={{
+                          width: pageImage.width * zoom,
+                          height: pageImage.height * zoom,
+                        }}
+                      >
+                        <div>
+                          <p>Failed to load page {pageImage.pageNumber}</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setImageErrorStates(prev => ({ ...prev, [pageImage.pageNumber]: false }));
+                              setImageLoadedStates(prev => ({ ...prev, [pageImage.pageNumber]: false }));
+                            }}
+                            className="mt-2"
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Document Image */}
+                    <img
+                      src={pageImage.imageDataUrl}
+                      alt={`Page ${pageImage.pageNumber}`}
+                      className="block"
+                      style={{
+                        width: pageImage.width * zoom,
+                        height: pageImage.height * zoom,
+                        display: isImageError ? 'none' : 'block',
                       }}
-                    >
-                      Retry
-                    </Button>
+                      onLoad={() => handleImageLoad(pageImage.pageNumber)}
+                      onError={() => handleImageError(pageImage.pageNumber)}
+                    />
+
+                    {/* Field Overlays for this page */}
+                    {React.Children.map(children, child => {
+                      if (React.isValidElement(child) && child.props.pageNumber === pageImage.pageNumber) {
+                        return React.cloneElement(child as React.ReactElement<any>, {
+                          style: {
+                            ...child.props.style,
+                            transform: `scale(${zoom})`,
+                            transformOrigin: 'top left',
+                          }
+                        });
+                      }
+                      return null;
+                    })}
                   </div>
                 </div>
-              )}
-
-              <img
-                src={currentPageImage.imageDataUrl}
-                alt={`Page ${currentPage}`}
-                style={{
-                  display: imageLoaded ? 'block' : 'none',
-                  width: currentPageImage.width,
-                  height: currentPageImage.height,
-                }}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                draggable={false}
-                className="border border-slate-200"
-              />
-
-              {/* Field Overlays */}
-              {imageLoaded && children}
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
