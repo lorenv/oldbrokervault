@@ -22,7 +22,7 @@ export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayPro
             {/* Signer indicator */}
             <div className="flex-shrink-0">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                <FileText className="w-6 h-6" />
+                S
               </div>
             </div>
 
