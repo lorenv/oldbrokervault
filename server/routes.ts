@@ -27,6 +27,7 @@ import { exportToWordPress, formatWordPressContent, fetchBeaverBuilderTemplates 
 import JSZip from 'jszip';
 import sharp from 'sharp';
 import archiver from 'archiver';
+import { addCertificateToNda } from "./pdf-utils";
 import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
@@ -6279,14 +6280,19 @@ ${finalQuestion}
           // Embed fields into PDF
           signedNdaContent = await processor.embedFields(ndaTemplate.signatureFields, processedFieldValues);
           
-          // Document is complete when all fields are filled - no additional pages needed
+          // Add completion certificate
+          await processor.addCompletionCertificate(signerName, signerEmail, signedAt);
           signedNdaContent = await processor.saveAsBase64();
           
         } else {
-          console.log("Using original document without appending signature pages");
-          // For documents without signature fields, just use the original content
-          // The signature will be recorded in the database without modifying the PDF
-          signedNdaContent = ndaTemplate.fileContent;
+          console.log("Using certificate-only processing (no signature fields)");
+          signedNdaContent = await addCertificateToNda(
+            ndaTemplate.fileContent,
+            signerName,
+            signedAt,
+            signerEmail,
+            signerIpAddress
+          );
         }
         console.log("Signed NDA content created successfully");
 
