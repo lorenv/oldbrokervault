@@ -102,3 +102,70 @@ The application employs a client-server architecture.
 - **Solution**: Modified `checkUserLimit()` to use `monthlyDocumentsCreated` counter consistently
 - **Security Impact**: Users can no longer circumvent subscription limits through document deletion
 - **Billing Integrity**: Monthly counters track total documents created per month regardless of deletions
+
+## Multi-Recipient E-Signature System Architecture (August 8, 2025)
+**Note**: This documents the complete multi-recipient e-signature system before modification for NDA-specific use. Preserved for future full e-signature feature development.
+
+### Database Schema
+- **`ndaSigningSessions`**: Main signing session with template, title, message, creator, status, expiration
+- **`ndaRecipients`**: Individual recipients with name, email, role (signer/cc/approver), access tokens, status tracking
+- **`ndaFieldAssignments`**: Links specific fields to recipients with required/prefilled settings
+- **`ndaAuditLog`**: Complete audit trail with IP tracking, user agent, location estimation, timestamps
+
+### Component Architecture
+- **`EnhancedNdaTemplateEditor`**: Main drag-and-drop template editor with multi-recipient management
+- **`RecipientManager`**: Add/edit/delete recipients with email validation and role assignment
+- **`FieldPalette`**: Draggable field types (signature, name, date, email, text, checkbox, initials)
+- **`CanvasOverlay`**: HTML5 canvas for precise field positioning with percentage-based coordinates
+- **`ImageDocumentViewer`**: Multi-page PDF display with zoom controls and field overlay support
+- **`EnhancedSignatureField`**: Field components with recipient assignment and validation
+
+### Key Features
+- **Multi-Recipient Support**: Multiple signers, CCs, and approvers per document
+- **Field Assignment**: Drag fields and assign to specific recipients by email
+- **Parallel Signing**: Multiple recipients can sign simultaneously with real-time progress
+- **Access Token Security**: Unique tokens per recipient with expiration and IP tracking
+- **Email Workflow**: Automated invitations and completion notifications with custom branding
+- **Coordinate System**: Percentage-based positioning for responsive field placement across PDF pages
+- **PDF Processing**: Convert PDF templates to images, embed signed values back to PDF
+- **Audit Compliance**: Complete ESIGN Act compliance with certificates and verification
+
+### API Endpoints
+- `POST /api/esignature/templates/upload`: Process PDF templates to page images
+- `POST /api/esignature/signing-sessions`: Create signing session with recipients and field assignments
+- `POST /api/esignature/signing-sessions/:id/send`: Send signing invitations to all recipients
+- `GET /api/esignature/sign/:accessToken`: Access document for signing via unique token
+- `POST /api/esignature/sign/:accessToken/fields/:fieldId`: Sign specific field with audit logging
+- `GET /api/esignature/signing-sessions/:id/certificate`: Generate completion certificate
+
+### Workflow
+1. **Template Creation**: Upload PDF, place fields, assign fields to recipients
+2. **Session Creation**: Define recipients (name/email/role), set expiration, customize message
+3. **Document Distribution**: System sends personalized emails with unique access links
+4. **Parallel Signing**: Recipients access via tokens, sign assigned fields, audit trail captured
+5. **Completion**: All signatures collected, certificate generated, notifications sent
+
+### Technical Implementation
+- **React DnD**: Professional drag-and-drop interface for field management
+- **pdf-lib**: PDF processing for embedding signed values and certificates
+- **Object Storage**: Template images and completed documents stored persistently
+- **Session Management**: Secure token-based access with expiration and validation
+- **Real-time Updates**: Progress tracking across multiple simultaneous signers
+
+### NDA Template Editor Simplification (August 8, 2025)
+**Note**: Implemented simplified single-signer system specifically for NDA share link workflows while preserving the full multi-recipient system architecture above.
+
+#### Changes Made
+- **Single Designated Placeholder**: Replaced multi-recipient management with single "NDA Signer" placeholder (ID: 999999)
+- **Simplified UI Components**: Created `NdaSignerDisplay` and `NdaFieldPalette` components without recipient selection complexity
+- **Auto-Assignment**: All dragged signature fields automatically assign to the designated NDA signer placeholder
+- **Removed Complexity**: Eliminated recipient management, email validation, and selection interfaces
+- **Streamlined Workflow**: Template editor now focuses purely on field placement for unknown signers
+- **Share Link Integration**: Designed for scenarios where signer identity is unknown until they access the NDA via share link
+
+#### Technical Implementation
+- **Components**: `NdaSignerDisplay`, `NdaFieldPalette` replace `RecipientManager`, `FieldPalette`
+- **State Management**: Simplified recipient state to single placeholder object
+- **Validation**: Removed email/name requirements, simplified save validation
+- **Field Assignment**: Automatic assignment to placeholder recipient (ID: 999999)
+- **UI Simplification**: Removed recipient modals, selection dropdowns, and management interfaces

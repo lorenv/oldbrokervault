@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2, MousePointer } from 'lucide-react';
+import { Save, Check, Settings, Users, FileText, ZoomIn, ZoomOut, Grid, Eye, ArrowLeft, Loader2, MoreVertical, Edit, Trash2, MousePointer, PenTool } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,11 +17,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import RecipientManager from './recipient-manager';
-import FieldPalette from './field-palette';
+import NdaSignerDisplay from './nda-signer-display';
+import NdaFieldPalette from './nda-field-palette';
 import CanvasOverlay from './canvas-overlay';
 import ImageDocumentViewer from './image-document-viewer';
-import RecipientModal from './recipient-modal';
+// Removed RecipientModal import - not needed for NDA templates
 import { EnhancedSignatureField, getRecipientColor } from './enhanced-signature-field';
 import { NdaRecipient, NdaTemplate } from '@shared/schema';
 
@@ -76,9 +76,16 @@ export default function EnhancedNdaTemplateEditor({
   const [recipients, setRecipients] = useState<Partial<NdaRecipient>[]>([]);
   const [pageImages, setPageImages] = useState<PageImage[]>([]);
   const [selectedField, setSelectedField] = useState<EnhancedSignatureField | null>(null);
-  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
-  const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
-  const [editingRecipient, setEditingRecipient] = useState<Partial<NdaRecipient> | null>(null);
+  
+  // Single designated placeholder recipient for NDA signing
+  const ndaSignerRecipient: Partial<NdaRecipient> = {
+    id: 999999, // Special ID for NDA signer placeholder
+    name: 'NDA Signer',
+    email: '', // No email required for unknown signers
+    role: 'signer',
+    status: 'pending'
+  };
+  // Removed recipient modal state - not needed for NDA templates
   const [totalPages, setTotalPages] = useState(1);
 
   // Editor settings
@@ -93,13 +100,12 @@ export default function EnhancedNdaTemplateEditor({
 
   const { toast } = useToast();
 
-  // Auto-select first recipient when recipients change
+  // Initialize with the single NDA signer recipient
   useEffect(() => {
-    const signers = recipients.filter(r => r.role === 'signer');
-    if (signers.length > 0 && !selectedRecipient) {
-      setSelectedRecipient(signers[0].id?.toString() || '');
+    if (recipients.length === 0) {
+      setRecipients([ndaSignerRecipient]);
     }
-  }, [recipients, selectedRecipient]);
+  }, []);
 
   // Load template data on mount
   useEffect(() => {
@@ -108,26 +114,16 @@ export default function EnhancedNdaTemplateEditor({
       setPdfBase64(initialTemplate.fileContent || '');
       setFields((initialTemplate.signatureFields as EnhancedSignatureField[]) || []);
       
-      // Load recipients from template's recipients field first (primary source)
-      if (initialTemplate.recipients && Array.isArray(initialTemplate.recipients) && initialTemplate.recipients.length > 0) {
-        setRecipients(initialTemplate.recipients as Partial<NdaRecipient>[]);
-      } else {
-        // Fallback: try to extract from signature fields if no recipients saved
-        const savedRecipients = extractRecipientsFromFields(initialTemplate.signatureFields as EnhancedSignatureField[]);
-        if (savedRecipients.length > 0) {
-          setRecipients(savedRecipients);
-        } else {
-          // If no recipients, ensure we have at least one default recipient
-          const defaultRecipient: Partial<NdaRecipient> = {
-            id: Date.now(),
-            name: '',
-            email: '',
-            role: 'signer',
-            status: 'pending'
-          };
-          setRecipients([defaultRecipient]);
-        }
-      }
+      // For NDA templates, always use the single designated signer
+      // Update existing fields to assign to the NDA signer if they're unassigned
+      const updatedFields = (initialTemplate.signatureFields as EnhancedSignatureField[] || []).map(field => ({
+        ...field,
+        assignedTo: field.assignedTo || '999999'
+      }));
+      setFields(updatedFields);
+      
+      // Always set the single NDA signer recipient
+      setRecipients([ndaSignerRecipient]);
       
       // Load page images from the saved template
       // If we have a fileContent URL, we need to load the converted page images
@@ -394,14 +390,7 @@ export default function EnhancedNdaTemplateEditor({
       return;
     }
 
-    if (recipients.length === 0) {
-      toast({
-        title: "Recipients required",
-        description: "Please add at least one recipient",
-        variant: "destructive"
-      });
-      return;
-    }
+    // No need to validate recipients since we always have the NDA signer
 
     setIsSaving(true);
 
@@ -437,7 +426,7 @@ export default function EnhancedNdaTemplateEditor({
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const zoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
 
-  const canSave = templateName.trim() && pdfBase64 && recipients.length > 0;
+  const canSave = templateName.trim() && pdfBase64; // Simplified validation for NDA templates
 
   // Render template name in page header for full screen mode
   useEffect(() => {
@@ -561,19 +550,7 @@ export default function EnhancedNdaTemplateEditor({
     };
   }, [fullScreen, canSave, isSaving, handleSave, templateName, pdfBase64, recipients.length]);
 
-  // Recipient modal handlers
-  const handleSaveRecipient = (recipientData: Partial<NdaRecipient>) => {
-    if (editingRecipient) {
-      // Update existing recipient
-      setRecipients(recipients.map(r => 
-        r.id === editingRecipient.id ? recipientData : r
-      ));
-    } else {
-      // Add new recipient
-      setRecipients([...recipients, recipientData]);
-    }
-    setEditingRecipient(null);
-  };
+  // Simplified field creation for NDA templates - auto-assign to NDA signer
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -626,85 +603,14 @@ export default function EnhancedNdaTemplateEditor({
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
           <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
-            {/* Recipients Section */}
-            <div className="p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Recipients</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setEditingRecipient(null);
-                    setIsRecipientModalOpen(true);
-                  }}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-                >
-                  <span className="text-lg mr-1">+</span>
-                  Add
-                </Button>
-              </div>
-
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {recipients.map((recipient, index) => {
-                  const recipientColor = getRecipientColor(index);
-                  const isSelected = selectedRecipient === recipient.id?.toString();
-                  
-                  return (
-                    <Card 
-                      key={recipient.id} 
-                      className={`border cursor-pointer transition-all duration-200 hover:shadow-md ${
-                        isSelected 
-                          ? `${recipientColor.border} ${recipientColor.bg} shadow-md` 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedRecipient(recipient.id?.toString() || '')}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm ${recipientColor.solid}`}>
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-gray-900 truncate">
-                              {recipient.name || 'Unnamed Recipient'}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate">
-                              {recipient.email}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                {recipient.role}
-                              </div>
-                              {isSelected && (
-                                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                                  <MousePointer className="w-3 h-3 mr-1" />
-                                  Active
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {recipients.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm font-medium">No recipients added yet</p>
-                    <p className="text-xs text-gray-400 mt-1">Add recipients to assign signature fields</p>
-                  </div>
-                )}
-              </div>
+            {/* NDA Signer Section */}
+            <div className="border-b border-gray-200 bg-white">
+              <NdaSignerDisplay />
             </div>
 
             {/* Field Types Section */}
             <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200">
-              <FieldPalette
-                recipients={recipients as NdaRecipient[]}
-                selectedRecipient={selectedRecipient}
-                onRecipientChange={setSelectedRecipient}
+              <NdaFieldPalette
                 className="h-full border-0 shadow-none"
               />
             </div>
@@ -798,16 +704,7 @@ export default function EnhancedNdaTemplateEditor({
         </div>
 
         {/* Recipient Modal */}
-        <RecipientModal
-          isOpen={isRecipientModalOpen}
-          onClose={() => {
-            setIsRecipientModalOpen(false);
-            setEditingRecipient(null);
-          }}
-          onSave={handleSaveRecipient}
-          recipient={editingRecipient}
-          isEdit={!!editingRecipient}
-        />
+        {/* Removed recipient modal - not needed for NDA templates */}
       </div>
     </DndProvider>
   );
