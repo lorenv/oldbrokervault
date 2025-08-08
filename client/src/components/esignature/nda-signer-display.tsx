@@ -17,7 +17,7 @@ export default function NdaSignerDisplay({ className = '' }: NdaSignerDisplayPro
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Single designated placeholder signer */}
-        <div className="p-4 border-2 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="mb-2">
             <h3 className="text-lg font-semibold text-gray-900">NDA Signer</h3>
           </div>
