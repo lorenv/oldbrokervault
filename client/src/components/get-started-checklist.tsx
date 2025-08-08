@@ -248,11 +248,10 @@ export function GetStartedChecklist() {
                   <button
                     key={item.id}
                     onClick={() => handleItemClick(item)}
-                    disabled={item.completed}
-                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                       item.completed
-                        ? 'bg-green-50 border-green-200 cursor-default'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 cursor-pointer'
+                        ? 'bg-green-50 border-green-200 hover:bg-green-100 hover:border-green-300'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-start space-x-3">
