@@ -84,20 +84,7 @@ export default function NdaFieldPalette({ className = '' }: NdaFieldPaletteProps
           />
         ))}
 
-        {/* Field usage info */}
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="text-xs text-blue-800">
-            <div className="font-medium mb-1">Field Usage:</div>
-            <ul className="space-y-1 text-blue-700">
-              <li>• <strong>Signature:</strong> Required electronic signature</li>
-              <li>• <strong>Name:</strong> Signer's full legal name</li>
-              <li>• <strong>Date:</strong> Automatically filled with signing date</li>
-              <li>• <strong>Email:</strong> Signer's email address</li>
-              <li>• <strong>Text:</strong> Additional custom information</li>
-              <li>• <strong>Checkbox:</strong> Agreement confirmation</li>
-            </ul>
-          </div>
-        </div>
+        
       </CardContent>
     </Card>
   );
