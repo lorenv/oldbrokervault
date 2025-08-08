@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, ChevronUp, ChevronDown, CheckCircle2, Circle, User, FileText, Eye, Share2 } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 
 interface ChecklistItem {
   id: string;
@@ -17,6 +18,12 @@ export function GetStartedChecklist() {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [_, setLocation] = useLocation();
+
+  // Fetch user's documents to find the example CIM
+  const { data: documentsData } = useQuery({
+    queryKey: ["/api/documents"],
+    enabled: isVisible, // Only fetch when checklist is visible
+  });
   
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -24,7 +31,7 @@ export function GetStartedChecklist() {
       title: 'Complete your profile',
       description: 'Add your personal and business information',
       completed: false,
-      href: '/profile?tab=profile',
+      href: '/account?tab=profile',
       icon: User,
     },
     {
@@ -32,7 +39,7 @@ export function GetStartedChecklist() {
       title: 'Choose NDA and PDF settings',
       description: 'Configure your document templates',
       completed: false,
-      href: '/profile?tab=templates',
+      href: '/account?tab=templates',
       icon: FileText,
     },
     {
@@ -48,7 +55,7 @@ export function GetStartedChecklist() {
       title: 'Share a CIM',
       description: 'Try sharing the example document',
       completed: false,
-      href: '/document/49?tab=share',
+      href: '/documents', // Will be updated dynamically
       icon: Share2,
     },
   ]);
@@ -68,7 +75,7 @@ export function GetStartedChecklist() {
     }
   }, []);
 
-  // Load saved progress from localStorage
+  // Load saved progress from localStorage and update share CIM link
   useEffect(() => {
     const savedProgress = localStorage.getItem('get-started-progress');
     if (savedProgress) {
@@ -84,7 +91,25 @@ export function GetStartedChecklist() {
         console.error('Failed to load checklist progress:', error);
       }
     }
-  }, []);
+
+    // Update the share CIM link if we have documents data
+    if (documentsData && (documentsData as any).documents) {
+      const documents = (documentsData as any).documents;
+      const exampleDoc = documents.find((doc: any) => 
+        doc.businessName && doc.businessName.toLowerCase().includes("tony") && doc.businessName.toLowerCase().includes("transmission")
+      );
+      
+      if (exampleDoc) {
+        setChecklistItems(items => 
+          items.map(item => 
+            item.id === 'share-cim' 
+              ? { ...item, href: `/document/${exampleDoc.id}?tab=share` }
+              : item
+          )
+        );
+      }
+    }
+  }, [documentsData]);
 
   const completedCount = checklistItems.filter(item => item.completed).length;
   const totalCount = checklistItems.length;
