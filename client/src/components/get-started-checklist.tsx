@@ -115,6 +115,7 @@ export function GetStartedChecklist() {
     // Update the share CIM link if we have documents data
     if (documentsData && (documentsData as any).documents) {
       const documents = (documentsData as any).documents;
+      console.log('📋 All documents:', documents.map((d: any) => ({ id: d.id, businessName: d.businessName })));
       const exampleDoc = documents.find((doc: any) => 
         doc.businessName && doc.businessName.toLowerCase().includes("tony") && doc.businessName.toLowerCase().includes("transmission")
       );
@@ -130,7 +131,23 @@ export function GetStartedChecklist() {
               : item
           )
         );
+      } else {
+        console.log('📋 No Tony transmission doc found, using first document');
+        if (documents.length > 0) {
+          const firstDoc = documents[0];
+          const shareUrl = `/cim/${firstDoc.id}?tab=share`;
+          console.log('📋 Setting share URL to first doc:', shareUrl);
+          setChecklistItems(items => 
+            items.map(item => 
+              item.id === 'share-cim' 
+                ? { ...item, href: shareUrl }
+                : item
+            )
+          );
+        }
       }
+    } else {
+      console.log('📋 No documents data available:', documentsData);
     }
   }, [documentsData, user]);
 
