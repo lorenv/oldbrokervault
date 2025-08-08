@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, ChevronUp, ChevronDown, CheckCircle2, Circle, User, FileText, Eye, Share2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ChecklistItem {
   id: string;
@@ -18,6 +19,7 @@ export function GetStartedChecklist() {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [_, setLocation] = useLocation();
+  const { user } = useAuth();
 
   // Fetch user's documents to find the example CIM
   const { data: documentsData } = useQuery({
@@ -62,8 +64,10 @@ export function GetStartedChecklist() {
 
   // Check if this is a new user by looking for the checklist completion flag
   useEffect(() => {
-    const hasCompletedChecklist = localStorage.getItem('get-started-checklist-dismissed');
-    const hasCompletedTour = localStorage.getItem('cim-edit-tour-completed');
+    if (!user) return; // Wait for user data
+    
+    const userId = user.id;
+    const hasCompletedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
     
     // Show checklist for new users (who haven't dismissed it)
     if (!hasCompletedChecklist) {
@@ -73,11 +77,14 @@ export function GetStartedChecklist() {
       
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [user]);
 
   // Load saved progress from localStorage and update share CIM link
   useEffect(() => {
-    const savedProgress = localStorage.getItem('get-started-progress');
+    if (!user) return; // Wait for user data
+    
+    const userId = user.id;
+    const savedProgress = localStorage.getItem(`get-started-progress-${userId}`);
     if (savedProgress) {
       try {
         const progress = JSON.parse(savedProgress);
@@ -109,7 +116,7 @@ export function GetStartedChecklist() {
         );
       }
     }
-  }, [documentsData]);
+  }, [documentsData, user]);
 
   const completedCount = checklistItems.filter(item => item.completed).length;
   const totalCount = checklistItems.length;
@@ -121,20 +128,24 @@ export function GetStartedChecklist() {
     );
     setChecklistItems(updatedItems);
 
-    // Save progress to localStorage
+    // Save progress to user-specific localStorage
+    if (!user) return; // Don't save if no user
+    
+    const userId = user.id;
     const progress = updatedItems.reduce((acc, item) => {
       acc[item.id] = item.completed;
       return acc;
     }, {} as Record<string, boolean>);
-    localStorage.setItem('get-started-progress', JSON.stringify(progress));
+    localStorage.setItem(`get-started-progress-${userId}`, JSON.stringify(progress));
 
     // Navigate to the target page
     setLocation(item.href);
   };
 
   const handleDismiss = () => {
+    if (!user) return;
     setIsVisible(false);
-    localStorage.setItem('get-started-checklist-dismissed', 'true');
+    localStorage.setItem(`get-started-checklist-dismissed-${user.id}`, 'true');
   };
 
   const toggleExpanded = () => {
