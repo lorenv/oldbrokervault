@@ -778,14 +778,13 @@ export default function EnhancedNdaTemplateEditor({
                 >
                   {/* Field overlay for drag-and-drop placement */}
                   <CanvasOverlay
-                    pageImages={pageImages}
                     fields={fields}
                     recipients={recipients as NdaRecipient[]}
                     onFieldsChange={handleFieldsChange}
                     onFieldSelect={handleFieldSelect}
                     selectedField={selectedField}
-                    imageWidth={getCurrentPageImage()?.width || 800}
-                    imageHeight={getCurrentPageImage()?.height || 1100}
+                    imageWidth={pageImages[0]?.width || 800}
+                    imageHeight={pageImages[0]?.height || 1100}
                     scale={zoom}
                     snapToGrid={snapToGrid}
                     showGrid={showGrid}
