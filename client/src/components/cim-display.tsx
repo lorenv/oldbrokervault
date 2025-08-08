@@ -205,6 +205,7 @@ export function CimDisplay({
   useEffect(() => {
     const newSections = initializeSections();
     console.log("🔍 CimDisplay sections debug:", {
+      isSharedView: isSharedView,
       analysis: analysis,
       sectionsFromAnalysis: analysis?.sections,
       sectionsType: typeof analysis?.sections,
