@@ -86,13 +86,21 @@ export function registerNdaTemplateRoutes(app: Express) {
         return res.status(404).json({ error: "Template not found" });
       }
       
-      console.log("Updating template with data:", {
-        templateId,
+      console.log("=== UPDATE TEMPLATE API CALLED ===");
+      console.log("Template ID:", templateId);
+      console.log("User ID:", req.user!.id);
+      console.log("Request body keys:", Object.keys(req.body));
+      console.log("Detailed request data:", {
         name: req.body.name,
         hasFileContent: !!req.body.fileContent,
+        fileContentLength: req.body.fileContent?.length || 0,
         signatureFieldsCount: req.body.signatureFields?.length || 0,
+        signatureFields: req.body.signatureFields,
         recipientsCount: req.body.recipients?.length || 0,
-        recipients: req.body.recipients
+        recipients: req.body.recipients,
+        totalPages: req.body.totalPages,
+        pageImagesCount: req.body.pageImages?.length || 0,
+        pageImages: req.body.pageImages
       });
 
       const template = await storage.updateNdaTemplate(templateId, {
@@ -111,7 +119,20 @@ export function registerNdaTemplateRoutes(app: Express) {
       
       res.json(template);
     } catch (error) {
-      console.error("Error updating NDA template:", error);
+      console.error("=== UPDATE TEMPLATE ERROR ===");
+      console.error("Error object:", error);
+      console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Check if it's a validation error
+      if (error && typeof error === 'object' && 'issues' in error) {
+        console.error("Validation issues:", (error as any).issues);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: (error as any).issues 
+        });
+      }
+      
       res.status(500).json({ error: "Failed to update template" });
     }
   });
