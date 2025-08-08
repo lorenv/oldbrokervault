@@ -81,7 +81,7 @@ export default function EnhancedNdaTemplateEditor({
   const ndaSignerRecipient: Partial<NdaRecipient> = {
     id: 999999, // Special ID for NDA signer placeholder
     name: 'NDA Signer',
-    email: '', // No email required for unknown signers
+    email: 'nda.signer@placeholder.local', // Valid placeholder email for validation
     role: 'signer',
     status: 'pending'
   };
