@@ -57,7 +57,7 @@ export function GetStartedChecklist() {
       title: 'Share a CIM',
       description: 'Try sharing the example document',
       completed: false,
-      href: '/documents', // Will be updated dynamically to /cim/{id}?tab=share
+      href: '/documents', // Will be updated dynamically to /documents/{id}?tab=share
       icon: Share2,
     },
   ]);
@@ -129,7 +129,7 @@ export function GetStartedChecklist() {
       
       if (exampleDoc) {
         console.log('📋 Found example doc:', exampleDoc.id, exampleDoc.businessName);
-        const shareUrl = `/cim/${exampleDoc.id}?tab=share`;
+        const shareUrl = `/documents/${exampleDoc.id}?tab=share`;
         console.log('📋 Setting share URL to:', shareUrl);
         setChecklistItems(items => 
           items.map(item => 
@@ -142,7 +142,7 @@ export function GetStartedChecklist() {
         console.log('📋 No Tony transmission doc found, using first document');
         if (documents.length > 0) {
           const firstDoc = documents[0];
-          const shareUrl = `/cim/${firstDoc.id}?tab=share`;
+          const shareUrl = `/documents/${firstDoc.id}?tab=share`;
           console.log('📋 Setting share URL to first doc:', shareUrl);
           setChecklistItems(items => 
             items.map(item => 
