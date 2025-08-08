@@ -33,7 +33,19 @@ export default function EnhancedTemplateEditorPage() {
     totalPages?: number;
     pageImages?: any[];
   }) => {
-    console.log('Template saved:', data);
+    console.log('=== SAVE HANDLER CALLED ===');
+    console.log('Save data structure:', {
+      name: data.name,
+      hasFileContent: !!data.fileContent,
+      fileContentType: typeof data.fileContent,
+      signatureFieldsCount: data.signatureFields?.length || 0,
+      signatureFields: data.signatureFields,
+      recipientsCount: data.recipients?.length || 0,
+      recipients: data.recipients,
+      totalPages: data.totalPages,
+      pageImagesCount: data.pageImages?.length || 0,
+      pageImages: data.pageImages
+    });
     
     try {
       if (isEditingTemplate && id) {
@@ -74,10 +86,24 @@ export default function EnhancedTemplateEditorPage() {
       // Navigate back to account settings templates tab
       setLocation('/account?tab=templates');
     } catch (error) {
-      console.error('Error saving template:', error);
+      console.error('=== SAVE ERROR DETAILS ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Try to parse the error if it's a response error
+      if (error && typeof error === 'object' && 'json' in error) {
+        try {
+          const errorData = await (error as any).json();
+          console.error('Response error data:', errorData);
+        } catch (jsonError) {
+          console.error('Could not parse error response:', jsonError);
+        }
+      }
+      
       toast({
         title: "Save failed",
-        description: "Failed to save template",
+        description: error instanceof Error ? error.message : "Failed to save template",
         variant: "destructive"
       });
       // Still navigate back so user can see their templates
