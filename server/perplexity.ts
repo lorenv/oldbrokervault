@@ -419,8 +419,8 @@ Create a comprehensive CIM document following the analysis parameters and custom
     // Remove markdown headers that break JSON parsing
     jsonContent = jsonContent.replace(/^#+\s+.*$/gm, '');
     
-    // Remove any HTML tags that might be present
-    jsonContent = jsonContent.replace(/<[^>]*>/g, '');
+    // NOTE: Do NOT remove HTML tags - they are part of our formatting system now
+    // The content is supposed to contain HTML tags for rich formatting
     
     // Remove any text before the first opening brace
     const firstBrace = jsonContent.indexOf('{');
