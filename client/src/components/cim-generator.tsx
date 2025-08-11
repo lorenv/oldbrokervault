@@ -49,6 +49,8 @@ import { DraggableImagePositioner } from "./draggable-image-positioner";
 import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 import { TemplatesLibrary } from "./templates-library";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FormattingProfileSelector } from "./formatting-profile-selector";
+import type { FormattingProfile } from "@shared/formatting-config";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -104,6 +106,9 @@ export function CimGenerator() {
   // Template state
   const [customDirections, setCustomDirections] = useState<string>('');
   const [selectedTemplateTitle, setSelectedTemplateTitle] = useState<string>('');
+  
+  // Formatting profile state
+  const [selectedFormattingProfile, setSelectedFormattingProfile] = useState<FormattingProfile>('balanced');
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
@@ -147,6 +152,9 @@ export function CimGenerator() {
     transcript: string;
     directions: string;
     websiteUrl?: string;
+    tone?: string;
+    purpose?: string;
+    audience?: string;
   };
 
   const form = useForm<FormValues>({
@@ -155,7 +163,10 @@ export function CimGenerator() {
       title: "",
       transcript: "",
       directions: DEFAULT_CIM_DIRECTIONS,
-      websiteUrl: ""
+      websiteUrl: "",
+      tone: "balanced",
+      purpose: "business_overview", 
+      audience: "investors"
     }
   });
 
@@ -298,6 +309,11 @@ export function CimGenerator() {
         formData.append('transcript', file, 'transcript.txt');
         formData.append('title', data.title);
         formData.append('directions', data.directions);
+        
+        // Add formatting parameters
+        formData.append('tone', selectedFormattingProfile);
+        formData.append('purpose', data.purpose || "business_overview");
+        formData.append('audience', data.audience || "investors");
 
         if (hasWebsiteUrl) {
           if (enableWebsiteAnalysis) {
@@ -416,7 +432,15 @@ export function CimGenerator() {
           const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
           setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
 
-          const response = await apiRequest("POST", "/api/cim/generate", payload);
+          // Include formatting parameters in payload
+          const enhancedPayload = {
+            ...payload,
+            tone: selectedFormattingProfile,
+            purpose: data.purpose || "business_overview",
+            audience: data.audience || "investors"
+          };
+          
+          const response = await apiRequest("POST", "/api/cim/generate", enhancedPayload);
 
           // Smooth completion sequence after AI response received
           // Stage 5: Processing financials (quick transition to show progress)
@@ -1088,6 +1112,27 @@ export function CimGenerator() {
                   placeholder="Custom directions will appear here..."
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Formatting Profile Section */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <Settings className="h-5 w-5" />
+              <div>
+                <h3 className="font-semibold">Formatting Style</h3>
+                <p className="text-sm text-slate-200">Choose how AI formats your document content</p>
+              </div>
+            </div>
+
+            <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+              <FormattingProfileSelector
+                selectedProfile={selectedFormattingProfile}
+                onProfileChange={(profile) => {
+                  setSelectedFormattingProfile(profile);
+                  form.setValue("tone", profile);
+                }}
+              />
             </div>
           </div>
 
