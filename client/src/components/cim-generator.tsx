@@ -194,17 +194,26 @@ export function CimGenerator() {
           description: `Found ${data.images.length} images from the website`,
         });
       } else {
+        // Show user-friendly message if provided by the API
+        const message = data.message || "No suitable images were found on this website";
         toast({
           title: "No Images Found",
-          description: "No suitable images were found on this website",
+          description: message,
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error extracting images:', error);
+      
+      // Try to get user-friendly message from error response
+      let errorMessage = "Failed to extract images from website";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to extract images from website",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

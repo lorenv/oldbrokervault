@@ -2762,10 +2762,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const imageUrls = await extractWebsiteImages(websiteUrl);
       
-      res.json({ images: imageUrls });
+      // Check if no images were extracted and provide helpful message
+      if (imageUrls.length === 0) {
+        res.json({ 
+          images: [], 
+          message: "No images could be extracted. This website may be protected by Cloudflare or other security measures that block automated requests." 
+        });
+      } else {
+        res.json({ images: imageUrls });
+      }
     } catch (error) {
       console.error("Error extracting website images:", error);
-      res.status(500).json({ error: "Failed to extract website images" });
+      res.status(500).json({ 
+        error: "Failed to extract website images",
+        message: "This website may be protected by security measures that prevent automated image extraction." 
+      });
     }
   });
 
