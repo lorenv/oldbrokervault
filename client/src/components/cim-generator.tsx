@@ -1158,6 +1158,12 @@ export function CimGenerator() {
                       "Generate CIM"
                     )}
                   </Button>
+                  {/* Debug form validation - remove this after testing */}
+                  {!form.formState.isValid && (
+                    <div className="text-xs text-red-500 mt-2">
+                      Form errors: {JSON.stringify(form.formState.errors)}
+                    </div>
+                  )}
                 </div>
               </TooltipTrigger>
               {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
