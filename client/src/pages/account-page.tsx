@@ -475,6 +475,38 @@ export default function AccountPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'account');
+
+  // Listen for URL changes to update active tab
+  useEffect(() => {
+    const handlePopState = () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const newTab = searchParams.get('tab');
+      if (newTab && newTab !== activeTab) {
+        setActiveTab(newTab);
+      }
+    };
+
+    // Listen for browser back/forward navigation
+    window.addEventListener('popstate', handlePopState);
+    
+    // Also check URL on every location change
+    const checkUrlTab = () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const newTab = searchParams.get('tab');
+      if (newTab && newTab !== activeTab) {
+        setActiveTab(newTab);
+      }
+    };
+    
+    // Check immediately and set up interval to catch programmatic navigation
+    checkUrlTab();
+    const interval = setInterval(checkUrlTab, 100);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
   const [profileForm, setProfileForm] = useState({
     name: "",
     title: "",

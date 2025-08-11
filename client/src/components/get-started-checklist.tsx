@@ -180,9 +180,15 @@ export function GetStartedChecklist() {
     }, {} as Record<string, boolean>);
     localStorage.setItem(`get-started-progress-${userId}`, JSON.stringify(progress));
 
-    // Navigate to the target page in the same tab
+    // Navigate to the target page
     console.log('📋 Navigating to:', item.href);
-    setLocation(item.href);
+    
+    // For account page tabs, use window.location to force proper URL handling
+    if (item.href.startsWith('/account?tab=')) {
+      window.location.href = item.href;
+    } else {
+      setLocation(item.href);
+    }
   };
 
   const handleDismiss = () => {
