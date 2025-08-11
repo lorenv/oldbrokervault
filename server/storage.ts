@@ -128,6 +128,7 @@ export interface IStorage {
   updateCimImages(cimId: number, imagePaths: string[]): Promise<void>;
   createPasswordResetToken(email: string, token: string, expiry: Date): Promise<boolean>;
   getUserByResetToken(token: string): Promise<User | undefined>;
+  verifyPasswordResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: number): Promise<void>;
   // Sharing functionality
   updateCimShareSettings(id: number, settings: {
@@ -892,6 +893,17 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users)
+      .where(eq(users.resetToken, token));
+    
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      return undefined;
+    }
+    
+    return user;
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<User | undefined> {
     const [user] = await db.select().from(users)
       .where(eq(users.resetToken, token));
     

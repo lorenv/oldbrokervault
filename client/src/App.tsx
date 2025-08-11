@@ -68,6 +68,7 @@ function Router() {
             <ProtectedRoute path="/admin" component={AdminPage} requireAdmin={true} />
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
+            <Route path="/reset-password" component={LoginPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />

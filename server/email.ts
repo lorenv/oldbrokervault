@@ -406,7 +406,11 @@ async function sendPasswordResetEmail(
   userEmail: string,
   resetToken: string
 ): Promise<boolean> {
-  const resetLink = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+  // Use the correct production URL or Replit app URL
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+    : process.env.BASE_URL || 'https://your-app.replit.app';
+  const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
   return await sendEmail({
     to: userEmail,

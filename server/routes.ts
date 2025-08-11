@@ -5262,6 +5262,44 @@ ${finalQuestion}
     }
   });
 
+  // Password reset completion route
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and password are required" });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters long" });
+      }
+      
+      // Verify the reset token and get user
+      const user = await storage.verifyPasswordResetToken(token);
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+      
+      // Hash the new password using the consistent auth method
+      const { hashPassword } = await import("./auth");
+      const hashedPassword = await hashPassword(password);
+      
+      // Update the user's password
+      await storage.updateUserPassword(user.id, hashedPassword);
+      
+      // Clear the reset token
+      await storage.clearPasswordResetToken(user.id);
+      
+      console.log(`Password successfully reset for user: ${user.email}`);
+      res.json({ message: "Password reset successfully" });
+      
+    } catch (error) {
+      console.error("Password reset completion error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   // SECURITY: Direct password reset endpoint disabled for production
   // This endpoint poses a severe security risk as it bypasses normal password reset flow
   /*

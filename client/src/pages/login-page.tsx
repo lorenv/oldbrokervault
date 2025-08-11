@@ -81,7 +81,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function LoginPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -136,15 +136,17 @@ export default function LoginPage() {
     },
   });
 
-  // Check for reset token in URL
+  // Check for reset token in URL or reset-password route
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    if (token) {
+    
+    // If we're on the reset-password route or have a token, show reset form
+    if (token || location === '/reset-password') {
       setResetToken(token);
       setShowResetPassword(true);
     }
-  }, []);
+  }, [location]);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
