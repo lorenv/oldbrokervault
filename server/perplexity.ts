@@ -513,6 +513,16 @@ Create a comprehensive CIM document following the analysis parameters and custom
     const result = JSON.parse(jsonContent);
     console.log("JSON parsing successful");
     
+    // DEBUG: Check if HTML formatting is present in the parsed result
+    if (result.sections && Array.isArray(result.sections)) {
+      const firstSection = result.sections[0];
+      if (firstSection && firstSection.content) {
+        console.log("🔍 FORMATTING DEBUG - First section content preview:");
+        console.log("Has HTML tags:", /<[^>]+>/.test(firstSection.content));
+        console.log("Content sample:", firstSection.content.substring(0, 300));
+      }
+    }
+    
     // Calculate word count safely
     let wordCount = 0;
     try {
