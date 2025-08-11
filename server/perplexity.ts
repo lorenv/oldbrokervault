@@ -260,6 +260,9 @@ async function generateFlexibleCim(
   // Convert tone to FormattingProfile and get AI instructions
   const formattingProfile: FormattingProfile = tone as FormattingProfile;
   const formatInstructions = generateAiFormattingInstructions(formattingProfile);
+  
+  console.log(`🎨 FORMATTING SYSTEM ACTIVE - Profile: ${formattingProfile}`);
+  console.log(`📝 AI Formatting Instructions Applied: ${formatInstructions.substring(0, 200)}...`);
 
   // Map purpose to content focus
   let purposeFocus = '';
