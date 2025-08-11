@@ -914,11 +914,6 @@ export function CimDisplay({
                             />
                           ) : (
                             <div className="prose prose-base max-w-none break-words overflow-hidden text-base leading-relaxed">
-                              {/* DEBUG: Check what type of content we have */}
-                              {console.log("🔍 Content type check:", {
-                                hasHtmlTags: /<[^>]+>/.test(section.content),
-                                content: section.content.substring(0, 100) + "..."
-                              })}
                               {/<[^>]+>/.test(section.content) ? (
                                 <div dangerouslySetInnerHTML={{ __html: section.content }} />
                               ) : (
