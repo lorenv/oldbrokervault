@@ -45,7 +45,8 @@ import {
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
   'robertkale20@gmail.com',
-  'robertkale20+cimshare@gmail.com'
+  'robertkale20+cimshare@gmail.com',
+  'lorenvandegrift@gmail.com'
 ];
 
 function isAuthorizedAdmin(user: any): boolean {

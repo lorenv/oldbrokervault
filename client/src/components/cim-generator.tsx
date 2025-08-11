@@ -48,6 +48,7 @@ import { Slider } from "@/components/ui/slider";
 import { DraggableImagePositioner } from "./draggable-image-positioner";
 import { UnsplashIcon } from "@/components/ui/unsplash-icon";
 import { TemplatesLibrary } from "./templates-library";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -55,7 +56,15 @@ export function CimGenerator() {
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
 
   // Fetch user limits
-  const { data: userLimits, isLoading: limitsLoading } = useQuery({
+  const { data: userLimits, isLoading: limitsLoading } = useQuery<{
+    canCreateDocument: boolean;
+    canRegenerate: boolean;
+    documentsCreated: number;
+    documentLimit: number;
+    regenerationsUsed: number;
+    regenerationLimit: number;
+    subscriptionStatus: string;
+  }>({
     queryKey: ["/api/user/limits"],
     staleTime: 1000 * 30, // 30 seconds
   });
@@ -1082,20 +1091,38 @@ export function CimGenerator() {
             </div>
           </div>
 
-          <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white border-0 shadow-lg" 
-                disabled={generateMutation.isPending}
-              >
-                {generateMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {generationStage ? 'Generating your CIM document...' : 'Starting generation...'}
-                  </>
-                ) : (
-                  "Generate CIM"
-                )}
-              </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full">
+                  <Button 
+                    type="submit" 
+                    className={`w-full border-0 shadow-lg ${
+                      userLimits && !userLimits.canCreateDocument && !generateMutation.isPending
+                        ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50" 
+                        : "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700"
+                    } text-white`}
+                    disabled={generateMutation.isPending || (userLimits && !userLimits.canCreateDocument)}
+                  >
+                    {generateMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {generationStage ? 'Generating your CIM document...' : 'Starting generation...'}
+                      </>
+                    ) : (
+                      "Generate CIM"
+                    )}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+                <TooltipContent>
+                  <p>You've reached your monthly CIM generation limit ({userLimits.documentsCreated}/{userLimits.documentLimit}). 
+                     Upgrade your subscription to continue creating CIMs.</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
               {/* Show progress during generation */}
               {generateMutation.isPending && generationStage && (
@@ -1137,18 +1164,36 @@ export function CimGenerator() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Generated CIM</h2>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => regenerateAnalysisMutation.mutate()}
-                disabled={regenerateAnalysisMutation.isPending}
-                className="gap-2"
-              >
-                {regenerateAnalysisMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Regenerate"
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        variant="outline"
+                        onClick={() => regenerateAnalysisMutation.mutate()}
+                        disabled={regenerateAnalysisMutation.isPending || (userLimits && !userLimits.canRegenerate)}
+                        className={`gap-2 ${
+                          userLimits && !userLimits.canRegenerate && !regenerateAnalysisMutation.isPending
+                            ? "opacity-50 cursor-not-allowed" 
+                            : ""
+                        }`}
+                      >
+                        {regenerateAnalysisMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Regenerate"
+                        )}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {userLimits && !userLimits.canRegenerate && !regenerateAnalysisMutation.isPending && (
+                    <TooltipContent>
+                      <p>You've reached your monthly regeneration limit ({userLimits.regenerationsUsed}/{userLimits.regenerationLimit}). 
+                         Upgrade your subscription to continue regenerating CIMs.</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               <DocumentExport
                 analysis={analysis}
                 docId={currentDocId || 0}
