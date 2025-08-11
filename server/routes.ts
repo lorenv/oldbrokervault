@@ -76,7 +76,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // Define authorized admin emails
 const AUTHORIZED_ADMIN_EMAILS = [
   'robertkale20@gmail.com',
-  'robertkale20+cimshare@gmail.com'
+  'robertkale20+cimshare@gmail.com',
+  'lorenvandegrift@gmail.com'
 ];
 
 // Helper function to check if user is an authorized admin
@@ -3699,9 +3700,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Update user in the database to make them an admin
-    await db.update(users).set({ isAdmin: true }).where(eq(users.id, user.id));
+    // Update user in the database to make them an admin with unlimited CIMs
+    await db.update(users).set({ 
+      isAdmin: true,
+      subscriptionStatus: 'admin'
+    }).where(eq(users.id, user.id));
     res.sendStatus(200);
+  });
+
+  // Auto-grant admin privileges to lorenvandegrift@gmail.com
+  app.post("/api/auto-grant-admin", async (req, res) => {
+    try {
+      const targetEmail = 'lorenvandegrift@gmail.com';
+      const user = await storage.getUserByEmail(targetEmail);
+      
+      if (user) {
+        await db.update(users).set({ 
+          isAdmin: true,
+          subscriptionStatus: 'admin'
+        }).where(eq(users.id, user.id));
+        res.json({ success: true, message: `Admin privileges granted to ${targetEmail}` });
+      } else {
+        res.status(404).json({ error: "User not found" });
+      }
+    } catch (error) {
+      console.error("Error granting admin privileges:", error);
+      res.status(500).json({ error: "Failed to grant admin privileges" });
+    }
   });
 
   app.post("/api/cim/export/word/:id", async (req, res) => {
