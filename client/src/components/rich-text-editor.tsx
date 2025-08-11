@@ -5,10 +5,15 @@ import { Italic } from '@tiptap/extension-italic';
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { OrderedList } from '@tiptap/extension-ordered-list';
 import { ListItem } from '@tiptap/extension-list-item';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCell } from '@tiptap/extension-table-cell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bold as BoldIcon, Italic as ItalicIcon, List, ListOrdered, Save, X } from 'lucide-react';
+import { Bold as BoldIcon, Italic as ItalicIcon, List, ListOrdered, Table as TableIcon, Save, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { getFormattingConfig, type FormattingProfile } from '@shared/formatting-config';
 
 interface RichTextEditorProps {
   value: string;
@@ -18,6 +23,7 @@ interface RichTextEditorProps {
   onSave?: () => void;
   onCancel?: () => void;
   className?: string;
+  formattingProfile?: FormattingProfile;
 }
 
 export function RichTextEditor({
@@ -27,21 +33,35 @@ export function RichTextEditor({
   isEditing = true,
   onSave,
   onCancel,
-  className = ""
+  className = "",
+  formattingProfile = 'professional'
 }: RichTextEditorProps) {
   const [content, setContent] = useState(value);
+  const formatConfig = getFormattingConfig(formattingProfile);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         // Disable extensions we don't want
-        heading: false,
+        heading: formatConfig.headings ? {} : false,
         code: false,
         codeBlock: false,
-        blockquote: false,
+        blockquote: formatConfig.blockquotes ? {} : false,
         horizontalRule: false,
         strike: false,
+        bulletList: formatConfig.bulletLists ? {} : false,
+        orderedList: formatConfig.orderedLists ? {} : false,
+        bold: formatConfig.bold ? {} : false,
+        italic: formatConfig.italic ? {} : false,
       }),
+      ...(formatConfig.tables ? [
+        Table.configure({
+          resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+      ] : []),
     ],
     content: content,
     editable: isEditing,
@@ -98,51 +118,74 @@ export function RichTextEditor({
       <CardContent className="p-0">
         {/* Toolbar */}
         <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
-          <Button
-            type="button"
-            variant={editor.isActive('bold') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className="h-8 w-8 p-0"
-            title="Bold"
-          >
-            <BoldIcon className="h-4 w-4" />
-          </Button>
+          {formatConfig.bold && (
+            <Button
+              type="button"
+              variant={editor.isActive('bold') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className="h-8 w-8 p-0"
+              title="Bold"
+            >
+              <BoldIcon className="h-4 w-4" />
+            </Button>
+          )}
           
-          <Button
-            type="button"
-            variant={editor.isActive('italic') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className="h-8 w-8 p-0"
-            title="Italic"
-          >
-            <ItalicIcon className="h-4 w-4" />
-          </Button>
+          {formatConfig.italic && (
+            <Button
+              type="button"
+              variant={editor.isActive('italic') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className="h-8 w-8 p-0"
+              title="Italic"
+            >
+              <ItalicIcon className="h-4 w-4" />
+            </Button>
+          )}
 
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          {(formatConfig.bold || formatConfig.italic) && (formatConfig.bulletLists || formatConfig.orderedLists || formatConfig.tables) && (
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+          )}
 
-          <Button
-            type="button"
-            variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className="h-8 w-8 p-0"
-            title="Bullet List"
-          >
-            <List className="h-4 w-4" />
-          </Button>
+          {formatConfig.bulletLists && (
+            <Button
+              type="button"
+              variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className="h-8 w-8 p-0"
+              title="Bullet List"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          )}
 
-          <Button
-            type="button"
-            variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className="h-8 w-8 p-0"
-            title="Numbered List"
-          >
-            <ListOrdered className="h-4 w-4" />
-          </Button>
+          {formatConfig.orderedLists && (
+            <Button
+              type="button"
+              variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              className="h-8 w-8 p-0"
+              title="Numbered List"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </Button>
+          )}
+
+          {formatConfig.tables && (
+            <Button
+              type="button"
+              variant={editor.isActive('table') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              className="h-8 w-8 p-0"
+              title="Insert Table"
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+          )}
 
           {(onSave || onCancel) && (
             <>
