@@ -1,0 +1,202 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { getFormattingConfig, type FormattingProfile, FORMATTING_PROFILES } from '@shared/formatting-config';
+import { CheckCircle, Circle } from 'lucide-react';
+
+interface FormattingProfileSelectorProps {
+  selectedProfile: FormattingProfile;
+  onProfileChange: (profile: FormattingProfile) => void;
+  className?: string;
+}
+
+export function FormattingProfileSelector({
+  selectedProfile,
+  onProfileChange,
+  className = ""
+}: FormattingProfileSelectorProps) {
+  const [previewProfile, setPreviewProfile] = useState<FormattingProfile | null>(null);
+
+  const profiles: Array<{
+    profile: FormattingProfile;
+    title: string;
+    description: string;
+    features: string[];
+    wordCount: string;
+    bestFor: string;
+  }> = [
+    {
+      profile: 'professional',
+      title: 'Professional',
+      description: 'Clean, formal documents with structured paragraphs',
+      features: ['Paragraph format only', 'Minimal formatting', 'Bold for key terms', 'Italic for market terms'],
+      wordCount: '1000-1200 words',
+      bestFor: 'Investor presentations, formal CIMs'
+    },
+    {
+      profile: 'memo',
+      title: 'Memo Style',
+      description: 'Concise, scannable format with bullet points',
+      features: ['Bullet points', 'Short sentences', 'Numbered lists', 'Bold emphasis'],
+      wordCount: 'Under 800 words',
+      bestFor: 'Quick overviews, executive summaries'
+    },
+    {
+      profile: 'balanced',
+      title: 'Balanced',
+      description: 'Mix of paragraphs and lists for comprehensive coverage',
+      features: ['Mixed format', 'Moderate length', 'Lists + paragraphs', 'Clear structure'],
+      wordCount: '800-1200 words',
+      bestFor: 'General business documents'
+    },
+    {
+      profile: 'robust',
+      title: 'Robust',
+      description: 'Detailed analysis with comprehensive formatting',
+      features: ['Detailed paragraphs', 'Rich formatting', 'Tables supported', 'Comprehensive lists'],
+      wordCount: '1200-1800 words',
+      bestFor: 'Due diligence, detailed analysis'
+    },
+    {
+      profile: 'conversational',
+      title: 'Conversational',
+      description: 'Friendly, accessible language with natural flow',
+      features: ['Natural language', 'Accessible tone', 'Frequent lists', 'Clear explanations'],
+      wordCount: '800-1200 words',
+      bestFor: 'Stakeholder communications'
+    }
+  ];
+
+  const currentProfile = previewProfile || selectedProfile;
+  const config = getFormattingConfig(currentProfile);
+
+  const formatFeatures = () => {
+    const features: string[] = [];
+    if (config.bold) features.push('Bold text');
+    if (config.italic) features.push('Italic text');
+    if (config.bulletLists) features.push('Bullet lists');
+    if (config.orderedLists) features.push('Numbered lists');
+    if (config.tables) features.push('Tables');
+    if (config.headings) features.push('Headings');
+    if (config.blockquotes) features.push('Blockquotes');
+    return features;
+  };
+
+  return (
+    <div className={`space-y-6 ${className}`}>
+      <div className="text-center">
+        <h3 className="text-lg font-semibold mb-2">Choose Formatting Style</h3>
+        <p className="text-sm text-gray-600">
+          Select how you want your AI-generated content to be formatted and structured.
+          This affects both the editor toolbar and how the AI writes content.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {profiles.map(({ profile, title, description, features, wordCount, bestFor }) => {
+          const isSelected = selectedProfile === profile;
+          const isPreview = previewProfile === profile;
+          
+          return (
+            <Card
+              key={profile}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+                isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 
+                isPreview ? 'ring-1 ring-gray-300 bg-gray-50' : ''
+              }`}
+              onMouseEnter={() => setPreviewProfile(profile)}
+              onMouseLeave={() => setPreviewProfile(null)}
+              onClick={() => onProfileChange(profile)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {isSelected ? (
+                      <CheckCircle className="h-4 w-4 text-blue-500" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-gray-400" />
+                    )}
+                    {title}
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-sm">
+                  {description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <div className="text-xs font-medium text-gray-700 mb-1">Features:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {features.slice(0, 3).map((feature, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {feature}
+                      </Badge>
+                    ))}
+                    {features.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{features.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-xs text-gray-600">
+                    <strong>Length:</strong> {wordCount}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    <strong>Best for:</strong> {bestFor}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Preview Panel */}
+      <Card className="bg-gray-50">
+        <CardHeader>
+          <CardTitle className="text-base">
+            {profiles.find(p => p.profile === currentProfile)?.title} Profile Preview
+          </CardTitle>
+          <CardDescription>
+            Available formatting options with this profile
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">Editor Tools:</h4>
+              <div className="flex flex-wrap gap-1">
+                {formatFeatures().map((feature, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {feature}
+                  </Badge>
+                ))}
+                {formatFeatures().length === 0 && (
+                  <span className="text-xs text-gray-500">Paragraph-only format</span>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium mb-2">AI Writing Style:</h4>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {config.aiInstructions.tone}
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-white rounded border">
+            <h4 className="text-sm font-medium mb-2">Structure Guidelines:</h4>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {config.aiInstructions.structure}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

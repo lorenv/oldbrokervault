@@ -2,6 +2,9 @@
 // Updated models: sonar, sonar-pro (2025)
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
+import { generateAiFormattingInstructions, type FormattingProfile } from "@shared/formatting-config";
+import { enhancePromptWithFormatting, createCimSystemPrompt, logFormattingValidation, processAiGeneratedContent } from "./formatting-utils";
+
 // New flexible document structure for free-form CIM generation
 type FlexibleCimDocument = {
   title: string;
@@ -254,63 +257,9 @@ async function generateFlexibleCim(
   websiteData?: string
 ): Promise<FlexibleCimDocument> {
   
-  // Map tone to specific formatting instructions with rich text support
-  let formatInstructions = '';
-  if (tone === 'memo') {
-    formatInstructions = `
-FORMAT REQUIREMENTS FOR MEMO STYLE (RICH TEXT ENABLED):
-- Use bullet points extensively for key information (format as HTML <ul><li> lists)
-- Keep sentences short and direct (under 20 words when possible)
-- Use numbered lists for sequential information (format as HTML <ol><li> lists)
-- Create concise, scannable sections
-- Minimize paragraph length (2-3 sentences max, wrap in <p> tags)
-- Use bold text for emphasis (**text** or <strong>text</strong> for key terms)
-- Use italic text for company names and technical terms (*text* or <em>text</em>)
-- Total word count should be under 800 words
-- Format your response in HTML with proper tags: <p>, <ul>, <li>, <ol>, <strong>, <em>
-- Prioritize clarity and brevity over detailed explanations`;
-  } else if (tone === 'robust') {
-    formatInstructions = `
-FORMAT REQUIREMENTS FOR ROBUST STYLE (RICH TEXT ENABLED):
-- Write comprehensive, detailed paragraphs (4-6 sentences each, wrap in <p> tags)
-- Include thorough explanations and context
-- Use complete sentences with sophisticated vocabulary
-- Use bold text (<strong>) for key metrics, company names, and important facts
-- Use italic text (<em>) for technical terms, market conditions, and emphasis
-- Include bullet points (<ul><li>) for detailed feature lists or benefit summaries
-- Provide detailed analysis and insights
-- Include background information and market context
-- Target word count should be 1200-1800 words
-- Format your response in HTML with proper tags: <p>, <ul>, <li>, <ol>, <strong>, <em>
-- Use descriptive language and comprehensive coverage`;
-  } else if (tone === 'balanced') {
-    formatInstructions = `
-FORMAT REQUIREMENTS FOR BALANCED STYLE (RICH TEXT ENABLED):
-- Use moderate paragraph length (3-4 sentences, wrap in <p> tags)
-- Balance bullet points (<ul><li>) with full paragraphs
-- Use bold text (<strong>) for company names, key metrics, and important highlights
-- Use italic text (<em>) for market terms, competitive advantages, and emphasis
-- Include key details without overwhelming information
-- Target word count should be 800-1200 words
-- Use clear, professional language
-- Format your response in HTML with proper tags: <p>, <ul>, <li>, <ol>, <strong>, <em>
-- Combine lists and narrative sections effectively`;
-  } else {
-    // Default professional tone with limited rich text formatting
-    formatInstructions = `
-FORMAT REQUIREMENTS FOR PROFESSIONAL STYLE (RICH TEXT ENABLED):
-- Write in well-structured paragraphs (4-6 sentences each, wrap in <p> tags)
-- Use minimal rich text formatting for maximum professionalism
-- Use bold text (<strong>) ONLY for company names and key financial figures
-- Use italic text (<em>) ONLY for market terms and competitive positioning
-- NO bullet points or lists - maintain pure paragraph format
-- Use complete sentences with professional vocabulary and smooth transitions
-- Provide detailed explanations in connected paragraph form
-- Target word count should be 1000-1200 words
-- Format your response in HTML with <p>, <strong>, and <em> tags only
-- Write as if creating a formal business document for investors
-- Each section should read like a professional report with flowing narrative text`;
-  }
+  // Convert tone to FormattingProfile and get AI instructions
+  const formattingProfile: FormattingProfile = tone as FormattingProfile;
+  const formatInstructions = generateAiFormattingInstructions(formattingProfile);
 
   // Map purpose to content focus
   let purposeFocus = '';
@@ -343,17 +292,7 @@ ${customDirections}
 CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
 
-HTML FORMATTING RULES FOR RICH TEXT:
-- Write content using HTML tags for rich text formatting
-- For PROFESSIONAL tone: Use only <p>, <strong>, and <em> tags in flowing paragraphs
-- For MEMO tone: Use <ul>, <li>, <p>, <strong>, <em> for bullet points and concise formatting
-- For ROBUST tone: Use <p>, <ul>, <li>, <strong>, <em> for detailed content with lists
-- For BALANCED tone: Mix <p>, <ul>, <li>, <strong>, <em> appropriately
-- Use <strong> tags for key terms, company names, and financial figures
-- Use <em> tags for market terms, technical concepts, and emphasis
-- Use <ul><li> for bullet lists and <ol><li> for numbered lists
-- Use <table>, <tr>, <td>, <th> for data tables when presenting financial data or comparisons
-- Wrap all paragraphs in <p> tags
+ADDITIONAL HTML RULES:
 - Use proper apostrophes (') and quotes (") in natural language - never escape or avoid them
 - NEVER use markdown (**bold** or *italic*) - only HTML tags
 - NEVER use code blocks, backticks, or code formatting

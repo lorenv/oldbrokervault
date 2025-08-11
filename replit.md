@@ -189,3 +189,15 @@ The application employs a client-server architecture.
 - **Formatted Text Renderer**: New `renderFormattedText()` function applies proper fonts (Helvetica-Bold, Helvetica-Oblique) and sizing to PDF output
 - **Backward Compatibility**: Preserves existing markdown processing for legacy content while adding HTML support
 - **Enhanced Logging**: Added detailed console logging for debugging content type detection and formatting application
+
+### Centralized AI Formatting System (August 11, 2025)
+- **Configurable Formatting Profiles**: Implemented `shared/formatting-config.ts` with 5 predefined formatting styles (professional, memo, balanced, robust, conversational)
+- **Dynamic Editor Configuration**: TipTap editor now adapts toolbar and available features based on selected formatting profile
+- **AI Integration**: Perplexity API integration updated to use centralized formatting instructions for consistent HTML output
+- **Supported Elements**: Full support for bold, italic, bullet lists, ordered lists, tables, headings, and blockquotes with profile-based control
+- **Table Support**: Added TipTap table extensions (@tiptap/extension-table) with insert table functionality
+- **Profile-Based Features**: Each profile enables/disables specific formatting elements (e.g., professional mode disables lists, robust enables tables)
+- **HTML Validation**: Built-in validation system to ensure AI output matches profile requirements
+- **Format Conversion**: Utility functions to convert between formatting profiles and validate HTML compliance
+- **User Interface**: `FormattingProfileSelector` component allows users to choose formatting styles with live preview
+- **Future-Ready**: Architecture supports easy addition of new formatting profiles and customization options
