@@ -40,7 +40,7 @@ const stageConfig = {
     progress: 50
   },
   generating_document: {
-    label: "Generating comprehensive CIM document",
+    label: "Generating comprehensive CIM document (this stage may take a minute...)",
     icon: Sparkles,
     progress: 70
   },
