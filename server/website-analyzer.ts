@@ -154,9 +154,15 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
         console.log(`Trying URL: ${tryUrl}`);
         const response = await fetch(tryUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
           },
-          timeout: 10000,
+          timeout: 15000,
           // Add TLS options to handle certificate issues
           agent: false,
           redirect: 'follow'
@@ -169,6 +175,15 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
           successfulUrl = tryUrl;
           console.log(`Successfully fetched HTML from: ${tryUrl}, length: ${html.length} bytes`);
           break;
+        } else {
+          console.log(`HTTP ${response.status}: ${response.statusText} for ${tryUrl}`);
+          // Check if it's a Cloudflare challenge or bot protection
+          if (response.status === 403) {
+            const responseText = await response.text();
+            if (responseText.includes('cloudflare') || responseText.includes('challenge')) {
+              console.log(`Website ${tryUrl} is protected by Cloudflare - bot protection active`);
+            }
+          }
         }
       } catch (error) {
         console.log(`Failed to fetch ${tryUrl}: ${error.message}`);
@@ -177,7 +192,8 @@ export async function extractWebsiteImages(websiteUrl: string): Promise<string[]
     }
     
     if (!html) {
-      console.error('Failed to fetch website content from any URL variation');
+      console.error(`Failed to fetch website content from any URL variation for ${websiteUrl}`);
+      console.error('Possible reasons: Bot protection (Cloudflare), SSL issues, or website blocking automated requests');
       return [];
     }
     
