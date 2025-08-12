@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -195,6 +195,14 @@ export interface IStorage {
   getAnalysisTemplates(userId: number): Promise<any[]>;
   updateAnalysisTemplate(id: number, template: any): Promise<any>;
   deleteAnalysisTemplate(id: number, userId: number): Promise<void>;
+  // Content & Style Template methods
+  getContentStyleTemplates(userId: number): Promise<ContentStyleTemplate[]>;
+  getContentStyleTemplate(id: number, userId: number): Promise<ContentStyleTemplate | undefined>;
+  createContentStyleTemplate(userId: number, template: InsertContentStyleTemplate): Promise<ContentStyleTemplate>;
+  updateContentStyleTemplate(id: number, userId: number, template: Partial<ContentStyleTemplate>): Promise<ContentStyleTemplate>;
+  deleteContentStyleTemplate(id: number, userId: number): Promise<void>;
+  setDefaultContentStyleTemplate(id: number, userId: number): Promise<void>;
+  getUserDefaultContentStyleTemplate(userId: number): Promise<ContentStyleTemplate | undefined>;
   sessionStore: session.Store;
 }
 
@@ -1826,6 +1834,101 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
   async deleteAnalysisTemplate(id: number, userId: number): Promise<void> {
     await db.delete(analysisTemplates)
       .where(sql`${analysisTemplates.id} = ${id} AND ${analysisTemplates.userId} = ${userId}`);
+  }
+
+  // Content & Style Template methods
+  async getContentStyleTemplates(userId: number): Promise<ContentStyleTemplate[]> {
+    return await db.select()
+      .from(contentStyleTemplates)
+      .where(eq(contentStyleTemplates.userId, userId))
+      .orderBy(desc(contentStyleTemplates.createdAt));
+  }
+
+  async getContentStyleTemplate(id: number, userId: number): Promise<ContentStyleTemplate | undefined> {
+    const [template] = await db.select()
+      .from(contentStyleTemplates)
+      .where(and(
+        eq(contentStyleTemplates.id, id),
+        eq(contentStyleTemplates.userId, userId)
+      ));
+    return template;
+  }
+
+  async createContentStyleTemplate(userId: number, template: InsertContentStyleTemplate): Promise<ContentStyleTemplate> {
+    // If this template is being set as default, unset any existing default
+    if (template.isDefault) {
+      await db.update(contentStyleTemplates)
+        .set({ isDefault: false })
+        .where(eq(contentStyleTemplates.userId, userId));
+    }
+
+    const [newTemplate] = await db.insert(contentStyleTemplates)
+      .values({
+        ...template,
+        userId
+      })
+      .returning();
+
+    return newTemplate;
+  }
+
+  async updateContentStyleTemplate(id: number, userId: number, template: Partial<ContentStyleTemplate>): Promise<ContentStyleTemplate> {
+    // If this template is being set as default, unset any existing default
+    if (template.isDefault) {
+      await db.update(contentStyleTemplates)
+        .set({ isDefault: false })
+        .where(eq(contentStyleTemplates.userId, userId));
+    }
+
+    const [updatedTemplate] = await db.update(contentStyleTemplates)
+      .set({
+        ...template,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(contentStyleTemplates.id, id),
+        eq(contentStyleTemplates.userId, userId)
+      ))
+      .returning();
+
+    if (!updatedTemplate) {
+      throw new Error("Template not found");
+    }
+
+    return updatedTemplate;
+  }
+
+  async deleteContentStyleTemplate(id: number, userId: number): Promise<void> {
+    await db.delete(contentStyleTemplates)
+      .where(and(
+        eq(contentStyleTemplates.id, id),
+        eq(contentStyleTemplates.userId, userId)
+      ));
+  }
+
+  async setDefaultContentStyleTemplate(id: number, userId: number): Promise<void> {
+    // First, unset any existing default templates
+    await db.update(contentStyleTemplates)
+      .set({ isDefault: false })
+      .where(eq(contentStyleTemplates.userId, userId));
+
+    // Then set the specified template as default
+    await db.update(contentStyleTemplates)
+      .set({ isDefault: true })
+      .where(and(
+        eq(contentStyleTemplates.id, id),
+        eq(contentStyleTemplates.userId, userId)
+      ));
+  }
+
+  async getUserDefaultContentStyleTemplate(userId: number): Promise<ContentStyleTemplate | undefined> {
+    const [template] = await db.select()
+      .from(contentStyleTemplates)
+      .where(and(
+        eq(contentStyleTemplates.userId, userId),
+        eq(contentStyleTemplates.isDefault, true)
+      ));
+    return template;
   }
 }
 

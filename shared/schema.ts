@@ -872,5 +872,32 @@ export const insertAnalysisTemplateSchema = createInsertSchema(analysisTemplates
 export type AnalysisTemplate = typeof analysisTemplates.$inferSelect;
 export type InsertAnalysisTemplate = z.infer<typeof insertAnalysisTemplateSchema>;
 
+// Content & Style Templates - stores section directions and formatting profiles
+export const contentStyleTemplates = pgTable("content_style_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  sectionDirections: jsonb("section_directions").notNull(), // Object with section-specific directions
+  formattingProfile: text("formatting_profile").notNull(), // balanced, professional, memo, robust
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+
+export const insertContentStyleTemplateSchema = createInsertSchema(contentStyleTemplates).pick({
+  name: true,
+  sectionDirections: true,
+  formattingProfile: true,
+  isDefault: true
+}).extend({
+  name: z.string().min(1, "Template name is required"),
+  sectionDirections: z.record(z.string().min(1)), // Object with string values
+  formattingProfile: z.enum(["balanced", "professional", "memo", "robust"]),
+  isDefault: z.boolean().default(false)
+});
+
+export type ContentStyleTemplate = typeof contentStyleTemplates.$inferSelect;
+export type InsertContentStyleTemplate = z.infer<typeof insertContentStyleTemplateSchema>;
+
 // Default CIM directions for backwards compatibility
 export const DEFAULT_CIM_DIRECTIONS = DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections;

@@ -6,20 +6,21 @@ import { getFormattingConfig, type FormattingProfile, FORMATTING_PROFILES } from
 import { CheckCircle, Circle } from 'lucide-react';
 
 interface FormattingProfileSelectorProps {
-  selectedProfile: FormattingProfile;
-  onProfileChange: (profile: FormattingProfile) => void;
+  value: FormattingProfile;
+  onChange: (profile: FormattingProfile) => void;
   className?: string;
   showPreview?: boolean;
 }
 
 export function FormattingProfileSelector({
-  selectedProfile,
-  onProfileChange,
+  value,
+  onChange,
   className = "",
   showPreview = true
 }: FormattingProfileSelectorProps) {
   const [previewProfile, setPreviewProfile] = useState<FormattingProfile | null>(null);
 
+  // Remove conversational option as requested
   const profiles: Array<{
     profile: FormattingProfile;
     title: string;
@@ -28,6 +29,14 @@ export function FormattingProfileSelector({
     wordCount: string;
     bestFor: string;
   }> = [
+    {
+      profile: 'balanced',
+      title: 'Balanced',
+      description: 'Mix of paragraphs and lists for comprehensive coverage',
+      features: ['Mixed format', 'Moderate length', 'Lists + paragraphs', 'Clear structure'],
+      wordCount: '800-1200 words',
+      bestFor: 'General business documents'
+    },
     {
       profile: 'professional',
       title: 'Professional',
@@ -45,32 +54,16 @@ export function FormattingProfileSelector({
       bestFor: 'Quick overviews, executive summaries'
     },
     {
-      profile: 'balanced',
-      title: 'Balanced',
-      description: 'Mix of paragraphs and lists for comprehensive coverage',
-      features: ['Mixed format', 'Moderate length', 'Lists + paragraphs', 'Clear structure'],
-      wordCount: '800-1200 words',
-      bestFor: 'General business documents'
-    },
-    {
       profile: 'robust',
       title: 'Robust',
       description: 'Detailed analysis with comprehensive formatting',
       features: ['Detailed paragraphs', 'Rich formatting', 'Tables supported', 'Comprehensive lists'],
       wordCount: '1200-1800 words',
       bestFor: 'Due diligence, detailed analysis'
-    },
-    {
-      profile: 'conversational',
-      title: 'Conversational',
-      description: 'Friendly, accessible language with natural flow',
-      features: ['Natural language', 'Accessible tone', 'Frequent lists', 'Clear explanations'],
-      wordCount: '800-1200 words',
-      bestFor: 'Stakeholder communications'
     }
   ];
 
-  const currentProfile = previewProfile || selectedProfile;
+  const currentProfile = previewProfile || value;
   const config = getFormattingConfig(currentProfile);
 
   const formatFeatures = () => {
@@ -87,18 +80,16 @@ export function FormattingProfileSelector({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {showPreview && (
-        <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">Choose Formatting Style</h3>
-          <p className="text-sm text-gray-600">
-            Select how you want your AI-generated content to be formatted and structured.
-          </p>
-        </div>
-      )}
+      <div>
+        <h3 className="text-base font-medium mb-2">Formatting Style</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Select how you want your AI-generated content to be formatted and structured.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {profiles.map(({ profile, title, description, features, wordCount, bestFor }) => {
-          const isSelected = selectedProfile === profile;
+          const isSelected = value === profile;
           const isPreview = previewProfile === profile;
           
           return (
@@ -110,7 +101,7 @@ export function FormattingProfileSelector({
               }`}
               onMouseEnter={() => setPreviewProfile(profile)}
               onMouseLeave={() => setPreviewProfile(null)}
-              onClick={() => onProfileChange(profile)}
+              onClick={() => onChange(profile)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">

@@ -1885,6 +1885,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Parsed coverImagePosition from FormData:", parsedBody.coverImagePosition);
       }
       
+      // Parse sectionDirections from FormData string to object
+      if (req.body.sectionDirections && typeof req.body.sectionDirections === 'string') {
+        try {
+          parsedBody.sectionDirections = JSON.parse(req.body.sectionDirections);
+          console.log("Parsed sectionDirections from FormData:", parsedBody.sectionDirections);
+        } catch (error) {
+          console.error("Failed to parse sectionDirections:", error);
+          parsedBody.sectionDirections = {};
+        }
+      }
+      
       // Debug: Log what we're sending to schema validation
       console.log("=== SCHEMA VALIDATION DEBUG ===");
       console.log("coverImagePosition type:", typeof parsedBody.coverImagePosition);
@@ -7795,6 +7806,94 @@ ${finalQuestion}
     } catch (error) {
       console.error('Error deleting analysis template:', error);
       res.status(500).json({ error: "Failed to delete analysis template" });
+    }
+  });
+
+  // Content & Style Template Routes
+  app.get("/api/content-style-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templates = await storage.getContentStyleTemplates(req.user!.id);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching content style templates:", error);
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  app.post("/api/content-style-templates", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const template = await storage.createContentStyleTemplate(req.user!.id, req.body);
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating content style template:", error);
+      res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+
+  app.patch("/api/content-style-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+      
+      const template = await storage.updateContentStyleTemplate(templateId, req.user!.id, req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating content style template:", error);
+      res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/content-style-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+      
+      await storage.deleteContentStyleTemplate(templateId, req.user!.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting content style template:", error);
+      res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
+
+  app.post("/api/content-style-templates/:id/set-default", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+      
+      await storage.setDefaultContentStyleTemplate(templateId, req.user!.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting default content style template:", error);
+      res.status(500).json({ error: "Failed to set default template" });
+    }
+  });
+
+  app.get("/api/content-style-templates/default", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const template = await storage.getUserDefaultContentStyleTemplate(req.user!.id);
+      res.json(template || null);
+    } catch (error) {
+      console.error("Error fetching default content style template:", error);
+      res.status(500).json({ error: "Failed to fetch default template" });
     }
   });
 
