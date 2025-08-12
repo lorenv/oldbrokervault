@@ -10,7 +10,7 @@ import { NdaDialog } from "@/components/nda-dialog";
 import { UploadedFileViewer } from "@/components/uploaded-file-viewer";
 import { FinancialDocumentsDisplay } from "@/components/financial-documents-display";
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
-import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock } from "lucide-react";
+import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone } from "lucide-react";
 import { OwnerToolbar } from "@/components/owner-toolbar";
 import { NdaOwnerBypass } from "@/components/nda-owner-bypass";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,14 +19,14 @@ export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
   const [matchCims, paramsCims] = useRoute("/cims/:shareSlug");
   const shareSlug = paramsShare?.shareSlug || paramsCims?.shareSlug;
-  
+
   const [showNdaDialog, setShowNdaDialog] = useState(false);
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [showOwnerBypass, setShowOwnerBypass] = useState(false);
   const { user } = useAuth();
-  
+
   // Parallax effect state
   const [scrollY, setScrollY] = useState(0);
   const coverImageRef = useRef<HTMLDivElement>(null);
@@ -86,11 +86,11 @@ export function SharePage() {
     queryFn: async () => {
       console.log('⚡ Fast NDA check for:', shareSlug);
       const response = await fetch(`/api/share/${shareSlug}/nda-check`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to check NDA status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('⚡ NDA check result:', data);
       return data;
@@ -102,7 +102,7 @@ export function SharePage() {
 
   // Step 2: Load full document data only if no NDA required OR user has access
   const shouldLoadFullData = Boolean(ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken) && !ndaCheckError);
-  
+
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug, accessToken],
     queryFn: async () => {
@@ -115,13 +115,13 @@ export function SharePage() {
         },
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Share API error:', response.status, errorText);
         throw new Error(`Failed to fetch shared CIM: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('✅ Full document data received');
       return data;
@@ -151,14 +151,14 @@ export function SharePage() {
 
   useEffect(() => {
     console.log('🔄 Share page effect - shareData:', shareData, 'error:', error, 'isLoading:', isLoading);
-    
+
     // Check if user is document owner and should bypass NDA
     if (shareData?.isOwner && ndaCheck?.requiresNda && !showOwnerBypass) {
       console.log('🏠 Owner detected - showing bypass screen');
       setShowOwnerBypass(true);
       return;
     }
-    
+
     if (shareData?.cim?.requiresNda && !hasSignedNda) {
       setShowNdaDialog(true);
     }
@@ -210,13 +210,13 @@ export function SharePage() {
 
   // If user has a valid access token, they can bypass NDA
   const hasValidToken = tokenValidation?.valid === true;
-  
+
   // Show NDA dialog if document requires NDA and user hasn't signed or has no valid token and is not owner
   const shouldShowNdaDialog = ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !ndaCheckError && !shareData?.isOwner;
-  
+
   // Only access shareData.cim if shareData exists
   const cimData = shareData?.cim;
-  
+
   // Check if manual approval is required and not yet granted
   const needsApproval = shareData?.ndaApprovalStatus?.requiresApproval && !shareData?.ndaApprovalStatus?.isApproved;
 
@@ -364,10 +364,10 @@ export function SharePage() {
               willChange: 'transform'
             }}
           />
-          
+
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
-          
+
           {/* Header Content Overlay - Bottom Positioned */}
           <div 
             className="absolute inset-x-0 bottom-0 pb-16 px-6 transition-opacity duration-300"
@@ -390,7 +390,7 @@ export function SharePage() {
                   {shareData.cim.description}
                 </p>
               )}
-              
+
               {/* Export Button */}
               <div className="mt-8 animate-slide-up delay-700">
                 <Button
@@ -402,7 +402,7 @@ export function SharePage() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                       });
-                      
+
                       if (response.ok) {
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
@@ -441,7 +441,7 @@ export function SharePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Cover Image Attribution */}
           {shareData.cim.coverImageAttribution && (
             <div 
@@ -469,7 +469,7 @@ export function SharePage() {
                   {shareData.cim.description}
                 </p>
               )}
-              
+
               {/* Export Button */}
               <div className="mt-8 animate-slide-up delay-700">
                 <Button
@@ -481,7 +481,7 @@ export function SharePage() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                       });
-                      
+
                       if (response.ok) {
                         const blob = await response.blob();
                         const url = window.URL.createObjectURL(blob);
@@ -519,7 +519,7 @@ export function SharePage() {
           </div>
         </div>
       )}
-      
+
       {/* Content section with sidebar layout */}
       <div className="max-w-[90rem] mx-auto px-4 md:px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -586,7 +586,7 @@ export function SharePage() {
                           </div>
                         ))}
                       </div>
-                      
+
                       {uploadedFiles.length > 1 && (
                         <div className="pt-6 border-t border-gray-200/50">
                           <Button
@@ -671,7 +671,7 @@ export function SharePage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Financial Documents Download Section */}
                       <div className="animate-slide-up delay-1000">
                         <FinancialDocumentsDisplay cimId={shareData.cim.id} shareSlug={shareSlug!} />
@@ -696,7 +696,7 @@ export function SharePage() {
                           href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-xl md:text-2xl font-semibold text-green-600 hover:text-green-700 transition-colors duration-200 hover:underline break-all"
+                          className="inline-flex items-center gap-2 text-xl md:text-2xl font-semibold text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline break-all"
                         >
                           <span className="break-all">{shareData.websiteUrl.replace(/^https?:\/\//, '')}</span>
                           <ExternalLink className="h-5 w-5 flex-shrink-0" />
