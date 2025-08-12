@@ -52,7 +52,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { ContentStyleSection } from "./content-style-section";
-import { DEFAULT_SECTION_DIRECTIONS } from "@shared/schema";
+
+// Default section lines for the new interface
+const DEFAULT_SECTION_LINES = [
+  { id: '1', content: 'Business Summary - Clear description of what the company does, its value proposition, and market position' },
+  { id: '2', content: 'Market Opportunity - Analysis of target market size, growth potential, and competitive landscape' },
+  { id: '3', content: 'Business Model - How the company generates revenue and creates value for customers' },
+  { id: '4', content: 'Operations - Key operational processes, locations, technology, and competitive advantages' },
+  { id: '5', content: 'Growth Opportunities - Strategic initiatives, expansion plans, and potential for scaling' },
+  { id: '6', content: 'Management & Team - Key personnel and organizational structure' },
+  { id: '7', content: 'Financial Overview - Revenue, profitability, and key financial metrics' }
+];
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -111,7 +121,7 @@ export function CimGenerator() {
   
   // Content & Style state
   const [selectedFormattingProfile, setSelectedFormattingProfile] = useState<FormattingProfile>('balanced');
-  const [sectionDirections, setSectionDirections] = useState(DEFAULT_SECTION_DIRECTIONS);
+  const [sectionDirections, setSectionDirections] = useState(DEFAULT_SECTION_LINES);
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
@@ -158,14 +168,7 @@ export function CimGenerator() {
     tone?: string;
     purpose?: string;
     audience?: string;
-    sectionDirections?: {
-      businessSummary?: string;
-      marketOpportunity?: string;
-      businessModel?: string;
-      operations?: string;
-      growthOpportunities?: string;
-      managementTeam?: string;
-    };
+    sectionDirections?: Array<{id: string; content: string}>;
     formattingProfile?: string;
   };
 
@@ -179,7 +182,7 @@ export function CimGenerator() {
       tone: "balanced",
       purpose: "business_overview", 
       audience: "investors",
-      sectionDirections: DEFAULT_SECTION_DIRECTIONS,
+      sectionDirections: DEFAULT_SECTION_LINES,
       formattingProfile: "balanced"
     }
   });

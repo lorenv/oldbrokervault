@@ -2,20 +2,19 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Plus, X } from "lucide-react";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
-import { DEFAULT_SECTION_DIRECTIONS } from "@shared/schema";
+
+interface SectionLine {
+  id: string;
+  content: string;
+}
 
 interface ContentStyleSectionProps {
-  sectionDirections: {
-    businessSummary?: string;
-    marketOpportunity?: string;
-    businessModel?: string;
-    operations?: string;
-    growthOpportunities?: string;
-    managementTeam?: string;
-  };
-  onSectionDirectionsChange: (directions: typeof sectionDirections) => void;
+  sectionDirections: SectionLine[];
+  onSectionDirectionsChange: (directions: SectionLine[]) => void;
   formattingProfile: FormattingProfile;
   onFormattingProfileChange: (profile: FormattingProfile) => void;
 }
@@ -26,20 +25,26 @@ export function ContentStyleSection({
   formattingProfile,
   onFormattingProfileChange
 }: ContentStyleSectionProps) {
-  const sections = [
-    { key: 'businessSummary', label: 'Business Summary', defaultValue: DEFAULT_SECTION_DIRECTIONS.businessSummary },
-    { key: 'marketOpportunity', label: 'Market Opportunity', defaultValue: DEFAULT_SECTION_DIRECTIONS.marketOpportunity },
-    { key: 'businessModel', label: 'Business Model', defaultValue: DEFAULT_SECTION_DIRECTIONS.businessModel },
-    { key: 'operations', label: 'Operations', defaultValue: DEFAULT_SECTION_DIRECTIONS.operations },
-    { key: 'growthOpportunities', label: 'Growth Opportunities', defaultValue: DEFAULT_SECTION_DIRECTIONS.growthOpportunities },
-    { key: 'managementTeam', label: 'Management & Team', defaultValue: DEFAULT_SECTION_DIRECTIONS.managementTeam }
-  ];
+  
+  const updateSectionLine = (index: number, content: string) => {
+    const updated = [...sectionDirections];
+    updated[index] = { ...updated[index], content };
+    onSectionDirectionsChange(updated);
+  };
 
-  const handleSectionChange = (key: string, value: string) => {
-    onSectionDirectionsChange({
-      ...sectionDirections,
-      [key]: value
-    });
+  const addSectionLine = () => {
+    const newLine: SectionLine = {
+      id: Date.now().toString(),
+      content: ""
+    };
+    onSectionDirectionsChange([...sectionDirections, newLine]);
+  };
+
+  const removeSectionLine = (index: number) => {
+    if (sectionDirections.length > 1) {
+      const updated = sectionDirections.filter((_, i) => i !== index);
+      onSectionDirectionsChange(updated);
+    }
   };
 
   return (
@@ -52,32 +57,52 @@ export function ContentStyleSection({
         <div className="space-y-4">
           <Label className="text-base font-medium">Section Directions</Label>
           <p className="text-sm text-muted-foreground">
-            Customize what should be included in each section of your CIM document:
+            Define what sections to generate and their specific requirements. You can add, edit, or remove lines as needed.
           </p>
           <div className="space-y-3">
-            {sections.map((section) => (
-              <div key={section.key} className="space-y-2">
-                <Label htmlFor={section.key} className="text-sm font-medium">
-                  {section.label}
-                </Label>
+            {sectionDirections.map((line, index) => (
+              <div key={line.id} className="flex items-center space-x-2">
                 <Input
-                  id={section.key}
-                  value={sectionDirections[section.key as keyof typeof sectionDirections] || section.defaultValue}
-                  onChange={(e) => handleSectionChange(section.key, e.target.value)}
-                  placeholder={section.defaultValue}
-                  className="text-sm"
+                  value={line.content}
+                  onChange={(e) => updateSectionLine(index, e.target.value)}
+                  placeholder="Section Name - Description of what to include..."
+                  className="flex-1"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeSectionLine(index)}
+                  className="shrink-0"
+                  disabled={sectionDirections.length <= 1}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addSectionLine}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Section
+            </Button>
           </div>
         </div>
 
         {/* Formatting Style */}
         <div className="space-y-4">
-          <Label className="text-base font-medium">Formatting Style</Label>
+          <Label className="text-base font-medium">Choose Formatting Style</Label>
+          <p className="text-sm text-muted-foreground">
+            Select how you want your AI-generated content to be formatted and structured. This affects both the editor toolbar and how the AI writes content.
+          </p>
           <FormattingProfileSelector
             selectedProfile={formattingProfile}
             onProfileChange={onFormattingProfileChange}
+            showPreview={false}
           />
         </div>
       </CardContent>

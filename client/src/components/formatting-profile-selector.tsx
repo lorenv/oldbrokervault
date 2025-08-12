@@ -9,12 +9,14 @@ interface FormattingProfileSelectorProps {
   selectedProfile: FormattingProfile;
   onProfileChange: (profile: FormattingProfile) => void;
   className?: string;
+  showPreview?: boolean;
 }
 
 export function FormattingProfileSelector({
   selectedProfile,
   onProfileChange,
-  className = ""
+  className = "",
+  showPreview = true
 }: FormattingProfileSelectorProps) {
   const [previewProfile, setPreviewProfile] = useState<FormattingProfile | null>(null);
 
@@ -156,47 +158,49 @@ export function FormattingProfileSelector({
       </div>
 
       {/* Preview Panel */}
-      <Card className="bg-gray-50">
-        <CardHeader>
-          <CardTitle className="text-base">
-            {profiles.find(p => p.profile === currentProfile)?.title} Profile Preview
-          </CardTitle>
-          <CardDescription>
-            Available formatting options with this profile
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Editor Tools:</h4>
-              <div className="flex flex-wrap gap-1">
-                {formatFeatures().map((feature, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {feature}
-                  </Badge>
-                ))}
-                {formatFeatures().length === 0 && (
-                  <span className="text-xs text-gray-500">Paragraph-only format</span>
-                )}
+      {showPreview && (
+        <Card className="bg-gray-50">
+          <CardHeader>
+            <CardTitle className="text-base">
+              {profiles.find(p => p.profile === currentProfile)?.title} Profile Preview
+            </CardTitle>
+            <CardDescription>
+              Available formatting options with this profile
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Editor Tools:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {formatFeatures().map((feature, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                  {formatFeatures().length === 0 && (
+                    <span className="text-xs text-gray-500">Paragraph-only format</span>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2">AI Writing Style:</h4>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  {config.aiInstructions.tone}
+                </p>
               </div>
             </div>
             
-            <div>
-              <h4 className="text-sm font-medium mb-2">AI Writing Style:</h4>
+            <div className="mt-4 p-3 bg-white rounded border">
+              <h4 className="text-sm font-medium mb-2">Structure Guidelines:</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                {config.aiInstructions.tone}
+                {config.aiInstructions.structure}
               </p>
             </div>
-          </div>
-          
-          <div className="mt-4 p-3 bg-white rounded border">
-            <h4 className="text-sm font-medium mb-2">Structure Guidelines:</h4>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              {config.aiInstructions.structure}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
