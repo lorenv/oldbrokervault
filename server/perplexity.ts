@@ -471,8 +471,8 @@ Create a comprehensive CIM document following the analysis parameters and custom
       }
       
       // Handle control characters only when inside strings
-      if (inString && (charCode < 32 || charCode > 126)) {
-        // Replace problematic characters with escaped versions
+      if (inString && charCode < 32) {
+        // Replace problematic control characters with escaped versions
         switch (char) {
           case '\n':
             cleanedContent += '\\n';
@@ -487,22 +487,9 @@ Create a comprehensive CIM document following the analysis parameters and custom
             // Skip other control characters
             break;
         }
-      } else if (inString && charCode > 126) {
-        // Preserve common Unicode characters like smart quotes and apostrophes
-        switch (char) {
-          case '\u2019': // Smart apostrophe (')
-          case '\u2018': // Smart apostrophe (')
-          case '\u201C': // Smart quote (")
-          case '\u201D': // Smart quote (")
-          case '\u2013': // En dash (–)
-          case '\u2014': // Em dash (—)
-            cleanedContent += char;
-            break;
-          default:
-            // Skip other high Unicode characters that might break JSON
-            break;
-        }
       } else {
+        // Preserve all printable characters including Unicode
+        // This includes regular apostrophes ('), hyphens (-), em dashes (—), etc.
         cleanedContent += char;
       }
     }
@@ -512,6 +499,17 @@ Create a comprehensive CIM document following the analysis parameters and custom
     console.log("About to parse JSON, first 200 chars:", jsonContent.substring(0, 200));
     const result = JSON.parse(jsonContent);
     console.log("JSON parsing successful");
+    
+    // Remove Perplexity source references like [1] [2] [3] from all content
+    if (result.sections && Array.isArray(result.sections)) {
+      result.sections = result.sections.map((section: any) => {
+        if (section && section.content && typeof section.content === 'string') {
+          // Remove source references like [1], [2], [3], etc. including patterns like [1] [2] [3]
+          section.content = section.content.replace(/\[\d+\](\s*\[\d+\])*/g, '').trim();
+        }
+        return section;
+      });
+    }
     
     // DEBUG: Check if HTML formatting is present in the parsed result
     if (result.sections && Array.isArray(result.sections)) {
@@ -655,6 +653,21 @@ async function makePerplexityRequest(messages: any[]): Promise<CimAnalysis> {
       .replace(/\r/g, '') // Remove carriage returns
     
     const analysis = JSON.parse(cleanJsonStr);
+    
+    // Remove Perplexity source references like [1] [2] [3] from all content in legacy format
+    if (analysis && typeof analysis === 'object') {
+      Object.keys(analysis).forEach(key => {
+        if (typeof analysis[key] === 'string') {
+          analysis[key] = analysis[key].replace(/\[\d+\](\s*\[\d+\])*/g, '').trim();
+        } else if (analysis[key] && typeof analysis[key] === 'object') {
+          Object.keys(analysis[key]).forEach(subKey => {
+            if (typeof analysis[key][subKey] === 'string') {
+              analysis[key][subKey] = analysis[key][subKey].replace(/\[\d+\](\s*\[\d+\])*/g, '').trim();
+            }
+          });
+        }
+      });
+    }
 
     // Validate the response has the required fields
     if (!analysis.story || !analysis.marketAnalysis || !analysis.team) {
