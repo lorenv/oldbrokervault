@@ -57,7 +57,7 @@ export function ContentStyleSection({
         <div className="space-y-4">
           <Label className="text-base font-medium">Section Directions</Label>
           <p className="text-sm text-muted-foreground">
-            Define what sections to generate and their specific requirements. You can add, edit, or remove lines as needed.
+            Define what sections to generate and their specific requirements.
           </p>
           <div className="space-y-3">
             {sectionDirections.map((line, index) => (
@@ -96,9 +96,6 @@ export function ContentStyleSection({
         {/* Formatting Style */}
         <div className="space-y-4">
           <Label className="text-base font-medium">Choose Formatting Style</Label>
-          <p className="text-sm text-muted-foreground">
-            Select how you want your AI-generated content to be formatted and structured. This affects both the editor toolbar and how the AI writes content.
-          </p>
           <FormattingProfileSelector
             selectedProfile={formattingProfile}
             onProfileChange={onFormattingProfileChange}

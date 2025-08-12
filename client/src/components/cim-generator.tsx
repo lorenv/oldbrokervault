@@ -64,6 +64,8 @@ const DEFAULT_SECTION_LINES = [
   { id: '7', content: 'Financial Overview - Revenue, profitability, and key financial metrics' }
 ];
 
+const DEFAULT_SECTION_DIRECTIONS = DEFAULT_SECTION_LINES;
+
 export function CimGenerator() {
   const { user } = useAuth();
   const { toast } = useToast();
