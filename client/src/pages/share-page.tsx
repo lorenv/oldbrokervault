@@ -376,7 +376,7 @@ export function SharePage() {
             }}
           >
             <div className="max-w-6xl mx-auto text-center">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-4 tracking-tight break-words px-4 animate-slide-up delay-300"
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-8 tracking-tight break-words px-4 animate-slide-up delay-300"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
                   }}>
@@ -461,7 +461,7 @@ export function SharePage() {
                   <img src={shareData.logoUrl} alt="Company Logo" className="h-16 md:h-20 max-w-[200px] object-contain" />
                 </div>
               )}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4 animate-slide-up delay-300">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-8 tracking-tight break-words px-4 animate-slide-up delay-300">
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
