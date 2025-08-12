@@ -935,7 +935,16 @@ export async function generateCimWithWebsiteAnalysis(
   tone: string,
   audience: string,
   financials?: any,
-  websiteUrl?: string
+  websiteUrl?: string,
+  sectionDirections?: {
+    businessSummary?: string;
+    marketOpportunity?: string;
+    businessModel?: string;
+    operations?: string;
+    growthOpportunities?: string;
+    managementTeam?: string;
+  },
+  formattingProfile?: FormattingProfile
 ): Promise<FlexibleCimDocument> {
   try {
     console.log('🧠 Generating CIM with optional website analysis');
@@ -963,7 +972,27 @@ export async function generateCimWithWebsiteAnalysis(
       console.log('⚠️ No website URL provided, skipping website analysis');
     }
     
-    const result = await generateFlexibleCim(transcript, customDirections, purpose, tone, audience, financials, websiteData || undefined);
+    // Enhanced directions using section-specific guidance
+    let enhancedDirections = customDirections;
+    
+    if (sectionDirections) {
+      const sectionInstructions = Object.entries(sectionDirections)
+        .filter(([_, value]) => value && value.trim())
+        .map(([key, value]) => {
+          const sectionName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          return `${sectionName}: ${value}`;
+        })
+        .join('\n');
+      
+      if (sectionInstructions) {
+        enhancedDirections += `\n\nSection-Specific Directions:\n${sectionInstructions}`;
+      }
+    }
+    
+    // Use formattingProfile if provided, otherwise fall back to tone
+    const effectiveTone = formattingProfile || tone;
+    
+    const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined);
     console.log('✅ CIM generation with website analysis successful');
     return result;
   } catch (error) {

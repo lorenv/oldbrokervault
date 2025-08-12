@@ -66,7 +66,10 @@ export const cimDocuments = pgTable("cim_documents", {
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   transcript: text("transcript").notNull(),
-  directions: text("directions").notNull(),
+  directions: text("directions").notNull(), // Legacy field for backward compatibility
+  // New section-based directions
+  sectionDirections: jsonb("section_directions"), // Object with section-specific directions
+  formattingProfile: text("formatting_profile").default("balanced"), // balanced, professional, memo, etc.
   regenerationCount: integer("regeneration_count").default(0).notNull(),
   analysis: jsonb("analysis").notNull(),
   // Uploaded file fields
@@ -450,6 +453,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   adminCode: z.string().optional()
 });
 
+// Default section directions
+export const DEFAULT_SECTION_DIRECTIONS = {
+  businessSummary: "Clear description of what the company does, its value proposition, and market position",
+  marketOpportunity: "Size of market, growth trends, and competitive landscape", 
+  businessModel: "How the company generates revenue and key success factors",
+  operations: "Key processes, suppliers, customers, and operational strengths",
+  growthOpportunities: "Areas for expansion and potential value creation",
+  managementTeam: "Key personnel and organizational structure"
+};
+
 export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   title: true,
   transcript: true,
@@ -467,7 +480,17 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   docId: z.string().optional(),
   purpose: z.string().optional(),
   tone: z.string().optional(),
-  audience: z.string().optional()
+  audience: z.string().optional(),
+  // New section-based fields
+  sectionDirections: z.object({
+    businessSummary: z.string().optional(),
+    marketOpportunity: z.string().optional(),
+    businessModel: z.string().optional(),
+    operations: z.string().optional(),
+    growthOpportunities: z.string().optional(),
+    managementTeam: z.string().optional()
+  }).optional(),
+  formattingProfile: z.string().optional()
 });
 
 export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
@@ -490,7 +513,17 @@ export const insertUploadedCimSchema = createInsertSchema(cimDocuments).pick({
   audience: z.string().optional(),
   uploadedFilePath: z.string().optional(),
   uploadedFileSize: z.number().optional(),
-  uploadedFileMimeType: z.string().optional()
+  uploadedFileMimeType: z.string().optional(),
+  // New section-based fields
+  sectionDirections: z.object({
+    businessSummary: z.string().optional(),
+    marketOpportunity: z.string().optional(),
+    businessModel: z.string().optional(),
+    operations: z.string().optional(),
+    growthOpportunities: z.string().optional(),
+    managementTeam: z.string().optional()
+  }).optional(),
+  formattingProfile: z.string().optional()
 });
 
 export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).pick({

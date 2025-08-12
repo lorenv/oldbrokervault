@@ -1317,7 +1317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tone,
           audience,
           data.financials,
-          data.websiteUrl
+          data.websiteUrl,
+          data.sectionDirections,
+          data.formattingProfile
         );
         
         // If website URL is provided, extract logo in parallel
@@ -1372,7 +1374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tone,
         audience,
         data.financials,
-        data.websiteUrl
+        data.websiteUrl,
+        data.sectionDirections,
+        data.formattingProfile
       );
       
       console.log("=== FLEXIBLE CIM ANALYSIS RESULT ===");
@@ -1948,14 +1952,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tone = data.tone || 'professional';
       const audience = data.audience || 'investors';
       
-      let analysis = await generateFlexibleCimDocument(
+      let analysis = await generateCimWithWebsiteAnalysis(
         transcript,
         data.directions,
         purpose,
         tone,
         audience,
         parsedFinancials,
-        undefined
+        data.websiteUrl,
+        data.sectionDirections,
+        data.formattingProfile
       );
       
       // Handle selected images early in the process - always download if provided
@@ -2112,6 +2118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const doc = await storage.createCimDocument(req.user!.id, {
         ...data,
         directions: data.directions, // Explicitly include custom directions
+        sectionDirections: data.sectionDirections, // Include section directions
+        formattingProfile: data.formattingProfile, // Include formatting profile
         websiteUrl: data.websiteUrl,
         logoUrl,
         analysis,

@@ -51,6 +51,8 @@ import { TemplatesLibrary } from "./templates-library";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
+import { ContentStyleSection } from "./content-style-section";
+import { DEFAULT_SECTION_DIRECTIONS } from "@shared/schema";
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -107,8 +109,9 @@ export function CimGenerator() {
   const [customDirections, setCustomDirections] = useState<string>('');
   const [selectedTemplateTitle, setSelectedTemplateTitle] = useState<string>('');
   
-  // Formatting profile state
+  // Content & Style state
   const [selectedFormattingProfile, setSelectedFormattingProfile] = useState<FormattingProfile>('balanced');
+  const [sectionDirections, setSectionDirections] = useState(DEFAULT_SECTION_DIRECTIONS);
 
   // Cover image state
   const [selectedCoverImage, setSelectedCoverImage] = useState<string | null>(null);
@@ -155,6 +158,15 @@ export function CimGenerator() {
     tone?: string;
     purpose?: string;
     audience?: string;
+    sectionDirections?: {
+      businessSummary?: string;
+      marketOpportunity?: string;
+      businessModel?: string;
+      operations?: string;
+      growthOpportunities?: string;
+      managementTeam?: string;
+    };
+    formattingProfile?: string;
   };
 
   const form = useForm<FormValues>({
@@ -166,7 +178,9 @@ export function CimGenerator() {
       websiteUrl: "",
       tone: "balanced",
       purpose: "business_overview", 
-      audience: "investors"
+      audience: "investors",
+      sectionDirections: DEFAULT_SECTION_DIRECTIONS,
+      formattingProfile: "balanced"
     }
   });
 
@@ -319,7 +333,9 @@ export function CimGenerator() {
         formData.append('title', data.title);
         formData.append('directions', data.directions);
         
-        // Add formatting parameters
+        // Add new section directions and formatting
+        formData.append('sectionDirections', JSON.stringify(sectionDirections));
+        formData.append('formattingProfile', selectedFormattingProfile);
         formData.append('tone', selectedFormattingProfile);
         formData.append('purpose', data.purpose || "business_overview");
         formData.append('audience', data.audience || "investors");
@@ -441,9 +457,11 @@ export function CimGenerator() {
           const documentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 2500 : 2000;
           setTimeout(() => setGenerationStage("generating_document"), documentStageDelay);
 
-          // Include formatting parameters in payload
+          // Include formatting parameters and section directions in payload
           const enhancedPayload = {
             ...payload,
+            sectionDirections,
+            formattingProfile: selectedFormattingProfile,
             tone: selectedFormattingProfile,
             purpose: data.purpose || "business_overview",
             audience: data.audience || "investors"
@@ -539,6 +557,8 @@ export function CimGenerator() {
         title: data.title,
         transcript: data.transcript,
         directions: data.directions,
+        sectionDirections,
+        formattingProfile: selectedFormattingProfile,
         websiteUrl: data.websiteUrl,
         selectedImages
       };
@@ -1086,64 +1106,16 @@ export function CimGenerator() {
             </div>
           </div>
 
-          {/* Analysis Directions Section */}
-          <div className="space-y-0">
-            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
-              <Settings2 className="h-5 w-5" />
-              <div>
-                <h3 className="font-semibold">Analysis Directions</h3>
-                <p className="text-sm text-slate-200">Customize how AI analyzes your transcript</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 p-4 border border-t-0 rounded-b-lg bg-white">
-                  <div className="flex items-center justify-between">
-                    <TemplatesLibrary onSelectTemplate={handleTemplateSelection} />
-                    {selectedTemplateTitle && (
-                      <Badge variant="outline" className="text-xs">
-                        Using: {selectedTemplateTitle}
-                      </Badge>
-                    )}
-                  </div>
-
-
-
-              {/* Custom directions with grey title */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Custom Directions</Label>
-                <Textarea
-                  className="min-h-[160px] text-xs resize-y"
-                  value={customDirections}
-                  onChange={(e) => {
-                    setCustomDirections(e.target.value);
-                    form.setValue("directions", e.target.value);
-                  }}
-                  placeholder="Custom directions will appear here..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Formatting Profile Section */}
-          <div className="space-y-0">
-            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
-              <Settings className="h-5 w-5" />
-              <div>
-                <h3 className="font-semibold">Formatting Style</h3>
-                <p className="text-sm text-slate-200">Choose how AI formats your document content</p>
-              </div>
-            </div>
-
-            <div className="p-4 border border-t-0 rounded-b-lg bg-white">
-              <FormattingProfileSelector
-                selectedProfile={selectedFormattingProfile}
-                onProfileChange={(profile) => {
-                  setSelectedFormattingProfile(profile);
-                  form.setValue("tone", profile);
-                }}
-              />
-            </div>
-          </div>
+          {/* Content & Style Section */}
+          <ContentStyleSection
+            sectionDirections={sectionDirections}
+            onSectionDirectionsChange={setSectionDirections}
+            formattingProfile={selectedFormattingProfile}
+            onFormattingProfileChange={(profile) => {
+              setSelectedFormattingProfile(profile);
+              form.setValue("formattingProfile", profile);
+            }}
+          />
 
           <TooltipProvider>
             <Tooltip>
