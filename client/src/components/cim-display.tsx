@@ -874,7 +874,7 @@ export function CimDisplay({
                               multiline={false}
                             />
                           ) : (
-                            section.title
+                            <span className="text-2xl font-bold text-slate-700">{section.title}</span>
                           )}
                         </CardTitle>
                       </CardHeader>
@@ -995,7 +995,7 @@ export function CimDisplay({
                               multiline={false}
                             />
                           ) : (
-                            customSection.title
+                            <span className="text-2xl font-bold text-slate-700">{customSection.title}</span>
                           )}
                         </CardTitle>
                       </CardHeader>
