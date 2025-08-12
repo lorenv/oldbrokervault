@@ -355,7 +355,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         />
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-slate-500 hover:from-blue-700 hover:to-slate-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
@@ -726,7 +726,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-slate-500 hover:from-blue-700 hover:to-slate-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
+          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
