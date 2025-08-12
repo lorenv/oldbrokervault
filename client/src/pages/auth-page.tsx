@@ -136,7 +136,7 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Card className="w-full max-w-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
+          <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white">
             <Button
               variant="ghost"
               size="sm"
@@ -193,7 +193,7 @@ export default function AuthPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Card className="w-full max-w-md overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
+          <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white">
             <CardTitle className="text-white">Set New Password</CardTitle>
             <CardDescription className="text-blue-50">
               Enter your new password below
@@ -213,7 +213,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Card className="w-full max-w-md overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-300 text-white">
+        <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white">
           <CardTitle className="text-white">Welcome to CIM Share</CardTitle>
           <CardDescription className="text-blue-50">
             The ultimate platform for creating professional Confidential Information Memorandums with NDA protection, full customization, and export to Word, PDF, and HTML formats.

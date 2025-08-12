@@ -248,7 +248,7 @@ export default function LoginPage() {
         {/* Main Card */}
         <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
           {/* Compact Header Section */}
-          <div className="relative bg-gradient-to-r from-blue-600 to-slate-500 px-8 py-8 text-center">
+          <div className="relative bg-gradient-to-r from-slate-600 to-blue-600 px-8 py-8 text-center">
             <h1 className="text-2xl font-bold text-white mb-2">
               Welcome to CIM Share
             </h1>
