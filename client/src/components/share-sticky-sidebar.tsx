@@ -174,13 +174,13 @@ export function ShareStickySidebar({ shareSlug, cimTitle, userProfile, logoUrl }
                     </div>
                   )}
                   {(userProfile.phoneNumber || userProfile.phone) && (
-                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl hover:from-emerald-100 hover:to-emerald-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
-                      <div className="p-1.5 bg-emerald-500 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-150 transition-all duration-200 transform hover:scale-[1.02] shadow-sm">
+                      <div className="p-1.5 bg-blue-500 rounded-lg shadow-sm">
                         <Phone className="h-4 w-4 text-white flex-shrink-0" />
                       </div>
                       <a
                         href={`tel:${userProfile.phoneNumber || userProfile.phone}`}
-                        className="text-emerald-700 text-sm font-semibold hover:text-emerald-800 transition-colors break-all min-w-0 flex-1"
+                        className="text-blue-700 text-sm font-semibold hover:text-blue-800 transition-colors break-all min-w-0 flex-1"
                       >
                         {userProfile.phoneNumber}
                       </a>
