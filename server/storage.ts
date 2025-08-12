@@ -84,6 +84,8 @@ export interface IStorage {
     shareExpiresAt?: Date | null;
     ndaProtected?: boolean;
     ndaTemplateId?: number | null;
+    sectionDirections?: Array<{id: string; content: string}> | null;
+    formattingProfile?: string | null;
   }): Promise<CimDocument>;
   createExampleCimDocument(userId: number): Promise<CimDocument>;
   createUploadedCimDocument(userId: number, data: {
@@ -430,6 +432,9 @@ export class DatabaseStorage implements IStorage {
       shareExpiresAt: doc.shareExpiresAt || null,
       ndaProtected: doc.ndaProtected || false,
       ndaTemplateId: doc.ndaTemplateId || null,
+      // New fields for section directions and formatting
+      sectionDirections: doc.sectionDirections || null,
+      formattingProfile: doc.formattingProfile || null,
     };
 
     console.log("Data being inserted into database:", insertData);
@@ -738,7 +743,10 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       lastActivityAt: null,
       searchVector: null,
       coverImageBackup: null,
-      isExample: result.isExample
+      isExample: result.isExample,
+      // Add new fields with defaults
+      sectionDirections: result.sectionDirections || null,
+      formattingProfile: result.formattingProfile || null
     }));
 
     // For dashboard, we don't need exact total count - just use estimated

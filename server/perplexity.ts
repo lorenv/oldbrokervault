@@ -936,14 +936,7 @@ export async function generateCimWithWebsiteAnalysis(
   audience: string,
   financials?: any,
   websiteUrl?: string,
-  sectionDirections?: {
-    businessSummary?: string;
-    marketOpportunity?: string;
-    businessModel?: string;
-    operations?: string;
-    growthOpportunities?: string;
-    managementTeam?: string;
-  },
+  sectionDirections?: Array<{id: string; content: string}>,
   formattingProfile?: FormattingProfile
 ): Promise<FlexibleCimDocument> {
   try {
@@ -975,13 +968,10 @@ export async function generateCimWithWebsiteAnalysis(
     // Enhanced directions using section-specific guidance
     let enhancedDirections = customDirections;
     
-    if (sectionDirections) {
-      const sectionInstructions = Object.entries(sectionDirections)
-        .filter(([_, value]) => value && value.trim())
-        .map(([key, value]) => {
-          const sectionName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-          return `${sectionName}: ${value}`;
-        })
+    if (sectionDirections && sectionDirections.length > 0) {
+      const sectionInstructions = sectionDirections
+        .filter(section => section.content && section.content.trim())
+        .map(section => section.content)
         .join('\n');
       
       if (sectionInstructions) {

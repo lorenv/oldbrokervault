@@ -482,14 +482,10 @@ export const insertCimDocumentSchema = createInsertSchema(cimDocuments).pick({
   tone: z.string().optional(),
   audience: z.string().optional(),
   // New section-based fields
-  sectionDirections: z.object({
-    businessSummary: z.string().optional(),
-    marketOpportunity: z.string().optional(),
-    businessModel: z.string().optional(),
-    operations: z.string().optional(),
-    growthOpportunities: z.string().optional(),
-    managementTeam: z.string().optional()
-  }).optional(),
+  sectionDirections: z.array(z.object({
+    id: z.string(),
+    content: z.string()
+  })).optional(),
   formattingProfile: z.string().optional()
 });
 
