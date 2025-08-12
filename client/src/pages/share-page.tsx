@@ -461,7 +461,7 @@ export function SharePage() {
                   <img src={shareData.logoUrl} alt="Company Logo" className="h-16 md:h-20 max-w-[200px] object-contain" />
                 </div>
               )}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4 animate-slide-up delay-300">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-4 tracking-tight break-words px-4 animate-slide-up delay-300">
                 {shareData.cim.title}
               </h1>
               {shareData.cim.description && (
@@ -540,14 +540,14 @@ export function SharePage() {
                   />
                 ) : uploadedFiles.length > 0 ? (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300">
-                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/50 pb-6 pt-8 px-8">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Package className="h-6 w-6 text-blue-600" />
+                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                          <Package className="h-6 w-6 text-white" />
                         </div>
                         Document Files ({uploadedFiles.length})
                       </CardTitle>
-                      <CardDescription className="text-lg text-slate-600 mt-2">
+                      <CardDescription className="text-lg text-white/90 mt-2">
                         Download individual files or all files at once
                       </CardDescription>
                     </CardHeader>
@@ -623,10 +623,10 @@ export function SharePage() {
               <>
                 {/* Financial Information Section - Always show */}
                 <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-300">
-                    <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-150 pb-6 pt-8 px-8 border-b border-blue-200/50">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-blue-300 rounded-lg">
-                          <DollarSign className="h-6 w-6 text-blue-700" />
+                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-white" />
                         </div>
                         Financial Information
                       </CardTitle>
@@ -682,10 +682,10 @@ export function SharePage() {
                 {/* Website URL Section */}
                 {shareData.websiteUrl && (
                   <Card className="border-0 shadow-2xl bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-2xl overflow-hidden animate-slide-up delay-500">
-                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 pb-6 pt-8 px-8 border-b border-green-200/50">
-                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-800">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <Globe className="h-6 w-6 text-green-600" />
+                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-6 pt-8 px-8">
+                      <CardTitle className="flex items-center gap-3 text-2xl font-bold text-white">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                          <Globe className="h-6 w-6 text-white" />
                         </div>
                         Website
                       </CardTitle>

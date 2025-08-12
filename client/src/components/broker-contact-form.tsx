@@ -203,7 +203,7 @@ export function BrokerContactForm({ shareSlug, cimTitle, userProfile }: BrokerCo
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium"
+            className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white"
           >
             {isSubmitting ? (
               <>
