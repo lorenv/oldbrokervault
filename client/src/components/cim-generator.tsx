@@ -64,7 +64,7 @@ const DEFAULT_SECTION_LINES = [
   { id: '7', content: 'Financial Overview - Revenue, profitability, and key financial metrics' }
 ];
 
-const DEFAULT_SECTION_DIRECTIONS = DEFAULT_SECTION_LINES;
+// Remove this line as it's not needed
 
 export function CimGenerator() {
   const { user } = useAuth();
@@ -1144,12 +1144,7 @@ export function CimGenerator() {
                       "Generate CIM"
                     )}
                   </Button>
-                  {/* Debug form validation - remove this after testing */}
-                  {!form.formState.isValid && (
-                    <div className="text-xs text-red-500 mt-2">
-                      Form errors: {JSON.stringify(form.formState.errors)}
-                    </div>
-                  )}
+
                 </div>
               </TooltipTrigger>
               {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (

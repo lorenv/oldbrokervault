@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Settings2 } from "lucide-react";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 
@@ -48,11 +49,16 @@ export function ContentStyleSection({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Content & Style</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-0">
+      <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+        <Settings2 className="h-5 w-5" />
+        <div>
+          <h3 className="font-semibold">Content & Style</h3>
+          <p className="text-sm text-slate-200">Customize your CIM structure and formatting</p>
+        </div>
+      </div>
+
+      <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
         {/* Section Directions */}
         <div className="space-y-4">
           <Label className="text-base font-medium">Section Directions</Label>
@@ -102,7 +108,7 @@ export function ContentStyleSection({
             showPreview={false}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
