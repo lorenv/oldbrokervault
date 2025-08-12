@@ -64,7 +64,7 @@ const DEFAULT_SECTION_LINES = [
   { id: '7', content: 'Financial Overview - Revenue, profitability, and key financial metrics' }
 ];
 
-const DEFAULT_SECTION_DIRECTIONS = DEFAULT_SECTION_LINES;
+// Remove this line as it's not needed
 
 export function CimGenerator() {
   const { user } = useAuth();
