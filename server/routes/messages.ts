@@ -10,8 +10,9 @@ router.get("/threads", async (req, res) => {
   try {
     const userId = req.user!.id;
     const archived = req.query.archived === 'true';
+    const cimDocumentId = req.query.cimDocumentId ? parseInt(req.query.cimDocumentId as string) : undefined;
 
-    const threads = await messageService.getThreadsForUser(userId, archived);
+    const threads = await messageService.getThreadsForUser(userId, archived, cimDocumentId);
     res.json(threads);
   } catch (error) {
     console.error("Error fetching message threads:", error);
@@ -85,6 +86,20 @@ router.get("/unread-count", async (req, res) => {
   }
 });
 
+// Get unique CIM documents that have messages
+router.get("/cim-documents", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  
+  try {
+    const userId = req.user!.id;
+    const cimDocuments = await messageService.getCimDocumentsWithMessages(userId);
+    res.json(cimDocuments);
+  } catch (error) {
+    console.error("Error fetching CIM documents:", error);
+    res.status(500).json({ error: "Failed to fetch CIM documents" });
+  }
+});
+
 // Archive a thread
 router.patch("/threads/:threadId/archive", async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -145,7 +160,7 @@ router.post("/contact", async (req, res) => {
 
     // Get the CIM document to find the owner
     const { cimDocuments } = await import("../../shared/schema");
-    const { db } = await import("../lib/db");
+    const { db } = await import("../db");
     const { eq } = await import("drizzle-orm");
 
     const [cimDoc] = await db

@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle } from 'lucide-react';
+import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Message {
@@ -52,14 +53,29 @@ export function EnhancedMessageCenter() {
   const [selectedThread, setSelectedThread] = useState<MessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch CIM documents with messages for filtering
+  const { data: cimDocuments } = useQuery({
+    queryKey: ['/api/messages/cim-documents'],
+    queryFn: async () => {
+      const res = await fetch('/api/messages/cim-documents', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch CIM documents');
+      return res.json() as Promise<{ id: number; title: string; messageCount: number }[]>;
+    },
+  });
+
   // Fetch threads with enhanced data
   const { data: threads, isLoading } = useQuery({
-    queryKey: ['/api/messages/threads', showArchived],
+    queryKey: ['/api/messages/threads', showArchived, selectedCimFilter],
     queryFn: async () => {
-      const res = await fetch(`/api/messages/threads?archived=${showArchived}`, { credentials: 'include' });
+      const params = new URLSearchParams({
+        archived: showArchived.toString(),
+        ...(selectedCimFilter !== 'all' ? { cimDocumentId: selectedCimFilter } : {})
+      });
+      const res = await fetch(`/api/messages/threads?${params}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch threads');
       return res.json() as Promise<MessageThread[]>;
     },
@@ -195,6 +211,39 @@ export function EnhancedMessageCenter() {
               )}
             </Button>
           </div>
+
+          {/* CIM Document Filter */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filter by CIM Document</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Select value={selectedCimFilter} onValueChange={setSelectedCimFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All CIM documents" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All CIM documents ({threads?.length || 0})</SelectItem>
+                  {cimDocuments?.map((cim) => (
+                    <SelectItem key={cim.id} value={cim.id.toString()}>
+                      {cim.title} ({cim.messageCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCimFilter !== 'all' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedCimFilter('all')}
+                  className="px-2"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
           
           {/* Enhanced email sync indicator */}
           <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 bg-blue-50 p-2 rounded">
@@ -222,7 +271,7 @@ export function EnhancedMessageCenter() {
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0 pr-2">
                         <h3 className="font-semibold text-sm truncate">
                           {thread.subject}
                         </h3>
@@ -235,13 +284,13 @@ export function EnhancedMessageCenter() {
                           </p>
                         )}
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         {thread.unreadCount > 0 && (
                           <Badge variant="destructive" className="text-xs">
                             {thread.unreadCount}
                           </Badge>
                         )}
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
                           {formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true })}
                         </span>
                       </div>
@@ -249,8 +298,10 @@ export function EnhancedMessageCenter() {
                     
                     {thread.lastMessage && (
                       <div className="flex items-start gap-2 mt-2">
-                        {getMessageIcon(thread.lastMessage)}
-                        <p className="text-sm text-gray-600 line-clamp-2 flex-1">
+                        <div className="flex-shrink-0">
+                          {getMessageIcon(thread.lastMessage)}
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-2 flex-1 min-w-0 break-words">
                           {thread.lastMessage.content}
                         </p>
                       </div>
@@ -334,24 +385,26 @@ export function EnhancedMessageCenter() {
                         }`}
                       >
                         <div
-                          className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 ${
+                          className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 break-words ${
                             message.senderType === 'owner'
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-100 text-gray-900'
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            {getMessageIcon(message)}
-                            <span className="text-xs opacity-75">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <div className="flex-shrink-0">
+                              {getMessageIcon(message)}
+                            </div>
+                            <span className="text-xs opacity-75 truncate">
                               {message.senderType === 'owner' ? 'You' : message.senderEmail}
                             </span>
                             {message.messageType === 'email_reply' && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">
                                 Email Reply
                               </Badge>
                             )}
                             {sync && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 {getSyncStatusIcon(sync.status)}
                                 <span className="text-xs opacity-75 capitalize">
                                   {sync.status}
@@ -359,7 +412,7 @@ export function EnhancedMessageCenter() {
                               </div>
                             )}
                           </div>
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                           <div className="text-xs opacity-75 mt-2">
                             {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                           </div>
