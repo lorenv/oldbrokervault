@@ -42,6 +42,8 @@ The system includes a comprehensive e-signature platform with database schema fo
 
 **Recent Update (Aug 2025)**: Enhanced completion notification system to properly embed signature fields into the final PDF. Removed fallback certificate mechanisms that created plain text certificates without proper grey header styling. The system now generates professional completion certificates with DocuSign-style grey headers and detailed signature information, ensuring all signed documents contain the actual signature data in the correct coordinates.
 
+**Critical Fix (Aug 13, 2025)**: Resolved coordinate mapping issue where signature fields appeared "jumbled at the top left" instead of their correct positions. The root cause was that signature fields are stored as percentage coordinates (0-100%) in the database, but the PDF processor was incorrectly treating them as pixel coordinates. Updated the coordinate transformation logic in `PdfSignatureProcessor` to properly convert percentage coordinates to PDF page coordinates, ensuring completed signature fields now appear in their exact original template positions.
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 

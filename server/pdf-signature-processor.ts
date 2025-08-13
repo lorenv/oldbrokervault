@@ -58,27 +58,23 @@ export class PdfSignatureProcessor {
         const page = pages[pageIndex];
         const { width: pageWidth, height: pageHeight } = page.getSize();
 
-        // CRITICAL FIX: The signing interface uses 800px fixed display width
-        // We need to scale coordinates from display size to actual PDF size
-        const DISPLAY_WIDTH = 800;
-        const scaleX = pageWidth / DISPLAY_WIDTH;
-        const scaleY = scaleX; // Maintain aspect ratio
+        // CRITICAL FIX: Signature fields are stored as PERCENTAGE coordinates (0-100%)
+        // Convert percentage coordinates to actual PDF coordinates
         
-        // Scale coordinates from display to PDF coordinates
-        const scaledX = field.x * scaleX;
-        const scaledY = field.y * scaleY;
-        const scaledWidth = field.width * scaleX;
-        const scaledHeight = field.height * scaleY;
+        // Convert percentage to pixel coordinates on PDF page
+        const pixelX = (field.x / 100) * pageWidth;
+        const pixelY = (field.y / 100) * pageHeight;
+        const pixelWidth = (field.width / 100) * pageWidth;
+        const pixelHeight = (field.height / 100) * pageHeight;
 
         // Convert coordinates (PDF coordinate system has origin at bottom-left, display has top-left)
-        const x = scaledX;
-        const y = pageHeight - scaledY - scaledHeight;
+        const x = pixelX;
+        const y = pageHeight - pixelY - pixelHeight;
         
         console.log(`Coordinate conversion for field ${field.id}:`, {
-          original: { x: field.x, y: field.y, w: field.width, h: field.height },
+          originalPercent: { x: field.x, y: field.y, w: field.width, h: field.height },
           pageSize: { w: pageWidth, h: pageHeight },
-          scale: { x: scaleX, y: scaleY },
-          scaled: { x: scaledX, y: scaledY, w: scaledWidth, h: scaledHeight },
+          pixelCoords: { x: pixelX, y: pixelY, w: pixelWidth, h: pixelHeight },
           final: { x, y }
         });
 
