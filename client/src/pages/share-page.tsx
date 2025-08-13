@@ -166,7 +166,7 @@ export function SharePage() {
 
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -179,7 +179,7 @@ export function SharePage() {
 
   if (error || tokenError || ndaCheckError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Alert className="max-w-md">
             <AlertCircle className="h-4 w-4" />
@@ -195,7 +195,7 @@ export function SharePage() {
   // If NDA check shows document exists but requires NDA, don't show "not found"
   if (!shareData && !ndaCheck) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center text-gray-600">
             <p>Document not found</p>
@@ -223,7 +223,7 @@ export function SharePage() {
   // Show loading state while validating token
   if (accessToken && isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -237,7 +237,7 @@ export function SharePage() {
   // Show error if token validation failed with an actual error (not just missing token)
   if (accessToken && tokenError && !isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Card className="max-w-md">
             <CardHeader className="text-center">
@@ -263,7 +263,7 @@ export function SharePage() {
   // Show approval pending message if manual approval is required but not granted
   if (needsApproval) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Card className="max-w-lg">
             <CardHeader className="text-center">
@@ -302,7 +302,7 @@ export function SharePage() {
   // Show NDA dialog if required
   if (shouldShowNdaDialog) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <NdaDialog
             isOpen={true}
@@ -319,7 +319,7 @@ export function SharePage() {
   // Don't render if shareData or cimData is not available
   if (!shareData || !cimData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -331,7 +331,7 @@ export function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50">
       {/* Owner Toolbar */}
       {shareData?.isOwner && cimData && (
         <OwnerToolbar
@@ -345,7 +345,7 @@ export function SharePage() {
       {!cimData.isUploadedFile && cimData.coverImageUrl ? (
         <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden animate-fade-in">
           {/* Cover Image with Parallax */}
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: `url(${cimData.coverImageUrl})`,
@@ -369,7 +369,7 @@ export function SharePage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
 
           {/* Header Content Overlay - Bottom Positioned */}
-          <div 
+          <div
             className="absolute inset-x-0 bottom-0 pb-16 px-6 transition-opacity duration-300"
             style={{
               opacity: Math.max(0, 1 - (scrollY / 400))
@@ -444,7 +444,7 @@ export function SharePage() {
 
           {/* Cover Image Attribution */}
           {shareData.cim.coverImageAttribution && (
-            <div 
+            <div
               className="absolute bottom-2 right-2 text-white/70 text-xs bg-black/20 px-2 py-1 rounded backdrop-blur-sm"
               dangerouslySetInnerHTML={{ __html: shareData.cim.coverImageAttribution }}
             />
@@ -532,7 +532,7 @@ export function SharePage() {
                     <div className="text-gray-500">Loading files...</div>
                   </div>
                 ) : uploadedFiles.length === 1 && uploadedFiles[0]?.mimeType === 'application/pdf' ? (
-                  <UploadedFileViewer 
+                  <UploadedFileViewer
                     cimDocument={shareData.cim}
                     shareSlug={shareSlug!}
                     userProfile={shareData.cim.userProfile}
@@ -610,7 +610,7 @@ export function SharePage() {
                   </Card>
                 ) : (
                   <div className="animate-slide-up delay-300">
-                    <UploadedFileViewer 
+                    <UploadedFileViewer
                       cimDocument={shareData.cim}
                       shareSlug={shareSlug!}
                       userProfile={shareData.cim.userProfile}
@@ -635,9 +635,9 @@ export function SharePage() {
                       {/* Website extracted logo inside financial box */}
                       {shareData.cim.logoUrl && (
                         <div className="flex justify-center mb-8 pb-6 border-b border-gray-200 animate-fade-in delay-500">
-                          <img 
-                            src={shareData.cim.logoUrl} 
-                            alt="Company Logo" 
+                          <img
+                            src={shareData.cim.logoUrl}
+                            alt="Company Logo"
                             className="h-24 md:h-36 object-contain"
                           />
                         </div>
@@ -692,7 +692,7 @@ export function SharePage() {
                     </CardHeader>
                     <CardContent className="p-8">
                       <div className="text-center">
-                        <a 
+                        <a
                           href={shareData.websiteUrl.startsWith('http') ? shareData.websiteUrl : `https://${shareData.websiteUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -709,7 +709,7 @@ export function SharePage() {
                   </Card>
                 )}
 
-                <CimDisplay 
+                <CimDisplay
                   analysis={shareData.cim.analysis}
                   isSharedView={true}
                   docId={shareData.cim.id}
@@ -727,7 +727,7 @@ export function SharePage() {
 
           {/* Sticky Sidebar */}
           <div className="lg:w-[28rem] flex-shrink-0 animate-slide-right delay-300">
-            <ShareStickySidebar 
+            <ShareStickySidebar
               shareSlug={shareSlug!}
               cimTitle={shareData.cim.title}
               userProfile={shareData.userProfileData || shareData.cim.userProfile}
