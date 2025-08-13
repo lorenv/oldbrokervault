@@ -198,16 +198,26 @@ export class PdfSignatureProcessor {
     const titleFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const bodyFont = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    // Draw grey header background (DocuSign style)
+    // Clean page border
     page.drawRectangle({
-      x: 0,
-      y: height - 120,
-      width: width,
-      height: 80,
-      color: rgb(0.9, 0.9, 0.9), // Light grey background
+      x: 30,
+      y: 30,
+      width: width - 60,
+      height: height - 60,
+      borderColor: rgb(0.7, 0.7, 0.7),
+      borderWidth: 2,
     });
     
-    // Certificate header in bold
+    // Header section with clean grey background
+    page.drawRectangle({
+      x: 40,
+      y: height - 120,
+      width: width - 80,
+      height: 70,
+      color: rgb(0.94, 0.94, 0.94), // Very light grey background
+    });
+    
+    // Certificate title
     page.drawText('Certificate of Completion', {
       x: 50,
       y: height - 70,
@@ -216,63 +226,97 @@ export class PdfSignatureProcessor {
       color: rgb(0.2, 0.2, 0.2),
     });
     
-    // Status indicator
+    // Status indicator (right aligned)
     page.drawText('Status: Completed', {
-      x: width - 150,
+      x: width - 170,
       y: height - 70,
       size: 12,
       font: titleFont,
       color: rgb(0.0, 0.6, 0.0), // Green color for completed status
     });
     
-    // Document details section
+    // Main content area with clean background
     page.drawRectangle({
-      x: 30,
-      y: height - 220,
-      width: width - 60,
-      height: 80,
-      borderColor: rgb(0.8, 0.8, 0.8),
+      x: 50,
+      y: height - 280,
+      width: width - 100,
+      height: 140,
+      color: rgb(0.98, 0.98, 0.98), // Very light background
+      borderColor: rgb(0.85, 0.85, 0.85),
       borderWidth: 1,
     });
     
-    // Certificate content with better formatting
-    const certificateLines = [
-      { text: `This document was electronically signed by ${signerName} (${signerEmail})`, bold: false },
-      { text: `on ${signedAt.toLocaleDateString()} at ${signedAt.toLocaleTimeString()}.`, bold: false },
-      { text: '', bold: false },
-      { text: 'This signature is legally binding and was captured using secure', bold: false },
-      { text: 'electronic signature technology with audit trail verification.', bold: false },
-      { text: '', bold: false },
-      { text: `Document ID: ${this.generateDocumentId()}`, bold: true },
-      { text: `Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`, bold: true }
-    ];
-    
+    // Certificate content with better spacing
     let yPosition = height - 160;
-    certificateLines.forEach(line => {
-      if (line.text) {
-        page.drawText(line.text, {
-          x: 50,
-          y: yPosition,
-          size: 12,
-          font: line.bold ? titleFont : bodyFont,
-          color: rgb(0.3, 0.3, 0.3),
-        });
-      }
-      yPosition -= 20;
+    
+    page.drawText(`This document was electronically signed by ${signerName} (${signerEmail})`, {
+      x: 60,
+      y: yPosition,
+      size: 12,
+      font: bodyFont,
+      color: rgb(0.3, 0.3, 0.3),
     });
     
-    // Add signature section
+    yPosition -= 20;
+    page.drawText(`on ${signedAt.toLocaleDateString()} at ${signedAt.toLocaleTimeString()}.`, {
+      x: 60,
+      y: yPosition,
+      size: 12,
+      font: bodyFont,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    
+    yPosition -= 30;
+    page.drawText('This signature is legally binding and was captured using secure', {
+      x: 60,
+      y: yPosition,
+      size: 11,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    yPosition -= 16;
+    page.drawText('electronic signature technology with audit trail verification.', {
+      x: 60,
+      y: yPosition,
+      size: 11,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    // Document IDs section
+    yPosition -= 40;
+    page.drawText(`Document ID: ${this.generateDocumentId()}`, {
+      x: 60,
+      y: yPosition,
+      size: 10,
+      font: titleFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
+    yPosition -= 20;
+    page.drawText(`Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`, {
+      x: 60,
+      y: yPosition,
+      size: 10,
+      font: titleFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
+    // Digital signature details section
+    yPosition -= 50;
     page.drawText('Digital Signature Details:', {
       x: 50,
-      y: yPosition - 20,
+      y: yPosition,
       size: 14,
       font: titleFont,
       color: rgb(0.2, 0.2, 0.2),
     });
     
-    yPosition -= 50;
+    // Details with proper indentation
+    yPosition -= 30;
     page.drawText(`Signer: ${signerName}`, {
-      x: 70,
+      x: 80,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -281,7 +325,7 @@ export class PdfSignatureProcessor {
     
     yPosition -= 20;
     page.drawText(`Email: ${signerEmail}`, {
-      x: 70,
+      x: 80,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -290,21 +334,11 @@ export class PdfSignatureProcessor {
     
     yPosition -= 20;
     page.drawText(`Timestamp: ${signedAt.toISOString()}`, {
-      x: 70,
+      x: 80,
       y: yPosition,
       size: 11,
       font: bodyFont,
       color: rgb(0.4, 0.4, 0.4),
-    });
-    
-    // Add border around entire page content
-    page.drawRectangle({
-      x: 20,
-      y: 20,
-      width: width - 40,
-      height: height - 40,
-      borderColor: rgb(0.7, 0.7, 0.7),
-      borderWidth: 2,
     });
   }
 
