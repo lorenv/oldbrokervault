@@ -178,7 +178,7 @@ export function ContentStyleSection({
         <div className="flex items-center gap-2">
           <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="secondary" size="sm" className="text-sm">
+              <Button variant="ghost" size="sm" className="text-sm bg-white/20 hover:bg-white/30 text-white border border-white/20 hover:border-white/40 backdrop-blur-sm">
                 <FolderOpen className="h-4 w-4 mr-1" />
                 Load Template
               </Button>
@@ -238,7 +238,7 @@ export function ContentStyleSection({
 
           <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="secondary" size="sm" className="text-sm">
+              <Button variant="ghost" size="sm" className="text-sm bg-white/20 hover:bg-white/30 text-white border border-white/20 hover:border-white/40 backdrop-blur-sm">
                 <Save className="h-4 w-4 mr-1" />
                 Save Template
               </Button>
