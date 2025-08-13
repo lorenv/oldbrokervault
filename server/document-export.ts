@@ -30,11 +30,13 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   let currentPos = 0;
   
   // Process HTML tags and build format array
-  const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6])([^>]*)>/gi;
+  const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6]|table|tr|th|td)([^>]*)>/gi;
   let lastIndex = 0;
   let match;
   let listLevel = 0;
   let isInList = false;
+  let isInTable = false;
+  let isInTableRow = false;
   
   while ((match = tagRegex.exec(text)) !== null) {
     // Add text before the tag
@@ -83,6 +85,38 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
       } else {
         plainText += '\n';
         currentPos += 1;
+      }
+    } else if (tagName === 'table') {
+      if (!isClosing) {
+        isInTable = true;
+        plainText += '\n';
+        currentPos += 1;
+      } else {
+        isInTable = false;
+        plainText += '\n';
+        currentPos += 1;
+      }
+    } else if (tagName === 'tr') {
+      if (!isClosing) {
+        isInTableRow = true;
+      } else {
+        isInTableRow = false;
+        plainText += '\n';
+        currentPos += 1;
+      }
+    } else if (tagName === 'th' || tagName === 'td') {
+      if (!isClosing) {
+        // Add spacing before table cell content
+        if (isInTableRow) {
+          plainText += ' ';
+          currentPos += 1;
+        }
+      } else {
+        // Add spacing after table cell content
+        if (isInTableRow) {
+          plainText += ': ';
+          currentPos += 2;
+        }
       }
     } else if (tagName === 'strong' || tagName === 'b') {
       if (!isClosing) {
@@ -447,9 +481,11 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
 // Helper function to add image with proper aspect ratio preservation
 async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number, y: number, maxWidth: number, maxHeight: number): Promise<void> {
   try {
+    console.log("🎯 addImageWithAspectRatio: Starting image processing for buffer size:", imageBuffer.length);
     // Get actual image dimensions
     const sharp = require('sharp');
     const metadata = await sharp(imageBuffer).metadata();
+    console.log("🎯 addImageWithAspectRatio: Sharp metadata:", metadata);
     
     if (!metadata.width || !metadata.height) {
       // Fallback to original behavior if dimensions can't be determined
@@ -2320,11 +2356,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           const coverImageData = await resolveImageData(coverImageUrl);
           
           if (coverImageData) {
-            console.log("Successfully resolved cover image data using unified approach");
+            console.log("🎯 COVER IMAGE: Successfully resolved cover image data using unified approach");
             
             // Calculate banner dimensions - 20% of page height, full width
             const bannerHeight = doc.page.height * 0.2; // 20% of page height
             const bannerWidth = doc.page.width; // Full page width
+            console.log("🎯 COVER IMAGE: Banner dimensions:", bannerWidth, "x", bannerHeight);
             
             // For non-base64 images (URLs), try to apply cropping if position is specified
             if (!coverImageData.isBase64 && coverImagePosition) {
