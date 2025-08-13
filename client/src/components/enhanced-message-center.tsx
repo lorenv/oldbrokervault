@@ -132,19 +132,17 @@ export function EnhancedMessageCenter() {
       richContent?: string;
       attachmentPaths?: string[];
     }) => {
-      const formData = new FormData();
-      formData.append('content', content);
-      if (richContent) {
-        formData.append('richContent', richContent);
-      }
-      if (attachmentPaths) {
-        formData.append('attachmentPaths', JSON.stringify(attachmentPaths));
-      }
-      
       const response = await fetch(`/api/messages/threads/${threadId}/reply`, {
         method: 'POST',
         credentials: 'include',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          richContent,
+          attachmentPaths
+        }),
       });
       
       if (!response.ok) {
@@ -516,11 +514,14 @@ export function EnhancedMessageCenter() {
                               className="prose prose-sm max-w-none break-words overflow-wrap-anywhere [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p:first-child]:mt-0"
                               dangerouslySetInnerHTML={{ 
                                 __html: message.richContent
-                                  .replace(/^<p>/, '')  // Remove opening <p> tag at start
-                                  .replace(/<\/p>$/, '')  // Remove closing </p> tag at end
-                                  .replace(/<p>/g, '<br><br>')  // Replace remaining <p> with double breaks
-                                  .replace(/<\/p>/g, '')  // Remove remaining </p> tags
-                                  .replace(/^<br><br>/, '')  // Remove leading breaks
+                                  // Clean up TipTap's extra paragraph wrapping
+                                  .replace(/^<p[^>]*>(.*)<\/p>$/s, '$1')  // Remove wrapping p tags if it's the only content
+                                  .replace(/<p[^>]*>\s*<\/p>/g, '')       // Remove empty p tags
+                                  .replace(/<p[^>]*>/g, '')               // Remove opening p tags
+                                  .replace(/<\/p>/g, '<br>')             // Convert closing p tags to breaks
+                                  .replace(/(<br>\s*){2,}/g, '<br><br>') // Normalize multiple breaks
+                                  .replace(/^<br>+/, '')                 // Remove leading breaks
+                                  .replace(/<br>+$/, '')                 // Remove trailing breaks
                               }}
                             />
                           ) : (
