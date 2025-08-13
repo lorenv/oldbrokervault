@@ -138,11 +138,12 @@ export class ESignatureService {
         // Send signing invitation email
         await sendEmail({
           to: recipient.email,
+          from: 'system@cimshare.com',
           subject: `Please sign: ${session[0].title}`,
           html: this.generateSigningEmailTemplate({
             recipientName: recipient.name,
             documentTitle: session[0].title,
-            message: session[0].message,
+            message: session[0].message || '',
             signingUrl,
             senderBranding: userBranding,
           }),
@@ -382,28 +383,184 @@ export class ESignatureService {
   // Send completion notifications
   async sendCompletionNotifications(sessionId: number) {
     try {
+      console.log('🔄 Starting completion notifications for session:', sessionId);
       const sessionData = await this.getSigningSession(sessionId);
-      if (!sessionData) return;
+      if (!sessionData) {
+        console.error('❌ Session not found for completion notifications');
+        return;
+      }
+
+      console.log('📋 Session data retrieved:', {
+        title: sessionData.session.title,
+        templateId: sessionData.session.templateId,
+        recipientCount: sessionData.recipients.length
+      });
+
+      // Generate the final signed PDF with embedded signature fields
+      const signedPdfBase64 = await this.generateSignedDocument(sessionId);
+      if (!signedPdfBase64) {
+        console.error('❌ Failed to generate signed PDF - sending error notification');
+        // Send error notification instead of blank PDF
+        await this.sendErrorNotification(sessionData);
+        return;
+      }
+
+      console.log('✅ Generated signed PDF successfully, size:', signedPdfBase64.length);
 
       // Get all recipients (including CC)
       const allRecipients = sessionData.recipients;
       
-      // Send to CC recipients and document owner
+      // Send to CC recipients and document owner with signed PDF attached
       for (const recipient of allRecipients) {
         if (recipient.role === 'cc' || recipient.role === 'signer') {
+          console.log('📧 Sending completion email to:', recipient.email);
           await sendEmail({
             to: recipient.email,
+            from: 'system@cimshare.com',
             subject: `Document Completed: ${sessionData.session.title}`,
             html: this.generateCompletionEmailTemplate({
               recipientName: recipient.name,
               documentTitle: sessionData.session.title,
               completedAt: sessionData.session.completedAt!,
             }),
+            attachments: [{
+              content: signedPdfBase64,
+              filename: `signed-${sessionData.session.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+              type: 'application/pdf',
+              disposition: 'attachment'
+            }]
           });
         }
       }
+
+      console.log('✅ Completion notifications sent successfully');
     } catch (error) {
-      console.error('Error sending completion notifications:', error);
+      console.error('❌ Error sending completion notifications:', error);
+      // Attempt to send error notification
+      try {
+        const sessionData = await this.getSigningSession(sessionId);
+        if (sessionData) {
+          await this.sendErrorNotification(sessionData);
+        }
+      } catch (fallbackError) {
+        console.error('❌ Failed to send error notification:', fallbackError);
+      }
+    }
+  }
+
+  // Generate final signed document with embedded signature fields
+  async generateSignedDocument(sessionId: number): Promise<string | null> {
+    try {
+      console.log('🔄 Generating signed document for session:', sessionId);
+      
+      const sessionData = await this.getSigningSession(sessionId);
+      if (!sessionData) {
+        console.error('❌ Session not found');
+        return null;
+      }
+
+      // Get the original template
+      const template = await db.select().from(ndaTemplates)
+        .where(eq(ndaTemplates.id, sessionData.session.templateId))
+        .limit(1);
+
+      if (!template[0]) {
+        console.error('❌ Template not found');
+        return null;
+      }
+
+      console.log('📄 Template found:', template[0].name);
+
+      // Get all field assignments with their values
+      const fieldAssignments = await db.select().from(ndaFieldAssignments)
+        .where(eq(ndaFieldAssignments.signingSessionId, sessionId));
+
+      console.log('📝 Field assignments found:', fieldAssignments.length);
+
+      // Prepare field values for PDF embedding
+      const fieldValues: { [key: string]: string } = {};
+      fieldAssignments.forEach(assignment => {
+        if (assignment.fieldValue) {
+          fieldValues[assignment.fieldId] = assignment.fieldValue;
+        }
+      });
+
+      console.log('📊 Field values prepared:', Object.keys(fieldValues).length);
+
+      // Load PDF processor with original template content
+      const { PdfSignatureProcessor } = await import('../pdf-signature-processor');
+      const processor = await PdfSignatureProcessor.fromBase64(template[0].fileContent);
+
+      // Embed signature fields into the PDF
+      const signatureFields = template[0].signatureFields || [];
+      const signedContent = await processor.embedFields(signatureFields, fieldValues);
+
+      // Add completion certificate with grey header
+      await processor.addCompletionCertificate(
+        sessionData.recipients.find(r => r.role === 'signer')?.name || 'Unknown Signer',
+        sessionData.recipients.find(r => r.role === 'signer')?.email || 'unknown@email.com',
+        sessionData.session.completedAt || new Date()
+      );
+
+      // Save final PDF
+      const finalPdfBase64 = await processor.saveAsBase64();
+      
+      console.log('✅ Signed document generated successfully');
+      return finalPdfBase64;
+
+    } catch (error) {
+      console.error('❌ Error generating signed document:', error);
+      return null;
+    }
+  }
+
+  // Send error notification when PDF generation fails
+  async sendErrorNotification(sessionData: any) {
+    try {
+      console.log('📧 Sending error notification for failed PDF generation');
+      
+      for (const recipient of sessionData.recipients) {
+        if (recipient.role === 'cc' || recipient.role === 'signer') {
+          await sendEmail({
+            to: recipient.email,
+            from: 'system@cimshare.com',
+            subject: `Document Processing Error: ${sessionData.session.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: #fee; border: 1px solid #fcc; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                  <h2 style="color: #c33; margin: 0 0 10px 0;">Document Processing Error</h2>
+                  <p>We encountered an issue while processing your signed document: <strong>${sessionData.session.title}</strong></p>
+                </div>
+                
+                <p>Dear ${recipient.name},</p>
+                
+                <p>Your signature was successfully recorded, but we encountered a technical issue while generating the final signed document.</p>
+                
+                <p><strong>What this means:</strong></p>
+                <ul>
+                  <li>Your signature is valid and legally binding</li>
+                  <li>The signing process was completed successfully</li>
+                  <li>We are working to resolve the document generation issue</li>
+                </ul>
+                
+                <p><strong>Next steps:</strong></p>
+                <p>Our technical team has been notified and will provide you with the completed document shortly. If you need immediate assistance, please contact support.</p>
+                
+                <p>We apologize for any inconvenience this may cause.</p>
+                
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                <p style="color: #666; font-size: 12px;">
+                  This is an automated notification from our document signing system.
+                </p>
+              </div>
+            `,
+          });
+        }
+      }
+      
+      console.log('✅ Error notifications sent successfully');
+    } catch (error) {
+      console.error('❌ Failed to send error notifications:', error);
     }
   }
 

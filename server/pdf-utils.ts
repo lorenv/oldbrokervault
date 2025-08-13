@@ -282,25 +282,8 @@ export function addSignatureToNda(
           
         } catch (error) {
           console.error('❌ PDF processing error:', error);
-          console.log('🔄 Falling back to simple PDF creation...');
-          // Fallback to simple PDF creation
-          const doc = new PDFDocument();
-          const chunks: Buffer[] = [];
-
-          doc.on('data', (chunk) => chunks.push(chunk));
-          doc.on('end', () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            const base64 = pdfBuffer.toString('base64');
-            resolve(base64);
-          });
-
-          // Simple fallback content
-          doc.fontSize(12).text('NDA Document', 50, 50);
-          doc.addPage();
-          doc.fontSize(16).text('SIGNATURE PAGE', 50, 50, { align: 'center' });
-          doc.fontSize(24).font('Times-Roman').text(signerName, 55, 150);
-          doc.fontSize(12).font('Helvetica').text(`Date: ${signedDate.toLocaleDateString()}`, 300, 150);
-          doc.end();
+          console.error('❌ Cannot generate PDF - rejecting to provide proper error handling');
+          reject(new Error(`Failed to process PDF: ${error.message}. Please contact support for assistance.`));
         }
       })();
       
@@ -516,25 +499,8 @@ export function addCertificateToNda(
           
         } catch (error) {
           console.error('❌ PDF processing error:', error);
-          console.log('🔄 Falling back to simple PDF creation...');
-          // Fallback to simple PDF creation
-          const doc = new PDFDocument();
-          const chunks: Buffer[] = [];
-
-          doc.on('data', (chunk) => chunks.push(chunk));
-          doc.on('end', () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            const base64 = pdfBuffer.toString('base64');
-            resolve(base64);
-          });
-
-          // Simple fallback content - certificate only
-          doc.fontSize(12).text('NDA Document', 50, 50);
-          doc.addPage();
-          doc.fontSize(16).text('Certificate of Completion', 50, 50, { align: 'center' });
-          doc.fontSize(12).text(`Document signed by: ${signerName}`, 50, 100);
-          doc.fontSize(12).text(`Date: ${signedDate.toLocaleDateString()}`, 50, 120);
-          doc.end();
+          console.error('❌ Cannot generate certificate - rejecting to provide proper error handling');
+          reject(new Error(`Failed to generate certificate: ${error.message}. Please contact support for assistance.`));
         }
       })();
       
