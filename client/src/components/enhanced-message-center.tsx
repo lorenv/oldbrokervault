@@ -513,8 +513,15 @@ export function EnhancedMessageCenter() {
                           </div>
                           {message.richContent ? (
                             <div 
-                              className="prose prose-sm max-w-none break-words overflow-wrap-anywhere"
-                              dangerouslySetInnerHTML={{ __html: message.richContent }}
+                              className="prose prose-sm max-w-none break-words overflow-wrap-anywhere [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p:first-child]:mt-0"
+                              dangerouslySetInnerHTML={{ 
+                                __html: message.richContent
+                                  .replace(/^<p>/, '')  // Remove opening <p> tag at start
+                                  .replace(/<\/p>$/, '')  // Remove closing </p> tag at end
+                                  .replace(/<p>/g, '<br><br>')  // Replace remaining <p> with double breaks
+                                  .replace(/<\/p>/g, '')  // Remove remaining </p> tags
+                                  .replace(/^<br><br>/, '')  // Remove leading breaks
+                              }}
                             />
                           ) : (
                             <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>

@@ -354,12 +354,13 @@ export class MessageService {
       throw new Error("User not found");
     }
 
-    // Create the message
+    // Create the message with richContent support
     const message = await this.createMessage({
       threadId,
       senderType: "owner",
       senderEmail: user.email,
       content,
+      richContent,
       messageType: "app_message"
     });
 

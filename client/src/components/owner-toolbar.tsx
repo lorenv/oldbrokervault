@@ -32,7 +32,7 @@ export function OwnerToolbar({ documentId, shareSlug }: OwnerToolbarProps) {
   });
 
   const handleEditDocument = () => {
-    window.open(`/cims/${documentId}`, '_blank');
+    window.open(`/documents/${documentId}`, '_blank');
   };
 
 
