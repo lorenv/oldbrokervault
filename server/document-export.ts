@@ -56,7 +56,13 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   });
 
   // Debug the input HTML to understand the formatting issues
-  console.log("🎨 RAW HTML INPUT:", text.substring(0, 500) + "...");
+  console.log("🎨 RAW HTML INPUT:", text.substring(0, 1000) + "...");
+  
+  // Look specifically for the Management section
+  const managementMatch = text.match(/<h[1-6][^>]*>.*?Management.*?<\/h[1-6]>(.*?)(?=<h[1-6]|$)/is);
+  if (managementMatch) {
+    console.log("🎨 MANAGEMENT SECTION HTML:", managementMatch[1].substring(0, 500));
+  }
   
   // Handle list items with formatting more carefully - preprocess to avoid line break issues
   text = text.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
@@ -312,7 +318,7 @@ function renderFormattedText(doc: any, formattedText: { content: string; format:
         });
       }
       
-      // Render segments
+      // Render segments with better continuation handling
       segments.forEach((segment, segIndex) => {
         if (segment.text) {
           let font = 'Helvetica';
@@ -331,10 +337,17 @@ function renderFormattedText(doc: any, formattedText: { content: string; format:
           
           doc.font(font).fontSize(fontSize);
           
-          if (segIndex === 0 && lineIndex > 0) {
-            doc.text(segment.text, options);
+          // For list items, use lineBreak: false to prevent unwanted wrapping
+          const textOptions = {
+            ...options,
+            continued: segIndex < segments.length - 1,
+            lineBreak: !isBulletPoint // Disable line breaking for bullet points
+          };
+          
+          if (segIndex === 0 && lineIndex > 0 && !isBulletPoint) {
+            doc.text(segment.text, textOptions);
           } else {
-            doc.text(segment.text, { ...options, continued: segIndex < segments.length - 1 });
+            doc.text(segment.text, textOptions);
           }
         }
       });
