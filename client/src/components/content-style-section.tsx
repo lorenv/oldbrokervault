@@ -86,9 +86,8 @@ export function ContentStyleSection({
 
   // Load template mutation
   const loadTemplateMutation = useMutation({
-    mutationFn: async (templateId: number) => {
-      const response = await apiRequest("GET", `/api/content-style-templates/${templateId}`);
-      return response.json();
+    mutationFn: async (template: ContentStyleTemplate) => {
+      return template; // We already have the template data from the list
     },
     onSuccess: (template: ContentStyleTemplate) => {
       // Convert template section directions back to SectionLine format
@@ -213,7 +212,7 @@ export function ContentStyleSection({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => loadTemplateMutation.mutate(template.id)}
+                            onClick={() => loadTemplateMutation.mutate(template)}
                             disabled={loadTemplateMutation.isPending}
                           >
                             Load

@@ -1885,14 +1885,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Parsed coverImagePosition from FormData:", parsedBody.coverImagePosition);
       }
       
-      // Parse sectionDirections from FormData string to object
+      // Parse sectionDirections from FormData string to array
       if (req.body.sectionDirections && typeof req.body.sectionDirections === 'string') {
         try {
           parsedBody.sectionDirections = JSON.parse(req.body.sectionDirections);
           console.log("Parsed sectionDirections from FormData:", parsedBody.sectionDirections);
         } catch (error) {
           console.error("Failed to parse sectionDirections:", error);
-          parsedBody.sectionDirections = {};
+          parsedBody.sectionDirections = [];
         }
       }
       
