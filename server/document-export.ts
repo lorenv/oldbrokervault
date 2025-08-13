@@ -16,6 +16,8 @@ import { resolveImageData, getImageDimensions, createImageFallback } from './ima
 function htmlToFormattedText(html: string): { content: string; format: Array<{type: string, text: string, start: number, end: number}> } {
   if (!html) return { content: '', format: [] };
   
+  console.log("🎨 HTML PARSING INPUT:", html.substring(0, 200) + "...");
+  
   // Remove HTML entities first
   let text = html
     .replace(/&nbsp;/g, ' ')
@@ -25,18 +27,45 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
   
+  // Handle tables first - convert them to readable format before other processing
+  text = text.replace(/<table[^>]*>(.*?)<\/table>/gis, (tableMatch, tableContent) => {
+    console.log("🎨 PROCESSING TABLE:", tableContent.substring(0, 100) + "...");
+    
+    // Extract table rows
+    const rowMatches = [...tableContent.matchAll(/<tr[^>]*>(.*?)<\/tr>/gis)];
+    let tableText = '\n';
+    
+    rowMatches.forEach(([, rowContent]) => {
+      // Extract cells from this row
+      const cellMatches = [...rowContent.matchAll(/<t[hd][^>]*>(.*?)<\/t[hd]>/gis)];
+      const cellTexts = cellMatches.map(([, cellContent]) => {
+        // Clean cell content of HTML tags but preserve text
+        return cellContent.replace(/<[^>]+>/g, '').trim();
+      });
+      
+      if (cellTexts.length >= 2) {
+        // Format as "Key: Value"
+        tableText += `${cellTexts[0]}: ${cellTexts[1]}\n`;
+      } else if (cellTexts.length === 1) {
+        // Single cell row
+        tableText += `${cellTexts[0]}\n`;
+      }
+    });
+    
+    return tableText;
+  });
+  
+  console.log("🎨 HTML AFTER TABLE PROCESSING:", text.substring(0, 200) + "...");
+  
   const formats: Array<{type: string, text: string, start: number, end: number}> = [];
   let plainText = '';
   let currentPos = 0;
   
-  // Process HTML tags and build format array
-  const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6]|table|tr|th|td)([^>]*)>/gi;
+  // Process HTML tags and build format array (tables already handled above)
+  const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6])([^>]*)>/gi;
   let lastIndex = 0;
   let match;
   let listLevel = 0;
-  let isInList = false;
-  let isInTable = false;
-  let isInTableRow = false;
   
   while ((match = tagRegex.exec(text)) !== null) {
     // Add text before the tag
@@ -59,64 +88,26 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
       currentPos += 1;
     } else if (tagName === 'ul' || tagName === 'ol') {
       if (!isClosing) {
-        isInList = true;
         listLevel++;
-        plainText += '\n';
-        currentPos += 1;
+        if (listLevel === 1) {
+          plainText += '\n';
+          currentPos += 1;
+        }
       } else {
         listLevel--;
         if (listLevel === 0) {
-          isInList = false;
+          plainText += '\n';
+          currentPos += 1;
         }
-        plainText += '\n';
-        currentPos += 1;
       }
     } else if (tagName === 'li') {
       if (!isClosing) {
         const indent = '  '.repeat(Math.max(0, listLevel - 1));
-        // Check if the next text content already starts with a bullet
-        const nextTextMatch = text.substring(match.index + match[0].length).match(/^([^<]*)/);
-        const nextText = nextTextMatch ? nextTextMatch[1].trim() : '';
-        const alreadyHasBullet = nextText.startsWith('•') || nextText.startsWith('*') || nextText.startsWith('-');
-        
-        const bullet = alreadyHasBullet ? '' : '• ';
-        plainText += indent + bullet;
-        currentPos += indent.length + bullet.length;
+        plainText += indent + '• ';
+        currentPos += indent.length + 2;
       } else {
         plainText += '\n';
         currentPos += 1;
-      }
-    } else if (tagName === 'table') {
-      if (!isClosing) {
-        isInTable = true;
-        plainText += '\n';
-        currentPos += 1;
-      } else {
-        isInTable = false;
-        plainText += '\n';
-        currentPos += 1;
-      }
-    } else if (tagName === 'tr') {
-      if (!isClosing) {
-        isInTableRow = true;
-      } else {
-        isInTableRow = false;
-        plainText += '\n';
-        currentPos += 1;
-      }
-    } else if (tagName === 'th' || tagName === 'td') {
-      if (!isClosing) {
-        // Add spacing before table cell content
-        if (isInTableRow) {
-          plainText += ' ';
-          currentPos += 1;
-        }
-      } else {
-        // Add spacing after table cell content
-        if (isInTableRow) {
-          plainText += ': ';
-          currentPos += 2;
-        }
       }
     } else if (tagName === 'strong' || tagName === 'b') {
       if (!isClosing) {
@@ -181,9 +172,11 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   
   // Clean up extra whitespace and newlines
   plainText = plainText
-    .replace(/\n\s*\n\s*\n/g, '\n\n') // Multiple newlines to double
+    .replace(/\n\s*\n\s*\n+/g, '\n\n') // Multiple newlines to double
     .replace(/^\s+|\s+$/g, '') // Trim
     .replace(/[ \t]+/g, ' '); // Multiple spaces to single
+  
+  console.log("🎨 HTML PARSING OUTPUT:", plainText.substring(0, 200) + "...");
   
   return {
     content: plainText,
