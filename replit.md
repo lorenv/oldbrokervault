@@ -44,6 +44,13 @@ The system includes a comprehensive e-signature platform with database schema fo
 
 **Critical Fix (Aug 13, 2025)**: Resolved coordinate mapping issue where signature fields appeared "jumbled at the top left" instead of their correct positions. The root cause was that signature fields are stored as percentage coordinates (0-100%) in the database, but the PDF processor was incorrectly treating them as pixel coordinates. Updated the coordinate transformation logic in `PdfSignatureProcessor` to properly convert percentage coordinates to PDF page coordinates, ensuring completed signature fields now appear in their exact original template positions.
 
+**Message Center Enhancement (Aug 13, 2025)**: Fixed content overflow issues and added CIM document filtering functionality. Resolved SendGrid email content error that prevented contact form notifications from being sent. Enhanced the Message Center with:
+- Content overflow fixes using proper text truncation and break-word styles
+- CIM document filtering dropdown with message counts
+- Improved responsive design for better mobile experience
+- Backend support for filtering messages by CIM document ID
+- Fixed empty text content issue in SendGrid email service
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 

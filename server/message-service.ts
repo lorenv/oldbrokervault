@@ -88,7 +88,7 @@ export class MessageService {
   }
 
   // Get all threads for a user with unread count
-  async getThreadsForUser(userId: number, archived: boolean = false): Promise<(MessageThread & { 
+  async getThreadsForUser(userId: number, archived: boolean = false, cimDocumentId?: number): Promise<(MessageThread & { 
     unreadCount: number;
     lastMessage?: Message;
     cimTitle?: string | null;
@@ -121,7 +121,8 @@ export class MessageService {
       .leftJoin(cimDocuments, eq(messageThreads.cimDocumentId, cimDocuments.id))
       .where(and(
         eq(messageThreads.userId, userId),
-        eq(messageThreads.status, archived ? "archived" : "active")
+        eq(messageThreads.status, archived ? "archived" : "active"),
+        ...(cimDocumentId ? [eq(messageThreads.cimDocumentId, cimDocumentId)] : [])
       ))
       .orderBy(desc(messageThreads.lastMessageAt));
 
@@ -143,6 +144,23 @@ export class MessageService {
     );
 
     return threadsWithLastMessage;
+  }
+
+  // Get unique CIM documents that have messages for a user
+  async getCimDocumentsWithMessages(userId: number): Promise<{ id: number; title: string; messageCount: number }[]> {
+    const cimDocsWithMessages = await db
+      .select({
+        id: messageThreads.cimDocumentId,
+        title: sql<string>`COALESCE(cim_documents.title, 'Untitled CIM')`,
+        messageCount: sql<number>`COUNT(DISTINCT ${messageThreads.id})`
+      })
+      .from(messageThreads)
+      .leftJoin(cimDocuments, eq(messageThreads.cimDocumentId, cimDocuments.id))
+      .where(eq(messageThreads.userId, userId))
+      .groupBy(messageThreads.cimDocumentId, sql`cim_documents.title`)
+      .orderBy(sql`cim_documents.title`);
+
+    return cimDocsWithMessages;
   }
 
   // Get messages in a thread
