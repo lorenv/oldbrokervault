@@ -78,19 +78,6 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalViews}</div>
-            <p className="text-xs text-muted-foreground">
-              Document page views
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">NDA Signatures</CardTitle>
             <FileSignature className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -98,6 +85,19 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
             <div className="text-2xl font-bold">{totalSignatures}</div>
             <p className="text-xs text-muted-foreground">
               Signed agreements
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total CIM Views</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalViews}</div>
+            <p className="text-xs text-muted-foreground">
+              Document page views
             </p>
           </CardContent>
         </Card>

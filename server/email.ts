@@ -55,7 +55,7 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
       to: params.to,
       from: params.from,
       subject: params.subject,
-      text: params.text || '',
+      text: params.text || (params.html ? params.html.replace(/<[^>]*>/g, '').trim() : ' '),
       replyTo: params.replyTo,
       html: params.html,
       attachments: params.attachments,
