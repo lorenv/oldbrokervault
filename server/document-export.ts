@@ -433,6 +433,52 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
   }
 }
 
+// Helper function to add image with proper aspect ratio preservation
+async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number, y: number, maxWidth: number, maxHeight: number): Promise<void> {
+  try {
+    // Get actual image dimensions
+    const sharp = require('sharp');
+    const metadata = await sharp(imageBuffer).metadata();
+    
+    if (!metadata.width || !metadata.height) {
+      // Fallback to original behavior if dimensions can't be determined
+      doc.image(imageBuffer, x, y, { width: maxWidth, height: maxHeight });
+      return;
+    }
+    
+    const imageAspectRatio = metadata.width / metadata.height;
+    const containerAspectRatio = maxWidth / maxHeight;
+    
+    let finalWidth: number;
+    let finalHeight: number;
+    let offsetX: number = x;
+    let offsetY: number = y;
+    
+    if (imageAspectRatio > containerAspectRatio) {
+      // Image is wider than container - fit by width
+      finalWidth = maxWidth;
+      finalHeight = maxWidth / imageAspectRatio;
+      offsetY = y + (maxHeight - finalHeight) / 2; // Center vertically
+    } else {
+      // Image is taller than container - fit by height
+      finalHeight = maxHeight;
+      finalWidth = maxHeight * imageAspectRatio;
+      offsetX = x + (maxWidth - finalWidth) / 2; // Center horizontally
+    }
+    
+    console.log(`Image dimensions: ${metadata.width}x${metadata.height}, Final: ${finalWidth}x${finalHeight}, Position: ${offsetX},${offsetY}`);
+    
+    doc.image(imageBuffer, offsetX, offsetY, {
+      width: finalWidth,
+      height: finalHeight
+    });
+  } catch (error) {
+    console.error("Error adding image with aspect ratio:", error);
+    // Fallback to original behavior
+    doc.image(imageBuffer, x, y, { width: maxWidth, height: maxHeight });
+  }
+}
+
 // Helper function to create a cropped image based on position data
 async function createCroppedImageBuffer(imagePath: string, position: { x: number; y: number }, bannerWidth: number, bannerHeight: number): Promise<Buffer | null> {
   try {
@@ -2279,27 +2325,18 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                   });
                   console.log("Successfully added cropped cover image banner");
                 } else {
-                  // Fallback to original without cropping
-                  doc.image(coverImageData.buffer, 0, 0, {
-                    width: bannerWidth,
-                    height: bannerHeight
-                  });
-                  console.log("Added cover image banner without cropping");
+                  // Fallback to original with proper aspect ratio preservation
+                  await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
+                  console.log("Added cover image banner with preserved aspect ratio");
                 }
               } catch (cropError) {
-                console.log("Cropping failed, using original image");
-                doc.image(coverImageData.buffer, 0, 0, {
-                  width: bannerWidth,
-                  height: bannerHeight
-                });
+                console.log("Cropping failed, using original image with aspect ratio preservation");
+                await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
               }
             } else {
-              // Use image as-is
-              doc.image(coverImageData.buffer, 0, 0, {
-                width: bannerWidth,
-                height: bannerHeight
-              });
-              console.log("Successfully added cover image banner");
+              // Use image with proper aspect ratio preservation
+              await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
+              console.log("Successfully added cover image banner with preserved aspect ratio");
             }
             
             // Move cursor below the banner image
@@ -2325,14 +2362,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const bannerHeight = doc.page.height * 0.2; // 20% of page height
             const bannerWidth = doc.page.width; // Full page width
             
-            doc.image(imageBuffer, 0, 0, {
-              width: bannerWidth,
-              height: bannerHeight
-            });
+            await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
             
             // Move cursor below the banner image
             doc.y = bannerHeight + 60; // Add larger margin below banner
-            console.log("Successfully added base64 fallback cover image banner");
+            console.log("Successfully added base64 fallback cover image banner with preserved aspect ratio");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external fallback cover image:", firstImage);
@@ -2343,14 +2377,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const bannerHeight = doc.page.height * 0.2; // 20% of page height
               const bannerWidth = doc.page.width; // Full page width
               
-              doc.image(cachedImagePath, 0, 0, {
-                width: bannerWidth,
-                height: bannerHeight
-              });
+              const imageBuffer = fs.readFileSync(cachedImagePath);
+              await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image
               doc.y = bannerHeight + 60; // Add larger margin below banner
-              console.log("Successfully added external fallback cover image banner from cache:", cachedImagePath);
+              console.log("Successfully added external fallback cover image banner from cache with preserved aspect ratio:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external fallback cover image");
             }
@@ -2362,14 +2394,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               const bannerHeight = doc.page.height * 0.2; // 20% of page height
               const bannerWidth = doc.page.width; // Full page width
               
-              doc.image(imagePath, 0, 0, {
-                width: bannerWidth,
-                height: bannerHeight
-              });
+              const imageBuffer = fs.readFileSync(imagePath);
+              await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image
               doc.y = bannerHeight + 60; // Add larger margin below banner
-              console.log("Successfully added file-based fallback cover image banner");
+              console.log("Successfully added file-based fallback cover image banner with preserved aspect ratio");
             } else {
               console.log("Fallback cover image file does not exist:", imagePath);
             }
@@ -2410,13 +2440,30 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             console.log("Successfully resolved logo data using unified approach");
             imageBuffer = logoData.buffer;
             
-            // Optimize image for PDF to reduce processing time
+            // Optimize image for PDF and handle transparency
             try {
-              imageBuffer = await sharp(logoData.buffer)
-                .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
-                .jpeg({ quality: 85 })
-                .toBuffer();
-              console.log("Logo optimized with Sharp");
+              const sharp = require('sharp');
+              const metadata = await sharp(logoData.buffer).metadata();
+              
+              // Check if image has transparency (PNG with alpha channel)
+              const hasTransparency = metadata.channels === 4 || metadata.hasAlpha;
+              
+              if (hasTransparency) {
+                console.log("Logo has transparency, adding white background");
+                // Add white background for transparent images
+                imageBuffer = await sharp(logoData.buffer)
+                  .flatten({ background: { r: 255, g: 255, b: 255 } }) // White background
+                  .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+                  .jpeg({ quality: 85 })
+                  .toBuffer();
+              } else {
+                // No transparency, process normally
+                imageBuffer = await sharp(logoData.buffer)
+                  .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+                  .jpeg({ quality: 85 })
+                  .toBuffer();
+              }
+              console.log("Logo optimized with Sharp, transparency handled:", hasTransparency);
             } catch (sharpError) {
               console.log("Sharp optimization failed, using original buffer");
               imageBuffer = logoData.buffer;
@@ -2491,6 +2538,10 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
       // Financial Information Section - always include
       console.log("🚨 FINANCIAL SECTION - Financial data:", JSON.stringify(financialData, null, 2));
       console.log("🚨 FINANCIAL SECTION - Financial files count:", financialFiles?.length);
+      console.log("🚨 FINANCIAL SECTION - Financial data validity checks:");
+      console.log("  - askingPriceIncluded:", financialData?.askingPriceIncluded, "askingPrice:", financialData?.askingPrice);
+      console.log("  - revenueIncluded:", financialData?.revenueIncluded, "revenue:", financialData?.revenue);
+      console.log("  - ebitdaIncluded:", financialData?.ebitdaIncluded, "ebitda:", financialData?.ebitda);
       
       // Always show financial section
       console.log("🚨 ENTERING FINANCIAL SECTION - Processing financial data and files");
@@ -2518,7 +2569,9 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
 
       // Draw financial data in a clean, aligned format
       if (tableData.length > 0) {
+        console.log("🚨 FINANCIAL SECTION - Adding", tableData.length, "financial data rows to PDF");
         tableData.forEach(([label, value]) => {
+          console.log("🚨 FINANCIAL SECTION - Adding row:", label, value);
           doc.font('Helvetica-Bold')
              .fillColor('#000000')
              .text(label, { continued: true });
@@ -2529,6 +2582,12 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           
           doc.moveDown(0.5);
         });
+      } else {
+        console.log("🚨 FINANCIAL SECTION - No financial data to display, adding placeholder message");
+        doc.font('Helvetica')
+           .fillColor('#666666')
+           .text('Financial data will be available upon request.');
+        doc.moveDown(0.5);
       }
       
       // Add financial files section with hyperlinks
