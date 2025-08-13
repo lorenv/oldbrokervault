@@ -40,6 +40,8 @@ Documents can be exported in PDF, Word (DOCX), and HTML formats, with WordPress 
 ### E-Signature Platform
 The system includes a comprehensive e-signature platform with database schema for signing sessions, recipients, field assignments, and audit logging. It supports multi-field types (signature, name, date, email, text, checkbox, initials), parallel signing workflows, and ESIGN Act compliance. A simplified single-signer system is specifically designed for NDA share link workflows.
 
+**Recent Update (Aug 2025)**: Enhanced completion notification system to properly embed signature fields into the final PDF. Removed fallback certificate mechanisms that created plain text certificates without proper grey header styling. The system now generates professional completion certificates with DocuSign-style grey headers and detailed signature information, ensuring all signed documents contain the actual signature data in the correct coordinates.
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 

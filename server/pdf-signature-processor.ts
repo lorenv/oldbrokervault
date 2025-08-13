@@ -196,51 +196,117 @@ export class PdfSignatureProcessor {
   }
 
   async addCompletionCertificate(signerName: string, signerEmail: string, signedAt: Date): Promise<void> {
-    const page = this.pdfDoc.addPage();
+    const page = this.pdfDoc.addPage([612, 792]); // Standard letter size
     const { width, height } = page.getSize();
     
     const titleFont = await this.pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const bodyFont = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    // Certificate title
+    // Draw grey header background (DocuSign style)
+    page.drawRectangle({
+      x: 0,
+      y: height - 120,
+      width: width,
+      height: 80,
+      color: rgb(0.9, 0.9, 0.9), // Light grey background
+    });
+    
+    // Certificate header in bold
     page.drawText('Certificate of Completion', {
       x: 50,
-      y: height - 100,
-      size: 24,
+      y: height - 70,
+      size: 18,
       font: titleFont,
       color: rgb(0.2, 0.2, 0.2),
     });
     
-    // Certificate content
-    const certificateText = [
-      `This document was electronically signed by ${signerName} (${signerEmail})`,
-      `on ${signedAt.toLocaleDateString()} at ${signedAt.toLocaleTimeString()}.`,
-      '',
-      'This signature is legally binding and was captured using secure',
-      'electronic signature technology with audit trail verification.',
-      '',
-      `Document ID: ${this.generateDocumentId()}`,
-      `Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`
+    // Status indicator
+    page.drawText('Status: Completed', {
+      x: width - 150,
+      y: height - 70,
+      size: 12,
+      font: titleFont,
+      color: rgb(0.0, 0.6, 0.0), // Green color for completed status
+    });
+    
+    // Document details section
+    page.drawRectangle({
+      x: 30,
+      y: height - 220,
+      width: width - 60,
+      height: 80,
+      borderColor: rgb(0.8, 0.8, 0.8),
+      borderWidth: 1,
+    });
+    
+    // Certificate content with better formatting
+    const certificateLines = [
+      { text: `This document was electronically signed by ${signerName} (${signerEmail})`, bold: false },
+      { text: `on ${signedAt.toLocaleDateString()} at ${signedAt.toLocaleTimeString()}.`, bold: false },
+      { text: '', bold: false },
+      { text: 'This signature is legally binding and was captured using secure', bold: false },
+      { text: 'electronic signature technology with audit trail verification.', bold: false },
+      { text: '', bold: false },
+      { text: `Document ID: ${this.generateDocumentId()}`, bold: true },
+      { text: `Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`, bold: true }
     ];
     
-    let yPosition = height - 150;
-    certificateText.forEach(line => {
-      page.drawText(line, {
-        x: 50,
-        y: yPosition,
-        size: 12,
-        font: bodyFont,
-        color: rgb(0.3, 0.3, 0.3),
-      });
+    let yPosition = height - 160;
+    certificateLines.forEach(line => {
+      if (line.text) {
+        page.drawText(line.text, {
+          x: 50,
+          y: yPosition,
+          size: 12,
+          font: line.bold ? titleFont : bodyFont,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+      }
       yPosition -= 20;
     });
     
-    // Add border
+    // Add signature section
+    page.drawText('Digital Signature Details:', {
+      x: 50,
+      y: yPosition - 20,
+      size: 14,
+      font: titleFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
+    yPosition -= 50;
+    page.drawText(`Signer: ${signerName}`, {
+      x: 70,
+      y: yPosition,
+      size: 11,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    yPosition -= 20;
+    page.drawText(`Email: ${signerEmail}`, {
+      x: 70,
+      y: yPosition,
+      size: 11,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    yPosition -= 20;
+    page.drawText(`Timestamp: ${signedAt.toISOString()}`, {
+      x: 70,
+      y: yPosition,
+      size: 11,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    // Add border around entire page content
     page.drawRectangle({
-      x: 40,
-      y: 40,
-      width: width - 80,
-      height: height - 80,
+      x: 20,
+      y: 20,
+      width: width - 40,
+      height: height - 40,
       borderColor: rgb(0.7, 0.7, 0.7),
       borderWidth: 2,
     });
