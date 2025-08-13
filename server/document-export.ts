@@ -64,7 +64,7 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
     console.log("🎨 MANAGEMENT SECTION HTML:", managementMatch[1].substring(0, 500));
   }
   
-  // Handle list items with formatting more carefully - preprocess to avoid line break issues
+  // Handle list items with formatting more carefully - ensure names stay together
   text = text.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
     console.log("🎨 PROCESSING LIST ITEM:", liContent);
     
@@ -76,22 +76,27 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
       .replace(/\s+/g, ' ')
       // Fix cases where formatting tags are split by line breaks
       .replace(/<\/?(strong|b)[^>]*>\s*<\/?(strong|b)[^>]*>/gi, '')
-      // Convert bold tags to markdown for consistent processing
-      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
-      .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-      // Convert italic tags to markdown
-      .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
-      .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+      // For names that should stay together, add non-breaking spaces
+      .replace(/(<strong[^>]*>)([^<]+?)(<\/strong>)(\s*\([^)]+\):)/gi, (match, openTag, name, closeTag, role) => {
+        // Replace spaces in names with non-breaking spaces to prevent wrapping
+        const nonBreakingName = name.replace(/\s/g, '\u00A0');
+        return `${openTag}${nonBreakingName}${closeTag}${role}`;
+      })
+      // Convert bold tags to maintain formatting
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '<strong>$1</strong>')
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, '<strong>$1</strong>')
+      // Convert italic tags
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, '<em>$1</em>')
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, '<em>$1</em>')
       // Remove line breaks within the list item content
       .replace(/<br[^>]*\/?>/gi, ' ')
-      // Clean up any remaining HTML tags except for those we want to preserve
-      .replace(/<\/?(?!strong|b|em|i)[^>]+>/gi, ' ')
+      // Clean up extra spaces
       .replace(/\s+/g, ' ')
       .trim();
     
     console.log("🎨 CLEANED LIST CONTENT:", cleanContent);
     
-    // Return as a simple list item without problematic HTML
+    // Return as a simple list item 
     return `<li>${cleanContent}</li>`;
   });
   
@@ -100,11 +105,6 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   const formats: Array<{type: string, text: string, start: number, end: number}> = [];
   let plainText = '';
   let currentPos = 0;
-  
-  // Process HTML tags and markdown-style formatting (tables already handled above)
-  // First, handle markdown-style bold and italic formatting that we preprocessed
-  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
   
   // Process HTML tags and build format array
   const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6])([^>]*)>/gi;
@@ -337,11 +337,12 @@ function renderFormattedText(doc: any, formattedText: { content: string; format:
           
           doc.font(font).fontSize(fontSize);
           
-          // For list items, use lineBreak: false to prevent unwanted wrapping
+          // Use proper text options with width constraints to prevent overflow
           const textOptions = {
             ...options,
             continued: segIndex < segments.length - 1,
-            lineBreak: !isBulletPoint // Disable line breaking for bullet points
+            width: options.width || (doc.page.width - doc.page.margins.left - doc.page.margins.right),
+            align: options.align || 'left'
           };
           
           if (segIndex === 0 && lineIndex > 0 && !isBulletPoint) {
