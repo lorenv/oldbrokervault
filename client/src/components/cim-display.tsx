@@ -11,7 +11,7 @@ import {
   TrendingUp as TrendingUpIcon, 
   BarChart3, 
   Trash2, 
-  Edit,
+  Edit2,
   GripVertical,
   X,
   Plus,
@@ -57,6 +57,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Badge } from "@/components/ui/badge";
 
 // Enhanced inline editor for flexible CIM sections with rich text support
 interface FlexibleSectionEditorProps {
@@ -177,7 +178,7 @@ export function CimDisplay({
   const initializeSections = () => {
     // Check if sections are stored in analysis.sections or directly in analysis
     const sectionsData = analysis?.sections || analysis;
-    
+
     if (!sectionsData) return [];
 
     // If sections is already an array, use it directly
@@ -409,6 +410,9 @@ export function CimDisplay({
         queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Section Deleted", description: "Section removed successfully." });
+      } else {
+        // Revert on error
+        setSections(analysis.sections); // Revert on error
       }
     } catch (error) {
       toast({ title: "Delete Failed", description: "Failed to delete section.", variant: "destructive" });
@@ -416,6 +420,26 @@ export function CimDisplay({
     }
     setConfirmDeleteSectionId(null);
   };
+
+  // Helper function to delete a custom section
+  const deleteCustomSection = async (customSectionId: string) => {
+    try {
+      const response = await apiRequest("DELETE", `/api/custom-section/${customSectionId}`);
+      if (response.ok) {
+        setCustomSections((prev: any) => prev.filter((s: any) => s.id !== customSectionId));
+        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
+        toast({ title: "Section Deleted", description: "Custom section removed successfully." });
+      } else {
+        toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Delete Failed", description: "An error occurred.", variant: "destructive" });
+    }
+  };
+
+  // State for editing custom section
+  const [editingCustomSection, setEditingCustomSection] = useState<any | null>(null);
 
   // Create truly unified sections list by merging regular and custom sections into one sortable array
   const createUnifiedSections = () => {
@@ -840,42 +864,16 @@ export function CimDisplay({
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <CardHeader>
+                      <CardHeader className={isSharedView ? "bg-blue-50" : ""}>
                         <CardTitle className="text-lg pr-8">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={section.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const updatedSections = sections.map((sec: any, idx: number) => {
-                                    if ((sec.id || sec.title || `section-${idx}`) === sectionId) {
-                                      return { ...sec, title: newTitle };
-                                    }
-                                    return sec;
-                                  });
-                                  setSections(updatedSections);
-
-                                  const updatedAnalysis = { ...analysis, sections: updatedSections };
-
-                                  const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
-                                  });
-
-                                  if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
-                                    toast({ title: "Title Updated", description: "Section title saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
-                            />
-                          ) : (
-                            <span className="text-2xl font-bold text-slate-700">{section.title}</span>
+                          {!isSharedView && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                Section {section.order}
+                              </Badge>
+                            </div>
                           )}
+                          {section.title}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -951,52 +949,28 @@ export function CimDisplay({
                   <DraggableSection key={`custom-${customSection.id}`} id={`custom-${customSection.id}`} isSharedView={isSharedView}>
                     <Card className="mb-4 relative group">
                       {!isSharedView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={async () => {
-                            try {
-                              const response = await apiRequest("DELETE", `/api/custom-section/${customSection.id}`);
-                              if (response.ok) {
-                                setCustomSections((prev: any) => prev.filter((s: any) => s.id !== customSection.id));
-                                toast({ title: "Section Deleted", description: "Custom section removed successfully." });
-                              }
-                            } catch (error) {
-                              toast({ title: "Delete Failed", description: "Failed to delete custom section.", variant: "destructive" });
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 z-10"
+                            onClick={() => deleteCustomSection(customSection.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-10 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50 z-10"
+                            onClick={() => setEditingCustomSection(customSection)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
-                      <CardHeader>
-                        <CardTitle className="text-lg pr-8">
-                          {!isSharedView ? (
-                            <FlexibleSectionEditor
-                              value={customSection.title}
-                              onSave={async (newTitle: string) => {
-                                try {
-                                  const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                    title: newTitle
-                                  });
-
-                                  if (response.ok) {
-                                    setCustomSections(prev => prev.map(s => 
-                                      s.id === customSection.id ? { ...s, title: newTitle } : s
-                                    ));
-                                    toast({ title: "Title Updated", description: "Custom section title saved successfully." });
-                                  }
-                                } catch (error) {
-                                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
-                                }
-                              }}
-                              placeholder="Section title"
-                              multiline={false}
-                            />
-                          ) : (
-                            <span className="text-2xl font-bold text-slate-700">{customSection.title}</span>
-                          )}
+                      <CardHeader className={isSharedView ? "bg-blue-50" : ""}>
+                        <CardTitle className="text-lg pr-16">
+                          {customSection.title}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -1291,7 +1265,116 @@ export function CimDisplay({
         </DialogContent>
       </Dialog>
 
+      {/* Edit Custom Section Dialog */}
+      {editingCustomSection && (
+        <Dialog open={!!editingCustomSection} onOpenChange={() => setEditingCustomSection(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Custom Section</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="edit-custom-section-title" className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  id="edit-custom-section-title"
+                  type="text"
+                  value={editingCustomSection.title}
+                  onChange={(e) => setEditingCustomSection({ ...editingCustomSection, title: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                />
+              </div>
+              {editingCustomSection.type === 'text' && (
+                <div>
+                  <label htmlFor="edit-custom-section-content" className="block text-sm font-medium text-gray-700">Content</label>
+                  <textarea
+                    id="edit-custom-section-content"
+                    rows={5}
+                    value={editingCustomSection.content}
+                    onChange={(e) => setEditingCustomSection({ ...editingCustomSection, content: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                  />
+                </div>
+              )}
+              {editingCustomSection.type === 'image' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Images</label>
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    {editingCustomSection.imageUrls?.map((url: string, index: number) => (
+                      <div key={index} className="relative group">
+                        <img src={url} alt={`Edit image ${index + 1}`} className="w-full h-24 object-cover rounded-md" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600 p-1"
+                          onClick={() => {
+                            setEditingCustomSection((prev: any) => ({
+                              ...prev,
+                              imageUrls: prev.imageUrls.filter((_: string, i: number) => i !== index)
+                            }));
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
 
+                      const formData = new FormData();
+                      files.forEach(file => formData.append('images', file));
+
+                      try {
+                        const response = await fetch(`/api/custom-section/${editingCustomSection.id}/images`, {
+                          method: 'POST',
+                          body: formData,
+                        });
+
+                        if (response.ok) {
+                          const result = await response.json();
+                          setEditingCustomSection((prev: any) => ({ ...prev, imageUrls: result.imageUrls }));
+                          queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                          toast({ title: "Images Updated", description: "Images uploaded successfully." });
+                        }
+                      } catch (error) {
+                        toast({ title: "Upload Failed", description: "Failed to upload images.", variant: "destructive" });
+                      }
+                    }}
+                    className="mt-2"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setEditingCustomSection(null)}>Cancel</Button>
+              <Button onClick={async () => {
+                try {
+                  const response = await apiRequest("PUT", `/api/custom-section/${editingCustomSection.id}`, {
+                    title: editingCustomSection.title,
+                    content: editingCustomSection.type === 'text' ? editingCustomSection.content : undefined,
+                  });
+
+                  if (response.ok) {
+                    setCustomSections(prev => prev.map(s => 
+                      s.id === editingCustomSection.id ? { ...editingCustomSection, content: editingCustomSection.content } : s
+                    ));
+                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                    toast({ title: "Section Updated", description: "Custom section updated successfully." });
+                    setEditingCustomSection(null);
+                  }
+                } catch (error) {
+                  toast({ title: "Save Failed", description: "Failed to save changes.", variant: "destructive" });
+                }
+              }}>Save</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

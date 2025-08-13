@@ -166,7 +166,7 @@ export function SharePage() {
 
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -179,7 +179,7 @@ export function SharePage() {
 
   if (error || tokenError || ndaCheckError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Alert className="max-w-md">
             <AlertCircle className="h-4 w-4" />
@@ -195,7 +195,7 @@ export function SharePage() {
   // If NDA check shows document exists but requires NDA, don't show "not found"
   if (!shareData && !ndaCheck) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center text-gray-600">
             <p>Document not found</p>
@@ -223,7 +223,7 @@ export function SharePage() {
   // Show loading state while validating token
   if (accessToken && isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -237,7 +237,7 @@ export function SharePage() {
   // Show error if token validation failed with an actual error (not just missing token)
   if (accessToken && tokenError && !isValidatingToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Card className="max-w-md">
             <CardHeader className="text-center">
@@ -263,7 +263,7 @@ export function SharePage() {
   // Show approval pending message if manual approval is required but not granted
   if (needsApproval) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <Card className="max-w-lg">
             <CardHeader className="text-center">
@@ -302,7 +302,7 @@ export function SharePage() {
   // Show NDA dialog if required
   if (shouldShowNdaDialog) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <NdaDialog
             isOpen={true}
@@ -319,7 +319,7 @@ export function SharePage() {
   // Don't render if shareData or cimData is not available
   if (!shareData || !cimData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
         <div className="flex justify-center items-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
