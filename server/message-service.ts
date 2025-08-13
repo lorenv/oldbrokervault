@@ -48,14 +48,17 @@ export class MessageService {
       .set({ threadEmailAddress })
       .where(eq(messageThreads.id, thread.id));
 
-    // Create the initial message
-    await this.createMessage({
-      threadId: thread.id,
-      senderType: "inquirer",
-      senderEmail: inquirerEmail,
-      content,
-      messageType: "contact_form"
-    });
+    // Create the initial message (exclude richContent for contact forms)
+    const [message] = await db
+      .insert(messages)
+      .values({
+        threadId: thread.id,
+        senderType: "inquirer",
+        senderEmail: inquirerEmail,
+        content,
+        messageType: "contact_form"
+      })
+      .returning();
 
     // Send notification email to owner
     await this.notifyOwnerOfNewMessage(thread.id, content);
