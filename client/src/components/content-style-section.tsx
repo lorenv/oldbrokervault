@@ -289,22 +289,20 @@ export function ContentStyleSection({
       </div>
 
       <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
-        {/* 2-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Section Directions - Left Column */}
-          <div className="space-y-4">
-            <Label className="text-base font-medium">Section Directions</Label>
-            <p className="text-sm text-muted-foreground">
-              Define what sections to generate and their specific requirements.
-            </p>
-            <div className="space-y-3">
-              {sectionDirections.map((line, index) => (
-                <div key={line.id} className="flex items-center space-x-2">
-                  <Input
-                    value={line.content}
-                    onChange={(e) => updateSectionLine(index, e.target.value)}
-                    placeholder="Section Name - Description of what to include..."
-                    className="flex-1"
+        {/* Section Directions - Above */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">Section Directions</Label>
+          <p className="text-sm text-muted-foreground">
+            Define what sections to generate and their specific requirements.
+          </p>
+          <div className="space-y-3">
+            {sectionDirections.map((line, index) => (
+              <div key={line.id} className="flex items-center space-x-2">
+                <Input
+                  value={line.content}
+                  onChange={(e) => updateSectionLine(index, e.target.value)}
+                  placeholder="Section Name - Description of what to include..."
+                  className="flex-1"
                 />
                 {sectionDirections.length > 1 && (
                   <Button
@@ -319,26 +317,25 @@ export function ContentStyleSection({
                 )}
               </div>
             ))}
-            </div>
-            
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addSectionLine}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Section
-            </Button>
           </div>
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addSectionLine}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Section
+          </Button>
+        </div>
 
-          {/* Formatting Profile - Right Column */}
-          <div className="space-y-4">
-            <FormattingProfileSelector
-              value={formattingProfile}
-              onChange={onFormattingProfileChange}
-            />
-          </div>
+        {/* Formatting Profile - Below in 2 columns */}
+        <div className="space-y-4">
+          <FormattingProfileSelector
+            value={formattingProfile}
+            onChange={onFormattingProfileChange}
+          />
         </div>
       </div>
     </div>
