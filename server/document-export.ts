@@ -61,7 +61,12 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   // Look specifically for the Management section
   const managementMatch = text.match(/<h[1-6][^>]*>.*?Management.*?<\/h[1-6]>(.*?)(?=<h[1-6]|$)/is);
   if (managementMatch) {
-    console.log("🎨 MANAGEMENT SECTION HTML:", managementMatch[1].substring(0, 500));
+    console.log("🎨 MANAGEMENT SECTION HTML:", managementMatch[1].substring(0, 800));
+    // Look for specific bold tag patterns that might be causing issues
+    const boldMatches = managementMatch[1].match(/<strong[^>]*>.*?<\/strong>/gi);
+    if (boldMatches) {
+      console.log("🎨 BOLD TAGS FOUND:", boldMatches);
+    }
   }
   
   // Handle list items with formatting more carefully - ensure names stay together
@@ -76,11 +81,20 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
       .replace(/\s+/g, ' ')
       // Fix cases where formatting tags are split by line breaks
       .replace(/<\/?(strong|b)[^>]*>\s*<\/?(strong|b)[^>]*>/gi, '')
-      // For names that should stay together, add non-breaking spaces
-      .replace(/(<strong[^>]*>)([^<]+?)(<\/strong>)(\s*\([^)]+\):)/gi, (match, openTag, name, closeTag, role) => {
-        // Replace spaces in names with non-breaking spaces to prevent wrapping
-        const nonBreakingName = name.replace(/\s/g, '\u00A0');
-        return `${openTag}${nonBreakingName}${closeTag}${role}`;
+      // Fix incomplete bold tags and ensure complete name formatting
+      .replace(/(<strong[^>]*>)([^<]*?)(<\/strong>)/gi, (match, openTag, content, closeTag) => {
+        // Ensure the entire content within strong tags uses non-breaking spaces
+        const nonBreakingContent = content.replace(/\s/g, '\u00A0');
+        return `${openTag}${nonBreakingContent}${closeTag}`;
+      })
+      // Fix cases where strong tags might be incomplete or split
+      .replace(/(<strong[^>]*>)([^<]*?)(?=\s*\()/gi, (match, openTag, content) => {
+        // If we find an opening strong tag without a closing one before a role, close it
+        if (!content.includes('</strong>')) {
+          const nonBreakingContent = content.replace(/\s/g, '\u00A0');
+          return `${openTag}${nonBreakingContent}</strong>`;
+        }
+        return match;
       })
       // Convert bold tags to maintain formatting
       .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '<strong>$1</strong>')
