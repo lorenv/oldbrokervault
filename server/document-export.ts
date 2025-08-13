@@ -72,7 +72,12 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
     } else if (tagName === 'li') {
       if (!isClosing) {
         const indent = '  '.repeat(Math.max(0, listLevel - 1));
-        const bullet = '• ';
+        // Check if the next text content already starts with a bullet
+        const nextTextMatch = text.substring(match.index + match[0].length).match(/^([^<]*)/);
+        const nextText = nextTextMatch ? nextTextMatch[1].trim() : '';
+        const alreadyHasBullet = nextText.startsWith('•') || nextText.startsWith('*') || nextText.startsWith('-');
+        
+        const bullet = alreadyHasBullet ? '' : '• ';
         plainText += indent + bullet;
         currentPos += indent.length + bullet.length;
       } else {
@@ -172,8 +177,14 @@ function renderFormattedText(doc: any, formattedText: { content: string; format:
   
   lines.forEach((line, lineIndex) => {
     if (!line.trim() && lineIndex < lines.length - 1) {
-      doc.moveDown(0.5);
+      doc.moveDown(0.3); // Reduced spacing for better list formatting
       return;
+    }
+    
+    // Check if this is a bullet point line for special handling
+    const isBulletPoint = line.trim().startsWith('•') || line.trim().startsWith('*') || line.trim().startsWith('-');
+    if (isBulletPoint && lineIndex > 0) {
+      doc.moveDown(0.2); // Smaller spacing between list items
     }
     
     // Check for formatting changes in this line
@@ -466,7 +477,10 @@ async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number,
       offsetX = x + (maxWidth - finalWidth) / 2; // Center horizontally
     }
     
-    console.log(`Image dimensions: ${metadata.width}x${metadata.height}, Final: ${finalWidth}x${finalHeight}, Position: ${offsetX},${offsetY}`);
+    console.log(`🎯 addImageWithAspectRatio: Image dimensions: ${metadata.width}x${metadata.height}`);
+    console.log(`🎯 addImageWithAspectRatio: Container: ${maxWidth}x${maxHeight}`);
+    console.log(`🎯 addImageWithAspectRatio: Final size: ${finalWidth.toFixed(1)}x${finalHeight.toFixed(1)}`);
+    console.log(`🎯 addImageWithAspectRatio: Position: ${offsetX.toFixed(1)},${offsetY.toFixed(1)}`);
     
     doc.image(imageBuffer, offsetX, offsetY, {
       width: finalWidth,
@@ -2319,11 +2333,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const croppedBuffer = await createCroppedImageBuffer(coverImageData.originalPath, imagePosition, bannerWidth, bannerHeight);
                 
                 if (croppedBuffer) {
-                  doc.image(croppedBuffer, 0, 0, {
-                    width: bannerWidth,
-                    height: bannerHeight
-                  });
-                  console.log("Successfully added cropped cover image banner");
+                  await addImageWithAspectRatio(doc, croppedBuffer, 0, 0, bannerWidth, bannerHeight);
+                  console.log("Successfully added cropped cover image banner with preserved aspect ratio");
                 } else {
                   // Fallback to original with proper aspect ratio preservation
                   await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
