@@ -17,7 +17,7 @@ class MemoryCache {
     // Clean up old entries if cache is full
     if (this.cache.size >= this.maxSize) {
       const now = Date.now();
-      for (const [k, entry] of this.cache.entries()) {
+      for (const [k, entry] of Array.from(this.cache.entries())) {
         if (now - entry.timestamp > entry.ttl) {
           this.cache.delete(k);
         }
@@ -66,6 +66,10 @@ class MemoryCache {
     userProfile: (userId: number) => `user:profile:${userId}`,
     customSections: (docId: number) => `doc:sections:${docId}`,
     ndaStatus: (docId: number, token?: string) => `nda:status:${docId}:${token || 'none'}`,
+    messageThreads: (userId: number, archived: boolean, cimId?: number) => `messages:threads:${userId}:${archived}:${cimId || 'all'}`,
+    threadMessages: (threadId: number) => `messages:thread:${threadId}`,
+    unreadCount: (userId: number) => `messages:unread:${userId}`,
+    cimDocuments: (userId: number) => `messages:cim-docs:${userId}`,
   };
   
   getStats() {
@@ -73,7 +77,7 @@ class MemoryCache {
     let validEntries = 0;
     let expiredEntries = 0;
     
-    for (const entry of this.cache.values()) {
+    for (const entry of Array.from(this.cache.values())) {
       if (now - entry.timestamp > entry.ttl) {
         expiredEntries++;
       } else {
@@ -91,6 +95,7 @@ class MemoryCache {
 }
 
 export const shareCache = new MemoryCache();
+export { MemoryCache };
 
 // Cache configuration constants
 export const CACHE_TTL = {
@@ -99,4 +104,8 @@ export const CACHE_TTL = {
   CUSTOM_SECTIONS: 3 * 60 * 1000, // 3 minutes
   NDA_STATUS: 1 * 60 * 1000,     // 1 minute
   NDA_CHECK: 30 * 1000,          // 30 seconds
+  MESSAGE_THREADS: 1 * 60 * 1000, // 1 minute
+  THREAD_MESSAGES: 2 * 60 * 1000, // 2 minutes
+  UNREAD_COUNT: 30 * 1000,       // 30 seconds
+  CIM_DOCUMENTS: 5 * 60 * 1000,  // 5 minutes
 };

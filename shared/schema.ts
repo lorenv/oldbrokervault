@@ -770,12 +770,14 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   senderType: true,
   senderEmail: true,
   content: true,
+  richContent: true,
   messageType: true
 }).extend({
   senderType: z.enum(["inquirer", "owner"]),
   messageType: z.enum(["contact_form", "email_reply", "app_message"]),
   senderEmail: z.string().email("Please enter a valid email address"),
-  content: z.string().min(1, "Message content is required")
+  content: z.string().min(1, "Message content is required"),
+  richContent: z.any().optional()
 });
 
 export const insertEmailSyncLogSchema = createInsertSchema(emailSyncLog).pick({

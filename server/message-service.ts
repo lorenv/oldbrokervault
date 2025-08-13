@@ -11,6 +11,7 @@ import type {
 import { eq, desc, and, sql, or } from "drizzle-orm";
 import { sendEmail } from "./email";
 import { randomUUID } from "crypto";
+import { shareCache, CACHE_TTL, MemoryCache } from "./cache";
 
 export class MessageService {
   // Generate unique email address for thread
@@ -84,15 +85,26 @@ export class MessageService {
       })
       .where(eq(messageThreads.id, messageData.threadId));
 
+    // Invalidate relevant caches when new message is created
+    this.invalidateMessageCaches(messageData.threadId);
+
     return message;
   }
 
-  // Get all threads for a user with unread count
+  // Get all threads for a user with unread count (optimized with caching)
   async getThreadsForUser(userId: number, archived: boolean = false, cimDocumentId?: number): Promise<(MessageThread & { 
     unreadCount: number;
     lastMessage?: Message;
     cimTitle?: string | null;
   })[]> {
+    const cacheKey = MemoryCache.keys.messageThreads(userId, archived, cimDocumentId);
+    const cached = shareCache.get<(MessageThread & { unreadCount: number; lastMessage?: Message; cimTitle?: string | null; })[]>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
+    // Optimized single query with all data including last message
     const threadsWithDetails = await db
       .select({
         // Thread fields
@@ -115,6 +127,31 @@ export class MessageService {
            WHERE ${messages.threadId} = ${messageThreads.id} 
            AND ${messages.senderType} = 'inquirer' 
            AND ${messages.isRead} = false)
+        `,
+        // Last message data (optimized with window function)
+        lastMessageId: sql<number>`
+          (SELECT id FROM ${messages} 
+           WHERE ${messages.threadId} = ${messageThreads.id}
+           ORDER BY ${messages.createdAt} DESC 
+           LIMIT 1)
+        `,
+        lastMessageContent: sql<string>`
+          (SELECT content FROM ${messages} 
+           WHERE ${messages.threadId} = ${messageThreads.id}
+           ORDER BY ${messages.createdAt} DESC 
+           LIMIT 1)
+        `,
+        lastMessageSenderType: sql<string>`
+          (SELECT sender_type FROM ${messages} 
+           WHERE ${messages.threadId} = ${messageThreads.id}
+           ORDER BY ${messages.createdAt} DESC 
+           LIMIT 1)
+        `,
+        lastMessageCreatedAt: sql<string>`
+          (SELECT created_at FROM ${messages} 
+           WHERE ${messages.threadId} = ${messageThreads.id}
+           ORDER BY ${messages.createdAt} DESC 
+           LIMIT 1)
         `
       })
       .from(messageThreads)
@@ -126,28 +163,51 @@ export class MessageService {
       ))
       .orderBy(desc(messageThreads.lastMessageAt));
 
-    // Get last message for each thread
-    const threadsWithLastMessage = await Promise.all(
-      threadsWithDetails.map(async (thread) => {
-        const [lastMessage] = await db
-          .select()
-          .from(messages)
-          .where(eq(messages.threadId, thread.id))
-          .orderBy(desc(messages.createdAt))
-          .limit(1);
+    // Transform the results to include last message object
+    const result = threadsWithDetails.map(thread => ({
+      id: thread.id,
+      userId: thread.userId,
+      cimDocumentId: thread.cimDocumentId,
+      inquirerEmail: thread.inquirerEmail,
+      inquirerName: thread.inquirerName,
+      subject: thread.subject,
+      status: thread.status as 'active' | 'archived',
+      threadEmailAddress: thread.threadEmailAddress,
+      createdAt: thread.createdAt,
+      updatedAt: thread.updatedAt,
+      lastMessageAt: thread.lastMessageAt,
+      cimTitle: thread.cimTitle,
+      unreadCount: thread.unreadCount,
+      lastMessage: thread.lastMessageId ? {
+        id: thread.lastMessageId,
+        threadId: thread.id,
+        senderType: thread.lastMessageSenderType as 'inquirer' | 'owner',
+        senderEmail: '',
+        content: thread.lastMessageContent || '',
+        richContent: null,
+        messageType: 'app_message' as const,
+        sendgridMessageId: null,
+        isRead: false,
+        createdAt: new Date(thread.lastMessageCreatedAt || new Date().toISOString()),
+        attachmentPaths: null
+      } : undefined
+    }));
 
-        return {
-          ...thread,
-          lastMessage: lastMessage || undefined
-        };
-      })
-    );
-
-    return threadsWithLastMessage;
+    // Cache the result
+    shareCache.set(cacheKey, result, CACHE_TTL.MESSAGE_THREADS);
+    
+    return result;
   }
 
-  // Get unique CIM documents that have messages for a user
+  // Get unique CIM documents that have messages for a user (cached)
   async getCimDocumentsWithMessages(userId: number): Promise<{ id: number; title: string; messageCount: number }[]> {
+    const cacheKey = MemoryCache.keys.cimDocuments(userId);
+    const cached = shareCache.get<{ id: number; title: string; messageCount: number }[]>(cacheKey);
+    
+    if (cached) {
+      return cached;
+    }
+
     const cimDocsWithMessages = await db
       .select({
         id: messageThreads.cimDocumentId,
@@ -160,11 +220,20 @@ export class MessageService {
       .groupBy(messageThreads.cimDocumentId, sql`cim_documents.title`)
       .orderBy(sql`cim_documents.title`);
 
+    shareCache.set(cacheKey, cimDocsWithMessages, CACHE_TTL.CIM_DOCUMENTS);
     return cimDocsWithMessages;
   }
 
-  // Get messages in a thread
+  // Get messages in a thread (cached)
   async getMessagesInThread(threadId: number, userId?: number): Promise<Message[]> {
+    const cacheKey = MemoryCache.keys.threadMessages(threadId);
+    const cached = shareCache.get<Message[]>(cacheKey);
+    
+    if (cached && !userId) {
+      // Only return cached results if no user verification needed
+      return cached;
+    }
+
     // Verify user has access to this thread
     if (userId) {
       const thread = await db
@@ -181,11 +250,16 @@ export class MessageService {
       }
     }
 
-    return await db
+    const result = await db
       .select()
       .from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(messages.createdAt);
+
+    // Cache messages for faster subsequent access
+    shareCache.set(cacheKey, result, CACHE_TTL.THREAD_MESSAGES);
+    
+    return result;
   }
 
   // Mark messages as read
@@ -213,10 +287,20 @@ export class MessageService {
         eq(messages.senderType, "inquirer"),
         eq(messages.isRead, false)
       ));
+
+    // Invalidate unread count cache
+    shareCache.delete(MemoryCache.keys.unreadCount(userId));
   }
 
-  // Get unread message count for user
+  // Get unread message count for user (cached)
   async getUnreadCountForUser(userId: number): Promise<number> {
+    const cacheKey = MemoryCache.keys.unreadCount(userId);
+    const cached = shareCache.get<number>(cacheKey);
+    
+    if (cached !== null) {
+      return cached;
+    }
+
     const result = await db
       .select({
         count: sql<number>`COUNT(*)`
@@ -229,7 +313,10 @@ export class MessageService {
         eq(messages.isRead, false)
       ));
 
-    return Number(result[0]?.count) || 0;
+    const count = Number(result[0]?.count) || 0;
+    shareCache.set(cacheKey, count, CACHE_TTL.UNREAD_COUNT);
+    
+    return count;
   }
 
   // Reply to a thread (from app)
@@ -270,8 +357,6 @@ export class MessageService {
       senderType: "owner",
       senderEmail: user.email,
       content,
-      richContent,
-      attachmentPaths,
       messageType: "app_message"
     });
 
@@ -279,6 +364,25 @@ export class MessageService {
     await this.sendReplyEmail(thread, content, user.email);
 
     return message;
+  }
+
+  // Cache invalidation helper
+  private invalidateMessageCaches(threadId: number): void {
+    // Get thread to find userId for cache invalidation
+    db.select({ userId: messageThreads.userId })
+      .from(messageThreads)
+      .where(eq(messageThreads.id, threadId))
+      .then(([thread]) => {
+        if (thread) {
+          // Invalidate all user-related message caches
+          shareCache.delete(MemoryCache.keys.unreadCount(thread.userId));
+          shareCache.delete(MemoryCache.keys.messageThreads(thread.userId, false));
+          shareCache.delete(MemoryCache.keys.messageThreads(thread.userId, true));
+          shareCache.delete(MemoryCache.keys.threadMessages(threadId));
+          shareCache.delete(MemoryCache.keys.cimDocuments(thread.userId));
+        }
+      })
+      .catch(console.error);
   }
 
   // Send notification email to owner about new message
