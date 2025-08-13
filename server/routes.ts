@@ -886,13 +886,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Prepare financial data from cached document properties
       const financialData = {
-        enabled: cimDoc.financials_enabled || false,
-        askingPrice: cimDoc.asking_price,
-        askingPriceIncluded: cimDoc.asking_price_included || false,
+        enabled: cimDoc.financialsEnabled || false,
+        askingPrice: cimDoc.askingPrice,
+        askingPriceIncluded: cimDoc.askingPriceIncluded || false,
         revenue: cimDoc.revenue,
-        revenueIncluded: cimDoc.revenue_included || false,
+        revenueIncluded: cimDoc.revenueIncluded || false,
         ebitda: cimDoc.ebitda,
-        ebitdaIncluded: cimDoc.ebitda_included || false
+        ebitdaIncluded: cimDoc.ebitdaIncluded || false
       };
 
       console.log("Using cached analysis data - no reprocessing needed for shared PDF export");
