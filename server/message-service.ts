@@ -14,9 +14,9 @@ import { randomUUID } from "crypto";
 import { shareCache, CACHE_TTL, MemoryCache } from "./cache";
 
 export class MessageService {
-  // Generate unique email address for thread
+  // Generate unique email address for thread (using parse subdomain)
   private generateThreadEmail(threadId: number): string {
-    return `thread-${threadId}@cimshare.com`;
+    return `thread-${threadId}@reply.cimshare.com`;
   }
 
   // Create a new message thread from contact form
@@ -435,7 +435,7 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.ownerEmail,
-        from: "noreply@cimshare.com",
+        from: "notifications@cimshare.com",
         replyTo: threadDetails.threadEmailAddress || undefined,
         subject: `New inquiry: ${threadDetails.subject}`,
         html: emailContent
@@ -475,7 +475,7 @@ export class MessageService {
 
       await sendEmail({
         to: thread.inquirerEmail,
-        from: thread.threadEmailAddress!,
+        from: "notifications@cimshare.com",
         replyTo: thread.threadEmailAddress!,
         subject: `Re: ${thread.subject}`,
         html: emailContent
@@ -567,8 +567,8 @@ export class MessageService {
       
       console.log(`Inbound email: ${fromEmail} -> ${toEmail}`);
       
-      // Extract thread ID from email address (format: thread-123@cimshare.com)
-      const threadMatch = toEmail.match(/thread-(\d+)@/);
+      // Extract thread ID from email address (format: thread-123@reply.cimshare.com)
+      const threadMatch = toEmail.match(/thread-(\d+)@reply\.cimshare\.com/);
       if (!threadMatch) {
         console.log("No thread ID found in recipient email:", toEmail);
         return;
@@ -719,7 +719,7 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.inquirerEmail,
-        from: "noreply@cimshare.com",
+        from: "notifications@cimshare.com",
         replyTo: threadDetails.threadEmailAddress || undefined,
         subject: `Re: ${threadDetails.subject}`,
         html: emailContent

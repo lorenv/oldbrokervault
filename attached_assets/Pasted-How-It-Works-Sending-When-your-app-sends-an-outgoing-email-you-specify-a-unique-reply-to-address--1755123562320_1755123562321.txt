@@ -1,0 +1,24 @@
+How It Works
+Sending: When your app sends an outgoing email, you specify a unique reply-to address (e.g., thread15@example.com) for each thread or context. You can set this using the reply_to field in the API. This unique reply-to address becomes the destination for any replies from your users.
+
+Receiving: To handle incoming replies, you set up SendGrid’s Inbound Parse Webhook for a subdomain (e.g., parse.example.com). By configuring your domain/MX records and associating any or all addresses at that subdomain with SendGrid, you can receive emails at any address matching your pattern (like thread15@parse.example.com). SendGrid automatically parses all incoming emails to addresses under that subdomain and POSTs the contents to an endpoint you control.
+
+Syncing/Processing: Your app can then extract the thread or context from the reply-to address (e.g., "thread15") inside the POST request, and sync the reply to the corresponding thread in your web app, providing true bidirectional sync.
+
+Key Details
+You have full flexibility on the structure of the unique reply-to address, as long as you control the subdomain and have pointed it at SendGrid’s inbound parse system.
+
+Many SaaS and ticketing systems use this pattern (“Variable Envelope Return Path,” or VERP) to associate replies with specific conversations.
+
+The structure is: send messages with unique reply-to addresses → receive replies at those addresses, parsed by SendGrid and POSTed to your webhook → map replies to your data model using the address.
+
+You are not limited to static or pre-authorized addresses, as long as MX records and SendGrid settings are properly configured for wildcard or pattern-based addressing.
+
+Limitations and Requirements
+You need to own/manage the domain or subdomain and have the ability to point its MX records to SendGrid.
+
+Unique reply-to addresses must be set up for a domain/subdomain registered with the Inbound Parse feature.
+
+The receiving endpoint (your webhook) must handle and map the incoming emails to their relevant threads or resources.
+
+Be careful to avoid exposing sensitive IDs or user information in reply-to addresses.

@@ -3001,12 +3001,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SendGrid Inbound Email Webhook (Phase 2)
-  app.post('/api/webhook/sendgrid/inbound', express.json(), async (req, res) => {
+  // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
+  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
     console.log("📧 SendGrid inbound webhook received");
     
     try {
-      await messageService.processInboundEmailWebhook(req.body);
+      // Parse form-encoded data from SendGrid
+      const formData = new URLSearchParams(req.body.toString());
+      const webhookData = Object.fromEntries(formData.entries());
+      
+      console.log("🔍 Parsed webhook data:", {
+        to: webhookData.to,
+        from: webhookData.from,
+        subject: webhookData.subject,
+        hasText: !!webhookData.text,
+        hasHtml: !!webhookData.html
+      });
+      
+      await messageService.processInboundEmailWebhook(webhookData);
       res.status(200).send('OK');
     } catch (error) {
       console.error("Failed to process inbound email webhook:", error);
