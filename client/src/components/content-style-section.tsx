@@ -69,7 +69,13 @@ export function ContentStyleSection({
   // Save template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async (data: { name: string; sectionDirections: Record<string, string>; formattingProfile: FormattingProfile; isDefault: boolean }) => {
+      console.log("Saving template with data:", data);
       const response = await apiRequest("POST", "/api/content-style-templates", data);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Template save failed:", response.status, errorText);
+        throw new Error(`Save failed: ${response.status} - ${errorText}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -79,8 +85,13 @@ export function ContentStyleSection({
       setSetAsDefault(false);
       queryClient.invalidateQueries({ queryKey: ['/api/content-style-templates'] });
     },
-    onError: () => {
-      toast({ title: "Save Failed", description: "Failed to save template.", variant: "destructive" });
+    onError: (error: any) => {
+      console.error("Template save error:", error);
+      toast({ 
+        title: "Save Failed", 
+        description: error.message || "Failed to save template.", 
+        variant: "destructive" 
+      });
     }
   });
 
