@@ -2424,37 +2424,20 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           if (coverImageData) {
             console.log("🎯 COVER IMAGE: Successfully resolved cover image data using unified approach");
             
-            // Calculate banner dimensions - 20% of page height, full width
-            const bannerHeight = doc.page.height * 0.2; // 20% of page height
-            const bannerWidth = doc.page.width; // Full page width
-            console.log("🎯 COVER IMAGE: Banner dimensions:", bannerWidth, "x", bannerHeight);
+            // Set reasonable max dimensions for cover image - don't stretch to full width
+            const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
+            const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
+            console.log("🎯 COVER IMAGE: Max dimensions:", maxImageWidth, "x", maxImageHeight);
             
-            // For non-base64 images (URLs), try to apply cropping if position is specified
-            if (!coverImageData.isBase64 && coverImagePosition) {
-              try {
-                console.log("Attempting to crop image with position:", imagePosition);
-                const croppedBuffer = await createCroppedImageBuffer(coverImageData.originalPath, imagePosition, bannerWidth, bannerHeight);
-                
-                if (croppedBuffer) {
-                  await addImageWithAspectRatio(doc, croppedBuffer, 0, 0, bannerWidth, bannerHeight);
-                  console.log("Successfully added cropped cover image banner with preserved aspect ratio");
-                } else {
-                  // Fallback to original with proper aspect ratio preservation
-                  await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
-                  console.log("Added cover image banner with preserved aspect ratio");
-                }
-              } catch (cropError) {
-                console.log("Cropping failed, using original image with aspect ratio preservation");
-                await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
-              }
-            } else {
-              // Use image with proper aspect ratio preservation
-              await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
-              console.log("Successfully added cover image banner with preserved aspect ratio");
-            }
+            // Calculate the starting position to center the image horizontally
+            const imageStartX = (doc.page.width - maxImageWidth) / 2;
             
-            // Move cursor below the banner image
-            doc.y = bannerHeight + 60; // Add larger margin below banner
+            // Always use aspect ratio preservation without forcing banner dimensions
+            await addImageWithAspectRatio(doc, coverImageData.buffer, imageStartX, 20, maxImageWidth, maxImageHeight);
+            console.log("Successfully added cover image with preserved aspect ratio at top of page");
+            
+            // Move cursor below the image with proper spacing
+            doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
           } else {
             console.log("Failed to resolve cover image data");
           }
@@ -2472,14 +2455,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
             
-            // Calculate banner dimensions - 20% of page height, full width
-            const bannerHeight = doc.page.height * 0.2; // 20% of page height
-            const bannerWidth = doc.page.width; // Full page width
+            // Use same approach as main cover image - don't stretch
+            const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
+            const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
+            const imageStartX = (doc.page.width - maxImageWidth) / 2;
             
-            await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
+            await addImageWithAspectRatio(doc, imageBuffer, imageStartX, 20, maxImageWidth, maxImageHeight);
             
-            // Move cursor below the banner image
-            doc.y = bannerHeight + 60; // Add larger margin below banner
+            // Move cursor below the image with proper spacing
+            doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
             console.log("Successfully added base64 fallback cover image banner with preserved aspect ratio");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
@@ -2487,15 +2471,16 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const cachedImagePath = await downloadAndCacheImage(firstImage);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              // Calculate banner dimensions - 20% of page height, full width
-              const bannerHeight = doc.page.height * 0.2; // 20% of page height
-              const bannerWidth = doc.page.width; // Full page width
+              // Use same approach as main cover image - don't stretch
+              const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
+              const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
+              const imageStartX = (doc.page.width - maxImageWidth) / 2;
               
               const imageBuffer = fs.readFileSync(cachedImagePath);
-              await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
+              await addImageWithAspectRatio(doc, imageBuffer, imageStartX, 20, maxImageWidth, maxImageHeight);
               
-              // Move cursor below the banner image
-              doc.y = bannerHeight + 60; // Add larger margin below banner
+              // Move cursor below the image with proper spacing
+              doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
               console.log("Successfully added external fallback cover image banner from cache with preserved aspect ratio:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external fallback cover image");
