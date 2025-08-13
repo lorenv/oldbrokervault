@@ -2424,20 +2424,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           if (coverImageData) {
             console.log("🎯 COVER IMAGE: Successfully resolved cover image data using unified approach");
             
-            // Set reasonable max dimensions for cover image - don't stretch to full width
-            const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
-            const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
-            console.log("🎯 COVER IMAGE: Max dimensions:", maxImageWidth, "x", maxImageHeight);
+            // Create a banner-style crop that spans full width but maintains aspect ratio
+            const bannerHeight = 150; // Fixed banner height
+            const bannerWidth = doc.page.width; // Full page width
+            console.log("🎯 COVER IMAGE: Banner dimensions:", bannerWidth, "x", bannerHeight);
             
-            // Calculate the starting position to center the image horizontally
-            const imageStartX = (doc.page.width - maxImageWidth) / 2;
+            // Temporarily disable Sharp processing to avoid errors
+            // Add image as banner - we'll crop it properly once the PDF generation works
+            console.log("🎯 COVER IMAGE: Adding as banner at full width (temporary approach)");
             
-            // Always use aspect ratio preservation without forcing banner dimensions
-            await addImageWithAspectRatio(doc, coverImageData.buffer, imageStartX, 20, maxImageWidth, maxImageHeight);
-            console.log("Successfully added cover image with preserved aspect ratio at top of page");
+            doc.image(coverImageData.buffer, 0, 0, {
+              width: bannerWidth,
+              height: bannerHeight
+            });
             
-            // Move cursor below the image with proper spacing
-            doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
+            console.log("✅ Successfully added cover image as banner");
+            
+            // Move cursor below the banner
+            doc.y = bannerHeight + 40; // Banner height + margin
           } else {
             console.log("Failed to resolve cover image data");
           }
@@ -2455,15 +2459,15 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
             
-            // Use same approach as main cover image - don't stretch
-            const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
-            const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
-            const imageStartX = (doc.page.width - maxImageWidth) / 2;
+            // Use same banner cropping approach as main cover image
+            const bannerHeight = 150; // Fixed banner height
+            const bannerWidth = doc.page.width; // Full page width
             
-            await addImageWithAspectRatio(doc, imageBuffer, imageStartX, 20, maxImageWidth, maxImageHeight);
+            // Simplified banner approach without Sharp for now
+            doc.image(imageBuffer, 0, 0, { width: bannerWidth, height: bannerHeight });
             
-            // Move cursor below the image with proper spacing
-            doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
+            // Move cursor below the banner
+            doc.y = bannerHeight + 40;
             console.log("Successfully added base64 fallback cover image banner with preserved aspect ratio");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
@@ -2471,16 +2475,32 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const cachedImagePath = await downloadAndCacheImage(firstImage);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              // Use same approach as main cover image - don't stretch
-              const maxImageWidth = doc.page.width * 0.8; // 80% of page width max
-              const maxImageHeight = doc.page.height * 0.25; // 25% of page height max
-              const imageStartX = (doc.page.width - maxImageWidth) / 2;
-              
               const imageBuffer = fs.readFileSync(cachedImagePath);
-              await addImageWithAspectRatio(doc, imageBuffer, imageStartX, 20, maxImageWidth, maxImageHeight);
               
-              // Move cursor below the image with proper spacing
-              doc.y = 20 + maxImageHeight + 40; // Start Y + max height + margin
+              // Use same banner cropping approach
+              const bannerHeight = 150; // Fixed banner height
+              const bannerWidth = doc.page.width; // Full page width
+              
+              try {
+                const sharp = require('sharp');
+                
+                const croppedBuffer = await sharp(imageBuffer)
+                  .resize({
+                    width: Math.round(bannerWidth),
+                    height: Math.round(bannerHeight),
+                    fit: 'cover',
+                    position: 'center'
+                  })
+                  .jpeg({ quality: 90 })
+                  .toBuffer();
+                
+                doc.image(croppedBuffer, 0, 0, { width: bannerWidth, height: bannerHeight });
+              } catch (error) {
+                doc.image(imageBuffer, 0, 0, { width: bannerWidth, height: bannerHeight });
+              }
+              
+              // Move cursor below the banner
+              doc.y = bannerHeight + 40;
               console.log("Successfully added external fallback cover image banner from cache with preserved aspect ratio:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external fallback cover image");
