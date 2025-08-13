@@ -95,7 +95,7 @@ export function EnhancedMessageCenter() {
       if (!res.ok) throw new Error('Failed to fetch threads');
       return res.json() as Promise<MessageThread[]>;
     },
-    refetchInterval: 5000, // Poll for real-time updates
+    refetchInterval: 30000, // Poll less frequently - cache handles freshness
   });
 
   // Fetch messages for selected thread
@@ -108,7 +108,7 @@ export function EnhancedMessageCenter() {
       return res.json() as Promise<Message[]>;
     },
     enabled: !!selectedThread,
-    refetchInterval: 3000, // Poll for new email replies
+    refetchInterval: 20000, // Reduced polling - cache improves performance
   });
 
   // Fetch email sync status for selected thread
@@ -121,7 +121,7 @@ export function EnhancedMessageCenter() {
       return res.json() as Promise<EmailSyncStatus[]>;
     },
     enabled: !!selectedThread,
-    refetchInterval: 5000,
+    refetchInterval: 30000, // Reduced polling frequency
   });
 
   // Send message mutation
