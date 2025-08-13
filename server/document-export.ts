@@ -54,6 +54,40 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
     
     return tableText;
   });
+
+  // Debug the input HTML to understand the formatting issues
+  console.log("🎨 RAW HTML INPUT:", text.substring(0, 500) + "...");
+  
+  // Handle list items with formatting more carefully - preprocess to avoid line break issues
+  text = text.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
+    console.log("🎨 PROCESSING LIST ITEM:", liContent);
+    
+    // First, fix common issues with nested HTML that cause formatting problems
+    let cleanContent = liContent
+      // Remove any stray line breaks or extra whitespace that split text
+      .replace(/\n\s*/g, ' ')
+      // Collapse multiple spaces
+      .replace(/\s+/g, ' ')
+      // Fix cases where formatting tags are split by line breaks
+      .replace(/<\/?(strong|b)[^>]*>\s*<\/?(strong|b)[^>]*>/gi, '')
+      // Convert bold tags to markdown for consistent processing
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
+      // Convert italic tags to markdown
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+      // Remove line breaks within the list item content
+      .replace(/<br[^>]*\/?>/gi, ' ')
+      // Clean up any remaining HTML tags except for those we want to preserve
+      .replace(/<\/?(?!strong|b|em|i)[^>]+>/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    console.log("🎨 CLEANED LIST CONTENT:", cleanContent);
+    
+    // Return as a simple list item without problematic HTML
+    return `<li>${cleanContent}</li>`;
+  });
   
   console.log("🎨 HTML AFTER TABLE PROCESSING:", text.substring(0, 200) + "...");
   
@@ -61,7 +95,12 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
   let plainText = '';
   let currentPos = 0;
   
-  // Process HTML tags and build format array (tables already handled above)
+  // Process HTML tags and markdown-style formatting (tables already handled above)
+  // First, handle markdown-style bold and italic formatting that we preprocessed
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  // Process HTML tags and build format array
   const tagRegex = /<(\/)?(p|strong|b|em|i|ul|ol|li|br|h[1-6])([^>]*)>/gi;
   let lastIndex = 0;
   let match;
@@ -102,10 +141,16 @@ function htmlToFormattedText(html: string): { content: string; format: Array<{ty
       }
     } else if (tagName === 'li') {
       if (!isClosing) {
+        // Ensure we start on a new line for list items
+        if (plainText.length > 0 && !plainText.endsWith('\n')) {
+          plainText += '\n';
+          currentPos += 1;
+        }
         const indent = '  '.repeat(Math.max(0, listLevel - 1));
         plainText += indent + '• ';
         currentPos += indent.length + 2;
       } else {
+        // Add line break after list item
         plainText += '\n';
         currentPos += 1;
       }
