@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X } from 'lucide-react';
+import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { RichTextEditor } from '@/components/RichTextEditor';
+import { ObjectUploader } from '@/components/ObjectUploader';
 
 interface Message {
   id: number;
@@ -17,10 +19,22 @@ interface Message {
   senderType: 'owner' | 'inquirer';
   senderEmail: string;
   content: string;
+  richContent?: any; // TipTap JSON content
   messageType: 'initial_inquiry' | 'app_message' | 'email_reply';
   sendgridMessageId?: string;
   isRead: boolean;
   createdAt: string;
+  attachments?: MessageAttachment[];
+}
+
+interface MessageAttachment {
+  id: number;
+  messageId: number;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
 }
 
 interface MessageThread {
@@ -52,6 +66,8 @@ interface EmailSyncStatus {
 export function EnhancedMessageCenter() {
   const [selectedThread, setSelectedThread] = useState<MessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [richContent, setRichContent] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const { toast } = useToast();
@@ -110,10 +126,37 @@ export function EnhancedMessageCenter() {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: ({ threadId, content }: { threadId: number; content: string }) =>
-      apiRequest('POST', `/api/messages/threads/${threadId}/reply`, { content }),
+    mutationFn: async ({ threadId, content, richContent, attachmentPaths }: { 
+      threadId: number; 
+      content: string; 
+      richContent?: string;
+      attachmentPaths?: string[];
+    }) => {
+      const formData = new FormData();
+      formData.append('content', content);
+      if (richContent) {
+        formData.append('richContent', richContent);
+      }
+      if (attachmentPaths) {
+        formData.append('attachmentPaths', JSON.stringify(attachmentPaths));
+      }
+      
+      const response = await fetch(`/api/messages/threads/${threadId}/reply`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to send message: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       setNewMessage('');
+      setRichContent('');
+      setAttachments([]);
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads', selectedThread?.id, 'messages'] });
       toast({ title: 'Message sent successfully' });
@@ -146,9 +189,65 @@ export function EnhancedMessageCenter() {
     }
   }, [selectedThread, queryClient]);
 
-  const handleSendMessage = () => {
-    if (!selectedThread || !newMessage.trim()) return;
-    sendMessageMutation.mutate({ threadId: selectedThread.id, content: newMessage });
+  const handleSendMessage = async () => {
+    if (!selectedThread || (!newMessage.trim() && !richContent.trim())) return;
+    
+    let attachmentPaths: string[] = [];
+    
+    // Upload attachments first if any
+    if (attachments.length > 0) {
+      try {
+        for (const file of attachments) {
+          const uploadResponse = await fetch('/api/messages/upload-attachment', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to get upload URL');
+          }
+          
+          const { uploadURL } = await uploadResponse.json();
+          
+          // Upload file to object storage
+          const uploadFileResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+          });
+          
+          if (!uploadFileResponse.ok) {
+            throw new Error('Failed to upload file');
+          }
+          
+          attachmentPaths.push(uploadURL);
+        }
+      } catch (error) {
+        toast({
+          title: 'Failed to upload attachments',
+          description: error instanceof Error ? error.message : 'Unknown error',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+    
+    sendMessageMutation.mutate({ 
+      threadId: selectedThread.id, 
+      content: newMessage || richContent,
+      richContent: richContent || undefined,
+      attachmentPaths: attachmentPaths.length > 0 ? attachmentPaths : undefined
+    });
+  };
+
+  const handleFileUpload = async () => {
+    return {
+      method: 'PUT' as const,
+      url: await fetch('/api/messages/upload-attachment', {
+        method: 'POST',
+        credentials: 'include',
+      }).then(res => res.json()).then(data => data.uploadURL)
+    };
   };
 
   const getMessageIcon = (message: Message) => {
@@ -412,7 +511,37 @@ export function EnhancedMessageCenter() {
                               </div>
                             )}
                           </div>
-                          <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                          {message.richContent ? (
+                            <div 
+                              className="prose prose-sm max-w-none break-words overflow-wrap-anywhere"
+                              dangerouslySetInnerHTML={{ __html: message.richContent }}
+                            />
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                          )}
+                          
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <div className="text-xs opacity-75">Attachments:</div>
+                              {message.attachments.map((attachment) => (
+                                <div key={attachment.id} className="flex items-center gap-2 p-2 bg-white/10 rounded">
+                                  <FileText className="h-4 w-4" />
+                                  <span className="text-xs truncate flex-1">{attachment.fileName}</span>
+                                  <span className="text-xs opacity-75">
+                                    {(attachment.fileSize / 1024).toFixed(1)}KB
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => window.open(attachment.filePath, '_blank')}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           <div className="text-xs opacity-75 mt-2">
                             {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                           </div>
@@ -424,29 +553,73 @@ export function EnhancedMessageCenter() {
               )}
             </ScrollArea>
 
-            {/* Reply Box */}
+            {/* Reply Box with Rich Text Editor */}
             {!showArchived && (
               <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
-                <div className="space-y-2">
-                  <Textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type your reply... (will be sent via email)"
-                    className="min-h-[60px] md:min-h-[80px] text-sm md:text-base"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                        handleSendMessage();
-                      }
-                    }}
+                <div className="space-y-3">
+                  <RichTextEditor
+                    content={richContent}
+                    onChange={setRichContent}
+                    placeholder="Type your reply with rich formatting... (will be sent via email)"
+                    className="min-h-[120px]"
                   />
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 sm:gap-2">
-                      <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="truncate">Reply will be sent via email</span>
+                  
+                  {/* Attachments */}
+                  {attachments.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Attachments:</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
+                            <FileText className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm truncate flex-1">{file.name}</span>
+                            <span className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)}KB
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const newAttachments = [...attachments];
+                                newAttachments.splice(index, 1);
+                                setAttachments(newAttachments);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 sm:gap-2">
+                        <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="truncate">Reply will be sent via email</span>
+                      </div>
+                      
+                      <ObjectUploader
+                        maxNumberOfFiles={5}
+                        maxFileSize={5242880} // 5MB
+                        onGetUploadParameters={handleFileUpload}
+                        onComplete={(result) => {
+                          if (result.successful && result.successful.length > 0) {
+                            // This is handled in the upload process
+                            toast({ title: 'Files attached successfully' });
+                          }
+                        }}
+                        buttonClassName="h-8 px-2"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </ObjectUploader>
+                    </div>
+                    
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                      disabled={(!newMessage.trim() && !richContent.trim()) || sendMessageMutation.isPending}
                       className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto text-sm"
                     >
                       <Send className="h-3 w-3 sm:h-4 sm:w-4" />

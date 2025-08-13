@@ -42,6 +42,7 @@ import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
 import { messageRoutes } from "./routes/messages";
+import messageAttachmentRoutes from "./routes/message-attachments";
 
 
 // Directory paths
@@ -8043,6 +8044,7 @@ ${finalQuestion}
 
   // Register message center routes
   app.use('/api/messages', messageRoutes);
+  app.use('/api/messages', messageAttachmentRoutes);
   
   // Register e-signature routes
   app.use('/api/esignature', eSignatureRoutes);

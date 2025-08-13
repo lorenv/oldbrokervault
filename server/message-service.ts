@@ -236,7 +236,9 @@ export class MessageService {
   async replyToThread(
     threadId: number, 
     userId: number, 
-    content: string
+    content: string,
+    richContent?: string,
+    attachmentPaths?: string[]
   ): Promise<Message> {
     // Get thread details
     const [thread] = await db
@@ -268,6 +270,8 @@ export class MessageService {
       senderType: "owner",
       senderEmail: user.email,
       content,
+      richContent,
+      attachmentPaths,
       messageType: "app_message"
     });
 

@@ -54,13 +54,33 @@ router.post("/threads/:threadId/reply", async (req, res) => {
   try {
     const userId = req.user!.id;
     const threadId = parseInt(req.params.threadId);
-    const { content } = req.body;
+    
+    // Handle both regular form data and FormData
+    let content: string;
+    let richContent: string | undefined;
+    let attachmentPaths: string[] | undefined;
+
+    if (req.is('multipart/form-data')) {
+      // Handle FormData
+      content = req.body.content || '';
+      richContent = req.body.richContent;
+      attachmentPaths = req.body.attachmentPaths ? JSON.parse(req.body.attachmentPaths) : undefined;
+    } else {
+      // Handle regular JSON
+      ({ content, richContent, attachmentPaths } = req.body);
+    }
 
     if (isNaN(threadId) || !content?.trim()) {
       return res.status(400).json({ error: "Invalid request parameters" });
     }
 
-    const message = await messageService.replyToThread(threadId, userId, content.trim());
+    const message = await messageService.replyToThread(
+      threadId, 
+      userId, 
+      content.trim(),
+      richContent,
+      attachmentPaths
+    );
 
     res.json(message);
   } catch (error) {
