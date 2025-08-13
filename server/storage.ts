@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -203,6 +203,10 @@ export interface IStorage {
   deleteContentStyleTemplate(id: number, userId: number): Promise<void>;
   setDefaultContentStyleTemplate(id: number, userId: number): Promise<void>;
   getUserDefaultContentStyleTemplate(userId: number): Promise<ContentStyleTemplate | undefined>;
+  // Message attachments
+  createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment>;
+  getMessageAttachments(messageId: number): Promise<MessageAttachment[]>;
+  getMessageAttachment(attachmentId: number): Promise<MessageAttachment | undefined>;
   sessionStore: session.Store;
 }
 
@@ -1929,6 +1933,27 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         eq(contentStyleTemplates.isDefault, true)
       ));
     return template;
+  }
+
+  // Message attachments implementation
+  async createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment> {
+    return await withRetry(async () => {
+      const [created] = await db.insert(messageAttachments).values(attachment).returning();
+      return created;
+    });
+  }
+
+  async getMessageAttachments(messageId: number): Promise<MessageAttachment[]> {
+    return await withRetry(async () => {
+      return await db.select().from(messageAttachments).where(eq(messageAttachments.messageId, messageId));
+    });
+  }
+
+  async getMessageAttachment(attachmentId: number): Promise<MessageAttachment | undefined> {
+    return await withRetry(async () => {
+      const [attachment] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, attachmentId));
+      return attachment;
+    });
   }
 }
 

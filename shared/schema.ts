@@ -364,10 +364,22 @@ export const messages = pgTable("messages", {
   senderType: text("sender_type").notNull(), // inquirer, owner
   senderEmail: text("sender_email").notNull(),
   content: text("content").notNull(),
+  richContent: jsonb("rich_content"), // TipTap editor JSON content for rich text
   messageType: text("message_type").notNull(), // contact_form, email_reply, app_message
   sendgridMessageId: text("sendgrid_message_id"), // for tracking
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
+});
+
+// Message attachments table for file uploads
+export const messageAttachments = pgTable("message_attachments", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull(),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(), // Object storage path
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull()
 });
 
 export const emailSyncLog = pgTable("email_sync_log", {
@@ -897,3 +909,7 @@ export type InsertContentStyleTemplate = z.infer<typeof insertContentStyleTempla
 
 // Default CIM directions for backwards compatibility
 export const DEFAULT_CIM_DIRECTIONS = DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections;
+
+// Message attachment types
+export type MessageAttachment = typeof messageAttachments.$inferSelect;
+export type InsertMessageAttachment = typeof messageAttachments.$inferInsert;
