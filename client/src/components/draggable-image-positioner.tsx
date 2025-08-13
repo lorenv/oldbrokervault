@@ -107,7 +107,7 @@ export function DraggableImagePositioner({
     <div className={`relative group ${className}`}>
       <div 
         ref={containerRef}
-        className={`relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden select-none ${
+        className={`relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden select-none ${
           disabled ? 'cursor-not-allowed' : isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         onMouseDown={handleMouseDown}
