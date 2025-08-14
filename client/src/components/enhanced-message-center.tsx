@@ -237,6 +237,11 @@ export function EnhancedMessageCenter() {
       richContent: richContent || undefined,
       attachmentPaths: uploadedFiles.length > 0 ? uploadedFiles : undefined
     });
+    
+    // Clear form and attachments after sending
+    setNewMessage('');
+    setRichContent('');
+    setAttachments([]);
   };
 
   // Auto-scroll when new messages arrive - scroll within the messages container

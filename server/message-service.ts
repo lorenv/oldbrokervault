@@ -1,14 +1,16 @@
 import { db } from "./db";
-import { messageThreads, messages, emailSyncLog, cimDocuments, users } from "../shared/schema";
+import { messageThreads, messages, emailSyncLog, cimDocuments, users, messageAttachments } from "../shared/schema";
 import type { 
   MessageThread, 
   InsertMessageThread, 
   Message, 
   InsertMessage, 
   EmailSyncLog, 
-  InsertEmailSyncLog 
+  InsertEmailSyncLog,
+  MessageAttachment,
+  InsertMessageAttachment
 } from "../shared/schema";
-import { eq, desc, and, sql, or } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
 import { sendEmail } from "./email";
 import { randomUUID } from "crypto";
 import { shareCache, CACHE_TTL, MemoryCache } from "./cache";
@@ -253,11 +255,37 @@ export class MessageService {
       }
     }
 
-    const result = await db
+    // Get messages with their attachments
+    const messagesResult = await db
       .select()
       .from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(messages.createdAt);
+
+    // Get attachments for all messages in this thread
+    const messageIds = messagesResult.map(m => m.id);
+    let attachmentsMap: { [messageId: number]: MessageAttachment[] } = {};
+    
+    if (messageIds.length > 0) {
+      const attachments = await db
+        .select()
+        .from(messageAttachments)
+        .where(inArray(messageAttachments.messageId, messageIds));
+      
+      // Group attachments by message ID
+      attachments.forEach(att => {
+        if (!attachmentsMap[att.messageId]) {
+          attachmentsMap[att.messageId] = [];
+        }
+        attachmentsMap[att.messageId].push(att);
+      });
+    }
+
+    // Combine messages with their attachments
+    const result = messagesResult.map(message => ({
+      ...message,
+      attachments: attachmentsMap[message.id] || []
+    }));
 
     // Cache messages for faster subsequent access
     shareCache.set(cacheKey, result, CACHE_TTL.THREAD_MESSAGES);
@@ -364,8 +392,37 @@ export class MessageService {
       messageType: "app_message"
     });
 
-    // Send email to inquirer
-    await this.sendReplyEmail(thread, content, user.email);
+    // Create attachment records if any
+    let attachmentRecords: MessageAttachment[] = [];
+    if (attachmentPaths && attachmentPaths.length > 0) {
+      for (const filePath of attachmentPaths) {
+        // Extract filename from path - handle object storage URLs
+        let fileName = filePath.split('/').pop() || 'attachment';
+        if (fileName.includes('-')) {
+          // Remove timestamp prefix from uploaded filenames
+          const parts = fileName.split('-');
+          if (parts.length >= 3) {
+            fileName = parts.slice(2).join('-');
+          }
+        }
+        
+        const [attachment] = await db
+          .insert(messageAttachments)
+          .values({
+            messageId: message.id,
+            fileName,
+            filePath,
+            fileSize: 0, // We don't have size info here, could be enhanced
+            mimeType: 'application/octet-stream' // Default, could be enhanced
+          })
+          .returning();
+        
+        attachmentRecords.push(attachment);
+      }
+    }
+
+    // Send email to inquirer with attachments
+    await this.sendReplyEmail(thread, content, user.email, attachmentRecords);
 
     return message;
   }
@@ -451,7 +508,7 @@ export class MessageService {
   }
 
   // Send reply email to inquirer
-  private async sendReplyEmail(thread: any, content: string, ownerEmail: string): Promise<void> {
+  private async sendReplyEmail(thread: any, content: string, ownerEmail: string, attachments?: MessageAttachment[]): Promise<void> {
     try {
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -473,12 +530,21 @@ export class MessageService {
         </div>
       `;
 
+      // Convert MessageAttachment[] to SendGrid format
+      const sendgridAttachments = attachments?.map(att => ({
+        content: '', // We'll need to fetch file content
+        filename: att.fileName,
+        type: att.mimeType,
+        disposition: 'attachment'
+      })) || [];
+
       await sendEmail({
         to: thread.inquirerEmail,
         from: "notifications@cimshare.com",
         replyTo: thread.threadEmailAddress!,
         subject: `Re: ${thread.subject}`,
-        html: emailContent
+        html: emailContent,
+        attachments: sendgridAttachments
       });
 
       await this.logEmailSync(thread.id, null, "outbound", "sent");
