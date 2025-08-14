@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { messageService } from "../message-service";
+import { db } from '../db';
+import { messageAttachments } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -255,6 +258,55 @@ router.get("/sync-status/:threadId", async (req, res) => {
   } catch (error) {
     console.error("Failed to get sync status:", error);
     res.status(500).json({ error: "Failed to get sync status" });
+  }
+});
+
+// Download attachment endpoint
+router.get("/download-attachment/:attachmentId", async (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  
+  try {
+    const attachmentId = parseInt(req.params.attachmentId);
+    
+    if (isNaN(attachmentId)) {
+      return res.status(400).json({ error: "Invalid attachment ID" });
+    }
+
+    // Get attachment details
+    const [attachment] = await db
+      .select()
+      .from(messageAttachments)
+      .where(eq(messageAttachments.id, attachmentId));
+
+    if (!attachment) {
+      return res.status(404).json({ error: "Attachment not found" });
+    }
+
+    // Verify user has access to this attachment by checking message ownership
+    const { messages, messageThreads } = await import("../../shared/schema");
+    const [messageThread] = await db
+      .select({ userId: messageThreads.userId })
+      .from(messages)
+      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+      .where(eq(messages.id, attachment.messageId));
+
+    if (!messageThread || messageThread.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Serve the file from object storage
+    const filePath = `/public-objects/${attachment.filePath}`;
+    
+    // Set proper headers for download
+    res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+    res.setHeader('Content-Type', attachment.mimeType);
+    
+    // Redirect to the object storage endpoint
+    res.redirect(filePath);
+    
+  } catch (error) {
+    console.error("Error downloading attachment:", error);
+    res.status(500).json({ error: "Failed to download attachment" });
   }
 });
 
