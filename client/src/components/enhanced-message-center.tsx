@@ -241,13 +241,30 @@ export function EnhancedMessageCenter() {
   };
 
   const handleFileUpload = async () => {
-    return {
-      method: 'PUT' as const,
-      url: await fetch('/api/messages/upload-attachment', {
+    try {
+      const response = await fetch('/api/messages/upload-attachment', {
         method: 'POST',
         credentials: 'include',
-      }).then(res => res.json()).then(data => data.uploadURL)
-    };
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.uploadURL) {
+        throw new Error('No upload URL received');
+      }
+      
+      return {
+        method: 'PUT' as const,
+        url: data.uploadURL
+      };
+    } catch (error) {
+      console.error('Error getting upload URL:', error);
+      throw error;
+    }
   };
 
   const getMessageIcon = (message: Message) => {
