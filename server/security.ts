@@ -279,7 +279,9 @@ export const getSessionConfig = (isPublicRoute: boolean = false) => ({
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true, // Prevent XSS access to cookies
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: isPublicRoute ? 'lax' as const : 'strict' as const, // Allow cross-site for public routes
+    // Replit production requires 'none' for proper cross-origin functionality
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 
+              (isPublicRoute ? 'lax' as const : 'strict' as const),
   },
   rolling: false, // Disable session rolling to prevent excessive deserializations
 });
