@@ -106,16 +106,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Could not detect incognito mode:", e);
       }
 
-      const res = await apiRequest("POST", "/api/login", credentials);
-      if (!res.ok) {
-        const error = await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/login", credentials);
+        return await res.json();
+      } catch (error: any) {
+        // Parse the error message from the API response
+        const errorMessage = error.message || "Invalid email or password";
+        
         // Check for specific authentication errors that might indicate incognito mode
-        if (res.status === 500 && error.message?.includes("session")) {
+        if (errorMessage.includes("session")) {
           throw new Error("Authentication failed. Please ensure you're not using incognito/private browsing mode and try again.");
         }
-        throw new Error(error.message || "Invalid email or password");
+        
+        // Extract the actual error message from the API response
+        if (errorMessage.includes(": ")) {
+          const jsonPart = errorMessage.split(": ").slice(1).join(": ");
+          try {
+            const errorData = JSON.parse(jsonPart);
+            if (errorData.message) {
+              throw new Error(errorData.message);
+            }
+            if (errorData.error === "Validation failed" && errorData.details) {
+              const validationErrors = errorData.details.map((detail: any) => detail.msg).join(", ");
+              throw new Error(`Please check your credentials: ${validationErrors}`);
+            }
+          } catch (parseError) {
+            // If we can't parse the JSON, use the original error message
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
-      return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -147,16 +168,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Could not detect incognito mode during registration:", e);
       }
 
-      const res = await apiRequest("POST", "/api/register", credentials);
-      if (!res.ok) {
-        const error = await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/register", credentials);
+        return await res.json();
+      } catch (error: any) {
+        // Parse the error message from the API response
+        const errorMessage = error.message || "Registration failed";
+        
         // Check for specific authentication errors that might indicate incognito mode
-        if (res.status === 500 && error.message?.includes("session")) {
+        if (errorMessage.includes("session")) {
           throw new Error("Registration failed. Please ensure you're not using incognito/private browsing mode and try again.");
         }
-        throw new Error(error.message || "Registration failed");
+        
+        // Extract the actual error message from the API response
+        if (errorMessage.includes(": ")) {
+          const jsonPart = errorMessage.split(": ").slice(1).join(": ");
+          try {
+            const errorData = JSON.parse(jsonPart);
+            if (errorData.message) {
+              throw new Error(errorData.message);
+            }
+            if (errorData.error === "Validation failed" && errorData.details) {
+              const validationErrors = errorData.details.map((detail: any) => detail.msg).join(", ");
+              throw new Error(`Please check your input: ${validationErrors}`);
+            }
+          } catch (parseError) {
+            // If we can't parse the JSON, use the original error message
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
-      return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
