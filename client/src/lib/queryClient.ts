@@ -32,9 +32,15 @@ export async function apiRequest(
     credentials: 'include'
   });
   
+  const headers: Record<string, string> = isFormData ? {} : {};
+  if (data && !isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+  headers["Accept"] = "application/json";
+
   const res = await fetch(url, {
     method,
-    headers: isFormData ? {} : (data ? { "Content-Type": "application/json" } : {}),
+    headers,
     body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     credentials: "include",
   });
@@ -60,6 +66,9 @@ export const getQueryFn: <T>(options: {
     
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "Accept": "application/json"
+      }
     });
 
     console.log(`Query response from ${queryKey[0]}:`, {
