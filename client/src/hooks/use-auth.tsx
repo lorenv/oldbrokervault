@@ -108,8 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const res = await apiRequest("POST", "/api/login", credentials);
-        return await res.json();
+        const userData = await res.json();
+        console.log("Login successful, received user data:", userData);
+        return userData;
       } catch (error: any) {
+        console.error("Login error:", error);
+        
         // Parse the error message from the API response
         const errorMessage = error.message || "Invalid email or password";
         
@@ -118,21 +122,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Authentication failed. Please ensure you're not using incognito/private browsing mode and try again.");
         }
         
-        // Extract the actual error message from the API response
-        if (errorMessage.includes(": ")) {
-          const jsonPart = errorMessage.split(": ").slice(1).join(": ");
-          try {
-            const errorData = JSON.parse(jsonPart);
-            if (errorData.message) {
-              throw new Error(errorData.message);
-            }
-            if (errorData.error === "Validation failed" && errorData.details) {
-              const validationErrors = errorData.details.map((detail: any) => detail.msg).join(", ");
-              throw new Error(`Please check your credentials: ${validationErrors}`);
-            }
-          } catch (parseError) {
-            // If we can't parse the JSON, use the original error message
+        // Extract status code and message
+        const statusMatch = errorMessage.match(/^(\d+): (.+)/);
+        if (statusMatch) {
+          const [, status, message] = statusMatch;
+          if (status === "401") {
+            throw new Error("Invalid email or password. Please check your credentials and try again.");
           }
+          if (status === "400") {
+            throw new Error(message || "Please check your input and try again.");
+          }
+          throw new Error(message || "Login failed. Please try again.");
         }
         
         throw new Error(errorMessage);
