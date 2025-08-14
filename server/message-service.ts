@@ -633,8 +633,19 @@ export class MessageService {
       
       console.log(`Inbound email: ${fromEmail} -> ${toEmail}`);
       
-      // Extract thread ID from email address (format: thread-123@reply.cimshare.com)
-      const threadMatch = toEmail.match(/thread-(\d+)@reply\.cimshare\.com/);
+      // Check if required fields are present
+      if (!toEmail) {
+        console.error("No 'to' email found in webhook data:", Object.keys(webhookData));
+        return;
+      }
+      
+      if (!fromEmail) {
+        console.error("No 'from' email found in webhook data:", Object.keys(webhookData));
+        return;
+      }
+      
+      // Extract thread ID from email address (format: thread-123@cimshare.com or thread-123@reply.cimshare.com)
+      const threadMatch = toEmail.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/);
       if (!threadMatch) {
         console.log("No thread ID found in recipient email:", toEmail);
         return;

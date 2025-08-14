@@ -169,17 +169,118 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Import message service for webhook processing
+  const { messageService } = await import("./message-service");
+  
   // Serve static files including user-images
   app.use(express.static(path.join(process.cwd(), 'public')));
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
   
-  // Setup authentication first, before any other routes
+  // IMPORTANT: Register webhook endpoints BEFORE authentication middleware
+  // These endpoints need to be accessible by external services without authentication
+  
+  // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
+  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
+    console.log("📧 SendGrid inbound webhook received");
+    console.log("Raw body type:", typeof req.body);
+    console.log("Raw body:", req.body);
+    
+    try {
+      // Parse form-encoded data from SendGrid
+      let webhookData;
+      
+      if (Buffer.isBuffer(req.body)) {
+        const bodyString = req.body.toString('utf8');
+        console.log("Body as string:", bodyString);
+        const formData = new URLSearchParams(bodyString);
+        webhookData = Object.fromEntries(formData.entries());
+      } else {
+        // Fallback for non-buffer data
+        webhookData = req.body;
+      }
+      
+      console.log("🔍 Parsed webhook data:", {
+        to: webhookData.to,
+        from: webhookData.from,
+        subject: webhookData.subject,
+        hasText: !!webhookData.text,
+        hasHtml: !!webhookData.html,
+        allKeys: Object.keys(webhookData)
+      });
+      
+      await messageService.processInboundEmailWebhook(webhookData);
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error("Failed to process inbound email webhook:", error);
+      res.status(500).send('Error processing webhook');
+    }
+  });
+
+  // SendGrid Event Webhook (for delivery tracking)
+  app.post('/api/webhook/sendgrid/events', express.json(), async (req, res) => {
+    console.log("📊 SendGrid event webhook received");
+    
+    try {
+      const events = Array.isArray(req.body) ? req.body : [req.body];
+      
+      for (const event of events) {
+        await messageService.processEmailEvent(event);
+      }
+      
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error("Failed to process email events:", error);
+      res.status(500).send('Error processing events');
+    }
+  });
+
+  // Stripe webhook endpoint with enhanced error handling
+  app.post("/api/webhook/stripe", async (req, res) => {
+    // Validate webhook signature
+    const sig = req.headers["stripe-signature"];
+    if (!sig) {
+      console.error("❌ Stripe webhook: No signature found");
+      return res.status(400).json({ error: "Missing Stripe signature" });
+    }
+
+    try {
+      await handleStripeWebhook(req, res, stripe);
+    } catch (error) {
+      console.error("❌ Stripe webhook processing failed:", error);
+      return res.status(500).json({ 
+        error: "Webhook processing failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Setup authentication AFTER webhook endpoints
   setupAuth(app);
   
-  // SECURITY: Apply security middleware globally
-  app.use(responseSanitizationMiddleware);
-  app.use(securityHeadersMiddleware);
-  app.use(sensitiveEndpointLimiter);
+  // SECURITY: Apply security middleware globally, but exclude webhooks
+  app.use((req, res, next) => {
+    // Skip security middleware for webhook endpoints
+    if (req.path.startsWith('/api/webhook/')) {
+      return next();
+    }
+    return responseSanitizationMiddleware(req, res, next);
+  });
+  
+  app.use((req, res, next) => {
+    // Skip security headers for webhook endpoints  
+    if (req.path.startsWith('/api/webhook/')) {
+      return next();
+    }
+    return securityHeadersMiddleware(req, res, next);
+  });
+  
+  app.use((req, res, next) => {
+    // Skip rate limiting for webhook endpoints
+    if (req.path.startsWith('/api/webhook/')) {
+      return next();
+    }
+    return sensitiveEndpointLimiter(req, res, next);
+  });
 
   // Register NDA template routes BEFORE other routes to avoid conflicts
   console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
@@ -3001,132 +3102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
-  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
-    console.log("📧 SendGrid inbound webhook received");
-    
-    try {
-      // Parse form-encoded data from SendGrid
-      const formData = new URLSearchParams(req.body.toString());
-      const webhookData = Object.fromEntries(formData.entries());
-      
-      console.log("🔍 Parsed webhook data:", {
-        to: webhookData.to,
-        from: webhookData.from,
-        subject: webhookData.subject,
-        hasText: !!webhookData.text,
-        hasHtml: !!webhookData.html
-      });
-      
-      await messageService.processInboundEmailWebhook(webhookData);
-      res.status(200).send('OK');
-    } catch (error) {
-      console.error("Failed to process inbound email webhook:", error);
-      res.status(500).send('Error processing webhook');
-    }
-  });
-
-  // SendGrid Event Webhook (for delivery tracking)
-  app.post('/api/webhook/sendgrid/events', express.json(), async (req, res) => {
-    console.log("📊 SendGrid event webhook received");
-    
-    try {
-      const events = Array.isArray(req.body) ? req.body : [req.body];
-      
-      for (const event of events) {
-        await messageService.processEmailEvent(event);
-      }
-      
-      res.status(200).send('OK');
-    } catch (error) {
-      console.error("Failed to process email events:", error);
-      res.status(500).send('Error processing events');
-    }
-  });
-
-  // Stripe webhook endpoint with enhanced error handling
-  app.post("/api/webhook/stripe", async (req, res) => {
-    // Validate webhook signature
-    const sig = req.headers["stripe-signature"];
-    if (!sig) {
-      console.error("❌ Stripe webhook: No signature found");
-      return res.status(400).json({ error: "Missing Stripe signature" });
-    }
-
-    // Check if Stripe is properly initialized
-    if (!stripe) {
-      console.error("❌ Stripe webhook: Stripe not initialized");
-      return res.status(503).json({ error: "Payment processing unavailable" });
-    }
-
-    // Validate webhook secret is configured
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      console.error("❌ Stripe webhook: Webhook secret not configured");
-      return res.status(500).json({ error: "Webhook configuration error" });
-    }
-
-    try {
-      console.log("🔄 Processing Stripe webhook event");
-      const event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
-      );
-
-      console.log("Webhook event type:", event.type);
-      const result = await handleStripeWebhook(event);
-
-      if (result) {
-        const { userId, status, endsAt, subscriptionId } = result;
-        console.log("Updating subscription:", { userId, status, endsAt, subscriptionId });
-
-        await storage.updateSubscription(userId, status, endsAt, subscriptionId);
-        console.log(`Successfully updated subscription for user ${userId} to ${status}`);
-
-        // Force refresh the user's session if they're currently logged in
-        const user = await storage.getUser(userId);
-        console.log("Retrieved updated user subscription status:", user?.subscriptionStatus);
-
-        if (req.session && req.user?.id === userId) {
-          req.session.passport = req.session.passport || {};
-          // @ts-ignore - we know the passport property exists now
-          req.session.passport.user = userId; // Store only the user ID, not the full object
-          await new Promise((resolve) => req.session.save(resolve));
-          console.log("Updated session for user:", userId);
-        }
-      } else {
-        console.log("No subscription update required for event:", event.type);
-      }
-
-      res.json({ received: true });
-    } catch (error) {
-      console.error('❌ Stripe webhook processing error:', error);
-      
-      // Enhanced error reporting for webhook failures
-      if (error instanceof Error) {
-        console.error('❌ Webhook error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-        
-        // Check for specific Stripe webhook errors
-        if (error.message.includes('Invalid signature')) {
-          console.error('❌ Webhook signature validation failed - check STRIPE_WEBHOOK_SECRET');
-          return res.status(400).json({ error: "Invalid webhook signature" });
-        } else if (error.message.includes('timestamp')) {
-          console.error('❌ Webhook timestamp error - possible clock skew');
-          return res.status(400).json({ error: "Webhook timestamp error" });
-        }
-      }
-      
-      // Generic webhook error response
-      return res.status(400).json({ 
-        error: "Webhook processing failed", 
-        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
-      });
-    }
-  });
+  // Note: Webhook endpoints are now registered at the top before authentication middleware
 
   // New route for creating Stripe Customer Portal session with enhanced error handling
   app.post("/api/subscription/create-portal-session", async (req, res) => {
