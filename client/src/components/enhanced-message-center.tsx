@@ -181,9 +181,10 @@ export function EnhancedMessageCenter() {
   const archiveMutation = useMutation({
     mutationFn: ({ threadId, archive }: { threadId: number; archive: boolean }) =>
       apiRequest('PATCH', `/api/messages/threads/${threadId}/${archive ? 'archive' : 'reactivate'}`),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate all thread queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
-      toast({ title: showArchived ? 'Thread reactivated' : 'Thread archived' });
+      toast({ title: variables.archive ? 'Thread archived' : 'Thread reactivated' });
       setSelectedThread(null);
     },
   });
