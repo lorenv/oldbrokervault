@@ -144,7 +144,7 @@ export function SharePage() {
       console.log('🔍 Share page uploaded files data:', data);
       return data;
     },
-    enabled: !!shareSlug && !!shareData?.cim?.isUploadedFile,
+    enabled: !!shareSlug && !!shareData?.cim?.analysis?.isUploadedFile,
     staleTime: 0,
     gcTime: 0
   });
@@ -342,7 +342,7 @@ export function SharePage() {
       {/* Add top padding when owner toolbar is visible */}
       <div className={shareData?.isOwner ? "pt-12" : ""}>
       {/* Cover Image with Header Overlay - only for non-uploaded file CIMs */}
-      {!cimData.isUploadedFile && cimData.coverImageUrl ? (
+      {!cimData.analysis?.isUploadedFile && cimData.coverImageUrl ? (
         <div ref={coverImageRef} className="relative h-[35vh] md:h-[40vh] overflow-hidden animate-fade-in">
           {/* Cover Image with Parallax */}
           <div
@@ -525,7 +525,7 @@ export function SharePage() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main content area */}
           <div className="flex-1 min-w-0 space-y-6 animate-fade-in delay-200">
-            {shareData.cim.isUploadedFile === true ? (
+            {shareData.cim.analysis?.isUploadedFile === true ? (
               <div>
                 {filesLoading ? (
                   <div className="flex justify-center py-8">
