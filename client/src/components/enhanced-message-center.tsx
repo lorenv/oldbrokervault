@@ -63,6 +63,25 @@ interface EmailSyncStatus {
   syncAt: string;
 }
 
+// Helper function to clean HTML tags from plain text content
+function cleanHtmlTags(content: string): string {
+  if (!content) return '';
+  
+  return content
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Clean up extra whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function EnhancedMessageCenter() {
   const [selectedThread, setSelectedThread] = useState<MessageThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -552,7 +571,7 @@ export function EnhancedMessageCenter() {
                           ) : (
                             <p className={`whitespace-pre-wrap break-words overflow-wrap-anywhere ${
                               message.senderType === 'owner' ? 'text-white' : ''
-                            }`}>{message.content}</p>
+                            }`}>{cleanHtmlTags(message.content)}</p>
                           )}
                           
                           {/* Show attachments - check both attachments and attachmentPaths */}
