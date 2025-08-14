@@ -27,9 +27,11 @@ export async function apiRequest(
 ): Promise<Response> {
   const isFormData = data instanceof FormData;
   
-  console.log(`Making ${method} request to ${url}`, { 
+  const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+  console.log(`Making ${method} request to ${fullUrl}`, { 
     data: data instanceof FormData ? 'FormData' : data,
-    credentials: 'include'
+    credentials: 'include',
+    headers: headers
   });
   
   const headers: Record<string, string> = isFormData ? {} : {};
@@ -38,18 +40,19 @@ export async function apiRequest(
   }
   headers["Accept"] = "application/json";
 
-  const res = await fetch(url, {
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     credentials: "include",
   });
 
-  console.log(`Response from ${url}:`, {
+  console.log(`Response from ${fullUrl}:`, {
     status: res.status,
     statusText: res.statusText,
     contentType: res.headers.get('content-type'),
-    url: res.url
+    actualUrl: res.url,
+    requestUrl: fullUrl
   });
 
   await throwIfResNotOk(res);
@@ -62,20 +65,23 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    console.log(`Query request to ${queryKey[0]}`, { credentials: 'include' });
+    const url = queryKey[0] as string;
+    const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+    console.log(`Query request to ${fullUrl}`, { credentials: 'include' });
     
-    const res = await fetch(queryKey[0] as string, {
+    const res = await fetch(fullUrl, {
       credentials: "include",
       headers: {
         "Accept": "application/json"
       }
     });
 
-    console.log(`Query response from ${queryKey[0]}:`, {
+    console.log(`Query response from ${fullUrl}:`, {
       status: res.status,
       statusText: res.statusText,
       contentType: res.headers.get('content-type'),
-      url: res.url
+      actualUrl: res.url,
+      requestUrl: fullUrl
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
