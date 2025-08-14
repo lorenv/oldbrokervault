@@ -27,18 +27,18 @@ export async function apiRequest(
 ): Promise<Response> {
   const isFormData = data instanceof FormData;
   
+  const headers: Record<string, string> = isFormData ? {} : {};
+  if (data && !isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+  headers["Accept"] = "application/json";
+  
   const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
   console.log(`Making ${method} request to ${fullUrl}`, { 
     data: data instanceof FormData ? 'FormData' : data,
     credentials: 'include',
     headers: headers
   });
-  
-  const headers: Record<string, string> = isFormData ? {} : {};
-  if (data && !isFormData) {
-    headers["Content-Type"] = "application/json";
-  }
-  headers["Accept"] = "application/json";
 
   const res = await fetch(fullUrl, {
     method,
