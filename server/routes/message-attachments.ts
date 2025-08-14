@@ -1,25 +1,49 @@
 import { Router } from 'express';
 import { storage } from '../storage';
 import { ObjectStorageService } from '../object-storage';
-// Remove this import - we'll check authentication directly
 import { randomUUID } from 'crypto';
+import multer from 'multer';
+import path from 'path';
 
 const router = Router();
 
-// Get upload URL for message attachment
-router.post('/upload-attachment', async (req, res) => {
+// Configure multer for file upload
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// Upload attachment endpoint - handles direct file upload
+router.post('/upload-attachment', upload.single('file'), async (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
+  
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
     const objectStorageService = new ObjectStorageService();
-    const fileKey = `message-attachments/${randomUUID()}`;
     
-    // Generate a presigned URL for upload
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    // Generate unique file path
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${req.file.originalname}`;
     
-    res.json({ uploadURL });
+    // Upload to object storage
+    const uploadResult = await objectStorageService.uploadBuffer(
+      `message-attachments/${fileName}`, 
+      req.file.buffer,
+      req.file.mimetype
+    );
+    
+    res.json({ 
+      filePath: uploadResult.url,
+      fileName: req.file.originalname,
+      size: req.file.size,
+      mimeType: req.file.mimetype
+    });
+    
   } catch (error) {
-    console.error('Error generating upload URL:', error);
-    res.status(500).json({ error: 'Failed to generate upload URL' });
+    console.error('Error uploading file:', error);
+    res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 
