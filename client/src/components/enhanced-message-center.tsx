@@ -510,7 +510,7 @@ export function EnhancedMessageCenter() {
                               message.senderType === 'owner' 
                                 ? 'text-blue-100 font-medium' 
                                 : 'text-gray-600 opacity-75'
-                            }`}">
+                            }`}>
                               {message.senderType === 'owner' ? 'You' : message.senderEmail}
                             </span>
                             {message.messageType === 'email_reply' && (
@@ -537,7 +537,7 @@ export function EnhancedMessageCenter() {
                               dangerouslySetInnerHTML={{ 
                                 __html: message.richContent
                                   // Clean up TipTap's extra paragraph wrapping
-                                  .replace(/^<p[^>]*>(.*)<\/p>$/s, '$1')  // Remove wrapping p tags if it's the only content
+                                  .replace(/^<p[^>]*>([\s\S]*)<\/p>$/, '$1')  // Remove wrapping p tags if it's the only content
                                   .replace(/<p[^>]*>\s*<\/p>/g, '')       // Remove empty p tags
                                   .replace(/<p[^>]*>/g, '')               // Remove opening p tags
                                   .replace(/<\/p>/g, '<br>')             // Convert closing p tags to breaks
