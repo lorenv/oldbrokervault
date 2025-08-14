@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, User, Phone, Mail, Building, Archive, Eye } from "lucide-react";
+import { Download, FileText, Archive, Eye } from "lucide-react";
 import JSZip from 'jszip';
 
 interface UploadedFileViewerProps {
@@ -125,11 +125,6 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
             </div>
           </CardContent>
         </Card>
-
-        {/* Contact information */}
-        {userProfile && (
-          <ContactCard userProfile={userProfile} logoUrl={cimDocument.logoUrl} />
-        )}
       </div>
     );
   }
@@ -285,91 +280,7 @@ export function UploadedFileViewer({ cimDocument, shareSlug, userProfile, upload
           </div>
         </CardContent>
       </Card>
-
-
-
-      {/* Contact information */}
-      {userProfile && (
-        <ContactCard userProfile={userProfile} logoUrl={cimDocument.logoUrl} />
-      )}
     </div>
   );
 }
 
-function ContactCard({ userProfile, logoUrl }: { userProfile: any; logoUrl?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Contact Information
-        </h3>
-
-        <div className="flex items-start gap-6">
-          {/* Profile Photo */}
-          {userProfile.profilePhotoUrl && (
-            <img 
-              src={userProfile.profilePhotoUrl} 
-              alt="Profile" 
-              className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-            />
-          )}
-
-          <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                {userProfile.fullName && (
-                  <h4 className="font-semibold text-lg mb-2">{userProfile.fullName}</h4>
-                )}
-                {userProfile.name && !userProfile.fullName && (
-                  <h4 className="font-semibold text-lg mb-2">{userProfile.name}</h4>
-                )}
-                {userProfile.title && (
-                  <p className="text-gray-600 mb-1">{userProfile.title}</p>
-                )}
-                {userProfile.company && (
-                  <p className="text-gray-600 mb-1">{userProfile.company}</p>
-                )}
-                {userProfile.businessName && !userProfile.company && (
-                  <p className="text-gray-600 mb-1">{userProfile.businessName}</p>
-                )}
-                {userProfile.email && (
-                  <p className="text-blue-600 mb-1">
-                    <a href={`mailto:${userProfile.email}`} className="hover:underline">
-                      {userProfile.email}
-                    </a>
-                  </p>
-                )}
-                {userProfile.phone && (
-                  <p className="text-gray-600 mb-1">
-                    <a href={`tel:${userProfile.phone}`} className="hover:underline">
-                      {userProfile.phone}
-                    </a>
-                  </p>
-                )}
-                {userProfile.phoneNumber && !userProfile.phone && (
-                  <p className="text-gray-600 mb-1">
-                    <a href={`tel:${userProfile.phoneNumber}`} className="hover:underline">
-                      {userProfile.phoneNumber}
-                    </a>
-                  </p>
-                )}
-              </div>
-
-              {/* Business Logo */}
-              {logoUrl && (
-                <div className="flex justify-end">
-                  <img 
-                    src={logoUrl} 
-                    alt="Company Logo" 
-                    className="max-w-20 max-h-12 object-contain"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
