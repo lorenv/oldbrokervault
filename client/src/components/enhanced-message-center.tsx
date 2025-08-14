@@ -24,6 +24,7 @@ interface Message {
   isRead: boolean;
   createdAt: string;
   attachments?: MessageAttachment[];
+  attachmentPaths?: string[];
 }
 
 interface MessageAttachment {
@@ -198,27 +199,55 @@ export function EnhancedMessageCenter() {
   const handleSendMessage = async () => {
     if (!selectedThread || (!newMessage.trim() && !richContent.trim())) return;
     
-    // For now, just send the message with attachment file names
-    // File upload will be handled differently - we'll include file info in the message
-    const attachmentInfo = attachments.map(file => ({
-      name: file.name,
-      size: file.size,
-      type: file.type
-    }));
+    let uploadedFiles: string[] = [];
+    
+    // Upload files to object storage if any
+    if (attachments.length > 0) {
+      try {
+        for (const file of attachments) {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const uploadResponse = await fetch('/api/messages/upload-attachment', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+          
+          const result = await uploadResponse.json();
+          uploadedFiles.push(result.filePath);
+        }
+      } catch (error) {
+        toast({
+          title: 'Upload Failed',
+          description: error instanceof Error ? error.message : 'Failed to upload files',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
     
     sendMessageMutation.mutate({ 
       threadId: selectedThread.id, 
       content: newMessage || richContent,
       richContent: richContent || undefined,
-      attachmentPaths: attachmentInfo.length > 0 ? attachmentInfo.map(f => f.name) : undefined
+      attachmentPaths: uploadedFiles.length > 0 ? uploadedFiles : undefined
     });
   };
 
-  // Auto-scroll when new messages arrive
+  // Auto-scroll when new messages arrive - scroll within the messages container
   useEffect(() => {
     if (messages && messages.length > 0) {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
       }, 100);
     }
   }, [messages]);
@@ -503,10 +532,14 @@ export function EnhancedMessageCenter() {
                             <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                           )}
                           
-                          {message.attachments && message.attachments.length > 0 && (
+                          {/* Show attachments - check both attachments and attachmentPaths */}
+                          {((message.attachments && message.attachments.length > 0) || 
+                            (message.attachmentPaths && message.attachmentPaths.length > 0)) && (
                             <div className="mt-3 space-y-2">
                               <div className="text-xs opacity-75">Attachments:</div>
-                              {message.attachments.map((attachment) => (
+                              
+                              {/* Proper attachment objects */}
+                              {message.attachments?.map((attachment) => (
                                 <div key={attachment.id} className="flex items-center gap-2 p-2 bg-white/10 rounded">
                                   <FileText className="h-4 w-4" />
                                   <span className="text-xs truncate flex-1">{attachment.fileName}</span>
@@ -517,7 +550,25 @@ export function EnhancedMessageCenter() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => window.open(attachment.filePath, '_blank')}
-                                    className="h-6 w-6 p-0"
+                                    className="h-6 w-6 p-0 hover:bg-white/20"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                              
+                              {/* Simple attachment paths (for backward compatibility) */}
+                              {message.attachmentPaths?.map((attachmentPath, idx) => (
+                                <div key={`path-${idx}`} className="flex items-center gap-2 p-2 bg-white/10 rounded">
+                                  <FileText className="h-4 w-4" />
+                                  <span className="text-xs truncate flex-1">{attachmentPath}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      toast({ title: `Attachment: ${attachmentPath}` });
+                                    }}
+                                    className="h-6 w-6 p-0 hover:bg-white/20"
                                   >
                                     <Download className="h-3 w-3" />
                                   </Button>
