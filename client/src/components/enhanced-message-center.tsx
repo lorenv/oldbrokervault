@@ -493,15 +493,24 @@ export function EnhancedMessageCenter() {
                         <div
                           className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 break-words ${
                             message.senderType === 'owner'
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-blue-600 text-white shadow-md'
                               : 'bg-gray-100 text-gray-900'
                           }`}
+                          style={message.senderType === 'owner' ? {
+                            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                            color: '#ffffff',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+                          } : {}}
                         >
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <div className="flex-shrink-0">
                               {getMessageIcon(message)}
                             </div>
-                            <span className="text-xs opacity-75 truncate">
+                            <span className={`text-xs truncate ${
+                              message.senderType === 'owner' 
+                                ? 'text-blue-100 font-medium' 
+                                : 'text-gray-600 opacity-75'
+                            }`}>
                               {message.senderType === 'owner' ? 'You' : message.senderEmail}
                             </span>
                             {message.messageType === 'email_reply' && (
@@ -512,7 +521,11 @@ export function EnhancedMessageCenter() {
                             {sync && (
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 {getSyncStatusIcon(sync.status)}
-                                <span className="text-xs opacity-75 capitalize">
+                                <span className={`text-xs capitalize ${
+                                  message.senderType === 'owner' 
+                                    ? 'text-blue-100 font-medium' 
+                                    : 'text-gray-600 opacity-75'
+                                }`}>
                                   {sync.status}
                                 </span>
                               </div>
@@ -524,7 +537,7 @@ export function EnhancedMessageCenter() {
                               dangerouslySetInnerHTML={{ 
                                 __html: message.richContent
                                   // Clean up TipTap's extra paragraph wrapping
-                                  .replace(/^<p[^>]*>(.*)<\/p>$/s, '$1')  // Remove wrapping p tags if it's the only content
+                                  .replace(/^<p[^>]*>([\s\S]*)<\/p>$/, '$1')  // Remove wrapping p tags if it's the only content
                                   .replace(/<p[^>]*>\s*<\/p>/g, '')       // Remove empty p tags
                                   .replace(/<p[^>]*>/g, '')               // Remove opening p tags
                                   .replace(/<\/p>/g, '<br>')             // Convert closing p tags to breaks
@@ -581,7 +594,11 @@ export function EnhancedMessageCenter() {
                               ))}
                             </div>
                           )}
-                          <div className="text-xs opacity-75 mt-2">
+                          <div className={`text-xs mt-2 ${
+                            message.senderType === 'owner' 
+                              ? 'text-blue-100 font-medium' 
+                              : 'text-gray-500 opacity-75'
+                          }`}>
                             {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                           </div>
                         </div>
