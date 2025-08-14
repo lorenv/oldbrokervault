@@ -533,7 +533,9 @@ export function EnhancedMessageCenter() {
                           </div>
                           {message.richContent ? (
                             <div 
-                              className="prose prose-sm max-w-none break-words overflow-wrap-anywhere [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p:first-child]:mt-0"
+                              className={`prose prose-sm max-w-none break-words overflow-wrap-anywhere [&>p]:mb-2 [&>p:last-child]:mb-0 [&>p:first-child]:mt-0 ${
+                                message.senderType === 'owner' ? 'text-white' : ''
+                              }`}
                               dangerouslySetInnerHTML={{ 
                                 __html: message.richContent
                                   // Clean up TipTap's extra paragraph wrapping
@@ -547,7 +549,9 @@ export function EnhancedMessageCenter() {
                               }}
                             />
                           ) : (
-                            <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                            <p className={`whitespace-pre-wrap break-words overflow-wrap-anywhere ${
+                              message.senderType === 'owner' ? 'text-white' : ''
+                            }`}>{message.content}</p>
                           )}
                           
                           {/* Show attachments - check both attachments and attachmentPaths */}
@@ -615,6 +619,7 @@ export function EnhancedMessageCenter() {
               <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
                 <div className="space-y-3">
                   <RichTextEditor
+                    key={selectedThread?.id} // Force re-render when thread changes
                     content={richContent}
                     onChange={setRichContent}
                     placeholder="Type your reply with rich formatting... (will be sent via email)"
