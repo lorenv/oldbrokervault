@@ -107,12 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log("Making login request to /api/login with credentials:", { email: credentials.email });
         const res = await apiRequest("POST", "/api/login", credentials);
-        console.log("Login request successful, response status:", res.status);
         return await res.json();
       } catch (error: any) {
-        console.error("Login request failed:", error);
         // Parse the error message from the API response
         const errorMessage = error.message || "Invalid email or password";
         
