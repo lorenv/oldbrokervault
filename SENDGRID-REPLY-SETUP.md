@@ -40,20 +40,23 @@ Add these MX records to your domain's DNS settings:
 
 ```
 Type: MX
-Name: reply
+Host: reply.cimshare.com
 Priority: 10
 Value: mx.sendgrid.net
 
 Type: MX  
-Name: reply
+Host: reply.cimshare.com
 Priority: 20
 Value: mx2.sendgrid.net
 
 Type: MX
-Name: reply  
+Host: reply.cimshare.com
 Priority: 30
 Value: mx3.sendgrid.net
 ```
+
+**CRITICAL DNS ISSUE SOLUTION:**
+The error "DNS type 'mx' lookup of reply.cimshare.com responded with code NXDOMAIN" means your DNS doesn't have MX records for the reply subdomain. You must add MX records with the **full subdomain** `reply.cimshare.com`, not just `reply`.
 
 ### 4. Event Webhook (Optional but Recommended)
 Set up delivery tracking:

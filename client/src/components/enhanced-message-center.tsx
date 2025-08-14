@@ -68,6 +68,7 @@ export function EnhancedMessageCenter() {
   const [newMessage, setNewMessage] = useState('');
   const [richContent, setRichContent] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const { toast } = useToast();
@@ -155,6 +156,7 @@ export function EnhancedMessageCenter() {
       setNewMessage('');
       setRichContent('');
       setAttachments([]);
+      setAttachmentUrls([]);
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads', selectedThread?.id, 'messages'] });
       toast({ title: 'Message sent successfully' });
@@ -234,7 +236,7 @@ export function EnhancedMessageCenter() {
       threadId: selectedThread.id, 
       content: newMessage || richContent,
       richContent: richContent || undefined,
-      attachmentPaths: attachmentPaths.length > 0 ? attachmentPaths : undefined
+      attachmentPaths: [...attachmentPaths, ...attachmentUrls].length > 0 ? [...attachmentPaths, ...attachmentUrls] : undefined
     });
   };
 
@@ -572,13 +574,13 @@ export function EnhancedMessageCenter() {
                     className="min-h-[120px]"
                   />
                   
-                  {/* Attachments */}
-                  {attachments.length > 0 && (
+                  {/* Show attached files */}
+                  {(attachments.length > 0 || attachmentUrls.length > 0) && (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">Attachments:</div>
+                      <div className="text-sm font-medium">Attachments ({attachments.length + attachmentUrls.length}):</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {attachments.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-white rounded border">
+                          <div key={`file-${index}`} className="flex items-center gap-2 p-2 bg-white rounded border">
                             <FileText className="h-4 w-4 text-gray-500" />
                             <span className="text-sm truncate flex-1">{file.name}</span>
                             <span className="text-xs text-gray-500">
@@ -591,6 +593,25 @@ export function EnhancedMessageCenter() {
                                 const newAttachments = [...attachments];
                                 newAttachments.splice(index, 1);
                                 setAttachments(newAttachments);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        {attachmentUrls.map((url, index) => (
+                          <div key={`url-${index}`} className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
+                            <FileText className="h-4 w-4 text-green-600" />
+                            <span className="text-sm truncate flex-1">Uploaded file {index + 1}</span>
+                            <span className="text-xs text-green-600">Ready</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const newUrls = [...attachmentUrls];
+                                newUrls.splice(index, 1);
+                                setAttachmentUrls(newUrls);
                               }}
                               className="h-6 w-6 p-0"
                             >
@@ -615,8 +636,9 @@ export function EnhancedMessageCenter() {
                         onGetUploadParameters={handleFileUpload}
                         onComplete={(result) => {
                           if (result.successful && result.successful.length > 0) {
-                            // This is handled in the upload process
-                            toast({ title: 'Files attached successfully' });
+                            const uploadedUrls = result.successful.map(file => file.uploadURL as string);
+                            setAttachmentUrls(prev => [...prev, ...uploadedUrls]);
+                            toast({ title: `${result.successful.length} file(s) attached successfully` });
                           }
                         }}
                         buttonClassName="h-8 px-2"
