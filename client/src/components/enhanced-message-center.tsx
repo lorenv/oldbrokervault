@@ -88,8 +88,10 @@ export function EnhancedMessageCenter() {
   const [richContent, setRichContent] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentUrls, setAttachmentUrls] = useState<string[]>([]);
+  const [editorKey, setEditorKey] = useState(0); // Key to force RichTextEditor reset
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const { toast } = useToast();
@@ -178,13 +180,29 @@ export function EnhancedMessageCenter() {
       setRichContent('');
       setAttachments([]);
       setAttachmentUrls([]);
+      setEditorKey(prev => prev + 1); // Force RichTextEditor to reset
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads', selectedThread?.id, 'messages'] });
       toast({ title: 'Message sent successfully' });
       
-      // Scroll to bottom after sending
+      // Scroll to bottom within the messages container only
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (messagesEndRef.current) {
+          const scrollArea = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]') as HTMLElement;
+          if (scrollArea) {
+            scrollArea.scrollTo({
+              top: scrollArea.scrollHeight,
+              behavior: 'smooth'
+            });
+          } else {
+            // Fallback: scroll within parent container
+            messagesEndRef.current.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'nearest',
+              inline: 'nearest'
+            });
+          }
+        }
       }, 100);
     },
     onError: (error: any) => {
@@ -258,21 +276,30 @@ export function EnhancedMessageCenter() {
       attachmentPaths: uploadedFiles.length > 0 ? uploadedFiles : undefined
     });
     
-    // Clear form and attachments after sending
-    setNewMessage('');
-    setRichContent('');
-    setAttachments([]);
+    // Form will be cleared in the mutation's onSuccess callback
   };
 
-  // Auto-scroll when new messages arrive - scroll within the messages container
+  // Auto-scroll when new messages arrive - scroll within the messages container only
   useEffect(() => {
     if (messages && messages.length > 0) {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest'
-        });
+        if (messagesEndRef.current) {
+          // Scroll within the container, not the entire page
+          const scrollArea = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]') as HTMLElement;
+          if (scrollArea) {
+            scrollArea.scrollTo({
+              top: scrollArea.scrollHeight,
+              behavior: 'smooth'
+            });
+          } else {
+            // Fallback: scroll within parent container
+            messagesEndRef.current.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'nearest',
+              inline: 'nearest'
+            });
+          }
+        }
       }, 100);
     }
   }, [messages]);
@@ -639,7 +666,7 @@ export function EnhancedMessageCenter() {
               <div className="p-3 md:p-4 border-t border-gray-200 bg-gray-50">
                 <div className="space-y-3">
                   <RichTextEditor
-                    key={selectedThread?.id} // Force re-render when thread changes
+                    key={`${selectedThread?.id}-${editorKey}`} // Force re-render when thread changes or message is sent
                     content={richContent}
                     onChange={setRichContent}
                     placeholder="Type your reply with rich formatting... (will be sent via email)"
