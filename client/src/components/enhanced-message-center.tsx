@@ -554,7 +554,7 @@ export function EnhancedMessageCenter() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => window.open(attachment.filePath, '_blank')}
+                                    onClick={() => window.open(`/api/messages/download-attachment/${attachment.id}`, '_blank')}
                                     className="h-6 w-6 p-0 hover:bg-white/20"
                                   >
                                     <Download className="h-3 w-3" />
