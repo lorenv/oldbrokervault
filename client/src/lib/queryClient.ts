@@ -14,11 +14,23 @@ export async function apiRequest(
 ): Promise<Response> {
   const isFormData = data instanceof FormData;
   
+  console.log(`Making ${method} request to ${url}`, { 
+    data: data instanceof FormData ? 'FormData' : data,
+    credentials: 'include'
+  });
+  
   const res = await fetch(url, {
     method,
     headers: isFormData ? {} : (data ? { "Content-Type": "application/json" } : {}),
     body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     credentials: "include",
+  });
+
+  console.log(`Response from ${url}:`, {
+    status: res.status,
+    statusText: res.statusText,
+    contentType: res.headers.get('content-type'),
+    url: res.url
   });
 
   await throwIfResNotOk(res);
@@ -31,8 +43,17 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    console.log(`Query request to ${queryKey[0]}`, { credentials: 'include' });
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+    });
+
+    console.log(`Query response from ${queryKey[0]}:`, {
+      status: res.status,
+      statusText: res.statusText,
+      contentType: res.headers.get('content-type'),
+      url: res.url
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
