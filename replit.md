@@ -51,7 +51,7 @@ The system includes a comprehensive e-signature platform with database schema fo
 - Backend support for filtering messages by CIM document ID
 - Fixed empty text content issue in SendGrid email service
 
-**Authentication Fix (Aug 14, 2025)**: Resolved production login issues caused by incompatible session cookie settings. Updated session configuration to use `SameSite=None` in production environment for proper cross-origin authentication on Replit's platform. Fixed frontend error handling to properly parse JSON error responses from the API, eliminating "Unexpected token" errors during login failures.
+**Authentication Fix (Aug 14, 2025)**: Resolved production login issues caused by incompatible session cookie settings. Updated session configuration to use `SameSite=Lax` in production environment for optimal browser compatibility on Replit's platform. Fixed frontend error handling to properly parse JSON error responses from the API, eliminating "Unexpected token" errors during login failures. The fix ensures session cookies work correctly across all browsers in production while maintaining security.
 
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
