@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { Send, Mail, MessageSquare, Clock, CheckCircle, AlertCircle, Archive, ArchiveRestore, MessageCircle, Filter, X, Paperclip, FileText, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { RichTextEditor } from '@/components/RichTextEditor';
-import { ObjectUploader } from '@/components/ObjectUploader';
 
 interface Message {
   id: number;
@@ -69,6 +68,8 @@ export function EnhancedMessageCenter() {
   const [richContent, setRichContent] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentUrls, setAttachmentUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
   const { toast } = useToast();
@@ -160,6 +161,11 @@ export function EnhancedMessageCenter() {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads', selectedThread?.id, 'messages'] });
       toast({ title: 'Message sent successfully' });
+      
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     },
     onError: (error: any) => {
       toast({ 
@@ -192,80 +198,30 @@ export function EnhancedMessageCenter() {
   const handleSendMessage = async () => {
     if (!selectedThread || (!newMessage.trim() && !richContent.trim())) return;
     
-    let attachmentPaths: string[] = [];
-    
-    // Upload attachments first if any
-    if (attachments.length > 0) {
-      try {
-        for (const file of attachments) {
-          const uploadResponse = await fetch('/api/messages/upload-attachment', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          
-          if (!uploadResponse.ok) {
-            throw new Error('Failed to get upload URL');
-          }
-          
-          const { uploadURL } = await uploadResponse.json();
-          
-          // Upload file to object storage
-          const uploadFileResponse = await fetch(uploadURL, {
-            method: 'PUT',
-            body: file,
-          });
-          
-          if (!uploadFileResponse.ok) {
-            throw new Error('Failed to upload file');
-          }
-          
-          attachmentPaths.push(uploadURL);
-        }
-      } catch (error) {
-        toast({
-          title: 'Failed to upload attachments',
-          description: error instanceof Error ? error.message : 'Unknown error',
-          variant: 'destructive'
-        });
-        return;
-      }
-    }
+    // For now, just send the message with attachment file names
+    // File upload will be handled differently - we'll include file info in the message
+    const attachmentInfo = attachments.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type
+    }));
     
     sendMessageMutation.mutate({ 
       threadId: selectedThread.id, 
       content: newMessage || richContent,
       richContent: richContent || undefined,
-      attachmentPaths: [...attachmentPaths, ...attachmentUrls].length > 0 ? [...attachmentPaths, ...attachmentUrls] : undefined
+      attachmentPaths: attachmentInfo.length > 0 ? attachmentInfo.map(f => f.name) : undefined
     });
   };
 
-  const handleFileUpload = async () => {
-    try {
-      const response = await fetch('/api/messages/upload-attachment', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to get upload URL');
-      }
-      
-      const data = await response.json();
-      
-      if (!data.uploadURL) {
-        throw new Error('No upload URL received');
-      }
-      
-      return {
-        method: 'PUT' as const,
-        url: data.uploadURL
-      };
-    } catch (error) {
-      console.error('Error getting upload URL:', error);
-      throw error;
+  // Auto-scroll when new messages arrive
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
-  };
+  }, [messages]);
 
   const getMessageIcon = (message: Message) => {
     if (message.messageType === 'email_reply') {
@@ -576,6 +532,7 @@ export function EnhancedMessageCenter() {
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </ScrollArea>
@@ -592,9 +549,9 @@ export function EnhancedMessageCenter() {
                   />
                   
                   {/* Show attached files */}
-                  {(attachments.length > 0 || attachmentUrls.length > 0) && (
+                  {attachments.length > 0 && (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">Attachments ({attachments.length + attachmentUrls.length}):</div>
+                      <div className="text-sm font-medium">Attachments ({attachments.length}):</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {attachments.map((file, index) => (
                           <div key={`file-${index}`} className="flex items-center gap-2 p-2 bg-white rounded border">
@@ -617,25 +574,7 @@ export function EnhancedMessageCenter() {
                             </Button>
                           </div>
                         ))}
-                        {attachmentUrls.map((url, index) => (
-                          <div key={`url-${index}`} className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
-                            <FileText className="h-4 w-4 text-green-600" />
-                            <span className="text-sm truncate flex-1">Uploaded file {index + 1}</span>
-                            <span className="text-xs text-green-600">Ready</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                const newUrls = [...attachmentUrls];
-                                newUrls.splice(index, 1);
-                                setAttachmentUrls(newUrls);
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
+
                       </div>
                     </div>
                   )}
@@ -647,21 +586,29 @@ export function EnhancedMessageCenter() {
                         <span className="truncate">Reply will be sent via email</span>
                       </div>
                       
-                      <ObjectUploader
-                        maxNumberOfFiles={5}
-                        maxFileSize={5242880} // 5MB
-                        onGetUploadParameters={handleFileUpload}
-                        onComplete={(result) => {
-                          if (result.successful && result.successful.length > 0) {
-                            const uploadedUrls = result.successful.map(file => file.uploadURL as string);
-                            setAttachmentUrls(prev => [...prev, ...uploadedUrls]);
-                            toast({ title: `${result.successful.length} file(s) attached successfully` });
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="*/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > 0) {
+                            setAttachments(prev => [...prev, ...files]);
+                            toast({ title: `${files.length} file(s) attached` });
                           }
                         }}
-                        buttonClassName="h-8 px-2"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 px-2"
                       >
                         <Paperclip className="h-4 w-4" />
-                      </ObjectUploader>
+                      </Button>
                     </div>
                     
                     <Button
