@@ -391,54 +391,56 @@ export function SharePage() {
                 </p>
               )}
 
-              {/* Export Button */}
-              <div className="mt-8 animate-slide-up delay-700">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    setIsExportingPdf(true);
-                    try {
-                      const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
+              {/* Export Button - only show for generated CIMs, not uploaded ones */}
+              {!shareData.cim.analysis?.isUploadedFile && (
+                <div className="mt-8 animate-slide-up delay-700">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setIsExportingPdf(true);
+                      try {
+                        const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        });
 
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${shareData.cim.title || 'document'}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${shareData.cim.title || 'document'}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        }
+                      } catch (error) {
+                        console.error('Export failed:', error);
+                      } finally {
+                        setIsExportingPdf(false);
                       }
-                    } catch (error) {
-                      console.error('Export failed:', error);
-                    } finally {
-                      setIsExportingPdf(false);
-                    }
-                  }}
-                  disabled={isExportingPdf}
-                  className="min-w-[200px] border-white/30 text-white hover:bg-white hover:text-slate-800 bg-white/5 backdrop-blur-sm transition-all duration-200"
-                  style={{
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-                  }}
-                >
-                  {isExportingPdf ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-5 w-5" />
-                      Export as PDF
-                    </>
-                  )}
-                </Button>
-              </div>
+                    }}
+                    disabled={isExportingPdf}
+                    className="min-w-[200px] border-white/30 text-white hover:bg-white hover:text-slate-800 bg-white/5 backdrop-blur-sm transition-all duration-200"
+                    style={{
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    {isExportingPdf ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-5 w-5" />
+                        Export as PDF
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -470,51 +472,53 @@ export function SharePage() {
                 </p>
               )}
 
-              {/* Export Button */}
-              <div className="mt-8 animate-slide-up delay-700">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    setIsExportingPdf(true);
-                    try {
-                      const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
+              {/* Export Button - only show for generated CIMs, not uploaded ones */}
+              {!shareData.cim.analysis?.isUploadedFile && (
+                <div className="mt-8 animate-slide-up delay-700">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setIsExportingPdf(true);
+                      try {
+                        const response = await fetch(`/api/share/${shareSlug}/export/pdf`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        });
 
-                      if (response.ok) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${shareData.cim.title || 'document'}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${shareData.cim.title || 'document'}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        }
+                      } catch (error) {
+                        console.error('Export failed:', error);
+                      } finally {
+                        setIsExportingPdf(false);
                       }
-                    } catch (error) {
-                      console.error('Export failed:', error);
-                    } finally {
-                      setIsExportingPdf(false);
-                    }
-                  }}
-                  disabled={isExportingPdf}
-                  className="min-w-[200px] border-slate-300 text-slate-700 hover:bg-slate-50"
-                >
-                  {isExportingPdf ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating PDF...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-5 w-5" />
-                      Export as PDF
-                    </>
-                  )}
-                </Button>
-              </div>
+                    }}
+                    disabled={isExportingPdf}
+                    className="min-w-[200px] border-slate-300 text-slate-700 hover:bg-slate-50"
+                  >
+                    {isExportingPdf ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating PDF...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-5 w-5" />
+                        Export as PDF
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
