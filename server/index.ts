@@ -111,13 +111,23 @@ server.on('listening', () => {
       // Setup security middleware
       setupSecurity(app);
       
-      // Register API routes BEFORE vite middleware to ensure they take precedence
+      // Register API routes with explicit priority
+      console.log('🔧 Registering API routes with high priority...');
       registerRoutes(app);
+      console.log('✅ API routes registered successfully');
+      
+      // Add a debug middleware to catch what's happening
+      app.use('/api/*', (req, res, next) => {
+        console.log(`🔍 API request intercepted: ${req.method} ${req.originalUrl}`);
+        next();
+      });
       
       // Setup Vite or static serving (will include catchall route)
       if (process.env.NODE_ENV === "production") {
+        console.log('📦 Setting up static serving for production...');
         serveStatic(app);
       } else {
+        console.log('⚡ Setting up Vite middleware for development...');
         setupVite(app, server);
       }
       
