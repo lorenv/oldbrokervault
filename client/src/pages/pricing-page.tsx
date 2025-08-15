@@ -216,7 +216,7 @@ export default function PricingPage() {
                       </p>
                       <Button 
                         className="w-full"
-                        onClick={() => window.location.href = '/register'}
+                        onClick={() => window.location.href = '/login'}
                       >
                         Register
                       </Button>

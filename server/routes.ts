@@ -3058,9 +3058,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hostHeader = req.get('host');
       console.log("Creating Stripe session with host:", hostHeader);
       
-      // Use valid price ID from Stripe account
-      const priceId = "price_1RdzViLgC8JlC4RajYNV2iqN";
-      console.log("Using verified price ID:", priceId);
+      // Use price ID from environment variable
+      const priceId = process.env.STRIPE_PRICE_ID_STANDARD;
+      console.log("Using price ID from environment:", priceId);
       
       if (!priceId) {
         throw new Error("Price ID not configured");
