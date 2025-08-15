@@ -53,6 +53,8 @@ The system includes a comprehensive e-signature platform with database schema fo
 
 **Authentication Fix (Aug 14, 2025)**: Resolved production login issues caused by incompatible session cookie settings. Updated session configuration to use `SameSite=Lax` in production environment for optimal browser compatibility on Replit's platform. Fixed frontend error handling to properly parse JSON error responses from the API, eliminating "Unexpected token" errors during login failures. The fix ensures session cookies work correctly across all browsers in production while maintaining security.
 
+**Critical Routing Fix (Aug 15, 2025)**: Resolved persistent "Unexpected token" authentication errors where browsers received HTML instead of JSON from API endpoints. Root cause was improper route registration order - the frontend catchall route (`app.use("*")`) was intercepting API requests before they reached the API handlers. Fixed by ensuring API routes are registered before Vite/static middleware setup, preventing the catchall from interfering with `/api/*` endpoints. Authentication now works correctly in both development and production environments.
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 

@@ -234,8 +234,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe webhook endpoint with enhanced error handling
-  app.post("/api/webhook/stripe", async (req, res) => {
+  // Stripe webhook endpoint with proper raw body handling
+  app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
+    console.log('🔔 Stripe webhook received');
+    
     // Validate webhook signature
     const sig = req.headers["stripe-signature"];
     if (!sig) {

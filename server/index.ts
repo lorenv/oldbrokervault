@@ -155,6 +155,12 @@ server.on('listening', async () => {
     console.log('✅ Production catch-all route configured');
   } else {
     console.log('⚡ Setting up Vite middleware for development...');
+    
+    // Add static file serving for development mode BEFORE Vite middleware
+    const publicPath = path.resolve(process.cwd(), "public");
+    console.log('📁 Adding static file serving for development:', publicPath);
+    app.use(express.static(publicPath));
+    
     try {
       await setupVite(app, server);
       console.log('✅ Vite middleware configured');
