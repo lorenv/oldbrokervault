@@ -172,8 +172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import message service for webhook processing
   const { messageService } = await import("./message-service");
   
-  // Serve static files including user-images
-  app.use(express.static(path.join(process.cwd(), 'public')));
+  // Remove the general static serving from here - it will be handled by index.ts
+  // Only keep specific route static serving that's needed
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
   
   // IMPORTANT: Register webhook endpoints BEFORE authentication middleware

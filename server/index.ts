@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupSecurity } from "./security";
 import { imagePersistenceManager } from "./image-persistence";
+import path from "path";
 
 const app = express();
 // Use port 5000 for development (workflow compatibility) and 3000 for production (Autoscale)
@@ -98,53 +99,70 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   log('✅ Health checks responding immediately with full configuration');
 });
 
-// Move ALL middleware setup AFTER server.listen() (Agent Suggestion #2)
-server.on('listening', () => {
-  setTimeout(() => {
-    log('Setting up middleware and routes...');
-    
-    try {
-      // Basic JSON parsing
-      app.use(express.json({ limit: '100mb' }));
-      app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-      
-      // Setup security middleware
-      setupSecurity(app);
-      
-      // Register API routes with explicit priority
-      console.log('🔧 Registering API routes with high priority...');
-      registerRoutes(app);
-      console.log('✅ API routes registered successfully');
-      
-      // Add a debug middleware to catch what's happening
-      app.use('/api/*', (req, res, next) => {
-        console.log(`🔍 API request intercepted: ${req.method} ${req.originalUrl}`);
-        next();
-      });
-      
-      // Setup Vite or static serving (will include catchall route)
-      if (process.env.NODE_ENV === "production") {
-        console.log('📦 Setting up static serving for production...');
-        serveStatic(app);
-      } else {
-        console.log('⚡ Setting up Vite middleware for development...');
-        setupVite(app, server);
+// Basic JSON parsing - must be setup BEFORE server starts
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+// Setup security middleware
+setupSecurity(app);
+
+// Add debug middleware BEFORE routes to catch all API requests
+app.use('/api/*', (req, res, next) => {
+  console.log(`🔍 API request received: ${req.method} ${req.originalUrl}`);
+  console.log(`🔍 Content-Type: ${req.headers['content-type']}`);
+  console.log(`🔍 Accept: ${req.headers['accept']}`);
+  next();
+});
+
+// Register API routes with explicit priority - BEFORE server starts
+console.log('🔧 Registering API routes with high priority...');
+registerRoutes(app);
+console.log('✅ API routes registered successfully');
+
+// Add basic static file serving for public assets - but NOT the catch-all yet
+if (process.env.NODE_ENV === "production") {
+  console.log('📦 Setting up basic static file serving...');
+  const distPath = path.resolve(process.cwd(), "dist", "public");
+  app.use(express.static(distPath));
+} else {
+  console.log('⚡ Setting up Vite middleware for development...');
+  // We'll set this up after server starts for dev mode
+}
+
+// Error handling middleware - must be AFTER routes
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  log(`Error ${status}: ${message}`);
+  res.status(status).json({ message });
+});
+
+// Move Vite/catch-all setup AFTER server starts
+server.on('listening', async () => {
+  if (process.env.NODE_ENV === "production") {
+    console.log('📦 Setting up production catch-all route...');
+    // Add the catch-all route for production AFTER all API routes are registered
+    app.use("*", (req, res) => {
+      // Skip static serving for API routes - let them return 404 if not handled
+      if (req.originalUrl.startsWith('/api/')) {
+        console.log(`🔍 API route not found: ${req.originalUrl}`);
+        return res.status(404).json({ message: 'API endpoint not found' });
       }
       
-      // Error handling middleware - must be AFTER routes
-      app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-        const status = err.status || err.statusCode || 500;
-        const message = err.message || "Internal Server Error";
-        log(`Error ${status}: ${message}`);
-        res.status(status).json({ message });
-      });
-      
-      log('All middleware and routes configured');
-      
+      const distPath = path.resolve(process.cwd(), "dist", "public");
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
+    console.log('✅ Production catch-all route configured');
+  } else {
+    console.log('⚡ Setting up Vite middleware for development...');
+    try {
+      await setupVite(app, server);
+      console.log('✅ Vite middleware configured');
     } catch (error) {
-      log(`Post-startup configuration error: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('❌ Vite setup error:', error);
     }
-  }, 1); // Minimal delay to allow health checks to respond first
+  }
+  log('All middleware and routes configured');
 });
 
 // Enhanced error handling for server startup

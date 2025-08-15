@@ -196,7 +196,17 @@ export function setupAuth(app: Express) {
     { name: 'businessLogo', maxCount: 1 },
     { name: 'profilePhoto', maxCount: 1 }
   ]), async (req, res) => {
+    // Ensure we always return JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     try {
+      console.log(`🔐 Registration attempt for email: ${req.body.email}`);
+      console.log(`🔐 Request headers:`, {
+        'content-type': req.headers['content-type'],
+        'accept': req.headers['accept'],
+        'user-agent': req.headers['user-agent']
+      });
+      
       // Handle JSON body parsing (FormData contains text fields)
       const { email, password, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
       
@@ -323,14 +333,22 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", loginValidation, handleValidationErrors, auditLogger('LOGIN'), (req, res, next) => {
     const loginStart = Date.now();
-    console.log(`Login attempt for email: ${req.body.email}`);
-    console.log(`Session ID: ${req.sessionID}`);
-    console.log(`Session store type: ${storage.sessionStore.constructor.name}`);
+    console.log(`🔐 Login attempt for email: ${req.body.email}`);
+    console.log(`🔐 Session ID: ${req.sessionID}`);
+    console.log(`🔐 Session store type: ${storage.sessionStore.constructor.name}`);
+    console.log(`🔐 Request headers:`, {
+      'content-type': req.headers['content-type'],
+      'accept': req.headers['accept'],
+      'user-agent': req.headers['user-agent']
+    });
+    
+    // Ensure we always return JSON
+    res.setHeader('Content-Type', 'application/json');
     
     // Add request timeout to prevent hanging
     const timeout = setTimeout(() => {
       if (!res.headersSent) {
-        console.error(`Login timeout for ${req.body.email}`);
+        console.error(`🔐 Login timeout for ${req.body.email}`);
         res.status(504).json({ message: "Login request timeout" });
       }
     }, 30000);
@@ -339,11 +357,16 @@ export function setupAuth(app: Express) {
       passport.authenticate("local", (err, user, info) => {
         clearTimeout(timeout);
         
+        // Ensure we always return JSON
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'application/json');
+        }
+        
         if (err) {
-          console.error("Passport authentication error:", err);
-          console.error("Error type:", err.constructor.name);
-          console.error("Error code:", err.code);
-          console.error("Error stack:", err.stack);
+          console.error("🔐 Passport authentication error:", err);
+          console.error("🔐 Error type:", err.constructor.name);
+          console.error("🔐 Error code:", err.code);
+          console.error("🔐 Error stack:", err.stack);
           
           // Check if it's a database connection error
           if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.message.includes('pool')) {
@@ -360,7 +383,7 @@ export function setupAuth(app: Express) {
         }
         
         if (!user) {
-          console.log("Authentication failed for:", req.body.email, "Info:", info);
+          console.log("🔐 Authentication failed for:", req.body.email, "Info:", info);
           return res.status(400).json({
             message: "Invalid email or password. Please check your credentials and try again."
           });
@@ -368,6 +391,7 @@ export function setupAuth(app: Express) {
         
         req.login(user, (err) => {
           if (err) {
+            console.error("🔐 Login session error:", err);
             // Check if it's a session store error
             if (err.message.includes('session') || err.message.includes('store')) {
               return res.status(503).json({
@@ -382,13 +406,14 @@ export function setupAuth(app: Express) {
             });
           }
           
+          console.log(`🔐 Login successful for ${user.email}`);
           // SECURITY: Return sanitized user data without sensitive fields
           return res.json(sanitizeUser(user));
         });
       })(req, res, next);
     } catch (error) {
       clearTimeout(timeout);
-      console.error("Unexpected login error:", error);
+      console.error("🔐 Unexpected login error:", error);
       return res.status(500).json({
         message: "Unexpected authentication error",
         error: process.env.NODE_ENV === 'development' ? (error as Error).message : "Internal server error"
