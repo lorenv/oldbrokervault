@@ -108,6 +108,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const res = await apiRequest("POST", "/api/login", credentials);
+        
+        // Log response details before parsing
+        const contentType = res.headers.get('content-type') || '';
+        console.log("Login response details:", {
+          status: res.status,
+          statusText: res.statusText,
+          contentType: contentType,
+          url: res.url
+        });
+        
+        if (!contentType.includes('application/json')) {
+          // If we're not getting JSON, let's see what we got
+          const text = await res.text();
+          console.error("Expected JSON but got:", contentType, "Content:", text.substring(0, 500));
+          throw new Error(`Server returned ${contentType} instead of JSON. This suggests a routing or server configuration issue.`);
+        }
+        
         const userData = await res.json();
         console.log("Login successful, received user data:", userData);
         return userData;
