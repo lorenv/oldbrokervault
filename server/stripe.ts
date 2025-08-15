@@ -1,6 +1,8 @@
 import Stripe from "stripe";
-import { subscriptionPlans } from "@shared/schema";
+import { subscriptionPlans, users } from "@shared/schema";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Validate required environment variables
 function validateStripeConfig() {
@@ -297,7 +299,44 @@ export async function verifyCheckoutSession(sessionId: string) {
   return null;
 }
 
-export async function handleStripeWebhook(event: Stripe.Event) {
+export async function handleStripeWebhook(req: any, res: any, stripeInstance: Stripe) {
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!endpointSecret) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET not configured');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    const sig = req.headers['stripe-signature'];
+    const body = req.body;
+    
+    console.log('🔐 Verifying Stripe webhook signature...');
+    event = stripeInstance.webhooks.constructEvent(body, sig, endpointSecret);
+    console.log('✅ Webhook signature verified');
+  } catch (err: any) {
+    console.error('❌ Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+  }
+
+  try {
+    const result = await processStripeWebhookEvent(event);
+    if (result) {
+      console.log('✅ Webhook processed successfully');
+      res.status(200).json({ received: true });
+    } else {
+      console.log('ℹ️ Webhook event not processed (no action required)');
+      res.status(200).json({ received: true, message: 'Event not processed' });
+    }
+  } catch (error) {
+    console.error('❌ Error processing webhook event:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function processStripeWebhookEvent(event: Stripe.Event) {
   try {
     console.log("Processing webhook event:", event.type);
 
@@ -335,6 +374,30 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscriptionId: subscription.id,
           customer: subscription.customer
         });
+
+        // CRITICAL: Update user in database
+        console.log('💾 Updating user subscription in database...');
+        const [updatedUser] = await db.update(users)
+          .set({
+            subscriptionStatus: status,
+            subscriptionEndsAt: endsAt,
+            subscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer as string
+          })
+          .where(eq(users.id, userId))
+          .returning();
+
+        if (updatedUser) {
+          console.log('✅ User subscription updated successfully:', {
+            userId: updatedUser.id,
+            email: updatedUser.email,
+            subscriptionStatus: updatedUser.subscriptionStatus,
+            subscriptionEndsAt: updatedUser.subscriptionEndsAt
+          });
+        } else {
+          console.error('❌ Failed to update user subscription - user not found');
+        }
+
         return { userId, status, endsAt, subscriptionId: subscription.id };
       }
 
@@ -369,6 +432,30 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscriptionId: subscription.id,
           customer: subscription.customer
         });
+
+        // CRITICAL: Update user in database
+        console.log('💾 Updating user subscription in database...');
+        const [updatedUser] = await db.update(users)
+          .set({
+            subscriptionStatus: status,
+            subscriptionEndsAt: endsAt,
+            subscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer as string
+          })
+          .where(eq(users.id, userId))
+          .returning();
+
+        if (updatedUser) {
+          console.log('✅ User subscription updated successfully:', {
+            userId: updatedUser.id,
+            email: updatedUser.email,
+            subscriptionStatus: updatedUser.subscriptionStatus,
+            subscriptionEndsAt: updatedUser.subscriptionEndsAt
+          });
+        } else {
+          console.error('❌ Failed to update user subscription - user not found');
+        }
+
         return { userId, status, endsAt, subscriptionId: subscription.id };
       }
 
@@ -382,6 +469,28 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         }
 
         console.log("Subscription ended, reverting to free plan:", userId);
+        
+        // CRITICAL: Update user in database to free plan
+        console.log('💾 Reverting user to free plan in database...');
+        const [updatedUser] = await db.update(users)
+          .set({
+            subscriptionStatus: 'free',
+            subscriptionEndsAt: new Date(),
+            subscriptionId: null
+          })
+          .where(eq(users.id, userId))
+          .returning();
+
+        if (updatedUser) {
+          console.log('✅ User reverted to free plan successfully:', {
+            userId: updatedUser.id,
+            email: updatedUser.email,
+            subscriptionStatus: updatedUser.subscriptionStatus
+          });
+        } else {
+          console.error('❌ Failed to revert user to free plan - user not found');
+        }
+        
         return { userId, status: 'free', endsAt: new Date() };
       }
 
