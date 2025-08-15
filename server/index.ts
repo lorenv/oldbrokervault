@@ -111,8 +111,15 @@ server.on('listening', () => {
       // Setup security middleware
       setupSecurity(app);
       
-      // Register API routes
+      // Register API routes BEFORE vite middleware to ensure they take precedence
       registerRoutes(app);
+      
+      // Setup Vite or static serving (will include catchall route)
+      if (process.env.NODE_ENV === "production") {
+        serveStatic(app);
+      } else {
+        setupVite(app, server);
+      }
       
       // Error handling middleware - must be AFTER routes
       app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -123,15 +130,6 @@ server.on('listening', () => {
       });
       
       log('All middleware and routes configured');
-      
-      // Setup Vite/static serving after middleware
-      if (app.get("env") === "development") {
-        setupVite(app, server).catch(err => {
-          log(`⚠️ Vite setup error: ${err.message}`, 'vite');
-        });
-      } else {
-        serveStatic(app);
-      }
       
     } catch (error) {
       log(`Post-startup configuration error: ${error instanceof Error ? error.message : String(error)}`);
