@@ -1,4 +1,4 @@
-import Stripe from 'stripe';
+const Stripe = require('stripe');
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -10,8 +10,8 @@ async function setupStripeProducts() {
     // Create the product
     const product = await stripe.products.create({
       name: 'CIM Share Standard Plan',
-      description: 'Professional CIM generation with advanced features',
-      type: 'service'
+      description: 'Professional CIM generation with advanced features'
+      // Note: 'type' field is deprecated in newer Stripe API versions
     });
     
     console.log('Product created:', product.id);
