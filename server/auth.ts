@@ -168,26 +168,79 @@ export function setupAuth(app: Express) {
     console.log(`User serialization took: ${Date.now() - serializeStart}ms`);
   });
   
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: any, done) => {
     try {
+      console.log('🔍 Deserializing user ID:', typeof id, JSON.stringify(id).substring(0, 100));
+      
+      // CRITICAL: Check if id is actually a user object instead of a number
+      if (typeof id === 'string') {
+        try {
+          const parsed = JSON.parse(id);
+          if (parsed && typeof parsed === 'object' && parsed.id) {
+            console.warn('⚠️ Found corrupted session with full user object, extracting ID:', parsed.id);
+            id = parsed.id;
+          }
+        } catch (e) {
+          // Not JSON, might be a stringified number
+          const numId = parseInt(id);
+          if (!isNaN(numId)) {
+            console.log('📝 Converting string ID to number:', numId);
+            id = numId;
+          } else {
+            console.error('❌ Invalid user ID in session:', id);
+            return done(null, false);
+          }
+        }
+      }
+      
+      // Additional check for object types that weren't caught above
+      if (typeof id === 'object' && id !== null) {
+        if (id.id && typeof id.id === 'number') {
+          console.warn('⚠️ Found object with ID property, extracting:', id.id);
+          id = id.id;
+        } else {
+          console.error('❌ Cannot extract valid ID from object:', id);
+          return done(null, false);
+        }
+      }
+      
+      if (typeof id !== 'number' || isNaN(id)) {
+        console.error('❌ User ID must be a valid number, got:', typeof id, id);
+        return done(null, false);
+      }
+      
+      console.log('✅ Using valid user ID:', id);
+      
       // Check cache first to reduce database hits
       const cachedUser = getCachedUser(id);
       
       if (cachedUser) {
+        console.log('📋 Found user in cache');
         return done(null, cachedUser);
       }
 
+      console.log('🔍 Fetching user from database...');
       const user = await storage.getUser(id);
       
       if (!user) {
+        console.log('❌ User not found in database');
         return done(null, false);
       }
       
+      console.log('✅ User fetched successfully');
       // Cache the user for future requests
       setCachedUser(user);
       done(null, user);
-    } catch (error) {
-      console.error(`Deserialization error for user ${id}:`, error);
+    } catch (error: any) {
+      console.error(`❌ Deserialization error for user ${id}:`, error);
+      
+      // If it's a database type error, it means the session is still corrupted
+      if (error.message && error.message.includes('invalid input syntax for type integer')) {
+        console.error('🚨 Corrupted session detected, forcing logout');
+        // Force session destruction for this user
+        return done(null, false);
+      }
+      
       done(error);
     }
   });

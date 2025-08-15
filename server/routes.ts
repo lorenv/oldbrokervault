@@ -308,6 +308,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Emergency session clear endpoint for corrupted sessions
+  app.post("/api/clear-session", (req, res) => {
+    console.log('🧹 Clearing corrupted session');
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('❌ Failed to destroy session:', err);
+        return res.status(500).json({ error: 'Failed to clear session' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ success: true, message: 'Session cleared successfully' });
+    });
+  });
+
   // Image serving endpoints - serve user images statically
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
 
@@ -3008,13 +3021,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         await storage.updateSubscription(userId, status, endsAt);
 
-        // Update the user's session
+        // Update the user's session data
         const user = await storage.getUser(userId);
-        if (req.session && req.user?.id === userId) {
-          req.session.passport = req.session.passport || {};
-          // @ts-ignore - we know the passport property exists now
-          req.session.passport.user = user;
-          await new Promise((resolve) => req.session.save(resolve));
+        if (req.user?.id === userId) {
+          // Update req.user directly for immediate availability
+          req.user = user;
+          
+          console.log('✅ User session updated with new subscription status:', {
+            userId: user?.id,
+            email: user?.email,
+            subscriptionStatus: user?.subscriptionStatus,
+            subscriptionEndsAt: user?.subscriptionEndsAt
+          });
         }
 
         res.json({ success: true, status });

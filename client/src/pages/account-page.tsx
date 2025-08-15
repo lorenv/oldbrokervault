@@ -697,15 +697,22 @@ export default function AccountPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Invalidate the user query to refresh the subscription status
+        console.log('✅ Subscription verification successful, refreshing user data...');
+        
+        // Force refetch the user query to refresh the subscription status
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        // Add a small delay to ensure session update has propagated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await queryClient.refetchQueries({ queryKey: ["/api/user"] });
 
         toast({
           title: "Subscription Updated",
           description: `Your subscription has been upgraded to ${data.status}`,
         });
-        // Remove session_id from URL
-        window.history.replaceState({}, '', '/account');
+        
+        // Update URL to show billing tab and remove session_id
+        window.history.replaceState({}, '', '/account?tab=billing');
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
