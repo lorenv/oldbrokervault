@@ -7,7 +7,7 @@
 import { db } from './db';
 import { users } from '../shared/schema';
 import { eq } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from './auth';
 
 async function addPremiumUser() {
   try {
@@ -15,7 +15,7 @@ async function addPremiumUser() {
     
     const email = 'robert@dealve.cc';
     const password = 'Flydccstone500!';
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
     
     // Set subscription end date to 2035 
     const subscriptionEndsAt = new Date('2035-12-31T23:59:59Z');

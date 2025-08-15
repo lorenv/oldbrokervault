@@ -7,7 +7,7 @@
 import { db } from './server/db';
 import { users } from './shared/schema';
 import { eq } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from './server/auth';
 
 async function resetPassword() {
   try {
@@ -21,8 +21,8 @@ async function resetPassword() {
     
     console.log(`🔐 Resetting password for: ${email}`);
     
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Hash the new password using the same algorithm as authentication
+    const hashedPassword = await hashPassword(newPassword);
     
     // Update the user's password
     const [updatedUser] = await db.update(users)

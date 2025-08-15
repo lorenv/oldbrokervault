@@ -4,7 +4,8 @@
       "Bash(npm run build:*)",
       "Bash(curl:*)",
       "Bash(npm start)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": [],
