@@ -485,40 +485,22 @@ export default function AccountPage() {
   
   const [activeTab, setActiveTab] = useState(getTabFromUrl());
 
-  // Listen for URL changes to update active tab
+  // Listen for URL changes to update active tab (browser back/forward only)
   useEffect(() => {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
       const newTab = searchParams.get('tab') || 'account';
-      console.log('🔄 URL changed, new tab from URL:', newTab, 'current activeTab:', activeTab);
-      if (newTab !== activeTab) {
-        console.log('🔄 Setting active tab to:', newTab);
-        setActiveTab(newTab);
-      }
+      console.log('🔄 Browser navigation - new tab from URL:', newTab);
+      setActiveTab(newTab);
     };
 
     // Listen for browser back/forward navigation
     window.addEventListener('popstate', handlePopState);
-    
-    // Also check URL on every location change
-    const checkUrlTab = () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const newTab = searchParams.get('tab') || 'account';
-      if (newTab !== activeTab) {
-        console.log('🔄 URL tab check - setting active tab to:', newTab);
-        setActiveTab(newTab);
-      }
-    };
-    
-    // Check immediately and set up interval to catch programmatic navigation
-    checkUrlTab();
-    const interval = setInterval(checkUrlTab, 100);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      clearInterval(interval);
     };
-  }, [activeTab]);
+  }, []); // Empty dependency array - only set up once
   const [profileForm, setProfileForm] = useState({
     name: "",
     title: "",
@@ -750,15 +732,6 @@ export default function AccountPage() {
         console.log('🎯 Forcing tab to billing after successful verification');
         setActiveTab('billing');
         
-        // Also ensure URL parameter polling picks up the change
-        setTimeout(() => {
-          console.log('🎯 Double-checking tab is set to billing after verification');
-          const urlTab = new URLSearchParams(window.location.search).get('tab');
-          console.log('URL tab after verification:', urlTab);
-          if (urlTab === 'billing') {
-            setActiveTab('billing');
-          }
-        }, 100);
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
@@ -841,7 +814,12 @@ export default function AccountPage() {
         
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        console.log('🎯 Tab clicked:', tab);
+        setActiveTab(tab);
+        // Update URL to reflect the tab change
+        window.history.pushState({}, '', `/account?tab=${tab}`);
+      }} className="space-y-4 sm:space-y-6">
         {/* Mobile-optimized TabsList with scrollable tabs */}
         <div className="w-full overflow-x-auto">
           <TabsList className={`flex w-max min-w-full md:grid md:w-full ${isAuthorizedAdmin(user) ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-1 p-1`}>
