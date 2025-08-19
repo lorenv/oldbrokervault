@@ -471,10 +471,19 @@ export default function AccountPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [, navigate] = useLocation();
 
-  // Get tab from URL query parameter
-  const searchParams = new URLSearchParams(window.location.search);
-  const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl || 'account');
+  // Get tab from URL query parameter with fallback logic
+  const getTabFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = searchParams.get('tab');
+    const sessionId = searchParams.get('session_id');
+    
+    // If there's a session_id, we'll redirect to billing tab after verification
+    // If there's already a tab parameter, use it
+    // Otherwise default to account tab
+    return tabFromUrl || (sessionId ? 'billing' : 'account');
+  };
+  
+  const [activeTab, setActiveTab] = useState(getTabFromUrl());
 
   // Listen for URL changes to update active tab
   useEffect(() => {
@@ -686,24 +695,36 @@ export default function AccountPage() {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
 
+    console.log('🔍 Account page mounted - checking for session_id:', sessionId);
     if (sessionId) {
+      console.log('📞 Calling verifyStripeSession with sessionId:', sessionId);
       verifyStripeSession(sessionId);
     }
   }, []);
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
+      console.log('🚀 Starting Stripe session verification for session:', sessionId);
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
+      console.log('📡 Received response status:', response.status);
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (data.success) {
         console.log('✅ Subscription verification successful, refreshing user data...');
         
         // Force refetch the user query to refresh the subscription status
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        console.log('🔄 Invalidating user queries...');
+        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         
         // Add a small delay to ensure session update has propagated
         await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('🔄 Refetching user data...');
+        await queryClient.refetchQueries({ queryKey: ["/api/user"] });
+        
+        // Force a complete cache reset for the user data
+        queryClient.removeQueries({ queryKey: ["/api/user"] });
+        console.log('🔄 Removed cached user data, fetching fresh...');
         await queryClient.refetchQueries({ queryKey: ["/api/user"] });
 
         toast({
@@ -713,16 +734,24 @@ export default function AccountPage() {
         
         // Update URL to show billing tab and remove session_id
         window.history.replaceState({}, '', '/account?tab=billing');
+        
+        // Update the active tab state to match the URL change
+        setActiveTab('billing');
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Stripe session verification error:", error);
+      console.error("❌ Stripe session verification error:", error);
+      
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
       }
+      
       toast({
-        title: "Error",
-        description: "Failed to verify subscription status. Please contact support if this persists.",
+        title: "Subscription Verification Failed",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check console for details.`,
         variant: "destructive",
       });
     }
@@ -787,6 +816,16 @@ export default function AccountPage() {
           </h1>
         </div>
         <p className="text-sm sm:text-base text-gray-600">Manage your account, security, and preferences</p>
+        
+        {/* Debug Info - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
+            <strong>Debug Info:</strong> 
+            <br />Status: {user?.subscriptionStatus || 'undefined'} 
+            <br />Active Tab: {activeTab}
+            <br />URL: {window.location.href}
+          </div>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">

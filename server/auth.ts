@@ -539,8 +539,17 @@ export function setupAuth(app: Express) {
         businessLogo: freshUser.businessLogo,
         profilePhoto: freshUser.profilePhoto,
         subscriptionStatus: freshUser.subscriptionStatus,
-        subscriptionEndsAt: freshUser.subscriptionEndsAt
+        subscriptionEndsAt: freshUser.subscriptionEndsAt,
+        subscriptionId: freshUser.subscriptionId,
+        stripeCustomerId: freshUser.stripeCustomerId
       });
+      
+      console.log("=== USER COMPARISON DEBUG ===");
+      console.log("Session user ID:", req.user?.id);
+      console.log("Session user subscription:", req.user?.subscriptionStatus);
+      console.log("Database user subscription:", freshUser.subscriptionStatus);
+      console.log("Are they the same user?", req.user?.id === freshUser.id);
+      console.log("==============================");
       
       // Update the session user with fresh data to keep it in sync
       req.user = freshUser;

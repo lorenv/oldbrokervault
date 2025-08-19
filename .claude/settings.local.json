@@ -9,7 +9,13 @@
       "Bash(tsx:*)",
       "Bash(find:*)",
       "Bash(pkill:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npx tsx:*)",
+      "Bash(ps:*)",
+      "Bash(rm:*)",
+      "Bash(npm run check:*)",
+      "Bash(echo:*)",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": [],

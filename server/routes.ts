@@ -3032,11 +3032,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Verification result:", result);
       
       if (result) {
-        const { userId, status, endsAt } = result;
-        console.log("About to update subscription:", { userId, status, endsAt });
+        const { userId, status, endsAt, subscriptionId, stripeCustomerId } = result;
+        console.log("About to update subscription:", { userId, status, endsAt, subscriptionId, stripeCustomerId });
         
-        // Update subscription in database
-        await storage.updateSubscription(userId, status, endsAt);
+        // Update subscription in database with full Stripe data
+        await storage.updateSubscription(userId, status, endsAt, subscriptionId);
+        
+        // Also update the Stripe customer ID if we have it
+        if (stripeCustomerId) {
+          await db.update(users)
+            .set({ stripeCustomerId })
+            .where(eq(users.id, userId));
+          console.log("✅ Stripe customer ID updated");
+        }
+        
         console.log("✅ Database subscription updated");
         
         // Invalidate user cache to force fresh data on next request
@@ -3101,7 +3110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const hostHeader = req.get('host');
+      console.log("=== STRIPE SESSION CREATION DEBUG ===");
       console.log("Creating Stripe session with host:", hostHeader);
+      console.log("Plan:", plan);
+      console.log("User email:", userEmail);
+      console.log("User ID:", userId);
+      console.log("REPLIT_DOMAINS env:", process.env.REPLIT_DOMAINS);
       
       // Use price ID from environment variable
       const priceId = process.env.STRIPE_PRICE_ID_STANDARD;

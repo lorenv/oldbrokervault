@@ -114,8 +114,18 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
   console.log("Request host:", requestHost);
 
   // Use the actual request host if provided, otherwise fallback to production domain
-  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  
+  // Override for Replit development environment
+  if (process.env.REPLIT_DOMAINS) {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+    baseUrl = `https://${replitDomain}`;
+    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+  }
+  
   console.log("Using base URL for redirects:", baseUrl);
+  console.log("Request host provided:", requestHost);
+  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     const sessionConfig: any = {
@@ -198,8 +208,18 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const customerId = await getOrCreateCustomer(userId, user.email);
 
   // Use the actual request host if provided, otherwise fallback to production domain
-  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  
+  // Override for Replit development environment
+  if (process.env.REPLIT_DOMAINS) {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+    baseUrl = `https://${replitDomain}`;
+    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+  }
+  
   console.log("Using base URL for redirects:", baseUrl);
+  console.log("Request host provided:", requestHost);
+  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     console.log("Creating Stripe checkout session with config:", {
@@ -339,7 +359,13 @@ export async function verifyCheckoutSession(sessionId: string) {
       }
       
       console.log("=== STRIPE SESSION VERIFICATION SUCCESS ===");
-      return { userId: actualUserId, status, endsAt };
+      return { 
+        userId: actualUserId, 
+        status, 
+        endsAt, 
+        subscriptionId: subscription.id,
+        stripeCustomerId: subscription.customer as string
+      };
     } else {
       console.log("❌ No subscription found in session");
       return null;
