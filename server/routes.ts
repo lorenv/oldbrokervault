@@ -3109,6 +3109,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // For authenticated users, use their ID and email
+      // For non-authenticated users, create a temp session
+      let userId = req.user?.id;
+      let userEmail = req.user?.email || email;
+
       const hostHeader = req.get('host');
       console.log("=== STRIPE SESSION CREATION DEBUG ===");
       console.log("Creating Stripe session with host:", hostHeader);
@@ -3124,11 +3129,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!priceId) {
         throw new Error("Price ID not configured");
       }
-
-      // For authenticated users, use their ID and email
-      // For non-authenticated users, create a temp session
-      let userId = req.user?.id;
-      let userEmail = req.user?.email || email;
       
       if (!userId) {
         // For non-authenticated users, we'll create a checkout session without a user ID

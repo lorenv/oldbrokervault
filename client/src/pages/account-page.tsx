@@ -477,7 +477,7 @@ export default function AccountPage() {
     const tabFromUrl = searchParams.get('tab');
     const sessionId = searchParams.get('session_id');
     
-    // If there's a session_id, we'll redirect to billing tab after verification
+    // If there's a session_id and no tab, default to billing
     // If there's already a tab parameter, use it
     // Otherwise default to account tab
     return tabFromUrl || (sessionId ? 'billing' : 'account');
@@ -489,8 +489,10 @@ export default function AccountPage() {
   useEffect(() => {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
-      const newTab = searchParams.get('tab');
-      if (newTab && newTab !== activeTab) {
+      const newTab = searchParams.get('tab') || 'account';
+      console.log('🔄 URL changed, new tab from URL:', newTab, 'current activeTab:', activeTab);
+      if (newTab !== activeTab) {
+        console.log('🔄 Setting active tab to:', newTab);
         setActiveTab(newTab);
       }
     };
@@ -501,8 +503,9 @@ export default function AccountPage() {
     // Also check URL on every location change
     const checkUrlTab = () => {
       const searchParams = new URLSearchParams(window.location.search);
-      const newTab = searchParams.get('tab');
-      if (newTab && newTab !== activeTab) {
+      const newTab = searchParams.get('tab') || 'account';
+      if (newTab !== activeTab) {
+        console.log('🔄 URL tab check - setting active tab to:', newTab);
         setActiveTab(newTab);
       }
     };
@@ -694,8 +697,16 @@ export default function AccountPage() {
     // Check for Stripe session verification
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
+    const tabParam = params.get('tab');
 
-    console.log('🔍 Account page mounted - checking for session_id:', sessionId);
+    console.log('🔍 Account page mounted - checking for session_id:', sessionId, 'tab:', tabParam);
+    
+    // Set the tab from URL if it exists
+    if (tabParam && tabParam !== activeTab) {
+      console.log('🔄 Setting active tab from URL parameter:', tabParam);
+      setActiveTab(tabParam);
+    }
+    
     if (sessionId) {
       console.log('📞 Calling verifyStripeSession with sessionId:', sessionId);
       verifyStripeSession(sessionId);
@@ -736,7 +747,18 @@ export default function AccountPage() {
         window.history.replaceState({}, '', '/account?tab=billing');
         
         // Update the active tab state to match the URL change
+        console.log('🎯 Forcing tab to billing after successful verification');
         setActiveTab('billing');
+        
+        // Also ensure URL parameter polling picks up the change
+        setTimeout(() => {
+          console.log('🎯 Double-checking tab is set to billing after verification');
+          const urlTab = new URLSearchParams(window.location.search).get('tab');
+          console.log('URL tab after verification:', urlTab);
+          if (urlTab === 'billing') {
+            setActiveTab('billing');
+          }
+        }, 100);
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
@@ -817,15 +839,6 @@ export default function AccountPage() {
         </div>
         <p className="text-sm sm:text-base text-gray-600">Manage your account, security, and preferences</p>
         
-        {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs">
-            <strong>Debug Info:</strong> 
-            <br />Status: {user?.subscriptionStatus || 'undefined'} 
-            <br />Active Tab: {activeTab}
-            <br />URL: {window.location.href}
-          </div>
-        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">

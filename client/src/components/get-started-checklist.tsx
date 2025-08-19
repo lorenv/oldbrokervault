@@ -69,28 +69,18 @@ export function GetStartedChecklist() {
     const userId = user.id;
     const hasCompletedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
     
-    // Show checklist for new users (who haven't dismissed it)
+    // Show checklist for new users (who haven't dismissed it) - only once on initial load
     if (!hasCompletedChecklist) {
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 2000); // Show after 2 seconds
       
       return () => clearTimeout(timer);
+    } else {
+      // Ensure it stays hidden if dismissed
+      setIsVisible(false);
     }
-  }, [user]);
-
-  // Make checklist persistent across navigation - show it on every page load if not dismissed
-  useEffect(() => {
-    if (!user) return;
-    
-    const userId = user.id;
-    const hasCompletedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
-    
-    // Always show if not dismissed, regardless of navigation
-    if (!hasCompletedChecklist) {
-      setIsVisible(true);
-    }
-  }, [user]);
+  }, [user?.id]); // Only depend on user ID to prevent unnecessary re-runs
 
   // Load saved progress from localStorage and update share CIM link
   useEffect(() => {
@@ -193,8 +183,17 @@ export function GetStartedChecklist() {
 
   const handleDismiss = () => {
     if (!user) return;
+    
+    console.log('📋 Dismissing checklist for user:', user.id);
     setIsVisible(false);
-    localStorage.setItem(`get-started-checklist-dismissed-${user.id}`, 'true');
+    
+    // Set the dismissal flag in localStorage
+    const dismissalKey = `get-started-checklist-dismissed-${user.id}`;
+    localStorage.setItem(dismissalKey, 'true');
+    
+    // Verify it was set
+    const verified = localStorage.getItem(dismissalKey);
+    console.log('📋 Dismissal flag set and verified:', verified);
   };
 
   const toggleExpanded = () => {
