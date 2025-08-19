@@ -36,7 +36,6 @@ import Messages from "@/pages/messages";
 import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useAuth } from "@/hooks/use-auth";
-import MarketingHomePage from "@/pages/marketing-home-page";
 
 function Router() {
   const [location] = useLocation();
@@ -50,7 +49,7 @@ function Router() {
         <div className={isSharePage ? "" : "flex-1"}>
           <Switch>
             <Route path="/" component={HomePage} />
-            <Route path="/marketing" component={MarketingHomePage} />
+            <Route path="/marketing" component={HomePage} />
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
