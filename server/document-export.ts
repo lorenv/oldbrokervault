@@ -2424,10 +2424,32 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           if (coverImageData) {
             console.log("🎯 COVER IMAGE: Successfully resolved cover image data using unified approach");
             
-            // Calculate banner dimensions - 20% of page height, full width
-            const bannerHeight = doc.page.height * 0.2; // 20% of page height
+            // Get image dimensions first to determine optimal banner size
+            const sharp = require('sharp');
+            const imageMetadata = await sharp(coverImageData.buffer).metadata();
+            console.log("🎯 COVER IMAGE: Original image dimensions:", imageMetadata.width, "x", imageMetadata.height);
+            
+            // Calculate banner dimensions based on image aspect ratio, but with reasonable limits
+            const maxBannerHeight = doc.page.height * 0.25; // Maximum 25% of page height
+            const minBannerHeight = doc.page.height * 0.15; // Minimum 15% of page height
             const bannerWidth = doc.page.width; // Full page width
-            console.log("🎯 COVER IMAGE: Banner dimensions:", bannerWidth, "x", bannerHeight);
+            
+            let bannerHeight = maxBannerHeight;
+            
+            // If we have image dimensions, calculate a more appropriate banner height
+            if (imageMetadata.width && imageMetadata.height) {
+              const imageAspectRatio = imageMetadata.width / imageMetadata.height;
+              const proposedHeight = bannerWidth / imageAspectRatio;
+              
+              // Use the proposed height if it's within our limits
+              if (proposedHeight >= minBannerHeight && proposedHeight <= maxBannerHeight) {
+                bannerHeight = proposedHeight;
+              }
+              console.log("🎯 COVER IMAGE: Image aspect ratio:", imageAspectRatio.toFixed(2));
+              console.log("🎯 COVER IMAGE: Proposed banner height:", proposedHeight.toFixed(1));
+            }
+            
+            console.log("🎯 COVER IMAGE: Final banner dimensions:", bannerWidth, "x", bannerHeight);
             
             // For non-base64 images (URLs), try to apply cropping if position is specified
             if (!coverImageData.isBase64 && coverImagePosition) {
@@ -2472,9 +2494,22 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const base64Data = firstImage.split(',')[1];
             const imageBuffer = Buffer.from(base64Data, 'base64');
             
-            // Calculate banner dimensions - 20% of page height, full width
-            const bannerHeight = doc.page.height * 0.2; // 20% of page height
-            const bannerWidth = doc.page.width; // Full page width
+            // Calculate banner dimensions based on image aspect ratio
+            const sharp = require('sharp');
+            const imageMetadata = await sharp(imageBuffer).metadata();
+            
+            const maxBannerHeight = doc.page.height * 0.25;
+            const minBannerHeight = doc.page.height * 0.15;
+            const bannerWidth = doc.page.width;
+            
+            let bannerHeight = maxBannerHeight;
+            if (imageMetadata.width && imageMetadata.height) {
+              const imageAspectRatio = imageMetadata.width / imageMetadata.height;
+              const proposedHeight = bannerWidth / imageAspectRatio;
+              if (proposedHeight >= minBannerHeight && proposedHeight <= maxBannerHeight) {
+                bannerHeight = proposedHeight;
+              }
+            }
             
             await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
             
@@ -2487,11 +2522,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             const cachedImagePath = await downloadAndCacheImage(firstImage);
             
             if (cachedImagePath && fs.existsSync(cachedImagePath)) {
-              // Calculate banner dimensions - 20% of page height, full width
-              const bannerHeight = doc.page.height * 0.2; // 20% of page height
-              const bannerWidth = doc.page.width; // Full page width
-              
+              // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(cachedImagePath);
+              const sharp = require('sharp');
+              const imageMetadata = await sharp(imageBuffer).metadata();
+              
+              const maxBannerHeight = doc.page.height * 0.25;
+              const minBannerHeight = doc.page.height * 0.15;
+              const bannerWidth = doc.page.width;
+              
+              let bannerHeight = maxBannerHeight;
+              if (imageMetadata.width && imageMetadata.height) {
+                const imageAspectRatio = imageMetadata.width / imageMetadata.height;
+                const proposedHeight = bannerWidth / imageAspectRatio;
+                if (proposedHeight >= minBannerHeight && proposedHeight <= maxBannerHeight) {
+                  bannerHeight = proposedHeight;
+                }
+              }
+              
               await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image
@@ -2504,11 +2552,24 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Handle local file path
             const imagePath = resolveImagePath(firstImage, documentId, userProfile?.id);
             if (fs.existsSync(imagePath)) {
-              // Calculate banner dimensions - 20% of page height, full width
-              const bannerHeight = doc.page.height * 0.2; // 20% of page height
-              const bannerWidth = doc.page.width; // Full page width
-              
+              // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(imagePath);
+              const sharp = require('sharp');
+              const imageMetadata = await sharp(imageBuffer).metadata();
+              
+              const maxBannerHeight = doc.page.height * 0.25;
+              const minBannerHeight = doc.page.height * 0.15;
+              const bannerWidth = doc.page.width;
+              
+              let bannerHeight = maxBannerHeight;
+              if (imageMetadata.width && imageMetadata.height) {
+                const imageAspectRatio = imageMetadata.width / imageMetadata.height;
+                const proposedHeight = bannerWidth / imageAspectRatio;
+                if (proposedHeight >= minBannerHeight && proposedHeight <= maxBannerHeight) {
+                  bannerHeight = proposedHeight;
+                }
+              }
+              
               await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image

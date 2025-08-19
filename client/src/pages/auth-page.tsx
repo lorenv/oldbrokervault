@@ -452,6 +452,22 @@ function RegisterForm({ mutation }: { mutation: any }) {
       })} className="space-y-4">
         <FormField
           control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Your full name"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -479,23 +495,6 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   type="password"
                   placeholder="Choose a secure password (min. 8 characters)"
                   autoComplete="new-password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name (optional)</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Your full name"
                   {...field}
                 />
               </FormControl>

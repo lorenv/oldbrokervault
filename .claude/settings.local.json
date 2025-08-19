@@ -15,7 +15,9 @@
       "Bash(rm:*)",
       "Bash(npm run check:*)",
       "Bash(echo:*)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(nslookup:*)",
+      "Bash(dig:*)"
     ],
     "deny": [],
     "ask": [],
