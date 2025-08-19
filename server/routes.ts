@@ -32,6 +32,7 @@ import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNoti
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { invalidateUserCache } from "./auth";
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -3037,6 +3038,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update subscription in database
         await storage.updateSubscription(userId, status, endsAt);
         console.log("✅ Database subscription updated");
+        
+        // Invalidate user cache to force fresh data on next request
+        invalidateUserCache(userId);
+        console.log("✅ User cache invalidated");
         
         // Refresh user data from database
         const updatedUser = await storage.getUser(userId);

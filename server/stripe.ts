@@ -3,6 +3,7 @@ import { subscriptionPlans, users } from "@shared/schema";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { invalidateUserCache } from "./auth";
 
 // Validate required environment variables
 function validateStripeConfig() {
@@ -475,6 +476,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to update user subscription - user not found');
         }
@@ -533,6 +538,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to update user subscription - user not found');
         }
@@ -568,6 +577,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             email: updatedUser.email,
             subscriptionStatus: updatedUser.subscriptionStatus
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to revert user to free plan - user not found');
         }

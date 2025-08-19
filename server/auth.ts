@@ -509,31 +509,57 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({
         message: "Not authenticated"
       });
     }
     
-    console.log("=== USER API DEBUG START ===");
-    console.log("Raw user data:", {
-      id: req.user?.id,
-      email: req.user?.email,
-      name: req.user?.name,
-      phoneNumber: req.user?.phoneNumber,
-      businessName: req.user?.businessName,
-      businessLogo: req.user?.businessLogo,
-      profilePhoto: req.user?.profilePhoto,
-      subscriptionStatus: req.user?.subscriptionStatus
-    });
-    
-    const sanitizedUser = sanitizeUser(req.user);
-    console.log("Sanitized user data:", sanitizedUser);
-    console.log("=== USER API DEBUG END ===");
-    
-    // SECURITY: Return sanitized user data without sensitive fields
-    res.json(sanitizedUser);
+    try {
+      console.log("=== USER API DEBUG START ===");
+      console.log("Session user ID:", req.user?.id);
+      
+      // Always fetch fresh user data from database to ensure subscription status is current
+      const freshUser = await storage.getUser(req.user.id);
+      
+      if (!freshUser) {
+        console.log("❌ User not found in database, possibly deleted");
+        return res.status(404).json({
+          message: "User not found"
+        });
+      }
+      
+      console.log("Fresh user data from database:", {
+        id: freshUser.id,
+        email: freshUser.email,
+        name: freshUser.name,
+        phoneNumber: freshUser.phoneNumber,
+        businessName: freshUser.businessName,
+        businessLogo: freshUser.businessLogo,
+        profilePhoto: freshUser.profilePhoto,
+        subscriptionStatus: freshUser.subscriptionStatus,
+        subscriptionEndsAt: freshUser.subscriptionEndsAt
+      });
+      
+      // Update the session user with fresh data to keep it in sync
+      req.user = freshUser;
+      
+      // Clear the user cache to force fresh data on next request
+      invalidateUserCache(freshUser.id);
+      
+      const sanitizedUser = sanitizeUser(freshUser);
+      console.log("Sanitized user data:", sanitizedUser);
+      console.log("=== USER API DEBUG END ===");
+      
+      // SECURITY: Return sanitized fresh user data without sensitive fields
+      res.json(sanitizedUser);
+    } catch (error) {
+      console.error("Error fetching fresh user data:", error);
+      res.status(500).json({
+        message: "Failed to fetch user data"
+      });
+    }
   });
 
   // Debug endpoint - added here to ensure it's registered
