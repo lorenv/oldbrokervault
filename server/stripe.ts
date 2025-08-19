@@ -259,44 +259,94 @@ export async function createCustomerPortalSession(userId: number) {
     throw new Error("No Stripe customer ID found");
   }
 
+  // Use production domain or development domain based on environment
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://cimshare.com' 
+    : `https://${process.env.REPL_SLUG}.replit.dev`;
+
   return stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: `https://${process.env.REPL_SLUG}.replit.dev/account`,
+    return_url: `${baseUrl}/account?tab=billing`,
   });
 }
 
 export async function verifyCheckoutSession(sessionId: string) {
   try {
-    console.log("Verifying session:", sessionId);
+    console.log("=== STRIPE SESSION VERIFICATION START ===");
+    console.log("Session ID:", sessionId);
+    
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log("Session retrieved:", {
+      id: session.id,
+      payment_status: session.payment_status,
+      subscription: session.subscription,
+      client_reference_id: session.client_reference_id,
+      customer_email: session.customer_email,
+      customer_details: session.customer_details
+    });
+    
     if (session.subscription) {
       const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-      const userId = parseInt(session.client_reference_id!);
+      console.log("Subscription retrieved:", {
+        id: subscription.id,
+        status: subscription.status,
+        current_period_end: subscription.current_period_end,
+        customer: subscription.customer,
+        items: subscription.items.data[0]?.price?.id
+      });
+      
+      const userId = session.client_reference_id ? parseInt(session.client_reference_id) : null;
+      const customerEmail = session.customer_details?.email || session.customer_email;
       const priceId = subscription.items.data[0].price.id;
       const status = 'standard';
 
+      console.log("Parsed session data:", { userId, customerEmail, priceId, status });
+
       // Important: Both active AND trialing are valid statuses
       if (!['active', 'trialing'].includes(subscription.status)) {
-        console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+        console.log(`❌ Subscription status ${subscription.status} not valid for upgrade`);
         return null;
       }
 
       const endsAt = new Date(subscription.current_period_end * 1000);
 
-      console.log("Subscription details:", { 
-        userId, 
+      // Find the actual user ID if we don't have it from the session
+      let actualUserId = userId;
+      if (!actualUserId && customerEmail) {
+        console.log("Looking up user by email:", customerEmail);
+        const user = await storage.getUserByEmail(customerEmail);
+        if (user) {
+          actualUserId = user.id;
+          console.log("Found user by email:", { id: user.id, email: user.email });
+        } else {
+          console.log("❌ No user found with email:", customerEmail);
+        }
+      }
+
+      console.log("Final verification result:", { 
+        userId: actualUserId, 
+        customerEmail,
         status, 
         endsAt, 
         subscriptionStatus: subscription.status,
-        subscriptionId: subscription.id,
-        customer: subscription.customer
+        subscriptionId: subscription.id
       });
-      return { userId, status, endsAt };
+      
+      if (!actualUserId) {
+        console.error('❌ No user ID found for session verification');
+        return null;
+      }
+      
+      console.log("=== STRIPE SESSION VERIFICATION SUCCESS ===");
+      return { userId: actualUserId, status, endsAt };
+    } else {
+      console.log("❌ No subscription found in session");
+      return null;
     }
   } catch (error) {
-    console.error('Error verifying checkout session:', error);
+    console.error('❌ Error verifying checkout session:', error);
+    return null;
   }
-  return null;
 }
 
 export async function handleStripeWebhook(req: any, res: any, stripeInstance: Stripe) {
@@ -343,9 +393,14 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = parseInt(session.client_reference_id!);
+        const userId = session.client_reference_id ? parseInt(session.client_reference_id) : null;
+        const customerEmail = session.customer_details?.email || session.customer_email;
 
-        console.log("Processing completed checkout session for user:", userId);
+        console.log("Processing completed checkout session:", {
+          userId,
+          customerEmail,
+          hasSubscription: !!session.subscription
+        });
 
         if (!session.subscription) {
           console.log("No subscription found in session");
@@ -367,6 +422,7 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
 
         console.log("Subscription details:", { 
           userId, 
+          customerEmail,
           status, 
           endsAt, 
           priceId, 
@@ -375,17 +431,42 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           customer: subscription.customer
         });
 
-        // CRITICAL: Update user in database
-        console.log('💾 Updating user subscription in database...');
-        const [updatedUser] = await db.update(users)
-          .set({
-            subscriptionStatus: status,
-            subscriptionEndsAt: endsAt,
-            subscriptionId: subscription.id,
-            stripeCustomerId: subscription.customer as string
-          })
-          .where(eq(users.id, userId))
-          .returning();
+        // Handle both authenticated and non-authenticated user subscriptions
+        let updatedUser;
+        
+        if (userId) {
+          // Authenticated user - update existing user
+          console.log('💾 Updating authenticated user subscription in database...');
+          [updatedUser] = await db.update(users)
+            .set({
+              subscriptionStatus: status,
+              subscriptionEndsAt: endsAt,
+              subscriptionId: subscription.id,
+              stripeCustomerId: subscription.customer as string
+            })
+            .where(eq(users.id, userId))
+            .returning();
+        } else if (customerEmail) {
+          // Non-authenticated user - find user by email and update
+          console.log('💾 Finding and updating user by email:', customerEmail);
+          [updatedUser] = await db.update(users)
+            .set({
+              subscriptionStatus: status,
+              subscriptionEndsAt: endsAt,
+              subscriptionId: subscription.id,
+              stripeCustomerId: subscription.customer as string
+            })
+            .where(eq(users.email, customerEmail))
+            .returning();
+            
+          if (!updatedUser) {
+            console.error('❌ No user found with email:', customerEmail);
+            return null;
+          }
+        } else {
+          console.error('❌ No user ID or email found in session');
+          return null;
+        }
 
         if (updatedUser) {
           console.log('✅ User subscription updated successfully:', {
@@ -398,7 +479,7 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           console.error('❌ Failed to update user subscription - user not found');
         }
 
-        return { userId, status, endsAt, subscriptionId: subscription.id };
+        return { userId: updatedUser?.id, status, endsAt, subscriptionId: subscription.id };
       }
 
       case 'customer.subscription.created':

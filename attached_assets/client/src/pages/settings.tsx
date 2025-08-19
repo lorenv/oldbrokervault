@@ -38,6 +38,11 @@ export default function Settings() {
     emailNotifications: true,
     documentCompleted: true,
     reminderEmails: false,
+    // Profile settings - additional fields from registration
+    phoneNumber: "",
+    businessName: "",
+    businessLogo: "",
+    profilePhoto: "",
     // Branding settings
     companyName: "",
     companyLogo: "",
@@ -65,14 +70,21 @@ export default function Settings() {
     if (userData || userSettings) {
       setSettings(prev => ({
         ...prev,
-        // Use actual user data
-        fullName: (userData as any)?.fullName || prev.fullName,
+        // Use actual user data - map 'name' field to 'fullName' for the settings form
+        fullName: (userData as any)?.name || (userData as any)?.fullName || prev.fullName,
         email: (userData as any)?.email || prev.email,
+        // Map additional profile fields from registration
+        phoneNumber: (userData as any)?.phoneNumber || prev.phoneNumber,
+        businessName: (userData as any)?.businessName || prev.businessName,
+        businessLogo: (userData as any)?.businessLogo || prev.businessLogo,
+        profilePhoto: (userData as any)?.profilePhoto || prev.profilePhoto,
         // Merge in saved settings
         ...(userSettings as any),
         // Ensure we keep defaults for missing values
-        companyName: (userSettings as any)?.companyName || `${(userData as any)?.fullName || 'Your'} Company`,
-        customFooterText: (userSettings as any)?.customFooterText || `Powered by ${(userSettings as any)?.companyName || ((userData as any)?.fullName || 'Your') + ' Company'}`,
+        companyName: (userSettings as any)?.companyName || (userData as any)?.businessName || `${(userData as any)?.name || (userData as any)?.fullName || 'Your'} Company`,
+        customFooterText: (userSettings as any)?.customFooterText || `Powered by ${(userSettings as any)?.companyName || (userData as any)?.businessName || ((userData as any)?.name || (userData as any)?.fullName || 'Your') + ' Company'}`,
+        // Use business logo from registration as company logo for branding
+        companyLogo: (userSettings as any)?.companyLogo || (userData as any)?.businessLogo || prev.companyLogo,
       }));
     }
   }, [userData, userSettings]);
@@ -258,6 +270,88 @@ export default function Settings() {
                           value={settings.email}
                           onChange={(e) => setSettings({...settings, email: e.target.value})}
                         />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phoneNumber">Phone Number</Label>
+                        <Input
+                          id="phoneNumber"
+                          type="tel"
+                          value={settings.phoneNumber}
+                          onChange={(e) => setSettings({...settings, phoneNumber: e.target.value})}
+                          placeholder="Your phone number"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="businessName">Business Name</Label>
+                        <Input
+                          id="businessName"
+                          value={settings.businessName}
+                          onChange={(e) => setSettings({...settings, businessName: e.target.value})}
+                          placeholder="Your business name"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="profilePhoto">Profile Photo</Label>
+                        <div className="flex items-center space-x-4 mt-2">
+                          {settings.profilePhoto && (
+                            <img 
+                              src={settings.profilePhoto} 
+                              alt="Profile Photo" 
+                              className="h-12 w-12 rounded-full object-cover border"
+                            />
+                          )}
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                  const result = e.target?.result as string;
+                                  setSettings({...settings, profilePhoto: result});
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">Upload your profile photo</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="businessLogo">Business Logo</Label>
+                        <div className="flex items-center space-x-4 mt-2">
+                          {settings.businessLogo && (
+                            <img 
+                              src={settings.businessLogo} 
+                              alt="Business Logo" 
+                              className="h-12 w-auto max-w-[150px] object-contain border rounded p-1"
+                            />
+                          )}
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                  const result = e.target?.result as string;
+                                  setSettings({...settings, businessLogo: result});
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">Upload your business logo</p>
                       </div>
                     </div>
                   </CardContent>

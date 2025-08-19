@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Phone, Building, Upload, Camera } from "lucide-react";
 
 export default function ProfilePage() {
@@ -30,17 +30,21 @@ export default function ProfilePage() {
   // Fetch profile data
   const { data: profile, isLoading } = useQuery({
     queryKey: ["/api/profile"],
-    onSuccess: (data) => {
-      setProfileForm({
-        name: data.name || "",
-        title: data.title || "",
-        phoneNumber: data.phoneNumber || "",
-        businessName: data.businessName || "",
-        businessLogo: data.businessLogo || "",
-        profilePhoto: data.profilePhoto || "",
-      });
-    },
   });
+
+  // Update form when profile data loads
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        name: profile.name || "",
+        title: profile.title || "",
+        phoneNumber: profile.phoneNumber || "",
+        businessName: profile.businessName || "",
+        businessLogo: profile.businessLogo || "",
+        profilePhoto: profile.profilePhoto || "",
+      });
+    }
+  }, [profile]);
 
   // Update profile mutation
   const updateProfileMutation = useMutation({

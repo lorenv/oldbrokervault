@@ -245,9 +245,11 @@ export class DatabaseStorage implements IStorage {
       .values({
         email: insertUser.email,
         password: insertUser.password,
+        name: insertUser.name || null,
         businessName: insertUser.businessName || null,
         phoneNumber: insertUser.phoneNumber || null,
         businessLogo: insertUser.businessLogo || null,
+        profilePhoto: insertUser.profilePhoto || null,
         isAdmin: insertUser.isAdmin,
         // If user is admin, set subscription status to "admin" to grant unlimited privileges
         subscriptionStatus: insertUser.isAdmin ? "admin" : "free",
