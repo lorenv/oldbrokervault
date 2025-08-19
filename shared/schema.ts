@@ -451,6 +451,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phoneNumber: true,
   businessLogo: true,
 }).extend({
+  name: z.string().optional(),
+  profilePhoto: z.string().optional(),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password must be less than 128 characters")

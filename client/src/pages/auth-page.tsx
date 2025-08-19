@@ -377,12 +377,15 @@ const registerSchema = insertUserSchema.extend({
     message: "You must agree to the terms and conditions"
   }),
   businessLogo: z.any().optional(), // File upload will be handled separately
+  profilePhoto: z.any().optional(), // File upload will be handled separately
+  name: z.string().optional(),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 function RegisterForm({ mutation }: { mutation: any }) {
   const [businessLogo, setBusinessLogo] = useState<File | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const { toast } = useToast();
 
   const form = useForm<RegisterFormData>({
@@ -390,6 +393,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
     defaultValues: {
       email: "",
       password: "",
+      name: "",
       businessName: "",
       phoneNumber: "",
       adminCode: "",
@@ -436,11 +440,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
         const formData = new FormData();
         formData.append('email', data.email);
         formData.append('password', data.password);
+        if (data.name) formData.append('name', data.name);
         if (data.businessName) formData.append('businessName', data.businessName);
         if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
         if (data.adminCode) formData.append('adminCode', data.adminCode);
         formData.append('agreeToTerms', data.agreeToTerms.toString());
         if (businessLogo) formData.append('businessLogo', businessLogo);
+        if (profilePhoto) formData.append('profilePhoto', profilePhoto);
 
         registerMutation.mutate(formData);
       })} className="space-y-4">
@@ -473,6 +479,23 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   type="password"
                   placeholder="Choose a secure password (min. 8 characters)"
                   autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Your full name"
                   {...field}
                 />
               </FormControl>
@@ -528,6 +551,20 @@ function RegisterForm({ mutation }: { mutation: any }) {
             className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
           <p className="text-xs text-gray-500">Upload your company logo (PNG, JPG, or SVG)</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Profile Photo (optional)</label>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              setProfilePhoto(file || null);
+            }}
+            className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+          <p className="text-xs text-gray-500">Upload your profile photo (PNG, JPG, or SVG)</p>
         </div>
 
         <FormField

@@ -249,6 +249,9 @@ export function setupAuth(app: Express) {
     { name: 'businessLogo', maxCount: 1 },
     { name: 'profilePhoto', maxCount: 1 }
   ]), async (req, res) => {
+    console.log("=== REGISTRATION ENDPOINT HIT ===");
+    console.log("Request received at /api/register");
+    
     // Ensure we always return JSON
     res.setHeader('Content-Type', 'application/json');
     
@@ -261,10 +264,29 @@ export function setupAuth(app: Express) {
       });
       
       // Handle JSON body parsing (FormData contains text fields)
-      const { email, password, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      const { email, password, name, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      
+      // Get files from the request (multer middleware populates this)
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      console.log("=== REGISTRATION DEBUG START ===");
+      console.log("Request body:", {
+        email,
+        password: password ? '[REDACTED]' : 'MISSING',
+        name,
+        businessName,
+        phoneNumber,
+        agreeToTerms,
+        adminCode: adminCode ? '[PROVIDED]' : 'NOT_PROVIDED'
+      });
+      console.log("Files:", {
+        businessLogo: files?.businessLogo?.[0] ? 'PROVIDED' : 'NOT_PROVIDED',
+        profilePhoto: files?.profilePhoto?.[0] ? 'PROVIDED' : 'NOT_PROVIDED'
+      });
       
       // Basic validation
       if (!email || !password || !agreeToTerms || agreeToTerms !== 'true') {
+        console.log("❌ Validation failed:", { email: !!email, password: !!password, agreeToTerms });
         return res.status(400).json({
           message: "Please fill in all required fields and agree to the terms"
         });
@@ -282,17 +304,50 @@ export function setupAuth(app: Express) {
                      process.env.ADMIN_CODE && 
                      adminCode === process.env.ADMIN_CODE;
 
-      // Handle file uploads if present
-      let businessLogoPath = null;
-      let profilePhotoPath = null;
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      // Don't handle file uploads here - we'll do it after user creation
+
+      console.log("Creating user with data:", {
+        email,
+        name: name || null,
+        businessName: businessName || null,
+        phoneNumber: phoneNumber || null,
+        businessLogo: null,
+        profilePhoto: null,
+        isAdmin,
+      });
+
+      const user = await storage.createUser({
+        email,
+        password: await hashPassword(password),
+        name: name || null,
+        businessName: businessName || null,
+        phoneNumber: phoneNumber || null,
+        businessLogo: null,
+        profilePhoto: null,
+        isAdmin,
+      });
+
+      console.log("User created:", {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        businessName: user.businessName,
+        phoneNumber: user.phoneNumber,
+        businessLogo: user.businessLogo,
+        profilePhoto: user.profilePhoto
+      });
+
+      // Now handle file uploads with the actual user ID
+      let updateData: any = {};
       
       if (files?.businessLogo?.[0]) {
         try {
           const { objectStorageImageManager } = await import("./image-manager-object-storage");
           const logoBuffer = files.businessLogo[0].buffer;
           const logoFilename = `business-logo-${Date.now()}.${files.businessLogo[0].mimetype.split('/')[1]}`;
-          businessLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, 'temp-user');
+          const finalLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, user.id.toString());
+          updateData.businessLogo = finalLogoPath;
+          user.businessLogo = finalLogoPath;
         } catch (logoError) {
           console.error('Failed to save business logo:', logoError);
         }
@@ -303,48 +358,11 @@ export function setupAuth(app: Express) {
           const { objectStorageImageManager } = await import("./image-manager-object-storage");
           const photoBuffer = files.profilePhoto[0].buffer;
           const photoFilename = `profile-photo-${Date.now()}.${files.profilePhoto[0].mimetype.split('/')[1]}`;
-          profilePhotoPath = await objectStorageImageManager.saveBusinessImage(photoBuffer, photoFilename, 'temp-user');
-        } catch (photoError) {
-          console.error('Failed to save profile photo:', photoError);
-        }
-      }
-
-      const user = await storage.createUser({
-        email,
-        password: await hashPassword(password),
-        businessName: businessName || null,
-        phoneNumber: phoneNumber || null,
-        businessLogo: businessLogoPath,
-        profilePhoto: profilePhotoPath || undefined,
-        isAdmin,
-      });
-
-      // Update file paths with the actual user ID
-      let updateData: any = {};
-      
-      if (businessLogoPath && files?.businessLogo?.[0]) {
-        try {
-          const { objectStorageImageManager } = await import("./image-manager-object-storage");
-          const logoBuffer = files.businessLogo[0].buffer;
-          const logoFilename = `business-logo-${Date.now()}.${files.businessLogo[0].mimetype.split('/')[1]}`;
-          const finalLogoPath = await objectStorageImageManager.saveBusinessImage(logoBuffer, logoFilename, user.id.toString());
-          updateData.businessLogo = finalLogoPath;
-          user.businessLogo = finalLogoPath;
-        } catch (logoError) {
-          console.error('Failed to update business logo with user ID:', logoError);
-        }
-      }
-      
-      if (profilePhotoPath && files?.profilePhoto?.[0]) {
-        try {
-          const { objectStorageImageManager } = await import("./image-manager-object-storage");
-          const photoBuffer = files.profilePhoto[0].buffer;
-          const photoFilename = `profile-photo-${Date.now()}.${files.profilePhoto[0].mimetype.split('/')[1]}`;
           const finalPhotoPath = await objectStorageImageManager.saveBusinessImage(photoBuffer, photoFilename, user.id.toString());
           updateData.profilePhoto = finalPhotoPath;
           user.profilePhoto = finalPhotoPath;
         } catch (photoError) {
-          console.error('Failed to update profile photo with user ID:', photoError);
+          console.error('Failed to save profile photo:', photoError);
         }
       }
       
@@ -377,7 +395,13 @@ export function setupAuth(app: Express) {
         res.status(201).json(sanitizeUser(user));
       });
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("=== REGISTRATION ERROR ===");
+      console.error("Full error object:", error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error type:", typeof error);
+      console.error("=== END REGISTRATION ERROR ===");
+      
       res.status(500).json({
         message: "Failed to create account. Please try again."
       });
@@ -491,7 +515,69 @@ export function setupAuth(app: Express) {
         message: "Not authenticated"
       });
     }
+    
+    console.log("=== USER API DEBUG START ===");
+    console.log("Raw user data:", {
+      id: req.user?.id,
+      email: req.user?.email,
+      name: req.user?.name,
+      phoneNumber: req.user?.phoneNumber,
+      businessName: req.user?.businessName,
+      businessLogo: req.user?.businessLogo,
+      profilePhoto: req.user?.profilePhoto,
+      subscriptionStatus: req.user?.subscriptionStatus
+    });
+    
+    const sanitizedUser = sanitizeUser(req.user);
+    console.log("Sanitized user data:", sanitizedUser);
+    console.log("=== USER API DEBUG END ===");
+    
     // SECURITY: Return sanitized user data without sensitive fields
-    res.json(sanitizeUser(req.user));
+    res.json(sanitizedUser);
+  });
+
+  // Debug endpoint - added here to ensure it's registered
+  app.get("/api/debug/user", async (req, res) => {
+    console.log("Debug endpoint hit! Authentication status:", req.isAuthenticated());
+    
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ 
+        error: "Not authenticated",
+        isAuthenticated: false,
+        message: "Please log in first" 
+      });
+    }
+    
+    try {
+      const userFromDb = await storage.getUser(req.user!.id);
+      const sessionUser = req.user;
+      
+      res.json({
+        isAuthenticated: true,
+        sessionUser: {
+          id: sessionUser?.id,
+          email: sessionUser?.email,
+          subscriptionStatus: sessionUser?.subscriptionStatus,
+          name: sessionUser?.name,
+          phoneNumber: sessionUser?.phoneNumber,
+          businessName: sessionUser?.businessName,
+          businessLogo: sessionUser?.businessLogo,
+          profilePhoto: sessionUser?.profilePhoto
+        },
+        databaseUser: {
+          id: userFromDb?.id,
+          email: userFromDb?.email,
+          subscriptionStatus: userFromDb?.subscriptionStatus,
+          name: userFromDb?.name,
+          phoneNumber: userFromDb?.phoneNumber,
+          businessName: userFromDb?.businessName,
+          businessLogo: userFromDb?.businessLogo,
+          profilePhoto: userFromDb?.profilePhoto
+        }
+      });
+    } catch (error) {
+      console.error("Debug user error:", error);
+      res.status(500).json({ error: "Failed to fetch debug data" });
+    }
   });
 }

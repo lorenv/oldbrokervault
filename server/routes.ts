@@ -840,21 +840,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: userProfile.name,
         title: userProfile.title,
         email: userProfile.email,
-        phoneNumber: userProfile.phoneNumber || userProfile.phone, // Handle both field names
+        phoneNumber: userProfile.phoneNumber, // Use correct field name
         businessName: userProfile.businessName,
         businessLogo: processImageUrl(userProfile.businessLogo), // Process business logo URL
-        profilePhoto: processImageUrl(userProfile.profile_photo || userProfile.profilePhoto) // Process profile photo URL
+        profilePhoto: processImageUrl(userProfile.profilePhoto) // Process profile photo URL
       };
       
       console.log("=== USER PROFILE IMAGE DEBUG ===");
       console.log("Original business logo:", userProfile.businessLogo);
       console.log("Processed business logo:", sanitizedUserProfile.businessLogo);
-      console.log("Original profile photo:", userProfile.profile_photo || userProfile.profilePhoto);
+      console.log("Original profile photo:", userProfile.profilePhoto);
       console.log("Processed profile photo:", sanitizedUserProfile.profilePhoto);
       
       console.log("=== USER PROFILE PHONE DEBUG ===");
       console.log("userProfile.phoneNumber:", userProfile.phoneNumber);
-      console.log("userProfile.phone:", userProfile.phone);
       console.log("Final phoneNumber:", sanitizedUserProfile.phoneNumber);
 
       // Ensure view tracking completes (but don't wait for it)
@@ -1052,13 +1051,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const processedUserProfile = {
         ...userProfile,
         businessLogo: processImageUrl(userProfile.businessLogo),
-        profilePhoto: processImageUrl(userProfile.profile_photo || userProfile.profilePhoto)
+        profilePhoto: processImageUrl(userProfile.profilePhoto)
       };
 
       console.log("=== PDF EXPORT USER PROFILE IMAGE DEBUG ===");
       console.log("Original business logo:", userProfile.businessLogo);
       console.log("Processed business logo:", processedUserProfile.businessLogo);
-      console.log("Original profile photo:", userProfile.profile_photo || userProfile.profilePhoto);
+      console.log("Original profile photo:", userProfile.profilePhoto);
       console.log("Processed profile photo:", processedUserProfile.profilePhoto);
       console.log("===========================================");
 
@@ -1310,8 +1309,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Stripe configuration endpoint for frontend
   app.get("/api/stripe-config", (req, res) => {
+    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+    
+    if (!publishableKey || publishableKey.includes('YOUR_') || publishableKey === 'pk_test_YOUR_PUBLISHABLE_KEY_HERE') {
+      console.error('❌ Stripe publishable key not properly configured');
+      return res.status(500).json({ 
+        error: "Stripe configuration incomplete",
+        message: "Payment processing is temporarily unavailable"
+      });
+    }
+    
     res.json({
-      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+      publishableKey: publishableKey
     });
   });
 
@@ -3005,6 +3014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   // Subscription Routes
   app.get("/api/subscription/verify-session", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -3013,31 +3023,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!session_id) return res.status(400).json({ error: "No session ID provided" });
 
     try {
-      console.log("Verifying session:", session_id);
+      console.log("=== SESSION VERIFICATION DEBUG START ===");
+      console.log("Session ID:", session_id);
+      console.log("Current user:", { id: req.user?.id, email: req.user?.email, subscriptionStatus: req.user?.subscriptionStatus });
+      
       const result = await verifyCheckoutSession(session_id as string);
+      console.log("Verification result:", result);
+      
       if (result) {
         const { userId, status, endsAt } = result;
-        console.log("Session verified, updating subscription:", { userId, status, endsAt });
-
+        console.log("About to update subscription:", { userId, status, endsAt });
+        
+        // Update subscription in database
         await storage.updateSubscription(userId, status, endsAt);
-
-        // Update the user's session data
-        const user = await storage.getUser(userId);
+        console.log("✅ Database subscription updated");
+        
+        // Refresh user data from database
+        const updatedUser = await storage.getUser(userId);
+        console.log("Updated user from database:", {
+          id: updatedUser?.id,
+          email: updatedUser?.email,
+          subscriptionStatus: updatedUser?.subscriptionStatus,
+          subscriptionEndsAt: updatedUser?.subscriptionEndsAt
+        });
+        
+        // Update session user if this is the same user
         if (req.user?.id === userId) {
-          // Update req.user directly for immediate availability
-          req.user = user;
-          
-          console.log('✅ User session updated with new subscription status:', {
-            userId: user?.id,
-            email: user?.email,
-            subscriptionStatus: user?.subscriptionStatus,
-            subscriptionEndsAt: user?.subscriptionEndsAt
-          });
+          req.user = updatedUser;
+          console.log('✅ Session user updated');
         }
 
-        res.json({ success: true, status });
+        console.log("=== SESSION VERIFICATION DEBUG END ===");
+        res.json({ success: true, status, userId, updatedUser: updatedUser });
       } else {
-        console.log("Invalid or expired session");
+        console.log("❌ Session verification returned null");
+        console.log("=== SESSION VERIFICATION DEBUG END ===");
         res.status(400).json({ error: "Invalid or expired session" });
       }
     } catch (error) {
@@ -5077,6 +5097,18 @@ ${finalQuestion}
         return res.status(404).json({ error: "User not found" });
       }
       
+      console.log("=== PROFILE API DEBUG START ===");
+      console.log("User from database:", {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phoneNumber: user.phoneNumber,
+        businessName: user.businessName,
+        businessLogo: user.businessLogo,
+        profilePhoto: user.profilePhoto,
+        subscriptionStatus: user.subscriptionStatus
+      });
+      
       // SECURITY: Return only profile-specific fields, excluding sensitive data
       const profileData = {
         name: user.name,
@@ -5087,6 +5119,9 @@ ${finalQuestion}
         profilePhoto: user.profilePhoto,
         email: user.email
       };
+      
+      console.log("Profile data being returned:", profileData);
+      console.log("=== PROFILE API DEBUG END ===");
       
       res.json(profileData);
     } catch (error) {
@@ -5268,6 +5303,209 @@ ${finalQuestion}
       
       res.status(500).json({ 
         error: "Failed to update profile",
+        message: "Please try again later"
+      });
+    }
+  });
+
+  // Settings management routes
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return user settings for the settings page
+      const settingsData = {
+        fullName: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        businessName: user.businessName,
+        businessLogo: user.businessLogo,
+        profilePhoto: user.profilePhoto,
+        companyName: user.businessName,
+        companyLogo: user.businessLogo,
+        // Default UI settings
+        emailNotifications: true,
+        documentCompleted: true,
+        reminderEmails: false,
+        twoFactorAuth: false,
+        primaryColor: "#2563eb",
+        secondaryColor: "#64748b",
+        customEmailTemplate: true,
+        brandingOnSigningPage: true,
+        customFooterText: `Powered by ${user.businessName || user.name || 'Your Company'}`
+      };
+      
+      res.json(settingsData);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`Settings update timeout for user ${req.user!.id}`);
+        res.status(504).json({ error: "Settings update request timeout" });
+      }
+    }, 30000);
+
+    try {
+      const { 
+        fullName, 
+        phoneNumber, 
+        businessName, 
+        businessLogo, 
+        profilePhoto,
+        companyName,
+        companyLogo
+      } = req.body;
+      
+      // Validate input data
+      if (typeof fullName !== 'string' && fullName !== undefined ||
+          typeof phoneNumber !== 'string' && phoneNumber !== undefined ||
+          typeof businessName !== 'string' && businessName !== undefined ||
+          typeof companyName !== 'string' && companyName !== undefined) {
+        clearTimeout(timeout);
+        return res.status(400).json({ error: "Invalid input data types" });
+      }
+      
+      // Process images if they are new uploads
+      let processedBusinessLogo = businessLogo || companyLogo;
+      let processedProfilePhoto = profilePhoto;
+      
+      // Process business logo if it's a new upload
+      if (processedBusinessLogo && processedBusinessLogo.startsWith('data:image/')) {
+        try {
+          if (processedBusinessLogo.length > 10 * 1024 * 1024) {
+            clearTimeout(timeout);
+            return res.status(413).json({ 
+              error: "Business logo file too large",
+              message: "Please use an image smaller than 7MB"
+            });
+          }
+          
+          const base64Data = processedBusinessLogo.split(',')[1];
+          if (!base64Data) {
+            throw new Error("Invalid base64 data format");
+          }
+          
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          try {
+            const logoMetadata = await imageManager.saveImageFromBuffer(
+              imageBuffer, 
+              `logo_${req.user!.id}_${Date.now()}.png`, 
+              'image/png', 
+              req.user!.id, 
+              'logos'
+            );
+            processedBusinessLogo = logoMetadata.publicPath;
+            console.log('Business logo saved as file:', logoMetadata.publicPath);
+          } catch (processingError) {
+            console.warn('Logo file save failed, falling back to base64:', processingError);
+            processedBusinessLogo = businessLogo || companyLogo;
+          }
+        } catch (error) {
+          console.error('Business logo processing error:', error);
+          clearTimeout(timeout);
+          return res.status(400).json({ 
+            error: "Invalid image format",
+            message: "Please upload a valid image file"
+          });
+        }
+      }
+      
+      // Process profile photo if it's a new upload
+      if (processedProfilePhoto && processedProfilePhoto.startsWith('data:image/')) {
+        try {
+          if (processedProfilePhoto.length > 10 * 1024 * 1024) {
+            clearTimeout(timeout);
+            return res.status(413).json({ 
+              error: "Profile photo file too large",
+              message: "Please use an image smaller than 7MB"
+            });
+          }
+          
+          const base64Data = processedProfilePhoto.split(',')[1];
+          if (!base64Data) {
+            throw new Error("Invalid base64 data format");
+          }
+          
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          try {
+            const photoMetadata = await imageManager.saveImageFromBuffer(
+              imageBuffer, 
+              `profile_${req.user!.id}_${Date.now()}.png`, 
+              'image/png', 
+              req.user!.id, 
+              'profile-photos'
+            );
+            processedProfilePhoto = photoMetadata.publicPath;
+            console.log('Profile photo saved as file:', photoMetadata.publicPath);
+          } catch (processingError) {
+            console.warn('Profile photo file save failed, falling back to base64:', processingError);
+            processedProfilePhoto = profilePhoto;
+          }
+        } catch (error) {
+          console.error('Profile photo processing error:', error);
+          clearTimeout(timeout);
+          return res.status(400).json({ 
+            error: "Invalid image format",
+            message: "Please upload a valid image file"
+          });
+        }
+      }
+      
+      // Update user profile in database using the existing updateUserProfile method
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
+        name: fullName,
+        phoneNumber,
+        businessName: businessName || companyName,
+        businessLogo: processedBusinessLogo,
+        profilePhoto: processedProfilePhoto
+      });
+      
+      clearTimeout(timeout);
+      
+      // Return updated settings data
+      const updatedSettings = {
+        fullName: updatedUser.name,
+        phoneNumber: updatedUser.phoneNumber,
+        businessName: updatedUser.businessName,
+        businessLogo: updatedUser.businessLogo,
+        profilePhoto: updatedUser.profilePhoto,
+        companyName: updatedUser.businessName,
+        companyLogo: updatedUser.businessLogo
+      };
+      
+      res.json({ 
+        success: true, 
+        message: "Settings updated successfully",
+        settings: updatedSettings
+      });
+    } catch (error: any) {
+      clearTimeout(timeout);
+      console.error("Settings update error:", error);
+      
+      // Handle specific error types
+      if (error.code === 'ECONNREFUSED') {
+        return res.status(503).json({ 
+          error: "Database connection failed",
+          message: "Service temporarily unavailable"
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Failed to update settings",
         message: "Please try again later"
       });
     }
