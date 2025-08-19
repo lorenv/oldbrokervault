@@ -68,6 +68,7 @@ const registerSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
     .regex(/(?=.*\d)/, "Password must contain at least one number")
     .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character"),
+  name: z.string().min(1, "Please enter your full name"),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
   }),
@@ -383,6 +384,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
     defaultValues: {
       email: "",
       password: "",
+      name: "",
       businessName: "",
       phoneNumber: "",
       agreeToTerms: false,
@@ -438,6 +440,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         const formData = new FormData();
         formData.append('email', data.email);
         formData.append('password', data.password);
+        formData.append('name', data.name.trim());
         formData.append('agreeToTerms', 'true'); // Always send as string 'true' for backend validation
 
         // Add optional business profile fields only if they have values
@@ -467,6 +470,25 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   placeholder="name@example.com"
                   type="email"
                   autoComplete="email"
+                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-semibold text-gray-700">Full Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="John Doe"
+                  type="text"
+                  autoComplete="name"
                   className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
                   {...field}
                 />
