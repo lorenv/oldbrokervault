@@ -161,28 +161,18 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log('🎯 Server is listening on:', server.address());
   console.log('🚀 Application ready for deployment health checks');
   
-  // NOW register routes after server is listening to prevent startup memory overflow
-  setTimeout(async () => {
-    try {
-      console.log('🔧 Now registering API routes after server start...');
-      const { registerRoutes } = await import('./routes');
-      await registerRoutes(app);
-      console.log('✅ API routes registered successfully after server start');
-      
-      // Force garbage collection if available
-      if (global.gc) {
-        console.log('🧹 Running garbage collection after route registration...');
-        global.gc();
-      }
-    } catch (error) {
-      console.error('❌ Failed to register routes after startup:', error);
-    }
-  }, 100); // Small delay to allow server to fully start
+  // Routes will be registered in the 'listening' event handler below
 });
 
 // Setup all heavy operations AFTER server is listening
 server.on('listening', async () => {
   try {
+    // PRIORITY #1: Register routes immediately for API availability
+    console.log('🔧 Registering API routes immediately after server start...');
+    const { registerRoutes } = await import('./routes');
+    await registerRoutes(app);
+    console.log('✅ API routes registered successfully - /api/register is now available');
+    
     // Import and setup security middleware
     console.log('🔒 Setting up security middleware...');
     const { setupSecurity } = await import('./security');
