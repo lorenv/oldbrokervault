@@ -222,8 +222,8 @@ router.post("/webhook/inbound", async (req, res) => {
   try {
     const { to, from, subject, text, html } = req.body;
 
-    // Extract thread email address from "to" field
-    const threadEmailMatch = to.match(/thread-(\d+)@cimshare\.com/);
+    // Extract thread email address from "to" field  
+    const threadEmailMatch = to.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/);
     if (!threadEmailMatch) {
       console.log("Invalid thread email format:", to);
       return res.status(400).json({ error: "Invalid thread email format" });

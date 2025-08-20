@@ -94,6 +94,8 @@ export function EnhancedMessageCenter() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedCimFilter, setSelectedCimFilter] = useState<string>('all');
+  const [selectedThreads, setSelectedThreads] = useState<Set<number>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -226,6 +228,58 @@ export function EnhancedMessageCenter() {
     },
   });
 
+  // Bulk archive mutation
+  const bulkArchiveMutation = useMutation({
+    mutationFn: async ({ threadIds, archive }: { threadIds: number[]; archive: boolean }) => {
+      const promises = threadIds.map(threadId =>
+        apiRequest('PATCH', `/api/messages/threads/${threadId}/${archive ? 'archive' : 'reactivate'}`)
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
+      toast({ 
+        title: `${variables.threadIds.length} thread${variables.threadIds.length > 1 ? 's' : ''} ${variables.archive ? 'archived' : 'reactivated'}` 
+      });
+      setSelectedThreads(new Set());
+      setIsMultiSelectMode(false);
+      setSelectedThread(null);
+    },
+  });
+
+  // Multi-select helper functions
+  const toggleThreadSelection = (threadId: number) => {
+    setSelectedThreads(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(threadId)) {
+        newSet.delete(threadId);
+      } else {
+        newSet.add(threadId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllThreads = () => {
+    if (threads) {
+      setSelectedThreads(new Set(threads.map(t => t.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedThreads(new Set());
+    setIsMultiSelectMode(false);
+  };
+
+  const handleBulkArchive = (archive: boolean) => {
+    if (selectedThreads.size > 0) {
+      bulkArchiveMutation.mutate({
+        threadIds: Array.from(selectedThreads),
+        archive
+      });
+    }
+  };
+
   // Mark messages as read when thread is selected
   useEffect(() => {
     if (selectedThread && selectedThread.unreadCount > 0) {
@@ -233,6 +287,11 @@ export function EnhancedMessageCenter() {
       queryClient.invalidateQueries({ queryKey: ['/api/messages/threads'] });
     }
   }, [selectedThread, queryClient]);
+
+  // Clear selection when switching between archived/active or changing filters
+  useEffect(() => {
+    clearSelection();
+  }, [showArchived, selectedCimFilter]);
 
   const handleSendMessage = async () => {
     if (!selectedThread || (!newMessage.trim() && !richContent.trim())) return;
@@ -339,30 +398,98 @@ export function EnhancedMessageCenter() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[500px] lg:h-[800px] bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col lg:flex-row min-h-[600px] max-h-[90vh] bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Thread List */}
       <div className={`${selectedThread ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gray-200 flex-col`}>
         <div className="p-3 md:p-4 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-            <h2 className="text-lg md:text-xl font-semibold">Messages</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowArchived(!showArchived)}
-              className="flex items-center gap-1 md:gap-2 w-full sm:w-auto justify-center text-sm"
-            >
-              {showArchived ? (
-                <>
-                  <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>Show Active</span>
-                </>
-              ) : (
-                <>
-                  <Archive className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>Show Archived</span>
-                </>
-              )}
-            </Button>
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <h2 className="text-lg md:text-xl font-semibold">Messages</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                  className="flex items-center gap-1 text-sm"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isMultiSelectMode ? 'Cancel' : 'Select'}
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="flex items-center gap-1 md:gap-2 text-sm"
+                >
+                  {showArchived ? (
+                    <>
+                      <ArchiveRestore className="h-3 w-3 md:h-4 md:w-4" />
+                      <span>Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-3 w-3 md:h-4 md:w-4" />
+                      <span>Archived</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Multi-select toolbar */}
+            {isMultiSelectMode && (
+              <div className="flex flex-col sm:flex-row gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-sm font-medium text-blue-700">
+                    {selectedThreads.size} selected
+                  </span>
+                  {threads && selectedThreads.size < threads.length && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={selectAllThreads}
+                      className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
+                    >
+                      Select All ({threads.length})
+                    </Button>
+                  )}
+                  {selectedThreads.size > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSelection}
+                      className="text-blue-600 hover:text-blue-700 h-auto p-1 text-sm"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {selectedThreads.size > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleBulkArchive(!showArchived)}
+                      disabled={bulkArchiveMutation.isPending}
+                      className="flex items-center gap-1 text-sm"
+                    >
+                      {showArchived ? (
+                        <>
+                          <ArchiveRestore className="h-4 w-4" />
+                          <span>Reactivate</span>
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="h-4 w-4" />
+                          <span>Archive</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* CIM Document Filter */}
@@ -416,13 +543,45 @@ export function EnhancedMessageCenter() {
                 <Card
                   key={thread.id}
                   className={`mb-2 cursor-pointer transition-colors ${
-                    selectedThread?.id === thread.id
+                    selectedThreads.has(thread.id)
+                      ? 'bg-green-50 border-green-200'
+                      : selectedThread?.id === thread.id
                       ? 'bg-blue-50 border-blue-200'
                       : 'hover:bg-gray-50'
                   }`}
-                  onClick={() => setSelectedThread(thread)}
+                  onClick={(e) => {
+                    if (isMultiSelectMode) {
+                      e.preventDefault();
+                      toggleThreadSelection(thread.id);
+                    } else {
+                      setSelectedThread(thread);
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Multi-select checkbox */}
+                      {isMultiSelectMode && (
+                        <div 
+                          className="flex-shrink-0 mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleThreadSelection(thread.id);
+                          }}
+                        >
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                            selectedThreads.has(thread.id)
+                              ? 'bg-green-500 border-green-500'
+                              : 'border-gray-300 hover:border-gray-400'
+                          }`}>
+                            {selectedThreads.has(thread.id) && (
+                              <CheckCircle className="h-3 w-3 text-white" />
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0 pr-2">
                         <h3 className="font-semibold text-sm truncate">
@@ -459,6 +618,8 @@ export function EnhancedMessageCenter() {
                         </p>
                       </div>
                     )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

@@ -32,6 +32,8 @@ import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNoti
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
+import { invalidateUserCache } from "./auth";
+import { logger } from "./logger";
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -43,6 +45,7 @@ import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
 import { messageRoutes } from "./routes/messages";
 import messageAttachmentRoutes from "./routes/message-attachments";
+import { registerMonitoringRoutes } from "./routes/monitoring-routes";
 
 
 // Directory paths
@@ -74,17 +77,10 @@ createDirectoriesAsync().catch(error => {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Define authorized admin emails
-const AUTHORIZED_ADMIN_EMAILS = [
-  'robertkale20@gmail.com',
-  'robertkale20+cimshare@gmail.com',
-  'lorenvandegrift@gmail.com'
-];
-
-// Helper function to check if user is an authorized admin
+// Helper function to check if user is an authorized admin using database field
 function isAuthorizedAdmin(user: any): boolean {
   if (!user) return false;
-  return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
+  return user.isAdmin === true;
 }
 
 // Function to add rounded corners to images using Sharp with memory optimization
@@ -157,14 +153,21 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
-// Configure multer for memory storage with increased limits
+// Configure multer for memory storage with REDUCED limits for memory efficiency
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit for large files
-    fieldSize: 100 * 1024 * 1024, // 100MB limit for field data
-    fields: 50, // Increase field count limit
-    files: 20 // Increase file count limit
+    fileSize: 50 * 1024 * 1024, // REDUCED: 50MB limit for large files (was 100MB)
+    fieldSize: 10 * 1024 * 1024, // REDUCED: 10MB limit for field data (was 100MB)
+    fields: 30, // REDUCED: field count limit (was 50)
+    files: 10 // REDUCED: file count limit (was 20)
+  },
+  fileFilter: (req, file, cb) => {
+    // Log large file uploads for monitoring
+    if (file.size > 10 * 1024 * 1024) {
+      console.log(`⚠️ Large file upload: ${file.originalname} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    }
+    cb(null, true);
   }
 });
 
@@ -234,6 +237,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for debugging SendGrid webhook
+  app.post('/api/webhook/sendgrid/test', express.json(), async (req, res) => {
+    console.log("🧪 SendGrid webhook test endpoint");
+    console.log("Request body keys:", Object.keys(req.body || {}));
+    
+    try {
+      // Test with a sample webhook payload
+      const testData = req.body || {
+        to: "thread-22@reply.cimshare.com",
+        from: "test@example.com",
+        subject: "Test reply",
+        text: "This is a test email reply",
+        envelope: JSON.stringify({
+          to: ["thread-22@reply.cimshare.com"],
+          from: "test@example.com"
+        })
+      };
+      
+      console.log("Testing with data:", testData);
+      
+      // Try processing the webhook
+      await messageService.processInboundEmailWebhook(testData);
+      
+      res.json({
+        success: true,
+        message: "Test webhook processed",
+        dataReceived: testData
+      });
+    } catch (error) {
+      console.error("Test webhook error:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        dataReceived: req.body
+      });
+    }
+  });
+
+  // GET endpoint to check webhook configuration
+  app.get('/api/webhook/sendgrid/info', (req, res) => {
+    const baseUrl = process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+      : 'https://cimshare.com';
+    
+    res.json({
+      status: "ready",
+      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound`,
+      eventWebhookUrl: `${baseUrl}/api/webhook/sendgrid/events`,
+      testEndpoint: `${baseUrl}/api/webhook/sendgrid/test`,
+      instructions: {
+        sendgrid: {
+          step1: "Configure SendGrid Inbound Parse at https://app.sendgrid.com/settings/parse",
+          step2: "Set host: reply.cimshare.com",
+          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound`,
+          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com"
+        },
+        testing: {
+          step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
+          step2: "Check server logs for webhook processing",
+          step3: `Or test directly: curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{"to":"thread-22@reply.cimshare.com","from":"test@example.com","text":"Test reply"}'`
+        },
+        debugging: {
+          checkMX: "dig MX reply.cimshare.com",
+          checkWebhook: `curl ${baseUrl}/api/webhook/sendgrid/info`,
+          testWebhook: `curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{}'`
+        }
+      }
+    });
+  });
+
   // Stripe webhook endpoint with proper raw body handling
   app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
     console.log('🔔 Stripe webhook received');
@@ -283,6 +356,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     return sensitiveEndpointLimiter(req, res, next);
   });
+
+  // Register monitoring routes first for health checks
+  registerMonitoringRoutes(app);
 
   // Register NDA template routes BEFORE other routes to avoid conflicts
   console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
@@ -3031,12 +3107,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Verification result:", result);
       
       if (result) {
-        const { userId, status, endsAt } = result;
-        console.log("About to update subscription:", { userId, status, endsAt });
+        const { userId, status, endsAt, subscriptionId, stripeCustomerId } = result;
+        console.log("About to update subscription:", { userId, status, endsAt, subscriptionId, stripeCustomerId });
         
-        // Update subscription in database
-        await storage.updateSubscription(userId, status, endsAt);
+        // Update subscription in database with full Stripe data
+        await storage.updateSubscription(userId, status, endsAt, subscriptionId);
+        
+        // Also update the Stripe customer ID if we have it
+        if (stripeCustomerId) {
+          await db.update(users)
+            .set({ stripeCustomerId })
+            .where(eq(users.id, userId));
+          console.log("✅ Stripe customer ID updated");
+        }
+        
         console.log("✅ Database subscription updated");
+        
+        // Invalidate user cache to force fresh data on next request
+        invalidateUserCache(userId);
+        console.log("✅ User cache invalidated");
         
         // Refresh user data from database
         const updatedUser = await storage.getUser(userId);
@@ -3095,8 +3184,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // For authenticated users, use their ID and email
+      // For non-authenticated users, create a temp session
+      let userId = req.user?.id;
+      let userEmail = req.user?.email || email;
+
       const hostHeader = req.get('host');
+      console.log("=== STRIPE SESSION CREATION DEBUG ===");
       console.log("Creating Stripe session with host:", hostHeader);
+      console.log("Plan:", plan);
+      console.log("User email:", userEmail);
+      console.log("User ID:", userId);
+      console.log("REPLIT_DOMAINS env:", process.env.REPLIT_DOMAINS);
       
       // Use price ID from environment variable
       const priceId = process.env.STRIPE_PRICE_ID_STANDARD;
@@ -3105,11 +3204,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!priceId) {
         throw new Error("Price ID not configured");
       }
-
-      // For authenticated users, use their ID and email
-      // For non-authenticated users, create a temp session
-      let userId = req.user?.id;
-      let userEmail = req.user?.email || email;
       
       if (!userId) {
         // For non-authenticated users, we'll create a checkout session without a user ID

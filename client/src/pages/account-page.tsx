@@ -471,42 +471,36 @@ export default function AccountPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [, navigate] = useLocation();
 
-  // Get tab from URL query parameter
-  const searchParams = new URLSearchParams(window.location.search);
-  const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl || 'account');
+  // Get tab from URL query parameter with fallback logic
+  const getTabFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = searchParams.get('tab');
+    const sessionId = searchParams.get('session_id');
+    
+    // If there's a session_id and no tab, default to billing
+    // If there's already a tab parameter, use it
+    // Otherwise default to account tab
+    return tabFromUrl || (sessionId ? 'billing' : 'account');
+  };
+  
+  const [activeTab, setActiveTab] = useState(getTabFromUrl());
 
-  // Listen for URL changes to update active tab
+  // Listen for URL changes to update active tab (browser back/forward only)
   useEffect(() => {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
-      const newTab = searchParams.get('tab');
-      if (newTab && newTab !== activeTab) {
-        setActiveTab(newTab);
-      }
+      const newTab = searchParams.get('tab') || 'account';
+      console.log('🔄 Browser navigation - new tab from URL:', newTab);
+      setActiveTab(newTab);
     };
 
     // Listen for browser back/forward navigation
     window.addEventListener('popstate', handlePopState);
-    
-    // Also check URL on every location change
-    const checkUrlTab = () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const newTab = searchParams.get('tab');
-      if (newTab && newTab !== activeTab) {
-        setActiveTab(newTab);
-      }
-    };
-    
-    // Check immediately and set up interval to catch programmatic navigation
-    checkUrlTab();
-    const interval = setInterval(checkUrlTab, 100);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      clearInterval(interval);
     };
-  }, [activeTab]);
+  }, []); // Empty dependency array - only set up once
   const [profileForm, setProfileForm] = useState({
     name: "",
     title: "",
@@ -685,25 +679,45 @@ export default function AccountPage() {
     // Check for Stripe session verification
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
+    const tabParam = params.get('tab');
 
+    console.log('🔍 Account page mounted - checking for session_id:', sessionId, 'tab:', tabParam);
+    
+    // Set the tab from URL if it exists
+    if (tabParam && tabParam !== activeTab) {
+      console.log('🔄 Setting active tab from URL parameter:', tabParam);
+      setActiveTab(tabParam);
+    }
+    
     if (sessionId) {
+      console.log('📞 Calling verifyStripeSession with sessionId:', sessionId);
       verifyStripeSession(sessionId);
     }
   }, []);
 
   const verifyStripeSession = async (sessionId: string) => {
     try {
+      console.log('🚀 Starting Stripe session verification for session:', sessionId);
       const response = await apiRequest("GET", `/api/subscription/verify-session?session_id=${sessionId}`);
+      console.log('📡 Received response status:', response.status);
       const data = await response.json();
+      console.log('📦 Response data:', data);
 
       if (data.success) {
         console.log('✅ Subscription verification successful, refreshing user data...');
         
         // Force refetch the user query to refresh the subscription status
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        console.log('🔄 Invalidating user queries...');
+        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
         
         // Add a small delay to ensure session update has propagated
         await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('🔄 Refetching user data...');
+        await queryClient.refetchQueries({ queryKey: ["/api/user"] });
+        
+        // Force a complete cache reset for the user data
+        queryClient.removeQueries({ queryKey: ["/api/user"] });
+        console.log('🔄 Removed cached user data, fetching fresh...');
         await queryClient.refetchQueries({ queryKey: ["/api/user"] });
 
         toast({
@@ -713,16 +727,26 @@ export default function AccountPage() {
         
         // Update URL to show billing tab and remove session_id
         window.history.replaceState({}, '', '/account?tab=billing');
+        
+        // Update the active tab state to match the URL change
+        console.log('🎯 Forcing tab to billing after successful verification');
+        setActiveTab('billing');
+        
       } else {
         throw new Error(data.error || "Failed to verify subscription");
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Stripe session verification error:", error);
+      console.error("❌ Stripe session verification error:", error);
+      
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
       }
+      
       toast({
-        title: "Error",
-        description: "Failed to verify subscription status. Please contact support if this persists.",
+        title: "Subscription Verification Failed",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check console for details.`,
         variant: "destructive",
       });
     }
@@ -787,9 +811,15 @@ export default function AccountPage() {
           </h1>
         </div>
         <p className="text-sm sm:text-base text-gray-600">Manage your account, security, and preferences</p>
+        
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        console.log('🎯 Tab clicked:', tab);
+        setActiveTab(tab);
+        // Update URL to reflect the tab change
+        window.history.pushState({}, '', `/account?tab=${tab}`);
+      }} className="space-y-4 sm:space-y-6">
         {/* Mobile-optimized TabsList with scrollable tabs */}
         <div className="w-full overflow-x-auto">
           <TabsList className={`flex w-max min-w-full md:grid md:w-full ${isAuthorizedAdmin(user) ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-1 p-1`}>

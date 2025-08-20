@@ -3,6 +3,7 @@ import { subscriptionPlans, users } from "@shared/schema";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { invalidateUserCache } from "./auth";
 
 // Validate required environment variables
 function validateStripeConfig() {
@@ -113,8 +114,18 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
   console.log("Request host:", requestHost);
 
   // Use the actual request host if provided, otherwise fallback to production domain
-  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  
+  // Override for Replit development environment
+  if (process.env.REPLIT_DOMAINS) {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+    baseUrl = `https://${replitDomain}`;
+    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+  }
+  
   console.log("Using base URL for redirects:", baseUrl);
+  console.log("Request host provided:", requestHost);
+  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     const sessionConfig: any = {
@@ -197,8 +208,18 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const customerId = await getOrCreateCustomer(userId, user.email);
 
   // Use the actual request host if provided, otherwise fallback to production domain
-  const baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  
+  // Override for Replit development environment
+  if (process.env.REPLIT_DOMAINS) {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+    baseUrl = `https://${replitDomain}`;
+    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+  }
+  
   console.log("Using base URL for redirects:", baseUrl);
+  console.log("Request host provided:", requestHost);
+  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     console.log("Creating Stripe checkout session with config:", {
@@ -338,7 +359,13 @@ export async function verifyCheckoutSession(sessionId: string) {
       }
       
       console.log("=== STRIPE SESSION VERIFICATION SUCCESS ===");
-      return { userId: actualUserId, status, endsAt };
+      return { 
+        userId: actualUserId, 
+        status, 
+        endsAt, 
+        subscriptionId: subscription.id,
+        stripeCustomerId: subscription.customer as string
+      };
     } else {
       console.log("❌ No subscription found in session");
       return null;
@@ -475,6 +502,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to update user subscription - user not found');
         }
@@ -487,16 +518,47 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
 
-        console.log("Processing subscription event for user:", userId);
+        console.log("Processing subscription update for user:", userId);
+        console.log("Subscription status:", subscription.status);
+        console.log("Cancel at period end:", subscription.cancel_at_period_end);
 
         if (!userId) {
           console.error('No userId found in subscription metadata');
           return null;
         }
 
-        // Important: Both active AND trialing are valid statuses
+        // Check if subscription is being canceled but still active until period end
+        if (subscription.cancel_at_period_end && subscription.status === 'active') {
+          console.log("Subscription set to cancel at period end");
+          
+          // Update user to show canceled status but maintain access until end date
+          const [updatedUser] = await db.update(users)
+            .set({
+              subscriptionStatus: 'canceled', // New status to indicate pending cancellation
+              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionId: subscription.id,
+              stripeCustomerId: subscription.customer as string
+            })
+            .where(eq(users.id, userId))
+            .returning();
+          
+          console.log('Updated user with pending cancellation:', updatedUser);
+          invalidateUserCache(userId);
+          return updatedUser;
+        }
+
+        // Check if subscription was reactivated (un-canceled)
+        if (!subscription.cancel_at_period_end && subscription.status === 'active') {
+          // User has reactivated their subscription before it ended
+          const currentUser = await storage.getUser(userId);
+          if (currentUser?.subscriptionStatus === 'canceled') {
+            console.log("Subscription reactivated - removing cancellation");
+          }
+        }
+
+        // Important: Both active AND trialing are valid statuses for active subscriptions
         if (!['active', 'trialing'].includes(subscription.status)) {
-          console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+          console.log(`Subscription status ${subscription.status} not valid for active subscription`);
           return null;
         }
 
@@ -533,6 +595,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             subscriptionStatus: updatedUser.subscriptionStatus,
             subscriptionEndsAt: updatedUser.subscriptionEndsAt
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to update user subscription - user not found');
         }
@@ -568,6 +634,10 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             email: updatedUser.email,
             subscriptionStatus: updatedUser.subscriptionStatus
           });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to revert user to free plan - user not found');
         }
