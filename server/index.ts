@@ -5,6 +5,9 @@ import { setupSecurity } from "./security";
 import { imagePersistenceManager } from "./image-persistence";
 import path from "path";
 
+// Initialize console override for structured logging
+import "./console-override";
+
 const app = express();
 // Use port 5000 for development (workflow compatibility) and 3000 for production (Autoscale)
 const PORT = parseInt(process.env.PORT ?? (process.env.NODE_ENV === 'production' ? "3000" : "5000"), 10);

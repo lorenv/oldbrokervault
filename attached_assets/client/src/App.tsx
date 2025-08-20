@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/app-layout";
 import { useAuth } from "@/hooks/useAuth";
 import { lazy, Suspense } from "react";
+import { PerformanceProvider } from "@/contexts/performance-context";
 
 // Lazy load all pages to reduce initial bundle size
 const Dashboard = lazy(() => import("@/pages/dashboard"));
@@ -139,10 +140,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <PerformanceProvider enableMonitoring={process.env.NODE_ENV === 'development'}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </PerformanceProvider>
     </QueryClientProvider>
   );
 }

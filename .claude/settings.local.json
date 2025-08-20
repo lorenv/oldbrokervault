@@ -17,7 +17,12 @@
       "Bash(echo:*)",
       "Bash(env)",
       "Bash(nslookup:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "Bash(for file in /home/runner/workspace/server/{routes.ts,storage.ts,stripe.ts,perplexity.ts,website-analyzer.ts})",
+      "Bash(done)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npm run dev)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],
