@@ -22,10 +22,22 @@ interface LogEntry {
 class Logger {
   private logLevel: LogLevel;
   private isDevelopment: boolean;
+  private originalConsole: {
+    log: typeof console.log;
+    error: typeof console.error;
+    warn: typeof console.warn;
+  };
 
   constructor() {
     this.isDevelopment = process.env.NODE_ENV === 'development';
     this.logLevel = this.isDevelopment ? LogLevel.DEBUG : LogLevel.INFO;
+    
+    // Store original console methods to prevent recursion
+    this.originalConsole = {
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+      warn: console.warn.bind(console)
+    };
   }
 
   private sanitizeData(data: any): any {
@@ -87,13 +99,28 @@ class Logger {
       const reset = '\x1b[0m';
       const color = levelColors[level];
       
-      console.log(`${color}[${entry.level}]${reset} ${entry.timestamp} ${message}`);
+      this.originalConsole.log(`${color}[${entry.level}]${reset} ${entry.timestamp} ${message}`);
       if (data) {
-        console.log(`${color}Data:${reset}`, this.sanitizeData(data));
+        this.originalConsole.log(`${color}Data:${reset}`, this.sanitizeData(data));
       }
     } else {
-      // Production: JSON structured logging
-      console.log(JSON.stringify(entry));
+      // Production: JSON structured logging - use safe stringify to prevent memory overflow
+      try {
+        const jsonString = JSON.stringify(entry);
+        if (jsonString.length > 100000) { // 100KB limit
+          // Truncate large entries to prevent memory issues
+          const truncatedEntry = {
+            ...entry,
+            data: '[TRUNCATED - Too large for logging]'
+          };
+          this.originalConsole.log(JSON.stringify(truncatedEntry));
+        } else {
+          this.originalConsole.log(jsonString);
+        }
+      } catch (error) {
+        // Fallback for JSON stringify errors
+        this.originalConsole.log(`[LOG ERROR] ${entry.timestamp} ${entry.level}: ${message}`);
+      }
     }
   }
 
