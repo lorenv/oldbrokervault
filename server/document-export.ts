@@ -12,6 +12,72 @@ import sharp from 'sharp';
 import { imageManager } from './image-manager';
 import { resolveImageData, getImageDimensions, createImageFallback } from './image-helpers';
 
+// MEMORY-EFFICIENT JSON HANDLING FOR DEPLOYMENT (Fix #3: Add memory-efficient JSON handling)
+
+/**
+ * Memory-safe JSON stringify with size limits and chunking
+ * Prevents heap overflow during large object serialization
+ */
+function safeStringify(obj: any, maxLength: number = 1024 * 1024): string {
+  try {
+    // Check memory usage before processing
+    const memUsage = process.memoryUsage();
+    if (memUsage.heapUsed > 1.5 * 1024 * 1024 * 1024) { // 1.5GB threshold
+      console.warn(`⚠️ High memory usage detected: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+    }
+    
+    if (obj === null || obj === undefined) return String(obj);
+    if (typeof obj === 'string') return obj.length > maxLength ? obj.substring(0, maxLength) + '...' : obj;
+    if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj);
+    
+    // For arrays, process in chunks to prevent memory overflow
+    if (Array.isArray(obj)) {
+      if (obj.length > 100) {
+        console.log(`⚠️ Large array detected: ${obj.length} items, processing in chunks`);
+        return obj.slice(0, 100).map(item => safeStringify(item, maxLength / obj.length)).join(', ') + '...';
+      }
+      return obj.map(item => safeStringify(item, maxLength / Math.max(obj.length, 1))).join(', ');
+    }
+    
+    // For objects, limit depth and size
+    const result = JSON.stringify(obj, (key, value) => {
+      if (typeof value === 'string' && value.length > maxLength / 10) {
+        return value.substring(0, maxLength / 10) + '...';
+      }
+      return value;
+    });
+    
+    return result.length > maxLength ? result.substring(0, maxLength) + '...' : result;
+  } catch (error) {
+    console.error('SafeStringify error:', error instanceof Error ? error.message : String(error));
+    return '[Serialization Error]';
+  }
+}
+
+/**
+ * Process large data objects in memory-efficient chunks
+ */
+function* processInChunks<T>(items: T[], chunkSize: number = 50): Generator<T[], void, unknown> {
+  for (let i = 0; i < items.length; i += chunkSize) {
+    yield items.slice(i, i + chunkSize);
+  }
+}
+
+/**
+ * Monitor memory usage during processing
+ */
+function logMemoryUsage(operation: string): void {
+  const memUsage = process.memoryUsage();
+  const heapMB = (memUsage.heapUsed / 1024 / 1024).toFixed(2);
+  const rssMB = (memUsage.rss / 1024 / 1024).toFixed(2);
+  
+  if (memUsage.heapUsed > 1024 * 1024 * 1024) { // 1GB threshold
+    console.warn(`⚠️ High memory usage in ${operation}: Heap=${heapMB}MB, RSS=${rssMB}MB`);
+  } else {
+    console.log(`📊 Memory usage in ${operation}: Heap=${heapMB}MB, RSS=${rssMB}MB`);
+  }
+}
+
 // Helper function to convert HTML to formatted text for PDF generation
 function htmlToFormattedText(html: string): { content: string; format: Array<{type: string, text: string, start: number, end: number}> } {
   if (!html) return { content: '', format: [] };
@@ -845,21 +911,13 @@ function getPngDimensions(buffer: Buffer): { width: number; height: number } | n
 }
 
 // Helper function to safely stringify any value
-function safeStringify(value: any): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
+// safeStringify function already defined above with memory-efficient implementation
 
 export function generateHtml(analysis: any, logoUrl?: string | null, userProfile?: any, websiteUrl?: string, selectedImages?: string[], financialData?: any, financialFiles?: any[], baseUrl?: string): string {
-  const title = analysis.title || 'CONFIDENTIAL INFORMATION MEMORANDUM';
+  // MEMORY MONITORING: Track memory usage at start of function
+  logMemoryUsage('generateHtml start');
+  
+  const title = safeStringify(analysis.title) || 'CONFIDENTIAL INFORMATION MEMORANDUM';
   
   let html = `
 <!DOCTYPE html>

@@ -153,14 +153,21 @@ async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Prom
   }
 }
 
-// Configure multer for memory storage with increased limits
+// Configure multer for memory storage with REDUCED limits for memory efficiency
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit for large files
-    fieldSize: 100 * 1024 * 1024, // 100MB limit for field data
-    fields: 50, // Increase field count limit
-    files: 20 // Increase file count limit
+    fileSize: 50 * 1024 * 1024, // REDUCED: 50MB limit for large files (was 100MB)
+    fieldSize: 10 * 1024 * 1024, // REDUCED: 10MB limit for field data (was 100MB)
+    fields: 30, // REDUCED: field count limit (was 50)
+    files: 10 // REDUCED: file count limit (was 20)
+  },
+  fileFilter: (req, file, cb) => {
+    // Log large file uploads for monitoring
+    if (file.size > 10 * 1024 * 1024) {
+      console.log(`⚠️ Large file upload: ${file.originalname} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    }
+    cb(null, true);
   }
 });
 
