@@ -33,6 +33,7 @@ import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
 import { invalidateUserCache } from "./auth";
+import { logger } from "./logger";
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -44,6 +45,7 @@ import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
 import { messageRoutes } from "./routes/messages";
 import messageAttachmentRoutes from "./routes/message-attachments";
+import { registerMonitoringRoutes } from "./routes/monitoring-routes";
 
 
 // Directory paths
@@ -75,17 +77,10 @@ createDirectoriesAsync().catch(error => {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Define authorized admin emails
-const AUTHORIZED_ADMIN_EMAILS = [
-  'robertkale20@gmail.com',
-  'robertkale20+cimshare@gmail.com',
-  'lorenvandegrift@gmail.com'
-];
-
-// Helper function to check if user is an authorized admin
+// Helper function to check if user is an authorized admin using database field
 function isAuthorizedAdmin(user: any): boolean {
   if (!user) return false;
-  return AUTHORIZED_ADMIN_EMAILS.includes(user.email);
+  return user.isAdmin === true;
 }
 
 // Function to add rounded corners to images using Sharp with memory optimization
@@ -235,6 +230,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for debugging SendGrid webhook
+  app.post('/api/webhook/sendgrid/test', express.json(), async (req, res) => {
+    console.log("🧪 SendGrid webhook test endpoint");
+    console.log("Request body keys:", Object.keys(req.body || {}));
+    
+    try {
+      // Test with a sample webhook payload
+      const testData = req.body || {
+        to: "thread-22@reply.cimshare.com",
+        from: "test@example.com",
+        subject: "Test reply",
+        text: "This is a test email reply",
+        envelope: JSON.stringify({
+          to: ["thread-22@reply.cimshare.com"],
+          from: "test@example.com"
+        })
+      };
+      
+      console.log("Testing with data:", testData);
+      
+      // Try processing the webhook
+      await messageService.processInboundEmailWebhook(testData);
+      
+      res.json({
+        success: true,
+        message: "Test webhook processed",
+        dataReceived: testData
+      });
+    } catch (error) {
+      console.error("Test webhook error:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        dataReceived: req.body
+      });
+    }
+  });
+
+  // GET endpoint to check webhook configuration
+  app.get('/api/webhook/sendgrid/info', (req, res) => {
+    const baseUrl = process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+      : 'https://cimshare.com';
+    
+    res.json({
+      status: "ready",
+      inboundWebhookUrl: `${baseUrl}/api/webhook/sendgrid/inbound`,
+      eventWebhookUrl: `${baseUrl}/api/webhook/sendgrid/events`,
+      testEndpoint: `${baseUrl}/api/webhook/sendgrid/test`,
+      instructions: {
+        sendgrid: {
+          step1: "Configure SendGrid Inbound Parse at https://app.sendgrid.com/settings/parse",
+          step2: "Set host: reply.cimshare.com",
+          step3: `Set URL: ${baseUrl}/api/webhook/sendgrid/inbound`,
+          step4: "Ensure MX records point to mx.sendgrid.net for reply.cimshare.com"
+        },
+        testing: {
+          step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
+          step2: "Check server logs for webhook processing",
+          step3: `Or test directly: curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{"to":"thread-22@reply.cimshare.com","from":"test@example.com","text":"Test reply"}'`
+        },
+        debugging: {
+          checkMX: "dig MX reply.cimshare.com",
+          checkWebhook: `curl ${baseUrl}/api/webhook/sendgrid/info`,
+          testWebhook: `curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{}'`
+        }
+      }
+    });
+  });
+
   // Stripe webhook endpoint with proper raw body handling
   app.post("/api/webhook/stripe", express.raw({ type: 'application/json' }), async (req, res) => {
     console.log('🔔 Stripe webhook received');
@@ -284,6 +349,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     return sensitiveEndpointLimiter(req, res, next);
   });
+
+  // Register monitoring routes first for health checks
+  registerMonitoringRoutes(app);
 
   // Register NDA template routes BEFORE other routes to avoid conflicts
   console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');

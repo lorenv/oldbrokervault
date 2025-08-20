@@ -518,16 +518,47 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = parseInt(subscription.metadata.userId);
 
-        console.log("Processing subscription event for user:", userId);
+        console.log("Processing subscription update for user:", userId);
+        console.log("Subscription status:", subscription.status);
+        console.log("Cancel at period end:", subscription.cancel_at_period_end);
 
         if (!userId) {
           console.error('No userId found in subscription metadata');
           return null;
         }
 
-        // Important: Both active AND trialing are valid statuses
+        // Check if subscription is being canceled but still active until period end
+        if (subscription.cancel_at_period_end && subscription.status === 'active') {
+          console.log("Subscription set to cancel at period end");
+          
+          // Update user to show canceled status but maintain access until end date
+          const [updatedUser] = await db.update(users)
+            .set({
+              subscriptionStatus: 'canceled', // New status to indicate pending cancellation
+              subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+              subscriptionId: subscription.id,
+              stripeCustomerId: subscription.customer as string
+            })
+            .where(eq(users.id, userId))
+            .returning();
+          
+          console.log('Updated user with pending cancellation:', updatedUser);
+          invalidateUserCache(userId);
+          return updatedUser;
+        }
+
+        // Check if subscription was reactivated (un-canceled)
+        if (!subscription.cancel_at_period_end && subscription.status === 'active') {
+          // User has reactivated their subscription before it ended
+          const currentUser = await storage.getUser(userId);
+          if (currentUser?.subscriptionStatus === 'canceled') {
+            console.log("Subscription reactivated - removing cancellation");
+          }
+        }
+
+        // Important: Both active AND trialing are valid statuses for active subscriptions
         if (!['active', 'trialing'].includes(subscription.status)) {
-          console.log(`Subscription status ${subscription.status} not valid for upgrade`);
+          console.log(`Subscription status ${subscription.status} not valid for active subscription`);
           return null;
         }
 

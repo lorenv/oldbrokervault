@@ -546,11 +546,13 @@ async function applyBackgroundToPages(originalPdfBuffer: Buffer, backgroundTempl
 
 // Helper function to add image with proper aspect ratio preservation
 async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number, y: number, maxWidth: number, maxHeight: number): Promise<void> {
+  let sharpInstance: any = null;
   try {
     console.log("🎯 addImageWithAspectRatio: Starting image processing for buffer size:", imageBuffer.length);
     // Get actual image dimensions
     const sharp = require('sharp');
-    const metadata = await sharp(imageBuffer).metadata();
+    sharpInstance = sharp(imageBuffer);
+    const metadata = await sharpInstance.metadata();
     console.log("🎯 addImageWithAspectRatio: Sharp metadata:", metadata);
     
     if (!metadata.width || !metadata.height) {
@@ -592,15 +594,27 @@ async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number,
     console.error("Error adding image with aspect ratio:", error);
     // Fallback to original behavior
     doc.image(imageBuffer, x, y, { width: maxWidth, height: maxHeight });
+  } finally {
+    // Critical: Clean up Sharp instance to prevent memory leaks
+    if (sharpInstance) {
+      try {
+        sharpInstance.destroy();
+      } catch (destroyError) {
+        console.warn("Failed to destroy Sharp instance:", destroyError);
+      }
+    }
   }
 }
 
 // Helper function to create a cropped image based on position data
 async function createCroppedImageBuffer(imagePath: string, position: { x: number; y: number }, bannerWidth: number, bannerHeight: number): Promise<Buffer | null> {
+  let metadataSharp: any = null;
+  let processSharp: any = null;
   try {
     // Read the original image to get its dimensions
     const imageBuffer = fs.readFileSync(imagePath);
-    const metadata = await sharp(imageBuffer).metadata();
+    metadataSharp = sharp(imageBuffer);
+    const metadata = await metadataSharp.metadata();
     
     if (!metadata.width || !metadata.height) {
       console.log("Could not get image dimensions for cropping");
@@ -641,7 +655,8 @@ async function createCroppedImageBuffer(imagePath: string, position: { x: number
     console.log(`Cropping image: ${cropWidth}x${cropHeight} at ${cropLeft},${cropTop} from ${metadata.width}x${metadata.height}`);
     
     // Create cropped and resized buffer
-    const croppedBuffer = await sharp(imageBuffer)
+    processSharp = sharp(imageBuffer);
+    const croppedBuffer = await processSharp
       .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
       .resize(Math.round(bannerWidth), Math.round(bannerHeight))
       .jpeg({ quality: 90 })
@@ -651,6 +666,22 @@ async function createCroppedImageBuffer(imagePath: string, position: { x: number
   } catch (error) {
     console.error("Error creating cropped image:", error);
     return null;
+  } finally {
+    // Clean up Sharp instances to prevent memory leaks
+    if (metadataSharp) {
+      try {
+        metadataSharp.destroy();
+      } catch (destroyError) {
+        console.warn("Failed to destroy metadata Sharp instance:", destroyError);
+      }
+    }
+    if (processSharp) {
+      try {
+        processSharp.destroy();
+      } catch (destroyError) {
+        console.warn("Failed to destroy process Sharp instance:", destroyError);
+      }
+    }
   }
 }
 
@@ -2426,8 +2457,22 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             // Get image dimensions first to determine optimal banner size
             const sharp = require('sharp');
-            const imageMetadata = await sharp(coverImageData.buffer).metadata();
-            console.log("🎯 COVER IMAGE: Original image dimensions:", imageMetadata.width, "x", imageMetadata.height);
+            let sharpInstance: any = null;
+            let imageMetadata: any = null;
+            
+            try {
+              sharpInstance = sharp(coverImageData.buffer);
+              imageMetadata = await sharpInstance.metadata();
+              console.log("🎯 COVER IMAGE: Original image dimensions:", imageMetadata.width, "x", imageMetadata.height);
+            } finally {
+              if (sharpInstance) {
+                try {
+                  sharpInstance.destroy();
+                } catch (destroyError) {
+                  console.warn("Failed to destroy Sharp instance:", destroyError);
+                }
+              }
+            }
             
             // Calculate banner dimensions based on image aspect ratio, but with reasonable limits
             const maxBannerHeight = doc.page.height * 0.25; // Maximum 25% of page height
@@ -2496,7 +2541,21 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             
             // Calculate banner dimensions based on image aspect ratio
             const sharp = require('sharp');
-            const imageMetadata = await sharp(imageBuffer).metadata();
+            let sharpInstance: any = null;
+            let imageMetadata: any = null;
+            
+            try {
+              sharpInstance = sharp(imageBuffer);
+              imageMetadata = await sharpInstance.metadata();
+            } finally {
+              if (sharpInstance) {
+                try {
+                  sharpInstance.destroy();
+                } catch (destroyError) {
+                  console.warn("Failed to destroy Sharp instance:", destroyError);
+                }
+              }
+            }
             
             const maxBannerHeight = doc.page.height * 0.25;
             const minBannerHeight = doc.page.height * 0.15;
@@ -2525,7 +2584,21 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(cachedImagePath);
               const sharp = require('sharp');
-              const imageMetadata = await sharp(imageBuffer).metadata();
+              let sharpInstance: any = null;
+              let imageMetadata: any = null;
+              
+              try {
+                sharpInstance = sharp(imageBuffer);
+                imageMetadata = await sharpInstance.metadata();
+              } finally {
+                if (sharpInstance) {
+                  try {
+                    sharpInstance.destroy();
+                  } catch (destroyError) {
+                    console.warn("Failed to destroy Sharp instance:", destroyError);
+                  }
+                }
+              }
               
               const maxBannerHeight = doc.page.height * 0.25;
               const minBannerHeight = doc.page.height * 0.15;
@@ -2555,7 +2628,21 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               // Calculate banner dimensions based on image aspect ratio
               const imageBuffer = fs.readFileSync(imagePath);
               const sharp = require('sharp');
-              const imageMetadata = await sharp(imageBuffer).metadata();
+              let sharpInstance: any = null;
+              let imageMetadata: any = null;
+              
+              try {
+                sharpInstance = sharp(imageBuffer);
+                imageMetadata = await sharpInstance.metadata();
+              } finally {
+                if (sharpInstance) {
+                  try {
+                    sharpInstance.destroy();
+                  } catch (destroyError) {
+                    console.warn("Failed to destroy Sharp instance:", destroyError);
+                  }
+                }
+              }
               
               const maxBannerHeight = doc.page.height * 0.25;
               const minBannerHeight = doc.page.height * 0.15;
@@ -2618,27 +2705,51 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Optimize image for PDF and handle transparency
             try {
               const sharp = require('sharp');
-              const metadata = await sharp(logoData.buffer).metadata();
+              let metadataSharp: any = null;
+              let processSharp: any = null;
+              let metadata: any = null;
               
-              // Check if image has transparency (PNG with alpha channel)
-              const hasTransparency = metadata.channels === 4 || metadata.hasAlpha;
-              
-              if (hasTransparency) {
-                console.log("Logo has transparency, adding white background");
-                // Add white background for transparent images
-                imageBuffer = await sharp(logoData.buffer)
-                  .flatten({ background: { r: 255, g: 255, b: 255 } }) // White background
-                  .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
-                  .jpeg({ quality: 85 })
-                  .toBuffer();
-              } else {
-                // No transparency, process normally
-                imageBuffer = await sharp(logoData.buffer)
-                  .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
-                  .jpeg({ quality: 85 })
-                  .toBuffer();
+              try {
+                metadataSharp = sharp(logoData.buffer);
+                metadata = await metadataSharp.metadata();
+                
+                // Check if image has transparency (PNG with alpha channel)
+                const hasTransparency = metadata.channels === 4 || metadata.hasAlpha;
+                
+                if (hasTransparency) {
+                  console.log("Logo has transparency, adding white background");
+                  // Add white background for transparent images
+                  processSharp = sharp(logoData.buffer);
+                  imageBuffer = await processSharp
+                    .flatten({ background: { r: 255, g: 255, b: 255 } }) // White background
+                    .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 85 })
+                    .toBuffer();
+                } else {
+                  // No transparency, process normally
+                  processSharp = sharp(logoData.buffer);
+                  imageBuffer = await processSharp
+                    .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
+                    .jpeg({ quality: 85 })
+                    .toBuffer();
+                }
+                console.log("Logo optimized with Sharp, transparency handled:", hasTransparency);
+              } finally {
+                if (metadataSharp) {
+                  try {
+                    metadataSharp.destroy();
+                  } catch (destroyError) {
+                    console.warn("Failed to destroy metadata Sharp instance:", destroyError);
+                  }
+                }
+                if (processSharp) {
+                  try {
+                    processSharp.destroy();
+                  } catch (destroyError) {
+                    console.warn("Failed to destroy process Sharp instance:", destroyError);
+                  }
+                }
               }
-              console.log("Logo optimized with Sharp, transparency handled:", hasTransparency);
             } catch (sharpError) {
               console.log("Sharp optimization failed, using original buffer");
               imageBuffer = logoData.buffer;
@@ -2654,9 +2765,22 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
             // Try to get actual image dimensions
             try {
               const sharp = require('sharp');
-              const metadata = await sharp(imageBuffer).metadata();
-              originalWidth = metadata.width || 200;
-              originalHeight = metadata.height || 100;
+              let sharpInstance: any = null;
+              
+              try {
+                sharpInstance = sharp(imageBuffer);
+                const metadata = await sharpInstance.metadata();
+                originalWidth = metadata.width || 200;
+                originalHeight = metadata.height || 100;
+              } finally {
+                if (sharpInstance) {
+                  try {
+                    sharpInstance.destroy();
+                  } catch (destroyError) {
+                    console.warn("Failed to destroy Sharp instance:", destroyError);
+                  }
+                }
+              }
             } catch (dimError) {
               // Fallback to manual dimension reading
               const jpegDims = getJpegDimensions(imageBuffer);
@@ -3232,15 +3356,20 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 try {
                   // Optimize image processing for faster PDF generation
                   const sharp = require('sharp');
+                  let processSharp: any = null;
+                  let metadataSharp: any = null;
                   
-                  // Pre-process image for optimal PDF performance
-                  const optimizedBuffer = await sharp(imageBuffer)
-                    .resize(imageWidth * 2, imageHeight * 2, { fit: 'inside', withoutEnlargement: true })
-                    .jpeg({ quality: 80 })
-                    .toBuffer();
-                  
-                  const metadata = await sharp(optimizedBuffer).metadata();
-                  imageBuffer = optimizedBuffer; // Use optimized buffer
+                  try {
+                    // Pre-process image for optimal PDF performance
+                    processSharp = sharp(imageBuffer);
+                    const optimizedBuffer = await processSharp
+                      .resize(imageWidth * 2, imageHeight * 2, { fit: 'inside', withoutEnlargement: true })
+                      .jpeg({ quality: 80 })
+                      .toBuffer();
+                    
+                    metadataSharp = sharp(optimizedBuffer);
+                    const metadata = await metadataSharp.metadata();
+                    imageBuffer = optimizedBuffer; // Use optimized buffer
                   
                   // Calculate aspect ratio and ensure image fits
                   const aspectRatio = metadata.width / metadata.height;
@@ -3255,13 +3384,29 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                     finalWidth = imageHeight * aspectRatio;
                   }
                   
-                  // Add image with explicit dimensions maintaining aspect ratio
-                  doc.image(imageBuffer, finalX, finalY, {
-                    width: finalWidth,
-                    height: finalHeight
-                  });
-                  
-                  console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
+                    // Add image with explicit dimensions maintaining aspect ratio
+                    doc.image(imageBuffer, finalX, finalY, {
+                      width: finalWidth,
+                      height: finalHeight
+                    });
+                    
+                    console.log(`Added business image ${i} with dimensions ${finalWidth}x${finalHeight}`);
+                  } finally {
+                    if (processSharp) {
+                      try {
+                        processSharp.destroy();
+                      } catch (destroyError) {
+                        console.warn("Failed to destroy process Sharp instance:", destroyError);
+                      }
+                    }
+                    if (metadataSharp) {
+                      try {
+                        metadataSharp.destroy();
+                      } catch (destroyError) {
+                        console.warn("Failed to destroy metadata Sharp instance:", destroyError);
+                      }
+                    }
+                  }
                 } catch (sharpError) {
                   // Fallback without Sharp - calculate aspect ratio from buffer
                   let fallbackWidth = imageWidth;

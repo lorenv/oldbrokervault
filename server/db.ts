@@ -2,6 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { ConnectionPoolOptimizer } from './db-pool-optimizer';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -36,10 +37,20 @@ export const pool = new Pool(poolConfig);
 // Set max listeners to prevent warnings - increased for Replit's environment
 pool.setMaxListeners(isReplit ? 1000 : 500);
 
+// Initialize connection pool optimizer for monitoring and auto-scaling
+export const poolOptimizer = new ConnectionPoolOptimizer(pool, {
+  min: poolConfig.min || 0,
+  max: poolConfig.max,
+  idleTimeoutMillis: poolConfig.idleTimeoutMillis,
+  connectionTimeoutMillis: poolConfig.connectionTimeoutMillis,
+  statementTimeout: poolConfig.statement_timeout
+});
+
 // Add deployment-specific logging
 if (isReplit) {
   console.log('🔧 Environment-optimized database configuration loaded');
   console.log(`📊 Pool config: max=${poolConfig.max}, timeout=${poolConfig.connectionTimeoutMillis}ms`);
+  console.log('🚀 Connection pool optimizer initialized');
 }
 
 // Enhanced error handling for database connections

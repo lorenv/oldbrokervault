@@ -620,16 +620,43 @@ export class MessageService {
 
   // Phase 2: Process SendGrid inbound email webhook
   async processInboundEmailWebhook(webhookData: any): Promise<void> {
-    console.log("📧 Processing inbound email webhook:", JSON.stringify(webhookData, null, 2));
+    console.log("📧 Processing inbound email webhook:");
+    console.log("Webhook keys:", Object.keys(webhookData));
     
     try {
       // Parse SendGrid inbound email format
-      // Expected format: { to, from, subject, text, html, dkim, SPF }
-      const toEmail = webhookData.to;
-      const fromEmail = webhookData.from;
-      const subject = webhookData.subject || '';
-      const content = webhookData.text || webhookData.html || '';
-      const messageId = webhookData['message-id'] || undefined;
+      // SendGrid may include envelope data separately
+      const envelope = webhookData.envelope ? JSON.parse(webhookData.envelope) : null;
+      
+      // Extract email addresses, handling various formats
+      // SendGrid might send: "Name <email@domain.com>" or just "email@domain.com"
+      const extractEmail = (emailStr: string): string => {
+        if (!emailStr) return '';
+        const match = emailStr.match(/<([^>]+)>/);
+        return match ? match[1] : emailStr.trim();
+      };
+      
+      // Try multiple possible field names for recipient
+      const toEmail = extractEmail(
+        webhookData.to || 
+        envelope?.to?.[0] || 
+        webhookData.recipient ||
+        webhookData.To ||
+        ''
+      );
+      
+      // Try multiple possible field names for sender
+      const fromEmail = extractEmail(
+        webhookData.from || 
+        envelope?.from || 
+        webhookData.sender ||
+        webhookData.From ||
+        ''
+      );
+      
+      const subject = webhookData.subject || webhookData.Subject || '';
+      const content = webhookData.text || webhookData.html || webhookData.Text || webhookData.Html || '';
+      const messageId = webhookData['message-id'] || webhookData['Message-ID'] || undefined;
       
       console.log(`Inbound email: ${fromEmail} -> ${toEmail}`);
       
@@ -645,9 +672,38 @@ export class MessageService {
       }
       
       // Extract thread ID from email address (format: thread-123@cimshare.com or thread-123@reply.cimshare.com)
-      const threadMatch = toEmail.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/);
+      // Also check envelope.to array if direct 'to' field doesn't match
+      let threadMatch = toEmail.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
+      
+      // If not found in main 'to' field, check envelope data
+      if (!threadMatch && envelope?.to) {
+        for (const recipient of envelope.to) {
+          const cleanRecipient = extractEmail(recipient);
+          threadMatch = cleanRecipient.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
+          if (threadMatch) {
+            console.log("Found thread ID in envelope.to:", cleanRecipient);
+            break;
+          }
+        }
+      }
+      
+      // Also check the 'to' field if it contains multiple recipients
+      if (!threadMatch && webhookData.to && webhookData.to.includes(',')) {
+        const recipients = webhookData.to.split(',');
+        for (const recipient of recipients) {
+          const cleanRecipient = extractEmail(recipient.trim());
+          threadMatch = cleanRecipient.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
+          if (threadMatch) {
+            console.log("Found thread ID in comma-separated recipients:", cleanRecipient);
+            break;
+          }
+        }
+      }
+      
       if (!threadMatch) {
-        console.log("No thread ID found in recipient email:", toEmail);
+        console.log("No thread ID found in any recipient field");
+        console.log("Checked to:", toEmail);
+        console.log("Envelope.to:", envelope?.to);
         return;
       }
       
@@ -669,8 +725,35 @@ export class MessageService {
       const cleanContent = this.cleanEmailContent(content);
       
       // Determine sender type
-      const senderType = fromEmail === thread.inquirerEmail ? 'inquirer' : 
-                        fromEmail.includes('@cimshare.com') ? 'owner' : 'inquirer';
+      // Clean both emails for comparison (lowercase and trim)
+      const cleanFromEmail = fromEmail.toLowerCase().trim();
+      const cleanInquirerEmail = thread.inquirerEmail?.toLowerCase().trim();
+      
+      console.log("Determining sender type:");
+      console.log("  From email:", cleanFromEmail);
+      console.log("  Thread inquirer email:", cleanInquirerEmail);
+      
+      // Check if sender is the owner (fetch owner email from database)
+      const [owner] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, thread.userId));
+      
+      const cleanOwnerEmail = owner?.email?.toLowerCase().trim();
+      console.log("  Thread owner email:", cleanOwnerEmail);
+      
+      let senderType: 'owner' | 'inquirer';
+      if (cleanFromEmail === cleanOwnerEmail) {
+        senderType = 'owner';
+        console.log("  -> Sender is OWNER");
+      } else if (cleanFromEmail === cleanInquirerEmail) {
+        senderType = 'inquirer';
+        console.log("  -> Sender is INQUIRER");
+      } else {
+        // Default to inquirer if we can't determine
+        senderType = 'inquirer';
+        console.log("  -> Sender unknown, defaulting to INQUIRER");
+      }
       
       // Create the message
       const message = await this.createMessage({

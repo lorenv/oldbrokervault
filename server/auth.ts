@@ -9,6 +9,7 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { getSessionConfig, loginValidation, registerValidation, handleValidationErrors, auditLogger } from "./security";
 import { sanitizeUser } from "./data-sanitizer";
+import { logger } from "./logger";
 
 // Enhanced user cache for authentication optimization
 const userCache = new Map<number, { user: SelectUser; timestamp: number }>();
@@ -154,7 +155,7 @@ export function setupAuth(app: Express) {
           setCachedUser(user);
           return done(null, user);
         } catch (error) {
-          console.error(`Authentication error for ${email}:`, error);
+          logger.error("Authentication error", { email }, undefined);
           return done(error);
         }
       }
@@ -163,31 +164,31 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => {
     const serializeStart = Date.now();
-    console.log(`Serializing user: ${user.id}`);
+    logger.debug("Serializing user", undefined, user.id);
     done(null, user.id);
-    console.log(`User serialization took: ${Date.now() - serializeStart}ms`);
+    logger.debug("User serialization completed", { duration: Date.now() - serializeStart }, user.id);
   });
   
   passport.deserializeUser(async (id: any, done) => {
     try {
-      console.log('🔍 Deserializing user ID:', typeof id, JSON.stringify(id).substring(0, 100));
+      // logger.debug('Deserializing user ID', { idType: typeof id, idValue: typeof id === 'object' ? '[object]' : String(id).substring(0, 100) });
       
       // CRITICAL: Check if id is actually a user object instead of a number
       if (typeof id === 'string') {
         try {
           const parsed = JSON.parse(id);
           if (parsed && typeof parsed === 'object' && parsed.id) {
-            console.warn('⚠️ Found corrupted session with full user object, extracting ID:', parsed.id);
+            logger.warn('Found corrupted session with full user object, extracting ID', { extractedId: parsed.id });
             id = parsed.id;
           }
         } catch (e) {
           // Not JSON, might be a stringified number
           const numId = parseInt(id);
           if (!isNaN(numId)) {
-            console.log('📝 Converting string ID to number:', numId);
+            logger.debug('Converting string ID to number', { numId });
             id = numId;
           } else {
-            console.error('❌ Invalid user ID in session:', id);
+            logger.error('Invalid user ID in session', { invalidId: id });
             return done(null, false);
           }
         }
@@ -196,47 +197,47 @@ export function setupAuth(app: Express) {
       // Additional check for object types that weren't caught above
       if (typeof id === 'object' && id !== null) {
         if (id.id && typeof id.id === 'number') {
-          console.warn('⚠️ Found object with ID property, extracting:', id.id);
+          logger.warn('Found object with ID property, extracting', { extractedId: id.id });
           id = id.id;
         } else {
-          console.error('❌ Cannot extract valid ID from object:', id);
+          logger.error('Cannot extract valid ID from object', { invalidObject: id });
           return done(null, false);
         }
       }
       
       if (typeof id !== 'number' || isNaN(id)) {
-        console.error('❌ User ID must be a valid number, got:', typeof id, id);
+        logger.error('User ID must be a valid number', { idType: typeof id, idValue: id });
         return done(null, false);
       }
       
-      console.log('✅ Using valid user ID:', id);
+      logger.debug('Using valid user ID', { userId: id });
       
       // Check cache first to reduce database hits
       const cachedUser = getCachedUser(id);
       
       if (cachedUser) {
-        console.log('📋 Found user in cache');
+        logger.debug('Found user in cache', undefined, id);
         return done(null, cachedUser);
       }
 
-      console.log('🔍 Fetching user from database...');
+      logger.debug('Fetching user from database', undefined, id);
       const user = await storage.getUser(id);
       
       if (!user) {
-        console.log('❌ User not found in database');
+        logger.warn('User not found in database', undefined, id);
         return done(null, false);
       }
       
-      console.log('✅ User fetched successfully');
+      logger.debug('User fetched successfully', undefined, id);
       // Cache the user for future requests
       setCachedUser(user);
       done(null, user);
     } catch (error: any) {
-      console.error(`❌ Deserialization error for user ${id}:`, error);
+      logger.error('Deserialization error', { errorMessage: error.message }, id);
       
       // If it's a database type error, it means the session is still corrupted
       if (error.message && error.message.includes('invalid input syntax for type integer')) {
-        console.error('🚨 Corrupted session detected, forcing logout');
+        logger.error('Corrupted session detected, forcing logout', undefined, id);
         // Force session destruction for this user
         return done(null, false);
       }
@@ -249,15 +250,14 @@ export function setupAuth(app: Express) {
     { name: 'businessLogo', maxCount: 1 },
     { name: 'profilePhoto', maxCount: 1 }
   ]), async (req, res) => {
-    console.log("=== REGISTRATION ENDPOINT HIT ===");
-    console.log("Request received at /api/register");
+    logger.info("Registration endpoint hit");
     
     // Ensure we always return JSON
     res.setHeader('Content-Type', 'application/json');
     
     try {
-      console.log(`🔐 Registration attempt for email: ${req.body.email}`);
-      console.log(`🔐 Request headers:`, {
+      logger.info('Registration attempt', { email: req.body.email });
+      logger.debug('Request headers', {
         'content-type': req.headers['content-type'],
         'accept': req.headers['accept'],
         'user-agent': req.headers['user-agent']
@@ -269,8 +269,7 @@ export function setupAuth(app: Express) {
       // Get files from the request (multer middleware populates this)
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
-      console.log("=== REGISTRATION DEBUG START ===");
-      console.log("Request body:", {
+      logger.debug("Registration request body", {
         email,
         password: password ? '[REDACTED]' : 'MISSING',
         name,
@@ -279,14 +278,14 @@ export function setupAuth(app: Express) {
         agreeToTerms,
         adminCode: adminCode ? '[PROVIDED]' : 'NOT_PROVIDED'
       });
-      console.log("Files:", {
+      logger.debug("Registration files", {
         businessLogo: files?.businessLogo?.[0] ? 'PROVIDED' : 'NOT_PROVIDED',
         profilePhoto: files?.profilePhoto?.[0] ? 'PROVIDED' : 'NOT_PROVIDED'
       });
       
       // Basic validation
       if (!email || !password || !agreeToTerms || agreeToTerms !== 'true') {
-        console.log("❌ Validation failed:", { email: !!email, password: !!password, agreeToTerms });
+        logger.warn("Registration validation failed", { email: !!email, password: !!password, agreeToTerms });
         return res.status(400).json({
           message: "Please fill in all required fields and agree to the terms"
         });

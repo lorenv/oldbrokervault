@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock, CreditCard } from "lucide-react";
+import { Lock, CreditCard, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -26,6 +27,7 @@ export function SubscriptionCard({
   const isPremium = status === "premium";
   const isStandard = status === "standard";
   const isAdmin = status === "admin";
+  const isCanceled = status === "canceled";
 
   const getLimit = () => {
     switch (status) {
@@ -33,6 +35,7 @@ export function SubscriptionCard({
       case "enterprise":
         return "Unlimited";
       case "standard":
+      case "canceled": // Canceled subscriptions maintain access until end date
         return 20;
       default:
         return 1; // Free trial
@@ -44,6 +47,7 @@ export function SubscriptionCard({
       case "admin":
       case "enterprise":
       case "standard":
+      case "canceled": // Canceled subscriptions maintain access until end date
         return "Unlimited";
       default:
         return 2; // Free trial
@@ -87,10 +91,10 @@ export function SubscriptionCard({
             </div>
           </div>
           <Badge 
-            variant={status === "free" ? "secondary" : "default"}
+            variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
             className="text-xs"
           >
-            {status?.toUpperCase() || "FREE"}
+            {isCanceled ? "CANCELED" : status?.toUpperCase() || "FREE"}
           </Badge>
         </div>
       </CardHeader>
@@ -100,6 +104,34 @@ export function SubscriptionCard({
             {status === "admin" ? (
               <div className="text-sm text-muted-foreground">
                 <p>Administrator account with unlimited access to all features</p>
+              </div>
+            ) : isCanceled ? (
+              <div className="space-y-3">
+                <Alert className="border-amber-200 bg-amber-50">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-900">Subscription Canceled</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    Your subscription has been canceled but you will maintain full access to all Standard plan features until the end of your current billing period. You can reactivate your subscription at any time before it expires.
+                  </AlertDescription>
+                </Alert>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-muted-foreground font-medium mb-1">
+                    Full access continues until:
+                  </p>
+                  <p className="font-semibold text-lg text-gray-900">
+                    {endsAt ? new Date(endsAt).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    }) : "N/A"}
+                  </p>
+                  {endsAt && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ({Math.ceil((new Date(endsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining)
+                    </p>
+                  )}
+                </div>
               </div>
             ) : status !== "free" ? (
               <>
@@ -152,7 +184,7 @@ export function SubscriptionCard({
             </div>
           </div>
 
-          {!isPremium && !isAdmin && (
+          {!isPremium && !isAdmin && !isCanceled && (
             <Button
               className="w-full"
               size={subtle ? "sm" : "default"}
@@ -162,15 +194,15 @@ export function SubscriptionCard({
             </Button>
           )}
 
-          {(isPremium || isStandard) && !isAdmin && (
+          {(isPremium || isStandard || isCanceled) && !isAdmin && (
             <Button
               className="w-full"
-              variant="outline"
+              variant={isCanceled ? "default" : "outline"}
               size={subtle ? "sm" : "default"}
               onClick={handleCustomerPortal}
               disabled={isLoading}
             >
-              {isLoading ? "Loading..." : "Change your plan"}
+              {isLoading ? "Loading..." : isCanceled ? "Reactivate Subscription" : "Change your plan"}
             </Button>
           )}
 
