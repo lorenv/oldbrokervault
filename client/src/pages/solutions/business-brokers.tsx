@@ -39,7 +39,7 @@ export default function BusinessBrokersPage() {
           <div className="flex gap-4 justify-center">
             <Link href="/login">
               <Button size="lg" className="gap-2">
-                Start Free 14-Day Trial <ArrowRight className="h-4 w-4" />
+                Start Free Trial <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link href="/contact">
@@ -504,7 +504,7 @@ export default function BusinessBrokersPage() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              14-day free trial • No credit card required • Full platform access
+              Free trial • No credit card required • Full platform access
             </p>
           </CardContent>
         </Card>
