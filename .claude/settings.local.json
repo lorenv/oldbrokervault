@@ -23,7 +23,9 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npm run dev)",
       "Bash(node:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm run typecheck)",
+      "Bash(npx tsc --noEmit)"
     ],
     "deny": [],
     "ask": [],
