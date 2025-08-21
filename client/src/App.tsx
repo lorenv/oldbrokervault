@@ -6,6 +6,7 @@ import { AuthProvider } from "./hooks/use-auth";
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { lazy, Suspense } from "react";
 import HomePage from "@/pages/home-page";
 import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
@@ -37,6 +38,13 @@ import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
+
+// Lazy load new SEO pages
+const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
+const AiPoweredCimPage = lazy(() => import("@/pages/features/ai-powered-cim"));
+const InvestorDatabaseFeaturePage = lazy(() => import("@/pages/features/investor-database"));
+const BusinessBrokersPage = lazy(() => import("@/pages/solutions/business-brokers"));
+const InvestmentBankingPage = lazy(() => import("@/pages/solutions/investment-banking"));
 
 function Router() {
   const [location] = useLocation();
@@ -82,6 +90,33 @@ function Router() {
             <ProtectedRoute path="/template-editor/:id" component={EnhancedTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route path="/sign/:accessToken" component={SignDocumentPage} />
+            {/* New SEO Feature Pages */}
+            <Route path="/features/nda-protection">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <NdaProtectionPage />
+              </Suspense>
+            </Route>
+            <Route path="/features/ai-powered-cim">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <AiPoweredCimPage />
+              </Suspense>
+            </Route>
+            <Route path="/features/investor-database">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <InvestorDatabaseFeaturePage />
+              </Suspense>
+            </Route>
+            {/* New SEO Solution Pages */}
+            <Route path="/solutions/business-brokers">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <BusinessBrokersPage />
+              </Suspense>
+            </Route>
+            <Route path="/solutions/investment-banking">
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                <InvestmentBankingPage />
+              </Suspense>
+            </Route>
             <Route component={NotFound} />
           </Switch>
         </div>

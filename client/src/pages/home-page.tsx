@@ -14,7 +14,10 @@ import {
   Smartphone,
   BarChart3,
   PenTool,
-  X
+  X,
+  Briefcase,
+  Building,
+  CheckCircle
 } from "lucide-react";
 import { useState } from "react";
 
@@ -25,7 +28,8 @@ export default function HomePage() {
       icon: Shield,
       title: "NDA Protection",
       description: "Built-in confidentiality agreements with secure document sharing and password protection.",
-      color: "text-green-500"
+      color: "text-green-500",
+      link: "/features/nda-protection"
     },
     {
       icon: Palette,
@@ -43,13 +47,15 @@ export default function HomePage() {
       icon: Zap,
       title: "AI-Powered Analysis",
       description: "Transform business meeting transcripts into structured, professional documents using advanced AI technology.",
-      color: "text-orange-500"
+      color: "text-orange-500",
+      link: "/features/ai-powered-cim"
     },
     {
       icon: Database,
       title: "Investor Database",
       description: "Track and manage investor contacts across all documents with comprehensive NDA signature management.",
-      color: "text-indigo-500"
+      color: "text-indigo-500",
+      link: "/features/investor-database"
     },
 
     {
@@ -169,6 +175,13 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
                   <p className="text-gray-600 text-sm sm:text-base">{feature.description}</p>
+                  {feature.link && (
+                    <Link href={feature.link}>
+                      <Button variant="link" className="mt-3 p-0 h-auto font-medium">
+                        Learn more →
+                      </Button>
+                    </Link>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -351,6 +364,88 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solutions Section */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+              Tailored Solutions for Your Industry
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Whether you're a business broker or investment banker, we have the right tools for your M&A transactions.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="p-6">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Briefcase className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-semibold">For Business Brokers</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <p className="text-muted-foreground mb-4">
+                  Professional CIM creation platform designed for business brokers and M&A advisors.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Professional CIM creation in hours
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Contact tracking and management
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Automated NDA management
+                  </li>
+                </ul>
+                <Link href="/solutions/business-brokers">
+                  <Button variant="outline" className="w-full">
+                    Learn More →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="p-6">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Building className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-semibold">For Investment Banks</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <p className="text-muted-foreground mb-4">
+                  Enhanced features for larger organizations with additional security and customization options.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Enhanced security features
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    API access for custom integrations
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Custom branding options
+                  </li>
+                </ul>
+                <Link href="/solutions/investment-banking">
+                  <Button variant="outline" className="w-full">
+                    Learn More →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
