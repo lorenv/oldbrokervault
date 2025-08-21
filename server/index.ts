@@ -209,8 +209,11 @@ server.on('listening', async () => {
       await setupVite(app, server);
       console.log('✅ Vite middleware configured');
       
-      // Temporarily disable SEO routes in development to test React app
-      console.log('🔍 SEO routes temporarily disabled for development debugging...');
+      // Setup SEO routes AFTER Vite for development to avoid conflicts
+      console.log('🔍 Setting up SEO routes for development after Vite...');
+      const { setupSEORoutes } = await import('./seo-routes');
+      setupSEORoutes(app);
+      console.log('✅ SEO routes configured for development');
     }
     
     log('✅ All middleware and routes configured');
