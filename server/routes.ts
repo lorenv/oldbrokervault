@@ -176,10 +176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import message service for webhook processing
   const { messageService } = await import("./message-service");
   
-  // PRIORITY: Setup SEO routes first for optimal search engine indexing
-  console.log('🔍 Setting up SEO routes for marketing pages...');
-  setupSEORoutes(app);
-  console.log('✅ SEO routes configured for /, /pricing, /contact');
+  // SEO routes will be setup AFTER Vite middleware to avoid conflicts
+  console.log('🔍 SEO routes will be configured after Vite setup in development...');
   
   // Remove the general static serving from here - it will be handled by index.ts
   // Only keep specific route static serving that's needed

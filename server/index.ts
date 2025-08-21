@@ -184,6 +184,12 @@ server.on('listening', async () => {
       const distPath = path.resolve(process.cwd(), "dist", "public");
       app.use(express.static(distPath));
       
+      // Setup SEO routes FIRST in production for optimal crawling
+      console.log('🔍 Setting up SEO routes for production...');
+      const { setupSEORoutes } = await import('./seo-routes');
+      setupSEORoutes(app);
+      console.log('✅ SEO routes configured for production');
+      
       // Add the catch-all route for production
       app.use("*", (req, res) => {
         if (req.originalUrl.startsWith('/api/')) {
@@ -202,6 +208,9 @@ server.on('listening', async () => {
       const { setupVite } = await import('./vite');
       await setupVite(app, server);
       console.log('✅ Vite middleware configured');
+      
+      // Temporarily disable SEO routes in development to test React app
+      console.log('🔍 SEO routes temporarily disabled for development debugging...');
     }
     
     log('✅ All middleware and routes configured');
