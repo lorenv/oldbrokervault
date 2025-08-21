@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { z } from "zod";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Shield, Zap, Lock, FileText, Database, Download, PenTool, Globe, CheckCircle, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -237,57 +237,176 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-blue-400/10 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-indigo-400/10 blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-cyan-400/5 blur-3xl"></div>
-      </div>
+    <div className="min-h-screen flex">
+      {/* Left Side - Features Showcase */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px)`,
+          }}></div>
+        </div>
 
-      <div className="relative w-full max-w-lg">
-        {/* Main Card */}
-        <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 rounded-2xl overflow-hidden">
-          {/* Compact Header Section */}
-          <div className="relative bg-gradient-to-r from-slate-600 to-blue-600 px-8 py-8 text-center">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Welcome to CIM Share
-            </h1>
-            <p className="text-slate-100 text-sm leading-relaxed max-w-sm mx-auto">
-              Create professional Confidential Information Memorandums with advanced NDA protection and seamless collaboration
-            </p>
+        {/* Floating shapes */}
+        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+
+        <div className="relative z-10 flex flex-col justify-center px-12 w-full">
+          {/* Logo and Tagline */}
+          <div className="mb-12">
+            <h1 className="text-5xl font-bold text-white mb-4">CIM Share</h1>
+            <p className="text-xl text-blue-200">Professional CIMs with Enterprise Security</p>
           </div>
 
-          <CardContent className="p-8">
-            <Tabs defaultValue="login" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl">
-                <TabsTrigger 
-                  value="login" 
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium transition-all duration-200"
-                >
-                  Login
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="register"
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium transition-all duration-200"
-                >
-                  Register
-                </TabsTrigger>
-              </TabsList>
+          {/* Key Features Grid */}
+          <div className="space-y-6 mb-12">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">NDA Protection Built-In</h3>
+                <p className="text-blue-200 text-sm">Secure document sharing with integrated confidentiality agreements and audit trails</p>
+              </div>
+            </div>
 
-              <TabsContent value="login" className="space-y-0">
-                <LoginForm 
-                  mutation={loginMutation} 
-                  onForgotPassword={() => setShowForgotPassword(true)}
-                />
-              </TabsContent>
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">AI-Powered Document Creation</h3>
+                <p className="text-blue-200 text-sm">Transform meeting transcripts into professional CIMs instantly with advanced AI</p>
+              </div>
+            </div>
 
-              <TabsContent value="register" className="space-y-0">
-                <RegisterForm mutation={registerMutation} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <Database className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Investor Management System</h3>
+                <p className="text-blue-200 text-sm">Track contacts, manage permissions, and monitor document engagement in real-time</p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Bank-Level Encryption</h3>
+                <p className="text-blue-200 text-sm">Enterprise-grade security with SOC 2 compliance and end-to-end encryption</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Proof */}
+          <div className="border-t border-blue-800 pt-8">
+            <div className="flex items-center space-x-8">
+              <div>
+                <p className="text-3xl font-bold text-white">10,000+</p>
+                <p className="text-blue-300 text-sm">Documents Created</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-white">500+</p>
+                <p className="text-blue-300 text-sm">Companies Trust Us</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-white">99.9%</p>
+                <p className="text-blue-300 text-sm">Uptime Guaranteed</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Features */}
+          <div className="mt-12 flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2 text-blue-300">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span className="text-sm">Free Plan Available</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-300">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span className="text-sm">No Credit Card Required</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-300">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span className="text-sm">Cancel Anytime</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login/Register Forms */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo (hidden on desktop) */}
+          <div className="lg:hidden text-center mb-8">
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">CIM Share</h1>
+            <p className="text-slate-600">Professional CIMs with Enterprise Security</p>
+          </div>
+
+          <Card className="shadow-2xl border-0">
+            <CardHeader className="space-y-1 pb-6">
+              <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+              <CardDescription className="text-center">
+                Enter your credentials to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="login" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-100">
+                  <TabsTrigger 
+                    value="login" 
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="register"
+                    className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Sign Up
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="login" className="space-y-0">
+                  <LoginForm 
+                    mutation={loginMutation} 
+                    onForgotPassword={() => setShowForgotPassword(true)}
+                  />
+                </TabsContent>
+
+                <TabsContent value="register" className="space-y-0">
+                  <RegisterForm mutation={registerMutation} />
+                </TabsContent>
+              </Tabs>
+
+              {/* Mobile Features (hidden on desktop) */}
+              <div className="lg:hidden mt-8 pt-8 border-t">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <Shield className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">NDA Protection</p>
+                  </div>
+                  <div>
+                    <Zap className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">AI-Powered</p>
+                  </div>
+                  <div>
+                    <Database className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">Investor Database</p>
+                  </div>
+                  <div>
+                    <Lock className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
+                    <p className="text-xs text-slate-600">Bank-Level Security</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -304,19 +423,19 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-5 mt-6">
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-5">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">Email address</FormLabel>
+              <FormLabel className="text-sm font-medium text-gray-700">Email</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   type="email"
                   autoComplete="email"
-                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -330,12 +449,12 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
-                <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
+                <FormLabel className="text-sm font-medium text-gray-700">Password</FormLabel>
                 <Button
                   type="button"
                   variant="link"
                   size="sm"
-                  className="px-0 h-auto text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="px-0 h-auto text-sm"
                   onClick={onForgotPassword}
                 >
                   Forgot password?
@@ -346,7 +465,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
                   type="password"
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -356,7 +475,7 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
         />
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          className="w-full h-11"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
@@ -366,10 +485,8 @@ function LoginForm({ mutation, onForgotPassword }: { mutation: any; onForgotPass
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
               Sign In
+              <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}
         </Button>
@@ -458,19 +575,19 @@ function RegisterForm({ mutation }: { mutation: any }) {
         }
 
         mutation.mutate(formData as any);
-      })} className="space-y-5 mt-6">
+      })} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">Email address</FormLabel>
+              <FormLabel className="text-sm font-medium text-gray-700">Email</FormLabel>
               <FormControl>
                 <Input
                   placeholder="name@example.com"
                   type="email"
                   autoComplete="email"
-                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -483,13 +600,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">Full Name</FormLabel>
+              <FormLabel className="text-sm font-medium text-gray-700">Full Name</FormLabel>
               <FormControl>
                 <Input
                   placeholder="John Doe"
                   type="text"
                   autoComplete="name"
-                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -503,13 +620,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-semibold text-gray-700">Password</FormLabel>
+              <FormLabel className="text-sm font-medium text-gray-700">Password</FormLabel>
               <FormControl>
                 <Input
                   type="password"
                   placeholder="Choose a secure password"
                   autoComplete="new-password"
-                  className="h-12 px-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors duration-200 bg-gray-50 focus:bg-white"
+                  className="h-11"
                   {...field}
                   onChange={(e) => {
                     field.onChange(e);
@@ -517,170 +634,54 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   }}
                 />
               </FormControl>
-              {/* Modern Password Requirements Checklist - Two Columns */}
-              <div className="mt-3 text-xs">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                      passwordChecks.minLength 
-                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                        : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {passwordChecks.minLength && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`transition-colors duration-300 ${passwordChecks.minLength ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                      8+ characters
-                    </span>
+              {/* Password Requirements Checklist */}
+              {password && (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  <div className={`flex items-center gap-1 ${passwordChecks.minLength ? 'text-green-600' : 'text-gray-400'}`}>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>8+ characters</span>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                      passwordChecks.hasLowercase 
-                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                        : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {passwordChecks.hasLowercase && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`transition-colors duration-300 ${passwordChecks.hasLowercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                      Lowercase
-                    </span>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasLowercase ? 'text-green-600' : 'text-gray-400'}`}>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Lowercase</span>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                      passwordChecks.hasUppercase 
-                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                        : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {passwordChecks.hasUppercase && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`transition-colors duration-300 ${passwordChecks.hasUppercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                      Uppercase
-                    </span>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasUppercase ? 'text-green-600' : 'text-gray-400'}`}>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Uppercase</span>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                      passwordChecks.hasNumber 
-                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                        : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {passwordChecks.hasNumber && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`transition-colors duration-300 ${passwordChecks.hasNumber ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                      Number
-                    </span>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasNumber ? 'text-green-600' : 'text-gray-400'}`}>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Number</span>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ease-in-out flex items-center justify-center ${
-                      passwordChecks.hasSpecial 
-                        ? 'bg-emerald-500 border-emerald-500 scale-110' 
-                        : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {passwordChecks.hasSpecial && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`transition-colors duration-300 ${passwordChecks.hasSpecial ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
-                      Special char
-                    </span>
+                  <div className={`flex items-center gap-1 ${passwordChecks.hasSpecial ? 'text-green-600' : 'text-gray-400'} col-span-2`}>
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Special character</span>
                   </div>
                 </div>
-              </div>
+              )}
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {/* Business Profile Fields */}
-        <div className="space-y-5 bg-slate-50/50 p-5 rounded-xl border border-slate-200">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
-            </svg>
-            Business Information <span className="text-gray-400 font-normal">(optional)</span>
-          </div>
-
-          <FormField
-            control={form.control}
-            name="businessName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-600">Company Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Your company name"
-                    type="text"
-                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-600">Phone Number</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="(555) 123-4567"
-                    type="tel"
-                    className="h-11 px-4 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
+        {/* Optional Business Fields - Collapsible */}
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+            Business Information (Optional)
+          </summary>
+          <div className="mt-3 space-y-3">
             <FormField
               control={form.control}
-              name="profilePhoto"
+              name="businessName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    Profile Photo
-                    {uploadStatus.profilePhoto && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Uploaded
-                      </div>
-                    )}
-                  </FormLabel>
+                  <FormLabel className="text-sm text-gray-600">Company Name</FormLabel>
                   <FormControl>
                     <Input
-                      type="file"
-                      accept="image/*"
-                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        field.onChange(file);
-                        handleFileUpload('profilePhoto', file);
-                      }}
+                      placeholder="Your company name"
+                      type="text"
+                      className="h-10"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -690,30 +691,16 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
             <FormField
               control={form.control}
-              name="businessLogo"
+              name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    Business Logo
-                    {uploadStatus.businessLogo && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Uploaded
-                      </div>
-                    )}
-                  </FormLabel>
+                  <FormLabel className="text-sm text-gray-600">Phone Number</FormLabel>
                   <FormControl>
                     <Input
-                      type="file"
-                      accept="image/*"
-                      className="h-11 px-3 border border-gray-300 rounded-lg focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        field.onChange(file);
-                        handleFileUpload('businessLogo', file);
-                      }}
+                      placeholder="(555) 123-4567"
+                      type="tel"
+                      className="h-10"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -721,13 +708,13 @@ function RegisterForm({ mutation }: { mutation: any }) {
               )}
             />
           </div>
-        </div>
+        </details>
 
         <FormField
           control={form.control}
           name="agreeToTerms"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -735,10 +722,12 @@ function RegisterForm({ mutation }: { mutation: any }) {
                   className="mt-0.5"
                 />
               </FormControl>
-              <div className="space-y-1 leading-none flex-1">
+              <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm font-normal text-gray-700">
                   I agree to the{" "}
-                  <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">Terms and Conditions</a>
+                  <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 hover:underline">
+                    Terms and Conditions
+                  </a>
                 </FormLabel>
                 <FormMessage />
               </div>
@@ -748,20 +737,18 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
         <Button 
           type="submit" 
-          className="w-full h-12 bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] mt-6"
+          className="w-full h-11"
           disabled={mutation.isPending}
         >
           {mutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating your account...
+              Creating account...
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
-              </svg>
               Create Account
+              <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}
         </Button>
