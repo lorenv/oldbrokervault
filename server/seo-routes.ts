@@ -44,15 +44,18 @@ export function setupSEORoutes(app: Express) {
   const seoRoutes = Object.keys(SEO_PAGES);
   
   seoRoutes.forEach(route => {
-    app.get(route, async (req: Request, res: Response) => {
+    app.get(route, async (req: Request, res: Response, next: any) => {
       try {
         // Check if this is a bot/crawler
         const userAgent = req.headers['user-agent'] || '';
         const isBot = /bot|crawler|spider|crawling/i.test(userAgent) || 
                      /googlebot|bingbot|slurp|duckduckbot/i.test(userAgent);
         
-        // Always serve SEO-optimized HTML for bots and initial page loads
-        if (isBot || !req.headers['accept']?.includes('application/json')) {
+        // In development, only serve SEO HTML to actual bots, not browsers
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        const shouldServeSEO = isBot || (!isDevelopment && !req.headers['accept']?.includes('application/json'));
+        
+        if (shouldServeSEO) {
           logger.info(`Serving SEO HTML for ${route}`, { 
             userAgent: userAgent.substring(0, 100),
             isBot,
@@ -69,17 +72,17 @@ export function setupSEORoutes(app: Express) {
           return res.send(html);
         }
         
-        // For SPA navigation, fall through to normal SPA serving
-        // This will be handled by the existing catch-all route
-        return res.redirect(302, `/#${route}`);
+        // For SPA navigation in development, let it fall through to Vite
+        // Don't handle this request - let it continue to the next middleware
+        return next();
         
       } catch (error) {
         logger.error(`Error rendering SEO page ${route}`, { 
           error: error instanceof Error ? error.message : 'Unknown error' 
         });
         
-        // Fallback to SPA
-        return res.redirect(302, `/#${route}`);
+        // Fallback to SPA - let other middleware handle it
+        return next();
       }
     });
   });
