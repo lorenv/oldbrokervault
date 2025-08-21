@@ -22,7 +22,8 @@
       "Bash(done)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run dev)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npm run dev)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": [],

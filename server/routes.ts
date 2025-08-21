@@ -46,6 +46,7 @@ import { coverImageService } from "./cover-image-service";
 import { messageRoutes } from "./routes/messages";
 import messageAttachmentRoutes from "./routes/message-attachments";
 import { registerMonitoringRoutes } from "./routes/monitoring-routes";
+import { setupSEORoutes } from "./seo-routes";
 
 
 // Directory paths
@@ -174,6 +175,11 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Import message service for webhook processing
   const { messageService } = await import("./message-service");
+  
+  // PRIORITY: Setup SEO routes first for optimal search engine indexing
+  console.log('🔍 Setting up SEO routes for marketing pages...');
+  setupSEORoutes(app);
+  console.log('✅ SEO routes configured for /, /pricing, /contact');
   
   // Remove the general static serving from here - it will be handled by index.ts
   // Only keep specific route static serving that's needed
