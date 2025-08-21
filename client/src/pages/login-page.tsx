@@ -664,24 +664,78 @@ function RegisterForm({ mutation }: { mutation: any }) {
           )}
         />
 
-        {/* Optional Business Fields - Collapsible */}
-        <details className="group">
-          <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-            Business Information (Optional)
-          </summary>
-          <div className="mt-3 space-y-3">
+        {/* Business Profile Fields */}
+        <div className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+            </svg>
+            Business Information <span className="text-gray-400 font-normal">(optional)</span>
+          </div>
+
+          <FormField
+            control={form.control}
+            name="businessName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Company Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Your company name"
+                    type="text"
+                    className="h-10"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-600">Phone Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="(555) 123-4567"
+                    type="tel"
+                    className="h-10"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
             <FormField
               control={form.control}
-              name="businessName"
+              name="profilePhoto"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm text-gray-600">Company Name</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Profile Photo
+                    {uploadStatus.profilePhoto && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>Uploaded</span>
+                      </div>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Your company name"
-                      type="text"
-                      className="h-10"
-                      {...field}
+                      type="file"
+                      accept="image/*"
+                      className="h-10 px-2 border border-gray-300 rounded-md focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('profilePhoto', file);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -691,16 +745,28 @@ function RegisterForm({ mutation }: { mutation: any }) {
 
             <FormField
               control={form.control}
-              name="phoneNumber"
+              name="businessLogo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm text-gray-600">Phone Number</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                    Business Logo
+                    {uploadStatus.businessLogo && (
+                      <div className="flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>Uploaded</span>
+                      </div>
+                    )}
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="(555) 123-4567"
-                      type="tel"
-                      className="h-10"
-                      {...field}
+                      type="file"
+                      accept="image/*"
+                      className="h-10 px-2 border border-gray-300 rounded-md focus:border-blue-400 focus:ring-0 transition-colors duration-200 bg-white text-sm file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        field.onChange(file);
+                        handleFileUpload('businessLogo', file);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -708,7 +774,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
               )}
             />
           </div>
-        </details>
+        </div>
 
         <FormField
           control={form.control}
