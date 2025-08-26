@@ -2886,7 +2886,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Debug: Log basic document info
       console.log(`Fetched CIM document ${docId} for user ${req.user!.id}`);
       
-      res.json(doc);
+      // Transform field name for frontend consistency
+      const transformedDoc = {
+        ...doc,
+        ndaRequiresManualApproval: doc.ndaApprovalRequired
+      };
+      
+      res.json(transformedDoc);
     } catch (error) {
       console.error("Error fetching CIM document:", error);
       res.status(500).json({ error: "Failed to fetch document" });
@@ -2923,7 +2929,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedDoc = await storage.updateCimDocument(docId, req.body);
       console.log("Updated CIM document:", updatedDoc);
       
-      res.json(updatedDoc);
+      // Transform field name for frontend consistency
+      const transformedDoc = {
+        ...updatedDoc,
+        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+      };
+      
+      res.json(transformedDoc);
     } catch (error) {
       console.error("CIM update error:", error);
       res.status(500).json({ error: "Failed to update document", details: error instanceof Error ? error.message : String(error) });
@@ -2972,7 +2984,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const updatedDoc = await storage.updateCimDocumentContent(docId, editedContent);
-      res.json(updatedDoc);
+      // Transform field name for frontend consistency
+      const transformedDoc = {
+        ...updatedDoc,
+        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+      };
+      res.json(transformedDoc);
     } catch (error) {
       console.error("Error updating CIM content:", error);
       res.status(500).json({ error: "Failed to update content" });
@@ -4859,7 +4876,10 @@ ${finalQuestion}
         requireNda: doc.ndaProtected,
         password: doc.sharePassword,
         expiresAt: doc.shareExpiresAt,
-        viewCount: doc.shareViewCount
+        viewCount: doc.shareViewCount,
+        ndaProtected: doc.ndaProtected,
+        ndaTemplateId: doc.ndaTemplateId,
+        ndaRequiresManualApproval: doc.ndaApprovalRequired
       });
     } catch (error) {
       console.error("Error fetching share settings:", error);
@@ -4880,6 +4900,13 @@ ${finalQuestion}
       }
 
       const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaRequiresManualApproval } = req.body;
+      
+      console.log('📝 PATCH /share-settings received:', {
+        ndaRequiresManualApproval,
+        ndaProtected,
+        ndaTemplateId,
+        body: req.body
+      });
       
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
@@ -4908,7 +4935,7 @@ ${finalQuestion}
         }
       }
 
-      const updatedDoc = await storage.updateCimShareSettings(docId, {
+      const settingsToUpdate = {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
         customSlug: validatedCustomSlug,
@@ -4917,9 +4944,19 @@ ${finalQuestion}
         ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
         ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
         ndaApprovalRequired: ndaRequiresManualApproval !== undefined ? ndaRequiresManualApproval : doc.ndaApprovalRequired
+      };
+      
+      console.log('📝 Calling updateCimShareSettings with:', {
+        docId,
+        settingsToUpdate,
+        ndaApprovalRequiredValue: settingsToUpdate.ndaApprovalRequired,
+        ndaRequiresManualApprovalFromBody: ndaRequiresManualApproval,
+        docCurrentValue: doc.ndaApprovalRequired
       });
 
-      res.json({
+      const updatedDoc = await storage.updateCimShareSettings(docId, settingsToUpdate);
+
+      const responseData = {
         shareSlug: updatedDoc.shareSlug,
         customSlug: updatedDoc.customSlug,
         isPublic: updatedDoc.shareEnabled,
@@ -4930,7 +4967,14 @@ ${finalQuestion}
         ndaProtected: updatedDoc.ndaProtected,
         ndaTemplateId: updatedDoc.ndaTemplateId,
         ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+      };
+      
+      console.log('📝 Returning response:', {
+        ndaRequiresManualApproval: responseData.ndaRequiresManualApproval,
+        ndaApprovalRequiredFromDB: updatedDoc.ndaApprovalRequired
       });
+
+      res.json(responseData);
     } catch (error) {
       console.error("Error updating share settings:", error);
       
