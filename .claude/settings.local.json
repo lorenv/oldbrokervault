@@ -25,7 +25,8 @@
       "Bash(node:*)",
       "WebSearch",
       "Bash(npm run typecheck)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": [],

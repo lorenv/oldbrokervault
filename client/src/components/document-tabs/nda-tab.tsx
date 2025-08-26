@@ -47,14 +47,20 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
   });
 
+  // Track if we're in the middle of updating to prevent useEffect from overriding
+  const [isUpdating, setIsUpdating] = useState(false);
+
   // Sync local state with document data when it changes
   useEffect(() => {
-    setNdaSettings({
-      ndaProtected: cimDocument.ndaProtected || false,
-      ndaTemplateId: cimDocument.ndaTemplateId || null,
-      ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
-    });
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval]);
+    // Don't sync if we're in the middle of updating
+    if (!isUpdating) {
+      setNdaSettings({
+        ndaProtected: cimDocument.ndaProtected || false,
+        ndaTemplateId: cimDocument.ndaTemplateId || null,
+        ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
+      });
+    }
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval, isUpdating]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -76,6 +82,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Update NDA settings mutation
   const updateNdaSettingsMutation = useMutation({
     mutationFn: async (settings: any) => {
+      setIsUpdating(true);
       const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}/share-settings`, {
         ndaProtected: settings.ndaProtected,
         ndaTemplateId: settings.ndaTemplateId,
@@ -108,8 +115,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+      
+      // Allow syncing again after a delay to ensure queries have been refetched
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
     },
     onError: () => {
+      setIsUpdating(false);
       toast({
         title: "Auto-save Failed",
         description: "Failed to save settings. Please try again.",
