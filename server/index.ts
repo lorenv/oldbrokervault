@@ -17,7 +17,7 @@ function log(message: string) {
 const app = express();
 
 // CRITICAL: Always use port 5000 for deployment (Autoscale requirement)
-const PORT = 5000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
 
 // Enhanced environment variable validation for deployment
 function validateDeploymentEnvironment() {
@@ -121,7 +121,7 @@ app.use(express.urlencoded({
 
 // Security middleware will be setup after server starts to reduce memory usage
 
-// Add debug middleware BEFORE routes to catch all API requests
+// Add debug middleware for API requests only (removed global middleware that may cause issues)
 app.use('/api/*', (req, res, next) => {
   console.log(`🔍 API request received: ${req.method} ${req.originalUrl}`);
   console.log(`🔍 Content-Type: ${req.headers['content-type']}`);
@@ -155,8 +155,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // FIX #2: Start server on port 5000 (always) for Autoscale deployment
 console.log(`🚀 Starting server on port ${PORT}...`);
-const server = app.listen(PORT, "0.0.0.0", () => {
-  log(`✅ Server successfully started on http://0.0.0.0:${PORT}`);
+
+// Try different binding approaches to handle potential port conflicts
+const server = app.listen(PORT, () => {
+  log(`✅ Server successfully started on port ${PORT}`);
   log('✅ Health checks responding immediately');
   console.log('🎯 Server is listening on:', server.address());
   console.log('🚀 Application ready for deployment health checks');
@@ -210,10 +212,11 @@ server.on('listening', async () => {
       console.log('✅ Vite middleware configured');
       
       // Setup SEO routes AFTER Vite for development to avoid conflicts
-      console.log('🔍 Setting up SEO routes for development after Vite...');
-      const { setupSEORoutes } = await import('./seo-routes');
-      setupSEORoutes(app);
-      console.log('✅ SEO routes configured for development');
+      // TEMPORARILY DISABLED FOR DEBUGGING
+      // console.log('🔍 Setting up SEO routes for development after Vite...');
+      // const { setupSEORoutes } = await import('./seo-routes');
+      // setupSEORoutes(app);
+      // console.log('✅ SEO routes configured for development');
     }
     
     log('✅ All middleware and routes configured');
