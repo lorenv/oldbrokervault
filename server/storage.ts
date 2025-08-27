@@ -1012,37 +1012,19 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     ndaTemplateId?: number | null;
     ndaApprovalRequired?: boolean;
   }): Promise<CimDocument> {
-    console.log('🔧 updateCimShareSettings called with:', {
-      id,
-      settings,
-      ndaApprovalRequired: settings.ndaApprovalRequired,
-      ndaApprovalRequiredType: typeof settings.ndaApprovalRequired
-    });
-    
-    const updateData = {
-      shareEnabled: settings.shareEnabled,
-      shareSlug: settings.shareSlug,
-      customSlug: settings.customSlug,
-      sharePassword: settings.sharePassword,
-      shareExpiresAt: settings.shareExpiresAt,
-      ndaProtected: settings.ndaProtected,
-      ndaTemplateId: settings.ndaTemplateId,
-      ndaApprovalRequired: settings.ndaApprovalRequired,
-    };
-    
-    console.log('🔧 Update data being sent to DB:', updateData);
-    
     const [doc] = await db.update(cimDocuments)
-      .set(updateData)
+      .set({
+        shareEnabled: settings.shareEnabled,
+        shareSlug: settings.shareSlug,
+        customSlug: settings.customSlug,
+        sharePassword: settings.sharePassword,
+        shareExpiresAt: settings.shareExpiresAt,
+        ndaProtected: settings.ndaProtected,
+        ndaTemplateId: settings.ndaTemplateId,
+        ndaApprovalRequired: settings.ndaApprovalRequired,
+      })
       .where(eq(cimDocuments.id, id))
       .returning();
-    
-    console.log('🔧 Document returned from DB after update:', {
-      id: doc.id,
-      ndaApprovalRequired: doc.ndaApprovalRequired,
-      ndaProtected: doc.ndaProtected
-    });
-    
     return doc;
   }
 
