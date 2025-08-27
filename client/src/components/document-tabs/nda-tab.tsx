@@ -47,20 +47,14 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
   });
 
-  // Track if we're in the middle of updating to prevent useEffect from overriding
-  const [isUpdating, setIsUpdating] = useState(false);
-
   // Sync local state with document data when it changes
   useEffect(() => {
-    // Don't sync if we're in the middle of updating
-    if (!isUpdating) {
-      setNdaSettings({
-        ndaProtected: cimDocument.ndaProtected || false,
-        ndaTemplateId: cimDocument.ndaTemplateId || null,
-        ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
-      });
-    }
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval, isUpdating]);
+    setNdaSettings({
+      ndaProtected: cimDocument.ndaProtected || false,
+      ndaTemplateId: cimDocument.ndaTemplateId || null,
+      ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
+    });
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -82,7 +76,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   // Update NDA settings mutation
   const updateNdaSettingsMutation = useMutation({
     mutationFn: async (settings: any) => {
-      setIsUpdating(true);
       const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}/share-settings`, {
         ndaProtected: settings.ndaProtected,
         ndaTemplateId: settings.ndaTemplateId,
@@ -101,13 +94,11 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
       // Update local state with server response to prevent reversion
       if (data) {
-        console.log('Server response data:', data);
         const newSettings = {
           ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : ndaSettings.ndaProtected,
           ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : ndaSettings.ndaTemplateId,
           ndaApprovalRequired: data.ndaRequiresManualApproval !== undefined ? data.ndaRequiresManualApproval : ndaSettings.ndaApprovalRequired
         };
-        console.log('Updating local state to:', newSettings);
         setNdaSettings(newSettings);
       }
 
@@ -115,14 +106,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/share-settings`] });
       queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
-      
-      // Allow syncing again after a delay to ensure queries have been refetched
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 500);
     },
     onError: () => {
-      setIsUpdating(false);
       toast({
         title: "Auto-save Failed",
         description: "Failed to save settings. Please try again.",
@@ -200,7 +185,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       ndaTemplateId: newSettings.ndaTemplateId // Always include template ID
     };
 
-    console.log('Auto-saving NDA settings:', { setting, value, backendSettings });
     updateNdaSettingsMutation.mutate(backendSettings);
   };
 

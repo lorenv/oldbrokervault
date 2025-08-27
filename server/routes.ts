@@ -4901,13 +4901,6 @@ ${finalQuestion}
 
       const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaRequiresManualApproval } = req.body;
       
-      console.log('📝 PATCH /share-settings received:', {
-        ndaRequiresManualApproval,
-        ndaProtected,
-        ndaTemplateId,
-        body: req.body
-      });
-      
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
       if (isPublic && !shareSlug) {
@@ -4935,7 +4928,7 @@ ${finalQuestion}
         }
       }
 
-      const settingsToUpdate = {
+      const updatedDoc = await storage.updateCimShareSettings(docId, {
         shareEnabled: isPublic,
         shareSlug: shareSlug || undefined,
         customSlug: validatedCustomSlug,
@@ -4944,19 +4937,9 @@ ${finalQuestion}
         ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
         ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
         ndaApprovalRequired: ndaRequiresManualApproval !== undefined ? ndaRequiresManualApproval : doc.ndaApprovalRequired
-      };
-      
-      console.log('📝 Calling updateCimShareSettings with:', {
-        docId,
-        settingsToUpdate,
-        ndaApprovalRequiredValue: settingsToUpdate.ndaApprovalRequired,
-        ndaRequiresManualApprovalFromBody: ndaRequiresManualApproval,
-        docCurrentValue: doc.ndaApprovalRequired
       });
 
-      const updatedDoc = await storage.updateCimShareSettings(docId, settingsToUpdate);
-
-      const responseData = {
+      res.json({
         shareSlug: updatedDoc.shareSlug,
         customSlug: updatedDoc.customSlug,
         isPublic: updatedDoc.shareEnabled,
@@ -4967,14 +4950,7 @@ ${finalQuestion}
         ndaProtected: updatedDoc.ndaProtected,
         ndaTemplateId: updatedDoc.ndaTemplateId,
         ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
-      };
-      
-      console.log('📝 Returning response:', {
-        ndaRequiresManualApproval: responseData.ndaRequiresManualApproval,
-        ndaApprovalRequiredFromDB: updatedDoc.ndaApprovalRequired
       });
-
-      res.json(responseData);
     } catch (error) {
       console.error("Error updating share settings:", error);
       
