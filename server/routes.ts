@@ -188,9 +188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
   app.post('/api/webhook/sendgrid/inbound', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
-    console.log("📧 SendGrid inbound webhook received");
-    console.log("Raw body type:", typeof req.body);
-    console.log("Raw body:", req.body);
     
     try {
       // Parse form-encoded data from SendGrid
@@ -1387,12 +1384,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe configuration endpoint for frontend
-  app.get("/api/stripe-config", (req, res) => {
+  // Application configuration endpoint for frontend
+  app.get("/api/config", (req, res) => {
     const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
     
     if (!publishableKey || publishableKey.includes('YOUR_') || publishableKey === 'pk_test_YOUR_PUBLISHABLE_KEY_HERE') {
       console.error('❌ Stripe publishable key not properly configured');
+      return res.status(500).json({ 
+        error: "Stripe configuration incomplete",
+        message: "Payment processing is temporarily unavailable"
+      });
+    }
+    
+    const supportEmail = process.env.SUPPORT_EMAIL || 'contact@cimshare.com';
+    const companyName = process.env.COMPANY_NAME || 'CIM Share';
+    
+    res.json({
+      stripe: {
+        publishableKey: publishableKey
+      },
+      company: {
+        supportEmail,
+        name: companyName
+      }
+    });
+  });
+
+  // Legacy endpoint for backward compatibility
+  app.get("/api/stripe-config", (req, res) => {
+    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+    
+    if (!publishableKey || publishableKey.includes('YOUR_') || publishableKey === 'pk_test_YOUR_PUBLISHABLE_KEY_HERE') {
       return res.status(500).json({ 
         error: "Stripe configuration incomplete",
         message: "Payment processing is temporarily unavailable"
@@ -1435,35 +1457,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // CIM Document Routes with file upload support
   app.post("/api/cim/generate", async (req, res) => {
-    console.log("🚀 CIM GENERATE ROUTE ACCESSED");
-    console.log("=== INITIAL FINANCIAL DEBUG - GENERATE ROUTE ===");
-    console.log("Request body keys:", Object.keys(req.body));
-    console.log("Has financials:", !!req.body.financials);
-    console.log("Raw financials:", req.body.financials);
-    console.log("Financials type:", typeof req.body.financials);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      // Debug: Check if request reaches this point
-      console.log("=== CIM POST ROUTE HIT ===");
-      console.log("Request method:", req.method);
-      console.log("Request URL:", req.url);
-      console.log("Has selectedImages in body:", !!req.body.selectedImages);
-      
-      // Debug: Check EVERYTHING in the request
-      console.log("=== CIM REQUEST DEBUG START ===");
-      console.log("Request body keys:", Object.keys(req.body));
-      console.log("Request body selectedImages:", req.body.selectedImages);
-      console.log("=== CIM REQUEST DEBUG END ===");
-      
-      console.log("=== BEFORE ZOD PARSING ===");
-      console.log("Raw req.body.financials:", req.body.financials);
-      
       const data = insertCimDocumentSchema.parse(req.body);
-      
-      console.log("=== AFTER ZOD PARSING ===");
-      console.log("Parsed data.financials:", data.financials);
-      console.log("Data keys:", Object.keys(data));
       
       const docId = data.docId; // For regeneration
       const customizations = data.customizations || {};
@@ -1757,29 +1754,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check for financial files in the regular generation route (JSON only, no file uploads)
-      // Note: Regular generation route cannot handle file uploads, only the upload route can
-      if (financials && (financials.enabled || financials.askingPrice || financials.revenue || financials.ebitda)) {
-        console.log("=== FINANCIAL DATA SUMMARY ===");
-        console.log("Financial data present in regular generation route (no files supported here)");
-        console.log("Financial data saved to CIM document:", {
-          enabled: financials.enabled,
-          askingPrice: financials.askingPrice,
-          revenue: financials.revenue,
-          ebitda: financials.ebitda
-        });
-        console.log("Note: For financial file uploads, use the /api/cim/upload endpoint with FormData");
-      }
+      // Store financial data if provided (JSON only, no file uploads in this route)
 
       res.json(doc);
     } catch (error) {
-      console.error("=== CIM GENERATION ERROR ===");
-      console.error("Error type:", typeof error);
-      console.error("Error message:", error instanceof Error ? error.message : String(error));
-      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-      console.error("Request body keys:", Object.keys(req.body));
-      console.error("User ID:", req.user?.id);
-      console.error("=== END CIM GENERATION ERROR ===");
+      console.error("CIM generation error:", error instanceof Error ? error.message : String(error));
       
       // Provide more user-friendly error messages
       let userMessage = "An unexpected error occurred while generating your CIM";

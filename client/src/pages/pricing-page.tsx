@@ -48,7 +48,16 @@ export default function PricingPage() {
     try {
       if (planId === 'enterprise') {
         // For Enterprise plan, open contact form
-        window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
+        try {
+          const response = await fetch('/api/config');
+          const config = await response.json();
+          const supportEmail = config.company?.supportEmail || 'contact@cimshare.com';
+          
+          window.open(`mailto:${supportEmail}?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.`, '_blank');
+        } catch (error) {
+          // Fallback to hardcoded email if config fails
+          window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
+        }
         return;
       }
       
@@ -68,13 +77,11 @@ export default function PricingPage() {
           plan: 'standard'
         });
         const { url } = await response.json();
-        console.log('Opening Stripe checkout URL:', url);
         
         // Try to open in new tab, with fallback to same window
         const newWindow = window.open(url, '_blank');
         if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
           // Popup was blocked, fallback to same window
-          console.log('Popup blocked, redirecting in same window');
           window.location.href = url;
         }
         return;

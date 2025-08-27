@@ -106,8 +106,8 @@ app.use(express.json({
   limit: '50mb',
   type: 'application/json',
   verify: (req: any, res, buf) => {
-    // Add memory monitoring for large JSON payloads
-    if (buf.length > 10 * 1024 * 1024) { // 10MB threshold
+    // Memory monitoring for large payloads in production
+    if (buf.length > 10 * 1024 * 1024 && process.env.NODE_ENV === 'development') { 
       console.log(`⚠️ Large JSON payload detected: ${(buf.length / 1024 / 1024).toFixed(2)}MB`);
     }
   }
@@ -145,10 +145,13 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   
-  // Log memory usage on errors
-  const memUsage = process.memoryUsage();
-  console.log(`Error ${status}: ${message}`);
-  console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+  // Log errors (memory details only in development)
+  console.error(`Error ${status}: ${message}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    const memUsage = process.memoryUsage();
+    console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+  }
   
   res.status(status).json({ message });
 });

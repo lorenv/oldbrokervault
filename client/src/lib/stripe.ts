@@ -6,8 +6,9 @@ let stripePromise: Promise<any> | null = null;
 const getStripe = async () => {
   if (!stripePromise) {
     // Fetch the publishable key from the backend
-    const response = await fetch('/api/stripe-config');
-    const { publishableKey } = await response.json();
+    const response = await fetch('/api/config');
+    const config = await response.json();
+    const publishableKey = config.stripe?.publishableKey;
     
     if (!publishableKey) {
       throw new Error('Stripe publishable key not found');
