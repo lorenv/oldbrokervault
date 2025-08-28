@@ -56,6 +56,7 @@ function getSessionStore(): session.Store {
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByCognitoId(cognitoUserId: string): Promise<User | undefined>;
   getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
@@ -231,6 +232,16 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error) {
       console.error('Error in getUserByEmail:', error);
+      throw error;
+    }
+  }
+
+  async getUserByCognitoId(cognitoUserId: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.cognitoUserId, cognitoUserId)).limit(1);
+      return user;
+    } catch (error) {
+      console.error('Error in getUserByCognitoId:', error);
       throw error;
     }
   }

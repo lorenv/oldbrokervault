@@ -187,14 +187,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const res = await apiRequest("POST", "/api/register", credentials);
-        return await res.json();
+        const responseData = await res.json();
+        
+        // Check if email verification is needed
+        if (responseData.needsVerification) {
+          throw new Error("VERIFICATION_NEEDED: " + responseData.message);
+        }
+        
+        return responseData;
       } catch (error: any) {
         // Parse the error message from the API response
         const errorMessage = error.message || "Registration failed";
         
-        // Check for specific authentication errors that might indicate incognito mode
-        if (errorMessage.includes("session")) {
-          throw new Error("Registration failed. Please ensure you're not using incognito/private browsing mode and try again.");
+        // Check for verification needed case
+        if (errorMessage.startsWith("VERIFICATION_NEEDED:")) {
+          throw new Error(errorMessage.replace("VERIFICATION_NEEDED: ", ""));
         }
         
         // Extract the actual error message from the API response
