@@ -243,8 +243,40 @@ export function setupCognitoRoutes(app: Express) {
       await storage.createExampleCimDocument(user.id);
       logger.info(`Created example CIM document for new user ${user.id}`);
 
-      // If Cognito requires email verification, inform the user
+      // If Cognito requires email verification, send our custom verification email
       if (cognitoResult.needsVerification) {
+        // Generate and store our own verification code
+        const { VerificationEmailService } = await import('./verification-email-service');
+        const verificationCode = VerificationEmailService.generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+        
+        // Store verification code in our database
+        await storage.createVerificationCode(email, verificationCode, expiresAt);
+        
+        // Send verification email with both code and link
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? `https://${req.get('host')}`
+          : `http://${req.get('host')}`;
+          
+        const emailSent = await VerificationEmailService.sendVerificationEmail(
+          email,
+          name || email.split('@')[0], // Use name or email prefix
+          verificationCode,
+          baseUrl
+        );
+        
+        if (!emailSent) {
+          logger.error('Failed to send verification email', { email });
+          return res.status(500).json({
+            message: "Registration successful, but we couldn't send the verification email. Please try again later."
+          });
+        }
+        
+        logger.info('Custom verification email sent successfully', { 
+          email,
+          codePrefix: verificationCode.substring(0, 2)
+        });
+        
         return res.status(201).json({
           message: "Registration successful! Please check your email to verify your account before logging in.",
           needsVerification: true,
@@ -401,7 +433,7 @@ export function setupCognitoRoutes(app: Express) {
 
   // Verify email endpoint (for new registrations)
   app.post("/api/verify-email", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
-    logger.info("Cognito verify email endpoint hit");
+    logger.info("Custom verify email endpoint hit");
     
     res.setHeader('Content-Type', 'application/json');
     
@@ -414,19 +446,72 @@ export function setupCognitoRoutes(app: Express) {
         });
       }
       
-      await cognitoAuth.confirmSignUp(email, code);
+      // Check our custom verification code
+      const verificationResult = await storage.getVerificationCode(email, code);
+      
+      if (!verificationResult) {
+        return res.status(400).json({
+          message: "Invalid verification code. Please try again."
+        });
+      }
+      
+      if (verificationResult.verified) {
+        return res.status(400).json({
+          message: "This verification code has already been used."
+        });
+      }
+      
+      if (verificationResult.expired) {
+        return res.status(400).json({
+          message: "Verification code has expired. Please request a new one."
+        });
+      }
+      
+      // Mark our code as used
+      await storage.markVerificationCodeAsUsed(email, code);
+      
+      // Now verify the user in AWS Cognito using a dummy confirmation
+      // Since Cognito codes expire immediately, we'll try to confirm with our code
+      // If that fails, we'll use admin operations to confirm the user
+      try {
+        await cognitoAuth.confirmSignUp(email, code);
+      } catch (cognitoError: any) {
+        logger.info('Cognito confirmation failed, using admin confirmation', { 
+          email, 
+          cognitoError: cognitoError.message 
+        });
+        
+        // Use admin API to confirm the user in Cognito
+        try {
+          await cognitoAuth.adminConfirmSignUp(email);
+          logger.info('User confirmed via admin API', { email });
+        } catch (adminError: any) {
+          logger.error('Admin confirmation also failed', { 
+            email, 
+            adminError: adminError.message 
+          });
+          
+          // Don't fail the request - the user is verified in our system
+          logger.info('Proceeding with verification despite Cognito issues', { email });
+        }
+      }
+      
+      // Mark user as verified in our database
+      await storage.markUserAsVerified(email);
+      
+      logger.info('Email verification completed successfully', { email });
       
       res.json({
         message: "Email verified successfully. You can now log in."
       });
     } catch (error: any) {
-      logger.error('Cognito verify email error', { 
+      logger.error('Custom verify email error', { 
         email: req.body.email,
         errorMessage: error.message 
       });
       
       res.status(400).json({
-        message: error.message || "Email verification failed. Please try again."
+        message: "Email verification failed. Please try again."
       });
     }
   });
@@ -463,73 +548,76 @@ export function setupCognitoRoutes(app: Express) {
     }
   });
 
-  // Email verification endpoint
-  app.post("/api/verify-email", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
-    logger.info("Cognito email verification endpoint hit");
-    
-    res.setHeader('Content-Type', 'application/json');
-    
+  // Get verification link endpoint (for clickable links in emails)
+  app.get("/verify-email", async (req, res) => {
     try {
-      const { email, code } = req.body;
+      const { token, email, code } = req.query as { token: string; email: string; code: string };
       
-      if (!email || !code) {
-        return res.status(400).json({
-          message: "Email and verification code are required"
-        });
+      if (!token || !email || !code) {
+        return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
       }
       
-      logger.info('Attempting email verification', { email });
+      // Verify the token
+      const { VerificationEmailService } = await import('./verification-email-service');
+      const isValidToken = VerificationEmailService.verifyToken(token, email, code);
       
-      // Verify the code with Cognito
-      await cognitoAuth.confirmSignUp(email, code);
+      if (!isValidToken) {
+        return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
+      }
       
-      logger.info('Email verification successful', { email });
+      // Check our custom verification code
+      const verificationResult = await storage.getVerificationCode(email, code);
       
-      res.json({
-        message: "Email verified successfully! You can now log in with your credentials.",
-        verified: true
-      });
+      if (!verificationResult) {
+        return res.redirect(`/?error=${encodeURIComponent('Verification code not found')}`);
+      }
+      
+      if (verificationResult.verified) {
+        return res.redirect(`/?message=${encodeURIComponent('Email already verified. You can log in.')}`);
+      }
+      
+      if (verificationResult.expired) {
+        return res.redirect(`/?error=${encodeURIComponent('Verification link has expired')}`);
+      }
+      
+      // Mark our code as used
+      await storage.markVerificationCodeAsUsed(email, code);
+      
+      // Verify user in AWS Cognito
+      try {
+        await cognitoAuth.confirmSignUp(email, code);
+      } catch (cognitoError: any) {
+        logger.info('Cognito confirmation failed, using admin confirmation for link verification', { 
+          email, 
+          cognitoError: cognitoError.message 
+        });
+        
+        try {
+          await cognitoAuth.adminConfirmSignUp(email);
+          logger.info('User confirmed via admin API (link verification)', { email });
+        } catch (adminError: any) {
+          logger.error('Admin confirmation failed for link verification', { 
+            email, 
+            adminError: adminError.message 
+          });
+        }
+      }
+      
+      // Mark user as verified in our database
+      await storage.markUserAsVerified(email);
+      
+      logger.info('Email verification completed successfully via link', { email });
+      
+      // Redirect to success page
+      res.redirect(`/?message=${encodeURIComponent('Email verified successfully! You can now log in.')}`);
+      
     } catch (error: any) {
-      logger.error('Cognito email verification error', { 
-        email: req.body.email,
+      logger.error('Verification link error', { 
+        email: req.query.email,
         errorMessage: error.message 
       });
       
-      res.status(400).json({
-        message: error.message || "Email verification failed. Please try again."
-      });
-    }
-  });
-
-  // Resend verification code endpoint
-  app.post("/api/resend-verification", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
-    logger.info("Cognito resend verification endpoint hit");
-    
-    res.setHeader('Content-Type', 'application/json');
-    
-    try {
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({
-          message: "Email is required"
-        });
-      }
-      
-      await cognitoAuth.resendConfirmationCode(email);
-      
-      res.json({
-        message: "Verification code has been resent to your email address."
-      });
-    } catch (error: any) {
-      logger.error('Cognito resend verification error', { 
-        email: req.body.email,
-        errorMessage: error.message 
-      });
-      
-      res.status(400).json({
-        message: error.message || "Failed to resend verification code. Please try again."
-      });
+      res.redirect(`/?error=${encodeURIComponent('Verification failed. Please try again.')}`);
     }
   });
 }
