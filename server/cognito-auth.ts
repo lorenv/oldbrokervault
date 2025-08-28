@@ -211,6 +211,34 @@ export class CognitoAuthService {
   }
 
   /**
+   * Resend confirmation code for email verification
+   */
+  async resendConfirmationCode(email: string): Promise<void> {
+    try {
+      const command = new ResendConfirmationCodeCommand({
+        ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
+        Username: email,
+      });
+
+      await cognitoClient.send(command);
+    } catch (error: any) {
+      logger.error('Cognito resend confirmation code error', { 
+        email, 
+        errorMessage: error.message,
+        errorCode: error.name 
+      });
+
+      if (error.name === 'UserNotFoundException') {
+        throw new Error('User not found');
+      } else if (error.name === 'InvalidParameterException') {
+        throw new Error('User is already confirmed');
+      }
+      
+      throw new Error('Failed to resend confirmation code. Please try again.');
+    }
+  }
+
+  /**
    * Initiate password reset
    */
   async forgotPassword(email: string): Promise<void> {

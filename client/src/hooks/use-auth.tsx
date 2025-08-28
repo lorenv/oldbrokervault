@@ -197,6 +197,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           title: "Registration successful!",
           description: responseData.message || "Please check your email to verify your account before logging in.",
         });
+        
+        // Trigger email verification UI
+        const verificationEvent = new CustomEvent('showEmailVerification', { 
+          detail: { 
+            email: responseData.user?.email || responseData.email 
+          } 
+        });
+        window.dispatchEvent(verificationEvent);
         return; // Don't set user data or redirect, stay on login page for verification
       }
       

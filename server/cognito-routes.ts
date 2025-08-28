@@ -462,4 +462,74 @@ export function setupCognitoRoutes(app: Express) {
       });
     }
   });
+
+  // Email verification endpoint
+  app.post("/api/verify-email", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
+    logger.info("Cognito email verification endpoint hit");
+    
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const { email, code } = req.body;
+      
+      if (!email || !code) {
+        return res.status(400).json({
+          message: "Email and verification code are required"
+        });
+      }
+      
+      logger.info('Attempting email verification', { email });
+      
+      // Verify the code with Cognito
+      await cognitoAuth.confirmSignUp(email, code);
+      
+      logger.info('Email verification successful', { email });
+      
+      res.json({
+        message: "Email verified successfully! You can now log in with your credentials.",
+        verified: true
+      });
+    } catch (error: any) {
+      logger.error('Cognito email verification error', { 
+        email: req.body.email,
+        errorMessage: error.message 
+      });
+      
+      res.status(400).json({
+        message: error.message || "Email verification failed. Please try again."
+      });
+    }
+  });
+
+  // Resend verification code endpoint
+  app.post("/api/resend-verification", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
+    logger.info("Cognito resend verification endpoint hit");
+    
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({
+          message: "Email is required"
+        });
+      }
+      
+      await cognitoAuth.resendConfirmationCode(email);
+      
+      res.json({
+        message: "Verification code has been resent to your email address."
+      });
+    } catch (error: any) {
+      logger.error('Cognito resend verification error', { 
+        email: req.body.email,
+        errorMessage: error.message 
+      });
+      
+      res.status(400).json({
+        message: error.message || "Failed to resend verification code. Please try again."
+      });
+    }
+  });
 }
