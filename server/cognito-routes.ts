@@ -142,10 +142,21 @@ export function setupCognitoRoutes(app: Express) {
         });
       }
 
+      // During Cognito migration: Only check for users who are already in Cognito
+      // This allows new users to register even if old local-only accounts exist
       const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
+      if (existingUser && existingUser.cognitoUserId) {
         return res.status(400).json({
           message: "An account with this email already exists"
+        });
+      }
+      
+      // If there's an existing local-only user (no Cognito ID), log it but allow registration
+      if (existingUser && !existingUser.cognitoUserId) {
+        logger.warn("Found existing local-only user during registration", {
+          email,
+          existingUserId: existingUser.id,
+          message: "Allowing new Cognito registration - old user can migrate later"
         });
       }
 
