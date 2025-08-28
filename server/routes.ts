@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
+import { setupCognitoRoutes } from "./cognito-routes";
 import { storage } from "./storage";
 import { analyzeCimTranscript, generateFlexibleCimDocument, generateCimWithWebsiteAnalysis, type FlexibleCimDocument } from "./perplexity";
 import { normalizeUrl, extractLogoFromWebsite, extractWebsiteImages, downloadSelectedImages } from "./website-analyzer";
@@ -331,7 +332,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Setup authentication AFTER webhook endpoints
-  setupAuth(app);
+  // setupAuth(app); // Temporarily disabled during Cognito migration
+  
+  // Setup Cognito authentication routes (replaces old auth routes)
+  setupCognitoRoutes(app);
   
   // SECURITY: Apply security middleware globally, but exclude webhooks
   app.use((req, res, next) => {
