@@ -60,6 +60,20 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   // PDF export preferences
   pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
+  // Custom email verification fields
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  verificationCode: text("verification_code"), // 6-digit code for email verification
+  verificationCodeExpiry: timestamp("verification_code_expiry"), // When the code expires
+});
+
+// Email verification codes table for custom verification system
+export const emailVerificationCodes = pgTable("email_verification_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(), // 6-digit verification code
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  verified: boolean("verified").default(false).notNull(),
 });
 
 export const cimDocuments = pgTable("cim_documents", {
