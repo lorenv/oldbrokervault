@@ -209,6 +209,11 @@ export interface IStorage {
   createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment>;
   getMessageAttachments(messageId: number): Promise<MessageAttachment[]>;
   getMessageAttachment(attachmentId: number): Promise<MessageAttachment | undefined>;
+  // Email verification
+  createVerificationCode(email: string, code: string, expiresAt: Date): Promise<void>;
+  getVerificationCode(email: string, code: string): Promise<{ verified: boolean; expired: boolean } | null>;
+  markVerificationCodeAsUsed(email: string, code: string): Promise<void>;
+  markUserAsVerified(email: string): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -1969,6 +1974,60 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     return await withRetry(async () => {
       const [attachment] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, attachmentId));
       return attachment;
+    });
+  }
+
+  // Email verification methods
+  async createVerificationCode(email: string, code: string, expiresAt: Date): Promise<void> {
+    return await withRetry(async () => {
+      await db.insert(emailVerificationCodes).values({
+        email,
+        code,
+        expiresAt,
+        verified: false
+      });
+    });
+  }
+
+  async getVerificationCode(email: string, code: string): Promise<{ verified: boolean; expired: boolean } | null> {
+    return await withRetry(async () => {
+      const [record] = await db.select()
+        .from(emailVerificationCodes)
+        .where(and(
+          eq(emailVerificationCodes.email, email),
+          eq(emailVerificationCodes.code, code)
+        ))
+        .orderBy(desc(emailVerificationCodes.createdAt))
+        .limit(1);
+      
+      if (!record) return null;
+      
+      const now = new Date();
+      const expired = now > record.expiresAt;
+      
+      return {
+        verified: record.verified,
+        expired
+      };
+    });
+  }
+
+  async markVerificationCodeAsUsed(email: string, code: string): Promise<void> {
+    return await withRetry(async () => {
+      await db.update(emailVerificationCodes)
+        .set({ verified: true })
+        .where(and(
+          eq(emailVerificationCodes.email, email),
+          eq(emailVerificationCodes.code, code)
+        ));
+    });
+  }
+
+  async markUserAsVerified(email: string): Promise<void> {
+    return await withRetry(async () => {
+      await db.update(users)
+        .set({ emailVerified: true })
+        .where(eq(users.email, email));
     });
   }
 }

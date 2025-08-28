@@ -211,6 +211,64 @@ export class CognitoAuthService {
   }
 
   /**
+   * Admin confirm sign up - used when regular confirmation fails
+   */
+  async adminConfirmSignUp(email: string): Promise<void> {
+    try {
+      // First, we need to get the username from email
+      const getUserCommand = new AdminGetUserCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: email,
+      });
+
+      const userInfo = await cognitoClient.send(getUserCommand);
+      const username = userInfo.Username!;
+
+      // Now confirm the user using admin privileges
+      const confirmCommand = new AdminSetUserPasswordCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
+        Password: 'TempPassword123!', // This will be ignored since user has their own password
+        Permanent: true,
+      });
+
+      await cognitoClient.send(confirmCommand);
+      
+      // Enable the user account
+      const enableCommand = new AdminEnableUserCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
+      });
+
+      await cognitoClient.send(enableCommand);
+
+      // Update email verification status
+      const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
+        UserAttributes: [
+          {
+            Name: 'email_verified',
+            Value: 'true'
+          }
+        ]
+      });
+
+      await cognitoClient.send(updateAttributesCommand);
+
+      logger.info('User confirmed and enabled via admin API', { email, username });
+    } catch (error: any) {
+      logger.error('Admin confirm sign up error', { 
+        email, 
+        errorMessage: error.message,
+        errorCode: error.name 
+      });
+      
+      throw new Error('Admin confirmation failed');
+    }
+  }
+
+  /**
    * Resend confirmation code for email verification
    */
   async resendConfirmationCode(email: string): Promise<void> {
