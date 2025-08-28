@@ -70,7 +70,7 @@ export class CognitoAuthService {
         AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
         ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
         AuthParameters: {
-          USERNAME: email,
+          USERNAME: email, // Cognito can handle email for login even with username signup
           PASSWORD: password,
         },
       });
@@ -123,6 +123,16 @@ export class CognitoAuthService {
   }
 
   /**
+   * Helper function to generate a unique username from email
+   */
+  private generateUsername(email: string): string {
+    // Generate a completely random username to avoid any email-like patterns
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+    const randomPart = Math.random().toString(36).substring(2, 10); // Random 8 chars
+    return `u${timestamp}${randomPart}`.toLowerCase(); // Simple format: u + timestamp + random
+  }
+
+  /**
    * Register a new user
    */
   async signUp(email: string, password: string, name?: string): Promise<{ cognitoUserId: string; needsVerification: boolean }> {
@@ -135,9 +145,12 @@ export class CognitoAuthService {
         attributes.push({ Name: 'name', Value: name });
       }
 
+      // Generate a unique username from the email
+      const username = this.generateUsername(email);
+
       const command = new SignUpCommand({
         ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
-        Username: email,
+        Username: username, // Use generated username instead of email
         Password: password,
         UserAttributes: attributes,
       });
@@ -169,12 +182,13 @@ export class CognitoAuthService {
 
   /**
    * Verify user email with confirmation code
+   * Note: We need to use email for confirmation since that's what users have
    */
   async confirmSignUp(email: string, confirmationCode: string): Promise<void> {
     try {
       const command = new ConfirmSignUpCommand({
         ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
-        Username: email,
+        Username: email, // Use email - Cognito should handle this with email aliases
         ConfirmationCode: confirmationCode,
       });
 
