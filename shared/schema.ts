@@ -33,6 +33,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  cognitoUserId: text("cognito_user_id").unique(), // AWS Cognito User ID
   isAdmin: boolean("is_admin").default(false).notNull(),
   subscriptionStatus: text("subscription_status").default("free").notNull(),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
