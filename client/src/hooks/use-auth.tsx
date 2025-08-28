@@ -185,46 +185,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Could not detect incognito mode during registration:", e);
       }
 
-      try {
-        const res = await apiRequest("POST", "/api/register", credentials);
-        const responseData = await res.json();
-        
-        // Check if email verification is needed
-        if (responseData.needsVerification) {
-          throw new Error("VERIFICATION_NEEDED: " + responseData.message);
-        }
-        
-        return responseData;
-      } catch (error: any) {
-        // Parse the error message from the API response
-        const errorMessage = error.message || "Registration failed";
-        
-        // Check for verification needed case
-        if (errorMessage.startsWith("VERIFICATION_NEEDED:")) {
-          throw new Error(errorMessage.replace("VERIFICATION_NEEDED: ", ""));
-        }
-        
-        // Extract the actual error message from the API response
-        if (errorMessage.includes(": ")) {
-          const jsonPart = errorMessage.split(": ").slice(1).join(": ");
-          try {
-            const errorData = JSON.parse(jsonPart);
-            if (errorData.message) {
-              throw new Error(errorData.message);
-            }
-            if (errorData.error === "Validation failed" && errorData.details) {
-              const validationErrors = errorData.details.map((detail: any) => detail.msg).join(", ");
-              throw new Error(`Please check your input: ${validationErrors}`);
-            }
-          } catch (parseError) {
-            // If we can't parse the JSON, use the original error message
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
+      const res = await apiRequest("POST", "/api/register", credentials);
+      const responseData = await res.json();
+      
+      return responseData;
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: (responseData: any) => {
+      // Check if email verification is needed
+      if (responseData.needsVerification) {
+        toast({
+          title: "Registration successful!",
+          description: responseData.message || "Please check your email to verify your account before logging in.",
+        });
+        return; // Don't set user data or redirect, stay on login page for verification
+      }
+      
+      // Normal successful registration - set user data and redirect
+      const user = responseData.user || responseData;
       queryClient.setQueryData(["/api/user"], user);
       
       // Play success sound
@@ -258,10 +235,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }, 400);
       
-
-      
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
+      
+      toast({
+        title: "Welcome to CIM Share!",
+        description: "Your account has been created successfully.",
+      });
       
       // Redirect to dashboard after successful registration
       setTimeout(() => setLocation("/dashboard"), 1000);
