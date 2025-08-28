@@ -151,16 +151,7 @@ export function setupCognitoRoutes(app: Express) {
         });
       }
       
-      // If there's an existing local-only user (no Cognito ID), log it but allow registration
-      if (existingUser && !existingUser.cognitoUserId) {
-        logger.warn("Found existing local-only user during registration", {
-          email,
-          existingUserId: existingUser.id,
-          message: "Allowing new Cognito registration - old user can migrate later"
-        });
-      }
-
-      // Register with Cognito
+      // Register with Cognito first
       const cognitoResult = await cognitoAuth.signUp(email, password, name);
       
       // Special admin code check
@@ -168,18 +159,38 @@ export function setupCognitoRoutes(app: Express) {
                      process.env.ADMIN_CODE && 
                      adminCode === process.env.ADMIN_CODE;
 
-      // Create local user
-      const user = await storage.createUser({
-        email,
-        password: '', // Not needed anymore, using empty string for compatibility
-        cognitoUserId: cognitoResult.cognitoUserId,
-        name: name || undefined,
-        businessName: businessName || undefined,
-        phoneNumber: phoneNumber || undefined,
-        businessLogo: null,
-        profilePhoto: null,
-        isAdmin,
-      });
+      let user;
+      
+      // If there's an existing local-only user (no Cognito ID), update it with Cognito info
+      if (existingUser && !existingUser.cognitoUserId) {
+        logger.info("Updating existing local user with Cognito information", {
+          email,
+          existingUserId: existingUser.id,
+          cognitoUserId: cognitoResult.cognitoUserId
+        });
+        
+        // Update the existing user record with Cognito information
+        user = await storage.updateUser(existingUser.id, {
+          cognitoUserId: cognitoResult.cognitoUserId,
+          name: name || existingUser.name,
+          businessName: businessName || existingUser.businessName,
+          phoneNumber: phoneNumber || existingUser.phoneNumber,
+          isAdmin: isAdmin || existingUser.isAdmin,
+        });
+      } else {
+        // Create new local user
+        user = await storage.createUser({
+          email,
+          password: '', // Not needed anymore, using empty string for compatibility
+          cognitoUserId: cognitoResult.cognitoUserId,
+          name: name || undefined,
+          businessName: businessName || undefined,
+          phoneNumber: phoneNumber || undefined,
+          businessLogo: null,
+          profilePhoto: null,
+          isAdmin,
+        });
+      }
 
       logger.info("Cognito user created", {
         id: user.id,
