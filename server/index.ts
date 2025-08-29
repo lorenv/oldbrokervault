@@ -135,7 +135,7 @@ app.use('/api/*', (req, res, next) => {
   next();
 });
 
-// DEFERRED ROUTE LOADING: Register routes AFTER server starts to prevent memory overflow
+// CRITICAL FIX: Use minimal routes to prevent Express routing crashes
 console.log('🔧 API routes will be registered after server starts for memory efficiency...');
 
 // Static file serving will be setup after server starts to prevent memory issues
@@ -172,11 +172,11 @@ const server = app.listen(PORT, () => {
 // Setup all heavy operations AFTER server is listening
 server.on('listening', async () => {
   try {
-    // PRIORITY #1: Register routes immediately for API availability
-    console.log('🔧 Registering API routes immediately after server start...');
-    const { registerRoutes } = await import('./routes');
-    await registerRoutes(app);
-    console.log('✅ API routes registered successfully - /api/register is now available');
+    // PRIORITY #1: Register minimal routes immediately for crash fix
+    console.log('🔧 Registering minimal API routes to prevent crashes...');
+    const { registerApiRoutes } = await import('./routes-minimal');
+    await registerApiRoutes(app);
+    console.log('✅ Minimal API routes registered successfully');
     
     // Import and setup security middleware
     console.log('🔒 Setting up security middleware...');
