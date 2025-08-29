@@ -592,7 +592,16 @@ export function setupCognitoRoutes(app: Express) {
     try {
       const { token, email, code } = req.query as { token: string; email: string; code: string };
       
+      logger.info("Email verification attempt", { 
+        hasToken: !!token, 
+        hasEmail: !!email, 
+        hasCode: !!code,
+        email: email || 'missing',
+        codePrefix: code ? code.substring(0, 2) : 'missing'
+      });
+      
       if (!token || !email || !code) {
+        logger.warn("Verification link missing required parameters", { token: !!token, email: !!email, code: !!code });
         return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
       }
       
@@ -600,7 +609,15 @@ export function setupCognitoRoutes(app: Express) {
       const { VerificationEmailService } = await import('./verification-email-service');
       const isValidToken = VerificationEmailService.verifyToken(token, email, code);
       
+      logger.info("Token verification result", { 
+        email, 
+        codePrefix: code.substring(0, 2),
+        isValidToken,
+        tokenLength: token.length
+      });
+      
       if (!isValidToken) {
+        logger.warn("Token verification failed", { email, codePrefix: code.substring(0, 2) });
         return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
       }
       
