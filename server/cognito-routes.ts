@@ -162,13 +162,13 @@ export function setupCognitoRoutes(app: Express) {
         });
       }
       
+      // Use firstName/lastName if provided, otherwise parse the legacy name field
+      const finalFirstName = firstName || (name ? name.split(' ')[0] : undefined);
+      const finalLastName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : undefined);
+      
       // Register with Cognito first
       let cognitoResult;
       try {
-        // Use firstName/lastName if provided, otherwise parse the legacy name field
-        const finalFirstName = firstName || (name ? name.split(' ')[0] : undefined);
-        const finalLastName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : undefined);
-        
         cognitoResult = await cognitoAuth.signUp(email, password, finalFirstName, finalLastName, businessName, phoneNumber);
         logger.info('Cognito user registration successful', {
           email,
