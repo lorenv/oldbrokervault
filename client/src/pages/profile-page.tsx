@@ -15,11 +15,25 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { User, Phone, Building, Upload, Camera } from "lucide-react";
 
+// Type for profile data
+type ProfileData = {
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  title?: string;
+  phoneNumber?: string;
+  businessName?: string;
+  businessLogo?: string;
+  profilePhoto?: string;
+};
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profileForm, setProfileForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    name: "", // Keep for backward compatibility
     title: "",
     phoneNumber: "",
     businessName: "",
@@ -28,7 +42,7 @@ export default function ProfilePage() {
   });
 
   // Fetch profile data
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<ProfileData>({
     queryKey: ["/api/profile"],
   });
 
@@ -36,7 +50,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setProfileForm({
-        name: profile.name || "",
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        name: profile.name || "", // Keep for backward compatibility
         title: profile.title || "",
         phoneNumber: profile.phoneNumber || "",
         businessName: profile.businessName || "",
@@ -53,7 +69,7 @@ export default function ProfilePage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["/api/profile"]);
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       toast({
         title: "Profile Updated",
         description: "Your profile information has been saved successfully.",
@@ -203,14 +219,25 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="name"
-                    value={profileForm.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter your full name"
+                    id="firstName"
+                    value={profileForm.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    placeholder="Enter your first name"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={profileForm.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    placeholder="Enter your last name"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title/Position</Label>
                   <Input

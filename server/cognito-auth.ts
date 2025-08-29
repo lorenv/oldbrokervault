@@ -55,7 +55,11 @@ export interface CognitoAuthResult {
 export interface CognitoUser {
   cognitoUserId: string;
   email: string;
-  name?: string;
+  name?: string; // Legacy full name field
+  firstName?: string;
+  lastName?: string;
+  organization?: string; // Business name
+  phoneNumber?: string;
   emailVerified: boolean;
   enabled: boolean;
   attributes: Record<string, string>;
@@ -148,15 +152,31 @@ export class CognitoAuthService {
    * Register a new user using AdminCreateUser to prevent automatic emails
    * Store username in our database for later authentication
    */
-  async signUp(email: string, password: string, name?: string): Promise<{ cognitoUserId: string; cognitoUsername: string; needsVerification: boolean }> {
+  async signUp(email: string, password: string, firstName?: string, lastName?: string, businessName?: string, phoneNumber?: string): Promise<{ cognitoUserId: string; cognitoUsername: string; needsVerification: boolean }> {
     try {
       const attributes: AttributeType[] = [
         { Name: 'email', Value: email },
         { Name: 'email_verified', Value: 'false' }, // Start unverified
       ];
 
-      if (name) {
-        attributes.push({ Name: 'name', Value: name });
+      // Add custom attributes to match your Cognito setup
+      if (firstName) {
+        attributes.push({ Name: 'custom:firstName', Value: firstName });
+      }
+      if (lastName) {
+        attributes.push({ Name: 'custom:lastName', Value: lastName });
+      }
+      if (businessName) {
+        attributes.push({ Name: 'custom:organization', Value: businessName });
+      }
+      if (phoneNumber) {
+        attributes.push({ Name: 'custom:phone_number', Value: phoneNumber });
+      }
+
+      // Also set the legacy 'name' field for backward compatibility
+      const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      if (fullName) {
+        attributes.push({ Name: 'name', Value: fullName });
       }
 
       // Generate a unique username from the email
@@ -429,7 +449,11 @@ export class CognitoAuthService {
       return {
         cognitoUserId: response.Username!,
         email: attributes.email,
-        name: attributes.name,
+        name: attributes.name, // Legacy full name
+        firstName: attributes['custom:firstName'],
+        lastName: attributes['custom:lastName'],
+        organization: attributes['custom:organization'],
+        phoneNumber: attributes['custom:phone_number'],
         emailVerified: attributes.email_verified === 'true',
         enabled: response.Enabled ?? true,
         attributes,

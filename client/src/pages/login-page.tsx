@@ -68,7 +68,9 @@ const registerSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
     .regex(/(?=.*\d)/, "Password must contain at least one number")
     .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character"),
-  name: z.string().min(1, "Please enter your full name"),
+  firstName: z.string().min(1, "Please enter your first name"),
+  lastName: z.string().min(1, "Please enter your last name"),
+  name: z.string().optional(), // Keep for backward compatibility
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
   }),
@@ -581,7 +583,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
     defaultValues: {
       email: "",
       password: "",
-      name: "",
+      firstName: "",
+      lastName: "",
       businessName: "",
       phoneNumber: "",
       agreeToTerms: false,
@@ -637,7 +640,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
         const formData = new FormData();
         formData.append('email', data.email);
         formData.append('password', data.password);
-        formData.append('name', data.name.trim());
+        formData.append('firstName', data.firstName.trim());
+        formData.append('lastName', data.lastName.trim());
         formData.append('agreeToTerms', 'true'); // Always send as string 'true' for backend validation
 
         // Add optional business profile fields only if they have values
@@ -675,25 +679,46 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-gray-700">Full Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="John Doe"
-                  type="text"
-                  autoComplete="name"
-                  className="h-11"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">First Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="John"
+                    type="text"
+                    autoComplete="given-name"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">Last Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Doe"
+                    type="text"
+                    autoComplete="family-name"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

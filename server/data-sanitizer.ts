@@ -9,7 +9,15 @@ import { User } from "@shared/schema";
  * Sanitizes user object for safe API responses
  * Removes all sensitive fields like passwords, tokens, and internal IDs
  */
-export function sanitizeUser(user: User): Partial<User> {
+// Utility function to get full name from first and last name
+export function getFullName(user: { firstName?: string | null; lastName?: string | null; name?: string | null }): string {
+  if (user.firstName || user.lastName) {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  }
+  return user.name || '';
+}
+
+export function sanitizeUser(user: User): Partial<User> & { fullName?: string } {
   if (!user) return {};
   
   return {
@@ -21,7 +29,10 @@ export function sanitizeUser(user: User): Partial<User> {
     monthlyDocumentsCreated: user.monthlyDocumentsCreated,
     monthlyRegenerationsUsed: user.monthlyRegenerationsUsed,
     lastUsageReset: user.lastUsageReset,
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    name: user.name, // Keep for backward compatibility
+    fullName: getFullName(user), // Computed full name
     title: user.title,
     phoneNumber: user.phoneNumber,
     businessName: user.businessName,
@@ -37,11 +48,14 @@ export function sanitizeUser(user: User): Partial<User> {
  * Sanitizes user object for public sharing contexts
  * Only includes fields safe for external visibility
  */
-export function sanitizeUserForSharing(user: User): Partial<User> {
+export function sanitizeUserForSharing(user: User): Partial<User> & { fullName?: string } {
   if (!user) return {};
   
   return {
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    name: user.name, // Keep for backward compatibility
+    fullName: getFullName(user), // Computed full name
     title: user.title,
     phoneNumber: user.phoneNumber,
     businessName: user.businessName,
