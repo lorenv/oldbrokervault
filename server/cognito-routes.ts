@@ -58,7 +58,7 @@ export function setupCognitoRoutes(app: Express) {
       // Authenticate with Cognito using the correct username  
       let cognitoResult;
       try {
-        cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername);
+        cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername || undefined);
       } catch (authError: any) {
         logger.info('Authentication failed, checking user status', { 
           email, 
@@ -265,7 +265,7 @@ export function setupCognitoRoutes(app: Express) {
           businessLogo: undefined,
           profilePhoto: undefined,
           isAdmin,
-        });
+        } as any);
       }
 
       logger.info("Cognito user created", {
