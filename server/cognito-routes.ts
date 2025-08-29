@@ -60,6 +60,14 @@ export function setupCognitoRoutes(app: Express) {
       try {
         cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername);
       } catch (authError: any) {
+        logger.info('Authentication failed, checking user status', { 
+          email, 
+          errorMessage: authError.message,
+          localUserExists: !!localUser,
+          localUserVerified: localUser?.emailVerified,
+          localUserHasCognitoId: !!localUser?.cognitoUserId
+        });
+        
         // Check if this is likely an unverified user scenario
         if (authError.message === 'Invalid email or password' && localUser && !localUser.emailVerified) {
           logger.info('Login failed for unverified user, prompting for verification', { email });
@@ -68,6 +76,18 @@ export function setupCognitoRoutes(app: Express) {
             message: "Please verify your email address before logging in. Check your inbox for the verification link or enter your verification code below.",
             needsVerification: true,
             email: email
+          });
+        }
+        
+        // Check if this is a legacy user (exists locally but no Cognito ID)
+        if (authError.message === 'Invalid email or password' && localUser && !localUser.cognitoUserId) {
+          logger.info('Legacy user detected, needs Cognito migration', { email });
+          
+          return res.status(403).json({
+            message: "Your account needs to be migrated to our new authentication system. Please reset your password to complete the migration.",
+            needsPasswordReset: true,
+            email: email,
+            isLegacyUser: true
           });
         }
         
@@ -659,7 +679,7 @@ export function setupCognitoRoutes(app: Express) {
       
       if (!token || !email || !code) {
         logger.warn("Verification link missing required parameters", { token: !!token, email: !!email, code: !!code });
-        return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
+        return res.redirect(`/verify-email?error=${encodeURIComponent('Invalid verification link')}`);
       }
       
       // Verify the token
@@ -675,22 +695,22 @@ export function setupCognitoRoutes(app: Express) {
       
       if (!isValidToken) {
         logger.warn("Token verification failed", { email, codePrefix: code.substring(0, 2) });
-        return res.redirect(`/?error=${encodeURIComponent('Invalid verification link')}`);
+        return res.redirect(`/verify-email?error=${encodeURIComponent('Invalid verification link')}`);
       }
       
       // Check our custom verification code
       const verificationResult = await storage.getVerificationCode(email, code);
       
       if (!verificationResult) {
-        return res.redirect(`/?error=${encodeURIComponent('Verification code not found')}`);
+        return res.redirect(`/verify-email?error=${encodeURIComponent('Verification code not found')}`);
       }
       
       if (verificationResult.verified) {
-        return res.redirect(`/?message=${encodeURIComponent('Email already verified. You can log in.')}`);
+        return res.redirect(`/verify-email?message=${encodeURIComponent('Email already verified. You can log in.')}`);
       }
       
       if (verificationResult.expired) {
-        return res.redirect(`/?error=${encodeURIComponent('Verification link has expired')}`);
+        return res.redirect(`/verify-email?error=${encodeURIComponent('Verification link has expired')}`);
       }
       
       // Mark our code as used
@@ -716,7 +736,7 @@ export function setupCognitoRoutes(app: Express) {
       logger.info('Email verification completed successfully via link', { email });
       
       // Redirect to success page
-      res.redirect(`/?message=${encodeURIComponent('Email verified successfully! You can now log in.')}`);
+      res.redirect(`/verify-email?message=${encodeURIComponent('Email verified successfully! You can now log in.')}`);
       
     } catch (error: any) {
       logger.error('Verification link error', { 
