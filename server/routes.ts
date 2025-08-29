@@ -336,31 +336,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup Cognito authentication routes (replaces old auth routes)
   setupCognitoRoutes(app);
-  
-  // SECURITY: Apply security middleware globally, but exclude webhooks
-  app.use((req, res, next) => {
-    // Skip security middleware for webhook endpoints
-    if (req.path.startsWith('/api/webhook/')) {
-      return next();
-    }
-    return responseSanitizationMiddleware(req, res, next);
-  });
-  
-  app.use((req, res, next) => {
-    // Skip security headers for webhook endpoints  
-    if (req.path.startsWith('/api/webhook/')) {
-      return next();
-    }
-    return securityHeadersMiddleware(req, res, next);
-  });
-  
-  app.use((req, res, next) => {
-    // Skip rate limiting for webhook endpoints
-    if (req.path.startsWith('/api/webhook/')) {
-      return next();
-    }
-    return sensitiveEndpointLimiter(req, res, next);
-  });
 
   // Register monitoring routes first for health checks
   registerMonitoringRoutes(app);
