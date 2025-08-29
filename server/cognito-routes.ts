@@ -530,30 +530,18 @@ export function setupCognitoRoutes(app: Express) {
       // Mark our code as used
       await storage.markVerificationCodeAsUsed(email, code);
       
-      // Now verify the user in AWS Cognito using a dummy confirmation
-      // Since Cognito codes expire immediately, we'll try to confirm with our code
-      // If that fails, we'll use admin operations to confirm the user
+      // Verify user in AWS Cognito using admin confirmation (bypassing code verification)
+      // We use admin confirmation because our custom codes don't match Cognito's codes
       try {
-        await cognitoAuth.confirmSignUp(email, code);
-      } catch (cognitoError: any) {
-        logger.info('Cognito confirmation failed, using admin confirmation', { 
+        await cognitoAuth.adminConfirmSignUp(email);
+        logger.info('User confirmed via admin API (manual verification)', { email });
+      } catch (adminError: any) {
+        // If admin confirmation fails, the user might already be confirmed or not exist
+        // We'll still proceed with our own verification since that's what matters for login
+        logger.warn('Admin confirmation failed, but proceeding with custom verification', { 
           email, 
-          cognitoError: cognitoError.message 
+          adminError: adminError.message 
         });
-        
-        // Use admin API to confirm the user in Cognito
-        try {
-          await cognitoAuth.adminConfirmSignUp(email);
-          logger.info('User confirmed via admin API', { email });
-        } catch (adminError: any) {
-          logger.error('Admin confirmation also failed', { 
-            email, 
-            adminError: adminError.message 
-          });
-          
-          // Don't fail the request - the user is verified in our system
-          logger.info('Proceeding with verification despite Cognito issues', { email });
-        }
       }
       
       // Mark user as verified in our database
@@ -708,24 +696,18 @@ export function setupCognitoRoutes(app: Express) {
       // Mark our code as used
       await storage.markVerificationCodeAsUsed(email, code);
       
-      // Verify user in AWS Cognito
+      // Verify user in AWS Cognito using admin confirmation (bypassing code verification)
+      // We use admin confirmation because our custom codes don't match Cognito's codes
       try {
-        await cognitoAuth.confirmSignUp(email, code);
-      } catch (cognitoError: any) {
-        logger.info('Cognito confirmation failed, using admin confirmation for link verification', { 
+        await cognitoAuth.adminConfirmSignUp(email);
+        logger.info('User confirmed via admin API (link verification)', { email });
+      } catch (adminError: any) {
+        // If admin confirmation fails, the user might already be confirmed or not exist
+        // We'll still proceed with our own verification since that's what matters for login
+        logger.warn('Admin confirmation failed, but proceeding with custom verification', { 
           email, 
-          cognitoError: cognitoError.message 
+          adminError: adminError.message 
         });
-        
-        try {
-          await cognitoAuth.adminConfirmSignUp(email);
-          logger.info('User confirmed via admin API (link verification)', { email });
-        } catch (adminError: any) {
-          logger.error('Admin confirmation failed for link verification', { 
-            email, 
-            adminError: adminError.message 
-          });
-        }
       }
       
       // Mark user as verified in our database

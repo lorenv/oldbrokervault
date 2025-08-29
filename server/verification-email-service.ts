@@ -92,14 +92,14 @@ export class VerificationEmailService {
                   </span>
                 </div>
                 <p style="font-size: 14px; color: #6c757d; margin-top: 15px;">
-                  This code will expire in 15 minutes
+                  This code will expire in 48 hours
                 </p>
               </div>
             </div>
             
             <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 20px 0;">
               <p style="margin: 0; font-size: 14px; color: #856404;">
-                <strong>Security Note:</strong> This verification link and code will expire in 15 minutes. If you didn't create a CIM Share account, please ignore this email.
+                <strong>Security Note:</strong> This verification link and code will expire in 48 hours. If you didn't create a CIM Share account, please ignore this email.
               </p>
             </div>
             
@@ -131,7 +131,7 @@ Two ways to verify:
 
 2. Or enter this verification code: ${code}
 
-This verification code will expire in 15 minutes.
+This verification code will expire in 48 hours.
 
 If you didn't create a CIM Share account, please ignore this email.
 
