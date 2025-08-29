@@ -46,23 +46,32 @@ export function setupCognitoRoutes(app: Express) {
       
       logger.info('Cognito login attempt', { email });
       
-      // Authenticate with Cognito
-      const cognitoResult = await cognitoAuth.signIn(email, password);
+      // Get the user's stored Cognito username for authentication
+      const localUser = await storage.getUserByEmail(email);
+      const cognitoUsername = localUser?.cognitoUsername;
+      
+      logger.info('Using Cognito username for auth', { 
+        email, 
+        hasCognitoUsername: !!cognitoUsername 
+      });
+      
+      // Authenticate with Cognito using the correct username
+      const cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername);
       
       // Get or sync local user data
-      let localUser = await storage.getUserByCognitoId(cognitoResult.cognitoUserId);
+      let userForToken = await storage.getUserByCognitoId(cognitoResult.cognitoUserId);
       
-      if (!localUser) {
-        // Check if user exists by email (migration case)
-        localUser = await storage.getUserByEmail(email);
+      if (!userForToken) {
+        // Use the already-fetched user data from the auth lookup
+        userForToken = localUser;
         
-        if (localUser) {
+        if (userForToken) {
           // Link existing user to Cognito
-          await storage.updateUser(localUser.id, {
+          await storage.updateUser(userForToken.id, {
             cognitoUserId: cognitoResult.cognitoUserId
           });
           logger.info('Linked existing user to Cognito', { 
-            userId: localUser.id, 
+            userId: userForToken.id, 
             cognitoUserId: cognitoResult.cognitoUserId 
           });
         } else {
@@ -93,11 +102,11 @@ export function setupCognitoRoutes(app: Express) {
       });
       
       logger.info('Cognito login successful', { 
-        userId: localUser.id,
+        userId: userForToken.id,
         cognitoUserId: cognitoResult.cognitoUserId 
       });
       
-      res.json(sanitizeUser(localUser));
+      res.json(sanitizeUser(userForToken));
     } catch (error: any) {
       logger.error('Cognito login error', { 
         email: req.body.email,
@@ -188,6 +197,7 @@ export function setupCognitoRoutes(app: Express) {
         // Update the existing user record with Cognito information
         user = await storage.updateUser(existingUser.id, {
           cognitoUserId: cognitoResult.cognitoUserId,
+          cognitoUsername: cognitoResult.cognitoUsername,
           name: name || existingUser.name,
           businessName: businessName || existingUser.businessName,
           phoneNumber: phoneNumber || existingUser.phoneNumber,
@@ -199,11 +209,12 @@ export function setupCognitoRoutes(app: Express) {
           email,
           password: '', // Not needed anymore, using empty string for compatibility
           cognitoUserId: cognitoResult.cognitoUserId,
+          cognitoUsername: cognitoResult.cognitoUsername,
           name: name || undefined,
           businessName: businessName || undefined,
           phoneNumber: phoneNumber || undefined,
-          businessLogo: null,
-          profilePhoto: null,
+          businessLogo: undefined,
+          profilePhoto: undefined,
           isAdmin,
         });
       }
