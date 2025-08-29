@@ -48,7 +48,9 @@ export const users = pgTable("users", {
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),
   // Profile information fields
-  name: text("name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  name: text("name"), // Keep for backward compatibility during migration
   title: text("title"),
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
