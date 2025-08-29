@@ -64,6 +64,13 @@ The system includes a comprehensive e-signature platform with database schema fo
 - Preserved all existing frontend UI while integrating with Cognito backend services
 - System now ready for future social logins and 2FA integration using shared AWS Cognito user pool
 
+**Critical Authentication Fixes (Aug 29, 2025)**: Resolved major authentication system issues:
+- Fixed registration bug where new users weren't getting `cognitoUserId` saved to local database, causing all new users to appear as "legacy users"
+- Resolved verification email redirect loop by updating backend redirects to use frontend routes (`/#/verify-email`) instead of backend endpoints
+- Fixed verification token generation flaw where timestamps caused tokens to never match during verification, making all verification links fail
+- Enhanced error handling to properly distinguish between unverified users, legacy users, and authentication failures
+- Authentication system now fully functional with proper Cognito integration for new user registration, email verification, and login flows
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 
