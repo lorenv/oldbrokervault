@@ -125,9 +125,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(`Server returned ${contentType} instead of JSON. This suggests a routing or server configuration issue.`);
         }
         
-        const userData = await res.json();
-        console.log("Login successful, received user data:", userData);
-        return userData;
+        const responseData = await res.json();
+        
+        // Handle verification needed response (403 status)
+        if (res.status === 403 && responseData.needsVerification) {
+          console.log("User needs verification:", responseData);
+          
+          // Create a special error that carries verification data
+          const verificationError = new Error(responseData.message);
+          (verificationError as any).needsVerification = true;
+          (verificationError as any).email = responseData.email;
+          throw verificationError;
+        }
+        
+        console.log("Login successful, received user data:", responseData);
+        return responseData;
       } catch (error: any) {
         console.error("Login error:", error);
         
@@ -164,7 +176,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to dashboard after successful login
       setLocation("/dashboard");
     },
-    onError: (error: Error) => {
+    onError: (error: Error & { needsVerification?: boolean; email?: string }) => {
+      // Handle verification required error
+      if (error.needsVerification) {
+        toast({
+          title: "Email Verification Required",
+          description: error.message,
+          variant: "default",
+        });
+        // You could also set a state here to show a verification form
+        // For now, the toast will guide the user to their email
+        return;
+      }
+      
       toast({
         title: "Login failed",
         description: error.message,
