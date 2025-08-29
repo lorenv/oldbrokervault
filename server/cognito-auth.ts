@@ -63,19 +63,22 @@ export interface CognitoUser {
 export class CognitoAuthService {
   /**
    * Authenticate user with email and password
+   * For users created with AdminCreateUser, we need to use AdminInitiateAuth
    */
   async signIn(email: string, password: string): Promise<CognitoAuthResult> {
     try {
-      const command = new InitiateAuthCommand({
-        AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+      // First try with AdminInitiateAuth (for users created with AdminCreateUser)
+      const adminCommand = new AdminInitiateAuthCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
         ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
+        AuthFlow: AuthFlowType.ADMIN_USER_PASSWORD_AUTH,
         AuthParameters: {
-          USERNAME: email, // Cognito can handle email for login even with username signup
+          USERNAME: email, // Use email as username lookup
           PASSWORD: password,
         },
       });
 
-      const response = await cognitoClient.send(command);
+      const response = await cognitoClient.send(adminCommand);
 
       if (!response.AuthenticationResult) {
         throw new Error('Authentication failed');
@@ -133,12 +136,13 @@ export class CognitoAuthService {
   }
 
   /**
-   * Register a new user
+   * Register a new user using AdminCreateUser to prevent automatic emails
    */
   async signUp(email: string, password: string, name?: string): Promise<{ cognitoUserId: string; needsVerification: boolean }> {
     try {
       const attributes: AttributeType[] = [
         { Name: 'email', Value: email },
+        { Name: 'email_verified', Value: 'false' }, // Start unverified
       ];
 
       if (name) {
@@ -148,18 +152,34 @@ export class CognitoAuthService {
       // Generate a unique username from the email
       const username = this.generateUsername(email);
 
-      const command = new SignUpCommand({
-        ClientId: process.env.AWS_COGNITO_CLIENT_ID!,
-        Username: username, // Use generated username instead of email
-        Password: password,
+      // Use AdminCreateUser instead of SignUp to prevent automatic verification emails
+      const createUserCommand = new AdminCreateUserCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
         UserAttributes: attributes,
+        MessageAction: MessageActionType.SUPPRESS, // CRITICAL: This prevents AWS from sending emails
+        TemporaryPassword: 'TempPass123!', // Will be overwritten immediately
       });
 
-      const response = await cognitoClient.send(command);
+      const createResponse = await cognitoClient.send(createUserCommand);
+
+      // Immediately set the permanent password
+      const setPasswordCommand = new AdminSetUserPasswordCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
+        Password: password,
+        Permanent: true,
+      });
+
+      await cognitoClient.send(setPasswordCommand);
+
+      // Get the actual Cognito User ID from the response
+      const cognitoUserId = createResponse.User?.Attributes?.find(attr => attr.Name === 'sub')?.Value 
+        || createResponse.User?.Username!;
 
       return {
-        cognitoUserId: response.UserSub!,
-        needsVerification: !response.UserConfirmed,
+        cognitoUserId,
+        needsVerification: true, // We always need our custom verification
       };
     } catch (error: any) {
       logger.error('Cognito sign up error', { 
@@ -212,37 +232,34 @@ export class CognitoAuthService {
 
   /**
    * Admin confirm sign up - used when regular confirmation fails
+   * This method ONLY confirms email verification without changing passwords
    */
   async adminConfirmSignUp(email: string): Promise<void> {
     try {
-      // First, we need to get the username from email
+      // For users created with AdminCreateUser, we need to find them by email attribute
+      // since the username is randomly generated
       const getUserCommand = new AdminGetUserCommand({
         UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
-        Username: email,
+        Username: email, // Try email first
       });
 
-      const userInfo = await cognitoClient.send(getUserCommand);
-      const username = userInfo.Username!;
-
-      // Now confirm the user using admin privileges
-      const confirmCommand = new AdminSetUserPasswordCommand({
-        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
-        Username: username,
-        Password: 'TempPassword123!', // This will be ignored since user has their own password
-        Permanent: true,
-      });
-
-      await cognitoClient.send(confirmCommand);
+      let userInfo;
+      let username;
       
-      // Enable the user account
-      const enableCommand = new AdminEnableUserCommand({
-        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
-        Username: username,
-      });
+      try {
+        userInfo = await cognitoClient.send(getUserCommand);
+        username = userInfo.Username!;
+      } catch (userNotFoundError: any) {
+        // If email lookup fails, we need to search by email attribute
+        // This is more complex but necessary for AdminCreateUser users
+        logger.error('Direct email lookup failed, user might have generated username', {
+          email,
+          error: userNotFoundError.message
+        });
+        throw new Error('User lookup by email failed - user may need to be found by username');
+      }
 
-      await cognitoClient.send(enableCommand);
-
-      // Update email verification status
+      // ONLY update email verification status - don't touch password
       const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
         UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
         Username: username,
@@ -256,7 +273,15 @@ export class CognitoAuthService {
 
       await cognitoClient.send(updateAttributesCommand);
 
-      logger.info('User confirmed and enabled via admin API', { email, username });
+      // Enable the user account (in case it was disabled)
+      const enableCommand = new AdminEnableUserCommand({
+        UserPoolId: process.env.AWS_COGNITO_USER_POOL_ID!,
+        Username: username,
+      });
+
+      await cognitoClient.send(enableCommand);
+
+      logger.info('User email verified via admin API (password unchanged)', { email, username });
     } catch (error: any) {
       logger.error('Admin confirm sign up error', { 
         email, 
