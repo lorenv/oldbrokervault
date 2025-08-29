@@ -262,6 +262,10 @@ export class DatabaseStorage implements IStorage {
       .values({
         email: insertUser.email,
         password: insertUser.password,
+        cognitoUserId: insertUser.cognitoUserId || null,
+        cognitoUsername: insertUser.cognitoUsername || null,
+        firstName: insertUser.firstName || null,
+        lastName: insertUser.lastName || null,
         name: insertUser.name || null,
         businessName: insertUser.businessName || null,
         phoneNumber: insertUser.phoneNumber || null,
