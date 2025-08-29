@@ -55,8 +55,25 @@ export function setupCognitoRoutes(app: Express) {
         hasCognitoUsername: !!cognitoUsername 
       });
       
-      // Authenticate with Cognito using the correct username
-      const cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername);
+      // Authenticate with Cognito using the correct username  
+      let cognitoResult;
+      try {
+        cognitoResult = await cognitoAuth.signIn(email, password, cognitoUsername);
+      } catch (authError: any) {
+        // Check if this is likely an unverified user scenario
+        if (authError.message === 'Invalid email or password' && localUser && !localUser.emailVerified) {
+          logger.info('Login failed for unverified user, prompting for verification', { email });
+          
+          return res.status(403).json({
+            message: "Please verify your email address before logging in. Check your inbox for the verification link or enter your verification code below.",
+            needsVerification: true,
+            email: email
+          });
+        }
+        
+        // Re-throw the original error for other cases
+        throw authError;
+      }
       
       // Get or sync local user data
       let userForToken = await storage.getUserByCognitoId(cognitoResult.cognitoUserId);
@@ -287,7 +304,7 @@ export function setupCognitoRoutes(app: Express) {
         // Generate and store our own verification code
         const { VerificationEmailService } = await import('./verification-email-service');
         const verificationCode = VerificationEmailService.generateVerificationCode();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+        const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours (2 days) from now
         
         // Store verification code in our database
         await storage.createVerificationCode(email, verificationCode, expiresAt);
@@ -297,9 +314,13 @@ export function setupCognitoRoutes(app: Express) {
           ? `https://${req.get('host')}`
           : `http://${req.get('host')}`;
           
+        const fullName = finalFirstName && finalLastName 
+          ? `${finalFirstName} ${finalLastName}`
+          : (name || email.split('@')[0]);
+          
         const emailSent = await VerificationEmailService.sendVerificationEmail(
           email,
-          name || email.split('@')[0], // Use name or email prefix
+          fullName,
           verificationCode,
           baseUrl
         );
@@ -557,7 +578,7 @@ export function setupCognitoRoutes(app: Express) {
 
   // Resend verification code endpoint
   app.post("/api/resend-verification", sensitiveEndpointLimiter, responseSanitizationMiddleware, async (req, res) => {
-    logger.info("Cognito resend verification endpoint hit");
+    logger.info("Custom resend verification endpoint hit");
     
     res.setHeader('Content-Type', 'application/json');
     
@@ -570,13 +591,61 @@ export function setupCognitoRoutes(app: Express) {
         });
       }
       
-      await cognitoAuth.resendConfirmationCode(email);
+      // Get user information for personalized email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({
+          message: "User not found. Please register first."
+        });
+      }
+      
+      if (user.emailVerified) {
+        return res.status(400).json({
+          message: "Email is already verified. You can log in."
+        });
+      }
+      
+      // Generate new verification code with extended expiration (48 hours)
+      const { VerificationEmailService } = await import('./verification-email-service');
+      const verificationCode = VerificationEmailService.generateVerificationCode();
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours (2 days) from now
+      
+      // Store verification code in our database
+      await storage.createVerificationCode(email, verificationCode, expiresAt);
+      
+      // Send verification email with both code and link
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? `https://${req.get('host')}`
+        : `http://${req.get('host')}`;
+        
+      const fullName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}`
+        : (user.name || email.split('@')[0]);
+        
+      const emailSent = await VerificationEmailService.sendVerificationEmail(
+        email,
+        fullName,
+        verificationCode,
+        baseUrl
+      );
+      
+      if (!emailSent) {
+        logger.error('Failed to resend verification email', { email });
+        return res.status(500).json({
+          message: "Failed to send verification email. Please try again later."
+        });
+      }
+      
+      logger.info('Custom verification email resent successfully', { 
+        email,
+        codePrefix: verificationCode.substring(0, 2)
+      });
       
       res.json({
-        message: "Verification code has been resent to your email address."
+        message: "Verification email has been resent. Please check your inbox. The link is valid for 48 hours."
       });
     } catch (error: any) {
-      logger.error('Cognito resend verification error', { 
+      logger.error('Custom resend verification error', { 
         email: req.body.email,
         errorMessage: error.message 
       });
