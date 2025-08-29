@@ -129,7 +129,7 @@ export function setupCognitoRoutes(app: Express) {
     res.setHeader('Content-Type', 'application/json');
     
     try {
-      const { email, password, name, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
+      const { email, password, firstName, lastName, name, businessName, phoneNumber, adminCode, agreeToTerms } = req.body;
       
       // Get files from the request
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -137,7 +137,9 @@ export function setupCognitoRoutes(app: Express) {
       logger.debug("Cognito registration request", {
         email,
         password: password ? '[REDACTED]' : 'MISSING',
-        name,
+        firstName,
+        lastName,
+        name, // Legacy field
         businessName,
         phoneNumber,
         agreeToTerms,
@@ -163,9 +165,15 @@ export function setupCognitoRoutes(app: Express) {
       // Register with Cognito first
       let cognitoResult;
       try {
-        cognitoResult = await cognitoAuth.signUp(email, password, name);
+        // Use firstName/lastName if provided, otherwise parse the legacy name field
+        const finalFirstName = firstName || (name ? name.split(' ')[0] : undefined);
+        const finalLastName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : undefined);
+        
+        cognitoResult = await cognitoAuth.signUp(email, password, finalFirstName, finalLastName, businessName, phoneNumber);
         logger.info('Cognito user registration successful', {
           email,
+          firstName: finalFirstName,
+          lastName: finalLastName,
           cognitoUserId: cognitoResult.cognitoUserId,
           needsVerification: cognitoResult.needsVerification
         });
@@ -198,7 +206,9 @@ export function setupCognitoRoutes(app: Express) {
         user = await storage.updateUser(existingUser.id, {
           cognitoUserId: cognitoResult.cognitoUserId,
           cognitoUsername: cognitoResult.cognitoUsername,
-          name: name || existingUser.name,
+          firstName: finalFirstName || existingUser.firstName,
+          lastName: finalLastName || existingUser.lastName,
+          name: name || existingUser.name, // Keep for backward compatibility
           businessName: businessName || existingUser.businessName,
           phoneNumber: phoneNumber || existingUser.phoneNumber,
           isAdmin: isAdmin || existingUser.isAdmin,
@@ -210,7 +220,9 @@ export function setupCognitoRoutes(app: Express) {
           password: '', // Not needed anymore, using empty string for compatibility
           cognitoUserId: cognitoResult.cognitoUserId,
           cognitoUsername: cognitoResult.cognitoUsername,
-          name: name || undefined,
+          firstName: finalFirstName || undefined,
+          lastName: finalLastName || undefined,
+          name: name || undefined, // Keep for backward compatibility
           businessName: businessName || undefined,
           phoneNumber: phoneNumber || undefined,
           businessLogo: undefined,
