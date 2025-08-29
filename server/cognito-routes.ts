@@ -152,7 +152,23 @@ export function setupCognitoRoutes(app: Express) {
       }
       
       // Register with Cognito first
-      const cognitoResult = await cognitoAuth.signUp(email, password, name);
+      let cognitoResult;
+      try {
+        cognitoResult = await cognitoAuth.signUp(email, password, name);
+        logger.info('Cognito user registration successful', {
+          email,
+          cognitoUserId: cognitoResult.cognitoUserId,
+          needsVerification: cognitoResult.needsVerification
+        });
+      } catch (cognitoError: any) {
+        logger.error('Cognito user registration failed', {
+          email,
+          errorMessage: cognitoError.message,
+          errorCode: cognitoError.name,
+          errorStack: cognitoError.stack
+        });
+        throw cognitoError; // Re-throw to be handled by outer catch
+      }
       
       // Special admin code check
       const isAdmin = adminCode && 
