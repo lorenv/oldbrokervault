@@ -138,6 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw verificationError;
         }
         
+        // Handle legacy user migration needed (403 status)
+        if (res.status === 403 && responseData.needsPasswordReset) {
+          console.log("Legacy user needs migration:", responseData);
+          
+          // Create a special error that carries legacy user data
+          const legacyError = new Error(responseData.message);
+          (legacyError as any).needsPasswordReset = true;
+          (legacyError as any).email = responseData.email;
+          (legacyError as any).isLegacyUser = true;
+          throw legacyError;
+        }
+        
         console.log("Login successful, received user data:", responseData);
         return responseData;
       } catch (error: any) {
@@ -176,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to dashboard after successful login
       setLocation("/dashboard");
     },
-    onError: (error: Error & { needsVerification?: boolean; email?: string }) => {
+    onError: (error: Error & { needsVerification?: boolean; needsPasswordReset?: boolean; email?: string; isLegacyUser?: boolean }) => {
       // Handle verification required error
       if (error.needsVerification) {
         toast({
@@ -184,8 +196,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: error.message,
           variant: "default",
         });
-        // You could also set a state here to show a verification form
-        // For now, the toast will guide the user to their email
+        return;
+      }
+      
+      // Handle legacy user migration error
+      if (error.needsPasswordReset && error.isLegacyUser) {
+        toast({
+          title: "Account Migration Required",
+          description: error.message,
+          variant: "default",
+        });
         return;
       }
       
