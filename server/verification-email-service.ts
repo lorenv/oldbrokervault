@@ -24,7 +24,9 @@ export class VerificationEmailService {
    * Generate a secure verification token for the clickable link
    */
   static generateVerificationToken(email: string, code: string): string {
-    const data = `${email}:${code}:${Date.now()}`;
+    // Use a consistent secret to ensure tokens can be verified later
+    const secret = process.env.JWT_SECRET || 'cim-share-verification-secret';
+    const data = `${email}:${code}:${secret}`;
     return crypto.createHash('sha256').update(data).digest('hex');
   }
 
