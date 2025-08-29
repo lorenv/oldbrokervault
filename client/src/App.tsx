@@ -38,6 +38,7 @@ import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
+import { VerifyEmailPage } from "@/pages/verify-email-page";
 
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
@@ -79,6 +80,7 @@ function Router() {
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
             <Route path="/reset-password" component={LoginPage} />
+            <Route path="/verify-email" component={VerifyEmailPage} />
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
