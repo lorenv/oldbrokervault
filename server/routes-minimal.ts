@@ -112,6 +112,62 @@ export function registerApiRoutes(app: Express) {
       res.json({ status: "ok", timestamp: new Date().toISOString() });
     });
 
+    // Debug endpoint to check user data (temporary for fixing auth)
+    app.get("/api/debug-user/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const user = await storage.getUserByEmail(email);
+        if (!user) {
+          return res.json({ found: false });
+        }
+        
+        res.json({
+          found: true,
+          hasPassword: !!user.password,
+          passwordPrefix: user.password ? user.password.substring(0, 10) : null,
+          passwordLength: user.password ? user.password.length : 0,
+          isScryptFormat: user.password ? user.password.includes('.') : false,
+          isBcryptFormat: user.password ? user.password.startsWith('$2') : false,
+          cognitoUserId: user.cognitoUserId,
+          cognitoUsername: user.cognitoUsername
+        });
+      } catch (error) {
+        logger.error('Error in debug endpoint:', error);
+        res.status(500).json({ error: 'Debug failed' });
+      }
+    });
+
+    // Temporary endpoint to fix user password
+    app.post("/api/fix-user-password", async (req, res) => {
+      try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+          return res.status(400).json({ error: 'Email and password required' });
+        }
+
+        const user = await storage.getUserByEmail(email);
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Hash the password using the existing hash function
+        const { hashPassword } = await import('./auth');
+        const hashedPassword = await hashPassword(password);
+
+        // Update the user's password in the database
+        await storage.updateUser(user.id, { password: hashedPassword });
+
+        res.json({ 
+          success: true, 
+          message: 'Password updated successfully',
+          passwordSet: true 
+        });
+      } catch (error) {
+        logger.error('Error fixing user password:', error);
+        res.status(500).json({ error: 'Failed to update password' });
+      }
+    });
+
     logger.info('✅ Minimal API routes registered successfully');
     
   } catch (error) {
