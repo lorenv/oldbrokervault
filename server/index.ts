@@ -172,11 +172,11 @@ const server = app.listen(PORT, () => {
 // Setup all heavy operations AFTER server is listening
 server.on('listening', async () => {
   try {
-    // PRIORITY #1: Register full routes for complete functionality
-    console.log('🔧 Registering complete API routes...');
-    const { registerRoutes } = await import('./routes');
-    await registerRoutes(app);
-    console.log('✅ Complete API routes registered successfully');
+    // PRIORITY #1: Register minimal routes to prevent crashes, then incrementally add functionality
+    console.log('🔧 Registering stable API routes...');
+    const { registerApiRoutes } = await import('./routes-minimal');
+    await registerApiRoutes(app);
+    console.log('✅ Stable API routes registered successfully');
     
     // Import and setup security middleware
     console.log('🔒 Setting up security middleware...');
