@@ -69,20 +69,7 @@ export function registerApiRoutes(app: Express) {
       }
     });
 
-    // Analysis templates endpoint (minimal)
-    app.get("/api/analysis-templates", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
-      try {
-        if (!req.user) {
-          return res.status(401).json({ message: "Not authenticated" });
-        }
-        
-        // Return empty array for now to prevent crashes
-        res.json([]);
-      } catch (error) {
-        logger.error('Error in /api/analysis-templates:', error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    });
+
 
     // Dashboard recent endpoint (minimal)
     app.get("/api/dashboard/recent", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
@@ -165,6 +152,87 @@ export function registerApiRoutes(app: Express) {
       } catch (error) {
         logger.error('Error fixing user password:', error);
         res.status(500).json({ error: 'Failed to update password' });
+      }
+    });
+
+    // CIM generation endpoints (basic implementations)
+    app.post("/api/generate-cim", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        // Basic response for now - frontend expects this structure
+        res.json({
+          success: false,
+          message: "CIM generation temporarily unavailable - system being restored",
+          docId: null
+        });
+      } catch (error) {
+        logger.error('Error in /api/generate-cim:', error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // Website image extraction endpoint
+    app.get("/api/website-images/:url", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        // Return empty array for now - frontend expects array of images
+        res.json([]);
+      } catch (error) {
+        logger.error('Error in /api/website-images:', error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // Unsplash search endpoint
+    app.get("/api/unsplash/search", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        // Return empty results for now - frontend expects this structure
+        res.json({
+          results: [],
+          total: 0,
+          total_pages: 0
+        });
+      } catch (error) {
+        logger.error('Error in /api/unsplash/search:', error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+
+    // Analysis templates endpoint (updated to return some default templates)
+    app.get("/api/analysis-templates", securityHeadersMiddleware, responseSanitizationMiddleware, async (req, res) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        // Return basic templates for CIM generation
+        res.json([
+          {
+            id: 1,
+            name: "Standard Business Analysis",
+            description: "Comprehensive business overview and analysis",
+            isDefault: true
+          },
+          {
+            id: 2, 
+            name: "Quick Summary",
+            description: "Brief business summary for initial review",
+            isDefault: false
+          }
+        ]);
+      } catch (error) {
+        logger.error('Error in /api/analysis-templates:', error);
+        res.status(500).json({ message: "Internal server error" });
       }
     });
 
