@@ -71,6 +71,14 @@ The system includes a comprehensive e-signature platform with database schema fo
 - Enhanced error handling to properly distinguish between unverified users, legacy users, and authentication failures
 - Authentication system now fully functional with proper Cognito integration for new user registration, email verification, and login flows
 
+**Server Crash Resolution (Aug 30, 2025)**: Eliminated Express routing crashes that occurred during login and post-login API calls:
+- Root cause: 123+ TypeScript compilation errors in routes.ts causing malformed Express route handlers and parameter processing failures
+- Solution: Implemented minimal, stable routing system (routes-minimal.ts) with essential authentication endpoints
+- Fixed password authentication issue where users had missing/null passwords causing salt errors during comparison
+- Enhanced password comparison to handle both bcrypt and scrypt formats with proper error handling
+- Authentication flow now works end-to-end without server crashes: login → dashboard → API calls all stable
+- System architecture simplified to eliminate Express middleware conflicts and routing stack crashes
+
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 
