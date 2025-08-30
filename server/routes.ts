@@ -695,13 +695,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Document not found" });
       }
       
-      if (!cimDoc.shareEnabled) {
-        console.log("ERROR: Sharing disabled for document:", cimDoc.id);
+      if (!cimDoc?.shareEnabled) {
+        console.log("ERROR: Sharing disabled for document:", cimDoc?.id);
         return res.status(404).json({ error: "Sharing is disabled for this document" });
       }
 
       // Check expiration with detailed logging
-      if (cimDoc.shareExpiresAt) {
+      if (cimDoc?.shareExpiresAt) {
         const now = new Date();
         const expirationDate = new Date(cimDoc.shareExpiresAt);
         console.log("Expiration check:", {
@@ -719,7 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check password protection
-      if (cimDoc.sharePassword) {
+      if (cimDoc?.sharePassword) {
         const { password } = req.query;
         console.log("Password protection check:", {
           hasPassword: !!cimDoc.sharePassword,
