@@ -210,15 +210,15 @@ server.on('listening', async () => {
       console.log('📁 Adding static file serving for development:', publicPath);
       app.use(express.static(publicPath));
       
-      const { setupVite } = await import('./vite');
-      await setupVite(app, server);
-      console.log('✅ Vite middleware configured');
-      
-      // Setup SEO routes AFTER Vite for development to avoid conflicts
-      console.log('🔍 Setting up SEO routes for development after Vite...');
+      // Setup SEO routes FIRST in development before Vite middleware
+      console.log('🔍 Setting up SEO routes for development...');
       const { setupSEORoutes } = await import('./seo-routes');
       setupSEORoutes(app);
       console.log('✅ SEO routes configured for development');
+      
+      const { setupVite } = await import('./vite');
+      await setupVite(app, server);
+      console.log('✅ Vite middleware configured');
     }
     
     log('✅ All middleware and routes configured');
