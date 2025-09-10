@@ -92,6 +92,13 @@ export function CimGenerator() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // NDA Protection state (declare early for hook dependencies)
+  const [ndaSettings, setNdaSettings] = useState({
+    ndaProtected: false,
+    ndaTemplateId: null as number | null,
+    ndaApprovalRequired: false
+  });
+
   // Load analysis templates from database
   const { data: analysisTemplates = [], refetch: refetchTemplates } = useQuery({
     queryKey: ['/api/analysis-templates'],
@@ -103,6 +110,7 @@ export function CimGenerator() {
     queryKey: ['/api/nda-templates'],
     enabled: !!user && ndaSettings.ndaProtected,
   });
+  
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -142,13 +150,6 @@ export function CimGenerator() {
   const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
-
-  // NDA Protection state
-  const [ndaSettings, setNdaSettings] = useState({
-    ndaProtected: false,
-    ndaTemplateId: null as number | null,
-    ndaApprovalRequired: false
-  });
 
 
 
