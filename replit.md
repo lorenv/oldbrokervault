@@ -7,12 +7,25 @@ CIM Share is a full-stack web application designed to create, manage, and secure
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
-The application utilizes a client-server architecture.
+The application utilizes a **dual-architecture system** with split React handling for optimal SEO and user experience.
+
+### Dual Architecture Overview
+**SEO-Optimized Routes (Server-Side)**: Marketing pages served as optimized HTML for search engines
+- Routes: `/`, `/pricing`, `/contact`, `/features/*`, `/solutions/*`
+- **Purpose**: Maximum search engine visibility for marketing content
+- **Technology**: Server-side rendering with cached HTML responses
+- **Behavior**: Serves to bots/crawlers, falls through to React SPA for browsers
+
+**Interactive Application (Client-Side)**: React SPA for logged-in user functionality  
+- Routes: `/dashboard`, `/documents`, `/admin`, `/account`, etc.
+- **Purpose**: Rich interactive experience for authenticated users
+- **Technology**: React 18 SPA with client-side routing
+- **Behavior**: Handles all authenticated user workflows and dynamic content
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
-- **Routing**: Wouter
+- **Routing**: Wouter (client-side) + Express routes (server-side SEO)
 - **Styling**: Tailwind CSS with Shadcn UI
 - **State Management**: React Query (server state), React Context (auth state)
 - **Forms**: React Hook Form with Zod
