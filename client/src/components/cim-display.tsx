@@ -385,7 +385,7 @@ export function CimDisplay({
           setCustomSections(updatedCustomSections);
         }
 
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Sections Reordered", description: "Section order saved successfully." });
       } catch (error) {
@@ -407,7 +407,7 @@ export function CimDisplay({
       });
 
       if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Section Deleted", description: "Section removed successfully." });
       } else {
@@ -427,7 +427,7 @@ export function CimDisplay({
       const response = await apiRequest("DELETE", `/api/custom-section/${customSectionId}`);
       if (response.ok) {
         setCustomSections((prev: any) => prev.filter((s: any) => s.id !== customSectionId));
-        queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+        queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
         queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
         toast({ title: "Section Deleted", description: "Custom section removed successfully." });
       } else {
@@ -672,7 +672,7 @@ export function CimDisplay({
             currentPosition={cimDocument.coverImagePosition}
             currentAttribution={cimDocument.coverImageAttribution}
             onUpdate={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+              queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
               queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
             }}
           />
@@ -898,7 +898,7 @@ export function CimDisplay({
                                   });
 
                                   if (response.ok) {
-                                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                                    queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
                                     queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                                     toast({ title: "Content Updated", description: "Section content saved successfully." });
                                   }
@@ -1083,7 +1083,7 @@ export function CimDisplay({
                           if (response.ok) {
                             // Invalidate custom sections query to refresh via centralized hook
                             queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
-                            queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
                             queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                             toast({
                               title: "Text Section Added",
@@ -1138,7 +1138,7 @@ export function CimDisplay({
                             if (response.ok) {
                               // Invalidate custom sections query to refresh via centralized hook
                               queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}/custom-sections`] });
-                              queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                              queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
                               queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
                               toast({
                                 title: "Image Section Added",
@@ -1338,7 +1338,7 @@ export function CimDisplay({
                         if (response.ok) {
                           const result = await response.json();
                           setEditingCustomSection((prev: any) => ({ ...prev, imageUrls: result.imageUrls }));
-                          queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                          queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
                           toast({ title: "Images Updated", description: "Images uploaded successfully." });
                         }
                       } catch (error) {
@@ -1363,7 +1363,7 @@ export function CimDisplay({
                     setCustomSections(prev => prev.map(s => 
                       s.id === editingCustomSection.id ? { ...editingCustomSection, content: editingCustomSection.content } : s
                     ));
-                    queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+                    queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
                     toast({ title: "Section Updated", description: "Custom section updated successfully." });
                     setEditingCustomSection(null);
                   }

@@ -84,6 +84,23 @@ function isAuthorizedAdmin(user: any): boolean {
   return user.isAdmin === true;
 }
 
+// Helper function to check if user has premium access
+function hasPremiumAccess(user: any): boolean {
+  if (!user) return false;
+  if (user.isAdmin) return true;
+  
+  // Free users don't have premium access
+  if (user.subscriptionStatus === 'free') return false;
+  
+  // For canceled subscriptions, check if they still have time remaining
+  if (user.subscriptionStatus === 'canceled') {
+    return user.subscriptionEndsAt && new Date(user.subscriptionEndsAt) > new Date();
+  }
+  
+  // All other subscription statuses (standard, premium, enterprise) have access
+  return true;
+}
+
 // Function to add rounded corners to images using Sharp with memory optimization
 async function addRoundedCorners(imageBuffer: Buffer, radius: number = 30): Promise<Buffer> {
   let sharpInstance: sharp.Sharp | null = null;
@@ -1678,6 +1695,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       console.log("Financial data to be saved:", financialDataToSave);
       
+      // Extract NDA settings from request
+      const ndaSettings = data.ndaSettings || { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
@@ -1707,8 +1727,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareSlug: shareSlug,
         sharePassword: null,
         shareExpiresAt: null,
-        ndaProtected: false,
-        ndaTemplateId: null
+        ndaProtected: ndaSettings.ndaProtected || false,
+        ndaTemplateId: ndaSettings.ndaTemplateId || null,
+        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false
       });
 
       // Process only the user-selected images (selectedImageUrls already contains the user's choices)
@@ -2307,6 +2328,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Uploaded financial files:", uploadedFinancialFiles.length);
       }
       
+      // Extract NDA settings from form data (JSON string)
+      let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      if (req.body.ndaSettings) {
+        try {
+          ndaSettings = JSON.parse(req.body.ndaSettings);
+        } catch (error) {
+          console.error('Failed to parse NDA settings:', error);
+        }
+      }
+      
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
       const shareSlug = `cim-${randomId}`;
@@ -2338,8 +2369,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shareSlug: shareSlug,
         sharePassword: null,
         shareExpiresAt: null,
-        ndaProtected: false,
-        ndaTemplateId: null
+        ndaProtected: ndaSettings.ndaProtected || false,
+        ndaTemplateId: ndaSettings.ndaTemplateId || null,
+        ndaApprovalRequired: ndaSettings.ndaApprovalRequired || false
       });
 
       // Save financial files to database after document creation
@@ -3529,7 +3561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await storage.getUser(req.user!.id);
-      if (!user || (user.subscriptionStatus === 'free' && !user.isAdmin)) {
+      if (!user || !hasPremiumAccess(user)) {
         return res.status(403).json({ 
           error: "Version restore requires a premium subscription",
           upgradeRequired: true 

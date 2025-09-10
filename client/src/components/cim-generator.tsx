@@ -5,11 +5,11 @@ import { insertCimDocumentSchema, DEFAULT_CIM_DIRECTIONS, DEFAULT_ANALYSIS_TEMPL
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2 } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +97,12 @@ export function CimGenerator() {
     queryKey: ['/api/analysis-templates'],
     enabled: !!user,
   });
+  
+  // Load NDA templates from database
+  const { data: ndaTemplates = [] } = useQuery({
+    queryKey: ['/api/nda-templates'],
+    enabled: !!user && ndaSettings.ndaProtected,
+  });
   const [analysis, setAnalysis] = useState<any>(null);
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
@@ -136,6 +142,13 @@ export function CimGenerator() {
   const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
   const [isCoverImageSectionOpen, setIsCoverImageSectionOpen] = useState(false);
   const coverImageFileInputRef = useRef<HTMLInputElement>(null);
+
+  // NDA Protection state
+  const [ndaSettings, setNdaSettings] = useState({
+    ndaProtected: false,
+    ndaTemplateId: null as number | null,
+    ndaApprovalRequired: false
+  });
 
 
 
@@ -392,6 +405,9 @@ export function CimGenerator() {
           }
         }
 
+        // Add NDA settings
+        formData.append('ndaSettings', JSON.stringify(ndaSettings));
+
         try {
           // Stage 4: Analyzing content
           const contentStageDelay = (data.websiteUrl?.trim() && enableWebsiteAnalysis) ? 1500 : 1000;
@@ -469,7 +485,8 @@ export function CimGenerator() {
             formattingProfile: selectedFormattingProfile,
             tone: selectedFormattingProfile,
             purpose: data.purpose || "business_overview",
-            audience: data.audience || "investors"
+            audience: data.audience || "investors",
+            ndaSettings
           };
           
           const response = await apiRequest("POST", "/api/cim/generate", enhancedPayload);
@@ -1121,6 +1138,82 @@ export function CimGenerator() {
               form.setValue("formattingProfile", profile);
             }}
           />
+
+          {/* NDA Protection Section */}
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                NDA Protection
+              </CardTitle>
+              <CardDescription>
+                Configure confidentiality settings for your CIM document. NDA protection requires viewers to accept legal terms before accessing your document.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="nda-protected"
+                  checked={ndaSettings.ndaProtected}
+                  onCheckedChange={(checked) => {
+                    setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
+                    if (!checked) {
+                      setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
+                    }
+                  }}
+                  data-testid="switch-nda-protected"
+                />
+                <Label htmlFor="nda-protected" className="text-sm font-medium">
+                  Enable NDA Protection
+                </Label>
+              </div>
+
+              {ndaSettings.ndaProtected && (
+                <div className="space-y-4 ml-6 border-l-2 border-muted pl-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">NDA Template</Label>
+                    <Select
+                      value={ndaSettings.ndaTemplateId?.toString() || ''}
+                      onValueChange={(value) => {
+                        setNdaSettings(prev => ({ ...prev, ndaTemplateId: value ? parseInt(value) : null }));
+                      }}
+                    >
+                      <SelectTrigger data-testid="select-nda-template">
+                        <SelectValue placeholder="Select an NDA template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ndaTemplates.map((template: any) => (
+                          <SelectItem key={template.id} value={template.id.toString()}>
+                            {template.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="manual-approval"
+                      checked={ndaSettings.ndaApprovalRequired}
+                      onCheckedChange={(checked) => {
+                        setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }));
+                      }}
+                      data-testid="switch-manual-approval"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="manual-approval" className="text-sm font-medium flex items-center gap-2">
+                        <UserCheck className="h-4 w-4" />
+                        Require Manual Approval
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        When enabled, you must manually approve each person before they can view the document
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <TooltipProvider>
             <Tooltip>

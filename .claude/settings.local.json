@@ -26,7 +26,9 @@
       "WebSearch",
       "Bash(npm run typecheck)",
       "Bash(npx tsc --noEmit)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": [],

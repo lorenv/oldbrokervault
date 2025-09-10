@@ -43,10 +43,89 @@ export function EnhancedInlineEditor({
         setEditValue(value.join('\n'));
       } else {
         const textValue = typeof value === 'string' ? value : String(value);
-        setEditValue(textValue);
+        
+        // If enabling rich text and content doesn't contain HTML tags, 
+        // treat it as markdown and convert basic markdown to HTML
+        if (enableRichText && !/<[^>]+>/.test(textValue)) {
+          const convertedValue = convertMarkdownToHtml(textValue);
+          setEditValue(convertedValue);
+        } else {
+          setEditValue(textValue);
+        }
       }
     }
   }, [isEditing, value, isArray, enableRichText]);
+
+  // Simple markdown to HTML conversion for basic formatting
+  const convertMarkdownToHtml = (markdown: string): string => {
+    let html = markdown;
+    
+    // Convert bold **text** or __text__ to <strong>text</strong>
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    
+    // Convert italic *text* (but not **text**) to <em>text</em>
+    // First protect bold **text** by temporarily replacing it
+    const boldPlaceholder = '___BOLD_PLACEHOLDER___';
+    const boldMatches = html.match(/\*\*[^*]+?\*\*/g) || [];
+    boldMatches.forEach((match, index) => {
+      html = html.replace(match, `${boldPlaceholder}${index}`);
+    });
+    
+    // Now convert single asterisks to italic
+    html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+    
+    // Restore bold text
+    boldMatches.forEach((match, index) => {
+      html = html.replace(`${boldPlaceholder}${index}`, match);
+    });
+    
+    // Convert underscore italic (word boundaries)
+    html = html.replace(/\b_([^_\n]+?)_\b/g, '<em>$1</em>');
+    
+    // Convert bullet lists
+    const lines = html.split('\n');
+    let inList = false;
+    const processedLines: string[] = [];
+    
+    lines.forEach(line => {
+      const bulletMatch = line.match(/^[\s]*[-\*\+][\s]+(.+)$/);
+      if (bulletMatch) {
+        if (!inList) {
+          processedLines.push('<ul>');
+          inList = true;
+        }
+        processedLines.push(`<li>${bulletMatch[1]}</li>`);
+      } else {
+        if (inList) {
+          processedLines.push('</ul>');
+          inList = false;
+        }
+        processedLines.push(line);
+      }
+    });
+    
+    if (inList) {
+      processedLines.push('</ul>');
+    }
+    
+    html = processedLines.join('\n');
+    
+    // Convert line breaks to <br> tags and wrap paragraphs
+    html = html.replace(/\n\n+/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraphs if not already wrapped
+    if (!html.startsWith('<')) {
+      html = `<p>${html}</p>`;
+    }
+    
+    // Clean up empty paragraphs
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p><br><\/p>/g, '');
+    
+    return html;
+  };
 
   const handleSave = () => {
     if (isArray) {
