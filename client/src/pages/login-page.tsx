@@ -68,9 +68,7 @@ const registerSchema = z.object({
     .regex(/(?=.*[A-Z])/, "Password must contain at least one uppercase letter")
     .regex(/(?=.*\d)/, "Password must contain at least one number")
     .regex(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\?])/, "Password must contain at least one special character"),
-  firstName: z.string().min(1, "Please enter your first name"),
-  lastName: z.string().min(1, "Please enter your last name"),
-  name: z.string().optional(), // Keep for backward compatibility
+  name: z.string().min(1, "Please enter your full name"),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions"
   }),
@@ -90,8 +88,6 @@ export default function LoginPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
-  const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState<string>("");
 
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({
@@ -141,50 +137,6 @@ export default function LoginPage() {
     },
   });
 
-  // Email verification mutation
-  const verifyEmailMutation = useMutation({
-    mutationFn: async (data: { email: string; code: string }) => {
-      const res = await apiRequest("POST", "/api/verify-email", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Email Verified Successfully!",
-        description: "You can now log in with your credentials.",
-      });
-      setShowEmailVerification(false);
-      setVerificationEmail("");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Verification Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Resend verification code mutation
-  const resendVerificationMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", "/api/resend-verification", { email });
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Verification Code Resent",
-        description: "Please check your email for the new verification code.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Resend Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   // Check for reset token in URL or reset-password route
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -196,17 +148,6 @@ export default function LoginPage() {
       setShowResetPassword(true);
     }
   }, [location]);
-
-  // Listen for email verification trigger from registration
-  useEffect(() => {
-    const handleShowVerification = (event: any) => {
-      setVerificationEmail(event.detail.email);
-      setShowEmailVerification(true);
-    };
-
-    window.addEventListener('showEmailVerification', handleShowVerification);
-    return () => window.removeEventListener('showEmailVerification', handleShowVerification);
-  }, []);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -231,29 +172,6 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <ResetPasswordForm mutation={resetPasswordMutation} />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (showEmailVerification) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Verify Your Email</CardTitle>
-            <CardDescription>
-              Please enter the verification code sent to {verificationEmail}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <VerifyEmailForm 
-              email={verificationEmail}
-              verifyMutation={verifyEmailMutation} 
-              resendMutation={resendVerificationMutation}
-              onBack={() => setShowEmailVerification(false)}
-            />
           </CardContent>
         </Card>
       </div>
@@ -583,8 +501,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
     defaultValues: {
       email: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      name: "",
       businessName: "",
       phoneNumber: "",
       agreeToTerms: false,
@@ -640,8 +557,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         const formData = new FormData();
         formData.append('email', data.email);
         formData.append('password', data.password);
-        formData.append('firstName', data.firstName.trim());
-        formData.append('lastName', data.lastName.trim());
+        formData.append('name', data.name.trim());
         formData.append('agreeToTerms', 'true'); // Always send as string 'true' for backend validation
 
         // Add optional business profile fields only if they have values
@@ -679,46 +595,25 @@ function RegisterForm({ mutation }: { mutation: any }) {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">First Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="John"
-                    type="text"
-                    autoComplete="given-name"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Last Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Doe"
-                    type="text"
-                    autoComplete="family-name"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-gray-700">Full Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="John Doe"
+                  type="text"
+                  autoComplete="name"
+                  className="h-11"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -1038,100 +933,6 @@ function ResetPasswordForm({ mutation }: { mutation: any }) {
             "Reset Password"
           )}
         </Button>
-      </form>
-    </Form>
-  );
-}
-
-function VerifyEmailForm({ 
-  email, 
-  verifyMutation, 
-  resendMutation, 
-  onBack 
-}: { 
-  email: string; 
-  verifyMutation: any; 
-  resendMutation: any; 
-  onBack: () => void;
-}) {
-  const verificationSchema = z.object({
-    code: z.string().min(6, "Verification code must be at least 6 characters"),
-  });
-
-  const form = useForm<z.infer<typeof verificationSchema>>({
-    resolver: zodResolver(verificationSchema),
-    defaultValues: {
-      code: "",
-    },
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => {
-        verifyMutation.mutate({
-          email,
-          code: data.code,
-        });
-      })} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Verification Code</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Enter 6-digit code"
-                  maxLength={6}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={verifyMutation.isPending}
-        >
-          {verifyMutation.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Verify Email"
-          )}
-        </Button>
-        
-        <div className="space-y-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => resendMutation.mutate(email)}
-            disabled={resendMutation.isPending}
-          >
-            {resendMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Resending...
-              </>
-            ) : (
-              "Resend Code"
-            )}
-          </Button>
-          
-          <Button
-            type="button"
-            variant="link"
-            className="w-full"
-            onClick={onBack}
-          >
-            Back to Login
-          </Button>
-        </div>
       </form>
     </Form>
   );

@@ -55,30 +55,6 @@ The system includes a comprehensive e-signature platform with database schema fo
 
 **Critical Routing Fix (Aug 15, 2025)**: Resolved persistent "Unexpected token" authentication errors where browsers received HTML instead of JSON from API endpoints. Root cause was improper route registration order - the frontend catchall route (`app.use("*")`) was intercepting API requests before they reached the API handlers. Fixed by ensuring API routes are registered before Vite/static middleware setup, preventing the catchall from interfering with `/api/*` endpoints. Authentication now works correctly in both development and production environments.
 
-**AWS Cognito Migration (Aug 28, 2025)**: Successfully migrated from session-based authentication to AWS Cognito integration while preserving all existing UI/UX. Key achievements:
-- Implemented comprehensive Cognito authentication service with JWT token verification
-- Created new authentication routes that maintain custom registration forms and password reset flows
-- Updated database schema to link local users with Cognito user IDs via `cognito_user_id` field
-- Developed user migration script for transferring existing users (requires AWS credentials)
-- Fixed Cognito username generation issue where email-like patterns were rejected by implementing random username generation (`u[timestamp][random]`)
-- Preserved all existing frontend UI while integrating with Cognito backend services
-- System now ready for future social logins and 2FA integration using shared AWS Cognito user pool
-
-**Critical Authentication Fixes (Aug 29, 2025)**: Resolved major authentication system issues:
-- Fixed registration bug where new users weren't getting `cognitoUserId` saved to local database, causing all new users to appear as "legacy users"
-- Resolved verification email redirect loop by updating backend redirects to use frontend routes (`/#/verify-email`) instead of backend endpoints
-- Fixed verification token generation flaw where timestamps caused tokens to never match during verification, making all verification links fail
-- Enhanced error handling to properly distinguish between unverified users, legacy users, and authentication failures
-- Authentication system now fully functional with proper Cognito integration for new user registration, email verification, and login flows
-
-**Server Crash Resolution (Aug 30, 2025)**: Eliminated Express routing crashes that occurred during login and post-login API calls:
-- Root cause: 123+ TypeScript compilation errors in routes.ts causing malformed Express route handlers and parameter processing failures
-- Solution: Implemented minimal, stable routing system (routes-minimal.ts) with essential authentication endpoints
-- Fixed password authentication issue where users had missing/null passwords causing salt errors during comparison
-- Enhanced password comparison to handle both bcrypt and scrypt formats with proper error handling
-- Authentication flow now works end-to-end without server crashes: login → dashboard → API calls all stable
-- System architecture simplified to eliminate Express middleware conflicts and routing stack crashes
-
 ### Website Crawler
 A fully functional real-time website content analysis feature integrates with AI to merge website data with user transcripts, prioritizing transcript data.
 

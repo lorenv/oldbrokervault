@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, emailVerificationCodes } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -56,7 +56,6 @@ function getSessionStore(): session.Store {
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByCognitoId(cognitoUserId: string): Promise<User | undefined>;
   getUserProfile(id: number): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
@@ -209,11 +208,6 @@ export interface IStorage {
   createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment>;
   getMessageAttachments(messageId: number): Promise<MessageAttachment[]>;
   getMessageAttachment(attachmentId: number): Promise<MessageAttachment | undefined>;
-  // Email verification
-  createVerificationCode(email: string, code: string, expiresAt: Date): Promise<void>;
-  getVerificationCode(email: string, code: string): Promise<{ verified: boolean; expired: boolean } | null>;
-  markVerificationCodeAsUsed(email: string, code: string): Promise<void>;
-  markUserAsVerified(email: string): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -241,16 +235,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserByCognitoId(cognitoUserId: string): Promise<User | undefined> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.cognitoUserId, cognitoUserId)).limit(1);
-      return user;
-    } catch (error) {
-      console.error('Error in getUserByCognitoId:', error);
-      throw error;
-    }
-  }
-
   async getUserProfile(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -262,10 +246,6 @@ export class DatabaseStorage implements IStorage {
       .values({
         email: insertUser.email,
         password: insertUser.password,
-        cognitoUserId: insertUser.cognitoUserId || null,
-        cognitoUsername: insertUser.cognitoUsername || null,
-        firstName: insertUser.firstName || null,
-        lastName: insertUser.lastName || null,
         name: insertUser.name || null,
         businessName: insertUser.businessName || null,
         phoneNumber: insertUser.phoneNumber || null,
@@ -1978,60 +1958,6 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     return await withRetry(async () => {
       const [attachment] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, attachmentId));
       return attachment;
-    });
-  }
-
-  // Email verification methods
-  async createVerificationCode(email: string, code: string, expiresAt: Date): Promise<void> {
-    return await withRetry(async () => {
-      await db.insert(emailVerificationCodes).values({
-        email,
-        code,
-        expiresAt,
-        verified: false
-      });
-    });
-  }
-
-  async getVerificationCode(email: string, code: string): Promise<{ verified: boolean; expired: boolean } | null> {
-    return await withRetry(async () => {
-      const [record] = await db.select()
-        .from(emailVerificationCodes)
-        .where(and(
-          eq(emailVerificationCodes.email, email),
-          eq(emailVerificationCodes.code, code)
-        ))
-        .orderBy(desc(emailVerificationCodes.createdAt))
-        .limit(1);
-      
-      if (!record) return null;
-      
-      const now = new Date();
-      const expired = now > record.expiresAt;
-      
-      return {
-        verified: record.verified,
-        expired
-      };
-    });
-  }
-
-  async markVerificationCodeAsUsed(email: string, code: string): Promise<void> {
-    return await withRetry(async () => {
-      await db.update(emailVerificationCodes)
-        .set({ verified: true })
-        .where(and(
-          eq(emailVerificationCodes.email, email),
-          eq(emailVerificationCodes.code, code)
-        ));
-    });
-  }
-
-  async markUserAsVerified(email: string): Promise<void> {
-    return await withRetry(async () => {
-      await db.update(users)
-        .set({ emailVerified: true })
-        .where(eq(users.email, email));
     });
   }
 }

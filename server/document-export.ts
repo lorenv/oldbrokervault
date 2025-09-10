@@ -1862,15 +1862,11 @@ function addFooter(doc: any, pageNumber: number, totalPages: number, documentTit
 }
 
 function generateContactFooter(userProfile: any): string {
-  const userName = userProfile.firstName && userProfile.lastName 
-    ? `${userProfile.firstName} ${userProfile.lastName}` 
-    : userProfile.name;
-    
   return `
         <div class="contact-footer">
             <h2>CONTACT INFORMATION</h2>
             ${userProfile.profilePhoto ? `<img src="${userProfile.profilePhoto}" alt="Profile Photo" class="profile-photo">` : ''}
-            ${userName ? `<p><strong>${userName}</strong></p>` : ''}
+            ${userProfile.name ? `<p><strong>${userProfile.name}</strong></p>` : ''}
             ${userProfile.title ? `<p>${userProfile.title}</p>` : ''}
             ${userProfile.phoneNumber ? `<p>Phone: ${userProfile.phoneNumber}</p>` : ''}
             ${userProfile.email ? `<p>Email: ${userProfile.email}</p>` : ''}
@@ -2387,14 +2383,10 @@ export async function generateWordDocument(analysis: any, logoUrl?: string | nul
     }
   }
 
-  const userName = userProfile?.firstName && userProfile?.lastName 
-    ? `${userProfile.firstName} ${userProfile.lastName}` 
-    : userProfile?.name;
-  
-  if (userName) {
+  if (userProfile?.name) {
     paragraphs.push(
       new docx.Paragraph({
-        text: userName,
+        text: userProfile.name,
         alignment: docx.AlignmentType.CENTER,
         spacing: { before: 100 }
       })
@@ -3649,12 +3641,8 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
           }
         }
         
-        const userName = userProfile.firstName && userProfile.lastName 
-          ? `${userProfile.firstName} ${userProfile.lastName}` 
-          : userProfile.name;
-        
-        if (userName) {
-          doc.font('Helvetica-Bold').text(`Contact: ${userName}`, { align: 'center' });
+        if (userProfile.name) {
+          doc.font('Helvetica-Bold').text(`Contact: ${userProfile.name}`, { align: 'center' });
           doc.moveDown(0.5);
         }
         

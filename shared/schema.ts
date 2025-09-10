@@ -33,8 +33,6 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  cognitoUserId: text("cognito_user_id").unique(), // AWS Cognito User ID
-  cognitoUsername: text("cognito_username"), // AWS Cognito Username for authentication
   isAdmin: boolean("is_admin").default(false).notNull(),
   subscriptionStatus: text("subscription_status").default("free").notNull(),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
@@ -48,9 +46,7 @@ export const users = pgTable("users", {
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),
   // Profile information fields
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  name: text("name"), // Keep for backward compatibility during migration
+  name: text("name"),
   title: text("title"),
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
@@ -63,20 +59,6 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   // PDF export preferences
   pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
-  // Custom email verification fields
-  emailVerified: boolean("email_verified").default(false).notNull(),
-  verificationCode: text("verification_code"), // 6-digit code for email verification
-  verificationCodeExpiry: timestamp("verification_code_expiry"), // When the code expires
-});
-
-// Email verification codes table for custom verification system
-export const emailVerificationCodes = pgTable("email_verification_codes", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  code: text("code").notNull(), // 6-digit verification code
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  verified: boolean("verified").default(false).notNull(),
 });
 
 export const cimDocuments = pgTable("cim_documents", {
