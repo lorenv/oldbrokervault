@@ -91,35 +91,12 @@ export async function hashPassword(password: string) {
 }
 
 export async function comparePasswords(supplied: string, stored: string) {
-  try {
-    // Check if it's a bcrypt hash (starts with $2b$, $2a$, etc.)
-    if (stored.startsWith('$2')) {
-      const bcrypt = await import('bcryptjs');
-      return await bcrypt.compare(supplied, stored);
-    }
-    
-    // Handle scrypt format (hash.salt)
-    const parts = stored.split(".");
-    if (parts.length !== 2) {
-      console.error('Invalid stored password format:', { hasPrefix: stored.substring(0, 10), length: stored.length });
-      return false;
-    }
-    
-    const [hashed, salt] = parts;
-    if (!salt) {
-      console.error('Missing salt in stored password');
-      return false;
-    }
-    
-    const hashedBuf = Buffer.from(hashed, "hex");
-    // Use appropriate key length based on stored hash length
-    const keyLength = hashedBuf.length;
-    const suppliedBuf = (await scryptAsync(supplied, salt, keyLength)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
-  } catch (error) {
-    console.error('Password comparison error:', error);
-    return false;
-  }
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  // Use appropriate key length based on stored hash length
+  const keyLength = hashedBuf.length;
+  const suppliedBuf = (await scryptAsync(supplied, salt, keyLength)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 export function setupAuth(app: Express) {

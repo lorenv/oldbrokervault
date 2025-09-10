@@ -125,33 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(`Server returned ${contentType} instead of JSON. This suggests a routing or server configuration issue.`);
         }
         
-        const responseData = await res.json();
-        
-        // Handle verification needed response (403 status)
-        if (res.status === 403 && responseData.needsVerification) {
-          console.log("User needs verification:", responseData);
-          
-          // Create a special error that carries verification data
-          const verificationError = new Error(responseData.message);
-          (verificationError as any).needsVerification = true;
-          (verificationError as any).email = responseData.email;
-          throw verificationError;
-        }
-        
-        // Handle legacy user migration needed (403 status)
-        if (res.status === 403 && responseData.needsPasswordReset) {
-          console.log("Legacy user needs migration:", responseData);
-          
-          // Create a special error that carries legacy user data
-          const legacyError = new Error(responseData.message);
-          (legacyError as any).needsPasswordReset = true;
-          (legacyError as any).email = responseData.email;
-          (legacyError as any).isLegacyUser = true;
-          throw legacyError;
-        }
-        
-        console.log("Login successful, received user data:", responseData);
-        return responseData;
+        const userData = await res.json();
+        console.log("Login successful, received user data:", userData);
+        return userData;
       } catch (error: any) {
         console.error("Login error:", error);
         
@@ -188,27 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect to dashboard after successful login
       setLocation("/dashboard");
     },
-    onError: (error: Error & { needsVerification?: boolean; needsPasswordReset?: boolean; email?: string; isLegacyUser?: boolean }) => {
-      // Handle verification required error
-      if (error.needsVerification) {
-        toast({
-          title: "Email Verification Required",
-          description: error.message,
-          variant: "default",
-        });
-        return;
-      }
-      
-      // Handle legacy user migration error
-      if (error.needsPasswordReset && error.isLegacyUser) {
-        toast({
-          title: "Account Migration Required",
-          description: error.message,
-          variant: "default",
-        });
-        return;
-      }
-      
+    onError: (error: Error) => {
       toast({
         title: "Login failed",
         description: error.message,
@@ -229,31 +185,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Could not detect incognito mode during registration:", e);
       }
 
-      const res = await apiRequest("POST", "/api/register", credentials);
-      const responseData = await res.json();
-      
-      return responseData;
-    },
-    onSuccess: (responseData: any) => {
-      // Check if email verification is needed
-      if (responseData.needsVerification) {
-        toast({
-          title: "Registration successful!",
-          description: responseData.message || "Please check your email to verify your account before logging in.",
-        });
+      try {
+        const res = await apiRequest("POST", "/api/register", credentials);
+        return await res.json();
+      } catch (error: any) {
+        // Parse the error message from the API response
+        const errorMessage = error.message || "Registration failed";
         
-        // Trigger email verification UI
-        const verificationEvent = new CustomEvent('showEmailVerification', { 
-          detail: { 
-            email: responseData.user?.email || responseData.email 
-          } 
-        });
-        window.dispatchEvent(verificationEvent);
-        return; // Don't set user data or redirect, stay on login page for verification
+        // Check for specific authentication errors that might indicate incognito mode
+        if (errorMessage.includes("session")) {
+          throw new Error("Registration failed. Please ensure you're not using incognito/private browsing mode and try again.");
+        }
+        
+        // Extract the actual error message from the API response
+        if (errorMessage.includes(": ")) {
+          const jsonPart = errorMessage.split(": ").slice(1).join(": ");
+          try {
+            const errorData = JSON.parse(jsonPart);
+            if (errorData.message) {
+              throw new Error(errorData.message);
+            }
+            if (errorData.error === "Validation failed" && errorData.details) {
+              const validationErrors = errorData.details.map((detail: any) => detail.msg).join(", ");
+              throw new Error(`Please check your input: ${validationErrors}`);
+            }
+          } catch (parseError) {
+            // If we can't parse the JSON, use the original error message
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
-      
-      // Normal successful registration - set user data and redirect
-      const user = responseData.user || responseData;
+    },
+    onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
       
       // Play success sound
@@ -287,13 +251,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }, 400);
       
+
+      
       // Mark user as new for get started checklist
       localStorage.setItem('show-get-started-checklist', 'true');
-      
-      toast({
-        title: "Welcome to CIM Share!",
-        description: "Your account has been created successfully.",
-      });
       
       // Redirect to dashboard after successful registration
       setTimeout(() => setLocation("/dashboard"), 1000);
