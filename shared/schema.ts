@@ -46,7 +46,9 @@ export const users = pgTable("users", {
   googleRefreshToken: text("google_refresh_token"),
   googleTokenExpiry: timestamp("google_token_expiry"),
   // Profile information fields
-  name: text("name"),
+  name: text("name"), // Legacy field - kept for backward compatibility
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   title: text("title"),
   phoneNumber: text("phone_number"),
   businessName: text("business_name"),
@@ -57,6 +59,12 @@ export const users = pgTable("users", {
   // Password reset fields
   resetToken: text("reset_token"),
   resetTokenExpiry: timestamp("reset_token_expiry"),
+  // Alternative user system integration fields
+  cognitoUserId: text("cognito_user_id"),
+  cognitoUsername: text("cognito_username"),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  verificationCode: text("verification_code"),
+  verificationCodeExpiry: timestamp("verification_code_expiry"),
   // PDF export preferences
   pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
 });
@@ -451,7 +459,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   phoneNumber: true,
   businessLogo: true,
 }).extend({
-  name: z.string().optional(),
+  name: z.string().optional(), // Legacy field
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   profilePhoto: z.string().optional(),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
@@ -711,6 +721,23 @@ export const insertDocumentBaselineSchema = createInsertSchema(documentBaselines
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Utility function to get full name from user object (handles both old and new formats)
+export function getFullName(user: { firstName?: string | null; lastName?: string | null; name?: string | null }): string {
+  if (user.firstName && user.lastName) {
+    return `${user.firstName} ${user.lastName}`.trim();
+  }
+  if (user.firstName) {
+    return user.firstName;
+  }
+  if (user.lastName) {
+    return user.lastName;
+  }
+  if (user.name) {
+    return user.name;
+  }
+  return '';
+}
 export type CimDocument = typeof cimDocuments.$inferSelect;
 export type InsertCimDocument = z.infer<typeof insertCimDocumentSchema>;
 export type InsertUploadedCim = z.infer<typeof insertUploadedCimSchema>;
