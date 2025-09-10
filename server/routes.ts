@@ -1695,8 +1695,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       console.log("Financial data to be saved:", financialDataToSave);
       
-      // Extract NDA settings from request
-      const ndaSettings = data.ndaSettings || { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      // Extract and validate NDA settings from request
+      const ndaSettingsSchema = z.object({
+        ndaProtected: z.boolean(),
+        ndaTemplateId: z.coerce.number().nullable(),
+        ndaApprovalRequired: z.boolean()
+      }).refine(s => !s.ndaProtected || s.ndaTemplateId !== null, {
+        message: 'Template required when NDA is enabled'
+      }).optional();
+      
+      const ndaSettings = ndaSettingsSchema.parse(data.ndaSettings) || { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
       
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
@@ -2328,13 +2336,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Uploaded financial files:", uploadedFinancialFiles.length);
       }
       
-      // Extract NDA settings from form data (JSON string)
+      // Extract and validate NDA settings from form data (JSON string)
+      const ndaSettingsSchema = z.object({
+        ndaProtected: z.boolean(),
+        ndaTemplateId: z.coerce.number().nullable(),
+        ndaApprovalRequired: z.boolean()
+      }).refine(s => !s.ndaProtected || s.ndaTemplateId !== null, {
+        message: 'Template required when NDA is enabled'
+      });
+      
       let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
       if (req.body.ndaSettings) {
         try {
-          ndaSettings = JSON.parse(req.body.ndaSettings);
+          const parsedSettings = JSON.parse(req.body.ndaSettings);
+          ndaSettings = ndaSettingsSchema.parse(parsedSettings);
         } catch (error) {
-          console.error('Failed to parse NDA settings:', error);
+          console.error('Failed to parse or validate NDA settings:', error);
+          // Keep default values on parsing/validation failure
         }
       }
       
