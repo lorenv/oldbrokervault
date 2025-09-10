@@ -215,11 +215,10 @@ server.on('listening', async () => {
       console.log('✅ Vite middleware configured');
       
       // Setup SEO routes AFTER Vite for development to avoid conflicts
-      // TEMPORARILY DISABLED FOR DEBUGGING
-      // console.log('🔍 Setting up SEO routes for development after Vite...');
-      // const { setupSEORoutes } = await import('./seo-routes');
-      // setupSEORoutes(app);
-      // console.log('✅ SEO routes configured for development');
+      console.log('🔍 Setting up SEO routes for development after Vite...');
+      const { setupSEORoutes } = await import('./seo-routes');
+      setupSEORoutes(app);
+      console.log('✅ SEO routes configured for development');
     }
     
     log('✅ All middleware and routes configured');
