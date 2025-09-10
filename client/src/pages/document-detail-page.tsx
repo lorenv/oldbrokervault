@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,13 +55,13 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
       setDisplayTitle(newTitle);
       
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['/api/cim', docId] });
+      await queryClient.cancelQueries({ queryKey: [`/api/cim/${docId}`] });
       
       // Snapshot the previous value
-      const previousData = queryClient.getQueryData(['/api/cim', docId]);
+      const previousData = queryClient.getQueryData([`/api/cim/${docId}`]);
       
       // Optimistically update the cache
-      queryClient.setQueryData(['/api/cim', docId], (old: any) => {
+      queryClient.setQueryData([`/api/cim/${docId}`], (old: any) => {
         return old ? { ...old, title: newTitle } : old;
       });
       
@@ -70,7 +70,7 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
     },
     onSuccess: (data) => {
       // Invalidate to ensure we have the latest server data
-      queryClient.invalidateQueries({ queryKey: ['/api/cim', docId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/cim'] });
       toast({ title: "Title Updated", description: "Document title saved successfully." });
       onTitleUpdate?.(editTitle);
@@ -79,7 +79,7 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
     onError: (err, newTitle, context: any) => {
       // Rollback both cache and display title
       if (context?.previousData) {
-        queryClient.setQueryData(['/api/cim', docId], context.previousData);
+        queryClient.setQueryData([`/api/cim/${docId}`], context.previousData);
       }
       if (context?.previousDisplayTitle) {
         setDisplayTitle(context.previousDisplayTitle);

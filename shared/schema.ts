@@ -15,6 +15,12 @@ export const subscriptionPlans = {
     regenerationLimit: Infinity,
     price: 99
   },
+  canceled: {
+    name: "CIM Share Standard Plan (Canceled)",
+    limit: 20,
+    regenerationLimit: Infinity,
+    price: 99
+  },
   enterprise: {
     name: "Enterprise",
     limit: Infinity,
