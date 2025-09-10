@@ -527,14 +527,14 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           return null;
         }
 
-        // Check if subscription is being canceled but still active until period end
+        // Handle cancellation scenarios
         if (subscription.cancel_at_period_end && subscription.status === 'active') {
-          console.log("Subscription set to cancel at period end");
+          console.log("Subscription set to cancel at period end - maintaining access until:", new Date(subscription.current_period_end * 1000));
           
           // Update user to show canceled status but maintain access until end date
           const [updatedUser] = await db.update(users)
             .set({
-              subscriptionStatus: 'canceled', // New status to indicate pending cancellation
+              subscriptionStatus: 'canceled', // Status to indicate pending cancellation
               subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
               subscriptionId: subscription.id,
               stripeCustomerId: subscription.customer as string
@@ -542,9 +542,19 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
             .where(eq(users.id, userId))
             .returning();
           
-          console.log('Updated user with pending cancellation:', updatedUser);
-          invalidateUserCache(userId);
-          return updatedUser;
+          if (updatedUser) {
+            console.log('✅ Updated user with pending cancellation:', {
+              userId: updatedUser.id,
+              email: updatedUser.email,
+              subscriptionStatus: updatedUser.subscriptionStatus,
+              subscriptionEndsAt: updatedUser.subscriptionEndsAt
+            });
+            invalidateUserCache(userId);
+            return { userId, status: 'canceled', endsAt: new Date(subscription.current_period_end * 1000), subscriptionId: subscription.id };
+          } else {
+            console.error('❌ Failed to update user with pending cancellation');
+            return null;
+          }
         }
 
         // Check if subscription was reactivated (un-canceled)
@@ -552,7 +562,35 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           // User has reactivated their subscription before it ended
           const currentUser = await storage.getUser(userId);
           if (currentUser?.subscriptionStatus === 'canceled') {
-            console.log("Subscription reactivated - removing cancellation");
+            console.log("Subscription reactivated - removing cancellation status");
+            // Will be handled by the standard active subscription logic below
+          }
+        }
+
+        // Handle immediate cancellation (subscription status becomes 'canceled')
+        if (subscription.status === 'canceled') {
+          console.log("Subscription status is canceled - reverting to free plan immediately");
+          
+          const [updatedUser] = await db.update(users)
+            .set({
+              subscriptionStatus: 'free',
+              subscriptionEndsAt: new Date(),
+              subscriptionId: null
+            })
+            .where(eq(users.id, userId))
+            .returning();
+          
+          if (updatedUser) {
+            console.log('✅ User reverted to free plan due to canceled status:', {
+              userId: updatedUser.id,
+              email: updatedUser.email,
+              subscriptionStatus: updatedUser.subscriptionStatus
+            });
+            invalidateUserCache(userId);
+            return { userId, status: 'free', endsAt: new Date() };
+          } else {
+            console.error('❌ Failed to revert user to free plan after cancellation');
+            return null;
           }
         }
 
@@ -615,7 +653,7 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           return null;
         }
 
-        console.log("Subscription ended, reverting to free plan:", userId);
+        console.log("Subscription deleted/ended, reverting to free plan:", userId);
         
         // CRITICAL: Update user in database to free plan
         console.log('💾 Reverting user to free plan in database...');
@@ -640,6 +678,46 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
           console.log('✅ User cache invalidated for user:', updatedUser.id);
         } else {
           console.error('❌ Failed to revert user to free plan - user not found');
+        }
+        
+        return { userId, status: 'free', endsAt: new Date() };
+      }
+
+      case 'customer.subscription.canceled': {
+        // Handle immediate cancellation (different from deletion)
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = parseInt(subscription.metadata.userId);
+
+        if (!userId) {
+          console.error('No userId found in subscription metadata for cancellation');
+          return null;
+        }
+
+        console.log("Subscription canceled immediately, reverting to free plan:", userId);
+        
+        // CRITICAL: Update user in database to free plan immediately
+        console.log('💾 Reverting user to free plan due to immediate cancellation...');
+        const [updatedUser] = await db.update(users)
+          .set({
+            subscriptionStatus: 'free',
+            subscriptionEndsAt: new Date(),
+            subscriptionId: null
+          })
+          .where(eq(users.id, userId))
+          .returning();
+
+        if (updatedUser) {
+          console.log('✅ User reverted to free plan after immediate cancellation:', {
+            userId: updatedUser.id,
+            email: updatedUser.email,
+            subscriptionStatus: updatedUser.subscriptionStatus
+          });
+          
+          // Invalidate user cache to ensure fresh data on next request
+          invalidateUserCache(updatedUser.id);
+          console.log('✅ User cache invalidated for user:', updatedUser.id);
+        } else {
+          console.error('❌ Failed to revert user to free plan after cancellation - user not found');
         }
         
         return { userId, status: 'free', endsAt: new Date() };
