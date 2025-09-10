@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { setupAuth } from "./auth";
-import { setupCognitoRoutes } from "./cognito-routes";
 import { storage } from "./storage";
 import { responseSanitizationMiddleware, securityHeadersMiddleware } from "./security-middleware";
 import { sanitizeUser } from "./data-sanitizer";
@@ -10,9 +9,8 @@ export function registerApiRoutes(app: Express) {
   logger.info('🔧 Registering minimal API routes for crash fix...');
   
   try {
-    // Register authentication routes first - these are working
+    // Register session-based authentication routes only
     setupAuth(app);
-    setupCognitoRoutes(app);
     
     // Add essential API endpoints for post-login functionality
     
