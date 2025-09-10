@@ -3,7 +3,6 @@
  * Renders React components to static HTML for better search engine indexing
  */
 
-// Note: renderToString will be imported dynamically since it's already available in react-dom
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -94,11 +93,10 @@ export async function renderPageToHTML(route: string, baseUrl: string = ''): Pro
     throw new Error(`No SEO configuration found for route: ${route}`);
   }
 
-  // Load the built HTML template
+  // Load the built HTML template - prioritize production build
   const templatePaths = [
     path.resolve(process.cwd(), 'dist', 'public', 'index.html'),
-    path.resolve(process.cwd(), 'client', 'index.html'),
-    path.resolve(process.cwd(), 'index.html')
+    path.resolve(process.cwd(), 'client', 'index.html')
   ];
   
   let template: string = '';
@@ -106,24 +104,33 @@ export async function renderPageToHTML(route: string, baseUrl: string = ''): Pro
   for (const templatePath of templatePaths) {
     try {
       template = await fs.readFile(templatePath, 'utf-8');
+      console.log(`✅ Loaded template from: ${templatePath}`);
       break;
     } catch (error) {
+      console.log(`❌ Failed to load template from: ${templatePath}`);
       continue;
     }
   }
   
   if (!template) {
-    // Fallback HTML template with proper structure
+    // Enhanced fallback HTML template with better CSS loading
     template = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <link rel="stylesheet" href="/fonts/handwritania.css" />
   <title>__TITLE__</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    #root { min-height: 100vh; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div class="loading">Loading...</div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>`;
@@ -132,7 +139,10 @@ export async function renderPageToHTML(route: string, baseUrl: string = ''): Pro
   // Generate SEO meta tags
   const metaTags = generateMetaTags(pageMeta, baseUrl + route);
   
-  // Replace title and inject meta tags
+  // Add basic page content to help with indexing
+  const pageContent = generatePageContent(route, pageMeta);
+  
+  // Replace title and inject meta tags and content
   let htmlWithMeta = template;
   
   // Handle different possible title formats
@@ -156,6 +166,12 @@ export async function renderPageToHTML(route: string, baseUrl: string = ''): Pro
   
   // Inject meta tags before closing head tag
   htmlWithMeta = htmlWithMeta.replace('</head>', `  ${metaTags}\n</head>`);
+  
+  // Inject basic page content into the root div for SEO crawlers
+  const rootDivPattern = /<div id="root"[^>]*>[\s\S]*?<\/div>/;
+  if (rootDivPattern.test(htmlWithMeta)) {
+    htmlWithMeta = htmlWithMeta.replace(rootDivPattern, `<div id="root">${pageContent}</div>`);
+  }
 
   return htmlWithMeta;
 }
@@ -221,6 +237,90 @@ function escapeHtml(text: string): string {
     "'": '&#039;'
   };
   return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+/**
+ * Generate basic page content for SEO crawlers
+ */
+function generatePageContent(route: string, meta: PageMeta): string {
+  const content = {
+    '/': `
+      <header>
+        <h1>CIM Share - Professional Confidential Information Memorandums</h1>
+        <nav>
+          <a href="/pricing">Pricing</a>
+          <a href="/contact">Contact</a>
+          <a href="/features/nda-protection">NDA Protection</a>
+          <a href="/features/ai-powered-cim">AI-Powered CIM</a>
+          <a href="/features/investor-database">Investor Database</a>
+        </nav>
+      </header>
+      <main>
+        <section>
+          <h2>Transform Your Business Documentation</h2>
+          <p>${meta.description}</p>
+          <ul>
+            <li>AI-powered CIM generation</li>
+            <li>Secure document sharing with NDAs</li>
+            <li>Access to 50,000+ verified investors</li>
+            <li>Professional templates and analytics</li>
+          </ul>
+        </section>
+      </main>`,
+    '/pricing': `
+      <header><h1>Pricing Plans - CIM Share</h1></header>
+      <main>
+        <section>
+          <h2>Choose Your Plan</h2>
+          <p>${meta.description}</p>
+          <div>
+            <div><h3>Free Trial</h3><p>Get started with basic features</p></div>
+            <div><h3>Professional</h3><p>Advanced features for growing businesses</p></div>
+            <div><h3>Enterprise</h3><p>Full suite for large organizations</p></div>
+          </div>
+        </section>
+      </main>`,
+    '/contact': `
+      <header><h1>Contact Us - CIM Share Support</h1></header>
+      <main>
+        <section>
+          <h2>Get in Touch</h2>
+          <p>${meta.description}</p>
+          <div>
+            <p>Email: support@cimshare.com</p>
+            <p>Phone: 1-800-CIM-SHARE</p>
+            <p>Address: Business Documentation Solutions</p>
+          </div>
+        </section>
+      </main>`
+  };
+  
+  // Generate feature/solution page content
+  if (route.startsWith('/features/') || route.startsWith('/solutions/')) {
+    return `
+      <header><h1>${meta.title}</h1></header>
+      <main>
+        <section>
+          <h2>${meta.ogTitle || meta.title}</h2>
+          <p>${meta.description}</p>
+          <ul>
+            <li>Professional business documentation</li>
+            <li>Enterprise-grade security</li>
+            <li>Streamlined workflow automation</li>
+            <li>Comprehensive analytics and reporting</li>
+          </ul>
+        </section>
+      </main>`;
+  }
+  
+  return content[route as keyof typeof content] || `
+    <header><h1>${meta.title}</h1></header>
+    <main>
+      <section>
+        <h2>Professional Business Documentation</h2>
+        <p>${meta.description}</p>
+      </section>
+    </main>`;
 }
 
 /**
