@@ -62,22 +62,32 @@ export function GetStartedChecklist() {
     },
   ]);
 
-  // Check if this is a new user by looking for the checklist completion flag
+  // Check if this is a new user by looking for the checklist state flags
   useEffect(() => {
     if (!user) return; // Wait for user data
     
     const userId = user.id;
-    const hasCompletedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
+    const hasSeenChecklist = localStorage.getItem(`get-started-checklist-seen-${userId}`);
+    const hasDismissedChecklist = localStorage.getItem(`get-started-checklist-dismissed-${userId}`);
     
-    // Show checklist for new users (who haven't dismissed it) - only once on initial load
-    if (!hasCompletedChecklist) {
+    // If user has dismissed it, never show it again
+    if (hasDismissedChecklist) {
+      setIsVisible(false);
+      return;
+    }
+    
+    // If user has never seen it before (first time after registration), show it
+    if (!hasSeenChecklist) {
+      // Mark as seen immediately to prevent showing again on page refresh
+      localStorage.setItem(`get-started-checklist-seen-${userId}`, 'true');
+      
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 2000); // Show after 2 seconds
       
       return () => clearTimeout(timer);
     } else {
-      // Ensure it stays hidden if dismissed
+      // User has seen it before but hasn't dismissed it - don't show automatically
       setIsVisible(false);
     }
   }, [user?.id]); // Only depend on user ID to prevent unnecessary re-runs

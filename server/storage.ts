@@ -257,8 +257,9 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     
-    // Add default NDA template for new users
-    await this.createDefaultNdaTemplate(user.id);
+    // Default NDA template creation is handled in auth.ts using populateDefaultNDAForUser
+    // to ensure consistent "CIM Share NDA" naming
+    // await this.createDefaultNdaTemplate(user.id);
     
     return user;
   }

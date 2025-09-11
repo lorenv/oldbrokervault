@@ -254,14 +254,16 @@ async function generateFlexibleCim(
   tone: string,
   audience: string,
   financials?: any,
-  websiteData?: string
+  websiteData?: string,
+  sectionDirections?: Array<{id: string; content: string}>,
+  formattingProfile?: FormattingProfile
 ): Promise<FlexibleCimDocument> {
   
-  // Convert tone to FormattingProfile and get AI instructions
-  const formattingProfile: FormattingProfile = tone as FormattingProfile;
-  const formatInstructions = generateAiFormattingInstructions(formattingProfile);
+  // Use provided formattingProfile or convert tone to FormattingProfile and get AI instructions
+  const effectiveFormattingProfile: FormattingProfile = formattingProfile || (tone as FormattingProfile);
+  const formatInstructions = generateAiFormattingInstructions(effectiveFormattingProfile);
   
-  console.log(`🎨 FORMATTING SYSTEM ACTIVE - Profile: ${formattingProfile}`);
+  console.log(`🎨 FORMATTING SYSTEM ACTIVE - Profile: ${effectiveFormattingProfile}`);
   console.log(`📝 AI Formatting Instructions Applied: ${formatInstructions.substring(0, 200)}...`);
 
   // Map purpose to content focus
@@ -291,6 +293,12 @@ ANALYSIS PARAMETERS:
 
 CUSTOM DIRECTIONS:
 ${customDirections}
+
+${sectionDirections && sectionDirections.length > 0 ? `SPECIFIC SECTION REQUIREMENTS:
+Create sections based on these user-specified guidelines:
+${sectionDirections.map(section => `- ${section.content}`).join('\n')}
+
+IMPORTANT: Use these section guidelines as the primary structure for your document. Each section should address the specific requirements listed above.` : ''}
 
 CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
@@ -916,7 +924,9 @@ export async function generateFlexibleCimDocument(
   tone: string,
   audience: string,
   financials?: any,
-  websiteData?: string
+  websiteData?: string,
+  sectionDirections?: Array<{id: string; content: string}>,
+  formattingProfile?: FormattingProfile
 ): Promise<FlexibleCimDocument> {
   try {
     console.log("Generating flexible CIM document");
@@ -929,7 +939,9 @@ export async function generateFlexibleCimDocument(
       tone,
       audience,
       financials,
-      websiteData
+      websiteData,
+      sectionDirections,
+      formattingProfile
     );
     
     console.log("Successfully generated flexible CIM document");
@@ -995,7 +1007,7 @@ export async function generateCimWithWebsiteAnalysis(
     // Use formattingProfile if provided, otherwise fall back to tone
     const effectiveTone = formattingProfile || tone;
     
-    const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined);
+    const result = await generateFlexibleCim(transcript, enhancedDirections, purpose, effectiveTone, audience, financials, websiteData || undefined, sectionDirections, formattingProfile);
     console.log('✅ CIM generation with website analysis successful');
     return result;
   } catch (error) {

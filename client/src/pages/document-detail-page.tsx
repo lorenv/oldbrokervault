@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Edit, Edit2, FileSignature, Share2, Eye, Users, Calendar, TrendingUp, Check, X, Link as LinkIcon, Copy } from "lucide-react";
 import { useCimDocument, useFinancialFiles, useCustomSections, useNdaSignatures } from "@/hooks/use-cim-document";
 import { DocumentSkeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
@@ -19,6 +19,12 @@ import { DocumentEditTab } from "@/components/document-tabs/edit-tab";
 import { DocumentNdaTab } from "@/components/document-tabs/nda-tab";
 import { DocumentShareTab } from "@/components/document-tabs/share-tab";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Editable Title Component
 interface EditableTitleProps {
@@ -188,6 +194,73 @@ export function DocumentDetailPage() {
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+
+  // Share link functions
+  const [copyButtonState, setCopyButtonState] = useState<'idle' | 'copied' | 'error' | 'hidden'>('idle');
+
+  const generateShareUrl = () => {
+    const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://cimshare.com';
+    return `${baseUrl}/share/${cimDocument?.shareSlug || 'not-shared'}`;
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!cimDocument?.shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing for this document first in the Share tab.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const shareUrl = generateShareUrl();
+      await navigator.clipboard.writeText(shareUrl);
+      console.log('Copy successful:', shareUrl); // Debug log
+      setCopyButtonState('copied');
+      // Reset after 1 second, with a brief 'hidden' state to prevent tooltip flash
+      setTimeout(() => {
+        setCopyButtonState('hidden');
+        // After brief hidden period, return to idle
+        setTimeout(() => setCopyButtonState('idle'), 200);
+      }, 1000);
+    } catch (error) {
+      console.error('Copy failed:', error); // Debug log
+      setCopyButtonState('error');
+      // Reset after 1 second, with a brief 'hidden' state to prevent tooltip flash
+      setTimeout(() => {
+        setCopyButtonState('hidden');
+        // After brief hidden period, return to idle
+        setTimeout(() => setCopyButtonState('idle'), 200);
+      }, 1000);
+    }
+  };
+
+  const handlePreviewShareLink = () => {
+    if (!cimDocument?.shareSlug) {
+      toast({
+        title: "Sharing Not Enabled",
+        description: "Please enable sharing for this document first in the Share tab.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const shareUrl = generateShareUrl();
+    window.open(shareUrl, '_blank');
+  };
+
+  // Get tooltip text based on copy button state
+  const getCopyTooltipText = () => {
+    switch (copyButtonState) {
+      case 'copied':
+        return 'Link Copied!';
+      case 'error':
+        return 'Copy Failed';
+      default:
+        return 'Copy Share Link';
+    }
   };
   
   if (!matched || !docId) {
@@ -377,6 +450,53 @@ export function DocumentDetailPage() {
                 <span className="hidden sm:inline">Share CIM</span>
                 <span className="sm:hidden">Share</span>
               </button>
+              
+              {/* Mobile Share Link Action Buttons */}
+              <TooltipProvider delayDuration={0}>
+                <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleCopyShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all duration-200 ${
+                        copyButtonState === 'copied' 
+                          ? 'text-green-700 bg-green-100' 
+                          : copyButtonState === 'error'
+                          ? 'text-red-700 bg-red-100'
+                          : cimDocument?.shareSlug 
+                          ? 'text-blue-600 hover:bg-blue-50' 
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <LinkIcon className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
+                    <p>{getCopyTooltipText()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider delayDuration={0}>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handlePreviewShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all ${
+                        cimDocument?.shareSlug 
+                          ? 'text-green-600 hover:bg-green-50' 
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Eye className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Preview Share Link</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -430,6 +550,61 @@ export function DocumentDetailPage() {
                 <Share2 className="h-5 w-5" />
                 Share CIM
               </button>
+              
+              {/* Share Link Action Buttons */}
+              <div className="border-t pt-2 mt-2">
+                <TooltipProvider delayDuration={0}>
+                  <div className="flex gap-2">
+                    {/* Copy Share Link Button */}
+                    <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleCopyShareLink}
+                          disabled={!cimDocument?.shareSlug}
+                          className={`flex-1 transition-all duration-200 ${
+                            copyButtonState === 'copied' 
+                              ? 'bg-green-100 border-green-300 text-green-700'
+                              : copyButtonState === 'error'
+                              ? 'bg-red-100 border-red-300 text-red-700'
+                              : cimDocument?.shareSlug 
+                              ? 'hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600' 
+                              : 'opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
+                        <p>{getCopyTooltipText()}</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Preview Share Link Button */}
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handlePreviewShareLink}
+                          disabled={!cimDocument?.shareSlug}
+                          className={`flex-1 ${
+                            cimDocument?.shareSlug 
+                              ? 'hover:bg-green-50 hover:border-green-300 hover:text-green-600' 
+                              : 'opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Preview Share Link</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+              </div>
             </nav>
           </div>
           
