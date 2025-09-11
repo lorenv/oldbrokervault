@@ -8,6 +8,7 @@ import { imageManager } from "./image-manager";
 import { objectStorageImageManager } from "./image-manager-object-storage";
 import { fileStorageManager } from "./file-storage";
 import { insertCimDocumentSchema, insertUploadedCimSchema, subscriptionPlans, users, insertNdaTemplateSchema, insertNdaSignatureSchema, financialFiles, insertFinancialFileSchema, insertCollaboratorSchema, uploadedFiles, ndaAccessTokens, insertAnalysisTemplateSchema } from "@shared/schema";
+import { z } from "zod";
 import { searchService, versionService, analyticsService } from "./premium-services";
 import { db } from "./db";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
@@ -2918,7 +2919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Transform field name for frontend consistency
       const transformedDoc = {
         ...doc,
-        ndaRequiresManualApproval: doc.ndaApprovalRequired
+        ndaApprovalRequired: doc.ndaApprovalRequired
       };
       
       res.json(transformedDoc);
@@ -2961,7 +2962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Transform field name for frontend consistency
       const transformedDoc = {
         ...updatedDoc,
-        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+        ndaApprovalRequired: updatedDoc.ndaApprovalRequired
       };
       
       res.json(transformedDoc);
@@ -3087,7 +3088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Transform field name for frontend consistency
       const transformedDoc = {
         ...updatedDoc,
-        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+        ndaApprovalRequired: updatedDoc.ndaApprovalRequired
       };
       res.json(transformedDoc);
     } catch (error) {
@@ -4979,7 +4980,7 @@ ${finalQuestion}
         viewCount: doc.shareViewCount,
         ndaProtected: doc.ndaProtected,
         ndaTemplateId: doc.ndaTemplateId,
-        ndaRequiresManualApproval: doc.ndaApprovalRequired
+        ndaApprovalRequired: doc.ndaApprovalRequired
       });
     } catch (error) {
       console.error("Error fetching share settings:", error);
@@ -4999,7 +5000,7 @@ ${finalQuestion}
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaRequiresManualApproval } = req.body;
+      const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaApprovalRequired } = req.body;
       
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
@@ -5036,7 +5037,7 @@ ${finalQuestion}
         shareExpiresAt: expiresAt,
         ndaProtected: ndaProtected !== undefined ? ndaProtected : requireNda,
         ndaTemplateId: ndaTemplateId !== undefined ? ndaTemplateId : doc.ndaTemplateId,
-        ndaApprovalRequired: ndaRequiresManualApproval !== undefined ? ndaRequiresManualApproval : doc.ndaApprovalRequired
+        ndaApprovalRequired: ndaApprovalRequired !== undefined ? ndaApprovalRequired : doc.ndaApprovalRequired
       });
 
       res.json({
@@ -5049,7 +5050,7 @@ ${finalQuestion}
         viewCount: updatedDoc.shareViewCount,
         ndaProtected: updatedDoc.ndaProtected,
         ndaTemplateId: updatedDoc.ndaTemplateId,
-        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+        ndaApprovalRequired: updatedDoc.ndaApprovalRequired
       });
     } catch (error) {
       console.error("Error updating share settings:", error);
@@ -5148,7 +5149,7 @@ ${finalQuestion}
         viewCount: updatedDoc.shareViewCount,
         ndaProtected: updatedDoc.ndaProtected,
         ndaTemplateId: updatedDoc.ndaTemplateId,
-        ndaRequiresManualApproval: updatedDoc.ndaApprovalRequired
+        ndaApprovalRequired: updatedDoc.ndaApprovalRequired
       });
     } catch (error: any) {
       console.error("Error updating share settings:", error);
