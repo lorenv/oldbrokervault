@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -43,6 +43,20 @@ export default function DocumentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch user limits for duplicate validation
+  const { data: userLimits } = useQuery<{
+    canCreateDocument: boolean;
+    canRegenerate: boolean;
+    documentsCreated: number;
+    documentLimit: number;
+    regenerationsUsed: number;
+    regenerationLimit: number;
+    subscriptionStatus: string;
+  }>({
+    queryKey: ["/api/user/limits"],
+    staleTime: 1000 * 30, // 30 seconds
+  });
 
   // Debounce search query
   const debouncedSearchQuery = useMemo(() => {
@@ -106,6 +120,38 @@ export default function DocumentsPage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete document",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Duplicate document mutation
+  const duplicateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // First check user limits
+      if (!userLimits?.canCreateDocument) {
+        throw new Error(`Cannot create new document - you've reached your limit of ${userLimits?.documentLimit || 1} documents for your ${userLimits?.subscriptionStatus || 'free'} subscription.`);
+      }
+
+      const response = await apiRequest("POST", `/api/cim/${id}/duplicate`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to duplicate document');
+      }
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cim"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/limits"] });
+      toast({
+        title: "Document Duplicated",
+        description: `"${result.title}" has been duplicated successfully`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Duplication Failed",
+        description: error instanceof Error ? error.message : "Failed to duplicate document",
         variant: "destructive",
       });
     }
@@ -314,6 +360,19 @@ export default function DocumentsPage() {
                       >
                         <Mail className="mr-2 h-4 w-4" />
                         Share via Email
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => duplicateMutation.mutate(doc.id)}
+                        disabled={duplicateMutation.isPending || !userLimits?.canCreateDocument}
+                      >
+                        {duplicateMutation.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <DuplicateIcon className="mr-2 h-4 w-4" />
+                        )}
+                        {duplicateMutation.isPending ? "Duplicating..." : "Duplicate Document"}
                       </DropdownMenuItem>
 
                       {/* Show additional options only for generated CIMs, not uploaded files */}

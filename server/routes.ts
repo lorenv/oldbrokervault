@@ -2999,6 +2999,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Duplicate a CIM document
+  app.post("/api/cim/:id/duplicate", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const docId = parseInt(req.params.id);
+      if (isNaN(docId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+      
+      // Check user limits before creating duplicate
+      const canCreate = await storage.checkUserLimit(req.user!.id);
+      if (!canCreate) {
+        const user = await storage.getUser(req.user!.id);
+        const subscriptionStatus = user?.subscriptionStatus || 'free';
+        const plan = subscriptionPlans[subscriptionStatus as keyof typeof subscriptionPlans] || subscriptionPlans.free;
+        
+        return res.status(403).json({ 
+          error: `Cannot duplicate document - you've reached your limit of ${plan.limit} documents for your ${subscriptionStatus} subscription.`,
+          upgradeRequired: true,
+          currentLimit: plan.limit,
+          currentCount: user?.monthlyDocumentsCreated || 0
+        });
+      }
+      
+      // Check if document exists and user has access
+      const originalDoc = await storage.getCimDocument(docId);
+      if (!originalDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      if (originalDoc.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "You don't have permission to duplicate this document" });
+      }
+      
+      // Create duplicate with modified title and reset sharing/security settings
+      const duplicateData = {
+        ...originalDoc,
+        title: `${originalDoc.title} (Copy)`,
+        shareEnabled: false, // Reset sharing settings
+        shareSlug: null,
+        customSlug: null,
+        sharePassword: null,
+        shareExpiresAt: null,
+        shareViewCount: 0,
+        ndaProtected: false, // Reset NDA settings for safety
+        ndaTemplateId: null,
+        ndaApprovalRequired: false
+      };
+      
+      // Remove fields that shouldn't be duplicated
+      delete (duplicateData as any).id;
+      delete (duplicateData as any).createdAt;
+      delete (duplicateData as any).updatedAt;
+      
+      const duplicatedDoc = await storage.createCimDocument(req.user!.id, duplicateData);
+      
+      console.log("Document duplicated successfully:", {
+        originalId: docId,
+        duplicatedId: duplicatedDoc.id,
+        originalTitle: originalDoc.title,
+        duplicatedTitle: duplicatedDoc.title
+      });
+      
+      res.json(duplicatedDoc);
+    } catch (error) {
+      console.error("Document duplication error:", error);
+      res.status(500).json({ error: "Failed to duplicate document" });
+    }
+  });
+
   // Update CIM document content (for inline editing)
   app.put("/api/cim/:id/content", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

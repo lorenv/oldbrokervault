@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -106,9 +106,16 @@ export function CimGenerator() {
   });
   
   // Load NDA templates from database
-  const { data: ndaTemplates = [] } = useQuery({
+  const { data: ndaTemplates = [], isLoading: ndaTemplatesLoading, error: ndaTemplatesError } = useQuery<any[]>({
     queryKey: ['/api/nda-templates'],
-    enabled: !!user && ndaSettings.ndaProtected,
+    enabled: !!user, // Always load templates when user is authenticated
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/nda-templates");
+      if (!response.ok) throw new Error('Failed to fetch NDA templates');
+      const data = await response.json();
+      console.log('NDA templates loaded:', data); // Debug log
+      return data;
+    }
   });
   
   const [analysis, setAnalysis] = useState<any>(null);
@@ -1142,16 +1149,16 @@ export function CimGenerator() {
 
           {/* NDA Protection Section */}
           <Card className="w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <Shield className="h-5 w-5" />
-                NDA Protection
-              </CardTitle>
-              <CardDescription>
-                Configure confidentiality settings for your CIM document. NDA protection requires viewers to accept legal terms before accessing your document.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-semibold">NDA Protection</h3>
+                  <p className="text-sm text-slate-200">Configure confidentiality settings for your CIM document</p>
+                </div>
+              </div>
+            </div>
+            <CardContent className="space-y-4 pt-6">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="nda-protected"
@@ -1183,11 +1190,37 @@ export function CimGenerator() {
                         <SelectValue placeholder="Select an NDA template" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ndaTemplates.map((template: any) => (
-                          <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.title}
-                          </SelectItem>
-                        ))}
+                        {(() => {
+                          console.log('Rendering NDA dropdown - templates:', ndaTemplates, 'length:', ndaTemplates.length, 'loading:', ndaTemplatesLoading, 'error:', ndaTemplatesError);
+                          return (
+                            <>
+                              {ndaTemplates.length > 0 ? (
+                                ndaTemplates.map((template: any) => (
+                                  <SelectItem key={template.id} value={template.id.toString()}>
+                                    {template.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="" disabled>
+                                  {ndaTemplatesLoading ? "Loading templates..." : "No NDA templates available"}
+                                </SelectItem>
+                              )}
+                              <div className="border-t mt-2 pt-2">
+                                <a
+                                  href="/account?tab=templates"
+                                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Settings2 className="h-4 w-4" />
+                                  <span>Manage NDA Templates</span>
+                                  <ExternalLink className="h-3 w-3 ml-auto" />
+                                </a>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </SelectContent>
                     </Select>
                   </div>
