@@ -122,16 +122,11 @@ export function FormattingProfileSelector({
                 <div>
                   <div className="text-xs font-medium text-gray-700 mb-1">Features:</div>
                   <div className="flex flex-wrap gap-1">
-                    {features.slice(0, 3).map((feature, idx) => (
+                    {features.map((feature, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs">
                         {feature}
                       </Badge>
                     ))}
-                    {features.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{features.length - 3} more
-                      </Badge>
-                    )}
                   </div>
                 </div>
                 
