@@ -2,6 +2,24 @@
 // Updated models: sonar, sonar-pro (2025)
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 
+// Standardized anti-hallucination rules for all AI-generated content
+const ANTI_HALLUCINATION_RULES = `
+⚠️ CRITICAL ANTI-HALLUCINATION RULES - STRICT COMPLIANCE REQUIRED:
+1. ONLY use facts explicitly stated in the PROVIDED DATA (transcript and/or website analysis)
+2. NEVER invent, assume, or extrapolate information not present in the source materials
+3. NEVER make up numbers, dates, names, locations, or any specific details
+4. If information is missing, DO NOT fill gaps with assumptions
+5. You may write descriptive language and professional framing, but ALL facts must be traceable to the source
+6. When uncertain about a detail, use qualified language ("based on available information", "as indicated")
+7. DO NOT create fictional case studies, examples, or scenarios not mentioned in the source
+8. DO NOT add industry statistics or market data unless explicitly provided in the transcript/website data
+9. Every statistic, number, or specific claim must come from the provided data
+10. If data is insufficient, acknowledge limitations rather than inventing content
+`;
+
+// Standard temperature for factual accuracy
+const FACTUAL_TEMPERATURE = 0.05;
+
 import { generateAiFormattingInstructions, type FormattingProfile } from "@shared/formatting-config";
 import { enhancePromptWithFormatting, createCimSystemPrompt, logFormattingValidation, processAiGeneratedContent } from "./formatting-utils";
 
@@ -286,6 +304,8 @@ async function generateFlexibleCim(
 
   const systemPrompt = `You are an expert business analyst creating a professional Confidential Information Memorandum (CIM). 
 
+${ANTI_HALLUCINATION_RULES}
+
 ANALYSIS PARAMETERS:
 - Purpose: ${purpose} - ${purposeFocus}
 - Length Style: ${tone} - ${formatInstructions}
@@ -319,18 +339,21 @@ ${websiteData ? `- You have access to both TRANSCRIPT data and WEBSITE data
 - Use website data to fill gaps or add context that wasn't covered in the transcript
 - Do not indicate source differences in the final document - blend information naturally` : '- Base your analysis primarily on the transcript data provided'}
 
-INSTRUCTIONS:
+INSTRUCTIONS WITH ANTI-HALLUCINATION ENFORCEMENT:
 1. Create a comprehensive CIM document following the specific formatting requirements above
-2. Extract and organize information from the transcript according to the custom directions
+2. Extract and organize ONLY information explicitly present in the transcript/website data
 3. Apply the ${tone} formatting style consistently throughout
-4. Write for ${audience} using the appropriate communication style
-5. Focus on ${purpose} as the primary objective
-6. Include specific details, metrics, and facts from the transcript
-7. ${websiteData ? 'Intelligently supplement transcript information with relevant website insights' : ''}
+4. Write for ${audience} using appropriate language, but NEVER invent facts to appeal to them
+5. Focus on ${purpose} as the primary objective without fabricating supporting details
+6. Include ONLY specific details, metrics, and facts found in the provided data sources
+7. ${websiteData ? 'Supplement transcript with website data, but NEVER extrapolate beyond what is stated' : 'Use ONLY transcript data - do not add external information'}
 8. Organize content into logical sections with clear headings
 9. STRICTLY follow the formatting requirements for ${tone} style
-10. Ensure all information is factual and prioritizes transcript data over website data
-11. Create a cohesive narrative that naturally integrates all available information sources
+10. FACT-CHECK: Every claim must be directly traceable to the transcript or website data
+11. If data is insufficient for a section, acknowledge limitations rather than inventing content
+12. Use phrases like "based on provided information" when data is limited
+13. NEVER add industry benchmarks, market statistics, or comparisons unless explicitly in the source
+14. Create a professional narrative using ONLY verifiable facts from the provided sources
 
 ${websiteData ? `WEBSITE ANALYSIS DATA (Use to supplement transcript):
 ${websiteData}` : ''}
@@ -371,7 +394,13 @@ CRITICAL: Return ONLY the JSON object above. Do not include any markdown headers
   const userPrompt = `TRANSCRIPT TO ANALYZE:
 ${transcript}
 
-Create a comprehensive CIM document following the analysis parameters and custom directions provided.`;
+Create a comprehensive CIM document following the analysis parameters and custom directions provided.
+
+FINAL REMINDER - ZERO TOLERANCE FOR HALLUCINATION:
+- Use ONLY information explicitly stated above
+- Do NOT invent any facts, figures, or details
+- Professional writing is expected, but facts must be 100% sourced
+- If you cannot find information for something, do not make it up`;
 
   const response = await fetch(process.env.PERPLEXITY_API_KEY ? PERPLEXITY_API_URL : "https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -386,7 +415,7 @@ Create a comprehensive CIM document following the analysis parameters and custom
         { role: "user", content: userPrompt }
       ],
       max_tokens: 4000,
-      temperature: 0.1,
+      temperature: FACTUAL_TEMPERATURE,
       response_format: process.env.PERPLEXITY_API_KEY ? undefined : { type: "json_object" }
     })
   });

@@ -567,22 +567,35 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
     // Analyze with Perplexity's browsing API
     const systemMessage = `
       You are an expert business analyst extracting information from a company website.
-      Your task is to gather key business information that would be relevant for a Confidential Information Memorandum (CIM).
-      Focus on:
-      1. Company overview and history
-      2. Products/services offered with descriptions
-      3. Team information and company structure
-      4. Customer testimonials and case studies
-      5. Market positioning and unique selling points
-      6. Any information about distribution channels or sales strategies
-      7. Technology or proprietary assets mentioned
-      8. Company culture and values
-      9. Awards, certifications, or other credibility indicators
-      10. Locations, facilities, and operational footprint
       
-      Organize this information into structured data without making assumptions.
-      If certain information is not available, mark those fields as "Not available on website".
-      Provide factual, verifiable information only - do not invent details.
+      ⚠️ CRITICAL ANTI-HALLUCINATION RULES:
+      1. ONLY extract information explicitly stated on the website
+      2. NEVER invent, assume, or extrapolate information not present on the site
+      3. NEVER make up numbers, dates, names, or any specific details
+      4. If information is missing, explicitly state "Not available on website"
+      5. DO NOT add industry statistics or benchmarks unless directly stated on the website
+      6. DO NOT create fictional examples or scenarios
+      7. Every fact must be directly observable on the website
+      
+      Your task is to gather key business information that would be relevant for a Confidential Information Memorandum (CIM).
+      Focus on extracting ONLY what is explicitly stated about:
+      1. Company overview and history (as stated on site)
+      2. Products/services offered with descriptions (as listed on site)
+      3. Team information and company structure (only named individuals/roles shown)
+      4. Customer testimonials and case studies (only actual quotes/cases shown)
+      5. Market positioning and unique selling points (as claimed on site)
+      6. Distribution channels or sales strategies (only if explicitly mentioned)
+      7. Technology or proprietary assets (only if specifically described)
+      8. Company culture and values (as stated on site)
+      9. Awards, certifications, or credibility indicators (only verifiable ones shown)
+      10. Locations, facilities, and operational footprint (only confirmed locations)
+      
+      STRICT REQUIREMENTS:
+      - If certain information is not available, you MUST mark those fields as "Not available on website"
+      - Provide ONLY factual, verifiable information found on the website
+      - DO NOT invent details to make the analysis seem more complete
+      - Use exact quotes when available rather than paraphrasing
+      - If unsure whether something is on the website, mark it as not available
     `;
 
     const response = await fetch(PERPLEXITY_API_URL, {
@@ -603,7 +616,7 @@ export async function analyzeWebsite(websiteUrl: string): Promise<any> {
             content: `Analyze this business website: ${websiteUrl}. Extract all relevant information for a CIM (Confidential Information Memorandum) and structure it in JSON format.`
           }
         ],
-        temperature: 0.2,
+        temperature: 0.05, // Very low temperature to minimize creativity and maximize factual accuracy
         top_p: 0.9,
         max_tokens: 4000,
         search_domain_filter: [],

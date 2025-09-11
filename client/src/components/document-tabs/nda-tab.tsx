@@ -44,7 +44,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null,
-    ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
+    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
 
   // Sync local state with document data when it changes
@@ -52,9 +52,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     setNdaSettings({
       ndaProtected: cimDocument.ndaProtected || false,
       ndaTemplateId: cimDocument.ndaTemplateId || null,
-      ndaApprovalRequired: cimDocument.ndaRequiresManualApproval || false
+      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
     });
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaRequiresManualApproval]);
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -79,7 +79,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}/share-settings`, {
         ndaProtected: settings.ndaProtected,
         ndaTemplateId: settings.ndaTemplateId,
-        ndaRequiresManualApproval: settings.ndaApprovalRequired
+        ndaApprovalRequired: settings.ndaApprovalRequired
       });
       if (!response.ok) throw new Error('Failed to update NDA settings');
       return response.json();
@@ -97,7 +97,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         const newSettings = {
           ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : ndaSettings.ndaProtected,
           ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : ndaSettings.ndaTemplateId,
-          ndaApprovalRequired: data.ndaRequiresManualApproval !== undefined ? data.ndaRequiresManualApproval : ndaSettings.ndaApprovalRequired
+          ndaApprovalRequired: data.ndaApprovalRequired !== undefined ? data.ndaApprovalRequired : ndaSettings.ndaApprovalRequired
         };
         setNdaSettings(newSettings);
       }

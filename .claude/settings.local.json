@@ -28,7 +28,8 @@
       "Bash(npx tsc --noEmit)",
       "Bash(lsof:*)",
       "Bash(PORT=3001 npm run dev)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": [],
