@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { 
   Sparkles, 
@@ -13,389 +14,626 @@ import {
   Target,
   Mic,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  Globe,
+  Image,
+  Download,
+  Edit3,
+  Users,
+  Shield
 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 export default function AiPoweredCimPage() {
+  const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const id = entry.target.getAttribute('data-animate-id');
+          if (entry.isIntersecting && id) {
+            setVisibleElements(prev => new Set([...prev, id]));
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '-50px 0px -50px 0px' }
+    );
+
+    const elementsToObserve = document.querySelectorAll('[data-animate-id]');
+    elementsToObserve.forEach(el => observer.observe(el));
+
+    return () => elementsToObserve.forEach(el => observer.unobserve(el));
+  }, []);
+
+  const isVisible = (id: string) => visibleElements.has(id);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 lg:py-24">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-            <Sparkles className="h-5 w-5" />
-            <span className="text-sm font-medium">AI-Powered Document Generation</span>
-          </div>
-          
-          <h1 className="text-4xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Create Professional CIMs in Minutes with AI Technology
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-            Transform business meeting transcripts and information into professional Confidential Information Memorandums. 
-            Our AI technology helps structure and format your business information effectively.
-          </p>
-          
-          <div className="flex gap-4 justify-center">
-            <Link href="/login">
-              <Button size="lg" className="gap-2">
-                Try AI CIM Generator <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button size="lg" variant="outline">
-                See Live Demo
-              </Button>
-            </Link>
+          <div className="animate-fade-in-up">
+            <Badge className="mb-6 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors duration-300">
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI-Powered Document Generation
+            </Badge>
+            
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-slate-900 leading-tight animate-text-gradient">
+              Create Professional CIMs in Minutes
+            </h1>
+            
+            <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+              Transform business meeting transcripts, website data, and company information into professional Confidential Information Memorandums using advanced AI technology.
+            </p>
+            
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link href="/login">
+                <Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                  <Zap className="mr-2 h-5 w-5" />
+                  Try AI CIM Generator
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="border-slate-300 hover:bg-slate-50 hover:scale-105 transition-all duration-300">
+                  See Live Demo
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Statistics Section */}
-      <section className="container mx-auto px-4 py-12">
+      {/* Key Benefits Grid */}
+      <section className="container mx-auto px-4 py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">Fast</div>
-              <p className="text-muted-foreground">Quick CIM generation</p>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div
+              data-animate-id="benefit-1"
+              className={`transition-all duration-700 ${
+                isVisible('benefit-1') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`}
+            >
+              <Card className="text-center border-0 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-500 group h-full">
+                <CardHeader>
+                  <div className="w-16 h-16 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Clock className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">10x Faster</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Generate professional CIMs in minutes instead of hours or days</p>
+                </CardContent>
+              </Card>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">Professional</div>
-              <p className="text-muted-foreground">Structured documentation</p>
+
+            <div
+              data-animate-id="benefit-2"
+              className={`transition-all duration-700 delay-100 ${
+                isVisible('benefit-2') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`}
+            >
+              <Card className="text-center border-0 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-500 group h-full">
+                <CardHeader>
+                  <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Brain className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">AI-Enhanced</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Advanced AI structures and formats your business information intelligently</p>
+                </CardContent>
+              </Card>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">Customizable</div>
-              <p className="text-muted-foreground">Edit and refine as needed</p>
+
+            <div
+              data-animate-id="benefit-3"
+              className={`transition-all duration-700 delay-200 ${
+                isVisible('benefit-3') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`}
+            >
+              <Card className="text-center border-0 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-500 group h-full">
+                <CardHeader>
+                  <div className="w-16 h-16 bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Target className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl text-slate-900 group-hover:text-blue-600 transition-colors duration-300">Professional Quality</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Investment-grade documents that impress stakeholders and close deals</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Problem/Solution Section */}
+      {/* Website Integration Feature */}
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold mb-6">
-                Traditional CIM Creation Challenges
+            <div className="space-y-6">
+              <Badge className="bg-blue-100 text-blue-700 border border-blue-200">
+                <Globe className="h-4 w-4 mr-2" />
+                Website Intelligence
+              </Badge>
+              
+              <h2 className="text-4xl font-bold mb-6 text-slate-900">
+                Automatic Website Data Extraction
               </h2>
+              
+              <p className="text-lg text-slate-600 leading-relaxed">
+                Simply provide a company's website URL and our AI automatically extracts key business information, 
+                company logos, images, and relevant data to enhance your CIM's written material. No manual research required.
+              </p>
+              
               <div className="space-y-4">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-destructive mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    Creating professional CIMs manually is time-consuming and requires formatting expertise
-                  </p>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mt-1">
+                    <Globe className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-1">Company Information</h4>
+                    <p className="text-slate-600 text-sm">Automatically extracts business descriptions, services, and key information from company websites</p>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-destructive mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    Inconsistent quality and formatting across different deals
-                  </p>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center mt-1">
+                    <Image className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-1">Logo & Branding</h4>
+                    <p className="text-slate-600 text-sm">Pulls company logos and branding elements to maintain professional presentation</p>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-destructive mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    Structuring business information into a professional format is challenging
-                  </p>
+                
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center mt-1">
+                    <BarChart3 className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-1">Business Intelligence</h4>
+                    <p className="text-slate-600 text-sm">Analyzes website content to understand business model, market position, and key differentiators</p>
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div>
-              <h2 className="text-3xl font-bold mb-6">
-                AI-Powered Solution
-              </h2>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    Generate CIMs quickly with AI assistance and professional formatting
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    AI helps structure your business information into organized sections
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
-                  <p className="text-muted-foreground">
-                    Transform transcripts and notes into professional document sections
-                  </p>
+            <div className="relative">
+              <div className="bg-slate-50 rounded-2xl p-8 shadow-lg border border-slate-200">
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-100">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Globe className="h-6 w-6 text-blue-600" />
+                    <span className="font-medium">Website Analysis</span>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Company logo extracted</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Business description analyzed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Key services identified</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Market positioning extracted</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Key Features Grid */}
-      <section className="container mx-auto px-4 py-16 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Advanced AI Features for Business Brokers
-          </h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <Mic className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Transcript Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Upload business meeting transcripts. Our AI helps extract and organize 
-                  key information into structured document sections.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <BarChart3 className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Document Structuring</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Organize your business information into professional sections 
-                  with appropriate formatting and structure.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Brain className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Content Organization</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  AI helps organize your content logically, ensuring all important 
-                  business aspects are properly presented.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Target className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Customization Options</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Full control to edit, add, or remove sections. Customize the 
-                  generated content to match your specific needs.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <FileText className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Multi-Format Export</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Export your CIM as PDF or Word documents. Choose the format 
-                  that works best for your needs.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Zap className="h-10 w-10 text-primary mb-4" />
-                <CardTitle>Easy Updates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Update and revise your CIM as needed. Make changes 
-                  and regenerate sections when information changes.
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section className="container mx-auto px-4 py-16">
+      <section className="container mx-auto px-4 py-16 bg-slate-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            How Our AI CIM Generator Works
-          </h2>
-          
-          <div className="space-y-8">
-            <div className="flex gap-6 items-start">
-              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold">1</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Upload Business Information</h3>
-                <p className="text-muted-foreground">
-                  Upload your business meeting transcripts, notes, and any relevant business 
-                  information. You can also add website URLs for additional context.
-                </p>
-              </div>
-            </div>
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-slate-100 text-slate-700 border border-slate-200">
+              <Zap className="h-4 w-4 mr-2" />
+              AI Workflow
+            </Badge>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">How AI Powers Your CIM Creation</h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Our intelligent system transforms raw business data into professional documentation
+            </p>
+          </div>
 
-            <div className="flex gap-6 items-start">
-              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold">2</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">AI Processing</h3>
-                <p className="text-muted-foreground">
-                  Our AI analyzes your transcript and information to create structured sections, 
-                  organizing content into a professional CIM format.
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-white font-bold">1</span>
+                </div>
+                <CardTitle className="text-lg">Input Data</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-slate-600">Upload transcripts, website URLs, or business information</p>
+              </CardContent>
+            </Card>
 
-            <div className="flex gap-6 items-start">
-              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold">3</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Review & Customize</h3>
-                <p className="text-muted-foreground">
-                  Review the AI-generated CIM with our intuitive editor. Add custom sections, adjust 
-                  formatting, include additional graphics, and ensure all information meets your standards.
-                </p>
-              </div>
-            </div>
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Brain className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">AI Analysis</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-slate-600">AI processes and structures your business information intelligently</p>
+              </CardContent>
+            </Card>
 
-            <div className="flex gap-6 items-start">
-              <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold">4</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">Publish & Share</h3>
-                <p className="text-muted-foreground">
-                  Export to PDF or Word format, or share directly through our secure platform 
-                  with NDA protection and password security.
-                </p>
-              </div>
-            </div>
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Edit3 className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">Format & Structure</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-slate-600">Professional formatting with industry-standard CIM sections</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">Professional Output</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-slate-600">Investment-grade CIM ready for customization and sharing</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="container mx-auto px-4 py-16 bg-muted/30">
+      {/* AI Capabilities Section */}
+      <section className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Perfect for Every Type of Business Sale
-          </h2>
-          
-          <div className="grid lg:grid-cols-3 gap-6">
-            <Card>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Advanced AI Capabilities</h2>
+            <p className="text-xl text-slate-600">
+              Sophisticated technology that understands business documentation
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="text-xl">Small Business Sales</CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Mic className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">Meeting Transcript Analysis</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Create professional CIMs for Main Street businesses quickly and affordably.
+              <CardContent className="space-y-4">
+                <p className="text-slate-600">
+                  Upload meeting recordings or transcripts and our AI extracts key business information, 
+                  financial data, and strategic insights to create comprehensive CIM sections.
                 </p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Restaurants & retail stores
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Service businesses
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Professional practices
-                  </li>
-                </ul>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Revenue Recognition</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Market Analysis</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Growth Strategy</Badge>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="text-xl">Middle Market M&A</CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
+                    <Globe className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">Website Intelligence</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Handle complex transactions with sophisticated financial analysis.
+              <CardContent className="space-y-4">
+                <p className="text-slate-600">
+                  Simply provide a company website URL and our AI automatically extracts business descriptions, 
+                  company logos, service offerings, and market positioning to enhance your CIM's content.
                 </p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Manufacturing companies
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Technology firms
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Healthcare businesses
-                  </li>
-                </ul>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Logo Extraction</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Business Info</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Auto-Enhancement</Badge>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
-                <CardTitle className="text-xl">Strategic Acquisitions</CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-700 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">Financial Data Processing</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Support corporate development teams with institutional-quality documents.
+              <CardContent className="space-y-4">
+                <p className="text-slate-600">
+                  AI identifies and structures financial information into professional formats with 
+                  proper categorization, trend analysis, and investor-ready presentation.
                 </p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Roll-up strategies
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Platform acquisitions
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    International deals
-                  </li>
-                </ul>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Revenue Analysis</Badge>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Growth Metrics</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Projections</Badge>
+                </div>
               </CardContent>
             </Card>
+
+            <Card className="border border-slate-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl">Document Structuring</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-slate-600">
+                  Automatically organizes information into standard CIM sections including executive summary, 
+                  business overview, financials, and investment highlights with professional formatting.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">Auto-Sections</Badge>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">Smart Format</Badge>
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Pro Layout</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Before/After Comparison */}
+      <section className="container mx-auto px-4 py-16 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Traditional vs AI-Powered CIM Creation</h2>
+            <p className="text-xl text-slate-600">See the difference AI makes in speed and quality</p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Traditional Method */}
+            <Card className="border-2 border-red-200 bg-red-50">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl text-red-700">Traditional Method</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">5-10 hours of manual work</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Users className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">Requires formatting expertise</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">Inconsistent quality</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Target className="h-4 w-4 text-red-600" />
+                    <span className="text-slate-700">Manual research required</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI-Powered Method */}
+            <Card className="border-2 border-green-200 bg-green-50">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <CardTitle className="text-xl text-green-700">AI-Powered Method</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">15-30 minutes total time</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Brain className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">No formatting expertise needed</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">Consistent professional quality</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-4 w-4 text-green-600" />
+                    <span className="text-slate-700">Automatic website data extraction</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Deep Dive */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Advanced AI Features</h2>
+            <p className="text-xl text-slate-600">
+              Cutting-edge technology designed for investment professionals
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Brain className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Natural Language Processing</h3>
+                  <p className="text-slate-600">
+                    Advanced NLP understands business context, extracts key metrics, and identifies 
+                    important investment highlights from unstructured text.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Intelligent Categorization</h3>
+                  <p className="text-slate-600">
+                    Automatically categorizes business information into appropriate CIM sections 
+                    based on investment banking standards and best practices.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900">Market Analysis</h3>
+                  <p className="text-slate-600">
+                    AI analyzes market positioning, competitive advantages, and growth opportunities 
+                    to create compelling investment narratives.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-8 shadow-lg border border-slate-200">
+              <h3 className="text-2xl font-bold mb-6 text-center text-slate-900">What Our AI Extracts</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Company overview and business model</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Financial performance and metrics</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Market position and competitive advantages</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Growth opportunities and projections</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Risk factors and mitigation strategies</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-slate-700">Investment highlights and value proposition</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
-        <Card className="max-w-4xl mx-auto bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-12 text-center">
-            <h2 className="text-3xl font-bold mb-4">
-              Transform Your CIM Creation Process Today
+        <Card className="max-w-4xl mx-auto bg-slate-900 border-0 text-white text-center">
+          <CardContent className="p-12">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
+            
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Ready to Experience AI-Powered CIM Creation?
             </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Start creating professional CIMs with AI assistance
+            
+            <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+              Join thousands of investment professionals who save hours every week with our AI technology.
             </p>
-            <div className="flex gap-4 justify-center">
+            
+            <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/login">
-                <Button size="lg" className="gap-2">
-                  Start Creating CIMs <ArrowRight className="h-4 w-4" />
+                <Button size="lg" variant="secondary" className="bg-white text-slate-900 hover:bg-slate-100">
+                  <Zap className="mr-2 h-5 w-5" />
+                  Start Creating CIMs
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline">
-                  Compare Plans
+                <Button size="lg" variant="outline" className="border-slate-400 text-slate-300 hover:bg-slate-800">
+                  View Pricing Plans
                 </Button>
               </Link>
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Try it free • No credit card required
+            
+            <p className="text-slate-400 text-sm mt-6">
+              No credit card required • Start with our free trial
             </p>
           </CardContent>
         </Card>
       </section>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes fade-in-up {
+          from { 
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes text-gradient {
+          0%, 100% { 
+            background-position: 0% 50%;
+          }
+          50% { 
+            background-position: 100% 50%;
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 1s ease-out;
+        }
+        
+        .animate-text-gradient {
+          background: linear-gradient(-45deg, #1e293b, #3b82f6, #1e40af, #0f172a);
+          background-size: 400% 400%;
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: text-gradient 8s ease infinite;
+        }
+      `}</style>
     </div>
   );
 }

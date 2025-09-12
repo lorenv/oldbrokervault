@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { 
   Shield, 
@@ -18,353 +17,250 @@ import {
   X,
   Briefcase,
   Building,
-  CheckCircle,
-  ArrowRight,
-  Users,
-  TrendingUp,
-  Clock,
-  Star,
-  ChevronRight,
-  MessageSquare,
-  Target,
-  Layers,
-  Upload
+  CheckCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
-  const [visibleFeatures, setVisibleFeatures] = useState<number[]>([]);
+  const [visibleElements, setVisibleElements] = useState<Set<string>>(new Set());
   const [scrollY, setScrollY] = useState(0);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [counters, setCounters] = useState({ docs: 0, users: 0, shares: 0 });
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Parallax scroll effect
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Animate features on scroll
+  // Intersection Observer for scroll animations
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = parseInt(entry.target.getAttribute('data-index') || '0');
-            setVisibleFeatures(prev => [...prev, index]);
+          const id = entry.target.getAttribute('data-animate-id');
+          if (entry.isIntersecting && id) {
+            setVisibleElements(prev => new Set([...prev, id]));
           }
         });
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        rootMargin: '-50px 0px -50px 0px'
+      }
     );
 
-    const featureCards = document.querySelectorAll('.feature-card');
-    featureCards.forEach((card) => observer.observe(card));
+    // Observe all elements with data-animate-id
+    const elementsToObserve = document.querySelectorAll('[data-animate-id]');
+    elementsToObserve.forEach(el => observerRef.current?.observe(el));
 
-    return () => featureCards.forEach((card) => observer.unobserve(card));
+    return () => observerRef.current?.disconnect();
   }, []);
 
-  // Animate stats counter
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !statsVisible) {
-            setStatsVisible(true);
-            // Animate counters
-            const duration = 2000;
-            const steps = 50;
-            const stepTime = duration / steps;
-            let currentStep = 0;
-
-            const interval = setInterval(() => {
-              currentStep++;
-              const progress = currentStep / steps;
-              setCounters({
-                docs: Math.floor(5000 * progress),
-                users: Math.floor(1200 * progress),
-                shares: Math.floor(98 * progress)
-              });
-
-              if (currentStep >= steps) {
-                clearInterval(interval);
-              }
-            }, stepTime);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    if (statsRef.current) {
-      observer.observe(statsRef.current);
-    }
-
-    return () => {
-      if (statsRef.current) {
-        observer.unobserve(statsRef.current);
-      }
-    };
-  }, [statsVisible]);
-
+  // Helper function to check if element is visible
+  const isVisible = (id: string) => visibleElements.has(id);
   const features = [
     {
       icon: Shield,
       title: "NDA Protection",
       description: "Built-in confidentiality agreements with secure document sharing and password protection.",
-      color: "from-green-500 to-emerald-600",
-      delay: 0
+      color: "text-green-500",
+      link: "/features/nda-protection"
     },
     {
       icon: Palette,
       title: "Fully Customizable",
-      description: "Tailor every section, add your branding, and control layout with drag-and-drop editing.",
-      color: "from-blue-500 to-cyan-600",
-      delay: 100
+      description: "Tailor every section, add your company branding, and control document layout with drag-and-drop editing.",
+      color: "text-blue-500"
     },
     {
       icon: Download,
       title: "PDF Export",
       description: "Export to professional PDF format with formatting that maintains your brand identity.",
-      color: "from-purple-500 to-pink-600",
-      delay: 200
+      color: "text-purple-500"
     },
     {
       icon: Zap,
       title: "AI-Powered Analysis",
-      description: "Transform business meeting transcripts into structured, professional documents using AI.",
-      color: "from-orange-500 to-red-600",
-      delay: 300
+      description: "Transform business meeting transcripts into structured, professional documents using advanced AI technology.",
+      color: "text-orange-500",
+      link: "/features/ai-powered-cim"
     },
     {
       icon: Database,
       title: "Investor Database",
-      description: "Track and manage investor contacts with comprehensive NDA signature management.",
-      color: "from-indigo-500 to-purple-600",
-      delay: 400
+      description: "Track and manage investor contacts across all documents with comprehensive NDA signature management.",
+      color: "text-indigo-500",
+      link: "/features/investor-database"
     },
+
     {
       icon: Lock,
       title: "Enterprise Security",
-      description: "Bank-level encryption, secure hosting, and compliance with data protection standards.",
-      color: "from-red-500 to-rose-600",
-      delay: 500
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "Sarah Chen",
-      role: "CEO, TechVentures",
-      content: "CIM Share has transformed how we prepare investment documents. What used to take days now takes hours.",
-      rating: 5
+      description: "Bank-level encryption, secure hosting, and compliance with industry data protection standards.",
+      color: "text-red-500"
     },
     {
-      name: "Michael Rodriguez",
-      role: "Investment Banker",
-      content: "The AI-powered analysis feature is a game-changer. It captures every detail from our meetings perfectly.",
-      rating: 5
+      icon: PenTool,
+      title: "Digital Signatures",
+      description: "Secure electronic signature collection with NDA management, approval workflows, and comprehensive audit trails.",
+      color: "text-yellow-500"
     },
     {
-      name: "Emily Watson",
-      role: "CFO, Growth Partners",
-      content: "Security and compliance are critical for us. CIM Share exceeds our expectations on both fronts.",
-      rating: 5
+      icon: Globe,
+      title: "Website Integration",
+      description: "Extract company logos and images from websites to enhance your CIM documents automatically.",
+      color: "text-cyan-500"
+    },
+    {
+      icon: Smartphone,
+      title: "Mobile Responsive",
+      description: "Access and edit your CIM documents from any device with our responsive web interface.",
+      color: "text-pink-500"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
-      {/* Modern Hero Section with Animated Background */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 opacity-90">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http://www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-        </div>
-
-        {/* Floating particles animation */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${15 + Math.random() * 20}s`
-              }}
-            >
-              <div className="w-2 h-2 bg-white/20 rounded-full blur-sm"></div>
-            </div>
-          ))}
-        </div>
-
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-cyan-400 via-blue-500 via-purple-500 via-pink-500 to-orange-400 pt-32 pb-20 relative overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left content with fade-in animation */}
+            {/* Left side - Text content */}
             <div className="text-left animate-fade-in-up">
-              <Badge className="mb-4 bg-white/20 text-white border-white/30">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Trusted by 1,200+ Businesses
-              </Badge>
-              
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-white leading-tight">
-                Create Professional
-                <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                  CIM Documents
-                </span>
-                in Minutes
+              <h1 
+                className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 text-white leading-tight pb-2" 
+                style={{
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              >
+                Build, Share, Protect
               </h1>
-              
-              <p className="text-xl text-white/90 mb-8 leading-relaxed">
-                The complete platform for creating, customizing, and sharing Confidential Information Memorandums with bank-level security and AI-powered insights.
+              <p className="text-base sm:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl transform transition-all duration-1000 delay-200 ease-out">
+                Everything you need to create, customize, and share professional Confidential Information Memorandums with confidence and security.
               </p>
-              
-              <div className="flex flex-wrap gap-4">
+              <div className="transform transition-all duration-1000 delay-400 ease-out">
                 <Link href="/login">
-                  <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                    <FileText className="mr-2 h-5 w-5" />
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3 hover:scale-105 hover:shadow-xl transition-all duration-300">
+                    Create a Free CIM
                   </Button>
                 </Link>
-                <Link href="/pricing">
-                  <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 backdrop-blur">
-                    View Pricing
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Trust indicators */}
-              <div className="flex items-center gap-6 mt-8">
-                <div className="flex -space-x-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30"></div>
-                  ))}
-                </div>
-                <p className="text-white/80 text-sm">
-                  Join 1,200+ professionals using CIM Share
-                </p>
               </div>
             </div>
 
-            {/* Right side - Floating device mockups */}
-            <div className="relative hidden lg:block animate-fade-in">
-              <div className="relative" style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
+            {/* Right side - Computer/Phone Image */}
+            <div className="relative hidden lg:block">
+              <div className="relative">
                 <img 
                   src="/hero-computer.png" 
-                  alt="CIM Share platform interface"
-                  className="w-full h-auto object-contain filter drop-shadow-2xl animate-float-slow"
+                  alt="CIM Share platform showing professional business documentation with laptop and mobile views"
+                  className="w-full h-auto object-contain animate-gentle-float hover:scale-105 transition-transform duration-700 ease-out"
                   onError={(e) => {
+                    // Fallback to existing mobile mockup if hero-computer.png doesn't exist
                     e.currentTarget.src = '/mobile-mockup.png';
                   }}
                 />
-                
-                {/* Floating feature badges */}
-                <div className="absolute -top-4 -right-4 bg-white rounded-lg shadow-xl p-3 animate-bounce-slow">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-sm font-medium">Auto-Save</span>
-                  </div>
-                </div>
-                
-                <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-xl p-3 animate-bounce-slow" style={{ animationDelay: '1s' }}>
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium">Secure</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Stats Section with Counter Animation */}
-      <section ref={statsRef} className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="group cursor-pointer">
-              <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 transition-transform group-hover:scale-110">
-                {counters.docs.toLocaleString()}+
-              </div>
-              <p className="text-gray-600">Documents Created</p>
-            </div>
-            <div className="group cursor-pointer">
-              <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 transition-transform group-hover:scale-110">
-                {counters.users.toLocaleString()}+
-              </div>
-              <p className="text-gray-600">Active Users</p>
-            </div>
-            <div className="group cursor-pointer">
-              <div className="text-5xl font-bold bg-gradient-to-r from-pink-600 to-orange-600 bg-clip-text text-transparent mb-2 transition-transform group-hover:scale-110">
-                {counters.shares}%
-              </div>
-              <p className="text-gray-600">Customer Satisfaction</p>
-            </div>
+        {/* Floating Icons Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Large floating icons */}
+          <div className="absolute top-20 left-10 animate-bounce" style={{animationDelay: '0s', animationDuration: '3s'}}>
+            <Shield className="w-8 h-8 text-white/20" />
+          </div>
+          <div className="absolute top-32 right-16 animate-bounce" style={{animationDelay: '1s', animationDuration: '4s'}}>
+            <FileText className="w-10 h-10 text-white/25" />
+          </div>
+          <div className="absolute top-40 left-1/4 animate-bounce" style={{animationDelay: '2s', animationDuration: '3.5s'}}>
+            <Lock className="w-6 h-6 text-white/20" />
+          </div>
+          <div className="absolute bottom-20 left-20 animate-bounce" style={{animationDelay: '0.5s', animationDuration: '4.5s'}}>
+            <Download className="w-7 h-7 text-white/25" />
+          </div>
+          <div className="absolute bottom-32 right-20 animate-bounce" style={{animationDelay: '1.5s', animationDuration: '3s'}}>
+            <Database className="w-9 h-9 text-white/20" />
+          </div>
+          <div className="absolute top-1/2 right-10 animate-bounce" style={{animationDelay: '2.5s', animationDuration: '4s'}}>
+            <Zap className="w-8 h-8 text-white/25" />
+          </div>
+          
+          {/* Sparkle particles */}
+          <div className="absolute top-16 left-1/3 animate-pulse" style={{animationDelay: '0s', animationDuration: '2s'}}>
+            <Sparkles className="w-4 h-4 text-white/30" />
+          </div>
+          <div className="absolute top-28 right-1/3 animate-pulse" style={{animationDelay: '1s', animationDuration: '2.5s'}}>
+            <Sparkles className="w-3 h-3 text-white/25" />
+          </div>
+          <div className="absolute bottom-24 left-1/2 animate-pulse" style={{animationDelay: '1.5s', animationDuration: '2s'}}>
+            <Sparkles className="w-5 h-5 text-white/20" />
+          </div>
+          <div className="absolute top-3/4 left-16 animate-pulse" style={{animationDelay: '0.5s', animationDuration: '3s'}}>
+            <Sparkles className="w-4 h-4 text-white/25" />
+          </div>
+          <div className="absolute top-1/4 right-1/4 animate-pulse" style={{animationDelay: '2s', animationDuration: '2.5s'}}>
+            <Sparkles className="w-3 h-3 text-white/30" />
+          </div>
+          
+          {/* Additional floating elements */}
+          <div className="absolute top-1/3 left-1/6 animate-bounce" style={{animationDelay: '3s', animationDuration: '5s'}}>
+            <Globe className="w-6 h-6 text-white/20" />
+          </div>
+          <div className="absolute bottom-1/3 right-1/6 animate-bounce" style={{animationDelay: '2.5s', animationDuration: '4.5s'}}>
+            <PenTool className="w-7 h-7 text-white/25" />
+          </div>
+          <div className="absolute top-1/2 left-1/2 animate-pulse" style={{animationDelay: '1.8s', animationDuration: '3.5s'}}>
+            <BarChart3 className="w-5 h-5 text-white/15" />
           </div>
         </div>
       </section>
 
-      {/* Features Grid with Stagger Animation */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white" ref={featuresRef}>
+      {/* Features Grid */}
+      <section className="py-20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-fade-in-up">
-            <Badge className="mb-4" variant="secondary">
-              <Layers className="h-3 w-3 mr-1" />
-              Features
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Everything You Need to
-              <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Close Deals Faster
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From AI-powered document generation to secure sharing, we've built the complete toolkit for professional business documentation.
+          <div 
+            className={`text-center mb-12 sm:mb-16 transition-all duration-1000 ${
+              isVisible('features-header') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}
+            data-animate-id="features-header"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Complete CIM Solution</h2>
+            <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto px-2">
+              From AI-powered analysis to secure sharing, we've built everything you need for professional business documentation.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
-                data-index={index}
-                className={cn(
-                  "feature-card group relative",
-                  visibleFeatures.includes(index) && "animate-fade-in-up"
-                )}
-                style={{ animationDelay: `${feature.delay}ms` }}
+                data-animate-id={`feature-${index}`}
+                className={`transition-all duration-700 ${
+                  isVisible(`feature-${index}`) 
+                    ? 'translate-y-0 opacity-100' 
+                    : 'translate-y-8 opacity-0'
+                }`}
+                style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <Card className="h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group-hover:-translate-y-2">
-                  <div className={cn(
-                    "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                    `bg-gradient-to-br ${feature.color}`
-                  )}></div>
-                  
-                  <CardHeader className="relative z-10">
-                    <div className={cn(
-                      "w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
-                      `bg-gradient-to-br ${feature.color}`,
-                      "group-hover:scale-110 group-hover:rotate-3"
-                    )}>
-                      <feature.icon className="w-7 h-7 text-white" />
+                <Card className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group h-full">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-100 flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      <feature.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
                     </div>
-                    <CardTitle className="text-xl font-semibold group-hover:text-white transition-colors">
-                      {feature.title}
-                    </CardTitle>
+                    <CardTitle className="text-lg sm:text-xl font-semibold group-hover:text-blue-600 transition-colors duration-300">{feature.title}</CardTitle>
                   </CardHeader>
-                  
-                  <CardContent className="relative z-10">
-                    <p className="text-gray-600 group-hover:text-white/90 transition-colors">
-                      {feature.description}
-                    </p>
+                  <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col">
+                    <p className="text-gray-600 text-sm sm:text-base flex-1">{feature.description}</p>
+                    {feature.link && (
+                      <Link href={feature.link}>
+                        <Button variant="link" className="mt-3 p-0 h-auto font-medium group-hover:translate-x-1 transition-transform duration-300">
+                          Learn more →
+                        </Button>
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -373,186 +269,400 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4" variant="secondary">
-              <Target className="h-3 w-3 mr-1" />
-              How It Works
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Three Simple Steps to
-              <span className="block bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Professional CIMs
-              </span>
-            </h2>
+      {/* Feature Showcase Section */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-blue-200 rounded-full animate-float-slow"></div>
+          <div className="absolute top-1/3 right-20 w-16 h-16 bg-indigo-200 rounded-full animate-float-delayed"></div>
+          <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-purple-200 rounded-full animate-float-slow"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div 
+            className={`text-center mb-16 transition-all duration-1000 ${
+              isVisible('showcase-header') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}
+            data-animate-id="showcase-header"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Advanced Analytics & Controls</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Track every interaction, manage NDAs seamlessly, and build relationships with comprehensive investor analytics
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            {/* Connection line */}
-            <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200"></div>
-            
-            {[
-              {
-                step: "1",
-                title: "Upload Your Data",
-                description: "Import your business information, financials, or meeting transcripts",
-                icon: Upload
-              },
-              {
-                step: "2",
-                title: "AI Enhancement",
-                description: "Our AI analyzes and structures your content into professional sections",
-                icon: Zap
-              },
-              {
-                step: "3",
-                title: "Share Securely",
-                description: "Export to PDF or share via secure link with NDA protection",
-                icon: Shield
-              }
-            ].map((item, index) => (
-              <div key={index} className="relative group">
-                <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                  <div className="absolute -top-4 left-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                    {item.step}
-                  </div>
-                  
-                  <div className="mt-8 mb-4">
-                    <item.icon className="w-12 h-12 text-purple-600" />
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
+          <div className="max-w-7xl mx-auto space-y-20">
+            {/* Investor Database Feature - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div 
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
+                  isVisible('showcase-1') ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
+                }`}
+                data-animate-id="showcase-1"
+                onClick={() => setEnlargedImage("/investor-database-preview.png")}
+              >
+                <img 
+                  src="/investor-database-preview.png" 
+                  alt="Investor Database Interface"
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div 
+                className={`space-y-6 transition-all duration-1000 delay-200 ${
+                  isVisible('showcase-1') ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'
+                }`}
+              >
+                <h3 className="text-3xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-300">Investor Database</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Track investor contacts across all documents with analytics and export capabilities. 
+                  Manage relationships with comprehensive contact tracking and automated data collection.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">Contact Tracking</span>
+                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">Export Tools</span>
+                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">Relationship Management</span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* NDA Signatures Feature - Text Left, Image Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div 
+                className={`space-y-6 lg:order-1 transition-all duration-1000 ${
+                  isVisible('showcase-2') ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
+                }`}
+                data-animate-id="showcase-2"
+              >
+                <h3 className="text-3xl font-bold text-gray-900 hover:text-red-600 transition-colors duration-300">NDA Management</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Digital signatures, approval controls, and comprehensive audit trails for legal compliance. 
+                  Streamline your NDA process with automated workflows and tracking.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium hover:bg-red-200 transition-colors duration-300 cursor-pointer">Digital Signatures</span>
+                  <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium hover:bg-yellow-200 transition-colors duration-300 cursor-pointer">Approval Controls</span>
+                  <span className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium hover:bg-indigo-200 transition-colors duration-300 cursor-pointer">Audit Trails</span>
+                </div>
+              </div>
+              <div 
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 lg:order-2 group ${
+                  isVisible('showcase-2') ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'
+                }`}
+                style={{ transitionDelay: '200ms' }}
+                onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
+              >
+                <img 
+                  src="/nda-signatures-preview.png" 
+                  alt="NDA Signatures Management"
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+            </div>
+
+            {/* Analytics Feature - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div 
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
+                  isVisible('showcase-3') ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
+                }`}
+                data-animate-id="showcase-3"
+                onClick={() => setEnlargedImage("/analytics-preview.png")}
+              >
+                <img 
+                  src="/analytics-preview.png" 
+                  alt="Analytics Dashboard"
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div 
+                className={`space-y-6 transition-all duration-1000 delay-200 ${
+                  isVisible('showcase-3') ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'
+                }`}
+              >
+                <h3 className="text-3xl font-bold text-gray-900 hover:text-teal-600 transition-colors duration-300">Analytics Dashboard</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Comprehensive analytics with activity tracking, conversion metrics, and detailed reporting. 
+                  Make data-driven decisions with powerful insights into document performance.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-teal-100 text-teal-800 rounded-full text-sm font-medium hover:bg-teal-200 transition-colors duration-300 cursor-pointer">Activity Tracking</span>
+                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">Conversion Metrics</span>
+                  <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-medium hover:bg-orange-200 transition-colors duration-300 cursor-pointer">Performance Insights</span>
+                </div>
+              </div>
+            </div>
+
+            {/* E-Signature Template Editor Feature - Text Left, Image Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div 
+                className={`space-y-6 lg:order-1 transition-all duration-1000 ${
+                  isVisible('showcase-4') ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'
+                }`}
+                data-animate-id="showcase-4"
+              >
+                <h3 className="text-3xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-300">E-Signature Templates</h3>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Create custom PDF templates with drag-and-drop signature fields. Upload any PDF document and position signature, 
+                  name, date, email, and text fields exactly where you need them for professional document signing workflows.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">PDF Template Editor</span>
+                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">Drag & Drop Fields</span>
+                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">Custom Positioning</span>
+                </div>
+              </div>
+              <div 
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 lg:order-2 group ${
+                  isVisible('showcase-4') ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'
+                }`}
+                style={{ transitionDelay: '200ms' }}
+                onClick={() => setEnlargedImage("/e-signature-template-editor.png")}
+              >
+                <img 
+                  src="/e-signature-template-editor.png" 
+                  alt="E-Signature Template Editor with Drag & Drop Fields"
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+      {/* Example Documents Section */}
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4" variant="secondary">
-              <MessageSquare className="h-3 w-3 mr-1" />
-              Testimonials
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Loved by Teams
-              <span className="block bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Worldwide
-              </span>
-            </h2>
+          <div 
+            className={`text-center mb-16 transition-all duration-1000 ${
+              isVisible('examples-header') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}
+            data-animate-id="examples-header"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">See CIM Share in Action</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Explore real examples of professional CIM documents created with our platform
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-                <CardContent className="p-8">
-                  <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 text-yellow-500 fill-current" />
-                    ))}
-                  </div>
-                  
-                  <p className="text-gray-700 mb-6 italic">"{testimonial.content}"</p>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500"></div>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-gray-500">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {/* Tony's Transmissions Image Card */}
+            <div 
+              className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:rotate-1 transition-all duration-500 cursor-pointer group ${
+                isVisible('example-1') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`}
+              data-animate-id="example-1"
+              onClick={() => window.open('https://cimshare.com/share/cim-q3bqjm', '_blank')}
+            >
+              <img 
+                src="/tonys-transmissions-preview.png" 
+                alt="Tony's Transmissions CIM Document Preview"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-blue-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
+
+            {/* Arbor Partners Image Card */}
+            <div 
+              className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl hover:-translate-y-4 hover:-rotate-1 transition-all duration-500 cursor-pointer group ${
+                isVisible('example-2') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+              }`}
+              data-animate-id="example-2"
+              style={{ transitionDelay: '200ms' }}
+              onClick={() => window.open('https://cimshare.com/share/cim-2axr79', '_blank')}
+            >
+              <img 
+                src="/arbor-partners-preview.png" 
+                alt="Arbor Partners CIM Document Preview"
+                className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute top-4 right-4">
+                <div className="text-sm text-green-600 font-medium bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm animate-pulse-slow">
+                  Live Example
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 drop-shadow-lg">
+                  Click to view full CIM document →
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solutions Section */}
+      <section className="py-16 sm:py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+              Tailored Solutions for Your Industry
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Whether you're a business broker or investment banker, we have the right tools for your M&A transactions.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="p-6">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Briefcase className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-semibold">For Business Brokers</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <p className="text-muted-foreground mb-4">
+                  Professional CIM creation platform designed for business brokers and M&A advisors.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Professional CIM creation in hours
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Contact tracking and management
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Automated NDA management
+                  </li>
+                </ul>
+                <Link href="/solutions/business-brokers">
+                  <Button variant="outline" className="w-full">
+                    Learn More →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
+              <CardHeader className="p-6">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Building className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl font-semibold">For Investment Banks</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <p className="text-muted-foreground mb-4">
+                  Enhanced features for larger organizations with additional security and customization options.
+                </p>
+                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Enhanced security features
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    API access for custom integrations
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    Custom branding options
+                  </li>
+                </ul>
+                <Link href="/solutions/investment-banking">
+                  <Button variant="outline" className="w-full">
+                    Learn More →
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Business Documentation?
-          </h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join thousands of professionals who trust CIM Share for their confidential business documents.
-          </p>
-          
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/login">
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                Start Your Free Trial
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Schedule Demo
-              </Button>
-            </Link>
+      <section className="bg-gradient-to-r from-blue-600 to-purple-600 pt-12 pb-0 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-end">
+            {/* Left side - Text content */}
+            <div className="text-center lg:text-left pb-20">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Ready to Make CIMs the Easy Way?
+              </h2>
+              <p className="text-xl text-blue-100 mb-8 max-w-2xl">
+                Join thousands of professionals who trust CIM Share for their confidential business documentation needs.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link href="/login">
+                  <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
+                    Create a Free CIM
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-gray-900 bg-white hover:bg-gray-100">
+                    View Pricing
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Right side - Mobile mockup */}
+            <div className="flex justify-center lg:justify-end">
+              <div className="relative">
+                <img
+                  src="/mobile-mockup.png"
+                  alt="CIM Share mobile app showing Arbor Partners CIM with financial information"
+                  className="w-full max-w-md h-auto drop-shadow-2xl"
+                  style={{ marginBottom: '-2px' }}
+                />
+              </div>
+            </div>
           </div>
-          
-          <p className="text-white/70 text-sm mt-6">
-            No credit card required • 7-day free trial • Cancel anytime
-          </p>
         </div>
       </section>
 
-      {/* Modal for enlarged images */}
+      {/* Image Modal */}
       {enlargedImage && (
         <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fade-in"
           onClick={() => setEnlargedImage(null)}
         >
-          <div className="relative max-w-4xl w-full">
-            <img 
-              src={enlargedImage} 
-              alt="Enlarged view"
-              className="w-full h-auto rounded-lg shadow-2xl"
-            />
-            <button 
+          <div className="relative max-w-7xl max-h-full animate-scale-in">
+            <button
               onClick={() => setEnlargedImage(null)}
-              className="absolute top-4 right-4 bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20 transition-colors"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10 hover:scale-110 transition-transform duration-200"
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-8 h-8" />
             </button>
+            <img
+              src={enlargedImage}
+              alt="Enlarged preview"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0) rotate(0deg); }
-          33% { transform: translate(30px, -30px) rotate(120deg); }
-          66% { transform: translate(-20px, 20px) rotate(240deg); }
-        }
-        
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        
+      {/* Custom CSS Animations */}
+      <style jsx>{`
         @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from { 
+            opacity: 0; 
+          }
+          to { 
+            opacity: 1; 
+          }
         }
         
         @keyframes fade-in-up {
           from { 
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(30px);
           }
           to { 
             opacity: 1;
@@ -560,25 +670,109 @@ export default function HomePage() {
           }
         }
         
-        .animate-float {
-          animation: float 20s ease-in-out infinite;
+        @keyframes scale-in {
+          from { 
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1);
+          }
         }
         
-        .animate-float-slow {
-          animation: float-slow 6s ease-in-out infinite;
+        @keyframes float-slow {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+          }
+          50% { 
+            transform: translateY(-10px) rotate(2deg); 
+          }
         }
         
-        .animate-bounce-slow {
-          animation: bounce-slow 3s ease-in-out infinite;
+        @keyframes float-delayed {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+          }
+          50% { 
+            transform: translateY(-15px) rotate(-3deg); 
+          }
+        }
+        
+        @keyframes float-badge {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+          }
+          50% { 
+            transform: translateY(-5px) rotate(1deg); 
+          }
+        }
+        
+        @keyframes float-badge-delayed {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+          }
+          50% { 
+            transform: translateY(-8px) rotate(-1deg); 
+          }
+        }
+        
+        @keyframes pulse-slow {
+          0%, 100% { 
+            opacity: 1; 
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 0.8; 
+            transform: scale(1.02);
+          }
+        }
+        
+        @keyframes gentle-float {
+          0%, 100% { 
+            transform: translateY(0px);
+          }
+          50% { 
+            transform: translateY(-8px);
+          }
         }
         
         .animate-fade-in {
-          animation: fade-in 1s ease-out;
+          animation: fade-in 0.6s ease-out;
         }
         
         .animate-fade-in-up {
-          animation: fade-in-up 0.8s ease-out forwards;
-          opacity: 0;
+          animation: fade-in-up 1s ease-out;
+        }
+        
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+        
+        .animate-float-slow {
+          animation: float-slow 4s ease-in-out infinite;
+        }
+        
+        .animate-float-delayed {
+          animation: float-delayed 5s ease-in-out infinite;
+          animation-delay: 1s;
+        }
+        
+        .animate-float-badge {
+          animation: float-badge 3s ease-in-out infinite;
+        }
+        
+        .animate-float-badge-delayed {
+          animation: float-badge-delayed 3.5s ease-in-out infinite;
+          animation-delay: 0.5s;
+        }
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 3s ease-in-out infinite;
+        }
+        
+        .animate-gentle-float {
+          animation: gentle-float 6s ease-in-out infinite;
         }
       `}</style>
     </div>
