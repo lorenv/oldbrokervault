@@ -29,7 +29,8 @@
       "Bash(lsof:*)",
       "Bash(PORT=3001 npm run dev)",
       "Bash(sed:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": [],
