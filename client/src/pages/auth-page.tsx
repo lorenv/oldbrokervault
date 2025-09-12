@@ -401,37 +401,8 @@ function RegisterForm({ mutation }: { mutation: any }) {
     },
   });
 
-  // Create a custom mutation for FormData submission
-  const registerMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const message = errorData.message || "Failed to create account. Please try again.";
-        throw new Error(message);
-      }
-
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      // Set flag for get started checklist
-      localStorage.setItem('show-get-started-checklist', 'true');
-      // Trigger a page reload to update authentication state
-      window.location.reload();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // No need for custom mutation - using registerMutation from mutation prop
+  // which includes confetti animation and proper success handling
 
   return (
     <Form {...form}>
@@ -448,7 +419,7 @@ function RegisterForm({ mutation }: { mutation: any }) {
         if (businessLogo) formData.append('businessLogo', businessLogo);
         if (profilePhoto) formData.append('profilePhoto', profilePhoto);
 
-        registerMutation.mutate(formData);
+        mutation.mutate(formData);
       })} className="space-y-4">
         <FormField
           control={form.control}
@@ -611,9 +582,9 @@ function RegisterForm({ mutation }: { mutation: any }) {
         <Button 
           type="submit" 
           className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-          disabled={registerMutation.isPending}
+          disabled={mutation.isPending}
         >
-          {registerMutation.isPending ? (
+          {mutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating account...
