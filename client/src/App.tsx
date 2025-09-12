@@ -15,6 +15,7 @@ import DocumentsPage from "@/pages/documents-page";
 import AccountPage from "@/pages/account-page";
 import ProfilePage from "@/pages/profile-page";
 import PricingPage from "@/pages/pricing-page";
+import CheckoutSuccess from "@/pages/checkout-success";
 
 import ContactPage from "@/pages/contact-page";
 import EulaPage from "@/pages/eula-page";
@@ -70,6 +71,7 @@ function Router() {
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
+            <Route path="/checkout-success" component={CheckoutSuccess} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
             <Route path="/privacy-policy" component={PrivacyPolicyPage} />

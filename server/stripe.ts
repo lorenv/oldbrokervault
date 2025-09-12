@@ -137,7 +137,7 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/account?tab=billing&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       customer_email: email,
       subscription_data: {
@@ -226,7 +226,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
       mode: 'subscription',
       customer: customerId,
       priceId,
-      success_url: `${baseUrl}/account?tab=billing&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       userId
     });
@@ -241,7 +241,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/account?tab=billing&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       client_reference_id: userId.toString(),
       subscription_data: {

@@ -3213,7 +3213,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Subscription Routes
+  // Public endpoint for verifying checkout sessions (doesn't require auth)
+  app.get("/api/subscription/verify-checkout", async (req, res) => {
+    const { session_id } = req.query;
+    if (!session_id) return res.status(400).json({ error: "No session ID provided" });
+
+    try {
+      console.log("=== PUBLIC CHECKOUT VERIFICATION ===");
+      console.log("Session ID:", session_id);
+      
+      const result = await verifyCheckoutSession(session_id as string);
+      console.log("Verification result:", result);
+      
+      if (result) {
+        const { userId, status, endsAt, subscriptionId, stripeCustomerId } = result;
+        console.log("Updating subscription for user:", userId);
+        
+        // Update subscription in database
+        await storage.updateSubscription(userId, status, endsAt, subscriptionId);
+        
+        // Update Stripe customer ID
+        if (stripeCustomerId) {
+          await db.update(users)
+            .set({ stripeCustomerId })
+            .where(eq(users.id, userId));
+        }
+        
+        // Invalidate user cache
+        invalidateUserCache(userId);
+        
+        res.json({ 
+          success: true, 
+          status,
+          message: "Subscription verified and activated successfully" 
+        });
+      } else {
+        res.status(404).json({ 
+          success: false, 
+          error: "Session not found or already processed" 
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying checkout session:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to verify session" 
+      });
+    }
+  });
+
+  // Subscription Routes (authenticated version for account page)
   app.get("/api/subscription/verify-session", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
