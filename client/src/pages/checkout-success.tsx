@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api-client";
-import { queryClient } from "@/lib/query-client";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
