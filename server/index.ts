@@ -135,45 +135,11 @@ app.use('/api/*', (req, res, next) => {
   next();
 });
 
-// DEFERRED ROUTE LOADING: Register routes AFTER server starts to prevent memory overflow
-console.log('🔧 API routes will be registered after server starts for memory efficiency...');
-
-// Static file serving will be setup after server starts to prevent memory issues
-
-// Error handling middleware - must be AFTER routes
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  
-  // Log errors (memory details only in development)
-  console.error(`Error ${status}: ${message}`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    const memUsage = process.memoryUsage();
-    console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-  }
-  
-  res.status(status).json({ message });
-});
-
-// FIX #2: Start server on port 5000 (always) for Autoscale deployment
-console.log(`🚀 Starting server on port ${PORT}...`);
-
-// Try different binding approaches to handle potential port conflicts
-const server = app.listen(PORT, () => {
-  log(`✅ Server successfully started on port ${PORT}`);
-  log('✅ Health checks responding immediately');
-  console.log('🎯 Server is listening on:', server.address());
-  console.log('🚀 Application ready for deployment health checks');
-  
-  // Routes will be registered in the 'listening' event handler below
-});
-
-// Setup all heavy operations AFTER server is listening
-server.on('listening', async () => {
+// Setup all middleware BEFORE server starts to prevent race conditions
+async function setupMiddleware() {
   try {
     // PRIORITY #1: Register routes immediately for API availability
-    console.log('🔧 Registering API routes immediately after server start...');
+    console.log('🔧 Registering API routes before server start...');
     const { registerRoutes } = await import('./routes');
     await registerRoutes(app);
     console.log('✅ API routes registered successfully - /api/register is now available');
@@ -216,16 +182,53 @@ server.on('listening', async () => {
       setupSEORoutes(app);
       console.log('✅ SEO routes configured for development');
       
+      // Create server placeholder for Vite
+      const server = { on: () => {}, address: () => ({ port: PORT }) };
       const { setupVite } = await import('./vite');
-      await setupVite(app, server);
+      await setupVite(app, server as any);
       console.log('✅ Vite middleware configured');
     }
     
-    log('✅ All middleware and routes configured');
+    log('✅ All middleware configured before server start');
   } catch (error) {
-    console.error('❌ Error setting up middleware after startup:', error);
+    console.error('❌ Error setting up middleware before startup:', error);
+    throw error;
   }
+}
+
+// Error handling middleware - must be AFTER routes
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  
+  // Log errors (memory details only in development)
+  console.error(`Error ${status}: ${message}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    const memUsage = process.memoryUsage();
+    console.log(`Memory usage: RSS=${(memUsage.rss / 1024 / 1024).toFixed(2)}MB, Heap=${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+  }
+  
+  res.status(status).json({ message });
 });
+
+// Setup middleware first, then start server
+async function startServer() {
+  await setupMiddleware();
+  
+  console.log(`🚀 Starting server on port ${PORT}...`);
+  
+  const server = app.listen(PORT, () => {
+    log(`✅ Server successfully started on port ${PORT}`);
+    log('✅ Health checks responding immediately');
+    console.log('🎯 Server is listening on:', server.address());
+    console.log('🚀 Application ready for deployment health checks');
+  });
+  
+  return server;
+}
+
+const server = await startServer();
 
 // Enhanced error handling for server startup
 server.on('error', (error: any) => {
