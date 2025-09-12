@@ -113,19 +113,27 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
   console.log("Price ID:", priceId);
   console.log("Request host:", requestHost);
 
-  // Use the actual request host if provided, otherwise fallback to production domain
-  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  // Determine the correct base URL for redirects
+  let baseUrl = `https://cimshare.com`; // Default to production domain
   
-  // Override for Replit development environment
-  if (process.env.REPLIT_DOMAINS) {
-    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+  // Use request host if it's the production domain
+  if (requestHost && requestHost.includes('cimshare.com')) {
+    baseUrl = `https://${requestHost}`;
+  } 
+  // Only use Replit domain for development/testing
+  else if (requestHost && requestHost.includes('replit')) {
+    baseUrl = `https://${requestHost}`;
+    console.log("🔧 Replit development environment: Using Replit domain for testing");
+  }
+  // Fallback check if no requestHost but we're clearly in Replit dev
+  else if (!requestHost && process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0];
     baseUrl = `https://${replitDomain}`;
-    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+    console.log("🔧 Replit dev environment detected: Using Replit domain");
   }
   
   console.log("Using base URL for redirects:", baseUrl);
   console.log("Request host provided:", requestHost);
-  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     const sessionConfig: any = {
@@ -207,19 +215,27 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   const user = await storage.getUser(userId);
   const customerId = await getOrCreateCustomer(userId, user.email);
 
-  // Use the actual request host if provided, otherwise fallback to production domain
-  let baseUrl = requestHost ? `https://${requestHost}` : `https://cimshare.com`;
+  // Determine the correct base URL for redirects
+  let baseUrl = `https://cimshare.com`; // Default to production domain
   
-  // Override for Replit development environment
-  if (process.env.REPLIT_DOMAINS) {
-    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0]; // Get first domain if multiple
+  // Use request host if it's the production domain
+  if (requestHost && requestHost.includes('cimshare.com')) {
+    baseUrl = `https://${requestHost}`;
+  } 
+  // Only use Replit domain for development/testing
+  else if (requestHost && requestHost.includes('replit')) {
+    baseUrl = `https://${requestHost}`;
+    console.log("🔧 Replit development environment: Using Replit domain for testing");
+  }
+  // Fallback check if no requestHost but we're clearly in Replit dev
+  else if (!requestHost && process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') {
+    const replitDomain = process.env.REPLIT_DOMAINS.split(',')[0];
     baseUrl = `https://${replitDomain}`;
-    console.log("🔧 Replit environment detected: Overriding baseUrl to:", baseUrl);
+    console.log("🔧 Replit dev environment detected: Using Replit domain");
   }
   
   console.log("Using base URL for redirects:", baseUrl);
   console.log("Request host provided:", requestHost);
-  console.log("REPLIT_DOMAINS:", process.env.REPLIT_DOMAINS);
 
   try {
     console.log("Creating Stripe checkout session with config:", {
