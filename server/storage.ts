@@ -274,14 +274,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSubscription(userId: number, status: string, endsAt: Date, subscriptionId?: string): Promise<void> {
-    await db
+    console.log('📝 Updating subscription for user:', { userId, status, endsAt, subscriptionId });
+    const result = await db
       .update(users)
       .set({
         subscriptionStatus: status,
         subscriptionEndsAt: endsAt,
         subscriptionId: subscriptionId || null,
       })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, userId))
+      .returning();
+    console.log('✅ Subscription updated:', result[0]?.subscriptionStatus);
   }
 
   async updateUserUsage(userId: number): Promise<void> {
