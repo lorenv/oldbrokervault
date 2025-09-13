@@ -9,8 +9,6 @@ export function addSignatureToNda(
   signerIpAddress?: string
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    console.log('🔄 Starting NDA signature creation...');
-    console.log('📄 Original NDA size:', originalNdaBase64.length, 'characters');
     console.log('✍️ Signer:', signerName);
     console.log('📅 Date:', signedDate.toISOString());
     
@@ -302,8 +300,6 @@ export function addCertificateToNda(
   signerIpAddress?: string
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    console.log('🔄 Starting certificate-only NDA processing...');
-    console.log('📄 Original NDA size:', originalNdaBase64.length, 'characters');
     console.log('✍️ Signer:', signerName);
     console.log('📅 Date:', signedDate.toISOString());
     

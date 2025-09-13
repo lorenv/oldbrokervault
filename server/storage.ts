@@ -416,11 +416,6 @@ export class DatabaseStorage implements IStorage {
       ebitda: doc.ebitda,
       ebitdaIncluded: doc.ebitdaIncluded,
     });
-    console.log("NDA settings received in storage:", {
-      ndaProtected: doc.ndaProtected,
-      ndaTemplateId: doc.ndaTemplateId,
-      ndaApprovalRequired: doc.ndaApprovalRequired
-    });
 
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
@@ -979,7 +974,6 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         });
       }
       
-      console.log(`Created default NDA template for user ${userId}`);
     } catch (error) {
       console.error(`Failed to create default NDA template for user ${userId}:`, error);
       // Don't throw error to avoid blocking user creation
@@ -1004,7 +998,6 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         }
       }
 
-      console.log(`Processed ${processed} users, created ${created} default NDA templates`);
       return { processed, created };
     } catch (error) {
       console.error('Failed to add default NDA templates to all users:', error);

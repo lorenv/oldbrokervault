@@ -356,17 +356,14 @@ async function sendNdaSignedEmail(
   console.log('Owner email:', ownerEmail);
   console.log('CIM title:', cimTitle);
   console.log('Share link:', shareLink);
-  console.log('Signed NDA size:', signedNdaBase64?.length || 0);
   
   // Send NDA confirmation email first
-  console.log('Sending NDA confirmation email...');
   const ndaConfirmationSuccess = await sendNdaConfirmationEmail(
     viewerEmail,
     viewerName || 'Valued Investor',
     cimTitle,
     signedNdaBase64
   );
-  console.log('NDA confirmation email result:', ndaConfirmationSuccess);
 
   // Send CIM link email with contact information
   console.log('Sending CIM link email...');
