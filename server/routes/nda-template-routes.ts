@@ -4,7 +4,6 @@ import { insertNdaTemplateSchema } from "@shared/schema";
 import { validateZodSchema } from "../middleware/validation";
 
 export function registerNdaTemplateRoutes(app: Express) {
-  console.log('=== SETTING UP NDA TEMPLATE ROUTES ===');
   // Get all NDA templates for user (lightweight version for list view)
   app.get("/api/nda-templates", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -48,14 +47,6 @@ export function registerNdaTemplateRoutes(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      console.log("Creating NDA template for user:", req.user!.id);
-      console.log("Request body:", {
-        name: req.body.name,
-        hasFileContent: !!req.body.fileContent,
-        signatureFieldsCount: req.body.signatureFields?.length || 0,
-        recipientsCount: req.body.recipients?.length || 0,
-        recipients: req.body.recipients
-      });
       
       const template = await storage.createNdaTemplate(req.user!.id, {
         name: req.body.name,
@@ -65,7 +56,6 @@ export function registerNdaTemplateRoutes(app: Express) {
         recipients: req.body.recipients || []
       });
       
-      console.log("Template created successfully:", template.id);
       res.status(201).json(template);
     } catch (error) {
       console.error("Error creating NDA template:", error);
@@ -86,22 +76,6 @@ export function registerNdaTemplateRoutes(app: Express) {
         return res.status(404).json({ error: "Template not found" });
       }
       
-      console.log("=== UPDATE TEMPLATE API CALLED ===");
-      console.log("Template ID:", templateId);
-      console.log("User ID:", req.user!.id);
-      console.log("Request body keys:", Object.keys(req.body));
-      console.log("Detailed request data:", {
-        name: req.body.name,
-        hasFileContent: !!req.body.fileContent,
-        fileContentLength: req.body.fileContent?.length || 0,
-        signatureFieldsCount: req.body.signatureFields?.length || 0,
-        signatureFields: req.body.signatureFields,
-        recipientsCount: req.body.recipients?.length || 0,
-        recipients: req.body.recipients,
-        totalPages: req.body.totalPages,
-        pageImagesCount: req.body.pageImages?.length || 0,
-        pageImages: req.body.pageImages
-      });
 
       const template = await storage.updateNdaTemplate(templateId, {
         name: req.body.name,
@@ -110,23 +84,13 @@ export function registerNdaTemplateRoutes(app: Express) {
         recipients: req.body.recipients
       });
 
-      console.log("Template updated successfully:", {
-        id: template.id,
-        name: template.name,
-        recipientsCount: Array.isArray(template.recipients) ? template.recipients.length : 0,
-        recipients: template.recipients
-      });
       
       res.json(template);
     } catch (error) {
-      console.error("=== UPDATE TEMPLATE ERROR ===");
-      console.error("Error object:", error);
-      console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
-      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      console.error("Error updating NDA template:", error);
       
       // Check if it's a validation error
       if (error && typeof error === 'object' && 'issues' in error) {
-        console.error("Validation issues:", (error as any).issues);
         return res.status(400).json({ 
           error: "Validation failed", 
           details: (error as any).issues 
@@ -164,14 +128,7 @@ export function registerNdaTemplateRoutes(app: Express) {
   });
 
   // Get template for signature process (public endpoint for signers)
-  console.log('=== REGISTERING /api/share/:shareSlug/nda-template ROUTE ===');
   app.get("/api/share/:shareSlug/nda-template", async (req, res) => {
-    console.log('=== NDA TEMPLATE ENDPOINT HIT ===');
-    console.log('Share slug:', req.params.shareSlug);
-    console.log('Full URL:', req.url);
-    console.log('Request method:', req.method);
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Production mode:', process.env.NODE_ENV === 'production');
     try {
       const { shareSlug } = req.params;
       
