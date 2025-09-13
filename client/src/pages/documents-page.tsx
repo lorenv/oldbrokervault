@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -24,7 +24,6 @@ import { format } from 'date-fns'; // Import format function
 interface CimDocumentWithAnalysis extends CimDocument {
   shareViewCount: number;
   hasNdaSignatures?: boolean;
-  ndaProtected?: boolean; // Assuming ndaProtected is a property from the backend
   ndaSignatureCount?: number; // Assuming ndaSignatureCount is a property from the backend
 }
 
@@ -337,7 +336,7 @@ export default function DocumentsPage() {
                           }
                         }}
                       >
-                        <Link className="mr-2 h-4 w-4" />
+                        <LinkIcon className="mr-2 h-4 w-4" />
                         Copy Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem 
@@ -518,7 +517,7 @@ export default function DocumentsPage() {
         onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
         documentTitle={emailShareDialog.documentTitle || ''}
         shareUrl={emailShareDialog.shareToken ? `${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${emailShareDialog.shareToken}` : ''}
-        senderName={user?.name}
+        senderName={user?.name || undefined}
       />
     </div>
   );
