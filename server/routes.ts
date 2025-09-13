@@ -380,13 +380,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerMonitoringRoutes(app);
 
   // Register NDA template routes BEFORE other routes to avoid conflicts
-  console.log('=== REGISTERING NDA TEMPLATE ROUTES ===');
   registerNdaTemplateRoutes(app);
 
   // Register e-signature routes
   console.log('=== REGISTERING E-SIGNATURE ROUTES ===');
   app.use('/api/esignature', eSignatureRoutes);
-  console.log('=== NDA TEMPLATE ROUTES REGISTERED ===');
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
@@ -637,12 +635,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { shareSlug } = req.params;
     const startTime = Date.now();
     
-    console.log("=== OPTIMIZED NDA CHECK ===");
-    console.log("Processing NDA check for slug:", shareSlug?.substring(0, 10) + "...");
     
     try {
       // Direct database lookup without cache complications
-      console.log("Processing NDA check with direct database lookup");
 
       // Use standard lookup to avoid optimization issues
       const cimDoc = await storage.getCimByShareSlug(shareSlug);
@@ -670,9 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Skip caching to avoid import issues
-      console.log("NDA check completed successfully without cache");
 
-      console.log("NDA check completed in:", Date.now() - startTime + "ms");
       res.json(result);
 
     } catch (error) {
@@ -723,7 +716,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         ]);
       } catch (error) {
-        console.log("Optimized query failed, using standard method:", error.message);
         cimDoc = await storage.getCimByShareSlug(shareSlug);
       }
       
@@ -797,7 +789,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           } else if (cimDoc.ndaProtected && token) {
             // Track NDA signer view when accessing CIM content with token
-            console.log("Tracking NDA signer view for token access to CIM content");
             const accessToken = await storage.getNdaAccessToken(token as string);
             if (accessToken && accessToken.isActive) {
               await Promise.all([
@@ -1791,7 +1782,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("=== DOCUMENT CREATED ===");
       console.log("Document ID:", doc.id);
-      console.log("NDA Settings saved:", {
         ndaProtected: doc.ndaProtected,
         ndaTemplateId: doc.ndaTemplateId,
         ndaApprovalRequired: doc.ndaApprovalRequired
@@ -2358,20 +2348,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
-      console.log("=== UPLOAD ROUTE NDA SETTINGS ===");
-      console.log("req.body.ndaSettings:", req.body.ndaSettings);
       if (req.body.ndaSettings) {
         try {
           const parsedSettings = JSON.parse(req.body.ndaSettings);
-          console.log("Parsed NDA settings:", parsedSettings);
           ndaSettings = ndaSettingsSchema.parse(parsedSettings);
-          console.log("Validated NDA settings:", ndaSettings);
         } catch (error) {
           console.error('Failed to parse or validate NDA settings:', error);
           // Keep default values on parsing/validation failure
         }
       } else {
-        console.log("No NDA settings in request body");
       }
       
       // Generate automatic share link for new document
@@ -2426,11 +2411,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("=== UPLOAD ROUTE - DOCUMENT CREATED ===");
       console.log("Document ID:", doc.id);
-      console.log("NDA Settings saved in document:", {
-        ndaProtected: doc.ndaProtected,
-        ndaTemplateId: doc.ndaTemplateId,
-        ndaApprovalRequired: doc.ndaApprovalRequired
-      });
       
       res.json(doc);
     } catch (error) {
@@ -5190,7 +5170,6 @@ ${finalQuestion}
       const docId = parseInt(req.params.id);
       const { shareEnabled, shareSlug, customSlug, sharePassword, shareExpiresAt, ndaProtected, ndaTemplateId } = req.body;
       
-      console.log("Share settings update:", { docId, shareEnabled, shareSlug, customSlug, ndaProtected, ndaTemplateId, userId: req.user!.id });
 
       const doc = await storage.getCimDocument(docId);
       if (!doc) {
@@ -6778,7 +6757,6 @@ ${finalQuestion}
   });
 
   app.post("/api/share/:shareSlug/sign-nda", async (req, res) => {
-    console.log("🚀 NDA SIGNING ENDPOINT HIT!");
     console.log("Request method:", req.method);
     console.log("Request URL:", req.url);
     console.log("Request body:", req.body);
@@ -6820,7 +6798,6 @@ ${finalQuestion}
         console.log('Geolocation lookup failed:', geoError?.message || 'Unknown error');
       }
 
-      console.log("=== NDA SIGNING DEBUG ===");
       console.log("Share slug:", shareSlug);
       console.log("Signer name:", signerName);
       console.log("Signer email:", signerEmail);
@@ -6851,32 +6828,24 @@ ${finalQuestion}
       }
 
       // Check if NDA is required
-      console.log("NDA protected:", cimDoc.ndaProtected);
-      console.log("NDA template ID:", cimDoc.ndaTemplateId);
       
       if (!cimDoc.ndaProtected || !cimDoc.ndaTemplateId) {
-        console.log("ERROR: This CIM does not require NDA signing");
         return res.status(400).json({ error: "This CIM does not require NDA signing" });
       }
 
       // Always process NDA signing and send all emails (no distinction between new/existing signers)
-      console.log("Processing NDA signing for CIM:", cimDoc.id, "Email:", signerEmail);
 
       // Get NDA template
-      console.log("Getting NDA templates for user:", cimDoc.userId);
       const templates = await storage.getNdaTemplates(cimDoc.userId);
       console.log("Found templates:", templates.length);
       
       const ndaTemplate = templates.find(t => t.id === cimDoc.ndaTemplateId);
-      console.log("Found matching template:", !!ndaTemplate, ndaTemplate?.name);
       
       if (!ndaTemplate) {
-        console.log("ERROR: NDA template not found");
         return res.status(400).json({ error: "NDA template not found" });
       }
 
       // Create signed NDA
-      console.log("Creating signed NDA content...");
       const signedAt = new Date();
       
       try {
@@ -6925,11 +6894,9 @@ ${finalQuestion}
             signerIpAddress
           );
         }
-        console.log("Signed NDA content created successfully");
 
         // Save signature record
         console.log("📝 Preparing signature data...");
-        console.log("📊 Signed NDA content size:", signedNdaContent.length, "characters");
         
         const signatureData = {
           cimDocumentId: cimDoc.id,
@@ -7027,7 +6994,6 @@ ${finalQuestion}
         }
 
         // Create access token for the signed user
-        console.log("Creating access token for NDA-signed user...");
         const accessToken = generateSecureToken();
         const ndaAccessToken = await storage.createNdaAccessToken(
           accessToken,
@@ -7035,7 +7001,6 @@ ${finalQuestion}
           signature.id,
           signerEmail
         );
-        console.log("Access token created for NDA signature");
 
         // Create redirect link
         console.log("Creating redirect link...");
@@ -7046,7 +7011,6 @@ ${finalQuestion}
           cimDoc.id,
           signerEmail
         );
-        console.log("Redirect link created for NDA access");
 
         // Check if manual approval is required
         if (cimDoc.ndaApprovalRequired) {
@@ -7100,7 +7064,6 @@ ${finalQuestion}
           };
 
           // Send immediate access email with separate NDA confirmation and CIM link emails
-          console.log("Sending separate NDA confirmation and CIM access emails...");
           const redirectUrl = `${req.protocol}://${req.get('host')}/nda/redirect/${redirectId}`;
           
           // Enhanced email validation and logging
@@ -7110,7 +7073,6 @@ ${finalQuestion}
           console.log("Owner email:", owner.email);
           console.log("CIM title:", cimDoc.title);
           console.log("Redirect URL:", redirectUrl);
-          console.log("Signed NDA content size:", signedNdaContent?.length || 0);
           console.log("Owner profile data:", ownerProfileData);
           
           // Validate required data before sending
@@ -7145,10 +7107,8 @@ ${finalQuestion}
           if (!finalEmailSent) {
             console.error('Failed to send NDA confirmation emails - check email debug logs above');
           } else {
-            console.log('All NDA emails sent successfully');
           }
 
-          console.log("NDA signing completed successfully");
           res.json({ 
             success: true, 
             signature,
@@ -7164,7 +7124,6 @@ ${finalQuestion}
 
     } catch (error) {
       console.error('NDA signing error:', error);
-      console.log("=== END NDA SIGNING DEBUG ===");
       res.status(500).json({ error: "Failed to process NDA signature" });
     }
   });
@@ -7174,7 +7133,6 @@ ${finalQuestion}
     try {
       const { redirectId } = req.params;
       
-      console.log("=== NDA REDIRECT DEBUG ===");
       console.log("Redirect ID:", redirectId);
       
       // Get redirect link
@@ -7210,7 +7168,6 @@ ${finalQuestion}
       await storage.updateTokenLastAccessed(accessToken.token);
       
       // Note: Views are tracked only when users access the actual CIM content, not the NDA page
-      console.log("NDA access granted for document:", accessToken.cimDocumentId, "Signer:", accessToken.signerEmail);
       
       // Get CIM document
       const cimDoc = await storage.getCimDocument(accessToken.cimDocumentId);
@@ -7220,7 +7177,6 @@ ${finalQuestion}
       }
       
       console.log("Redirecting to document with token:", accessToken.token);
-      console.log("=== END NDA REDIRECT DEBUG ===");
       
       // Redirect to document with token
       const documentUrl = `/cims/${cimDoc.shareSlug}?token=${accessToken.token}`;
@@ -7236,7 +7192,6 @@ ${finalQuestion}
   app.get("/api/nda/validate-token/:token", async (req, res) => {
     try {
       const { token } = req.params;
-      console.log("Validating NDA access token:", token?.substring(0, 10) + "...");
       
       const accessToken = await storage.getNdaAccessToken(token);
       console.log("Token lookup result:", !!accessToken, accessToken?.isActive);
