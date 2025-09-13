@@ -142,8 +142,13 @@ const cspDirectives = {
     "'self'",
     "'unsafe-inline'", // Required for Vite in development
     "'unsafe-eval'", // Required for Vite in development
+    "blob:", // Required for canvas-confetti web workers
     "https://js.stripe.com",
     "https://api.stripe.com"
+  ],
+  workerSrc: [
+    "'self'",
+    "blob:" // Allow web workers from blob URLs for canvas-confetti
   ],
   styleSrc: [
     "'self'",

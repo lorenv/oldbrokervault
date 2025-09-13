@@ -65,7 +65,7 @@ export default function PricingPage() {
         if (!user) {
           toast({
             title: "Account Required",
-            description: "Please sign up for an account to subscribe to the Standard plan.",
+            description: "Please sign up for an account to subscribe to the Pro plan.",
             variant: "destructive",
           });
           return;
@@ -121,14 +121,14 @@ export default function PricingPage() {
     },
     {
       id: "standard",
-      name: "Standard",
+      name: "Pro",
       price: "$99",
       priceLabel: "/month",
       description: "Everything you need for your business",
       features: [
         "20 CIM documents per month",
         "Unlimited regenerations",
-        "PDF & Word export",
+        "PDF export",
         "Advanced analytics dashboard",
         "NDA management & sharing",
         "E-signature templates",
@@ -149,12 +149,10 @@ export default function PricingPage() {
       description: "Tailored solutions for large organizations",
       features: [
         "Unlimited CIM documents",
-        "Everything in Standard",
+        "Everything in Pro",
         "Dedicated account manager",
-        "Custom integrations & API",
+        "Custom integrations",
         "Advanced security features",
-        "SLA guarantees",
-        "24/7 phone support",
         "Team training sessions",
       ],
       current: user?.subscriptionStatus === "enterprise" || false,
@@ -274,7 +272,7 @@ export default function PricingPage() {
                         <Button 
                           className="w-full bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-700 hover:to-slate-600 text-white shadow-lg"
                           size="lg"
-                          onClick={() => window.location.href = '/login'}
+                          onClick={() => window.location.href = '/login?tab=register'}
                         >
                           Start Free Trial
                         </Button>
@@ -282,7 +280,7 @@ export default function PricingPage() {
                         <Button 
                           className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-lg"
                           size="lg"
-                          onClick={() => window.location.href = '/login'}
+                          onClick={() => window.location.href = '/login?tab=register'}
                         >
                           Get Started
                         </Button>
@@ -380,7 +378,7 @@ export default function PricingPage() {
                 Contact Support
               </Button>
               {!user && (
-                <Button size="lg" onClick={() => window.location.href = '/login'}>
+                <Button size="lg" onClick={() => window.location.href = '/login?tab=register'}>
                   Start Free Trial
                 </Button>
               )}
