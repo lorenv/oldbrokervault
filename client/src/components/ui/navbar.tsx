@@ -9,6 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
@@ -17,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
   const isHomePage = location === '/';
 
@@ -58,12 +66,47 @@ export function Navbar() {
         </div>
 
         {!user && (
-          <div className="flex items-center ml-8">
+          <div className="flex items-center ml-8 space-x-3">
+            {/* Mobile Menu for Logged-out Users */}
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className={`h-10 w-10 p-0 ${isHomePage ? "text-white hover:bg-white/20" : ""}`}
+                    aria-label="Open menu"
+                    data-testid="button-mobile-menu"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-4 py-6">
+                    <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left" data-testid="link-pricing">
+                        Pricing
+                      </Button>
+                    </Link>
+                    <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left" data-testid="link-contact">
+                        Contact
+                      </Button>
+                    </Link>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+            
+            {/* Login Button - Visible on Both Mobile and Desktop */}
             <Link href="/login">
               <Button 
                 variant="outline"
                 size="sm" 
-                className={isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}
+                className={`${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
+                data-testid="button-login"
               >
                 Login / Sign Up
               </Button>
