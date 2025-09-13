@@ -95,22 +95,31 @@ export function Navbar() {
                         Contact
                       </Button>
                     </Link>
+                    <div className="pt-4 border-t">
+                      <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button className="w-full" data-testid="button-login-mobile">
+                          Login / Sign Up
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
             </div>
             
-            {/* Login Button - Visible on Both Mobile and Desktop */}
-            <Link href="/login">
-              <Button 
-                variant="outline"
-                size="sm" 
-                className={`${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
-                data-testid="button-login"
-              >
-                Login / Sign Up
-              </Button>
-            </Link>
+            {/* Desktop Login Button */}
+            <div className="hidden md:block">
+              <Link href="/login">
+                <Button 
+                  variant="outline"
+                  size="sm" 
+                  className={`${isHomePage ? "bg-transparent border-white text-white hover:bg-white hover:text-gray-800 transition-colors" : ""}`}
+                  data-testid="button-login"
+                >
+                  Login / Sign Up
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
 
