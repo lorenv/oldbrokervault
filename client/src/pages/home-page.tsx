@@ -128,7 +128,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left side - Text content */}
-            <div className="text-left animate-fade-in-up">
+            <div className="text-center lg:text-left animate-fade-in-up">
               <h1 
                 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 text-white leading-tight pb-2" 
                 style={{
