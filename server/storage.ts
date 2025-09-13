@@ -416,6 +416,11 @@ export class DatabaseStorage implements IStorage {
       ebitda: doc.ebitda,
       ebitdaIncluded: doc.ebitdaIncluded,
     });
+    console.log("NDA settings received in storage:", {
+      ndaProtected: doc.ndaProtected,
+      ndaTemplateId: doc.ndaTemplateId,
+      ndaApprovalRequired: doc.ndaApprovalRequired
+    });
 
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
@@ -451,6 +456,7 @@ export class DatabaseStorage implements IStorage {
       shareExpiresAt: doc.shareExpiresAt || null,
       ndaProtected: doc.ndaProtected || false,
       ndaTemplateId: doc.ndaTemplateId || null,
+      ndaApprovalRequired: doc.ndaApprovalRequired || false,
       // New fields for section directions and formatting
       sectionDirections: doc.sectionDirections || null,
       formattingProfile: doc.formattingProfile || null,

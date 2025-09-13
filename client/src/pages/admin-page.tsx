@@ -148,7 +148,7 @@ export default function AdminPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="free">Free - 1 CIM/month</SelectItem>
-                                <SelectItem value="standard">Standard - 10 CIMs/month ($500)</SelectItem>
+                                <SelectItem value="standard">Pro - 10 CIMs/month ($500)</SelectItem>
                                 <SelectItem value="premium">Premium - 100 CIMs/month ($4,000)</SelectItem>
                               </SelectContent>
                             </Select>

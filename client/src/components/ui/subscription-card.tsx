@@ -94,7 +94,7 @@ export function SubscriptionCard({
             variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
             className="text-xs"
           >
-            {isCanceled ? "CANCELED" : status?.toUpperCase() || "FREE"}
+            {isCanceled ? "CANCELED" : (status === "standard" ? "PRO" : status?.toUpperCase()) || "FREE"}
           </Badge>
         </div>
       </CardHeader>
@@ -111,7 +111,7 @@ export function SubscriptionCard({
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <AlertTitle className="text-amber-900">Subscription Canceled</AlertTitle>
                   <AlertDescription className="text-amber-700">
-                    Your subscription has been canceled but you will maintain full access to all Standard plan features until the end of your current billing period. You can reactivate your subscription at any time before it expires.
+                    Your subscription has been canceled but you will maintain full access to all Pro plan features until the end of your current billing period. You can reactivate your subscription at any time before it expires.
                   </AlertDescription>
                 </Alert>
                 <div className="bg-gray-50 rounded-lg p-3">
@@ -212,7 +212,7 @@ export function SubscriptionCard({
             <div className="text-sm text-muted-foreground mt-4">
               <p>Upgrade for more CIM documents:</p>
               <ul className="list-disc pl-4 mt-2">
-                <li>Standard: 20 CIMs per month, unlimited regenerations</li>
+                <li>Pro: 20 CIMs per month, unlimited regenerations</li>
                 <li>Enterprise: Unlimited CIMs and regenerations</li>
               </ul>
             </div>

@@ -330,6 +330,9 @@ export function CimGenerator() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      console.log('🚀 MUTATION STARTED - Form data:', data);
+      console.log('🚀 NDA Settings at mutation start:', ndaSettings);
+      
       // Initialize progress tracking
       setGenerationStage("initializing");
       setProgressStartTime(Date.now());
@@ -497,6 +500,7 @@ export function CimGenerator() {
             ndaSettings
           };
           
+          
           const response = await apiRequest("POST", "/api/cim/generate", enhancedPayload);
 
           // Smooth completion sequence after AI response received
@@ -516,6 +520,17 @@ export function CimGenerator() {
       }
     },
     onSuccess: (result) => {
+      
+      // Store in session storage so we can check after redirect
+      if (result.id) {
+        sessionStorage.setItem(`doc_${result.id}_nda`, JSON.stringify({
+          ndaProtected: result.ndaProtected,
+          ndaTemplateId: result.ndaTemplateId,
+          ndaApprovalRequired: result.ndaApprovalRequired,
+          timestamp: new Date().toISOString()
+        }));
+      }
+      
       // Final completion stage for visual satisfaction
       setGenerationStage("complete");
       
@@ -556,6 +571,8 @@ export function CimGenerator() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/recent"] });
+      // Invalidate the specific document query to ensure fresh data when navigating
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${result.id}`] });
 
       // Show completion for a moment, then redirect with first-time parameter
       setTimeout(() => {

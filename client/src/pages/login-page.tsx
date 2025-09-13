@@ -88,6 +88,11 @@ export default function LoginPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  
+  // Get tab from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabFromUrl = urlParams.get('tab');
+  const defaultTab = tabFromUrl === 'register' ? 'register' : 'login';
 
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({
@@ -355,7 +360,7 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="login" className="space-y-6">
+              <Tabs defaultValue={defaultTab} className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                   <TabsTrigger 
                     value="login" 
@@ -367,7 +372,7 @@ export default function LoginPage() {
                     value="register"
                     className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
                   >
-                    Sign Up
+                    Register
                   </TabsTrigger>
                 </TabsList>
 
