@@ -135,10 +135,10 @@ export default function HomePage() {
                   textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                 }}
               >
-                Build, Share, Protect
+                Minutes to Create. Simple to Share.
               </h1>
               <p className="text-base sm:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl transform transition-all duration-1000 delay-200 ease-out">
-                Everything you need to create, customize, and share professional Confidential Information Memorandums with confidence and security.
+                Build detailed CIMs with AI, then share with an NDA in no time.
               </p>
               <div className="transform transition-all duration-1000 delay-400 ease-out">
                 <Link href="/login">
@@ -265,6 +265,27 @@ export default function HomePage() {
                 </Card>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonial Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div 
+            className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
+              isVisible('testimonial') ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}
+            data-animate-id="testimonial"
+          >
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 md:p-12 shadow-lg">
+              <blockquote className="text-xl md:text-2xl text-gray-700 font-medium leading-relaxed mb-6">
+                "I used to have my team create my CIMs and it would take days. Now they're created in minutes, with AI grabbing info and formatting tables and everything. Total game-changer."
+              </blockquote>
+              <div className="text-gray-500 text-sm">
+                — CIM Share User
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -430,7 +451,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Example Documents Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div 
@@ -649,7 +669,7 @@ export default function HomePage() {
       )}
 
       {/* Custom CSS Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from { 
             opacity: 0; 
