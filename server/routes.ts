@@ -1782,6 +1782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("=== DOCUMENT CREATED ===");
       console.log("Document ID:", doc.id);
+      console.log("Document settings:", {
         ndaProtected: doc.ndaProtected,
         ndaTemplateId: doc.ndaTemplateId,
         ndaApprovalRequired: doc.ndaApprovalRequired
