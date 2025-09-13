@@ -1478,19 +1478,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // Extract and validate NDA settings BEFORE main schema parsing (which strips unknown fields)
+      const ndaSettingsSchema = z.object({
+        ndaProtected: z.boolean(),
+        ndaTemplateId: z.coerce.number().nullable(),
+        ndaApprovalRequired: z.boolean()
+      }).refine(s => !s.ndaProtected || s.ndaTemplateId !== null, {
+        message: 'Template required when NDA is enabled'
+      }).optional();
+      
+      
+      let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      try {
+        if (req.body.ndaSettings) {
+          ndaSettings = ndaSettingsSchema.parse(req.body.ndaSettings);
+        } else {
+        }
+      } catch (error) {
+      }
+      
+      // Now parse the main schema (this will strip out unknown fields like ndaSettings)
       const data = insertCimDocumentSchema.parse(req.body);
       
       const docId = data.docId; // For regeneration
       const customizations = data.customizations || {};
       
-      // Debug selectedImages after Zod parsing
-      console.log("After Zod parsing - data.selectedImages:", data.selectedImages);
-      console.log("Raw req.body.selectedImages:", req.body.selectedImages);
-      
-      // Debug: Check if selectedImages are present in regular route
-      console.log("Selected images in regular route:", req.body.selectedImages);
-      console.log("Selected images type:", typeof req.body.selectedImages);
-      console.log("Customizations in regular route:", customizations);
 
       // Check if this is a regeneration request
       if (docId) {
@@ -1696,16 +1708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       console.log("Financial data to be saved:", financialDataToSave);
       
-      // Extract and validate NDA settings from request
-      const ndaSettingsSchema = z.object({
-        ndaProtected: z.boolean(),
-        ndaTemplateId: z.coerce.number().nullable(),
-        ndaApprovalRequired: z.boolean()
-      }).refine(s => !s.ndaProtected || s.ndaTemplateId !== null, {
-        message: 'Template required when NDA is enabled'
-      }).optional();
-      
-      const ndaSettings = ndaSettingsSchema.parse(data.ndaSettings) || { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      // NDA settings have already been extracted at the beginning of the route
       
       // Generate automatic share link for new document
       const randomId = Math.random().toString(36).substring(2, 8);
@@ -1786,6 +1789,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store financial data if provided (JSON only, no file uploads in this route)
 
+      console.log("=== DOCUMENT CREATED ===");
+      console.log("Document ID:", doc.id);
+      console.log("NDA Settings saved:", {
+        ndaProtected: doc.ndaProtected,
+        ndaTemplateId: doc.ndaTemplateId,
+        ndaApprovalRequired: doc.ndaApprovalRequired
+      });
+      
       res.json(doc);
     } catch (error) {
       console.error("CIM generation error:", error instanceof Error ? error.message : String(error));
@@ -2347,14 +2358,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       let ndaSettings = { ndaProtected: false, ndaTemplateId: null, ndaApprovalRequired: false };
+      console.log("=== UPLOAD ROUTE NDA SETTINGS ===");
+      console.log("req.body.ndaSettings:", req.body.ndaSettings);
       if (req.body.ndaSettings) {
         try {
           const parsedSettings = JSON.parse(req.body.ndaSettings);
+          console.log("Parsed NDA settings:", parsedSettings);
           ndaSettings = ndaSettingsSchema.parse(parsedSettings);
+          console.log("Validated NDA settings:", ndaSettings);
         } catch (error) {
           console.error('Failed to parse or validate NDA settings:', error);
           // Keep default values on parsing/validation failure
         }
+      } else {
+        console.log("No NDA settings in request body");
       }
       
       // Generate automatic share link for new document
@@ -2407,6 +2424,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Financial files saved to database successfully");
       }
 
+      console.log("=== UPLOAD ROUTE - DOCUMENT CREATED ===");
+      console.log("Document ID:", doc.id);
+      console.log("NDA Settings saved in document:", {
+        ndaProtected: doc.ndaProtected,
+        ndaTemplateId: doc.ndaTemplateId,
+        ndaApprovalRequired: doc.ndaApprovalRequired
+      });
+      
       res.json(doc);
     } catch (error) {
       console.error("File upload error:", error);
@@ -2913,8 +2938,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "You don't have permission to view this document" });
       }
       
-      // Debug: Log basic document info
-      console.log(`Fetched CIM document ${docId} for user ${req.user!.id}`);
       
       // Transform field name for frontend consistency
       const transformedDoc = {

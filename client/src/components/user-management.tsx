@@ -80,7 +80,7 @@ export function UserManagement() {
       case "premium":
         return <Badge className="bg-purple-500 text-white">Premium</Badge>;
       case "standard":
-        return <Badge className="bg-blue-500 text-white">Standard</Badge>;
+        return <Badge className="bg-blue-500 text-white">Pro</Badge>;
       case "free":
         return <Badge variant="secondary">Free</Badge>;
       default:
@@ -263,7 +263,7 @@ export function UserManagement() {
                                       onClick={() => handleUpdateSubscription("standard", 1)}
                                       disabled={updateSubscriptionMutation.isPending}
                                     >
-                                      Standard (1 month)
+                                      Pro (1 month)
                                     </Button>
                                     <Button
                                       variant="outline"

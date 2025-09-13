@@ -55,7 +55,7 @@ export default function CheckoutSuccess() {
         setMessage('Your subscription has been activated successfully!');
         
         toast({
-          title: "Welcome to CIM Share Standard!",
+          title: "Welcome to CIM Share Pro!",
           description: "Your account has been upgraded. Redirecting to your account...",
         });
 

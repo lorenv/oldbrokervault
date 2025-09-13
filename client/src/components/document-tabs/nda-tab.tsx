@@ -47,8 +47,22 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
 
+  // Debug logging
+  console.log('📋 NDA Tab - Document data received:', {
+    ndaProtected: cimDocument.ndaProtected,
+    ndaTemplateId: cimDocument.ndaTemplateId,
+    ndaApprovalRequired: cimDocument.ndaApprovalRequired
+  });
+  
+  // Check if we have stored NDA data from generation
+  const storedNda = sessionStorage.getItem(`doc_${cimDocument.id}_nda`);
+  if (storedNda) {
+    console.log('📋 NDA Tab - Stored NDA data from generation:', JSON.parse(storedNda));
+  }
+
   // Sync local state with document data when it changes
   useEffect(() => {
+    console.log('🔄 NDA Tab - Syncing settings from document');
     setNdaSettings({
       ndaProtected: cimDocument.ndaProtected || false,
       ndaTemplateId: cimDocument.ndaTemplateId || null,
