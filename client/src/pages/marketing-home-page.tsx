@@ -245,10 +245,10 @@ export default function MarketingHomePage() {
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 text-white leading-tight" style={{textShadow: '0 2px 4px rgba(0,0,0,0.3)'}}>
-            Professional CIMs
+            Create a CIM in Minutes,
             <br />
             <span className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
-              Made Simple
+              Not Days
             </span>
           </h1>
           
