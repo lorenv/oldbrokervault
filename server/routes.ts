@@ -6757,6 +6757,89 @@ ${finalQuestion}
     }
   });
 
+  // Add manual NDA signer
+  app.post("/api/cim/:docId/nda-signatures/manual", multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'application/pdf') {
+        cb(null, true);
+      } else {
+        cb(new Error('Only PDF files are allowed'));
+      }
+    }
+  }).single('ndaFile'), async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const { signerName, signerEmail, signedDate } = req.body;
+      const ndaFile = req.file;
+
+      if (!ndaFile) {
+        return res.status(400).json({ error: "NDA file is required" });
+      }
+
+      if (!signerName) {
+        return res.status(400).json({ error: "Signer name is required" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Generate a unique token for this manual signer
+      const accessToken = generateSecureToken();
+
+      // Convert file buffer to base64 for storage
+      const signedNdaContent = `data:application/pdf;base64,${ndaFile.buffer.toString('base64')}`;
+
+      // Create the NDA signature record
+      const signature = await storage.createNdaSignature({
+        cimDocumentId: docId,
+        signerName,
+        signerEmail: signerEmail || `manual_${Date.now()}@offline.local`, // Use placeholder email if not provided
+        signerIpAddress: 'Manual Entry',
+        signerLocation: 'Offline Signature',
+        signedNdaContent,
+        approved: true, // Auto-approve manual signatures since owner is adding them
+        approvedAt: new Date(),
+        approvedBy: req.user.id,
+        fieldValues: {
+          manualEntry: true,
+          signedDate: signedDate || new Date().toISOString(),
+          uploadedBy: req.user.id,
+          uploadedAt: new Date().toISOString()
+        }
+      });
+
+      // Create access token for this signature
+      await storage.createNdaAccessToken({
+        token: accessToken,
+        cimDocumentId: docId,
+        signatureId: signature.id,
+        expiresAt: null // Never expires for manual entries
+      });
+
+      // Return the created signature with access token
+      res.json({
+        success: true,
+        signature: {
+          ...signature,
+          accessToken
+        }
+      });
+
+    } catch (error) {
+      console.error('Error adding manual NDA signer:', error);
+      res.status(500).json({ error: "Failed to add manual signer" });
+    }
+  });
+
   app.post("/api/share/:shareSlug/sign-nda", async (req, res) => {
     console.log("Request method:", req.method);
     console.log("Request URL:", req.url);
