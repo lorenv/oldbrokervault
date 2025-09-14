@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choosing the Right Formatting Profile - CIM Share Knowledge Base</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.8;
+            color: #1f2937;
+            background: #f9fafb;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .breadcrumb a:hover {
+            color: white;
+        }
+
+        .breadcrumb span {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .content {
+            background: white;
+            margin: -2rem auto 2rem;
+            border-radius: 1rem;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #6b46c1;
+            font-size: 1.75rem;
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        h3 {
+            color: #4b5563;
+            font-size: 1.25rem;
+            margin: 2rem 0 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            color: #4b5563;
+        }
+
+        ol, ul {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            color: #4b5563;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+        }
+
+        .profile-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-card.recommended {
+            border-color: #6b46c1;
+            background: linear-gradient(135deg, rgba(107, 70, 193, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        }
+
+        .profile-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: #6b46c1;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-description {
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .profile-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-icon.check {
+            color: #22c55e;
+        }
+
+        .feature-icon.x {
+            color: #ef4444;
+        }
+
+        .sample-box {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .sample-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sample-content {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .comparison-table th {
+            background: #6b46c1;
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .comparison-table td {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1.25rem;
+            margin: 2rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .tip-box-title {
+            font-weight: 600;
+            color: #15803d;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .decision-tree {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .decision-tree h3 {
+            color: #1e40af;
+            margin-top: 0;
+        }
+
+        .decision-tree ul {
+            margin-bottom: 0;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #6b46c1;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f3f4f6;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #6b46c1;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+
+        .nav-link:hover {
+            background: #f9fafb;
+            border-color: #6b46c1;
+        }
+
+        .nav-link.next {
+            flex-direction: row-reverse;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.875rem;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+                margin: -1rem auto 2rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .profile-features {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-table {
+                font-size: 0.875rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-link {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="/">Home</a>
+                <span>/</span>
+                <a href="/knowledge-base/">Knowledge Base</a>
+                <span>/</span>
+                <span>Document Creation</span>
+            </nav>
+            <h1>Choosing the Right Formatting Profile</h1>
+            <div class="meta">
+                <div class="meta-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>5 min read</span>
+                </div>
+                <div class="meta-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                    </svg>
+                    <span>All Levels</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <article class="content">
+            <p>Your CIM's formatting profile sets the tone and structure for your entire document. Understanding the differences between Balanced, Professional, and Memo styles helps you create documents that resonate with your specific audience and achieve your business goals.</p>
+
+            <h2>Overview of Formatting Profiles</h2>
+
+            <p>CIM Share offers three distinct formatting profiles, each optimized for different audiences and use cases. The profile you choose affects how the AI structures content, the level of detail included, and the overall presentation style.</p>
+
+            <div class="profile-card recommended">
+                <span class="profile-badge">Most Popular</span>
+                <div class="profile-name">Balanced Profile</div>
+                <div class="profile-description">The versatile choice that combines narrative flow with structured information</div>
+
+                <div class="profile-features">
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Mix of paragraphs and bullets</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Moderate detail level</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Easy to scan and read</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Flexible for all industries</span>
+                    </div>
+                </div>
+
+                <div class="sample-box">
+                    <div class="sample-title">Sample Output</div>
+                    <div class="sample-content">
+                        <p style="margin-bottom: 0.5rem;">ABC Manufacturing has established itself as a leading provider of precision components, serving the aerospace and automotive industries for over 15 years.</p>
+                        <p style="margin-bottom: 0.5rem;">Key achievements include:</p>
+                        <ul style="margin: 0; padding-left: 1.5rem;">
+                            <li>40% year-over-year revenue growth</li>
+                            <li>ISO 9001:2015 certification maintained</li>
+                            <li>85% customer retention rate</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="profile-name">Professional Profile</div>
+                <div class="profile-description">Formal, detailed narrative for sophisticated investors and corporate buyers</div>
+
+                <div class="profile-features">
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Paragraph-heavy format</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Comprehensive details</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Formal business language</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Investment-grade presentation</span>
+                    </div>
+                </div>
+
+                <div class="sample-box">
+                    <div class="sample-title">Sample Output</div>
+                    <div class="sample-content">
+                        <p style="margin: 0;">ABC Manufacturing Corporation has methodically positioned itself as a premier supplier of high-precision components within the aerospace and automotive sectors. Throughout its fifteen-year operational history, the company has demonstrated consistent excellence in manufacturing capabilities while maintaining stringent quality standards. The organization's commitment to continuous improvement has resulted in sustained revenue growth of forty percent year-over-year, while simultaneously achieving an industry-leading customer retention rate of eighty-five percent.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="profile-name">Memo Profile</div>
+                <div class="profile-description">Concise, bullet-driven format for quick decision-making and busy executives</div>
+
+                <div class="profile-features">
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Bullet point focused</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Ultra-concise content</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Quick scanning optimized</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon check">✓</span>
+                        <span>Action-oriented language</span>
+                    </div>
+                </div>
+
+                <div class="sample-box">
+                    <div class="sample-title">Sample Output</div>
+                    <div class="sample-content">
+                        <p style="margin-bottom: 0.5rem;"><strong>Company:</strong> ABC Manufacturing</p>
+                        <ul style="margin: 0; padding-left: 1.5rem;">
+                            <li><strong>Industry:</strong> Aerospace/Automotive components</li>
+                            <li><strong>Founded:</strong> 2009 (15 years operational)</li>
+                            <li><strong>Growth:</strong> 40% YoY revenue increase</li>
+                            <li><strong>Quality:</strong> ISO 9001:2015 certified</li>
+                            <li><strong>Retention:</strong> 85% customer loyalty</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Detailed Profile Comparison</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Balanced</th>
+                        <th>Professional</th>
+                        <th>Memo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Most businesses, general investors</td>
+                        <td>Large transactions, institutional buyers</td>
+                        <td>Quick reviews, busy executives</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reading Time</strong></td>
+                        <td>10-15 minutes</td>
+                        <td>20-30 minutes</td>
+                        <td>5-7 minutes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Detail Level</strong></td>
+                        <td>Moderate</td>
+                        <td>Comprehensive</td>
+                        <td>Essential only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tone</strong></td>
+                        <td>Professional yet approachable</td>
+                        <td>Formal and sophisticated</td>
+                        <td>Direct and efficient</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Structure</strong></td>
+                        <td>Mixed paragraphs and lists</td>
+                        <td>Primarily paragraphs</td>
+                        <td>Primarily bullet points</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Word Count*</strong></td>
+                        <td>2,500-3,500 words</td>
+                        <td>4,000-5,000 words</td>
+                        <td>1,500-2,000 words</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">*Typical word count for a standard CIM</p>
+
+            <h2>Choosing Based on Your Audience</h2>
+
+            <div class="decision-tree">
+                <h3>Quick Decision Guide</h3>
+                <ul>
+                    <li><strong>Private Equity Firms:</strong> Professional (detailed due diligence expected)</li>
+                    <li><strong>Strategic Buyers:</strong> Balanced (mix of strategy and details)</li>
+                    <li><strong>Individual Investors:</strong> Balanced (accessible yet comprehensive)</li>
+                    <li><strong>Business Brokers:</strong> Memo (quick evaluation needed)</li>
+                    <li><strong>Investment Banks:</strong> Professional (formal presentation required)</li>
+                    <li><strong>Family Offices:</strong> Balanced or Professional (depends on sophistication)</li>
+                    <li><strong>Lending Institutions:</strong> Professional (detailed financial focus)</li>
+                </ul>
+            </div>
+
+            <h2>Industry-Specific Recommendations</h2>
+
+            <h3>Technology & SaaS</h3>
+            <p><strong>Recommended:</strong> Balanced or Memo</p>
+            <p>Tech buyers often prefer concise, data-driven presentations. Use Balanced for growth-stage companies or Memo for early-stage startups where speed matters.</p>
+
+            <h3>Manufacturing & Industrial</h3>
+            <p><strong>Recommended:</strong> Professional</p>
+            <p>Traditional industries expect comprehensive documentation. The Professional profile provides the detailed operational insights these buyers require.</p>
+
+            <h3>Retail & E-commerce</h3>
+            <p><strong>Recommended:</strong> Balanced</p>
+            <p>The mix of narrative and metrics works well for retail businesses, allowing you to tell the brand story while presenting key performance indicators.</p>
+
+            <h3>Healthcare & Medical</h3>
+            <p><strong>Recommended:</strong> Professional</p>
+            <p>Regulatory compliance and operational complexity demand detailed documentation that the Professional profile delivers.</p>
+
+            <h3>Service Businesses</h3>
+            <p><strong>Recommended:</strong> Balanced or Memo</p>
+            <p>Depends on business size—use Balanced for established firms, Memo for smaller operations or franchise opportunities.</p>
+
+            <div class="tip-box">
+                <div class="tip-box-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Pro Tip
+                </div>
+                <p>You can always change your formatting profile after generation. Start with Balanced if unsure, then switch to Professional or Memo based on initial feedback from potential buyers.</p>
+            </div>
+
+            <h2>Advanced Formatting Strategies</h2>
+
+            <h3>Multi-Audience Approach</h3>
+            <p>Creating multiple versions for different audiences:</p>
+            <ol>
+                <li>Generate initial CIM with Balanced profile</li>
+                <li>Duplicate the document</li>
+                <li>Regenerate sections with Professional profile for institutional investors</li>
+                <li>Create a third version with Memo profile for initial outreach</li>
+            </ol>
+
+            <h3>Hybrid Formatting</h3>
+            <p>Mix profiles within the same document:</p>
+            <ul>
+                <li>Use Memo style for Executive Summary (quick overview)</li>
+                <li>Apply Professional format to Financial sections (detailed analysis)</li>
+                <li>Keep Balanced style for Company Overview (storytelling)</li>
+            </ul>
+
+            <h3>Progressive Disclosure</h3>
+            <p>Start with Memo, upgrade to Professional:</p>
+            <ul>
+                <li>Initial outreach: Share Memo-formatted teaser</li>
+                <li>Interested parties: Provide Balanced full CIM</li>
+                <li>Serious buyers: Deliver Professional detailed package</li>
+            </ul>
+
+            <h2>Common Mistakes to Avoid</h2>
+
+            <h3>❌ Using Professional for Small Businesses</h3>
+            <p>Small business buyers may find Professional format overwhelming. The extensive detail can obscure key selling points.</p>
+
+            <h3>❌ Using Memo for Complex Transactions</h3>
+            <p>Large or complex deals require comprehensive information. Memo format may appear unprofessional or lacking in substance.</p>
+
+            <h3>❌ Ignoring Cultural Preferences</h3>
+            <p>International buyers may have different expectations. European investors often prefer Professional, while Silicon Valley buyers lean toward Memo.</p>
+
+            <h3>❌ Inconsistent Formatting After Edits</h3>
+            <p>Manual edits should maintain the chosen profile's style. Don't mix casual language in a Professional document or add lengthy paragraphs to a Memo.</p>
+
+            <h2>Testing Your Choice</h2>
+
+            <p>Before finalizing your formatting decision:</p>
+
+            <h3>The 5-Minute Test</h3>
+            <ol>
+                <li>Ask a colleague to review your CIM for 5 minutes</li>
+                <li>Quiz them on key business metrics and value propositions</li>
+                <li>If they can't recall crucial information, consider a different profile</li>
+            </ol>
+
+            <h3>A/B Testing</h3>
+            <ul>
+                <li>Send different profiles to similar buyer groups</li>
+                <li>Track engagement metrics (time on document, download rates)</li>
+                <li>Note which format generates more follow-up questions</li>
+                <li>Adjust based on response quality, not just quantity</li>
+            </ul>
+
+            <h2>Formatting Profile FAQs</h2>
+
+            <h3>Can I change profiles after generation?</h3>
+            <p>Yes, you can regenerate your entire document with a different profile at any time. Your original content and data remain intact.</p>
+
+            <h3>Do profiles affect financial data presentation?</h3>
+            <p>Profiles primarily affect narrative sections. Financial data, tables, and metrics remain consistent across all profiles.</p>
+
+            <h3>Which profile is best for international buyers?</h3>
+            <p>Professional profile typically works best for international transactions, as it provides comprehensive details that overcome language and cultural barriers.</p>
+
+            <h3>Can I customize beyond the three profiles?</h3>
+            <p>While the three profiles are fixed, you can use regeneration prompts to fine-tune individual sections to your exact specifications.</p>
+
+            <h2>Next Steps</h2>
+
+            <p>Now that you understand formatting profiles:</p>
+            <ol>
+                <li>Generate a test document in your preferred profile</li>
+                <li>Review with your team or advisors</li>
+                <li>Experiment with regeneration for perfect section formatting</li>
+                <li>Create profile-specific templates for future use</li>
+                <li>Track buyer responses to optimize your choice</li>
+            </ol>
+
+            <div class="tip-box">
+                <div class="tip-box-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Remember
+                </div>
+                <p>The best formatting profile is the one that helps you close the deal. Don't hesitate to ask potential buyers about their preferences—it shows professionalism and attention to detail.</p>
+            </div>
+
+            <nav class="navigation">
+                <a href="regenerating-sections.html" class="nav-link">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                    </svg>
+                    Previous: Regenerating Sections
+                </a>
+                <a href="/knowledge-base/" class="nav-link next">
+                    Back to Knowledge Base
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </a>
+            </nav>
+        </article>
+    </div>
+</body>
+</html>
