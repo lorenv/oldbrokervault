@@ -148,9 +148,9 @@ export default function CookiePolicyPage() {
               If you have questions about this Cookie Policy or our use of cookies, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> privacy@cimgod.com<br />
+              <strong>Email:</strong> privacy@cimshare.com<br />
               <strong>Mail:</strong> Dealve Inc., Privacy Department, 123 Business District, Suite 456, New York, NY 10001<br />
-              <strong>Phone:</strong> +1 (555) 123-4567
+              <strong>Phone:</strong> 737-377-0009
             </p>
           </section>
 

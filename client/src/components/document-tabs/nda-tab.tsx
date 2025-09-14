@@ -9,10 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { 
-  Shield, 
-  ExternalLink, 
-  Mail, 
+import {
+  Shield,
+  ExternalLink,
+  Mail,
   MapPin,
   Calendar,
   Clock,
@@ -23,12 +23,14 @@ import {
   Eye,
   Download,
   FileSignature,
-  UserCheck
+  UserCheck,
+  Plus
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { AddManualNdaSigner } from "@/components/add-manual-nda-signer";
 
 interface DocumentNdaTabProps {
   cimDocument: any;
@@ -74,6 +76,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
   const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
   const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
+  const [isAddManualSignerOpen, setIsAddManualSignerOpen] = useState(false);
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -517,6 +520,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               )}
             </CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsAddManualSignerOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                title="Add manual NDA signer"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
               <Input
                 placeholder="Search signatures..."
                 value={signatureSearchTerm}
@@ -756,6 +768,18 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
           )}
         </CardContent>
       </Card>
+
+      {/* Add Manual NDA Signer Modal */}
+      <AddManualNdaSigner
+        isOpen={isAddManualSignerOpen}
+        onClose={() => setIsAddManualSignerOpen(false)}
+        cimDocumentId={cimDocument.id}
+        onSuccess={() => {
+          // Refresh the NDA signatures list
+          queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+        }}
+      />
     </div>
   );
 }
