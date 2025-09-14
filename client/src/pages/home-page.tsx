@@ -135,7 +135,9 @@ export default function HomePage() {
                   textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                 }}
               >
-                Minutes to Create. Simple to Share.
+                Create a CIM in Minutes,
+                <br />
+                Not Days
               </h1>
               <p className="text-base sm:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl transform transition-all duration-1000 delay-200 ease-out">
                 Build detailed CIMs with AI, then share with an NDA in no time.
