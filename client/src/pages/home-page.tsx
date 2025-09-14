@@ -83,7 +83,7 @@ export default function HomePage() {
     {
       icon: Zap,
       title: "AI-Powered Analysis",
-      description: "Transform business meeting transcripts into structured, professional documents using advanced AI technology.",
+      description: "Extract information from websites, summarize business transcripts, and structure data into professional documents using advanced AI technology.",
       color: "text-orange-500",
       link: "/features/ai-powered-cim"
     },

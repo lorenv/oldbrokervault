@@ -64,67 +64,82 @@ export default function EulaPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">7. Subscription and Payment Terms</h2>
+            <h2 className="text-xl font-semibold mb-3">7. User Responsibility for AI-Generated Content</h2>
+            <p>
+              <strong>Important Notice:</strong> The AI features in our Software are designed to assist with document creation by extracting information from websites, summarizing transcripts, and generating content based on your inputs. However, AI-generated content may contain factual inaccuracies, errors, or incomplete information. You acknowledge and agree that:
+            </p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>You are solely responsible for reviewing, verifying, and ensuring the accuracy of all AI-generated content before using or sharing it</li>
+              <li>AI-generated suggestions and content are provided for convenience only and should not be relied upon without verification</li>
+              <li>You must verify all facts, figures, and information included in your documents</li>
+              <li>We disclaim all liability for any errors, omissions, or inaccuracies in AI-generated content</li>
+              <li>You agree to indemnify us against any claims arising from your use of unverified AI-generated content</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">8. Subscription and Payment Terms</h2>
             <p>
               Access to certain features requires a paid subscription. Subscription fees are billed in advance and are non-refundable except as required by law. We may change subscription prices with 30 days' notice. Your subscription will automatically renew unless canceled before the renewal date.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">8. Termination</h2>
+            <h2 className="text-xl font-semibold mb-3">9. Termination</h2>
             <p>
               This EULA is effective until terminated. You may terminate this agreement by canceling your account. We may terminate or suspend your access immediately for breach of this EULA or for any other reason at our discretion. Upon termination, your right to use the Software ceases immediately.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">9. Disclaimers</h2>
+            <h2 className="text-xl font-semibold mb-3">10. Disclaimers</h2>
             <p>
               THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">10. Limitation of Liability</h2>
+            <h2 className="text-xl font-semibold mb-3">11. Limitation of Liability</h2>
             <p>
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY CLAIMS ARISING FROM THIS EULA OR YOUR USE OF THE SOFTWARE SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM. WE SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">11. Indemnification</h2>
+            <h2 className="text-xl font-semibold mb-3">12. Indemnification</h2>
             <p>
               You agree to indemnify and hold us harmless from any claims, damages, or expenses arising from your use of the Software, your violation of this EULA, or your violation of any rights of another party.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">12. Governing Law</h2>
+            <h2 className="text-xl font-semibold mb-3">13. Governing Law</h2>
             <p>
               This EULA shall be governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to conflict of law principles. Any disputes arising under this EULA shall be subject to the exclusive jurisdiction of the courts in Delaware.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">13. Changes to This EULA</h2>
+            <h2 className="text-xl font-semibold mb-3">14. Changes to This EULA</h2>
             <p>
               We may update this EULA from time to time. We will notify you of material changes by email or through the Software. Your continued use of the Software after such changes constitutes acceptance of the updated EULA.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">14. Contact Information</h2>
+            <h2 className="text-xl font-semibold mb-3">15. Contact Information</h2>
             <p>
               If you have questions about this EULA, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> legal@cimgod.com<br />
+              <strong>Email:</strong> legal@cimshare.com<br />
+              <strong>Phone:</strong> 737-377-0009<br />
               <strong>Address:</strong> Dealve Inc., Legal Department, 123 Business District, Suite 456, New York, NY 10001
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">15. Entire Agreement</h2>
+            <h2 className="text-xl font-semibold mb-3">16. Entire Agreement</h2>
             <p>
               This EULA constitutes the entire agreement between you and us regarding the Software and supersedes all prior agreements and understandings, whether written or oral, relating to the subject matter herein.
             </p>
