@@ -64,15 +64,6 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
       return;
     }
 
-    if (!ndaFile) {
-      toast({
-        title: "Missing File",
-        description: "Please upload the signed NDA document",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     setUploadProgress(0);
 
@@ -82,7 +73,9 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
       formData.append("signerName", signerName);
       formData.append("signerEmail", signerEmail || "");
       formData.append("signedDate", signedDate);
-      formData.append("ndaFile", ndaFile);
+      if (ndaFile) {
+        formData.append("ndaFile", ndaFile);
+      }
 
       // Upload with progress tracking
       const xhr = new XMLHttpRequest();
@@ -101,13 +94,17 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(xhr.response);
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            const errorMsg = xhr.response?.error || `Upload failed with status ${xhr.status}`;
+            reject(new Error(errorMsg));
           }
         };
 
-        xhr.onerror = () => reject(new Error("Upload failed"));
+        xhr.onerror = () => {
+          reject(new Error("Network error during upload"));
+        };
 
-        xhr.open("POST", `/api/cim/${cimDocumentId}/nda-signatures/manual`);
+        const url = `/api/cim/${cimDocumentId}/nda-signatures/manual`;
+        xhr.open("POST", url);
         xhr.withCredentials = true;
         xhr.setRequestHeader("Accept", "application/json");
         xhr.responseType = "json";
@@ -131,10 +128,10 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
       onClose();
 
     } catch (error) {
-      console.error("Failed to add manual signer:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add manual signer";
       toast({
         title: "Upload Failed",
-        description: "Failed to add manual signer. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -189,7 +186,7 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
           <div className="space-y-2">
             <Label htmlFor="signedDate" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Date Signed <span className="text-red-500">*</span>
+              Date Signed <span className="text-sm text-muted-foreground">(optional)</span>
             </Label>
             <Input
               id="signedDate"
@@ -205,7 +202,7 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
           <div className="space-y-2">
             <Label htmlFor="ndaFile" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Signed NDA Document <span className="text-red-500">*</span>
+              Signed NDA Document <span className="text-sm text-muted-foreground">(optional)</span>
             </Label>
             <div className="space-y-2">
               <Input
@@ -256,7 +253,7 @@ export function AddManualNdaSigner({ isOpen, onClose, cimDocumentId, onSuccess }
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting || !signerName || !ndaFile}
+            disabled={isSubmitting || !signerName}
           >
             {isSubmitting ? (
               <>
