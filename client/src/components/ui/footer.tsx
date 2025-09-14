@@ -42,6 +42,11 @@ export function Footer() {
                   Contact Us
                 </Link>
               </li>
+              <li>
+                <a href="/knowledge-base/" className="text-gray-400 hover:text-white transition-colors">
+                  Knowledge Base
+                </a>
+              </li>
             </ul>
           </div>
 

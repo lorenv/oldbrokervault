@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base - CIM Share</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 2rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .back-link svg {
+            margin-right: 0.5rem;
+        }
+
+        .categories {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .category {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .category h2 {
+            color: #6b46c1;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .articles {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .article-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            color: #1f2937;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .article-link:hover {
+            background: #f3f4f6;
+            border-color: #6b46c1;
+            transform: translateX(4px);
+        }
+
+        .article-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .article-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .article-content {
+            flex: 1;
+        }
+
+        .article-title {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .article-description {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .coming-soon {
+            background: #fef3c7;
+            border: 2px dashed #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: #92400e;
+            font-style: italic;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+            </svg>
+            Back to CIM Share
+        </a>
+
+        <div class="header">
+            <h1>Knowledge Base</h1>
+            <p>Learn how to use CIM Share to create and share professional business documents</p>
+        </div>
+
+        <div class="categories">
+            <div class="category">
+                <h2>Document Creation</h2>
+                <div class="articles">
+                    <a href="generate-cim-from-transcripts.html" class="article-link">
+                        <div class="article-icon">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 100 4h2a2 2 0 100-4h-.5a1 1 0 000-2H8a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-title">How to Generate a CIM from Meeting Transcripts</div>
+                            <div class="article-description">Transform your business conversations into professional documents using AI</div>
+                        </div>
+                    </a>
+
+                    <a href="website-analysis.html" class="article-link">
+                        <div class="article-icon">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zM9.954 9H10v5.95A8.032 8.032 0 019.954 9zM10 14.05V9h.046c.089 1.546.383 2.97.837 4.118.318.811.712 1.514 1.117 1.931zM14.134 9h1.783a6.004 6.004 0 01-2.783 4.118c.454-1.147.748-2.572.837-4.118zm1.783-2h-1.783c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 7z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-title">Using Website Analysis to Auto-populate Your CIM</div>
+                            <div class="article-description">Let AI extract business information from your website automatically</div>
+                        </div>
+                    </a>
+
+                    <a href="regenerating-sections.html" class="article-link">
+                        <div class="article-icon">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-title">Regenerating Sections with AI: Tips for Better Results</div>
+                            <div class="article-description">Learn how to refine and improve AI-generated content with targeted prompts</div>
+                        </div>
+                    </a>
+
+                    <a href="formatting-profiles.html" class="article-link">
+                        <div class="article-icon">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h5a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-title">Choosing the Right Formatting Profile</div>
+                            <div class="article-description">Understand the differences between Balanced, Professional, and Memo styles</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="category">
+                <h2>More Categories Coming Soon</h2>
+                <div class="coming-soon">
+                    Additional guides for Document Enhancement, Sharing & Security, NDA & E-Signatures, Export & Distribution, and Advanced Features will be added soon.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regenerating Sections with AI: Tips for Better Results - CIM Share Knowledge Base</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.8;
+            color: #1f2937;
+            background: #f9fafb;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .breadcrumb a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .breadcrumb a:hover {
+            color: white;
+        }
+
+        .breadcrumb span {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .content {
+            background: white;
+            margin: -2rem auto 2rem;
+            border-radius: 1rem;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #6b46c1;
+            font-size: 1.75rem;
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        h3 {
+            color: #4b5563;
+            font-size: 1.25rem;
+            margin: 2rem 0 1rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            color: #4b5563;
+        }
+
+        ol, ul {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            color: #4b5563;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+        }
+
+        .tip-box {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1.25rem;
+            margin: 2rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .tip-box-title {
+            font-weight: 600;
+            color: #15803d;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1.25rem;
+            margin: 2rem 0;
+            border-radius: 0.5rem;
+        }
+
+        .warning-box-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .example-box {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .example-box-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .prompt-example {
+            background: white;
+            border-left: 3px solid #6b46c1;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #1f2937;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #6b46c1;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        .comparison-table th {
+            background: #6b46c1;
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .do-dont-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .do-box, .dont-box {
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+        }
+
+        .do-box {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+        }
+
+        .dont-box {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+        }
+
+        .do-box h4 {
+            color: #15803d;
+            margin-bottom: 0.75rem;
+        }
+
+        .dont-box h4 {
+            color: #991b1b;
+            margin-bottom: 0.75rem;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f3f4f6;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #6b46c1;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+
+        .nav-link:hover {
+            background: #f9fafb;
+            border-color: #6b46c1;
+        }
+
+        .nav-link.next {
+            flex-direction: row-reverse;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.875rem;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+                margin: -1rem auto 2rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .do-dont-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .navigation {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-link {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="/">Home</a>
+                <span>/</span>
+                <a href="/knowledge-base/">Knowledge Base</a>
+                <span>/</span>
+                <span>Document Creation</span>
+            </nav>
+            <h1>Regenerating Sections with AI: Tips for Better Results</h1>
+            <div class="meta">
+                <div class="meta-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>6 min read</span>
+                </div>
+                <div class="meta-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    <span>Advanced Techniques</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <article class="content">
+            <p>Master the art of AI regeneration to transform good content into exceptional CIM sections. This guide provides advanced techniques and strategies for crafting prompts that deliver precisely the results you need.</p>
+
+            <h2>Understanding AI Regeneration</h2>
+
+            <p>The regeneration feature allows you to recreate any section of your CIM with new instructions, giving you fine-grained control over tone, length, detail level, and focus. Think of it as having a professional writer who can instantly rewrite content based on your specific feedback.</p>
+
+            <h3>How Regeneration Works</h3>
+            <p>When you regenerate a section, the AI:</p>
+            <ol>
+                <li>Analyzes the original source material (transcript or website data)</li>
+                <li>Considers your specific instructions</li>
+                <li>Maintains context from surrounding sections</li>
+                <li>Creates entirely new content following your guidelines</li>
+            </ol>
+
+            <div class="tip-box">
+                <div class="tip-box-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Key Insight
+                </div>
+                <p>Each regeneration is independent—you can regenerate the same section multiple times with different prompts until you achieve the perfect result. Your document maintains a history of all versions.</p>
+            </div>
+
+            <h2>The Art of Prompt Engineering</h2>
+
+            <h3>Anatomy of an Effective Prompt</h3>
+            <p>A well-crafted regeneration prompt contains:</p>
+            <ul>
+                <li><strong>Clear Direction:</strong> What you want changed</li>
+                <li><strong>Specific Details:</strong> How it should be changed</li>
+                <li><strong>Context:</strong> Why the change is needed</li>
+                <li><strong>Constraints:</strong> Any limitations or requirements</li>
+            </ul>
+
+            <div class="example-box">
+                <div class="example-box-title">Example: Improving an Executive Summary</div>
+                <div class="prompt-example">
+                    "Make this more concise and focus on the financial opportunity. Emphasize the 40% year-over-year growth and the $5M revenue milestone. Use a confident, professional tone that appeals to private equity investors. Keep it under 150 words."
+                </div>
+            </div>
+
+            <h3>Prompt Strategies by Goal</h3>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Goal</th>
+                        <th>Prompt Strategy</th>
+                        <th>Example Keywords</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Shorten Content</strong></td>
+                        <td>Specify word/sentence limits</td>
+                        <td>"Concise", "Brief", "Under 100 words", "3 bullet points"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Add Detail</strong></td>
+                        <td>Request specific information</td>
+                        <td>"Expand on", "Include examples", "Add statistics", "Elaborate"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Change Tone</strong></td>
+                        <td>Define audience and style</td>
+                        <td>"Professional", "Conversational", "Technical", "Persuasive"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Restructure</strong></td>
+                        <td>Specify format preferences</td>
+                        <td>"Bullet points", "Numbered list", "Paragraph form", "Timeline"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Focus Shift</strong></td>
+                        <td>Highlight priorities</td>
+                        <td>"Emphasize", "Focus on", "Highlight", "Prioritize"</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Common Regeneration Scenarios</h2>
+
+            <h3>Scenario 1: Too Technical for Investors</h3>
+            <div class="example-box">
+                <div class="example-box-title">Problem</div>
+                <p>The product description is filled with technical jargon that investors might not understand.</p>
+                <div class="example-box-title" style="margin-top: 1rem;">Solution Prompt</div>
+                <div class="prompt-example">
+                    "Rewrite this for non-technical investors. Replace technical terms with business benefits. Focus on market advantages and revenue potential rather than technical specifications. Maintain professional tone but make it accessible."
+                </div>
+            </div>
+
+            <h3>Scenario 2: Missing Key Metrics</h3>
+            <div class="example-box">
+                <div class="example-box-title">Problem</div>
+                <p>The financial section lacks specific numbers mentioned in the transcript.</p>
+                <div class="example-box-title" style="margin-top: 1rem;">Solution Prompt</div>
+                <div class="prompt-example">
+                    "Regenerate with all financial metrics from the source material. Include revenue figures, growth percentages, EBITDA, and customer acquisition costs. Present in both narrative and bullet point format. Add year-over-year comparisons."
+                </div>
+            </div>
+
+            <h3>Scenario 3: Inconsistent Formatting</h3>
+            <div class="example-box">
+                <div class="example-box-title">Problem</div>
+                <p>Different sections use different formatting styles.</p>
+                <div class="example-box-title" style="margin-top: 1rem;">Solution Prompt</div>
+                <div class="prompt-example">
+                    "Match the formatting of the Company Overview section. Use short paragraphs followed by bullet points for key details. Start with a strong topic sentence. Maintain consistent verb tense throughout."
+                </div>
+            </div>
+
+            <h2>Advanced Techniques</h2>
+
+            <h3>Layered Regeneration</h3>
+            <p>Sometimes the best results come from multiple regenerations:</p>
+            <ol>
+                <li><strong>First Pass:</strong> Focus on content and accuracy</li>
+                <li><strong>Second Pass:</strong> Refine tone and style</li>
+                <li><strong>Third Pass:</strong> Polish length and formatting</li>
+            </ol>
+
+            <h3>Comparative Prompts</h3>
+            <p>Reference other sections or external examples:</p>
+            <div class="prompt-example">
+                "Rewrite this to match the energy and optimism of the Growth Opportunities section, but maintain the factual precision of the Financial Highlights."
+            </div>
+
+            <h3>Constraint Stacking</h3>
+            <p>Combine multiple requirements for precise control:</p>
+            <div class="prompt-example">
+                "Create exactly 5 bullet points, each 15-20 words, focusing on competitive advantages. Use active voice and include one quantifiable metric per point."
+            </div>
+
+            <div class="warning-box">
+                <div class="warning-box-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Regeneration Limits
+                </div>
+                <p>Free accounts are limited to 2 regenerations per document. Standard and Enterprise accounts have unlimited regenerations. Use them strategically if you're on a free trial.</p>
+            </div>
+
+            <h2>Do's and Don'ts</h2>
+
+            <div class="do-dont-grid">
+                <div class="do-box">
+                    <h4>✓ Do's</h4>
+                    <ul>
+                        <li>Be specific about desired outcomes</li>
+                        <li>Include examples when helpful</li>
+                        <li>Specify word counts or limits</li>
+                        <li>Define your target audience</li>
+                        <li>Use industry-specific terminology</li>
+                        <li>Request specific data points</li>
+                    </ul>
+                </div>
+                <div class="dont-box">
+                    <h4>✗ Don'ts</h4>
+                    <ul>
+                        <li>Use vague instructions like "make it better"</li>
+                        <li>Contradict the source material</li>
+                        <li>Request information not in the original data</li>
+                        <li>Use multiple conflicting instructions</li>
+                        <li>Forget to specify formatting preferences</li>
+                        <li>Ignore context from other sections</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>Prompt Templates by Section</h2>
+
+            <h3>Executive Summary</h3>
+            <ul>
+                <li><strong>For Investors:</strong> "Focus on ROI, market opportunity, and exit potential. Include key metrics."</li>
+                <li><strong>For Strategic Buyers:</strong> "Emphasize synergies, market position, and operational strengths."</li>
+                <li><strong>For Lenders:</strong> "Highlight cash flow stability, assets, and debt service capability."</li>
+            </ul>
+
+            <h3>Financial Highlights</h3>
+            <ul>
+                <li><strong>Growth Focus:</strong> "Emphasize year-over-year growth rates and future projections."</li>
+                <li><strong>Profitability Focus:</strong> "Highlight EBITDA margins, profit trends, and operational efficiency."</li>
+                <li><strong>Stability Focus:</strong> "Stress consistent revenue, diverse customer base, and predictable cash flow."</li>
+            </ul>
+
+            <h3>Market Analysis</h3>
+            <ul>
+                <li><strong>Opportunity Driven:</strong> "Focus on TAM, market growth rates, and expansion potential."</li>
+                <li><strong>Competitive Position:</strong> "Emphasize differentiation, market share, and barriers to entry."</li>
+                <li><strong>Industry Trends:</strong> "Highlight favorable trends, regulatory tailwinds, and technological shifts."</li>
+            </ul>
+
+            <h2>Measuring Success</h2>
+
+            <p>Know when you've achieved the right result:</p>
+
+            <h3>Content Quality Checklist</h3>
+            <ul>
+                <li>✓ Accurate representation of source material</li>
+                <li>✓ Appropriate tone for target audience</li>
+                <li>✓ Consistent formatting with other sections</li>
+                <li>✓ Clear and concise language</li>
+                <li>✓ Compelling narrative flow</li>
+                <li>✓ Specific metrics and examples included</li>
+                <li>✓ Professional terminology used correctly</li>
+            </ul>
+
+            <div class="tip-box">
+                <div class="tip-box-title">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Pro Tip
+                </div>
+                <p>Save successful prompts in a personal document for future use. Building a library of effective prompts will speed up your CIM creation process over time.</p>
+            </div>
+
+            <h2>Troubleshooting Regeneration Issues</h2>
+
+            <h3>AI Ignoring Instructions</h3>
+            <p><strong>Solution:</strong> Break complex prompts into simpler, single-focus instructions. Use imperative language ("Include..." rather than "It would be nice if...").</p>
+
+            <h3>Lost Important Information</h3>
+            <p><strong>Solution:</strong> Explicitly state what to keep: "Maintain all financial figures while shortening the narrative portions."</p>
+
+            <h3>Inconsistent Results</h3>
+            <p><strong>Solution:</strong> Add more constraints and specific examples. The more detailed your prompt, the more consistent the output.</p>
+
+            <h2>Next Steps</h2>
+
+            <p>Now that you've mastered regeneration techniques:</p>
+            <ol>
+                <li>Practice with different prompt styles on test documents</li>
+                <li>Build your personal library of effective prompts</li>
+                <li>Experiment with combining website analysis and regeneration</li>
+                <li>Learn about formatting profiles to complement your regeneration strategy</li>
+            </ol>
+
+            <nav class="navigation">
+                <a href="website-analysis.html" class="nav-link">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                    </svg>
+                    Previous: Website Analysis
+                </a>
+                <a href="formatting-profiles.html" class="nav-link next">
+                    Next: Formatting Profiles
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </a>
+            </nav>
+        </article>
+    </div>
+</body>
+</html>
