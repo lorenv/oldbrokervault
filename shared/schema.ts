@@ -73,6 +73,10 @@ export const users = pgTable("users", {
   verificationCodeExpiry: timestamp("verification_code_expiry"),
   // PDF export preferences
   pdfBackgroundTemplate: text("pdf_background_template").default("classic"),
+  // Email preferences
+  emailPreferences: jsonb("email_preferences").default({ onboarding: true, marketing: true, transactional: true }),
+  unsubscribeToken: text("unsubscribe_token"),
+  unsubscribeTokenExpiry: timestamp("unsubscribe_token_expiry"),
 });
 
 export const cimDocuments = pgTable("cim_documents", {

@@ -42,6 +42,7 @@ const execAsync = promisify(exec);
 import { registerNdaTemplateRoutes } from "./routes/nda-template-routes";
 import { eSignatureRoutes } from "./routes/esignature-routes";
 import onboardingEmailRoutes from "./routes/onboarding-email-routes";
+import unsubscribeRoutes from "./routes/unsubscribe-routes";
 import { PdfSignatureProcessor } from "./pdf-signature-processor";
 import migrateImagesToFiles from "./migrate-images";
 import { coverImageService } from "./cover-image-service";
@@ -263,14 +264,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Request body keys:", Object.keys(req.body || {}));
     
     try {
-      // Test with a sample webhook payload
+      // Test with a sample webhook payload (using new alphanumeric format)
       const testData = req.body || {
-        to: "thread-22@reply.cimshare.com",
+        to: "thread-abc12@reply.cimshare.com",
         from: "test@example.com",
         subject: "Test reply",
         text: "This is a test email reply",
         envelope: JSON.stringify({
-          to: ["thread-22@reply.cimshare.com"],
+          to: ["thread-abc12@reply.cimshare.com"],
           from: "test@example.com"
         })
       };
@@ -316,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         testing: {
           step1: "Send email to thread-XX@reply.cimshare.com (replace XX with actual thread ID)",
           step2: "Check server logs for webhook processing",
-          step3: `Or test directly: curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{"to":"thread-22@reply.cimshare.com","from":"test@example.com","text":"Test reply"}'`
+          step3: `Or test directly: curl -X POST ${baseUrl}/api/webhook/sendgrid/test -H "Content-Type: application/json" -d '{"to":"thread-abc12@reply.cimshare.com","from":"test@example.com","text":"Test reply"}'`
         },
         debugging: {
           checkMX: "dig MX reply.cimshare.com",
@@ -389,6 +390,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register onboarding email routes
   app.use('/api/onboarding-emails', onboardingEmailRoutes);
+
+  // Register unsubscribe routes
+  app.use('/api/unsubscribe', unsubscribeRoutes);
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {

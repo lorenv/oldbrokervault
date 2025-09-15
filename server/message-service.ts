@@ -16,9 +16,43 @@ import { randomUUID } from "crypto";
 import { shareCache, CACHE_TTL, MemoryCache } from "./cache";
 
 export class MessageService {
-  // Generate unique email address for thread (using parse subdomain)
-  private generateThreadEmail(threadId: number): string {
-    return `thread-${threadId}@reply.cimshare.com`;
+  // Generate unique email address for thread with random alphanumeric ID
+  private generateThreadEmail(): string {
+    // Generate a random 5-character alphanumeric string
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let randomId = '';
+    for (let i = 0; i < 5; i++) {
+      randomId += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return `thread-${randomId}@reply.cimshare.com`;
+  }
+
+  // Check if a thread email already exists
+  private async isThreadEmailUnique(email: string): Promise<boolean> {
+    const [existing] = await db
+      .select()
+      .from(messageThreads)
+      .where(eq(messageThreads.threadEmailAddress, email))
+      .limit(1);
+    return !existing;
+  }
+
+  // Generate a unique thread email (with retry logic)
+  private async generateUniqueThreadEmail(): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const email = this.generateThreadEmail();
+      if (await this.isThreadEmailUnique(email)) {
+        return email;
+      }
+      attempts++;
+    }
+
+    // Fallback to timestamp-based ID if random generation fails
+    const timestamp = Date.now().toString(36);
+    return `thread-${timestamp}@reply.cimshare.com`;
   }
 
   // Create a new message thread from contact form
@@ -43,8 +77,8 @@ export class MessageService {
       })
       .returning();
 
-    // Generate and update thread email address
-    const threadEmailAddress = this.generateThreadEmail(thread.id);
+    // Generate and update thread email address with unique random ID
+    const threadEmailAddress = await this.generateUniqueThreadEmail();
     await db
       .update(messageThreads)
       .set({ threadEmailAddress })
@@ -671,53 +705,55 @@ export class MessageService {
         return;
       }
       
-      // Extract thread ID from email address (format: thread-123@cimshare.com or thread-123@reply.cimshare.com)
-      // Also check envelope.to array if direct 'to' field doesn't match
-      let threadMatch = toEmail.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
-      
+      // Extract thread email (format: thread-xxxxx@cimshare.com or thread-xxxxx@reply.cimshare.com)
+      // Now supports alphanumeric thread IDs
+      let threadMatch = toEmail.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
+      let threadEmail = threadMatch ? threadMatch[0] : null;
+
       // If not found in main 'to' field, check envelope data
-      if (!threadMatch && envelope?.to) {
+      if (!threadEmail && envelope?.to) {
         for (const recipient of envelope.to) {
           const cleanRecipient = extractEmail(recipient);
-          threadMatch = cleanRecipient.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
+          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
           if (threadMatch) {
-            console.log("Found thread ID in envelope.to:", cleanRecipient);
+            console.log("Found thread email in envelope.to:", threadMatch[0]);
+            threadEmail = threadMatch[0];
             break;
           }
         }
       }
-      
+
       // Also check the 'to' field if it contains multiple recipients
-      if (!threadMatch && webhookData.to && webhookData.to.includes(',')) {
+      if (!threadEmail && webhookData.to && webhookData.to.includes(',')) {
         const recipients = webhookData.to.split(',');
         for (const recipient of recipients) {
           const cleanRecipient = extractEmail(recipient.trim());
-          threadMatch = cleanRecipient.match(/thread-(\d+)@(?:reply\.)?cimshare\.com/i);
+          threadMatch = cleanRecipient.match(/thread-([a-z0-9]+)@(?:reply\.)?cimshare\.com/i);
           if (threadMatch) {
-            console.log("Found thread ID in comma-separated recipients:", cleanRecipient);
+            console.log("Found thread email in comma-separated recipients:", threadMatch[0]);
+            threadEmail = threadMatch[0];
             break;
           }
         }
       }
       
-      if (!threadMatch) {
-        console.log("No thread ID found in any recipient field");
+      if (!threadEmail) {
+        console.log("No thread email found in any recipient field");
         console.log("Checked to:", toEmail);
         console.log("Envelope.to:", envelope?.to);
         return;
       }
-      
-      const threadId = parseInt(threadMatch[1]);
-      console.log("Found thread ID:", threadId);
-      
-      // Verify thread exists
+
+      console.log("Found thread email:", threadEmail);
+
+      // Verify thread exists by email address
       const [thread] = await db
         .select()
         .from(messageThreads)
-        .where(eq(messageThreads.id, threadId));
+        .where(eq(messageThreads.threadEmailAddress, threadEmail));
         
       if (!thread) {
-        console.error("Thread not found:", threadId);
+        console.error("Thread not found for email:", threadEmail);
         return;
       }
       

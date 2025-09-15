@@ -429,6 +429,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, customSlug: e.target.value }))
                   }
+                  autoComplete="off"
                 />
                 <p className="text-xs text-muted-foreground">
                   Customize the end of your share link. Example: https://cimshare.com/share/customexample
@@ -446,6 +447,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, sharePassword: e.target.value }))
                   }
+                  autoComplete="off"
                 />
               </div>
 
@@ -459,6 +461,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
                   onChange={(e) =>
                     setShareSettings(prev => ({ ...prev, shareExpiresAt: e.target.value }))
                   }
+                  autoComplete="off"
                 />
               </div>
             </>
