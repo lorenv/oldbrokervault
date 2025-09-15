@@ -48,7 +48,7 @@ class OnboardingEmailService {
     try {
       const msg = {
         to: userData.email,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@cimshare.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: welcomeEmailTemplate.subject,
         text: welcomeEmailTemplate.text(userData.userName),
         html: welcomeEmailTemplate.html(userData.userName),
@@ -68,7 +68,7 @@ class OnboardingEmailService {
     try {
       const msg = {
         to: userData.email,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@cimshare.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: gettingStartedEmailTemplate.subject,
         text: gettingStartedEmailTemplate.text(userData.userName),
         html: gettingStartedEmailTemplate.html(userData.userName),
@@ -88,7 +88,7 @@ class OnboardingEmailService {
     try {
       const msg = {
         to: userData.email,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@cimshare.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: painSolutionEmailTemplate.subject,
         text: painSolutionEmailTemplate.text(userData.userName),
         html: painSolutionEmailTemplate.html(userData.userName),
@@ -108,7 +108,7 @@ class OnboardingEmailService {
     try {
       const msg = {
         to: userData.email,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@cimshare.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: testimonialEmailTemplate.subject,
         text: testimonialEmailTemplate.text(userData.userName),
         html: testimonialEmailTemplate.html(userData.userName),
