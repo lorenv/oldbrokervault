@@ -3,6 +3,7 @@ import { welcomeEmailTemplate } from '../email-templates/onboarding/welcome';
 import { gettingStartedEmailTemplate } from '../email-templates/onboarding/getting-started';
 import { painSolutionEmailTemplate } from '../email-templates/onboarding/pain-solution';
 import { testimonialEmailTemplate } from '../email-templates/onboarding/testimonial';
+import { unsubscribeService } from './unsubscribe-service';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -46,12 +47,22 @@ class OnboardingEmailService {
    */
   private async sendWelcomeEmail(userData: OnboardingEmailData): Promise<void> {
     try {
+      // Check if user has opted out of onboarding emails
+      const canSend = await unsubscribeService.canSendEmail(userData.userId, 'onboarding');
+      if (!canSend) {
+        console.log(`User ${userData.userId} has opted out of onboarding emails`);
+        return;
+      }
+
+      // Generate unsubscribe link
+      const unsubscribeLink = await unsubscribeService.getUnsubscribeLink(userData.userId);
+
       const msg = {
         to: userData.email,
         from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: welcomeEmailTemplate.subject,
-        text: welcomeEmailTemplate.text(userData.userName),
-        html: welcomeEmailTemplate.html(userData.userName),
+        text: welcomeEmailTemplate.text(userData.userName, unsubscribeLink),
+        html: welcomeEmailTemplate.html(userData.userName, unsubscribeLink),
       };
 
       await sgMail.send(msg);
@@ -66,12 +77,23 @@ class OnboardingEmailService {
    */
   private async sendGettingStartedEmail(userData: OnboardingEmailData): Promise<void> {
     try {
+      // Check if user has opted out of onboarding emails
+      const canSend = await unsubscribeService.canSendEmail(userData.userId, 'onboarding');
+      if (!canSend) {
+        console.log(`User ${userData.userId} has opted out of onboarding emails`);
+        this.cancelScheduledEmails(userData.userId); // Cancel remaining emails
+        return;
+      }
+
+      // Generate unsubscribe link
+      const unsubscribeLink = await unsubscribeService.getUnsubscribeLink(userData.userId);
+
       const msg = {
         to: userData.email,
         from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: gettingStartedEmailTemplate.subject,
-        text: gettingStartedEmailTemplate.text(userData.userName),
-        html: gettingStartedEmailTemplate.html(userData.userName),
+        text: gettingStartedEmailTemplate.text(userData.userName, unsubscribeLink),
+        html: gettingStartedEmailTemplate.html(userData.userName, unsubscribeLink),
       };
 
       await sgMail.send(msg);
@@ -86,12 +108,23 @@ class OnboardingEmailService {
    */
   private async sendPainSolutionEmail(userData: OnboardingEmailData): Promise<void> {
     try {
+      // Check if user has opted out of onboarding emails
+      const canSend = await unsubscribeService.canSendEmail(userData.userId, 'onboarding');
+      if (!canSend) {
+        console.log(`User ${userData.userId} has opted out of onboarding emails`);
+        this.cancelScheduledEmails(userData.userId); // Cancel remaining emails
+        return;
+      }
+
+      // Generate unsubscribe link
+      const unsubscribeLink = await unsubscribeService.getUnsubscribeLink(userData.userId);
+
       const msg = {
         to: userData.email,
         from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: painSolutionEmailTemplate.subject,
-        text: painSolutionEmailTemplate.text(userData.userName),
-        html: painSolutionEmailTemplate.html(userData.userName),
+        text: painSolutionEmailTemplate.text(userData.userName, unsubscribeLink),
+        html: painSolutionEmailTemplate.html(userData.userName, unsubscribeLink),
       };
 
       await sgMail.send(msg);
@@ -106,12 +139,23 @@ class OnboardingEmailService {
    */
   private async sendTestimonialEmail(userData: OnboardingEmailData): Promise<void> {
     try {
+      // Check if user has opted out of onboarding emails
+      const canSend = await unsubscribeService.canSendEmail(userData.userId, 'onboarding');
+      if (!canSend) {
+        console.log(`User ${userData.userId} has opted out of onboarding emails`);
+        this.cancelScheduledEmails(userData.userId); // Cancel remaining emails
+        return;
+      }
+
+      // Generate unsubscribe link
+      const unsubscribeLink = await unsubscribeService.getUnsubscribeLink(userData.userId);
+
       const msg = {
         to: userData.email,
         from: process.env.SENDGRID_FROM_EMAIL || 'support@cimshare.com',
         subject: testimonialEmailTemplate.subject,
-        text: testimonialEmailTemplate.text(userData.userName),
-        html: testimonialEmailTemplate.html(userData.userName),
+        text: testimonialEmailTemplate.text(userData.userName, unsubscribeLink),
+        html: testimonialEmailTemplate.html(userData.userName, unsubscribeLink),
       };
 
       await sgMail.send(msg);
