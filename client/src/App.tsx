@@ -24,6 +24,7 @@ import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { SharePage } from "@/pages/share-page";
 import { NdaRedirectPage } from "@/pages/nda-redirect-page";
+import { UnsubscribePage } from "@/pages/unsubscribe-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
@@ -81,6 +82,7 @@ function Router() {
             <Route path="/login" component={LoginPage} />
             <Route path="/auth" component={LoginPage} />
             <Route path="/reset-password" component={LoginPage} />
+            <Route path="/unsubscribe" component={UnsubscribePage} />
             <Route path="/share/:shareSlug" component={SharePage} />
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />

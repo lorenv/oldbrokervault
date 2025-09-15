@@ -1,7 +1,7 @@
 export const testimonialEmailTemplate = {
   subject: "How Sarah Saved 50+ Hours Last Month with CIM Share",
 
-  html: (userName: string) => `
+  html: (userName: string, unsubscribeLink?: string) => `
     <!DOCTYPE html>
     <html>
     <head>
@@ -377,7 +377,16 @@ export const testimonialEmailTemplate = {
             </div>
             <div style="height: 1px; background: #e2e8f0; margin: 16px 0;"></div>
             <div style="font-size: 13px; color: #94a3b8; margin-top: 16px;">
-              CIM Share • AI-Powered CIM Creation<br>
+              <strong>CIM Share</strong><br>
+              AI-Powered CIM Creation Platform<br>
+              606 Venice Blvd<br>
+              Venice, CA 90291<br>
+              United States<br><br>
+
+              You received this email because you signed up for CIM Share.<br>
+              ${unsubscribeLink ? `<a href="${unsubscribeLink}" style="color: #3b82f6; text-decoration: none;">Unsubscribe from onboarding emails</a> | ` : ''}
+              <a href="https://cimshare.com/preferences" style="color: #3b82f6; text-decoration: none;">Manage email preferences</a><br><br>
+
               © 2024 CIM Share. All rights reserved.
             </div>
           </div>
@@ -387,7 +396,7 @@ export const testimonialEmailTemplate = {
     </html>
   `,
 
-  text: (userName: string) => `
+  text: (userName: string, unsubscribeLink?: string) => `
 Real Results from Real Users
 
 Hi ${userName},
@@ -425,6 +434,17 @@ The CIM Share Team
 Ready to join thousands of successful professionals?
 Knowledge Base: https://cimshare.com/knowledge-base/
 Contact Support: support@cimshare.com
+
+---
+CIM Share
+AI-Powered CIM Creation Platform
+606 Venice Blvd
+Venice, CA 90291
+United States
+
+You received this email because you signed up for CIM Share.
+${unsubscribeLink ? `Unsubscribe: ${unsubscribeLink}` : ''}
+Manage preferences: https://cimshare.com/preferences
 
 © 2024 CIM Share. All rights reserved.
   `
