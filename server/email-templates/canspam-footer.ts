@@ -18,7 +18,7 @@ export const getCanSpamFooterHtml = (unsubscribeLink?: string, emailType: 'onboa
       `<a href="${unsubscribeLink}" style="color: #3b82f6; text-decoration: none;">Unsubscribe from ${emailType} emails</a> | ` :
       ''
     }
-    <a href="https://cimshare.com/preferences" style="color: #3b82f6; text-decoration: none;">Manage email preferences</a><br><br>
+    <a href="https://cimshare.com/account" style="color: #3b82f6; text-decoration: none;">Manage email preferences</a><br><br>
 
     © 2024 CIM Share. All rights reserved.
   </div>
@@ -40,7 +40,7 @@ ${unsubscribeLink && emailType !== 'transactional' ?
   `Unsubscribe: ${unsubscribeLink}` :
   ''
 }
-Manage preferences: https://cimshare.com/preferences
+Manage preferences: https://cimshare.com/account
 
 © 2024 CIM Share. All rights reserved.
 `;
