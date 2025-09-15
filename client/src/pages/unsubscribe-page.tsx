@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { CheckCircle, XCircle, Mail, Settings, AlertCircle } from 'lucide-react';
 
 interface EmailPreferences {
@@ -9,9 +9,9 @@ interface EmailPreferences {
 }
 
 export function UnsubscribePage() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const token = searchParams.get('token');
+  const [location, navigate] = useLocation();
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
