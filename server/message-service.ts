@@ -526,8 +526,8 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.ownerEmail,
-        from: threadDetails.threadEmailAddress || "notifications@cimshare.com",
-        replyTo: threadDetails.threadEmailAddress || undefined,
+        from: "system@cimshare.com", // Use verified sender address
+        replyTo: threadDetails.threadEmailAddress || "system@cimshare.com",
         subject: `New inquiry: ${threadDetails.subject}`,
         html: emailContent
       });
@@ -574,8 +574,8 @@ export class MessageService {
 
       await sendEmail({
         to: thread.inquirerEmail,
-        from: thread.threadEmailAddress || "notifications@cimshare.com",
-        replyTo: thread.threadEmailAddress!,
+        from: "system@cimshare.com", // Use verified sender address
+        replyTo: thread.threadEmailAddress || "system@cimshare.com",
         subject: `Re: ${thread.subject}`,
         html: emailContent,
         attachments: sendgridAttachments
@@ -915,8 +915,8 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.inquirerEmail,
-        from: threadDetails.threadEmailAddress || "notifications@cimshare.com",
-        replyTo: threadDetails.threadEmailAddress || undefined,
+        from: "system@cimshare.com", // Use verified sender address
+        replyTo: threadDetails.threadEmailAddress || "system@cimshare.com",
         subject: `Re: ${threadDetails.subject}`,
         html: emailContent
       });
