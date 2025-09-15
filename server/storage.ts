@@ -711,7 +711,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         ndaProtected: cimDocuments.ndaProtected,
         shareViewCount: cimDocuments.shareViewCount,
         logoUrl: cimDocuments.logoUrl,
-        isExample: cimDocuments.isExample
+        isExample: cimDocuments.isExample,
+        sectionDirections: cimDocuments.sectionDirections,
+        formattingProfile: cimDocuments.formattingProfile
       })
       .from(cimDocuments)
       .where(whereCondition)
@@ -1097,7 +1099,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         searchVector: cimDocuments.searchVector,
         version: cimDocuments.version,
         coverImageBackup: cimDocuments.coverImageBackup,
-        isExample: cimDocuments.isExample
+        isExample: cimDocuments.isExample,
+        sectionDirections: cimDocuments.sectionDirections,
+        formattingProfile: cimDocuments.formattingProfile
       })
         .from(cimDocuments)
         .where(or(eq(cimDocuments.shareSlug, slug), eq(cimDocuments.customSlug, slug)))
