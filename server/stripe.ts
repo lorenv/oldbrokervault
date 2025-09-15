@@ -148,6 +148,7 @@ export async function createSubscriptionSessionDirect(planId: keyof typeof subsc
       success_url: `${baseUrl}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       customer_email: email,
+      allow_promotion_codes: true,
       subscription_data: {
         metadata: {
           email: email,
@@ -260,6 +261,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
       success_url: `${baseUrl}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=true`,
       client_reference_id: userId.toString(),
+      allow_promotion_codes: true,
       subscription_data: {
         metadata: {
           userId: userId.toString(),
