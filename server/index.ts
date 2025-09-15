@@ -16,8 +16,9 @@ function log(message: string) {
 
 const app = express();
 
-// CRITICAL: Always use port 5000 for deployment (Autoscale requirement)
+// Use PORT environment variable for deployment flexibility
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
 // Enhanced environment variable validation for deployment
 function validateDeploymentEnvironment() {
@@ -216,10 +217,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 async function startServer() {
   await setupMiddleware();
   
-  console.log(`🚀 Starting server on port ${PORT}...`);
+  console.log(`🚀 Starting server on ${HOST}:${PORT}...`);
   
-  const server = app.listen(PORT, () => {
-    log(`✅ Server successfully started on port ${PORT}`);
+  const server = app.listen(PORT, HOST, () => {
+    log(`✅ Server successfully started on ${HOST}:${PORT}`);
     log('✅ Health checks responding immediately');
     console.log('🎯 Server is listening on:', server.address());
     console.log('🚀 Application ready for deployment health checks');
@@ -228,25 +229,72 @@ async function startServer() {
   return server;
 }
 
-const server = await startServer();
-
-// Enhanced error handling for server startup
-server.on('error', (error: any) => {
-  console.error('❌ Server startup error:', error);
+// Start the server and handle errors
+startServer().then(server => {
+  console.log('✅ Server startup completed successfully');
   
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
-    console.error('❌ For Autoscale deployment, port 5000 must be available');
-    console.error('❌ Please ensure no other services are using port 5000');
-    process.exit(1);
-  } else if (error.code === 'EACCES') {
-    console.error(`❌ Permission denied to bind to port ${PORT}`);
-    console.error('❌ This may be a deployment configuration issue');
-    process.exit(1);
-  } else {
-    console.error('❌ Unexpected server error:', error);
-    process.exit(1);
-  }
+  // Enhanced error handling for server startup
+  server.on('error', (error: any) => {
+    console.error('❌ Server startup error:', error);
+    
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use`);
+      console.error('❌ For deployment, the configured port must be available');
+      console.error('❌ Please ensure no other services are using this port');
+      process.exit(1);
+    } else if (error.code === 'EACCES') {
+      console.error(`❌ Permission denied to bind to port ${PORT}`);
+      console.error('❌ This may be a deployment configuration issue');
+      process.exit(1);
+    } else {
+      console.error('❌ Unexpected server error:', error);
+      process.exit(1);
+    }
+  });
+  
+  // Graceful shutdown with memory cleanup
+  process.on('SIGTERM', () => {
+    log('SIGTERM received, shutting down gracefully');
+    clearInterval(memoryInterval);
+    
+    server.close(() => {
+      log('Process terminated');
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        console.log('🧹 Running garbage collection...');
+        global.gc();
+      }
+      
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    log('SIGINT received, shutting down gracefully');
+    clearInterval(memoryInterval);
+    
+    server.close(() => {
+      log('Process terminated');
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        console.log('🧹 Running garbage collection...');
+        global.gc();
+      }
+      
+      process.exit(0);
+    });
+  });
+
+  server.on('close', () => {
+    console.log('🔴 Server has been closed');
+    clearInterval(memoryInterval);
+  });
+  
+}).catch(error => {
+  console.error('❌ Server startup failed:', error);
+  process.exit(1);
 });
 
 // Memory monitoring for deployment
@@ -262,46 +310,6 @@ const memoryInterval = setInterval(() => {
     }
   }
 }, 5 * 60 * 1000); // 5 minutes
-
-server.on('close', () => {
-  console.log('🔴 Server has been closed');
-  clearInterval(memoryInterval);
-});
-
-// Graceful shutdown with memory cleanup
-process.on('SIGTERM', () => {
-  log('SIGTERM received, shutting down gracefully');
-  clearInterval(memoryInterval);
-  
-  server.close(() => {
-    log('Process terminated');
-    
-    // Force garbage collection if available
-    if (global.gc) {
-      console.log('🧹 Running garbage collection...');
-      global.gc();
-    }
-    
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  log('SIGINT received, shutting down gracefully');
-  clearInterval(memoryInterval);
-  
-  server.close(() => {
-    log('Process terminated');
-    
-    // Force garbage collection if available
-    if (global.gc) {
-      console.log('🧹 Running garbage collection...');
-      global.gc();
-    }
-    
-    process.exit(0);
-  });
-});
 
 // Monitor for memory leaks in development
 if (process.env.NODE_ENV !== 'production') {
