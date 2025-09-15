@@ -3,8 +3,9 @@
 process.env.NODE_ENV = 'production';
 process.env.DEPLOYMENT_TARGET = 'autoscale';
 
-// Auto-scale deployment port configuration
-const PORT = process.env.PORT || 3000;
+// Auto-scale deployment port configuration  
+// Use PORT=5000 to match current .replit configuration (localPort 5000 → externalPort 80)
+const PORT = process.env.PORT || 5000;
 process.env.PORT = PORT;
 
 console.log('🚀 CIM Share - Auto-scale Deployment');
