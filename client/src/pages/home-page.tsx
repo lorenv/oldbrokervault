@@ -294,6 +294,18 @@ export default function HomePage() {
               From AI-powered analysis to secure sharing, we've built everything
               you need for professional business documentation.
             </p>
+
+            {/* Video Section */}
+            <div className="max-w-4xl mx-auto mt-12">
+              <video 
+                className="w-full rounded-lg shadow-lg"
+                controls
+                data-testid="video-demo"
+              >
+                <source src="/Video_1757976371111.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
