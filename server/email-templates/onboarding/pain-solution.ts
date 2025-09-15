@@ -5,132 +5,394 @@ export const painSolutionEmailTemplate = {
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }
-        .content { background: white; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; }
-        .button { display: inline-block; background: #667eea; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-        .button:hover { background: #5a67d8; }
-        h1 { margin: 0; font-size: 28px; }
-        h2 { color: #667eea; font-size: 20px; margin-top: 25px; }
-        .pain-point { background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .solution { background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .comparison { display: flex; justify-content: space-between; margin: 20px 0; }
-        .comparison-item { flex: 1; padding: 15px; text-align: center; }
-        .old-way { background: #f9fafb; }
-        .new-way { background: #f0f9ff; border: 2px solid #667eea; }
-        .stat { font-size: 32px; font-weight: bold; color: #667eea; }
-        .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1e293b;
+          margin: 0;
+          padding: 0;
+          background-color: #f8fafc;
+        }
+        .wrapper {
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #ffffff;
+        }
+        .header {
+          background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #6366f1 100%);
+          color: white;
+          padding: 48px 32px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .header::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+          background-size: 20px 20px;
+          animation: shimmer 20s linear infinite;
+        }
+        @keyframes shimmer {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(20px, 20px); }
+        }
+        .header-title {
+          font-size: 28px;
+          font-weight: 700;
+          letter-spacing: -0.5px;
+          margin-bottom: 8px;
+          position: relative;
+          z-index: 1;
+        }
+        .header-subtitle {
+          font-size: 16px;
+          opacity: 0.95;
+          position: relative;
+          z-index: 1;
+        }
+        .content {
+          padding: 40px 32px;
+          background: #ffffff;
+        }
+        .greeting {
+          font-size: 18px;
+          color: #1e293b;
+          margin-bottom: 24px;
+          font-weight: 500;
+        }
+        .intro-text {
+          font-size: 16px;
+          color: #475569;
+          margin-bottom: 32px;
+          line-height: 1.7;
+        }
+        .comparison-container {
+          margin: 32px 0;
+        }
+        .comparison-card {
+          border-radius: 12px;
+          padding: 24px;
+          margin: 20px 0;
+        }
+        .pain-card {
+          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+          border: 1px solid #fecaca;
+        }
+        .solution-card {
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          border: 1px solid #bbf7d0;
+        }
+        .card-header {
+          display: flex;
+          align-items: center;
+          font-weight: 600;
+          font-size: 18px;
+          margin-bottom: 16px;
+        }
+        .card-icon {
+          font-size: 24px;
+          margin-right: 12px;
+        }
+        .pain-header {
+          color: #991b1b;
+        }
+        .solution-header {
+          color: #14532d;
+        }
+        .card-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .card-list li {
+          display: flex;
+          align-items: flex-start;
+          margin: 12px 0;
+          font-size: 15px;
+        }
+        .list-bullet {
+          color: #ef4444;
+          margin-right: 12px;
+          font-size: 18px;
+          line-height: 1;
+        }
+        .solution-list .list-bullet {
+          color: #10b981;
+        }
+        .stats-comparison {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin: 32px 0;
+        }
+        .stat-card {
+          text-align: center;
+          padding: 24px;
+          border-radius: 12px;
+        }
+        .stat-old {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+        }
+        .stat-new {
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          border: 2px solid #3b82f6;
+          position: relative;
+        }
+        .stat-label {
+          font-size: 14px;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+        .stat-value {
+          font-size: 36px;
+          font-weight: 700;
+          color: #1e293b;
+          margin: 8px 0;
+        }
+        .stat-new .stat-value {
+          color: #3b82f6;
+        }
+        .stat-description {
+          font-size: 14px;
+          color: #64748b;
+        }
+        .impact-section {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 12px;
+          padding: 24px;
+          margin: 32px 0;
+          text-align: center;
+        }
+        .impact-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 12px;
+        }
+        .impact-text {
+          font-size: 16px;
+          color: #475569;
+          line-height: 1.7;
+        }
+        .cta-container {
+          text-align: center;
+          margin: 40px 0;
+        }
+        .button {
+          display: inline-block;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          padding: 14px 32px;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+          transition: all 0.2s ease;
+        }
+        .button:hover {
+          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+          transform: translateY(-1px);
+        }
+        .signature {
+          margin-top: 40px;
+          padding-top: 24px;
+          border-top: 1px solid #e2e8f0;
+          color: #475569;
+          font-size: 15px;
+        }
+        .footer {
+          background: #f8fafc;
+          padding: 24px 32px;
+          border-top: 1px solid #e2e8f0;
+        }
+        .footer-content {
+          text-align: center;
+          color: #64748b;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+        .footer-links {
+          margin-top: 16px;
+        }
+        .footer-link {
+          color: #3b82f6;
+          text-decoration: none;
+          margin: 0 8px;
+          font-size: 14px;
+        }
+        .footer-link:hover {
+          text-decoration: underline;
+        }
+        .ps-message {
+          margin-top: 20px;
+          padding: 16px;
+          background: #fef3c7;
+          border-radius: 8px;
+          color: #713f12;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        @media only screen and (max-width: 600px) {
+          .header { padding: 32px 24px; }
+          .content { padding: 32px 24px; }
+          .footer { padding: 20px 24px; }
+          .stats-comparison { grid-template-columns: 1fr; }
+        }
       </style>
     </head>
     <body>
-      <div class="header">
-        <h1>Your Time is Too Valuable for This</h1>
-      </div>
-
-      <div class="content">
-        <p>Hi ${userName},</p>
-
-        <p>Let me guess – you've spent countless hours creating CIM documents, haven't you?</p>
-
-        <div class="pain-point">
-          <strong>😫 The Traditional Way:</strong>
-          <ul style="margin: 10px 0;">
-            <li>8-12 hours formatting and writing</li>
-            <li>Endless copy-pasting from different sources</li>
-            <li>Constant revisions and updates</li>
-            <li>Worrying about consistency and accuracy</li>
-            <li>Starting from scratch every single time</li>
-          </ul>
+      <div class="wrapper">
+        <div class="header">
+          <div class="header-title">Your Time is Too Valuable</div>
+          <div class="header-subtitle">There's a smarter way to create CIMs</div>
         </div>
 
-        <p><strong>We know it's frustrating.</strong> That's exactly why we built CIM Share.</p>
+        <div class="content">
+          <div class="greeting">Hi ${userName},</div>
 
-        <div class="solution">
-          <strong>✨ The CIM Share Way:</strong>
-          <ul style="margin: 10px 0;">
-            <li>Complete CIM in under 60 seconds</li>
-            <li>AI extracts and organizes everything automatically</li>
-            <li>Professional formatting every time</li>
-            <li>100% accurate data pulled from your sources</li>
-            <li>Full control to customize anything you want</li>
-          </ul>
-        </div>
-
-        <h2>See the Difference:</h2>
-
-        <div class="comparison">
-          <div class="comparison-item old-way">
-            <p><strong>Without CIM Share</strong></p>
-            <p class="stat">12 hrs</p>
-            <p>Average time to create one CIM</p>
+          <div class="intro-text">
+            How many hours have you lost to CIM creation this month? If you're like most professionals, it's far too many.
           </div>
-          <div class="comparison-item new-way">
-            <p><strong>With CIM Share</strong></p>
-            <p class="stat">15 min</p>
-            <p>Including review and customization!</p>
+
+          <div class="comparison-container">
+            <div class="comparison-card pain-card">
+              <div class="card-header pain-header">
+                <span class="card-icon">😩</span>
+                <span>The Traditional Struggle</span>
+              </div>
+              <ul class="card-list">
+                <li><span class="list-bullet">•</span><span>8-12 hours per CIM, every single time</span></li>
+                <li><span class="list-bullet">•</span><span>Endless copy-pasting between documents</span></li>
+                <li><span class="list-bullet">•</span><span>Formatting nightmares and inconsistencies</span></li>
+                <li><span class="list-bullet">•</span><span>Version control chaos with multiple revisions</span></li>
+                <li><span class="list-bullet">•</span><span>Starting from scratch, always</span></li>
+              </ul>
+            </div>
+
+            <div class="comparison-card solution-card">
+              <div class="card-header solution-header">
+                <span class="card-icon">✨</span>
+                <span>The CIM Share Revolution</span>
+              </div>
+              <ul class="card-list solution-list">
+                <li><span class="list-bullet">✓</span><span>Complete CIM in under 60 seconds</span></li>
+                <li><span class="list-bullet">✓</span><span>AI extracts and organizes automatically</span></li>
+                <li><span class="list-bullet">✓</span><span>Perfect formatting, guaranteed</span></li>
+                <li><span class="list-bullet">✓</span><span>Real-time collaboration and tracking</span></li>
+                <li><span class="list-bullet">✓</span><span>Reusable templates and smart suggestions</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="stats-comparison">
+            <div class="stat-card stat-old">
+              <div class="stat-label">Without CIM Share</div>
+              <div class="stat-value">12 hrs</div>
+              <div class="stat-description">Per CIM creation</div>
+            </div>
+            <div class="stat-card stat-new">
+              <div class="stat-label">With CIM Share</div>
+              <div class="stat-value">15 min</div>
+              <div class="stat-description">Including customization!</div>
+            </div>
+          </div>
+
+          <div class="impact-section">
+            <div class="impact-title">What Would You Do With 11+ Hours Back?</div>
+            <div class="impact-text">
+              Close more deals. Strengthen client relationships. Develop new strategies.<br>
+              Or simply enjoy dinner with your family instead of your laptop.
+            </div>
+          </div>
+
+          <div class="cta-container">
+            <a href="https://cimshare.com/dashboard" class="button">Reclaim Your Time Today</a>
+          </div>
+
+          <div class="ps-message">
+            🎯 PS: Most users create their first professional CIM within 5 minutes of signing up. Join them today!
+          </div>
+
+          <div class="signature">
+            <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">Your time is worth more,</div>
+            <div>The CIM Share Team</div>
           </div>
         </div>
 
-        <p><strong>Imagine what you could do with those extra 11+ hours.</strong></p>
-
-        <p>More client meetings? Strategic planning? Or maybe just getting home on time for once?</p>
-
-        <p>Stop letting CIM creation steal your valuable time. Let AI handle the heavy lifting while you stay in complete control.</p>
-
-        <div style="text-align: center;">
-          <a href="${process.env.APP_URL}/dashboard/new" class="button">Try CIM Share Today</a>
+        <div class="footer">
+          <div class="footer-content">
+            <div>Ready to transform your workflow?</div>
+            <div class="footer-links">
+              <a href="https://cimshare.com/knowledge-base/" class="footer-link">Knowledge Base</a>
+              <span style="color: #cbd5e1;">•</span>
+              <a href="https://cimshare.com/dashboard" class="footer-link">Dashboard</a>
+              <span style="color: #cbd5e1;">•</span>
+              <a href="mailto:support@cimshare.com" class="footer-link">Contact Support</a>
+            </div>
+            <div style="height: 1px; background: #e2e8f0; margin: 16px 0;"></div>
+            <div style="font-size: 13px; color: #94a3b8; margin-top: 16px;">
+              CIM Share • AI-Powered CIM Creation<br>
+              © 2024 CIM Share. All rights reserved.
+            </div>
+          </div>
         </div>
-
-        <p>Your time is worth more than this,<br>
-        The CIM Share Team</p>
-      </div>
-
-      <div class="footer">
-        <p>PS: Most users create their first CIM within 5 minutes of signing up. Will you be next?</p>
       </div>
     </body>
     </html>
   `,
 
   text: (userName: string) => `
-Your Time is Too Valuable for This
+Your Time is Too Valuable
 
 Hi ${userName},
 
-Let me guess – you've spent countless hours creating CIM documents, haven't you?
+How many hours have you lost to CIM creation this month? If you're like most professionals, it's far too many.
 
-😫 THE TRADITIONAL WAY:
-• 8-12 hours formatting and writing
-• Endless copy-pasting from different sources
-• Constant revisions and updates
-• Worrying about consistency and accuracy
-• Starting from scratch every single time
+😩 THE TRADITIONAL STRUGGLE:
+• 8-12 hours per CIM, every single time
+• Endless copy-pasting between documents
+• Formatting nightmares and inconsistencies
+• Version control chaos with multiple revisions
+• Starting from scratch, always
 
-We know it's frustrating. That's exactly why we built CIM Share.
+✨ THE CIM SHARE REVOLUTION:
+✓ Complete CIM in under 60 seconds
+✓ AI extracts and organizes automatically
+✓ Perfect formatting, guaranteed
+✓ Real-time collaboration and tracking
+✓ Reusable templates and smart suggestions
 
-✨ THE CIM SHARE WAY:
-• Complete CIM in under 60 seconds
-• AI extracts and organizes everything automatically
-• Professional formatting every time
-• 100% accurate data pulled from your sources
-• Full control to customize anything you want
+THE NUMBERS SPEAK FOR THEMSELVES:
+Without CIM Share: 12 hours per CIM creation
+With CIM Share: 15 minutes including customization!
 
-SEE THE DIFFERENCE:
-Without CIM Share: 12 hours average time to create one CIM
-With CIM Share: 15 minutes including review and customization!
+WHAT WOULD YOU DO WITH 11+ HOURS BACK?
+Close more deals. Strengthen client relationships. Develop new strategies.
+Or simply enjoy dinner with your family instead of your laptop.
 
-Imagine what you could do with those extra 11+ hours.
+Reclaim your time today: https://cimshare.com/dashboard
 
-More client meetings? Strategic planning? Or maybe just getting home on time for once?
+🎯 PS: Most users create their first professional CIM within 5 minutes of signing up. Join them today!
 
-Stop letting CIM creation steal your valuable time. Let AI handle the heavy lifting while you stay in complete control.
-
-Try CIM Share today: ${process.env.APP_URL}/dashboard/new
-
-Your time is worth more than this,
+Your time is worth more,
 The CIM Share Team
 
-PS: Most users create their first CIM within 5 minutes of signing up. Will you be next?
+Ready to transform your workflow?
+Knowledge Base: https://cimshare.com/knowledge-base/
+Contact Support: support@cimshare.com
+
+© 2024 CIM Share. All rights reserved.
   `
 };
