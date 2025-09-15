@@ -526,7 +526,7 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.ownerEmail,
-        from: "notifications@cimshare.com",
+        from: threadDetails.threadEmailAddress || "notifications@cimshare.com",
         replyTo: threadDetails.threadEmailAddress || undefined,
         subject: `New inquiry: ${threadDetails.subject}`,
         html: emailContent
@@ -547,15 +547,15 @@ export class MessageService {
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2563eb;">Reply from CIM Share</h2>
-          
+
           <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <p><strong>Re:</strong> ${thread.subject}</p>
           </div>
-          
+
           <div style="background: white; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
             <p style="margin: 0;">${content.replace(/\n/g, '<br>')}</p>
           </div>
-          
+
           <div style="margin: 20px 0; padding: 15px; background: #eff6ff; border-radius: 8px;">
             <p style="margin: 0; font-size: 14px; color: #1e40af;">
               Reply directly to this email to continue the conversation.
@@ -574,7 +574,7 @@ export class MessageService {
 
       await sendEmail({
         to: thread.inquirerEmail,
-        from: "notifications@cimshare.com",
+        from: thread.threadEmailAddress || "notifications@cimshare.com",
         replyTo: thread.threadEmailAddress!,
         subject: `Re: ${thread.subject}`,
         html: emailContent,
@@ -915,7 +915,7 @@ export class MessageService {
 
       await sendEmail({
         to: threadDetails.inquirerEmail,
-        from: "notifications@cimshare.com",
+        from: threadDetails.threadEmailAddress || "notifications@cimshare.com",
         replyTo: threadDetails.threadEmailAddress || undefined,
         subject: `Re: ${threadDetails.subject}`,
         html: emailContent
