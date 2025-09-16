@@ -37,6 +37,7 @@ export class EmailService {
   async sendWelcomeEmail(userEmail: string, userName?: string): Promise<boolean> {
     return this.sendTemplateEmail({
       to: userEmail,
+      from: 'support@cimshare.com',
       templateId: 'd-470daf43d03f4e769ff1ad67effcb998',
       dynamicTemplateData: {
         user_name: userName || 'there',
