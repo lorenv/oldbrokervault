@@ -318,11 +318,11 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         email,
         password: await hashPassword(password),
-        name: name || null,
-        businessName: businessName || null,
-        phoneNumber: phoneNumber || null,
-        businessLogo: null,
-        profilePhoto: null,
+        name: name || undefined,
+        businessName: businessName || undefined,
+        phoneNumber: phoneNumber || undefined,
+        businessLogo: undefined,
+        profilePhoto: undefined,
         isAdmin,
       });
 
