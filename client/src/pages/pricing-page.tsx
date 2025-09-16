@@ -158,7 +158,7 @@ export default function PricingPage() {
         "Priority email support",
         "Custom branding options",
       ],
-      current: user?.subscriptionStatus === "standard" || false,
+      current: user?.subscriptionStatus === "standard",
       icon: <Zap className="h-6 w-6" />,
       color: "border-blue-500",
       popular: true,
@@ -178,7 +178,7 @@ export default function PricingPage() {
         "Advanced security features",
         "Team training sessions",
       ],
-      current: user?.subscriptionStatus === "enterprise" || false,
+      current: user?.subscriptionStatus === "enterprise",
       isEnterprise: true,
       icon: <Shield className="h-6 w-6" />,
       color: "border-purple-500",
@@ -350,7 +350,7 @@ export default function PricingPage() {
                       size="lg"
                       disabled
                     >
-                      Current Plan
+                      —
                     </Button>
                   )}
                 </CardFooter>
