@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { unsubscribeService } from '../services/unsubscribe-service';
-import { onboardingEmailService } from '../services/onboarding-email-service';
 
 const router = Router();
 
@@ -74,10 +73,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Cancel any scheduled onboarding emails if unsubscribed from onboarding
-    if (!emailTypes || emailTypes.onboarding === false) {
-      onboardingEmailService.cancelScheduledEmails(validation.userId);
-    }
 
     res.json({
       success: true,
@@ -144,10 +139,6 @@ router.put('/preferences', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Cancel scheduled onboarding emails if unsubscribed from onboarding
-    if (preferences.onboarding === false) {
-      onboardingEmailService.cancelScheduledEmails(req.user.id);
-    }
 
     res.json({
       success: true,

@@ -384,20 +384,6 @@ export function setupAuth(app: Express) {
       await storage.createExampleCimDocument(user.id);
       console.log(`Created example CIM document for new user ${user.id}`);
 
-      // Start onboarding email sequence
-      try {
-        const { onboardingEmailService } = await import('./services/onboarding-email-service');
-        await onboardingEmailService.startOnboardingSequence({
-          email: user.email,
-          userName: user.name || user.email.split('@')[0],
-          userId: user.id
-        });
-        console.log(`Started onboarding email sequence for ${user.email}`);
-      } catch (emailError) {
-        console.error('Failed to start onboarding emails:', emailError);
-        // Don't fail registration if email sequence fails
-      }
-
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({
