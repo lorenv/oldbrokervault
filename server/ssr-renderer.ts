@@ -190,11 +190,14 @@ function generateMetaTags(meta: PageMeta, fullUrl: string): string {
     `<meta property="og:url" content="${escapeHtml(fullUrl)}">`,
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="CIM Share">`,
+    `<meta property="og:image" content="${new URL('/og-image.png', fullUrl).toString()}">`,
+    `<meta property="og:image:alt" content="CIM Share - Create professional CIMs in minutes">`,
     
     // Twitter Card tags
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${escapeHtml(meta.ogTitle || meta.title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(meta.ogDescription || meta.description)}">`,
+    `<meta name="twitter:image" content="${new URL('/og-image.png', fullUrl).toString()}">`,
     
     // Canonical URL
     `<link rel="canonical" href="${escapeHtml(fullUrl)}">`,
