@@ -3380,13 +3380,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User ID:", userId);
       console.log("REPLIT_DOMAINS env:", process.env.REPLIT_DOMAINS);
       
-      // Use price ID from environment variable
-      const priceId = process.env.STRIPE_PRICE_ID_STANDARD;
-      console.log("Using price ID from environment:", priceId);
-      
-      if (!priceId) {
-        throw new Error("Price ID not configured");
-      }
+      // Get price ID based on plan selection
+      const { getPriceIdForPlan } = await import('./stripe');
+      const priceId = getPriceIdForPlan(plan);
+      console.log(`Using price ID for plan '${plan}':`, priceId);
       
       if (!userId) {
         // For non-authenticated users, we'll create a checkout session without a user ID
@@ -3410,8 +3407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Plan requested:', plan);
       console.error('User ID:', req.user?.id);
       console.error('Price IDs available:', {
-        standard: process.env.STRIPE_PRICE_ID_STANDARD,
-        premium: process.env.STRIPE_PRICE_ID_PREMIUM
+        starter: process.env.STRIPE_PRICE_ID_STARTER,
+        standard: process.env.STRIPE_PRICE_ID_STANDARD
       });
       
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
