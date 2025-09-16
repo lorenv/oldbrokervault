@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { Check, Star, Zap, Shield, Users, Sparkles } from "lucide-react";
+import { Check, Star, Zap, Shield, Users, Sparkles, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -60,12 +60,13 @@ export default function PricingPage() {
         return;
       }
       
-      if (planId === 'standard') {
+      if (planId === 'starter' || planId === 'standard') {
         // Only authenticated users can create checkout sessions
         if (!user) {
+          const planName = planId === 'starter' ? 'Starter plan' : 'Pro plan';
           toast({
             title: "Account Required",
-            description: "Please sign up for an account to subscribe to the Pro plan.",
+            description: `Please sign up for an account to subscribe to the ${planName}.`,
             variant: "destructive",
           });
           return;
@@ -73,7 +74,7 @@ export default function PricingPage() {
         
         // For authenticated users, create a checkout session directly
         const response = await apiRequest("POST", "/api/subscription/create-checkout", {
-          plan: 'standard'
+          plan: planId
         });
         const { url } = await response.json();
         
@@ -120,13 +121,34 @@ export default function PricingPage() {
       popular: false,
     },
     {
+      id: "starter",
+      name: "Starter Plan",
+      price: "$599",
+      priceLabel: "/year",
+      description: "Perfect for individual professionals",
+      features: [
+        "3 CIM documents per year",
+        "Unlimited regenerations", 
+        "PDF export",
+        "Basic analytics dashboard",
+        "NDA management & sharing",
+        "E-signature templates",
+        "Email support",
+        "Custom branding options",
+      ],
+      current: user?.subscriptionStatus === "starter" || false,
+      icon: <Briefcase className="h-6 w-6" />,
+      color: "border-green-500",
+      popular: false,
+    },
+    {
       id: "standard",
-      name: "Pro",
-      price: "$99",
-      priceLabel: "/month",
+      name: "Pro Plan",
+      price: "$999",
+      priceLabel: "/year",
       description: "Everything you need for your business",
       features: [
-        "20 CIM documents per month",
+        "10 CIM documents per year",
         "Unlimited regenerations",
         "PDF export",
         "Advanced analytics dashboard",
