@@ -966,6 +966,58 @@ export type InsertContentStyleTemplate = z.infer<typeof insertContentStyleTempla
 // Default CIM directions for backwards compatibility
 export const DEFAULT_CIM_DIRECTIONS = DEFAULT_ANALYSIS_TEMPLATES.business_overview.customDirections;
 
+// Onboarding Email Sequences - tracks what emails should be sent to users
+export const onboardingEmailSequences = pgTable("onboarding_email_sequences", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  templateId: text("template_id").notNull(), // SendGrid template ID
+  delayInDays: integer("delay_in_days").default(0).notNull(), // Days after registration to send
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// User Email Queue - tracks which emails to send to which users
+export const userEmailQueue = pgTable("user_email_queue", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  sequenceId: integer("sequence_id").notNull(),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  sentAt: timestamp("sent_at"),
+  status: text("status").default("pending").notNull(), // pending, sent, failed, skipped
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schemas for email system
+export const insertOnboardingEmailSequenceSchema = createInsertSchema(onboardingEmailSequences).pick({
+  name: true,
+  templateId: true,
+  delayInDays: true,
+  isActive: true
+}).extend({
+  name: z.string().min(1, "Sequence name is required"),
+  templateId: z.string().min(1, "Template ID is required"),
+  delayInDays: z.number().min(0, "Delay must be 0 or greater"),
+  isActive: z.boolean().default(true)
+});
+
+export const insertUserEmailQueueSchema = createInsertSchema(userEmailQueue).pick({
+  userId: true,
+  sequenceId: true,
+  scheduledAt: true,
+  status: true
+}).extend({
+  userId: z.number().min(1, "User ID is required"),
+  sequenceId: z.number().min(1, "Sequence ID is required"),
+  scheduledAt: z.date(),
+  status: z.enum(["pending", "sent", "failed", "skipped"]).default("pending")
+});
+
+export type OnboardingEmailSequence = typeof onboardingEmailSequences.$inferSelect;
+export type InsertOnboardingEmailSequence = z.infer<typeof insertOnboardingEmailSequenceSchema>;
+export type UserEmailQueue = typeof userEmailQueue.$inferSelect;
+export type InsertUserEmailQueue = z.infer<typeof insertUserEmailQueueSchema>;
+
 // Message attachment types
 export type MessageAttachment = typeof messageAttachments.$inferSelect;
 export type InsertMessageAttachment = typeof messageAttachments.$inferInsert;
