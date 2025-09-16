@@ -230,8 +230,18 @@ async function startServer() {
 }
 
 // Start the server and handle errors
-startServer().then(server => {
+startServer().then(async (server) => {
   console.log('✅ Server startup completed successfully');
+  
+  // Initialize onboarding email system
+  try {
+    const { onboardingEmailSystem } = await import('./onboarding-email-system');
+    await onboardingEmailSystem.scheduleEmailProcessing();
+    console.log('📧 Onboarding email system initialized and processing started');
+  } catch (emailError) {
+    console.error('❌ Failed to initialize onboarding email system:', emailError);
+    // Don't fail server startup if email system fails
+  }
   
   // Enhanced error handling for server startup
   server.on('error', (error: any) => {
