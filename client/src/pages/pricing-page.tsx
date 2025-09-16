@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { Check, Star, Zap, Shield, Users, Sparkles, Briefcase } from "lucide-react";
+import { Check, Star, Zap, Shield, Users, Sparkles, Sprout } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -136,7 +136,7 @@ export default function PricingPage() {
         "Custom branding options",
       ],
       current: user?.subscriptionStatus === "starter" || false,
-      icon: <Briefcase className="h-6 w-6" />,
+      icon: <Sprout className="h-6 w-6" />,
       color: "border-green-500",
       popular: false,
     },
