@@ -335,6 +335,14 @@ export default function PricingPage() {
                     >
                       Upgrade Now
                     </Button>
+                  ) : plan.id === 'starter' ? (
+                    <Button 
+                      className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white shadow-lg"
+                      size="lg"
+                      onClick={() => handleSubscriptionAction('starter')}
+                    >
+                      Upgrade Now
+                    </Button>
                   ) : (
                     <Button 
                       variant="outline"
