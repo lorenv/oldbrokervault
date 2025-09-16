@@ -55,9 +55,12 @@ export const users = pgTable("users", {
   subscriptionStatus: text("subscription_status").default("free").notNull(),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   monthlyUsage: integer("monthly_usage").default(0).notNull(), // Legacy field, keep for backward compatibility
+  annualDocumentsCreated: integer("annual_documents_created").default(0).notNull(),
+  annualRegenerationsUsed: integer("annual_regenerations_used").default(0).notNull(),
+  lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull(),
+  // Keep old fields for backward compatibility during transition
   monthlyDocumentsCreated: integer("monthly_documents_created").default(0).notNull(),
   monthlyRegenerationsUsed: integer("monthly_regenerations_used").default(0).notNull(),
-  lastUsageReset: timestamp("last_usage_reset").defaultNow().notNull(),
   stripeCustomerId: text("stripe_customer_id").unique(),
   subscriptionId: text("subscription_id").unique(),
   googleAccessToken: text("google_access_token"),
