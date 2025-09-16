@@ -130,7 +130,6 @@ export default function PricingPage() {
         "3 CIM documents per year",
         "Unlimited regenerations", 
         "PDF export",
-        "Basic analytics dashboard",
         "NDA management & sharing",
         "E-signature templates",
         "Email support",
@@ -151,7 +150,6 @@ export default function PricingPage() {
         "10 CIM documents per year",
         "Unlimited regenerations",
         "PDF export",
-        "Advanced analytics dashboard",
         "NDA management & sharing",
         "E-signature templates",
         "Priority email support",
@@ -219,7 +217,7 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-16">
           {plans.map((plan, index) => (
             <div
               key={plan.name}
@@ -252,7 +250,7 @@ export default function PricingPage() {
                 )}
                 
                 <CardHeader className="text-center pb-8 pt-6">
-                  <div className="mb-4 inline-flex p-3 rounded-full bg-gradient-to-br from-slate-50 to-slate-100">
+                  <div className="mb-4 flex justify-center">
                     {plan.icon}
                   </div>
                   <CardTitle className="text-2xl font-bold mb-2">{plan.name}</CardTitle>
@@ -359,7 +357,7 @@ export default function PricingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16 max-w-2xl mx-auto">
             <div className="text-center">
               <div className="inline-flex p-3 rounded-full bg-blue-100 mb-4">
                 <Zap className="h-6 w-6 text-blue-600" />
@@ -376,15 +374,6 @@ export default function PricingPage() {
               <h3 className="font-semibold mb-2">Bank-Level Security</h3>
               <p className="text-sm text-muted-foreground">
                 Your data is encrypted and secure at all times
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="inline-flex p-3 rounded-full bg-purple-100 mb-4">
-                <Users className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Team Collaboration</h3>
-              <p className="text-sm text-muted-foreground">
-                Share and collaborate with your team seamlessly
               </p>
             </div>
           </div>
