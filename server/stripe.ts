@@ -236,6 +236,7 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   console.log("Request host:", requestHost);
 
   const user = await storage.getUser(userId);
+  if (!user) throw new Error("User not found");
   const customerId = await getOrCreateCustomer(userId, user.email);
 
   // Determine the correct base URL for redirects
@@ -723,9 +724,15 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         return { userId, status: 'free', endsAt: new Date() };
       }
 
-      case 'customer.subscription.canceled': {
-        // Handle immediate cancellation (different from deletion)
+      case 'customer.subscription.updated': {
+        // Handle subscription cancellation through updates
         const subscription = event.data.object as Stripe.Subscription;
+        
+        // Skip if this isn't a cancellation event
+        if (subscription.status !== 'canceled') {
+          console.log('Subscription update but not canceled, skipping');
+          return null;
+        }
         const userId = parseInt(subscription.metadata.userId);
 
         if (!userId) {
