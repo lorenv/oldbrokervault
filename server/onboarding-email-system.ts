@@ -21,6 +21,7 @@ export class OnboardingEmailSystem {
           
           const success = await emailService.sendTemplateEmail({
             to: email.userEmail,
+            from: 'support@cimshare.com',
             templateId: email.templateId,
             dynamicTemplateData: {
               user_name: email.userName || 'there',
