@@ -11,6 +11,7 @@ function validateStripeConfig() {
     'STRIPE_SECRET_KEY',
     'STRIPE_PUBLISHABLE_KEY', 
     'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_PRICE_ID_STARTER',
     'STRIPE_PRICE_ID_STANDARD'
   ];
   
@@ -43,24 +44,45 @@ try {
   }
 }
 
+// Function to get price ID based on plan
+export function getPriceIdForPlan(planId: string): string {
+  switch (planId) {
+    case 'starter':
+      return process.env.STRIPE_PRICE_ID_STARTER!;
+    case 'standard':
+      return process.env.STRIPE_PRICE_ID_STANDARD!;
+    default:
+      throw new Error(`No price ID configured for plan: ${planId}`);
+  }
+}
+
 // Function to get dynamic pricing from Stripe
 export async function getPricing() {
   if (!stripe) {
     throw new Error('Stripe is not initialized - payment features are unavailable');
   }
   
-  console.log("=== RETRIEVING STANDARD PRICE FROM STRIPE ===");
+  console.log("=== RETRIEVING PRICING FROM STRIPE ===");
+  console.log("Starter Price ID:", process.env.STRIPE_PRICE_ID_STARTER);
   console.log("Standard Price ID:", process.env.STRIPE_PRICE_ID_STANDARD);
   
   try {
-    const standardPrice = await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!);
-    console.log("Standard price retrieved successfully:", {
-      id: standardPrice.id,
-      active: standardPrice.active,
-      unit_amount: standardPrice.unit_amount
+    const [starterPrice, standardPrice] = await Promise.all([
+      stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STARTER!),
+      stripe.prices.retrieve(process.env.STRIPE_PRICE_ID_STANDARD!)
+    ]);
+    
+    console.log("Prices retrieved successfully:", {
+      starter: { id: starterPrice.id, active: starterPrice.active, unit_amount: starterPrice.unit_amount },
+      standard: { id: standardPrice.id, active: standardPrice.active, unit_amount: standardPrice.unit_amount }
     });
     
     return {
+      starter: {
+        amount: starterPrice.unit_amount! / 100,
+        currency: starterPrice.currency,
+        priceId: starterPrice.id
+      },
       standard: {
         amount: standardPrice.unit_amount! / 100,
         currency: standardPrice.currency,
