@@ -90,11 +90,17 @@ export function SubscriptionCard({
               </p>
             </div>
           </div>
-          <Badge 
+          <Badge
             variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
             className="text-xs"
           >
-            {isCanceled ? "CANCELED" : (status === "standard" ? "PRO" : status?.toUpperCase()) || "FREE"}
+            {isCanceled ? "CANCELED" :
+             status === "standard" ? "PRO" :
+             status === "starter" ? "STARTER" :
+             status === "free" ? "FREE TRIAL" :
+             status === "admin" ? "ADMIN" :
+             status === "enterprise" ? "ENTERPRISE" :
+             "FREE TRIAL"}
           </Badge>
         </div>
       </CardHeader>
