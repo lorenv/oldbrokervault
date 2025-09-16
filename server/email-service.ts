@@ -15,7 +15,7 @@ interface SendTemplateEmailParams {
 }
 
 export class EmailService {
-  private defaultFromEmail = 'noreply@cimshare.io'; // Update with your actual from email
+  private defaultFromEmail = 'support@cimshare.com'; // Updated to use verified sender
 
   async sendTemplateEmail(params: SendTemplateEmailParams): Promise<boolean> {
     try {
@@ -28,8 +28,16 @@ export class EmailService {
       
       console.log(`Email sent successfully to ${params.to} using template ${params.templateId}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('SendGrid email error:', error);
+      // Log more detailed error information for debugging
+      if (error.response) {
+        console.error('SendGrid error response:', {
+          statusCode: error.code,
+          body: error.response.body,
+          headers: error.response.headers
+        });
+      }
       return false;
     }
   }

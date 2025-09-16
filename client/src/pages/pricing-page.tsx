@@ -103,6 +103,9 @@ export default function PricingPage() {
     }
   };
 
+  // Debug: Log the actual subscription status
+  console.log('[Pricing Page] User subscription status:', user?.subscriptionStatus);
+
   const plans = [
     {
       id: "free",
@@ -115,7 +118,7 @@ export default function PricingPage() {
         "Standard support",
         "7-day trial period",
       ],
-      current: user?.subscriptionStatus === "free" || false,
+      current: user?.subscriptionStatus === "free",
       icon: <Sparkles className="h-6 w-6" />,
       color: "border-slate-200",
       popular: false,
@@ -128,14 +131,14 @@ export default function PricingPage() {
       description: "Perfect for individual professionals",
       features: [
         "3 CIM documents per year",
-        "Unlimited regenerations", 
+        "Unlimited regenerations",
         "PDF export",
         "NDA management & sharing",
         "E-signature templates",
         "Email support",
         "Custom branding options",
       ],
-      current: user?.subscriptionStatus === "starter" || false,
+      current: user?.subscriptionStatus === "starter",
       icon: <Sprout className="h-6 w-6" />,
       color: "border-green-500",
       popular: false,
