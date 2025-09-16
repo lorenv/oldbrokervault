@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -208,6 +208,13 @@ export interface IStorage {
   createMessageAttachment(attachment: InsertMessageAttachment): Promise<MessageAttachment>;
   getMessageAttachments(messageId: number): Promise<MessageAttachment[]>;
   getMessageAttachment(attachmentId: number): Promise<MessageAttachment | undefined>;
+  // Email management
+  scheduleWelcomeEmail(userId: number): Promise<void>;
+  getOnboardingSequences(): Promise<any[]>;
+  getActiveOnboardingSequences(): Promise<any[]>;
+  getPendingEmails(): Promise<any[]>;
+  markEmailAsSent(queueId: number): Promise<void>;
+  markEmailAsFailed(queueId: number, errorMessage: string): Promise<void>;
   sessionStore: session.Store;
 }
 
@@ -2011,6 +2018,90 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     return await withRetry(async () => {
       const [attachment] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, attachmentId));
       return attachment;
+    });
+  }
+
+  // Email management implementation
+  async scheduleWelcomeEmail(userId: number): Promise<void> {
+    return await withRetry(async () => {
+      // Get the welcome email sequence
+      const [welcomeSequence] = await db.select()
+        .from(onboardingEmailSequences)
+        .where(and(
+          eq(onboardingEmailSequences.name, 'Welcome Email'),
+          eq(onboardingEmailSequences.isActive, true)
+        ));
+
+      if (!welcomeSequence) {
+        throw new Error('Welcome email sequence not found');
+      }
+
+      // Schedule the email to be sent immediately (0 days delay)
+      const scheduledAt = new Date();
+      await db.insert(userEmailQueue).values({
+        userId,
+        sequenceId: welcomeSequence.id,
+        scheduledAt,
+        status: 'pending'
+      });
+    });
+  }
+
+  async getOnboardingSequences(): Promise<OnboardingEmailSequence[]> {
+    return await withRetry(async () => {
+      return await db.select().from(onboardingEmailSequences).orderBy(onboardingEmailSequences.delayInDays);
+    });
+  }
+
+  async getActiveOnboardingSequences(): Promise<OnboardingEmailSequence[]> {
+    return await withRetry(async () => {
+      return await db.select()
+        .from(onboardingEmailSequences)
+        .where(eq(onboardingEmailSequences.isActive, true))
+        .orderBy(onboardingEmailSequences.delayInDays);
+    });
+  }
+
+  async getPendingEmails(): Promise<any[]> {
+    return await withRetry(async () => {
+      return await db.select({
+        queueId: userEmailQueue.id,
+        userId: userEmailQueue.userId,
+        userEmail: users.email,
+        userName: users.name,
+        templateId: onboardingEmailSequences.templateId,
+        scheduledAt: userEmailQueue.scheduledAt,
+        sequenceName: onboardingEmailSequences.name
+      })
+      .from(userEmailQueue)
+      .innerJoin(users, eq(userEmailQueue.userId, users.id))
+      .innerJoin(onboardingEmailSequences, eq(userEmailQueue.sequenceId, onboardingEmailSequences.id))
+      .where(and(
+        eq(userEmailQueue.status, 'pending'),
+        sql`${userEmailQueue.scheduledAt} <= NOW()`
+      ));
+    });
+  }
+
+  async markEmailAsSent(queueId: number): Promise<void> {
+    return await withRetry(async () => {
+      await db.update(userEmailQueue)
+        .set({ 
+          status: 'sent',
+          sentAt: new Date()
+        })
+        .where(eq(userEmailQueue.id, queueId));
+    });
+  }
+
+  async markEmailAsFailed(queueId: number, errorMessage: string): Promise<void> {
+    return await withRetry(async () => {
+      await db.update(userEmailQueue)
+        .set({ 
+          status: 'failed',
+          errorMessage
+        })
+        .where(eq(userEmailQueue.id, queueId));
     });
   }
 }
