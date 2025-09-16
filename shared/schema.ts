@@ -7,31 +7,43 @@ export const subscriptionPlans = {
     name: "Free Trial",
     limit: 1,
     regenerationLimit: 2,
-    price: 0
+    price: 0,
+    billing: "trial"
+  },
+  starter: {
+    name: "Starter Plan",
+    limit: 3,
+    regenerationLimit: Infinity,
+    price: 599,
+    billing: "annual"
   },
   standard: {
-    name: "CIM Share Standard Plan",
-    limit: 20,
+    name: "Pro Plan",
+    limit: 10,
     regenerationLimit: Infinity,
-    price: 99
+    price: 999,
+    billing: "annual"
   },
   canceled: {
-    name: "CIM Share Standard Plan (Canceled)",
-    limit: 20,
-    regenerationLimit: Infinity,
-    price: 99
+    name: "Plan (Canceled)",
+    limit: 0,
+    regenerationLimit: 0,
+    price: 0,
+    billing: "canceled"
   },
   enterprise: {
     name: "Enterprise",
     limit: Infinity,
     regenerationLimit: Infinity,
-    price: 0 // Contact for pricing
+    price: 0,
+    billing: "custom"
   },
   admin: {
     name: "Admin",
     limit: Infinity,
     regenerationLimit: Infinity,
-    price: 0
+    price: 0,
+    billing: "admin"
   }
 } as const;
 
