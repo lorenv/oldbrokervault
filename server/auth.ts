@@ -384,6 +384,15 @@ export function setupAuth(app: Express) {
       await storage.createExampleCimDocument(user.id);
       console.log(`Created example CIM document for new user ${user.id}`);
 
+      // Schedule welcome email for the new user
+      try {
+        await storage.scheduleWelcomeEmail(user.id);
+        console.log(`Welcome email scheduled for new user ${user.id}`);
+      } catch (emailError) {
+        console.error(`Failed to schedule welcome email for user ${user.id}:`, emailError);
+        // Don't fail registration if email scheduling fails
+      }
+
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({
