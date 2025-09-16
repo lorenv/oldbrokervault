@@ -296,18 +296,30 @@ export class DatabaseStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
 
-    // Reset usage if it's a new month
-    const now = new Date();
-    const lastReset = new Date(user.lastUsageReset);
-    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
-      await this.resetMonthlyUsage(userId);
-      return;
+    // For annual plans, check if subscription has expired
+    const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
+    if (plan.billing === 'annual' && user.subscriptionEndsAt) {
+      const now = new Date();
+      if (now > user.subscriptionEndsAt) {
+        await this.resetAnnualUsage(userId);
+        return;
+      }
+    } else {
+      // Reset usage if it's a new month (for legacy monthly plans)
+      const now = new Date();
+      const lastReset = new Date(user.lastUsageReset);
+      if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+        await this.resetMonthlyUsage(userId);
+        return;
+      }
     }
 
     await db
       .update(users)
       .set({
         monthlyUsage: user.monthlyUsage + 1,
+        annualDocumentsCreated: user.annualDocumentsCreated + 1,
+        // Keep old field for backward compatibility
         monthlyDocumentsCreated: user.monthlyDocumentsCreated + 1,
       })
       .where(eq(users.id, userId));
@@ -328,6 +340,8 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(users)
       .set({
+        annualRegenerationsUsed: user.annualRegenerationsUsed + 1,
+        // Keep old field for backward compatibility
         monthlyRegenerationsUsed: user.monthlyRegenerationsUsed + 1,
       })
       .where(eq(users.id, userId));
@@ -345,6 +359,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
   }
 
+  async resetAnnualUsage(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        annualDocumentsCreated: 0,
+        annualRegenerationsUsed: 0,
+        // Also reset monthly for backward compatibility
+        monthlyUsage: 0,
+        monthlyDocumentsCreated: 0,
+        monthlyRegenerationsUsed: 0,
+        lastUsageReset: new Date(),
+      })
+      .where(eq(users.id, userId));
+  }
+
   async checkUserLimit(userId: number): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
@@ -354,18 +383,29 @@ export class DatabaseStorage implements IStorage {
       return true;
     }
 
-    // Reset usage if it's a new month
-    const now = new Date();
-    const lastReset = new Date(user.lastUsageReset);
-    if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
-      await this.resetMonthlyUsage(userId);
-      return true; // After reset, user can create documents
-    }
-
-    // Use the monthly documents created counter to prevent delete-and-recreate loophole
-    // This counts total documents created this month, regardless of deletions
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    return user.monthlyDocumentsCreated < plan.limit;
+    
+    // For annual plans, check subscription expiry
+    if (plan.billing === 'annual') {
+      // If subscription has expired, deny access
+      if (user.subscriptionEndsAt && new Date() > user.subscriptionEndsAt) {
+        return false;
+      }
+      // Use annual counter for annual plans
+      return user.annualDocumentsCreated < plan.limit;
+    } else {
+      // Legacy monthly plan logic
+      const now = new Date();
+      const lastReset = new Date(user.lastUsageReset);
+      if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+        await this.resetMonthlyUsage(userId);
+        // Re-fetch user to get updated counters
+        const updatedUser = await this.getUser(userId);
+        if (!updatedUser) throw new Error("User not found after reset");
+        return updatedUser.monthlyDocumentsCreated < plan.limit;
+      }
+      return user.monthlyDocumentsCreated < plan.limit;
+    }
   }
 
   async checkRegenerationLimit(userId: number): Promise<boolean> {
@@ -420,7 +460,10 @@ export class DatabaseStorage implements IStorage {
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
     if (!canCreate) {
-      throw new Error("Monthly CIM generation limit reached");
+      const user = await this.getUser(userId);
+      const plan = subscriptionPlans[user!.subscriptionStatus as keyof typeof subscriptionPlans];
+      const limitType = plan.billing === 'annual' ? 'Annual' : 'Monthly';
+      throw new Error(`${limitType} CIM generation limit reached`);
     }
 
     const insertData = {
@@ -622,7 +665,10 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
     if (!canCreate) {
-      throw new Error("Monthly CIM generation limit reached");
+      const user = await this.getUser(userId);
+      const plan = subscriptionPlans[user!.subscriptionStatus as keyof typeof subscriptionPlans];
+      const limitType = plan.billing === 'annual' ? 'Annual' : 'Monthly';
+      throw new Error(`${limitType} CIM generation limit reached`);
     }
 
     // Generate automatic share link for uploaded document
