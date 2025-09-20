@@ -31,7 +31,9 @@
       "Bash(sed:*)",
       "Bash(xargs:*)",
       "Bash(git log:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(python3:*)",
+      "Bash(host:*)"
     ],
     "deny": [],
     "ask": [],

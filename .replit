@@ -33,10 +33,6 @@ localPort = 33433
 externalPort = 5000
 
 [[ports]]
-localPort = 44673
-externalPort = 3003
-
-[[ports]]
 localPort = 45683
 externalPort = 4200
 
@@ -71,4 +67,4 @@ waitForPort = 5000
 defaultBucketID = "replit-objstore-c30746f0-fc94-4941-ad96-ebe95abedfb0"
 
 [agent]
-integrations = ["javascript_sendgrid==1.0.0", "javascript_websocket==1.0.0", "perplexity_v0==1.0.0"]
+integrations = ["javascript_sendgrid:1.0.0", "javascript_websocket:1.0.0", "perplexity_v0:1.0.0", "javascript_stripe:1.0.0"]
