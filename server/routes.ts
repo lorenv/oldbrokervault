@@ -206,17 +206,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // These endpoints need to be accessible by external services without authentication
   
   // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
-  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
+  app.post('/api/webhook/sendgrid/inbound', express.raw({ type: '*/*' }), async (req, res) => {
     
+    console.log('📨 INBOUND WEBHOOK HIT!');
+    console.log('Headers:', req.headers);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Body type:', typeof req.body);
+    console.log('Is Buffer?:', Buffer.isBuffer(req.body));
+
     try {
       // Parse form-encoded data from SendGrid
       let webhookData;
-      
+
       if (Buffer.isBuffer(req.body)) {
         const bodyString = req.body.toString('utf8');
-        console.log("Body as string:", bodyString);
-        const formData = new URLSearchParams(bodyString);
-        webhookData = Object.fromEntries(formData.entries());
+        console.log("Raw body (first 500 chars):", bodyString.substring(0, 500));
+
+        // Try to parse as URL-encoded form data
+        if (bodyString.includes('=') && bodyString.includes('&')) {
+          const formData = new URLSearchParams(bodyString);
+          webhookData = Object.fromEntries(formData.entries());
+        } else {
+          // Might be JSON or other format
+          try {
+            webhookData = JSON.parse(bodyString);
+          } catch (e) {
+            console.error('Failed to parse as JSON, using raw string');
+            webhookData = { raw: bodyString };
+          }
+        }
       } else {
         // Fallback for non-buffer data
         webhookData = req.body;
