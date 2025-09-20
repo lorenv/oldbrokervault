@@ -207,12 +207,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // SendGrid Inbound Email Webhook (Enhanced for proper parsing)
   app.post('/api/webhook/sendgrid/inbound', express.raw({ type: '*/*' }), async (req, res) => {
-    
-    console.log('📨 INBOUND WEBHOOK HIT!');
-    console.log('Headers:', req.headers);
-    console.log('Content-Type:', req.headers['content-type']);
-    console.log('Body type:', typeof req.body);
-    console.log('Is Buffer?:', Buffer.isBuffer(req.body));
+
+    console.log('\n' + '='.repeat(80));
+    console.log('📨 SENDGRID INBOUND WEBHOOK HIT!');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('='.repeat(80));
+
+    // Log request details
+    console.log('\n📋 REQUEST DETAILS:');
+    console.log('  Method:', req.method);
+    console.log('  URL:', req.url);
+    console.log('  IP:', req.ip);
+    console.log('  User-Agent:', req.headers['user-agent']);
+
+    // Log all headers for debugging
+    console.log('\n📬 HEADERS:');
+    Object.entries(req.headers).forEach(([key, value]) => {
+      console.log(`  ${key}: ${value}`);
+    });
+
+    console.log('\n📦 BODY INFO:');
+    console.log('  Body type:', typeof req.body);
+    console.log('  Is Buffer?:', Buffer.isBuffer(req.body));
+    console.log('  Body size:', req.body ? req.body.length : 0, 'bytes');
 
     try {
       // Parse form-encoded data from SendGrid
@@ -220,39 +237,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (Buffer.isBuffer(req.body)) {
         const bodyString = req.body.toString('utf8');
-        console.log("Raw body (first 500 chars):", bodyString.substring(0, 500));
+        console.log('\n📝 RAW BODY (first 1000 chars):');
+        console.log(bodyString.substring(0, 1000));
+        if (bodyString.length > 1000) {
+          console.log('... [truncated, total length: ' + bodyString.length + ' chars]');
+        }
 
         // Try to parse as URL-encoded form data
         if (bodyString.includes('=') && bodyString.includes('&')) {
+          console.log('\n✅ Detected URL-encoded form data');
           const formData = new URLSearchParams(bodyString);
           webhookData = Object.fromEntries(formData.entries());
         } else {
           // Might be JSON or other format
           try {
+            console.log('\n🔄 Attempting to parse as JSON...');
             webhookData = JSON.parse(bodyString);
+            console.log('✅ Successfully parsed as JSON');
           } catch (e) {
-            console.error('Failed to parse as JSON, using raw string');
+            console.error('❌ Failed to parse as JSON:', e.message);
+            console.log('⚠️ Using raw string as fallback');
             webhookData = { raw: bodyString };
           }
         }
       } else {
         // Fallback for non-buffer data
+        console.log('\n⚠️ Body is not a buffer, using as-is');
         webhookData = req.body;
       }
-      
-      console.log("🔍 Parsed webhook data:", {
-        to: webhookData.to,
-        from: webhookData.from,
-        subject: webhookData.subject,
-        hasText: !!webhookData.text,
-        hasHtml: !!webhookData.html,
-        allKeys: Object.keys(webhookData)
-      });
-      
+
+      console.log('\n🔍 PARSED WEBHOOK DATA:');
+      console.log('  To:', webhookData.to);
+      console.log('  From:', webhookData.from);
+      console.log('  Subject:', webhookData.subject);
+      console.log('  Text present:', !!webhookData.text, webhookData.text ? `(${webhookData.text.length} chars)` : '');
+      console.log('  HTML present:', !!webhookData.html, webhookData.html ? `(${webhookData.html.length} chars)` : '');
+      console.log('  All fields:', Object.keys(webhookData).join(', '));
+
+      // Log any attachments
+      if (webhookData.attachments) {
+        try {
+          const attachments = JSON.parse(webhookData.attachments);
+          console.log('  Attachments:', attachments.length, 'file(s)');
+        } catch (e) {
+          console.log('  Attachments field present but not JSON');
+        }
+      }
+
+      // Extract thread ID from email address
+      if (webhookData.to) {
+        const threadMatch = webhookData.to.match(/thread-([^@]+)@/);
+        if (threadMatch) {
+          console.log('\n🎯 THREAD INFO:');
+          console.log('  Thread ID extracted:', threadMatch[1]);
+        } else {
+          console.log('\n⚠️ No thread ID found in recipient address:', webhookData.to);
+        }
+      }
+
+      console.log('\n⏳ Processing webhook data...');
       await messageService.processInboundEmailWebhook(webhookData);
+
+      console.log('✅ Webhook processed successfully');
+      console.log('='.repeat(80) + '\n');
       res.status(200).send('OK');
     } catch (error) {
-      console.error("Failed to process inbound email webhook:", error);
+      console.error('\n❌ ERROR PROCESSING WEBHOOK:');
+      console.error('  Error message:', error.message);
+      console.error('  Stack trace:', error.stack);
+      console.log('='.repeat(80) + '\n');
       res.status(500).send('Error processing webhook');
     }
   });
