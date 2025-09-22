@@ -219,6 +219,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('  URL:', req.url);
     console.log('  IP:', req.ip);
     console.log('  User-Agent:', req.headers['user-agent']);
+    console.log('  X-Forwarded-For:', req.headers['x-forwarded-for']);
+    console.log('  X-Real-IP:', req.headers['x-real-ip']);
 
     // Log all headers for debugging
     console.log('\n📬 HEADERS:');
