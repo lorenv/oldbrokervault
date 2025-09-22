@@ -33,7 +33,9 @@
       "Bash(git log:*)",
       "Bash(npm ls:*)",
       "Bash(python3:*)",
-      "Bash(host:*)"
+      "Bash(host:*)",
+      "Bash(chmod:*)",
+      "Bash(./sendgrid-quick-test.sh:*)"
     ],
     "deny": [],
     "ask": [],
