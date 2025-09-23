@@ -1,4 +1,7 @@
 import { MailService } from '@sendgrid/mail';
+import { db } from './db.js';
+import { eq } from 'drizzle-orm';
+import { users, cimDocuments } from '@shared/schema.ts';
 
 // Critical: Check for SENDGRID_API_KEY with detailed production debugging
 if (!process.env.SENDGRID_API_KEY) {
@@ -461,23 +464,44 @@ async function sendApprovalEmail(
   ownerProfile?: any
 ): Promise<boolean> {
   const { signerEmail, signerName, accessToken } = signature;
-  const { title, shareSlug } = cimDoc;
+  const { title, shareSlug, userId } = cimDoc;
   
   // Create direct share URL with access token
   const shareUrl = `https://cimshare.com/share/${shareSlug}?token=${accessToken}`;
   
-  // Use the new CIM link email function if owner profile is provided
-  if (ownerProfile) {
+  // Fetch owner profile if not provided
+  let profile = ownerProfile;
+  if (!profile && userId) {
+    try {
+      const owner = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (owner[0]) {
+        profile = {
+          name: owner[0].name || `${owner[0].firstName || ''} ${owner[0].lastName || ''}`.trim(),
+          email: owner[0].email,
+          phone: owner[0].phoneNumber,
+          title: owner[0].title,
+          businessName: owner[0].businessName,
+          profilePhotoUrl: owner[0].profilePhoto,
+          businessLogoUrl: owner[0].businessLogo
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching owner profile for approval email:', error);
+    }
+  }
+  
+  // Use the new CIM link email function if owner profile is available
+  if (profile) {
     return await sendCimLinkEmail(
       signerEmail,
       signerName,
       title,
       shareUrl,
-      ownerProfile
+      profile
     );
   }
   
-  // Fallback to basic approval email
+  // Fallback to basic approval email with generic contact info
   return await sendEmail({
     to: signerEmail,
     from: 'system@cimshare.com',
@@ -502,6 +526,15 @@ async function sendApprovalEmail(
         <p>Thank you for your patience during the approval process.</p>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Contact Information</h3>
+          <p style="color: #666; text-align: center;">
+            If you have any questions about this opportunity, please contact the document owner directly.
+          </p>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
           This email contains confidential information. Please handle accordingly.
         </p>
@@ -517,6 +550,8 @@ async function sendApprovalEmail(
       You can now access the confidential information memorandum at: ${shareUrl}
       
       Thank you for your patience during the approval process.
+      
+      If you have any questions about this opportunity, please contact the document owner directly.
     `
   });
 }
