@@ -43,27 +43,76 @@ export function Navbar() {
           : "border-b"
     }>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center justify-between w-full">
-          <Link href={user ? "/dashboard" : "/"}>
-            <div className="flex items-center space-x-2 cursor-pointer">
-              <img 
-                src="/cim-share-logo.png" 
-                alt="CIM Share" 
-                className={`h-10 ${isHomePage ? "brightness-0 invert" : ""}`}
-              />
-            </div>
-          </Link>
-          {!user && (
-            <div className="hidden md:flex items-center space-x-6">
-              <Link href="/pricing">
-                <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
+        {/* Logo */}
+        <Link href={user ? "/dashboard" : "/"}>
+          <div className="flex items-center space-x-2 cursor-pointer">
+            <img 
+              src="/cim-share-logo.png" 
+              alt="CIM Share" 
+              className={`h-10 ${isHomePage ? "brightness-0 invert" : ""}`}
+            />
+          </div>
+        </Link>
+
+        {/* Navigation for logged-in users */}
+        {user && (
+          <div className="hidden md:flex items-center justify-center flex-1 mx-8">
+            <nav className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${location === '/dashboard' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  Create CIM
+                </Button>
               </Link>
-              <Link href="/contact">
-                <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
+              <Link href="/documents">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${location === '/documents' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  My CIMs
+                </Button>
               </Link>
-            </div>
-          )}
-        </div>
+              <Link href="/messages">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${location === '/messages' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Messages
+                </Button>
+              </Link>
+              <Link href="/investor-database">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${location === '/investor-database' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  Investors
+                </Button>
+              </Link>
+            </nav>
+          </div>
+        )}
+
+        {/* Non-user navigation */}
+        {!user && (
+          <div className="hidden md:flex items-center space-x-6">
+            <Link href="/pricing">
+              <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
+            </Link>
+            <Link href="/contact">
+              <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Contact</span>
+            </Link>
+          </div>
+        )}
 
         {!user && (
           <div className="flex items-center ml-8 space-x-3">
@@ -123,117 +172,72 @@ export function Navbar() {
           </div>
         )}
 
+        {/* Desktop User Menu - Profile Dropdown */}
         {user && (
-          <>
-            {/* Desktop Navigation - Horizontal Nav Bar */}
-            <div className="hidden md:flex items-center ml-8">
-              <nav className="flex items-center space-x-4">
-                <Link href="/dashboard">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`${location === '/dashboard' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
-                  >
-                    <Zap className="mr-2 h-4 w-4" />
-                    Create CIM
-                  </Button>
-                </Link>
-                <Link href="/documents">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`${location === '/documents' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    My CIMs
-                  </Button>
-                </Link>
-                <Link href="/messages">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`${location === '/messages' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Messages
-                  </Button>
-                </Link>
-                <Link href="/investor-database">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`${location === '/investor-database' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
-                  >
-                    <Database className="mr-2 h-4 w-4" />
-                    Investors
-                  </Button>
-                </Link>
-              </nav>
-            </div>
-
-            {/* Desktop User Menu - Profile Dropdown */}
-            <div className="hidden md:flex items-center space-x-4 ml-6">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-2 px-3 py-2 h-auto"
-                  >
-                    {(profile as any)?.profilePhoto ? (
-                      <img
-                        src={(profile as any).profilePhoto}
-                        alt="Profile"
-                        className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
-                        <User className="h-4 w-4 text-gray-700" />
-                      </div>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Account</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
+          <div className="hidden md:flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2 px-3 py-2 h-auto"
+                >
+                  {(profile as any)?.profilePhoto ? (
+                    <img
+                      src={(profile as any).profilePhoto}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                      <User className="h-4 w-4 text-gray-700" />
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Account</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/account" className="flex items-center cursor-pointer w-full">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Account Settings
+                  </Link>
+                </DropdownMenuItem>
+                {user.isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link href="/account" className="flex items-center cursor-pointer w-full">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Account Settings
+                    <Link href="/admin" className="flex items-center cursor-pointer w-full">
+                      <User className="h-4 w-4 mr-2" />
+                      Admin Panel
                     </Link>
                   </DropdownMenuItem>
-                  {user.isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="flex items-center cursor-pointer w-full">
-                        <User className="h-4 w-4 mr-2" />
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    Support
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => logoutMutation.mutate()}
-                    className="text-red-600"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                )}
+                <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Support
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logoutMutation.mutate()}
+                  className="text-red-600"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
-            {/* Mobile Menu Button */}
+        {/* Mobile Menu Button for logged-in users */}
+        {user && (
             <div className="md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -298,7 +302,6 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </>
         )}
       </div>
       <SupportDialog open={isSupportOpen} onOpenChange={setIsSupportOpen} />
