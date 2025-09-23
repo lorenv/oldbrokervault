@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -38,6 +38,9 @@ export default function DocumentsPage() {
     shareToken?: string;
   }>({ open: false });
   const [exportingDocId, setExportingDocId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
+    return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'card';
+  });
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -202,6 +205,11 @@ export default function DocumentsPage() {
     }
   };
 
+  const toggleViewMode = (mode: 'card' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('documentsViewMode', mode);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
@@ -216,15 +224,35 @@ export default function DocumentsPage() {
             </Link>
           </div>
           
-          <div className="w-full">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
+              <Input
                 placeholder="Search documents..."
                 className="pl-9 w-full text-sm sm:text-base"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+            </div>
+            <div className="flex gap-1 self-end sm:self-auto">
+              <Button
+                variant={viewMode === 'card' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => toggleViewMode('card')}
+                title="Card View"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                onClick={() => toggleViewMode('list')}
+                title="List View"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <List className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -237,8 +265,8 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {/* Documents Grid */}
-        {!documentsLoading && (
+        {/* Documents Display - Card or List View */}
+        {!documentsLoading && viewMode === 'card' && (
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {documents?.map((doc) => (
               <div key={doc.id} className="relative">
@@ -250,14 +278,16 @@ export default function DocumentsPage() {
                           <div className="flex items-center gap-2">
                             {doc.logoUrl && (
                               <div className="flex-shrink-0">
-                                <img 
-                                  src={doc.logoUrl} 
-                                  alt="Company logo" 
-                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-gray-200"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center overflow-hidden">
+                                  <img
+                                    src={doc.logoUrl}
+                                    alt="Company logo"
+                                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
                               </div>
                             )}
                             <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">
@@ -285,7 +315,8 @@ export default function DocumentsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0 p-3 sm:p-6 sm:pt-0">
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Share status tag */}
                         {doc.shareEnabled ? (
                           <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
                             <Globe className="h-3 w-3 flex-shrink-0" />
@@ -297,29 +328,84 @@ export default function DocumentsPage() {
                             <span>Private</span>
                           </div>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
 
-                {/* Dropdown Menu positioned absolutely to avoid Link nesting */}
-                <div className="absolute top-2 sm:top-3 right-2 sm:right-3 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 opacity-60 hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm">
-                        <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem 
+                        {/* Action buttons - horizontal layout */}
+                        <div className="flex items-center gap-1">
+                          {/* Quick action buttons - hidden on mobile/tablet, visible on desktop */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open(`/share/${doc.shareSlug}`, '_blank');
+                            }}
+                            title="Preview CIM"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (doc.shareSlug) {
+                                navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                toast({
+                                  title: "Share link copied",
+                                  description: "The share link has been copied to your clipboard"
+                                });
+                              } else {
+                                toast({
+                                  title: "No Share Link Available",
+                                  description: "This document doesn't have sharing enabled",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            title="Copy Share Link"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.location.href = `/documents/${doc.id}?tab=edit`;
+                            }}
+                            title="Edit CIM"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+
+                          {/* More options dropdown - always visible */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
                         onClick={() => {
-                          window.location.href = `/documents/${doc.id}?tab=share`;
+                          window.open(`/share/${doc.shareSlug}`, '_blank');
                         }}
                       >
-                        <Share2 className="mr-2 h-4 w-4" />
-                        Share Link Settings
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview CIM
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={async () => {
                           if (doc.shareSlug) {
                             navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
@@ -338,6 +424,23 @@ export default function DocumentsPage() {
                       >
                         <LinkIcon className="mr-2 h-4 w-4" />
                         Copy Share Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          window.location.href = `/documents/${doc.id}?tab=edit`;
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit CIM
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          window.location.href = `/documents/${doc.id}?tab=share`;
+                        }}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => {
@@ -400,9 +503,256 @@ export default function DocumentsPage() {
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Documents Display - List View */}
+        {!documentsLoading && viewMode === 'list' && (
+          <div className="space-y-2">
+            {documents?.map((doc) => (
+              <div key={doc.id} className="relative">
+                <Link href={`/documents/${doc.id}?tab=analytics`}>
+                  <div className="group cursor-pointer hover:bg-muted/50 transition-all duration-200 border rounded-lg p-3 sm:p-4 bg-white/80 backdrop-blur-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Left side - Logo and Title */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {doc.logoUrl && (
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center overflow-hidden">
+                              <img
+                                src={doc.logoUrl}
+                                alt="Company logo"
+                                className="w-8 h-8 object-contain"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                            {doc.title}
+                          </h3>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(doc.createdAt).toLocaleDateString()}
+                            </span>
+                            {doc.ndaProtected && (
+                              <span className="flex items-center gap-1">
+                                <PenTool className="h-3 w-3" />
+                                NDA Protected
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {doc.shareViewCount || 0} views
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right side - Status and Actions */}
+                      <div className="flex items-center gap-3">
+                        {/* Share status */}
+                        {doc.shareEnabled ? (
+                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
+                            <Globe className="h-3 w-3" />
+                            <span>Shared</span>
+                          </div>
+                        ) : (
+                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
+                            <Lock className="h-3 w-3" />
+                            <span>Private</span>
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open(`/share/${doc.shareSlug}`, '_blank');
+                            }}
+                            title="Preview CIM"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (doc.shareSlug) {
+                                navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                toast({
+                                  title: "Share link copied",
+                                  description: "The share link has been copied to your clipboard"
+                                });
+                              } else {
+                                toast({
+                                  title: "No Share Link Available",
+                                  description: "This document doesn't have sharing enabled",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            title="Copy Share Link"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.location.href = `/documents/${doc.id}?tab=edit`;
+                            }}
+                            title="Edit CIM"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+
+                          {/* More options dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  window.open(`/share/${doc.shareSlug}`, '_blank');
+                                }}
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                Preview CIM
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  if (doc.shareSlug) {
+                                    navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
+                                    toast({
+                                      title: "Share link copied",
+                                      description: "The share link has been copied to your clipboard"
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "No Share Link Available",
+                                      description: "This document doesn't have sharing enabled",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
+                              >
+                                <LinkIcon className="mr-2 h-4 w-4" />
+                                Copy Share Link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  window.location.href = `/documents/${doc.id}?tab=edit`;
+                                }}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit CIM
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  window.location.href = `/documents/${doc.id}?tab=share`;
+                                }}
+                              >
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share Settings
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (!doc.shareSlug) {
+                                    toast({
+                                      title: "Sharing Not Enabled",
+                                      description: "Please enable sharing for this document first",
+                                      variant: "destructive"
+                                    });
+                                    return;
+                                  }
+                                  setEmailShareDialog({
+                                    open: true,
+                                    documentId: doc.id,
+                                    documentTitle: doc.title,
+                                    shareToken: doc.shareSlug
+                                  });
+                                }}
+                              >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Share via Email
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => duplicateMutation.mutate(doc.id)}
+                                disabled={duplicateMutation.isPending || !userLimits?.canCreateDocument}
+                              >
+                                {duplicateMutation.isPending ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <DuplicateIcon className="mr-2 h-4 w-4" />
+                                )}
+                                {duplicateMutation.isPending ? "Duplicating..." : "Duplicate Document"}
+                              </DropdownMenuItem>
+                              {!doc.isUploadedFile && user?.subscriptionStatus !== "free" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleExport(doc.id, 'pdf')}
+                                    disabled={exportingDocId === doc.id}
+                                  >
+                                    {exportingDocId === doc.id ? (
+                                      <Loader2 className="mr-2 h-4 w-4 text-red-600 animate-spin" />
+                                    ) : (
+                                      <FileDown className="mr-2 h-4 w-4 text-red-600" />
+                                    )}
+                                    {exportingDocId === doc.id ? "Generating PDF..." : "Export to PDF"}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setConfirmDelete(doc.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
               </div>
             ))}
           </div>

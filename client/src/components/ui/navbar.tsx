@@ -180,17 +180,17 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-2 px-3 py-2 h-auto"
+                  className="flex items-center gap-2 px-2 py-2 h-auto"
                 >
                   {(profile as any)?.profilePhoto ? (
                     <img
                       src={(profile as any).profilePhoto}
                       alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
-                      <User className="h-4 w-4 text-gray-700" />
+                    <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                      <User className="h-5 w-5 text-gray-700" />
                     </div>
                   )}
                 </Button>
