@@ -29,7 +29,6 @@ import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 import PremiumDashboard from "@/pages/premium-dashboard";
 import InvestorDatabasePage from "@/pages/investor-database-page";
-import EnhancedCimPage from "@/pages/enhanced-cim-page";
 import { DocumentDetailPage } from "@/pages/document-detail-page";
 import NdaTemplatesPage from "@/pages/nda-templates-page";
 import NdaTemplateEditorPage from "@/pages/nda-template-editor-page";
@@ -64,8 +63,6 @@ function Router() {
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
-            <ProtectedRoute path="/cim/:id" component={EnhancedCimPage} />
-            <ProtectedRoute path="/enhanced-cim/:id" component={EnhancedCimPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/messages" component={Messages} />
