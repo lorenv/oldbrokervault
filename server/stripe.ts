@@ -56,6 +56,19 @@ export function getPriceIdForPlan(planId: string): string {
   }
 }
 
+// Function to get plan name based on Stripe price ID
+export function getPlanFromPriceId(priceId: string): string {
+  switch (priceId) {
+    case process.env.STRIPE_PRICE_ID_STARTER:
+      return 'starter';
+    case process.env.STRIPE_PRICE_ID_STANDARD:
+      return 'standard';
+    default:
+      console.warn(`Unknown price ID: ${priceId}. Defaulting to 'standard' plan.`);
+      return 'standard';
+  }
+}
+
 // Function to get dynamic pricing from Stripe
 export async function getPricing() {
   if (!stripe) {

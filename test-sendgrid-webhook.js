@@ -14,10 +14,10 @@ if (mode === 'info') {
   // Display configuration info
   console.log('\n📋 SENDGRID CONFIGURATION CHECKLIST:\n');
   console.log('1. WEBHOOK URL:');
-  console.log('   https://cimshare.replit.app/api/webhook/sendgrid/inbound\n');
+  console.log('   https://cimshare.com/api/webhook/sendgrid/inbound\n');
   console.log('2. SENDGRID SETTINGS (https://app.sendgrid.com/settings/parse):');
   console.log('   - Hostname: reply.cimshare.com');
-  console.log('   - URL: https://cimshare.replit.app/api/webhook/sendgrid/inbound');
+  console.log('   - URL: https://cimshare.com/api/webhook/sendgrid/inbound');
   console.log('   - "POST raw MIME": UNCHECKED ❌');
   console.log('   - Status: ACTIVE\n');
   console.log('3. MX RECORDS (verified ✓):');
@@ -53,7 +53,7 @@ const testData = {
 const postData = querystring.stringify(testData);
 
 const options = {
-  hostname: 'cimshare.replit.app',
+  hostname: 'cimshare.com',
   path: '/api/webhook/sendgrid/inbound',
   method: 'POST',
   headers: {
