@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -138,6 +138,24 @@ export function CimGenerator() {
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // File upload state for text extraction
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadingFileName, setUploadingFileName] = useState<string>('');
+  const [extractedTextMetadata, setExtractedTextMetadata] = useState<{
+    filename: string;
+    fileType: string;
+    fileSize: number;
+    pageCount?: number;
+    wordCount: number;
+    processingTime: number;
+  } | null>(null);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [supportedTypes, setSupportedTypes] = useState<{
+    extensions: string[];
+    mimeTypes: string[];
+    maxSize: number;
+  } | null>(null);
+
   // Template state
   const [customDirections, setCustomDirections] = useState<string>('');
   const [selectedTemplateTitle, setSelectedTemplateTitle] = useState<string>('');
@@ -209,6 +227,25 @@ export function CimGenerator() {
       formattingProfile: "balanced"
     }
   });
+
+  // Fetch supported file types on component mount
+  useEffect(() => {
+    const fetchSupportedTypes = async () => {
+      try {
+        const response = await apiRequest('GET', '/api/text-extraction/info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setSupportedTypes(data.supportedTypes);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch supported file types:', error);
+      }
+    };
+
+    fetchSupportedTypes();
+  }, []);
 
   const renderValue = (value: any) => {
     if (value === null || value === undefined || value === '') {
@@ -322,6 +359,70 @@ export function CimGenerator() {
     setCoverImageFile(null); // Clear file state when selecting Unsplash image
     setCoverImageAttribution(attribution);
     setIsUnsplashDialogOpen(false);
+  };
+
+  // File upload handler for text extraction
+  const handleTextFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFile(true);
+    setUploadingFileName(file.name);
+    setShowSuccessAnimation(false);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await apiRequest('POST', '/api/text-extraction/extract', {
+        body: formData,
+        headers: {
+          // Don't set Content-Type, let browser set it with boundary for FormData
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to extract text from file');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Set the extracted text in the form
+        form.setValue('transcript', result.text);
+        
+        // Store metadata for success animation
+        setExtractedTextMetadata(result.metadata);
+        setShowSuccessAnimation(true);
+        
+        // Hide success animation after 5 seconds
+        setTimeout(() => setShowSuccessAnimation(false), 5000);
+
+        toast({
+          title: "Text Extracted Successfully!",
+          description: `Extracted ${result.metadata.wordCount} words from ${result.metadata.filename}`,
+        });
+      } else {
+        throw new Error(result.error || 'Text extraction failed');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to extract text from file';
+      
+      toast({
+        title: "Upload Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingFile(false);
+      setUploadingFileName('');
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   const handleGenerate = async (data: FormValues) => {
@@ -830,23 +931,110 @@ export function CimGenerator() {
           <div className="space-y-0">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
               <NotebookPen className="h-5 w-5" />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold">Business Notes</h3>
-                <p className="text-sm text-slate-200">Paste your business meeting transcript or notes</p>
+                <p className="text-sm text-slate-200">Paste your business meeting transcript or notes, or upload a document</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".pdf,.docx,.doc,.txt,.rtf,.md"
+                  onChange={handleTextFileUpload}
+                  className="hidden"
+                  data-testid="file-input-attachment"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingFile}
+                  className="text-white hover:bg-white/20 transition-colors"
+                  data-testid="button-upload-attachment"
+                >
+                  {isUploadingFile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+                {supportedTypes && (
+                  <div className="text-xs text-slate-300 hidden sm:block">
+                    {supportedTypes.extensions.slice(0, 3).join(', ')}
+                    {supportedTypes.extensions.length > 3 && '...'}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="p-4 border border-t-0 rounded-b-lg bg-white">
-                  <Textarea
-                    placeholder="Paste your business notes here..."
-                    className="min-h-[200px]"
-                    {...form.register("transcript")}
-                  />
-                  {form.formState.errors.transcript && (
-                    <p className="text-sm text-destructive mt-1">
-                      {form.formState.errors.transcript.message as string}
-                    </p>
-                  )}
+              {/* Upload Progress Indicator */}
+              {isUploadingFile && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900">Extracting text from file...</p>
+                      <p className="text-xs text-blue-600">{uploadingFileName}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 w-full bg-blue-200 rounded-full h-1">
+                    <div className="bg-blue-600 h-1 rounded-full transition-all duration-500 ease-out w-3/4"></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Animation */}
+              {extractedTextMetadata && showSuccessAnimation && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg animate-in slide-in-from-top duration-500">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center animate-bounce">
+                        <Check className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-900">
+                        Text extracted successfully! 
+                      </p>
+                      <p className="text-xs text-green-600">
+                        {extractedTextMetadata.wordCount} words from {extractedTextMetadata.filename}
+                        {extractedTextMetadata.pageCount && ` (${extractedTextMetadata.pageCount} pages)`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSuccessAnimation(false)}
+                      className="text-green-600 hover:bg-green-100"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="relative">
+                <Textarea
+                  placeholder="Paste your business notes here or upload a document using the attachment icon above..."
+                  className="min-h-[200px]"
+                  {...form.register("transcript")}
+                  data-testid="textarea-transcript"
+                />
+                {supportedTypes && (
+                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground sm:hidden">
+                    Upload: {supportedTypes.extensions.slice(0, 2).join(', ')}...
+                  </div>
+                )}
+              </div>
+
+              {form.formState.errors.transcript && (
+                <p className="text-sm text-destructive mt-1">
+                  {form.formState.errors.transcript.message as string}
+                </p>
+              )}
             </div>
           </div>
 
