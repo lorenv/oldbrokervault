@@ -64,7 +64,7 @@ export function Navbar() {
                   size="sm"
                   className={`${location === '/dashboard' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
                 >
-                  <Zap className="mr-2 h-4 w-4" />
+                  <Zap className="mr-1 h-4 w-4" />
                   Create CIM
                 </Button>
               </Link>
@@ -74,7 +74,7 @@ export function Navbar() {
                   size="sm"
                   className={`${location === '/documents' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
+                  <FileText className="mr-1 h-4 w-4" />
                   My CIMs
                 </Button>
               </Link>
@@ -84,7 +84,7 @@ export function Navbar() {
                   size="sm"
                   className={`${location === '/messages' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
                 >
-                  <MessageCircle className="mr-2 h-4 w-4" />
+                  <MessageCircle className="mr-1 h-4 w-4" />
                   Messages
                 </Button>
               </Link>
@@ -94,7 +94,7 @@ export function Navbar() {
                   size="sm"
                   className={`${location === '/investor-database' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
                 >
-                  <Database className="mr-2 h-4 w-4" />
+                  <Database className="mr-1 h-4 w-4" />
                   Investors
                 </Button>
               </Link>
