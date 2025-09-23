@@ -341,7 +341,7 @@ export default function PricingPage() {
                       size="lg"
                       onClick={() => handleSubscriptionAction('starter')}
                     >
-                      Upgrade Now
+                      {user?.subscriptionStatus === 'standard' ? 'Change Plan' : 'Upgrade Now'}
                     </Button>
                   ) : (
                     <Button 
