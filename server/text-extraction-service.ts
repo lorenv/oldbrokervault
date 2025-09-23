@@ -193,6 +193,7 @@ class TextExtractionService {
   private async extractFromPDF(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
     try {
       // Import worker (required for PDF.js)
+      // @ts-ignore - Worker import doesn't have types
       await import('pdfjs-dist/build/pdf.worker.mjs');
       
       const uint8Array = new Uint8Array(buffer);

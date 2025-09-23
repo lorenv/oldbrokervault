@@ -49,6 +49,7 @@ import { messageRoutes } from "./routes/messages";
 import messageAttachmentRoutes from "./routes/message-attachments";
 import { registerMonitoringRoutes } from "./routes/monitoring-routes";
 import { setupSEORoutes } from "./seo-routes";
+import { textExtractionRouter } from "./routes/text-extraction";
 
 
 // Directory paths
@@ -463,6 +464,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register unsubscribe routes
   app.use('/api/unsubscribe', unsubscribeRoutes);
+
+  // Register text extraction routes
+  app.use('/api/text-extraction', textExtractionRouter);
 
   // Public health check endpoint for debugging shared document access
   app.get("/api/public-health", (req, res) => {
