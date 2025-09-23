@@ -64,8 +64,8 @@ export function getPlanFromPriceId(priceId: string): string {
     case process.env.STRIPE_PRICE_ID_STANDARD:
       return 'standard';
     default:
-      console.warn(`Unknown price ID: ${priceId}. Defaulting to 'standard' plan.`);
-      return 'standard';
+      console.error(`Unknown price ID: ${priceId}. Cannot determine plan.`);
+      throw new Error(`Unknown price ID: ${priceId}. Cannot determine plan - this is a configuration error.`);
   }
 }
 
@@ -235,11 +235,10 @@ export async function createSubscriptionSession(planId: keyof typeof subscriptio
   console.log("STRIPE_PRICE_ID_STANDARD:", process.env.STRIPE_PRICE_ID_STANDARD);
 
   
-  // Use fresh price ID if provided, otherwise get dynamic pricing data
+  // Use fresh price ID if provided, otherwise use planId to get correct price
   let priceId = freshPriceId;
   if (!priceId) {
-    const pricing = await getPricing();
-    priceId = pricing.standard.priceId;
+    priceId = getPriceIdForPlan(planId);
   }
 
   console.log("=== STRIPE SESSION CREATION START ===");
@@ -373,7 +372,13 @@ export async function verifyCheckoutSession(sessionId: string) {
       const userId = session.client_reference_id ? parseInt(session.client_reference_id) : null;
       const customerEmail = session.customer_details?.email || session.customer_email;
       const priceId = subscription.items.data[0].price.id;
-      const status = getPlanFromPriceId(priceId);
+      let status: string;
+      try {
+        status = getPlanFromPriceId(priceId);
+      } catch (error) {
+        console.error(`Failed to determine plan for price ID ${priceId}:`, error);
+        return null; // Don't verify if we can't determine the plan
+      }
 
       console.log("Parsed session data:", { userId, customerEmail, priceId, status });
 
@@ -498,7 +503,13 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = getPlanFromPriceId(priceId);
+        let status: string;
+        try {
+          status = getPlanFromPriceId(priceId);
+        } catch (error) {
+          console.error(`Failed to determine plan for price ID ${priceId}:`, error);
+          return null; // Don't upgrade if we can't determine the plan
+        }
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Subscription details:", { 
@@ -655,7 +666,13 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = getPlanFromPriceId(priceId);
+        let status: string;
+        try {
+          status = getPlanFromPriceId(priceId);
+        } catch (error) {
+          console.error(`Failed to determine plan for price ID ${priceId}:`, error);
+          return null; // Don't update if we can't determine the plan
+        }
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Updated subscription details:", { 
