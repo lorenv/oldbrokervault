@@ -1,5 +1,5 @@
 import '@ungap/with-resolvers'; // Required polyfill for Node < 22
-import { getDocument } from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 import fs from 'fs/promises';
 import path from 'path';
@@ -192,12 +192,8 @@ class TextExtractionService {
    */
   private async extractFromPDF(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
     try {
-      // Import worker (required for PDF.js)
-      // @ts-ignore - Worker import doesn't have types
-      await import('pdfjs-dist/build/pdf.worker.mjs');
-      
       const uint8Array = new Uint8Array(buffer);
-      const pdf = await getDocument({ data: uint8Array }).promise;
+      const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
       const pageCount = pdf.numPages;
       
       let fullText = '';
