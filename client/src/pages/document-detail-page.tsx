@@ -49,7 +49,9 @@ function EditableTitle({ title, docId, onTitleUpdate }: EditableTitleProps) {
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-        title: newTitle
+        body: {
+          title: newTitle
+        }
       });
       if (!response.ok) {
         throw new Error('Failed to update title');

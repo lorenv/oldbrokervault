@@ -110,7 +110,7 @@ function TemplatesContent() {
       recipients: any[];
     }) => {
 
-      const response = await apiRequest('POST', '/api/nda-templates', templateData);
+      const response = await apiRequest('POST', '/api/nda-templates', { body: templateData });
       return response.json();
     },
     onSuccess: () => {
@@ -141,7 +141,7 @@ function TemplatesContent() {
     }) => {
       const { id, ...data } = templateData;
 
-      const response = await apiRequest('PUT', `/api/nda-templates/${id}`, data);
+      const response = await apiRequest('PUT', `/api/nda-templates/${id}`, { body: data });
       return response.json();
     },
     onSuccess: () => {
@@ -532,7 +532,7 @@ export default function AccountPage() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: typeof profileForm) => {
-      const response = await apiRequest("PUT", "/api/profile", profileData);
+      const response = await apiRequest("PUT", "/api/profile", { body: profileData });
       return response.json();
     },
     onSuccess: () => {
@@ -772,7 +772,7 @@ export default function AccountPage() {
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     setIsUpdating(true);
     try {
-      const res = await apiRequest("POST", "/api/user/update", values);
+      const res = await apiRequest("POST", "/api/user/update", { body: values });
       if (!res.ok) throw new Error("Failed to update profile");
 
       toast({

@@ -94,9 +94,11 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const updateNdaSettingsMutation = useMutation({
     mutationFn: async (settings: any) => {
       const response = await apiRequest('PATCH', `/api/cim/${cimDocument.id}/share-settings`, {
-        ndaProtected: settings.ndaProtected,
-        ndaTemplateId: settings.ndaTemplateId,
-        ndaApprovalRequired: settings.ndaApprovalRequired
+        body: {
+          ndaProtected: settings.ndaProtected,
+          ndaTemplateId: settings.ndaTemplateId,
+          ndaApprovalRequired: settings.ndaApprovalRequired
+        }
       });
       if (!response.ok) throw new Error('Failed to update NDA settings');
       return response.json();
@@ -164,7 +166,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const batchApproveSignersMutation = useMutation({
     mutationFn: async (signatureIds: number[]) => {
       const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/approve-batch`, {
-        signatureIds
+        body: {
+          signatureIds
+        }
       });
       if (!response.ok) throw new Error('Failed to approve signers');
       return response.json();
@@ -335,7 +339,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const bulkResendEmailMutation = useMutation({
     mutationFn: async (signatureIds: number[]) => {
       const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/resend-batch`, {
-        signatureIds
+        body: {
+          signatureIds
+        }
       });
       if (!response.ok) throw new Error('Failed to resend emails');
       return response.json();

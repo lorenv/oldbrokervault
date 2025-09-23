@@ -74,7 +74,9 @@ export default function PricingPage() {
         
         // For authenticated users, create a checkout session directly
         const response = await apiRequest("POST", "/api/subscription/create-checkout", {
-          plan: planId
+          body: {
+            plan: planId
+          }
         });
         const { url } = await response.json();
         

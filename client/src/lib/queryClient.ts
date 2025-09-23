@@ -31,19 +31,25 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  options?: {
+    body?: unknown;
+    headers?: Record<string, string>;
+  },
 ): Promise<Response> {
-  const isFormData = data instanceof FormData;
-  
-  const headers: Record<string, string> = isFormData ? {} : {};
-  if (data && !isFormData) {
+  const body = options?.body;
+  const isFormData = body instanceof FormData;
+
+  const headers: Record<string, string> = { ...options?.headers };
+  if (body && !isFormData) {
     headers["Content-Type"] = "application/json";
   }
-  headers["Accept"] = "application/json";
+  if (!isFormData) {
+    headers["Accept"] = "application/json";
+  }
   
   const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
-  console.log(`Making ${method} request to ${fullUrl}`, { 
-    data: data instanceof FormData ? 'FormData' : data,
+  console.log(`Making ${method} request to ${fullUrl}`, {
+    body: body instanceof FormData ? 'FormData' : body,
     credentials: 'include',
     headers: headers
   });
@@ -51,7 +57,7 @@ export async function apiRequest(
   const res = await fetch(fullUrl, {
     method,
     headers,
-    body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
+    body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
     credentials: "include",
   });
 

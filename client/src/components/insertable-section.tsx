@@ -45,8 +45,10 @@ export function InsertableSection({ afterSection, docId, onSectionAdded }: Inser
     setShowDialog(false);
     try {
       const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/text`, {
-        content: '<p>Click to edit text...</p>',
-        afterSection: afterSection
+        body: {
+          content: '<p>Click to edit text...</p>',
+          afterSection: afterSection
+        }
       });
 
       if (response.ok) {

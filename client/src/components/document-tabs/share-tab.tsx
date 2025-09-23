@@ -115,7 +115,7 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
         ndaTemplateId: shareSettings.ndaTemplateId
       };
 
-      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/share`, payload);
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/share`, { body: payload });
 
       if (response.ok) {
         const result = await response.json();

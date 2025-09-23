@@ -78,7 +78,7 @@ export function AddCustomSection({ docId, onSectionAdded }: AddCustomSectionProp
         ...(sectionType === 'image' && { imageUrls: selectedImages }),
       };
 
-      await apiRequest("POST", `/api/cim/${docId}/custom-sections`, payload);
+      await apiRequest("POST", `/api/cim/${docId}/custom-sections`, { body: payload });
 
       toast({
         title: "Section Added",
