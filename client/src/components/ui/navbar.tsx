@@ -126,8 +126,8 @@ export function Navbar() {
         {user && (
           <>
             {/* Desktop Navigation - Horizontal Nav Bar */}
-            <div className="hidden md:flex items-center flex-1 ml-8">
-              <nav className="flex items-center space-x-6">
+            <div className="hidden md:flex items-center ml-8">
+              <nav className="flex items-center space-x-4">
                 <Link href="/dashboard">
                   <Button
                     variant="ghost"
@@ -172,7 +172,7 @@ export function Navbar() {
             </div>
 
             {/* Desktop User Menu - Profile Dropdown */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4 ml-6">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
