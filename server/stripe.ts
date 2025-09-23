@@ -373,7 +373,7 @@ export async function verifyCheckoutSession(sessionId: string) {
       const userId = session.client_reference_id ? parseInt(session.client_reference_id) : null;
       const customerEmail = session.customer_details?.email || session.customer_email;
       const priceId = subscription.items.data[0].price.id;
-      const status = 'standard';
+      const status = getPlanFromPriceId(priceId);
 
       console.log("Parsed session data:", { userId, customerEmail, priceId, status });
 
@@ -498,7 +498,7 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = 'standard';
+        const status = getPlanFromPriceId(priceId);
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Subscription details:", { 
@@ -655,7 +655,7 @@ async function processStripeWebhookEvent(event: Stripe.Event) {
         }
 
         const priceId = subscription.items.data[0].price.id;
-        const status = 'standard';
+        const status = getPlanFromPriceId(priceId);
         const endsAt = new Date(subscription.current_period_end * 1000);
 
         console.log("Updated subscription details:", { 
