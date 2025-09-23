@@ -36,7 +36,9 @@ export function SubscriptionCard({
         return "Unlimited";
       case "standard":
       case "canceled": // Canceled subscriptions maintain access until end date
-        return 20;
+        return 10;
+      case "starter":
+        return 3;
       default:
         return 1; // Free trial
     }

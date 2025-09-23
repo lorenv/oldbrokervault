@@ -51,9 +51,8 @@ export function setupSEORoutes(app: Express) {
         const isBot = /bot|crawler|spider|crawling/i.test(userAgent) || 
                      /googlebot|bingbot|slurp|duckduckbot/i.test(userAgent);
         
-        // Serve SEO HTML to bots always, and to all requests in production
-        const isDevelopment = process.env.NODE_ENV !== 'production';
-        const shouldServeSEO = isBot || !isDevelopment;
+        // Serve SEO HTML to bots only
+        const shouldServeSEO = isBot;
         
         if (shouldServeSEO) {
           logger.info(`Serving SEO HTML for ${route}`, { 
