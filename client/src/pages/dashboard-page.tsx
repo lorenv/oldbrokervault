@@ -135,13 +135,14 @@ export default function DashboardPage() {
 
             {/* Subscription Card */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <SubscriptionCard 
-                status={user?.subscriptionStatus} 
-                endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null} 
+              <SubscriptionCard
+                status={user?.subscriptionStatus}
+                endsAt={user?.subscriptionEndsAt ? new Date(user.subscriptionEndsAt).toISOString() : null}
                 monthlyUsage={user?.monthlyUsage}
                 monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
                 monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
                 subtle={true}
+                hideProButtons={true} // Hide upgrade/change plan buttons for Pro users on dashboard
               />
             </div>
           </div>
