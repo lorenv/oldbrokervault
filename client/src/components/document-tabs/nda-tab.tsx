@@ -49,6 +49,9 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
   });
 
+  // Maintain a stable sort order for signatures by storing IDs
+  const [sortOrderIds, setSortOrderIds] = useState<number[]>([]);
+
   // Debug logging
   console.log('📋 NDA Tab - Document data received:', {
     ndaProtected: cimDocument.ndaProtected,
@@ -71,6 +74,22 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
     });
   }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
+
+  // Initialize and maintain stable sort order for signatures
+  useEffect(() => {
+    // Only initialize sort order if we don't have one yet
+    if (sortOrderIds.length === 0 && ndaSignatures.length > 0) {
+      // Set initial sort order based on how signatures come from backend
+      setSortOrderIds(ndaSignatures.map(sig => sig.id));
+    } else if (sortOrderIds.length > 0) {
+      // When signatures are updated, preserve existing order and add new ones at the end
+      const existingIds = new Set(sortOrderIds);
+      const newSignatures = ndaSignatures.filter(sig => !existingIds.has(sig.id));
+      if (newSignatures.length > 0) {
+        setSortOrderIds([...sortOrderIds, ...newSignatures.map(sig => sig.id)]);
+      }
+    }
+  }, [ndaSignatures]);
 
 
   const [signatureSearchTerm, setSignatureSearchTerm] = useState('');
@@ -211,8 +230,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
 
 
+  // Sort signatures based on stable sort order
+  const stablySortedSignatures = sortOrderIds.length > 0
+    ? sortOrderIds
+        .map(id => ndaSignatures.find(sig => sig.id === id))
+        .filter((sig): sig is NonNullable<typeof sig> => sig !== undefined)
+    : ndaSignatures;
+
   // Filter signatures based on search term
-  const filteredSignatures = ndaSignatures.filter(signature =>
+  const filteredSignatures = stablySortedSignatures.filter(signature =>
     signature.signerName.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
     signature.signerEmail.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
     (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()))
@@ -255,8 +281,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
   // Export to CSV
   const exportSignaturesToCSV = () => {
-    const selectedSigs = selectedSignatures.length > 0 
-      ? ndaSignatures.filter(sig => selectedSignatures.includes(sig.id))
+    const selectedSigs = selectedSignatures.length > 0
+      ? stablySortedSignatures.filter(sig => selectedSignatures.includes(sig.id))
       : filteredSignatures;
 
     const csvData = selectedSigs.map(sig => ({

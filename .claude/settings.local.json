@@ -35,7 +35,9 @@
       "Bash(python3:*)",
       "Bash(host:*)",
       "Bash(chmod:*)",
-      "Bash(./sendgrid-quick-test.sh:*)"
+      "Bash(./sendgrid-quick-test.sh:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": [],
