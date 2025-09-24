@@ -49,6 +49,8 @@ export default function FillableNdaDocument({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documentImages, setDocumentImages] = useState<Array<{imageUrl: string, width: number, height: number}>>([]);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const { toast } = useToast();
 
   // Convert PDF to images for display with caching
@@ -64,6 +66,7 @@ export default function FillableNdaDocument({
         if (cached) {
           const cachedData = JSON.parse(cached);
           setDocumentImages(cachedData);
+          setImagesLoaded(true);
           return;
         }
 
@@ -90,26 +93,35 @@ export default function FillableNdaDocument({
               data.pages.map(async (page: any, index: number) => {
                 return new Promise<{imageUrl: string, width: number, height: number}>((resolve, reject) => {
                   const img = new Image();
-                  
-                  // Optimize loading
-                  img.loading = 'eager';
-                  img.decoding = 'sync';
-                  
+
+                  // Remove browser-specific optimizations that may cause issues
+                  // img.loading = 'eager'; // Removed - can cause issues in some Chrome versions
+                  // img.decoding = 'sync'; // Removed - can cause issues in some Chrome versions
+
+                  // Add crossOrigin to handle CORS issues in Chrome
+                  img.crossOrigin = 'anonymous';
+
                   img.onload = () => {
                     console.log(`Page ${index + 1} loaded successfully: ${img.width}x${img.height}`);
                     resolve({
                       imageUrl: page.imageUrl,
-                      width: img.naturalWidth,
-                      height: img.naturalHeight
+                      width: img.naturalWidth || img.width || 800,  // Fallback width
+                      height: img.naturalHeight || img.height || 1100  // Fallback height (standard A4 ratio)
                     });
                   };
-                  
+
                   img.onerror = (error) => {
                     console.error(`Failed to load page ${index + 1}:`, error);
                     console.error('Image URL:', page.imageUrl);
-                    reject(new Error(`Failed to load page ${index + 1}`));
+                    // Instead of rejecting, resolve with default dimensions
+                    // This allows fields to still render even if image fails
+                    resolve({
+                      imageUrl: page.imageUrl,
+                      width: 800,  // Default width
+                      height: 1100  // Default height (standard A4 ratio)
+                    });
                   };
-                  
+
                   console.log(`Loading page ${index + 1} from:`, page.imageUrl);
                   img.src = page.imageUrl;
                 });
@@ -118,7 +130,8 @@ export default function FillableNdaDocument({
             
             console.log('All pages processed successfully:', processedPages.map(p => ({w: p.width, h: p.height})));
             setDocumentImages(processedPages);
-            
+            setImagesLoaded(true);
+
             // Cache the processed images for faster reloads
             const cacheKey = `nda_images_${btoa(ndaContent).substring(0, 16)}`;
             sessionStorage.setItem(cacheKey, JSON.stringify(processedPages));
@@ -220,10 +233,15 @@ export default function FillableNdaDocument({
             alt={`Document page ${pageNumber}`}
             className="block border border-gray-200"
             style={{ width: '800px', height: 'auto' }}
-            loading="eager"
-            decoding="sync"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // Don't hide the image - instead show a placeholder background
+              console.error('Image failed to render in browser:', pageData.imageUrl);
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.minHeight = '1100px';
+              setImageLoadError(true);
+            }}
+            onLoad={(e) => {
+              console.log(`Image rendered successfully in browser: ${e.currentTarget.naturalWidth}x${e.currentTarget.naturalHeight}`);
             }}
           />
           
@@ -338,8 +356,57 @@ export default function FillableNdaDocument({
           <CardContent className="p-3 sm:p-6">
             {/* Document with Overlay Fields */}
             <div className="mb-6 sm:mb-8">
-              {documentImages.length > 0 ? (
+              {documentImages.length > 0 || (imagesLoaded && signatureFields.length > 0) ? (
                 renderDocumentWithFields()
+              ) : signatureFields.length > 0 && !imagesLoaded ? (
+                // Fallback: Show fields in a form layout if images fail to load after 5 seconds
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-4">
+                    {imageLoadError ? (
+                      <AlertCircle className="inline-block w-4 h-4 mr-2 text-yellow-600" />
+                    ) : null}
+                    Please fill in the following fields:
+                  </div>
+                  {signatureFields.map((field) => {
+                    const Icon = FIELD_ICONS[field.type];
+                    const isRequired = field.required !== false;
+
+                    return (
+                      <div key={field.id} className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <Icon className="w-4 h-4 text-blue-600" />
+                          {field.label}
+                          {isRequired && <span className="text-red-500">*</span>}
+                        </label>
+                        {field.type === 'date' ? (
+                          <div className="w-full p-2 bg-blue-50 border-2 border-blue-400 rounded text-sm text-blue-800">
+                            {new Date().toLocaleDateString()}
+                          </div>
+                        ) : field.type === 'signature' ? (
+                          <input
+                            type="text"
+                            value={fieldValues[field.id] || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            placeholder="Type your full name as signature"
+                            className="w-full p-2 bg-blue-50 border-2 border-blue-400 rounded text-sm italic focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            style={{ fontFamily: 'cursive', color: '#1e40af' }}
+                          />
+                        ) : (
+                          <input
+                            type={field.type === 'email' ? 'email' : 'text'}
+                            value={fieldValues[field.id] || ''}
+                            onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                            placeholder={`Enter ${field.label.toLowerCase()}`}
+                            className="w-full p-2 bg-blue-50 border-2 border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        )}
+                        {errors[field.id] && (
+                          <p className="text-xs text-red-500">{errors[field.id]}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-48 sm:h-64 bg-gray-100 rounded-lg">
                   <div className="text-center">
