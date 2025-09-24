@@ -622,11 +622,11 @@ export function SharePage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8">
-                      {/* Company logo inside financial box - prioritize business logo over website extracted logo */}
-                      {(shareData.cim.userProfile?.businessLogo || shareData.cim.logoUrl) && (
+                      {/* Website extracted logo inside financial box - use website logo unless user uploaded override */}
+                      {(shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo) && (
                         <div className="flex justify-center mb-8 pb-6 border-b border-gray-200 animate-fade-in delay-500">
                           <img
-                            src={shareData.cim.userProfile?.businessLogo || shareData.cim.logoUrl}
+                            src={shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo}
                             alt="Company Logo"
                             className="h-24 md:h-36 object-contain"
                           />
