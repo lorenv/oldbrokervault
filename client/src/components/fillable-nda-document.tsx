@@ -55,9 +55,18 @@ export default function FillableNdaDocument({
 
   // Convert PDF to images for display with caching
   useEffect(() => {
+    // Set a timeout to show fallback if images don't load
+    const fallbackTimeout = setTimeout(() => {
+      if (!imagesLoaded && signatureFields.length > 0) {
+        console.warn('Images taking too long to load, showing fallback form');
+        setImagesLoaded(true); // This will trigger the fallback form
+        setImageLoadError(true);
+      }
+    }, 5000); // 5 second timeout
+
     const convertPdfToImages = async () => {
       if (!ndaContent) return;
-      
+
       try {
         // Check if images are already cached
         const cacheKey = `nda_images_${btoa(ndaContent).substring(0, 16)}`;
@@ -142,14 +151,27 @@ export default function FillableNdaDocument({
           console.error('Failed to convert PDF to images, status:', response.status);
           const errorText = await response.text();
           console.error('Error response:', errorText);
+
+          // Set error state and show fallback
+          setImageLoadError(true);
+          setImagesLoaded(true); // This will trigger the fallback form
         }
       } catch (error) {
         console.error('Error converting PDF:', error);
+
+        // Set error state and show fallback
+        setImageLoadError(true);
+        setImagesLoaded(true); // This will trigger the fallback form
       }
     };
 
     convertPdfToImages();
-  }, [ndaContent]);
+
+    // Cleanup timeout
+    return () => {
+      clearTimeout(fallbackTimeout);
+    };
+  }, [ndaContent, imagesLoaded, signatureFields.length]);
 
   // Auto-populate fields with prefilled values and current date
   useEffect(() => {
@@ -303,9 +325,9 @@ export default function FillableNdaDocument({
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
                       placeholder="Your signature"
                       className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-1 text-xs italic focus:outline-none focus:ring-2 focus:ring-blue-300 sm:px-2 sm:text-sm"
-                      style={{ 
+                      style={{
                         fontFamily: 'cursive',
-                        fontSize: window.innerWidth < 640 ? '12px' : '14px',
+                        fontSize: typeof window !== 'undefined' && window.innerWidth < 640 ? '12px' : '14px',
                         color: '#1e40af'
                       }}
                     />
@@ -314,7 +336,7 @@ export default function FillableNdaDocument({
                       type={field.type === 'email' ? 'email' : 'text'}
                       value={fieldValues[field.id] || ''}
                       onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                      placeholder={window.innerWidth < 640 ? field.label : `Enter ${field.label.toLowerCase()}`}
+                      placeholder={typeof window !== 'undefined' && window.innerWidth < 640 ? field.label : `Enter ${field.label.toLowerCase()}`}
                       className="w-full h-full bg-blue-50 border-2 border-blue-400 rounded px-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300 sm:px-2 sm:text-sm"
                     />
                   )}
