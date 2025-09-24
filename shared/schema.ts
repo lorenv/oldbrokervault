@@ -825,7 +825,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   senderEmail: true,
   content: true,
   richContent: true,
-  messageType: true
+  messageType: true,
+  sendgridMessageId: true
 }).extend({
   senderType: z.enum(["inquirer", "owner"]),
   messageType: z.enum(["contact_form", "email_reply", "app_message"]),
