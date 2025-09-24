@@ -564,13 +564,43 @@ export class MessageService {
         </div>
       `;
 
-      // Convert MessageAttachment[] to SendGrid format
-      const sendgridAttachments = attachments?.map(att => ({
-        content: '', // We'll need to fetch file content
-        filename: att.fileName,
-        type: att.mimeType,
-        disposition: 'attachment'
-      })) || [];
+      // Convert MessageAttachment[] to SendGrid format - properly fetch file content
+      const sendgridAttachments: Array<{
+        content: string;
+        filename: string;
+        type: string;
+        disposition: string;
+      }> = [];
+
+      if (attachments && attachments.length > 0) {
+        const { ObjectStorageService } = await import('./object-storage.js');
+        const objectStorage = new ObjectStorageService();
+
+        for (const att of attachments) {
+          try {
+            // Extract storage key from filePath (remove /api/object-storage/ prefix)
+            const storageKey = att.filePath.replace(/^\/api\/object-storage\//, '');
+            
+            // Download file content from object storage
+            const fileBuffer = await objectStorage.downloadBuffer(storageKey);
+            
+            // Convert to base64 for SendGrid
+            const base64Content = fileBuffer.toString('base64');
+            
+            sendgridAttachments.push({
+              content: base64Content,
+              filename: att.fileName,
+              type: att.mimeType,
+              disposition: 'attachment'
+            });
+
+            console.log(`✅ Successfully fetched attachment: ${att.fileName} (${fileBuffer.length} bytes)`);
+          } catch (error) {
+            console.error(`❌ Failed to fetch attachment ${att.fileName}:`, error);
+            // Continue with other attachments instead of failing the entire email
+          }
+        }
+      }
 
       await sendEmail({
         to: thread.inquirerEmail,
