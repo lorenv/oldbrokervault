@@ -12,7 +12,6 @@ import { FinancialDocumentsDisplay } from "@/components/financial-documents-disp
 import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
 import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone } from "lucide-react";
 import { OwnerToolbar } from "@/components/owner-toolbar";
-import { NdaOwnerBypass } from "@/components/nda-owner-bypass";
 import { useAuth } from "@/hooks/use-auth";
 
 export function SharePage() {
@@ -24,7 +23,6 @@ export function SharePage() {
   const [hasSignedNda, setHasSignedNda] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [showOwnerBypass, setShowOwnerBypass] = useState(false);
   const { user } = useAuth();
 
   // Parallax effect state
@@ -100,8 +98,8 @@ export function SharePage() {
     refetchOnWindowFocus: false
   });
 
-  // Step 2: Load full document data only if no NDA required OR user has access
-  const shouldLoadFullData = Boolean(ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken) && !ndaCheckError);
+  // Step 2: Load full document data only if no NDA required OR user has access OR user is owner
+  const shouldLoadFullData = Boolean(ndaCheck && (!ndaCheck.requiresNda || hasSignedNda || accessToken || ndaCheck.isOwner) && !ndaCheckError);
 
   const { data: shareData, isLoading, error } = useQuery({
     queryKey: ['/api/share', shareSlug, accessToken],
@@ -151,18 +149,15 @@ export function SharePage() {
 
   useEffect(() => {
     console.log('🔄 Share page effect - shareData:', shareData, 'error:', error, 'isLoading:', isLoading);
+    console.log('🔍 NDA check data:', ndaCheck);
 
-    // Check if user is document owner and should bypass NDA
-    if (shareData?.isOwner && ndaCheck?.requiresNda && !showOwnerBypass) {
-      console.log('🏠 Owner detected - showing bypass screen');
-      setShowOwnerBypass(true);
-      return;
-    }
+    // Don't show bypass screen anymore - the server already handles owner bypass
+    // The owner will see the document directly since requiresNda is false for them
 
     if (shareData?.cim?.requiresNda && !hasSignedNda) {
       setShowNdaDialog(true);
     }
-  }, [shareData, hasSignedNda, error, isLoading, ndaCheck, showOwnerBypass]);
+  }, [shareData, hasSignedNda, error, isLoading, ndaCheck]);
 
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (
@@ -212,7 +207,7 @@ export function SharePage() {
   const hasValidToken = tokenValidation?.valid === true;
 
   // Show NDA dialog if document requires NDA and user hasn't signed or has no valid token and is not owner
-  const shouldShowNdaDialog = ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !ndaCheckError && !shareData?.isOwner;
+  const shouldShowNdaDialog = ndaCheck?.requiresNda && !hasSignedNda && !accessToken && !ndaCheckError && !ndaCheck?.isOwner;
 
   // Only access shareData.cim if shareData exists
   const cimData = shareData?.cim;
@@ -289,15 +284,6 @@ export function SharePage() {
     );
   }
 
-  // Show owner bypass screen if owner needs to bypass NDA
-  if (showOwnerBypass && shareData?.cim) {
-    return (
-      <NdaOwnerBypass
-        documentTitle={shareData.cim.title || 'Document'}
-        onComplete={() => setShowOwnerBypass(false)}
-      />
-    );
-  }
 
   // Show NDA dialog if required
   if (shouldShowNdaDialog) {
