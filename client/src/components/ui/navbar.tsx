@@ -65,7 +65,7 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/dashboard' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                  className={`${location === '/dashboard' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
                 >
                   <Zap className="mr-1 h-4 w-4" />
                   Create CIM
@@ -75,7 +75,7 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/documents' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                  className={`${location === '/documents' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
                 >
                   <FileText className="mr-1 h-4 w-4" />
                   My CIMs
@@ -85,7 +85,7 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/messages' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                  className={`${location === '/messages' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
                 >
                   <MessageCircle className="mr-1 h-4 w-4" />
                   Messages
@@ -95,7 +95,7 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/investor-database' ? 'bg-white text-gray-900' : ''} hover:bg-white/80`}
+                  className={`${location === '/investor-database' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
                 >
                   <Database className="mr-1 h-4 w-4" />
                   Investors
