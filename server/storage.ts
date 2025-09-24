@@ -305,7 +305,7 @@ export class DatabaseStorage implements IStorage {
 
     // For annual plans, check if subscription has expired
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
-    if (plan.billing === 'annual' && user.subscriptionEndsAt) {
+    if (plan && plan.billing === 'annual' && user.subscriptionEndsAt) {
       const now = new Date();
       if (now > user.subscriptionEndsAt) {
         await this.resetAnnualUsage(userId);
@@ -393,7 +393,7 @@ export class DatabaseStorage implements IStorage {
     const plan = subscriptionPlans[user.subscriptionStatus as keyof typeof subscriptionPlans];
     
     // For annual plans, check subscription expiry
-    if (plan.billing === 'annual') {
+    if (plan && plan.billing === 'annual') {
       // If subscription has expired, deny access
       if (user.subscriptionEndsAt && new Date() > user.subscriptionEndsAt) {
         return false;
@@ -469,7 +469,7 @@ export class DatabaseStorage implements IStorage {
     if (!canCreate) {
       const user = await this.getUser(userId);
       const plan = subscriptionPlans[user!.subscriptionStatus as keyof typeof subscriptionPlans];
-      const limitType = plan.billing === 'annual' ? 'Annual' : 'Monthly';
+      const limitType = plan && plan.billing === 'annual' ? 'Annual' : 'Monthly';
       throw new Error(`${limitType} CIM generation limit reached`);
     }
 
@@ -674,7 +674,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     if (!canCreate) {
       const user = await this.getUser(userId);
       const plan = subscriptionPlans[user!.subscriptionStatus as keyof typeof subscriptionPlans];
-      const limitType = plan.billing === 'annual' ? 'Annual' : 'Monthly';
+      const limitType = plan && plan.billing === 'annual' ? 'Annual' : 'Monthly';
       throw new Error(`${limitType} CIM generation limit reached`);
     }
 
