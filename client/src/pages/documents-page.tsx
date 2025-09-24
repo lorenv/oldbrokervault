@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -302,7 +302,7 @@ export default function DocumentsPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 flex-shrink-0 text-blue-500" />
+                              <Calendar className="h-3 w-3 flex-shrink-0 text-blue-500" />
                               <span className="hidden sm:inline">{new Date(doc.createdAt).toLocaleDateString()}</span>
                               <span className="sm:hidden">{new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </div>
@@ -548,7 +548,7 @@ export default function DocumentsPage() {
                           </h3>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-blue-500" />
+                              <Calendar className="h-3 w-3 text-blue-500" />
                               {new Date(doc.createdAt).toLocaleDateString()}
                             </span>
                             <span className="flex items-center gap-1">
