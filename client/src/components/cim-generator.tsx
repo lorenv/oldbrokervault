@@ -60,8 +60,7 @@ const DEFAULT_SECTION_LINES = [
   { id: '3', content: 'Business Model - How the company generates revenue and creates value for customers' },
   { id: '4', content: 'Operations - Key operational processes, locations, technology, and competitive advantages' },
   { id: '5', content: 'Growth Opportunities - Strategic initiatives, expansion plans, and potential for scaling' },
-  { id: '6', content: 'Management & Team - Key personnel and organizational structure' },
-  { id: '7', content: 'Financial Overview - Revenue, profitability, and key financial metrics' }
+  { id: '6', content: 'Management & Team - Key personnel and organizational structure' }
 ];
 
 // Remove this line as it's not needed
