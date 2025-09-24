@@ -137,6 +137,7 @@ export function CimGenerator() {
   });
   const [financialFiles, setFinancialFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textFileInputRef = useRef<HTMLInputElement>(null);  // Separate ref for text extraction
 
   // File upload state for text extraction
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -364,8 +365,12 @@ export function CimGenerator() {
   // File upload handler for text extraction
   const handleTextFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
 
+    console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
     setIsUploadingFile(true);
     setUploadingFileName(file.name);
     setShowSuccessAnimation(false);
@@ -373,20 +378,23 @@ export function CimGenerator() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      console.log('FormData created with file');
 
       const response = await apiRequest('POST', '/api/text-extraction/extract', {
-        body: formData,
-        headers: {
-          // Don't set Content-Type, let browser set it with boundary for FormData
-        }
+        body: formData
+        // Don't set Content-Type header, let browser set it with boundary for FormData
       });
+
+      console.log('Response received:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to extract text from file');
       }
 
       const result = await response.json();
+      console.log('Extraction result:', result);
       
       if (result.success) {
         // Set the extracted text in the form
@@ -602,7 +610,7 @@ export function CimGenerator() {
           };
           
           
-          const response = await apiRequest("POST", "/api/cim/generate", enhancedPayload);
+          const response = await apiRequest("POST", "/api/cim/generate", { body: enhancedPayload });
 
           // Smooth completion sequence after AI response received
           // Stage 5: Processing financials (quick transition to show progress)
@@ -711,7 +719,7 @@ export function CimGenerator() {
         selectedImages
       };
 
-      const response = await apiRequest("POST", "/api/cim/regenerate", payload);
+      const response = await apiRequest("POST", "/api/cim/regenerate", { body: payload });
       return response.json();
     },
     onSuccess: (result) => {
@@ -938,9 +946,13 @@ export function CimGenerator() {
               <div className="flex items-center gap-2">
                 <input
                   type="file"
-                  ref={fileInputRef}
+                  ref={textFileInputRef}
                   accept=".pdf,.docx,.doc,.txt,.rtf,.md"
-                  onChange={handleTextFileUpload}
+                  onChange={(e) => {
+                    console.log('File input onChange triggered');
+                    console.log('Files selected:', e.target.files?.length);
+                    handleTextFileUpload(e);
+                  }}
                   className="hidden"
                   data-testid="file-input-attachment"
                 />
@@ -948,10 +960,15 @@ export function CimGenerator() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    console.log('Upload button clicked');
+                    console.log('textFileInputRef.current:', textFileInputRef.current);
+                    textFileInputRef.current?.click();
+                  }}
                   disabled={isUploadingFile}
                   className="text-white hover:bg-white/20 transition-colors"
                   data-testid="button-upload-attachment"
+                  title="Upload document to extract text"
                 >
                   {isUploadingFile ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

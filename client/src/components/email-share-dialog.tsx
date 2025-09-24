@@ -64,11 +64,13 @@ export function EmailShareDialog({
     try {
 
       await apiRequest("POST", "/api/share/email", {
-        recipientEmail: recipientEmail.trim(),
-        shareUrl,
-        documentTitle,
-        customMessage: customMessage.trim(),
-        senderName
+        body: {
+          recipientEmail: recipientEmail.trim(),
+          shareUrl,
+          documentTitle,
+          customMessage: customMessage.trim(),
+          senderName
+        }
       });
 
       toast({

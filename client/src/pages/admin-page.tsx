@@ -61,9 +61,11 @@ export default function AdminPage() {
       months: number;
     }) => {
       await apiRequest("POST", "/api/admin/subscription", {
-        userId,
-        status,
-        months,
+        body: {
+          userId,
+          status,
+          months,
+        }
       });
     },
     onSuccess: () => {

@@ -42,22 +42,25 @@ export function Navbar() {
           ? "border-b bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-blue-200" 
           : "border-b"
     }>
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
+      <div className="container mx-auto px-4 h-16 flex items-center">
+        {/* Logo - always on the left */}
         <Link href={user ? "/dashboard" : "/"}>
           <div className="flex items-center space-x-2 cursor-pointer">
-            <img 
-              src="/cim-share-logo.png" 
-              alt="CIM Share" 
+            <img
+              src="/cim-share-logo.png"
+              alt="CIM Share"
               className={`h-10 ${isHomePage ? "brightness-0 invert" : ""}`}
             />
           </div>
         </Link>
 
-        {/* Navigation for logged-in users */}
+        {/* Spacer to push navigation to the right */}
+        <div className="flex-1"></div>
+
+        {/* Navigation for logged-in users - right aligned */}
         {user && (
-          <div className="hidden md:flex items-center justify-center flex-1 mx-8">
-            <nav className="flex items-center space-x-4">
+          <>
+            <nav className="hidden md:flex items-center space-x-4 mr-4">
               <Link href="/dashboard">
                 <Button
                   variant="ghost"
@@ -99,12 +102,12 @@ export function Navbar() {
                 </Button>
               </Link>
             </nav>
-          </div>
+          </>
         )}
 
-        {/* Non-user navigation */}
+        {/* Navigation for non-logged-in users - right aligned */}
         {!user && (
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-6 mr-4">
             <Link href="/pricing">
               <span className={`text-sm font-medium transition-colors cursor-pointer ${isHomePage ? "text-white hover:text-gray-200" : "hover:text-primary"}`}>Pricing</span>
             </Link>
@@ -114,8 +117,9 @@ export function Navbar() {
           </div>
         )}
 
+        {/* Login button for non-users */}
         {!user && (
-          <div className="flex items-center ml-8 space-x-3">
+          <div className="flex items-center space-x-3">
             {/* Mobile Menu for Logged-out Users */}
             <div className="md:hidden">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>

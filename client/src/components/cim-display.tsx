@@ -366,7 +366,9 @@ export function CimDisplay({
         if (JSON.stringify(newRegularSections) !== JSON.stringify(sections)) {
           const updatedAnalysis = { ...analysis, sections: newRegularSections };
           await apiRequest("PATCH", `/api/cim/${docId}`, {
-            analysis: updatedAnalysis
+            body: {
+              analysis: updatedAnalysis
+            }
           });
           setSections(newRegularSections);
         }
@@ -380,7 +382,9 @@ export function CimDisplay({
           }));
 
           await apiRequest("PUT", `/api/cim/${docId}/custom-sections/reorder`, {
-            sections: customSectionUpdates
+            body: {
+              sections: customSectionUpdates
+            }
           });
           setCustomSections(updatedCustomSections);
         }
@@ -403,7 +407,9 @@ export function CimDisplay({
 
       const updatedAnalysis = { ...analysis, sections: newSections };
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-        analysis: updatedAnalysis
+        body: {
+          analysis: updatedAnalysis
+        }
       });
 
       if (response.ok) {
@@ -894,7 +900,9 @@ export function CimDisplay({
                                   const updatedAnalysis = { ...analysis, sections: updatedSections };
 
                                   const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                    analysis: updatedAnalysis
+                                    body: {
+                                      analysis: updatedAnalysis
+                                    }
                                   });
 
                                   if (response.ok) {
@@ -982,7 +990,9 @@ export function CimDisplay({
                                 onSave={async (newContent: string) => {
                                   try {
                                     const response = await apiRequest("PUT", `/api/custom-section/${customSection.id}`, {
-                                      content: newContent
+                                      body: {
+                                        content: newContent
+                                      }
                                     });
 
                                     if (response.ok) {
@@ -1076,8 +1086,10 @@ export function CimDisplay({
                         try {
                           setIsAddingSectionLoading(true);
                           const response = await apiRequest('POST', `/api/cim/${docId}/custom-section/text`, {
-                            content: 'Click to edit this text section...',
-                            afterSection: 'end'
+                            body: {
+                              content: 'Click to edit this text section...',
+                              afterSection: 'end'
+                            }
                           });
 
                           if (response.ok) {
@@ -1355,8 +1367,10 @@ export function CimDisplay({
               <Button onClick={async () => {
                 try {
                   const response = await apiRequest("PUT", `/api/custom-section/${editingCustomSection.id}`, {
-                    title: editingCustomSection.title,
-                    content: editingCustomSection.type === 'text' ? editingCustomSection.content : undefined,
+                    body: {
+                      title: editingCustomSection.title,
+                      content: editingCustomSection.type === 'text' ? editingCustomSection.content : undefined,
+                    }
                   });
 
                   if (response.ok) {

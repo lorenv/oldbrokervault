@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -211,13 +211,13 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">My CIM Documents</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">My CIM Documents</h1>
             <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm sm:text-base">
+              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0">
                 <Plus className="h-4 w-4" />
                 <span>Create New CIM</span>
               </Button>
@@ -226,10 +226,10 @@ export default function DocumentsPage() {
           
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500" />
               <Input
                 placeholder="Search documents..."
-                className="pl-9 w-full text-sm sm:text-base"
+                className="pl-9 w-full text-sm sm:text-base border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -240,7 +240,7 @@ export default function DocumentsPage() {
                 size="icon"
                 onClick={() => toggleViewMode('card')}
                 title="Card View"
-                className="text-muted-foreground hover:text-foreground"
+                className={viewMode === 'card' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -249,7 +249,7 @@ export default function DocumentsPage() {
                 size="icon"
                 onClick={() => toggleViewMode('list')}
                 title="List View"
-                className="text-muted-foreground hover:text-foreground"
+                className={viewMode === 'list' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -260,7 +260,12 @@ export default function DocumentsPage() {
         {/* Loading Animation */}
         {documentsLoading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
+            <div className="relative h-8 w-8 mb-4">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <div className="absolute inset-0 h-8 w-8 animate-ping text-blue-400 opacity-75">
+                <Loader2 className="h-8 w-8" />
+              </div>
+            </div>
             <p className="text-gray-600">Loading your CIM documents...</p>
           </div>
         )}
@@ -271,14 +276,15 @@ export default function DocumentsPage() {
             {documents?.map((doc) => (
               <div key={doc.id} className="relative">
                 <Link href={`/documents/${doc.id}?tab=analytics`}>
-                  <Card className="group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border-0 shadow-md hover:shadow-xl bg-white/80 backdrop-blur-sm">
+                  <Card className="group cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 border border-gray-100 shadow-lg bg-white overflow-hidden relative">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
                       <div className="flex justify-between items-start gap-2 sm:gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {doc.logoUrl && (
                               <div className="flex-shrink-0">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center overflow-hidden">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md border-2 border-white flex items-center justify-center overflow-hidden ring-2 ring-gray-100">
                                   <img
                                     src={doc.logoUrl}
                                     alt="Company logo"
@@ -296,38 +302,35 @@ export default function DocumentsPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <Clock className="h-3 w-3 flex-shrink-0 text-blue-500" />
                               <span className="hidden sm:inline">{new Date(doc.createdAt).toLocaleDateString()}</span>
                               <span className="sm:hidden">{new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </div>
-                            {doc.ndaProtected && (
-                              <div className="flex items-center gap-1">
-                                <PenTool className="h-3 w-3 flex-shrink-0" />
-                                <span>NDA</span>
-                              </div>
-                            )}
                             <div className="flex items-center gap-1">
-                              <Eye className="h-3 w-3 flex-shrink-0" />
+                              <Eye className="h-3 w-3 flex-shrink-0 text-green-500" />
                               <span>{doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}</span>
                             </div>
+                            {doc.ndaSignatureCount > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3 w-3 flex-shrink-0 text-orange-500" />
+                                <span>{doc.ndaSignatureCount} signature{doc.ndaSignatureCount !== 1 ? 's' : ''}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0 p-3 sm:p-6 sm:pt-0">
                       <div className="flex items-center justify-between gap-2">
-                        {/* Share status tag */}
-                        {doc.shareEnabled ? (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
-                            <Globe className="h-3 w-3 flex-shrink-0" />
-                            <span>Shared</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
-                            <Lock className="h-3 w-3 flex-shrink-0" />
-                            <span>Private</span>
-                          </div>
-                        )}
+                        {/* NDA Protected badge */}
+                        <div className="flex items-center gap-2">
+                          {doc.ndaProtected && (
+                            <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">
+                              <Shield className="h-3 w-3 flex-shrink-0" />
+                              <span>NDA Protected</span>
+                            </div>
+                          )}
+                        </div>
 
                         {/* Action buttons - horizontal layout */}
                         <div className="flex items-center gap-1">
@@ -335,7 +338,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -348,7 +351,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -373,7 +376,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -390,7 +393,7 @@ export default function DocumentsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 opacity-60 hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all duration-200"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <MoreVertical className="h-3 w-3" />
@@ -521,13 +524,13 @@ export default function DocumentsPage() {
             {documents?.map((doc) => (
               <div key={doc.id} className="relative">
                 <Link href={`/documents/${doc.id}?tab=analytics`}>
-                  <div className="group cursor-pointer hover:bg-muted/50 transition-all duration-200 border rounded-lg p-3 sm:p-4 bg-white/80 backdrop-blur-sm">
+                  <div className="group cursor-pointer hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 border border-gray-200 hover:border-blue-300 rounded-lg p-3 sm:p-4 bg-white shadow-md hover:shadow-xl">
                     <div className="flex items-center justify-between gap-4">
                       {/* Left side - Logo and Title */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {doc.logoUrl && (
                           <div className="flex-shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center overflow-hidden">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md border-2 border-white flex items-center justify-center overflow-hidden ring-2 ring-gray-100">
                               <img
                                 src={doc.logoUrl}
                                 alt="Company logo"
@@ -545,35 +548,30 @@ export default function DocumentsPage() {
                           </h3>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
+                              <Clock className="h-3 w-3 text-blue-500" />
                               {new Date(doc.createdAt).toLocaleDateString()}
                             </span>
-                            {doc.ndaProtected && (
-                              <span className="flex items-center gap-1">
-                                <PenTool className="h-3 w-3" />
-                                NDA Protected
-                              </span>
-                            )}
                             <span className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
+                              <Eye className="h-3 w-3 text-green-500" />
                               {doc.shareViewCount || 0} views
                             </span>
+                            {doc.ndaSignatureCount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3 text-orange-500" />
+                                {doc.ndaSignatureCount} signatures
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       {/* Right side - Status and Actions */}
                       <div className="flex items-center gap-3">
-                        {/* Share status */}
-                        {doc.shareEnabled ? (
-                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-xs">
-                            <Globe className="h-3 w-3" />
-                            <span>Shared</span>
-                          </div>
-                        ) : (
-                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded-full text-xs">
-                            <Lock className="h-3 w-3" />
-                            <span>Private</span>
+                        {/* NDA Protected badge */}
+                        {doc.ndaProtected && (
+                          <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">
+                            <Shield className="h-3 w-3" />
+                            <span>NDA Protected</span>
                           </div>
                         )}
 
@@ -582,7 +580,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -595,7 +593,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -620,7 +618,7 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="hidden lg:flex h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                            className="hidden lg:flex h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all duration-200"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -637,7 +635,7 @@ export default function DocumentsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 opacity-60 hover:opacity-100 transition-opacity"
+                                className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all duration-200"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -760,14 +758,28 @@ export default function DocumentsPage() {
 
         {/* Empty States */}
         {!documentsLoading && documents?.length === 0 && totalDocuments !== 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No documents match your search. Try a different search term.
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg border border-gray-100">
+              <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">No documents match your search</p>
+              <p className="text-sm text-gray-500 mt-2">Try a different search term</p>
+            </div>
           </div>
         )}
 
         {!documentsLoading && totalDocuments === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            No CIM documents yet. Create your first one!
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg border border-blue-200">
+              <FileText className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <p className="text-gray-800 font-semibold text-lg mb-2">No CIM documents yet</p>
+              <p className="text-gray-600 mb-6">Get started by creating your first CIM</p>
+              <Link href="/dashboard">
+                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-200">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First CIM
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
 
@@ -791,6 +803,7 @@ export default function DocumentsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || documentsLoading}
+                className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous
@@ -816,6 +829,7 @@ export default function DocumentsPage() {
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
                       disabled={documentsLoading}
+                      className={currentPage === pageNum ? "bg-blue-600 hover:bg-blue-700 shadow-md" : "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"}
                     >
                       {pageNum}
                     </Button>
@@ -828,6 +842,7 @@ export default function DocumentsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages || documentsLoading}
+                className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all duration-200"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />

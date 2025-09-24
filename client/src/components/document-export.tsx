@@ -175,7 +175,7 @@ export function DocumentExport({
 
       console.log('📡 Sending share settings update request:', payload);
 
-      const response = await apiRequest('POST', `/api/cim/${docId}/share`, payload);
+      const response = await apiRequest('POST', `/api/cim/${docId}/share`, { body: payload });
 
       console.log('📡 Share settings update response:', {
         status: response.status,

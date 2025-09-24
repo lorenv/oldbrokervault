@@ -42,7 +42,7 @@ export function ShareSettingsDialog({ open, onOpenChange, docId }: ShareSettings
 
   const updateShareMutation = useMutation({
     mutationFn: async (settings: any) => {
-      return apiRequest("PATCH", `/api/cim/${docId}/share-settings`, settings);
+      return apiRequest("PATCH", `/api/cim/${docId}/share-settings`, { body: settings });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/cim/${docId}`] });

@@ -750,6 +750,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       : baseCondition;
 
     // For dashboard, only select essential fields to minimize data transfer
+    // Include signature count via LEFT JOIN with ndaSignatures table
     const results = await db
       .select({
         id: cimDocuments.id,
@@ -766,10 +767,29 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         logoUrl: cimDocuments.logoUrl,
         isExample: cimDocuments.isExample,
         sectionDirections: cimDocuments.sectionDirections,
-        formattingProfile: cimDocuments.formattingProfile
+        formattingProfile: cimDocuments.formattingProfile,
+        ndaSignatureCount: sql<number>`COALESCE(COUNT(${ndaSignatures.id}), 0)`
       })
       .from(cimDocuments)
+      .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
       .where(whereCondition)
+      .groupBy(
+        cimDocuments.id,
+        cimDocuments.userId,
+        cimDocuments.title,
+        cimDocuments.createdAt,
+        cimDocuments.shareEnabled,
+        cimDocuments.shareSlug,
+        cimDocuments.isUploadedFile,
+        cimDocuments.uploadedFileName,
+        cimDocuments.regenerationCount,
+        cimDocuments.ndaProtected,
+        cimDocuments.shareViewCount,
+        cimDocuments.logoUrl,
+        cimDocuments.isExample,
+        cimDocuments.sectionDirections,
+        cimDocuments.formattingProfile
+      )
       .orderBy(desc(cimDocuments.createdAt))
       .limit(limit + 1); // Get one extra to check for more
 
@@ -808,7 +828,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       lastEditAt: null,
       editorsHeartbeat: {},
       lastModifiedBy: null,
-      ndaSignatureCount: 0,
+      ndaSignatureCount: result.ndaSignatureCount,
       // Add missing required properties
       logoUrlBackup: null,
       selectedImagesBackup: null,

@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await apiRequest("POST", "/api/login", credentials);
+        const res = await apiRequest("POST", "/api/login", { body: credentials });
         
         // Log response details before parsing
         const contentType = res.headers.get('content-type') || '';
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await apiRequest("POST", "/api/register", credentials);
+        const res = await apiRequest("POST", "/api/register", { body: credentials });
         return await res.json();
       } catch (error: any) {
         // Parse the error message from the API response

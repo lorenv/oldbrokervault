@@ -70,7 +70,7 @@ export function ContentStyleSection({
   const saveTemplateMutation = useMutation({
     mutationFn: async (data: { name: string; sectionDirections: Record<string, string>; formattingProfile: FormattingProfile; isDefault: boolean }) => {
       console.log("Saving template with data:", data);
-      const response = await apiRequest("POST", "/api/content-style-templates", data);
+      const response = await apiRequest("POST", "/api/content-style-templates", { body: data });
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Template save failed:", response.status, errorText);

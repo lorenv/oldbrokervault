@@ -73,7 +73,7 @@ export default function AuthPage() {
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordData) => {
-      const res = await apiRequest("POST", "/api/forgot-password", data);
+      const res = await apiRequest("POST", "/api/forgot-password", { body: data });
       return await res.json();
     },
     onSuccess: () => {
@@ -95,7 +95,7 @@ export default function AuthPage() {
   // Reset password mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: ResetPasswordData & { token: string }) => {
-      const res = await apiRequest("POST", "/api/reset-password", data);
+      const res = await apiRequest("POST", "/api/reset-password", { body: data });
       return await res.json();
     },
     onSuccess: () => {

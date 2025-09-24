@@ -197,7 +197,9 @@ export function CimDisplay({
       try {
         const updatedAnalysis = { ...analysis, sections: newSections };
         const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-          analysis: updatedAnalysis
+          body: {
+            analysis: updatedAnalysis
+          }
         });
         
         if (response.ok) {
@@ -220,7 +222,9 @@ export function CimDisplay({
 
       const updatedAnalysis = { ...analysis, sections: newSections };
       const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-        analysis: updatedAnalysis
+        body: {
+          analysis: updatedAnalysis
+        }
       });
       
       if (response.ok) {
@@ -349,7 +353,9 @@ export function CimDisplay({
                                 const updatedAnalysis = { ...analysis, sections: updatedSections };
                                 
                                 const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                  analysis: updatedAnalysis
+                                  body: {
+                                    analysis: updatedAnalysis
+                                  }
                                 });
                                 
                                 if (response.ok) {
@@ -387,7 +393,9 @@ export function CimDisplay({
                                 const updatedAnalysis = { ...analysis, sections: updatedSections };
                                 
                                 const response = await apiRequest("PATCH", `/api/cim/${docId}`, {
-                                  analysis: updatedAnalysis
+                                  body: {
+                                    analysis: updatedAnalysis
+                                  }
                                 });
                                 
                                 if (response.ok) {

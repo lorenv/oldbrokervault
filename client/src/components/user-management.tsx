@@ -30,7 +30,7 @@ export function UserManagement() {
   // Update subscription mutation
   const updateSubscriptionMutation = useMutation({
     mutationFn: async ({ userId, status, months }: { userId: number; status: string; months: number }) => {
-      const response = await apiRequest("POST", "/api/admin/subscription", { userId, status, months });
+      const response = await apiRequest("POST", "/api/admin/subscription", { body: { userId, status, months } });
       return response;
     },
     onSuccess: () => {
@@ -54,7 +54,7 @@ export function UserManagement() {
   // Grant admin mutation
   const grantAdminMutation = useMutation({
     mutationFn: async (email: string) => {
-      const response = await apiRequest("POST", "/api/admin/grant-admin", { email });
+      const response = await apiRequest("POST", "/api/admin/grant-admin", { body: { email } });
       return response;
     },
     onSuccess: () => {
