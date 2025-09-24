@@ -2,7 +2,7 @@ import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, us
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
-import { eq, sql, desc, count, and, or, ilike } from "drizzle-orm";
+import { eq, sql, desc, count, and, or, ilike, isNull } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { asc } from "drizzle-orm";
 import * as fs from 'fs';
@@ -737,9 +737,12 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     const offset = (page - 1) * limit;
     const search = options?.search?.trim();
 
-    // Build base query with conditional search
-    const baseCondition = eq(cimDocuments.userId, userId);
-    const whereCondition = search 
+    // Build base query with conditional search, excluding soft-deleted documents
+    const baseCondition = and(
+      eq(cimDocuments.userId, userId),
+      isNull(cimDocuments.deletedAt)
+    );
+    const whereCondition = search
       ? and(
           baseCondition,
           or(
@@ -864,7 +867,11 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
   async getCimDocument(id: number): Promise<CimDocument | undefined> {
     return await withRetry(async () => {
-      const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
+      const [doc] = await db.select().from(cimDocuments)
+        .where(and(
+          eq(cimDocuments.id, id),
+          isNull(cimDocuments.deletedAt)
+        ));
       return doc;
     });
   }
@@ -917,34 +924,50 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
   }
   
   async deleteCimDocument(id: number): Promise<void> {
-    // Check if document exists before deleting
-    const [doc] = await db.select().from(cimDocuments).where(eq(cimDocuments.id, id));
+    // Check if document exists and isn't already deleted
+    const [doc] = await db.select().from(cimDocuments)
+      .where(and(
+        eq(cimDocuments.id, id),
+        isNull(cimDocuments.deletedAt)
+      ));
     if (!doc) {
-      throw new Error("Document not found");
+      throw new Error("Document not found or already deleted");
     }
-    
-    console.log(`🗑️ Deleting CIM document ${id} for user ${doc.userId} (monthlyDocumentsCreated counter preserved to prevent subscription bypass)`);
-    
-    // Note: We intentionally do NOT decrement monthlyDocumentsCreated to prevent 
+
+    console.log(`🗑️ Soft deleting CIM document ${id} for user ${doc.userId} (document preserved for subscription limit tracking)`);
+
+    // Note: We intentionally do NOT decrement monthlyDocumentsCreated to prevent
     // subscription bypass attacks where users delete and recreate documents to exceed limits
-    
-    // Delete related records in proper order to avoid foreign key constraints
-    await db.delete(customSections).where(eq(customSections.cimDocumentId, id));
-    await db.delete(uploadedFiles).where(eq(uploadedFiles.cimDocumentId, id));
-    await db.delete(ndaSignatures).where(eq(ndaSignatures.cimDocumentId, id));
-    await db.delete(ndaAccessTokens).where(eq(ndaAccessTokens.cimDocumentId, id));
-    await db.delete(ndaRedirectLinks).where(eq(ndaRedirectLinks.cimDocumentId, id));
-    await db.delete(financialFiles).where(eq(financialFiles.cimDocumentId, id));
-    await db.delete(documentViews).where(eq(documentViews.cimDocumentId, id));
-    await db.delete(collaborators).where(eq(collaborators.cimDocumentId, id));
-    await db.delete(documentVersions).where(eq(documentVersions.cimDocumentId, id));
-    await db.delete(documentAnalytics).where(eq(documentAnalytics.cimDocumentId, id));
-    
-    // Delete share links
-    await db.execute(sql`DELETE FROM share_links WHERE cim_document_id = ${id}`);
-    
-    // Delete the main document last
-    await db.delete(cimDocuments).where(eq(cimDocuments.id, id));
+
+    // SOFT DELETE: Mark document as deleted instead of removing it
+    await db.update(cimDocuments)
+      .set({
+        deletedAt: new Date(),
+        // Disable all sharing when deleted
+        shareEnabled: false,
+        sharePassword: null,
+        shareExpiresAt: null
+      })
+      .where(eq(cimDocuments.id, id));
+
+    // Deactivate all NDA access tokens for this document
+    await db.update(ndaAccessTokens)
+      .set({
+        isActive: false,
+        deactivatedAt: new Date()
+      })
+      .where(eq(ndaAccessTokens.cimDocumentId, id));
+
+    // Deactivate all share links
+    await db.execute(sql`
+      UPDATE share_links
+      SET expires_at = NOW()
+      WHERE cim_document_id = ${id}
+      AND (expires_at IS NULL OR expires_at > NOW())
+    `);
+
+    // Note: We keep all related records (signatures, files, etc.) for audit trail
+    // They won't be accessible since the document is marked as deleted
   }
 
   async updateUserProfile(userId: number, profile: {
