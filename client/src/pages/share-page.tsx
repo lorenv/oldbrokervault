@@ -362,6 +362,14 @@ export function SharePage() {
             }}
           >
             <div className="max-w-6xl mx-auto text-center">
+              {/* Company Logo - show when available */}
+              {shareData.logoUrl && (
+                <div className="flex justify-center mb-6 animate-fade-in delay-200">
+                  <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-lg">
+                    <img src={shareData.logoUrl} alt="Company Logo" className="h-12 md:h-16 max-w-[180px] object-contain" />
+                  </div>
+                </div>
+              )}
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-8 tracking-tight break-words px-4 animate-slide-up delay-300"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1)'
