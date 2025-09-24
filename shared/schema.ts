@@ -154,7 +154,9 @@ export const cimDocuments = pgTable("cim_documents", {
   version: integer("version").default(1).notNull(),
   lastModifiedBy: integer("last_modified_by"),
   // Example document flag - doesn't count towards subscription limits
-  isExample: boolean("is_example").default(false).notNull()
+  isExample: boolean("is_example").default(false).notNull(),
+  // Soft delete - marks document as deleted but keeps in database for limit tracking
+  deletedAt: timestamp("deleted_at")
 });
 
 export const uploadedFiles = pgTable("uploaded_files", {

@@ -274,10 +274,10 @@ export default function DocumentsPage() {
         {!documentsLoading && viewMode === 'card' && (
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {documents?.map((doc) => (
-              <div key={doc.id} className="relative">
-                <Link href={`/documents/${doc.id}?tab=analytics`}>
-                  <Card className="group cursor-pointer hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 border border-gray-100 shadow-lg bg-white overflow-hidden relative">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <Card key={doc.id} className="group relative hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 border border-gray-100 shadow-lg bg-white overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <Link href={`/documents/${doc.id}?tab=analytics`} className="block">
+                  <div className="cursor-pointer">
                     <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
                       <div className="flex justify-between items-start gap-2 sm:gap-3">
                         <div className="flex-1 min-w-0">
@@ -401,7 +401,9 @@ export default function DocumentsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           window.open(`/share/${doc.shareSlug}`, '_blank');
                         }}
                       >
@@ -409,7 +411,9 @@ export default function DocumentsPage() {
                         Preview CIM
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (doc.shareSlug) {
                             navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
                             toast({
@@ -429,7 +433,9 @@ export default function DocumentsPage() {
                         Copy Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           window.location.href = `/documents/${doc.id}?tab=edit`;
                         }}
                       >
@@ -438,15 +444,19 @@ export default function DocumentsPage() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           window.location.href = `/documents/${doc.id}?tab=share`;
                         }}
                       >
                         <Share2 className="mr-2 h-4 w-4" />
                         Share Settings
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => {
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (!doc.shareSlug) {
                             toast({
                               title: "Sharing Not Enabled",
@@ -468,8 +478,12 @@ export default function DocumentsPage() {
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => duplicateMutation.mutate(doc.id)}
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          duplicateMutation.mutate(doc.id);
+                        }}
                         disabled={duplicateMutation.isPending || !userLimits?.canCreateDocument}
                       >
                         {duplicateMutation.isPending ? (
@@ -484,8 +498,12 @@ export default function DocumentsPage() {
                       {!doc.isUploadedFile && user?.subscriptionStatus !== "free" && (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleExport(doc.id, 'pdf')}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleExport(doc.id, 'pdf');
+                            }}
                             disabled={exportingDocId === doc.id}
                           >
                             {exportingDocId === doc.id ? (
@@ -499,8 +517,12 @@ export default function DocumentsPage() {
                       )}
 
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => setConfirmDelete(doc.id)} 
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setConfirmDelete(doc.id);
+                        }}
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -511,9 +533,9 @@ export default function DocumentsPage() {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
+                  </div>
                 </Link>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -643,7 +665,9 @@ export default function DocumentsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   window.open(`/share/${doc.shareSlug}`, '_blank');
                                 }}
                               >
@@ -651,7 +675,9 @@ export default function DocumentsPage() {
                                 Preview CIM
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={async () => {
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   if (doc.shareSlug) {
                                     navigator.clipboard.writeText(`${window.location.hostname === "localhost" ? window.location.origin : "https://cimshare.com"}/share/${doc.shareSlug}`);
                                     toast({
@@ -671,7 +697,9 @@ export default function DocumentsPage() {
                                 Copy Share Link
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   window.location.href = `/documents/${doc.id}?tab=edit`;
                                 }}
                               >
@@ -680,7 +708,9 @@ export default function DocumentsPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   window.location.href = `/documents/${doc.id}?tab=share`;
                                 }}
                               >
@@ -688,7 +718,9 @@ export default function DocumentsPage() {
                                 Share Settings
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   if (!doc.shareSlug) {
                                     toast({
                                       title: "Sharing Not Enabled",
@@ -710,7 +742,11 @@ export default function DocumentsPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => duplicateMutation.mutate(doc.id)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  duplicateMutation.mutate(doc.id);
+                                }}
                                 disabled={duplicateMutation.isPending || !userLimits?.canCreateDocument}
                               >
                                 {duplicateMutation.isPending ? (
@@ -724,7 +760,11 @@ export default function DocumentsPage() {
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    onClick={() => handleExport(doc.id, 'pdf')}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleExport(doc.id, 'pdf');
+                                    }}
                                     disabled={exportingDocId === doc.id}
                                   >
                                     {exportingDocId === doc.id ? (
@@ -738,7 +778,11 @@ export default function DocumentsPage() {
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => setConfirmDelete(doc.id)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setConfirmDelete(doc.id);
+                                }}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
