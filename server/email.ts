@@ -582,10 +582,10 @@ async function sendOwnerApprovalNotification(
           <p><strong>Status:</strong> Awaiting your approval</p>
         </div>
         
-        <p>Please log in to your CIM Share dashboard to review and approve this signer's access to the document.</p>
-        
+        <p>Please log in to your CIM Share documents page to review and approve this signer's access to the document.</p>
+
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://cimshare.com/dashboard" 
+          <a href="https://cimshare.com/documents"
              style="background-color: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Review & Approve
           </a>
@@ -610,9 +610,9 @@ async function sendOwnerApprovalNotification(
       Signed: ${new Date().toLocaleString()}
       Status: Awaiting your approval
       
-      Please log in to your CIM Share dashboard to review and approve this signer's access to the document.
-      
-      Dashboard: https://cimshare.com/dashboard
+      Please log in to your CIM Share documents page to review and approve this signer's access to the document.
+
+      Documents: https://cimshare.com/documents
     `
   });
 }
