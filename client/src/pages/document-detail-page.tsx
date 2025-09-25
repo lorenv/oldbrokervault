@@ -445,7 +445,7 @@ export function DocumentDetailPage() {
                 <span className="hidden sm:inline">NDA Signatures</span>
                 <span className="sm:hidden">NDA</span>
                 {pendingNdaCount > 0 && (
-                  <Badge variant="destructive" className="ml-1 sm:ml-2 px-1 sm:px-2 py-0 text-[10px] sm:text-xs">
+                  <Badge className="ml-1 sm:ml-2 px-1 sm:px-2 py-0 text-[10px] sm:text-xs bg-orange-100 text-orange-800 border-orange-200">
                     {pendingNdaCount}
                   </Badge>
                 )}
@@ -551,7 +551,7 @@ export function DocumentDetailPage() {
                 <FileSignature className="h-5 w-5" />
                 <span className="flex-1">NDA Signatures</span>
                 {pendingNdaCount > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
+                  <Badge className="ml-auto bg-orange-100 text-orange-800 border-orange-200">
                     {pendingNdaCount} pending
                   </Badge>
                 )}

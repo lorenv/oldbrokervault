@@ -449,8 +449,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
             <div className="flex items-center gap-4">
               <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${
-                ndaSettings.ndaProtected 
-                  ? 'text-emerald-700 bg-emerald-100' 
+                ndaSettings.ndaProtected
+                  ? 'text-emerald-700 bg-emerald-100'
                   : 'text-gray-600 bg-gray-100'
               }`}>
                 {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
@@ -458,7 +458,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               <Switch
                 id="nda-protection"
                 checked={ndaSettings.ndaProtected}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   handleSettingChange('ndaProtected', checked)
                 }
               />
@@ -496,7 +496,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         {template.name}
                       </SelectItem>
                     ))}
-                    <SelectItem 
+                    <SelectItem
                       value="manage-templates"
                       className="text-blue-600 font-medium border-t border-gray-200"
                     >
@@ -526,7 +526,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   <Switch
                     id="manual-approval"
                     checked={ndaSettings.ndaApprovalRequired}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleSettingChange('ndaApprovalRequired', checked)
                     }
                   />

@@ -332,8 +332,8 @@ export default function DocumentsPage() {
                             </div>
                           )}
                           {doc.pendingNdaCount && doc.pendingNdaCount > 0 && (
-                            <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium border border-red-200 shadow-sm">
-                              <Users className="h-3 w-3 flex-shrink-0" />
+                            <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium border border-orange-200 shadow-sm">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
                               <span>{doc.pendingNdaCount} pending</span>
                             </div>
                           )}
@@ -605,8 +605,8 @@ export default function DocumentsPage() {
                         )}
                         {/* Pending NDA Approvals badge */}
                         {doc.pendingNdaCount && doc.pendingNdaCount > 0 && (
-                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium border border-red-200 shadow-sm">
-                            <Users className="h-3 w-3" />
+                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium border border-orange-200 shadow-sm">
+                            <Clock className="h-3 w-3" />
                             <span>{doc.pendingNdaCount} pending</span>
                           </div>
                         )}
