@@ -39,7 +39,10 @@
       "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Read(///**)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(killall:*)"
     ],
     "deny": [],
     "ask": [],

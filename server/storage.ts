@@ -773,7 +773,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         formattingProfile: cimDocuments.formattingProfile,
         ndaSignatureCount: sql<number>`COALESCE(COUNT(${ndaSignatures.id}), 0)`,
         ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
-        pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} AND NOT ${ndaSignatures.approved} THEN 1 ELSE 0 END), 0)`
+        pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} = true AND ${ndaSignatures.id} IS NOT NULL AND ${ndaSignatures.approved} = false THEN 1 ELSE 0 END), 0)`
       })
       .from(cimDocuments)
       .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
