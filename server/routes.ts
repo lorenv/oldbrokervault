@@ -4476,7 +4476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const { recipientEmail, shareUrl, documentTitle, customMessage, senderName } = req.body;
+      const { recipientEmail, shareUrl, documentTitle, customMessage, senderName, documentId } = req.body;
 
       // Input validation
       if (!recipientEmail?.trim() || !shareUrl?.trim() || !documentTitle?.trim()) {
@@ -4499,10 +4499,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Get CIM document for PDF generation (if documentId provided)
+      let cimDocument = null;
+      let customSections = [];
+      if (documentId) {
+        try {
+          cimDocument = await storage.getCimDocument(parseInt(documentId));
+          if (cimDocument && cimDocument.userId === req.user!.id) {
+            // Get custom sections if they exist
+            customSections = await storage.getCustomSections(parseInt(documentId)) || [];
+          } else {
+            cimDocument = null; // Not authorized or not found
+          }
+        } catch (error) {
+          console.error('Error retrieving CIM document for email:', error);
+          cimDocument = null;
+        }
+      }
+
       // Convert relative URLs to absolute URLs for email images
       const baseUrl = process.env.NODE_ENV === 'production' ? 'https://cimshare.com' : req.protocol + '://' + req.get('host');
-      const profilePhotoUrl = sender.profilePhotoUrl ? (sender.profilePhotoUrl.startsWith('http') ? sender.profilePhotoUrl : `${baseUrl}${sender.profilePhotoUrl}`) : null;
-      const businessLogoUrl = sender.businessLogoUrl ? (sender.businessLogoUrl.startsWith('http') ? sender.businessLogoUrl : `${baseUrl}${sender.businessLogoUrl}`) : null;
+      const profilePhotoUrl = sender.profilePhoto ? (sender.profilePhoto.startsWith('http') ? sender.profilePhoto : `${baseUrl}${sender.profilePhoto}`) : null;
+      const businessLogoUrl = sender.businessLogo ? (sender.businessLogo.startsWith('http') ? sender.businessLogo : `${baseUrl}${sender.businessLogo}`) : null;
 
       const fromName = senderName || sender.name || sender.email;
       const fromEmail = 'system@cimshare.com'; // Use verified sender email
@@ -4607,49 +4625,53 @@ Professional CIM Generation Platform`;
       console.log('=== GENERATING PDF ATTACHMENT ===');
       let pdfAttachment = null;
       
-      try {
-        // Import PDF generation function
-        const { generatePDF } = await import('./document-export');
-        
-        // Generate PDF buffer with proper parameters
-        const pdfBuffer = await generatePDF(
-          cimDocument.analysis,
-          cimDocument.logoUrl,
-          cimDocument.websiteUrl,
-          cimDocument.selectedImages || [],
-          sender,
-          {
-            enabled: cimDocument.financialsEnabled || false,
-            askingPrice: cimDocument.askingPrice,
-            askingPriceIncluded: cimDocument.askingPriceIncluded || false,
-            revenue: cimDocument.revenue,
-            revenueIncluded: cimDocument.revenueIncluded || false,
-            ebitda: cimDocument.ebitda,
-            ebitdaIncluded: cimDocument.ebitdaIncluded || false
-          },
-          [], // financialFiles - not needed for email attachments
-          baseUrl,
-          cimDocument.title,
-          customSections,
-          cimDocument.coverImageUrl,
-          cimDocument.coverImagePosition,
-          cimDocument.id,
-          sender.pdfBackgroundTemplate || 'classic'
-        );
-        const filename = `${documentTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}_CIM.pdf`;
-        
-        pdfAttachment = {
-          content: pdfBuffer.toString('base64'),
-          filename: filename,
-          type: 'application/pdf',
-          disposition: 'attachment'
-        };
-        
-        console.log('✅ PDF attachment generated:', filename);
-        console.log('PDF size:', Math.round(pdfBuffer.length / 1024), 'KB');
-      } catch (pdfError) {
-        console.error('❌ Failed to generate PDF attachment:', pdfError);
-        console.log('Sending email with link only...');
+      if (cimDocument) {
+        try {
+          // Import PDF generation function
+          const { generatePDF } = await import('./document-export');
+          
+          // Generate PDF buffer with proper parameters
+          const pdfBuffer = await generatePDF(
+            cimDocument.analysis,
+            cimDocument.logoUrl,
+            cimDocument.websiteUrl,
+            cimDocument.selectedImages || [],
+            sender,
+            {
+              enabled: cimDocument.financialsEnabled || false,
+              askingPrice: cimDocument.askingPrice,
+              askingPriceIncluded: cimDocument.askingPriceIncluded || false,
+              revenue: cimDocument.revenue,
+              revenueIncluded: cimDocument.revenueIncluded || false,
+              ebitda: cimDocument.ebitda,
+              ebitdaIncluded: cimDocument.ebitdaIncluded || false
+            },
+            [], // financialFiles - not needed for email attachments
+            baseUrl,
+            cimDocument.title,
+            customSections,
+            cimDocument.coverImageUrl,
+            cimDocument.coverImagePosition,
+            cimDocument.id,
+            sender.pdfBackgroundTemplate || 'classic'
+          );
+          const filename = `${documentTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}_CIM.pdf`;
+          
+          pdfAttachment = {
+            content: pdfBuffer.toString('base64'),
+            filename: filename,
+            type: 'application/pdf',
+            disposition: 'attachment'
+          };
+          
+          console.log('✅ PDF attachment generated:', filename);
+          console.log('PDF size:', Math.round(pdfBuffer.length / 1024), 'KB');
+        } catch (pdfError) {
+          console.error('❌ Failed to generate PDF attachment:', pdfError);
+          console.log('Sending email with link only...');
+        }
+      } else {
+        console.log('No CIM document found, sending email with link only...');
       }
 
       // Send email with comprehensive debugging
