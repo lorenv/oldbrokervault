@@ -15,6 +15,8 @@ import {
   Clock,
   FileText
 } from "lucide-react";
+import vvLogoBlue from "@assets/vv-logo-blue_1758929244400.png";
+import heroVideo from "@assets/hero-video_1758929337474.mp4";
 
 export default function VirtualDataRoomPage() {
   const features = [
@@ -69,31 +71,58 @@ export default function VirtualDataRoomPage() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Modern Virtual Data Room
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Stop drowning in spreadsheet chaos. Get the AI-powered platform where only the deal creators need a subscription.
-            Invite unlimited team members from both sides of the transaction - they can view, upload, and collaborate at no additional cost.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://www.vettingvault.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block"
-            >
-              <Button size="lg" className="text-lg px-8 py-3">
-                Try VettingVault Free
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </a>
-            <Link href="/contact">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-                Learn More
-              </Button>
-            </Link>
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            {/* VettingVault Logo */}
+            <div className="flex justify-center mb-8">
+              <img 
+                src={vvLogoBlue} 
+                alt="VettingVault Logo" 
+                className="h-16 md:h-20 w-auto"
+              />
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Modern Virtual Data Room
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Stop drowning in spreadsheet chaos. Get the AI-powered platform where only the deal creators need a subscription.
+              Invite unlimited team members from both sides of the transaction - they can view, upload, and collaborate at no additional cost.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <a
+                href="https://www.vettingvault.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button size="lg" className="text-lg px-8 py-3">
+                  Try VettingVault Free
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </a>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-3">
+                  Learn More
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Hero Video */}
+          <div className="max-w-4xl mx-auto">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+              <video
+                src={heroVideo}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-auto"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
         </div>
       </section>
