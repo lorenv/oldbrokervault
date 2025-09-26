@@ -43,7 +43,7 @@ export default function HomePage() {
         entries.forEach((entry) => {
           const id = entry.target.getAttribute("data-animate-id");
           if (entry.isIntersecting && id) {
-            setVisibleElements((prev) => new Set([...prev, id]));
+            setVisibleElements((prev) => new Set([...Array.from(prev), id]));
           }
         });
       },
