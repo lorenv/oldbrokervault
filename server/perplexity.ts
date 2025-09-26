@@ -315,10 +315,10 @@ CUSTOM DIRECTIONS:
 ${customDirections}
 
 ${sectionDirections && sectionDirections.length > 0 ? `SPECIFIC SECTION REQUIREMENTS:
-Create sections based on these user-specified guidelines:
+Create ONLY the following sections specified by the user (do not add any other sections):
 ${sectionDirections.map(section => `- ${section.content}`).join('\n')}
 
-IMPORTANT: Use these section guidelines as the primary structure for your document. Each section should address the specific requirements listed above.` : ''}
+CRITICAL: You MUST create ONLY these sections listed above. Do NOT add any additional sections like "Financial Overview", "Management Team", or "Investment Highlights" unless they are explicitly listed in the user-specified sections above. The document should contain EXACTLY the sections specified by the user, no more and no less.` : ''}
 
 CRITICAL FORMATTING INSTRUCTIONS:
 ${formatInstructions}
@@ -347,13 +347,14 @@ INSTRUCTIONS WITH ANTI-HALLUCINATION ENFORCEMENT:
 5. Focus on ${purpose} as the primary objective without fabricating supporting details
 6. Include ONLY specific details, metrics, and facts found in the provided data sources
 7. ${websiteData ? 'Supplement transcript with website data, but NEVER extrapolate beyond what is stated' : 'Use ONLY transcript data - do not add external information'}
-8. Organize content into logical sections with clear headings
+8. ${sectionDirections && sectionDirections.length > 0 ? 'Create ONLY the sections explicitly specified by the user - do not add any default or standard sections' : 'Organize content into logical sections with clear headings'}
 9. STRICTLY follow the formatting requirements for ${tone} style
 10. FACT-CHECK: Every claim must be directly traceable to the transcript or website data
 11. If data is insufficient for a section, acknowledge limitations rather than inventing content
 12. Use phrases like "based on provided information" when data is limited
 13. NEVER add industry benchmarks, market statistics, or comparisons unless explicitly in the source
 14. Create a professional narrative using ONLY verifiable facts from the provided sources
+15. ${sectionDirections && sectionDirections.length > 0 ? 'SECTION ENFORCEMENT: Do NOT create sections for "Financial Overview", "Management Team", or "Investment Highlights" unless explicitly requested in the user-specified sections' : ''}
 
 ${websiteData ? `WEBSITE ANALYSIS DATA (Use to supplement transcript):
 ${websiteData}` : ''}

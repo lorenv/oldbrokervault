@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 import {
   Shield,
@@ -24,13 +26,17 @@ import {
   Download,
   FileSignature,
   UserCheck,
-  Plus
+  Plus,
+  Users,
+  Tag,
+  FileText
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { AddManualNdaSigner } from "@/components/add-manual-nda-signer";
+import type { InvestorContact } from "@shared/schema";
 
 interface DocumentNdaTabProps {
   cimDocument: any;
@@ -96,6 +102,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [selectedSignatures, setSelectedSignatures] = useState<number[]>([]);
   const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
   const [isAddManualSignerOpen, setIsAddManualSignerOpen] = useState(false);
+  const [viewingContact, setViewingContact] = useState<any | null>(null);
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -442,8 +449,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             </div>
             <div className="flex items-center gap-4">
               <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${
-                ndaSettings.ndaProtected 
-                  ? 'text-emerald-700 bg-emerald-100' 
+                ndaSettings.ndaProtected
+                  ? 'text-emerald-700 bg-emerald-100'
                   : 'text-gray-600 bg-gray-100'
               }`}>
                 {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
@@ -451,7 +458,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               <Switch
                 id="nda-protection"
                 checked={ndaSettings.ndaProtected}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   handleSettingChange('ndaProtected', checked)
                 }
               />
@@ -489,7 +496,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         {template.name}
                       </SelectItem>
                     ))}
-                    <SelectItem 
+                    <SelectItem
                       value="manage-templates"
                       className="text-blue-600 font-medium border-t border-gray-200"
                     >
@@ -519,7 +526,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   <Switch
                     id="manual-approval"
                     checked={ndaSettings.ndaApprovalRequired}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleSettingChange('ndaApprovalRequired', checked)
                     }
                   />
@@ -654,7 +661,89 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         className="rounded"
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{signature.signerName}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        className="text-left hover:text-blue-600 hover:underline transition-colors"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          // Fetch investor contact by email
+                          try {
+                            const response = await apiRequest('GET', `/api/investor-contacts?email=${encodeURIComponent(signature.signerEmail)}`);
+                            if (response.ok) {
+                              const contacts = await response.json();
+                              if (contacts && contacts.length > 0) {
+                                // Get the first matching contact and enrich it with signature info
+                                const contact = {
+                                  ...contacts[0],
+                                  totalNdaSignatures: 1, // We know they have at least this signature
+                                  documents: [{
+                                    documentId: cimDocument.id,
+                                    documentTitle: cimDocument.title,
+                                    signedAt: signature.signedAt,
+                                    signerName: signature.signerName,
+                                    cimDocumentId: cimDocument.id,
+                                    signatureId: signature.id
+                                  }],
+                                  lastNdaSigned: new Date(signature.signedAt).getTime()
+                                };
+                                setViewingContact(contact);
+                              } else {
+                                // Create a temporary contact object for viewing
+                                setViewingContact({
+                                  id: null,
+                                  name: signature.signerName,
+                                  email: signature.signerEmail,
+                                  company: signature.signerCompany || '',
+                                  phone: signature.signerPhone || '',
+                                  notes: '',
+                                  tags: [],
+                                  status: 'new',
+                                  totalNdaSignatures: 1,
+                                  documents: [{
+                                    documentId: cimDocument.id,
+                                    documentTitle: cimDocument.title,
+                                    signedAt: signature.signedAt,
+                                    signerName: signature.signerName,
+                                    cimDocumentId: cimDocument.id,
+                                    signatureId: signature.id
+                                  }],
+                                  lastNdaSigned: new Date(signature.signedAt).getTime(),
+                                  createdAt: new Date(),
+                                  lastSeenAt: new Date(signature.signedAt)
+                                });
+                              }
+                            }
+                          } catch (error) {
+                            console.error('Failed to fetch investor contact:', error);
+                            // Still show the modal with basic info
+                            setViewingContact({
+                              id: null,
+                              name: signature.signerName,
+                              email: signature.signerEmail,
+                              company: signature.signerCompany || '',
+                              phone: signature.signerPhone || '',
+                              notes: '',
+                              tags: [],
+                              status: 'new',
+                              totalNdaSignatures: 1,
+                              documents: [{
+                                documentId: cimDocument.id,
+                                documentTitle: cimDocument.title,
+                                signedAt: signature.signedAt,
+                                signerName: signature.signerName,
+                                cimDocumentId: cimDocument.id,
+                                signatureId: signature.id
+                              }],
+                              lastNdaSigned: new Date(signature.signedAt).getTime(),
+                              createdAt: new Date(),
+                              lastSeenAt: new Date(signature.signedAt)
+                            });
+                          }
+                        }}
+                      >
+                        {signature.signerName}
+                      </button>
+                    </TableCell>
                     <TableCell>{signature.signerEmail}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -812,6 +901,153 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
           queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
         }}
       />
+
+      {/* Contact Detail Modal */}
+      <Dialog open={!!viewingContact} onOpenChange={() => setViewingContact(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Contact Details
+            </DialogTitle>
+            <DialogDescription>
+              View detailed information for this NDA signer
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingContact && (
+            <div className="space-y-6 mt-6">
+              {/* Main Contact Information Card */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                        <p className="text-base font-medium mt-1">{viewingContact.name}</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                        <p className="text-base mt-1">
+                          <a
+                            href={`mailto:${viewingContact.email}`}
+                            className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                          >
+                            <Mail className="h-3 w-3" />
+                            {viewingContact.email}
+                          </a>
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                        <p className="text-base mt-1">
+                          {viewingContact.phone || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Company</Label>
+                        <p className="text-base mt-1">
+                          {viewingContact.company || 'Not provided'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                        <p className="text-base mt-1">
+                          {viewingContact.location || 'Not provided'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                        <Badge variant="outline" className="mt-1">
+                          {viewingContact.status || 'New'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Document History Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Document History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-3 bg-muted/50 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signature(s)</span>
+                      </div>
+                      {viewingContact.lastNdaSigned && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Last signed: {new Date(viewingContact.lastNdaSigned).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+
+                    {viewingContact.documents && viewingContact.documents.length > 0 && (
+                      <div className="space-y-2">
+                        {viewingContact.documents.map((doc: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-2 border rounded-md">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium text-sm">{doc.documentTitle}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Signed on {new Date(doc.signedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notes Section */}
+              {viewingContact.notes && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{viewingContact.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setViewingContact(null)}>
+              Close
+            </Button>
+            {viewingContact?.id && (
+              <Button
+                onClick={() => {
+                  // Navigate to investor database with this contact selected
+                  setLocation(`/investors?contact=${viewingContact.id}`);
+                }}
+              >
+                View in Investor Database
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

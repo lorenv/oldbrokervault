@@ -771,7 +771,9 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         isExample: cimDocuments.isExample,
         sectionDirections: cimDocuments.sectionDirections,
         formattingProfile: cimDocuments.formattingProfile,
-        ndaSignatureCount: sql<number>`COALESCE(COUNT(${ndaSignatures.id}), 0)`
+        ndaSignatureCount: sql<number>`COALESCE(COUNT(${ndaSignatures.id}), 0)`,
+        ndaApprovalRequired: cimDocuments.ndaApprovalRequired,
+        pendingNdaCount: sql<number>`COALESCE(SUM(CASE WHEN ${cimDocuments.ndaApprovalRequired} = true AND ${ndaSignatures.id} IS NOT NULL AND ${ndaSignatures.approved} = false THEN 1 ELSE 0 END), 0)`
       })
       .from(cimDocuments)
       .leftJoin(ndaSignatures, eq(cimDocuments.id, ndaSignatures.cimDocumentId))
@@ -791,7 +793,8 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         cimDocuments.logoUrl,
         cimDocuments.isExample,
         cimDocuments.sectionDirections,
-        cimDocuments.formattingProfile
+        cimDocuments.formattingProfile,
+        cimDocuments.ndaApprovalRequired
       )
       .orderBy(desc(cimDocuments.createdAt))
       .limit(limit + 1); // Get one extra to check for more
@@ -836,7 +839,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       logoUrlBackup: null,
       selectedImagesBackup: null,
       customSlug: null,
-      ndaApprovalRequired: false,
+      ndaApprovalRequired: result.ndaApprovalRequired || false,
       editStartedAt: null,
       lastActivityAt: null,
       searchVector: null,
@@ -844,7 +847,8 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       isExample: result.isExample,
       // Add new fields with defaults
       sectionDirections: result.sectionDirections || null,
-      formattingProfile: result.formattingProfile || null
+      formattingProfile: result.formattingProfile || null,
+      pendingNdaCount: result.pendingNdaCount || 0
     }));
 
     // For dashboard, we don't need exact total count - just use estimated

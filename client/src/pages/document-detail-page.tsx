@@ -182,7 +182,12 @@ export function DocumentDetailPage() {
   const { data: financialFiles } = useFinancialFiles(docId, !!docId);
   const { data: customSections } = useCustomSections(docId, !!docId);
   const { data: ndaSignatures } = useNdaSignatures(docId, !!docId);
-  
+
+  // Calculate pending NDA approvals
+  const pendingNdaCount = ndaSignatures?.filter((sig: any) =>
+    cimDocument?.ndaApprovalRequired && !sig.approved
+  ).length || 0;
+
   // Update URL when tab changes
   useEffect(() => {
     if (docId) {
@@ -430,15 +435,20 @@ export function DocumentDetailPage() {
               </button>
               <button
                 onClick={() => handleTabChange('nda')}
-                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
-                  activeTab === 'nda' 
-                    ? 'bg-background text-foreground shadow-sm' 
+                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all relative ${
+                  activeTab === 'nda'
+                    ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <FileSignature className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">NDA Signatures</span>
                 <span className="sm:hidden">NDA</span>
+                {pendingNdaCount > 0 && (
+                  <Badge className="ml-1 sm:ml-2 px-1 sm:px-2 py-0 text-[10px] sm:text-xs bg-orange-100 text-orange-800 border-orange-200">
+                    {pendingNdaCount}
+                  </Badge>
+                )}
               </button>
               <button
                 onClick={() => handleTabChange('share')}
@@ -533,13 +543,18 @@ export function DocumentDetailPage() {
               <button
                 onClick={() => setActiveTab('nda')}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
-                  activeTab === 'nda' 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  activeTab === 'nda'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <FileSignature className="h-5 w-5" />
-                NDA Signatures
+                <span className="flex-1">NDA Signatures</span>
+                {pendingNdaCount > 0 && (
+                  <Badge className="ml-auto bg-orange-100 text-orange-800 border-orange-200">
+                    {pendingNdaCount} pending
+                  </Badge>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab('share')}

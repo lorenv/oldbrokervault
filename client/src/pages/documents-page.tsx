@@ -25,6 +25,7 @@ interface CimDocumentWithAnalysis extends CimDocument {
   shareViewCount: number;
   hasNdaSignatures?: boolean;
   ndaSignatureCount?: number; // Assuming ndaSignatureCount is a property from the backend
+  pendingNdaCount?: number; // Number of NDA signatures pending approval
 }
 
 export default function DocumentsPage() {
@@ -310,7 +311,7 @@ export default function DocumentsPage() {
                               <Eye className="h-3 w-3 flex-shrink-0 text-green-500" />
                               <span>{doc.shareViewCount || 0} view{(doc.shareViewCount || 0) !== 1 ? 's' : ''}</span>
                             </div>
-                            {doc.ndaSignatureCount > 0 && (
+                            {doc.ndaSignatureCount && doc.ndaSignatureCount > 0 && (
                               <div className="flex items-center gap-1">
                                 <Users className="h-3 w-3 flex-shrink-0 text-orange-500" />
                                 <span>{doc.ndaSignatureCount} signature{doc.ndaSignatureCount !== 1 ? 's' : ''}</span>
@@ -322,12 +323,18 @@ export default function DocumentsPage() {
                     </CardHeader>
                     <CardContent className="pt-0 p-3 sm:p-6 sm:pt-0">
                       <div className="flex items-center justify-between gap-2">
-                        {/* NDA Protected badge */}
+                        {/* NDA Protected badge and Pending Approvals */}
                         <div className="flex items-center gap-2">
                           {doc.ndaProtected && (
                             <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">
                               <Shield className="h-3 w-3 flex-shrink-0" />
                               <span>NDA Protected</span>
+                            </div>
+                          )}
+                          {doc.pendingNdaCount && doc.pendingNdaCount > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium border border-orange-200 shadow-sm">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span>{doc.pendingNdaCount} pending</span>
                             </div>
                           )}
                         </div>
@@ -577,7 +584,7 @@ export default function DocumentsPage() {
                               <Eye className="h-3 w-3 text-green-500" />
                               {doc.shareViewCount || 0} views
                             </span>
-                            {doc.ndaSignatureCount > 0 && (
+                            {doc.ndaSignatureCount && doc.ndaSignatureCount > 0 && (
                               <span className="flex items-center gap-1">
                                 <Users className="h-3 w-3 text-orange-500" />
                                 {doc.ndaSignatureCount} signatures
@@ -594,6 +601,13 @@ export default function DocumentsPage() {
                           <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200 shadow-sm">
                             <Shield className="h-3 w-3" />
                             <span>NDA Protected</span>
+                          </div>
+                        )}
+                        {/* Pending NDA Approvals badge */}
+                        {doc.pendingNdaCount && doc.pendingNdaCount > 0 && (
+                          <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium border border-orange-200 shadow-sm">
+                            <Clock className="h-3 w-3" />
+                            <span>{doc.pendingNdaCount} pending</span>
                           </div>
                         )}
 

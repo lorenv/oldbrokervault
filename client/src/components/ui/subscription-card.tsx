@@ -13,15 +13,17 @@ interface SubscriptionCardProps {
   monthlyDocumentsCreated?: number;
   monthlyRegenerationsUsed?: number;
   subtle?: boolean;
+  hideProButtons?: boolean; // New prop to hide buttons for Pro users
 }
 
-export function SubscriptionCard({ 
-  status, 
-  endsAt, 
-  monthlyUsage = 0, 
-  monthlyDocumentsCreated = 0, 
-  monthlyRegenerationsUsed = 0, 
-  subtle = false 
+export function SubscriptionCard({
+  status,
+  endsAt,
+  monthlyUsage = 0,
+  monthlyDocumentsCreated = 0,
+  monthlyRegenerationsUsed = 0,
+  subtle = false,
+  hideProButtons = false
 }: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
@@ -192,7 +194,7 @@ export function SubscriptionCard({
             </div>
           </div>
 
-          {!isPremium && !isAdmin && !isCanceled && (
+          {!isPremium && !isAdmin && !isCanceled && !isStandard && (
             <Button
               className="w-full"
               size={subtle ? "sm" : "default"}
@@ -202,7 +204,8 @@ export function SubscriptionCard({
             </Button>
           )}
 
-          {(isPremium || isStandard || isCanceled) && !isAdmin && (
+          {(isPremium || isStandard || isCanceled) && !isAdmin &&
+           !(hideProButtons && isStandard) && (
             <Button
               className="w-full"
               variant={isCanceled ? "default" : "outline"}
