@@ -15,8 +15,8 @@ import {
   Clock,
   FileText
 } from "lucide-react";
-import vvLogoBlue from "@assets/vv-logo-blue_1758929244400.png";
-import heroVideo from "@assets/hero-video_1758929337474.mp4";
+import vvLogoBlue from "@/assets/vv-logo-blue_1758929244400.png";
+import heroVideo from "@/assets/hero-video_1758929337474.mp4";
 
 export default function VirtualDataRoomPage() {
   const features = [
