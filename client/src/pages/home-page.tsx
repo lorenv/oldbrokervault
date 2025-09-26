@@ -173,7 +173,7 @@ export default function HomePage() {
                   loop
                   muted
                   playsInline
-                  className="w-full h-auto object-contain max-w-sm mx-auto lg:max-w-none"
+                  className="w-full h-auto object-contain max-w-sm mx-auto lg:max-w-none rounded-xl shadow-2xl"
                 >
                   <source src="/hero-video.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
