@@ -123,37 +123,41 @@ export default function NdaTemplateEditorPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={() => setLocation('/nda-templates')}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Templates
-        </Button>
-        
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isNewTemplate ? 'Create New' : 'Edit'} NDA Template
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {isNewTemplate ? 'Upload a PDF and add signature fields' : 'Update template and signature fields'}
-          </p>
+    <div className="flex flex-col h-[calc(100vh-theme(spacing.16)-theme(spacing.64))]">
+      <div className="container mx-auto px-6 pt-6 pb-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => setLocation('/nda-templates')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Templates
+          </Button>
+
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isNewTemplate ? 'Create New' : 'Edit'} NDA Template
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {isNewTemplate ? 'Upload a PDF and add signature fields' : 'Update template and signature fields'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {templateLoading && !isNewTemplate ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
-        <EnhancedNdaTemplateEditor
-          initialTemplate={isNewTemplate ? null : template}
-          onSave={handleSave}
-          isLoading={saveTemplateMutation.isPending}
-        />
-      )}
+      <div className="flex-1 container mx-auto px-6 pb-6 overflow-hidden">
+        {templateLoading && !isNewTemplate ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <EnhancedNdaTemplateEditor
+            initialTemplate={isNewTemplate ? null : template}
+            onSave={handleSave}
+            isLoading={saveTemplateMutation.isPending}
+          />
+        )}
+      </div>
     </div>
   );
 }
