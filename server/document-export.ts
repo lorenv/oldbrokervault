@@ -672,6 +672,82 @@ async function addImageWithAspectRatio(doc: any, imageBuffer: Buffer, x: number,
   }
 }
 
+// Helper function to add image with absolute positioning (bypassing document margins)
+async function addImageWithAbsolutePosition(doc: any, imageBuffer: Buffer, x: number, y: number, maxWidth: number, maxHeight: number): Promise<void> {
+  let sharpInstance: any = null;
+  // Save current position to restore after absolute positioning
+  const originalX = doc.x;
+  const originalY = doc.y;
+  
+  try {
+    console.log("🎯 addImageWithAbsolutePosition: Starting image processing for buffer size:", imageBuffer.length);
+    console.log("🎯 addImageWithAbsolutePosition: Saved original position:", originalX, originalY);
+    
+    // Get actual image dimensions
+    const sharp = require('sharp');
+    sharpInstance = sharp(imageBuffer);
+    const metadata = await sharpInstance.metadata();
+    console.log("🎯 addImageWithAbsolutePosition: Sharp metadata:", metadata);
+    
+    if (!metadata.width || !metadata.height) {
+      // Fallback to original behavior if dimensions can't be determined
+      doc.image(imageBuffer, x, y, { width: maxWidth, height: maxHeight });
+      return;
+    }
+    
+    const imageAspectRatio = metadata.width / metadata.height;
+    const containerAspectRatio = maxWidth / maxHeight;
+    
+    let finalWidth: number;
+    let finalHeight: number;
+    let offsetX: number = x;
+    let offsetY: number = y;
+    
+    if (imageAspectRatio > containerAspectRatio) {
+      // Image is wider than container - fit by width
+      finalWidth = maxWidth;
+      finalHeight = maxWidth / imageAspectRatio;
+      offsetY = y + (maxHeight - finalHeight) / 2; // Center vertically
+    } else {
+      // Image is taller than container - fit by height
+      finalHeight = maxHeight;
+      finalWidth = maxHeight * imageAspectRatio;
+      offsetX = x + (maxWidth - finalWidth) / 2; // Center horizontally
+    }
+    
+    console.log(`🎯 addImageWithAbsolutePosition: Image dimensions: ${metadata.width}x${metadata.height}`);
+    console.log(`🎯 addImageWithAbsolutePosition: Container: ${maxWidth}x${maxHeight}`);
+    console.log(`🎯 addImageWithAbsolutePosition: Final size: ${finalWidth.toFixed(1)}x${finalHeight.toFixed(1)}`);
+    console.log(`🎯 addImageWithAbsolutePosition: Absolute position: ${offsetX.toFixed(1)},${offsetY.toFixed(1)}`);
+    
+    // Place image at absolute position without affecting document cursor
+    doc.image(imageBuffer, offsetX, offsetY, {
+      width: finalWidth,
+      height: finalHeight
+    });
+    
+    console.log("🎯 addImageWithAbsolutePosition: Successfully placed image at absolute position");
+  } catch (error) {
+    console.error("Error adding image with absolute position:", error);
+    // Fallback to original behavior
+    doc.image(imageBuffer, x, y, { width: maxWidth, height: maxHeight });
+  } finally {
+    // Critical: Restore original cursor position to maintain proper document flow
+    doc.x = originalX;
+    doc.y = originalY;
+    console.log("🎯 addImageWithAbsolutePosition: Restored cursor position to:", originalX, originalY);
+    
+    // Critical: Clean up Sharp instance to prevent memory leaks
+    if (sharpInstance) {
+      try {
+        sharpInstance.destroy();
+      } catch (destroyError) {
+        console.warn("Failed to destroy Sharp instance:", destroyError);
+      }
+    }
+  }
+}
+
 // Helper function to create a cropped image based on position data
 async function createCroppedImageBuffer(imagePath: string, position: { x: number; y: number }, bannerWidth: number, bannerHeight: number): Promise<Buffer | null> {
   let metadataSharp: any = null;
@@ -2561,21 +2637,22 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 const croppedBuffer = await createCroppedImageBuffer(coverImageData.originalPath, imagePosition, bannerWidth, bannerHeight);
                 
                 if (croppedBuffer) {
-                  await addImageWithAspectRatio(doc, croppedBuffer, 0, 0, bannerWidth, bannerHeight);
-                  console.log("Successfully added cropped cover image banner with preserved aspect ratio");
+                  // Use absolute positioning to place cover image at very top of page
+                  await addImageWithAbsolutePosition(doc, croppedBuffer, 0, 0, bannerWidth, bannerHeight);
+                  console.log("Successfully added cropped cover image banner at absolute top with preserved aspect ratio");
                 } else {
-                  // Fallback to original with proper aspect ratio preservation
-                  await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
-                  console.log("Added cover image banner with preserved aspect ratio");
+                  // Fallback to original with proper aspect ratio preservation at absolute top
+                  await addImageWithAbsolutePosition(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
+                  console.log("Added cover image banner at absolute top with preserved aspect ratio");
                 }
               } catch (cropError) {
-                console.log("Cropping failed, using original image with aspect ratio preservation");
-                await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
+                console.log("Cropping failed, using original image with aspect ratio preservation at absolute top");
+                await addImageWithAbsolutePosition(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
               }
             } else {
-              // Use image with proper aspect ratio preservation
-              await addImageWithAspectRatio(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
-              console.log("Successfully added cover image banner with preserved aspect ratio");
+              // Use image with proper aspect ratio preservation at absolute top
+              await addImageWithAbsolutePosition(doc, coverImageData.buffer, 0, 0, bannerWidth, bannerHeight);
+              console.log("Successfully added cover image banner at absolute top with preserved aspect ratio");
             }
             
             // Move cursor below the banner image
@@ -2628,11 +2705,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
               }
             }
             
-            await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
+            await addImageWithAbsolutePosition(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
             
             // Move cursor below the banner image
             doc.y = bannerHeight + 60; // Add larger margin below banner
-            console.log("Successfully added base64 fallback cover image banner with preserved aspect ratio");
+            console.log("Successfully added base64 fallback cover image banner at absolute top with preserved aspect ratio");
           } else if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
             // Handle external URL - download and cache first
             console.log("Downloading external fallback cover image:", firstImage);
@@ -2671,11 +2748,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 }
               }
               
-              await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
+              await addImageWithAbsolutePosition(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image
               doc.y = bannerHeight + 60; // Add larger margin below banner
-              console.log("Successfully added external fallback cover image banner from cache with preserved aspect ratio:", cachedImagePath);
+              console.log("Successfully added external fallback cover image banner at absolute top from cache with preserved aspect ratio:", cachedImagePath);
             } else {
               console.log("Failed to download or cache external fallback cover image");
             }
@@ -2715,11 +2792,11 @@ export async function generatePDF(analysis: any, logoUrl?: string | null, websit
                 }
               }
               
-              await addImageWithAspectRatio(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
+              await addImageWithAbsolutePosition(doc, imageBuffer, 0, 0, bannerWidth, bannerHeight);
               
               // Move cursor below the banner image
               doc.y = bannerHeight + 60; // Add larger margin below banner
-              console.log("Successfully added file-based fallback cover image banner with preserved aspect ratio");
+              console.log("Successfully added file-based fallback cover image banner at absolute top with preserved aspect ratio");
             } else {
               console.log("Fallback cover image file does not exist:", imagePath);
             }
