@@ -165,18 +165,19 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right side - Computer/Phone Image */}
+            {/* Right side - Hero Video */}
             <div className="relative mt-8 lg:mt-0">
               <div className="relative">
-                <img
-                  src="/hero-computer.png"
-                  alt="CIM Share platform showing professional business documentation with laptop and mobile views"
-                  className="w-full h-auto object-contain animate-gentle-float hover:scale-105 transition-transform duration-700 ease-out max-w-sm mx-auto lg:max-w-none"
-                  onError={(e) => {
-                    // Fallback to existing mobile mockup if hero-computer.png doesn't exist
-                    e.currentTarget.src = "/mobile-mockup.png";
-                  }}
-                />
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-auto object-contain max-w-sm mx-auto lg:max-w-none"
+                >
+                  <source src="/hero-video.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
               </div>
             </div>
           </div>
