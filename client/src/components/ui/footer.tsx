@@ -30,6 +30,11 @@ export function Footer() {
                   Get Started
                 </Link>
               </li>
+              <li>
+                <Link href="/virtual-data-room" className="text-gray-400 hover:text-white transition-colors">
+                  Virtual Data Room
+                </Link>
+              </li>
             </ul>
           </div>
 
