@@ -39,6 +39,7 @@ import EnhancedTemplateEditorPage from "@/pages/enhanced-template-editor-page";
 import { GetStartedChecklist } from "@/components/get-started-checklist";
 import { useAuth } from "@/hooks/use-auth";
 import MarketingHomePage from "@/pages/marketing-home-page";
+import VirtualDataRoomPage from "@/pages/virtual-data-room-page";
 
 // Lazy load SEO pages for better performance
 const NdaProtectionPage = lazy(() => import("@/pages/features/nda-protection"));
@@ -69,6 +70,7 @@ function Router() {
             <ProtectedRoute path="/account" component={AccountPage} />
             <ProtectedRoute path="/profile" component={AccountPage} />
             <Route path="/pricing" component={PricingPage} />
+            <Route path="/virtual-data-room" component={VirtualDataRoomPage} />
             <Route path="/checkout-success" component={CheckoutSuccess} />
             <Route path="/contact" component={ContactPage} />
             <Route path="/eula" component={EulaPage} />
