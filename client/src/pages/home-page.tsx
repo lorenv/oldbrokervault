@@ -909,8 +909,8 @@ export default function HomePage() {
             <div className="flex justify-center lg:justify-end">
               <div className="relative">
                 <img
-                  src="/mobile-mockup.png"
-                  alt="CIM Share mobile app showing Arbor Partners CIM with financial information"
+                  src="/hero-computer.png"
+                  alt="CIM Share platform showing professional business documentation with laptop and mobile views"
                   className="w-full max-w-md h-auto drop-shadow-2xl"
                   style={{ marginBottom: "-2px" }}
                 />
