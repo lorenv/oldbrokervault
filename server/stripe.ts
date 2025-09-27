@@ -7,24 +7,44 @@ import { invalidateUserCache } from "./auth";
 
 // Validate required environment variables
 function validateStripeConfig() {
-  const requiredVars = [
+  const coreRequiredVars = [
     'STRIPE_SECRET_KEY',
     'STRIPE_PUBLISHABLE_KEY', 
-    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_WEBHOOK_SECRET'
+  ];
+  
+  const priceVars = [
     'STRIPE_PRICE_ID_STARTER',
     'STRIPE_PRICE_ID_STANDARD'
   ];
   
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+  const missingCore = coreRequiredVars.filter(varName => !process.env[varName]);
+  const missingPrices = priceVars.filter(varName => !process.env[varName]);
   
-  if (missing.length > 0) {
+  if (missingCore.length > 0) {
     console.error('=== STRIPE CONFIGURATION ERROR ===');
-    console.error('Missing required environment variables:', missing);
+    console.error('Missing core Stripe environment variables:', missingCore);
     console.error('Please ensure all Stripe environment variables are configured');
-    throw new Error(`Missing Stripe environment variables: ${missing.join(', ')}`);
+    throw new Error(`Missing core Stripe environment variables: ${missingCore.join(', ')}`);
   }
   
-  console.log('✅ All required Stripe environment variables are configured');
+  if (missingPrices.length > 0) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('=== STRIPE CONFIGURATION ERROR ===');
+      console.error('Missing Stripe price environment variables:', missingPrices);
+      console.error('Please ensure all Stripe environment variables are configured');
+      throw new Error(`Missing Stripe price environment variables: ${missingPrices.join(', ')}`);
+    } else {
+      console.warn('⚠️ Missing Stripe price environment variables:', missingPrices);
+      console.warn('⚠️ Running in development mode - payment features will be limited');
+    }
+  }
+  
+  if (missingPrices.length === 0) {
+    console.log('✅ All required Stripe environment variables are configured');
+  } else {
+    console.log('✅ Core Stripe environment variables are configured (development mode)');
+  }
 }
 
 // Initialize Stripe with error handling

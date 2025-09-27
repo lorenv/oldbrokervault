@@ -24,21 +24,37 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 function validateDeploymentEnvironment() {
   console.log('🔍 Validating deployment environment...');
   
-  const requiredEnvVars = [
+  const coreRequiredEnvVars = [
     'DATABASE_URL',
     'STRIPE_SECRET_KEY',
     'STRIPE_PUBLISHABLE_KEY',
-    'STRIPE_WEBHOOK_SECRET',
+    'STRIPE_WEBHOOK_SECRET'
+  ];
+  
+  const priceEnvVars = [
     'STRIPE_PRICE_ID_STANDARD'
   ];
   
   const warnings: string[] = [];
   const errors: string[] = [];
   
-  // Check required variables
-  requiredEnvVars.forEach(varName => {
+  // Check core required variables
+  coreRequiredEnvVars.forEach(varName => {
     if (!process.env[varName]) {
       errors.push(varName);
+    } else {
+      console.log(`✅ ${varName} is configured`);
+    }
+  });
+  
+  // Check price variables (required in production, optional in development)
+  priceEnvVars.forEach(varName => {
+    if (!process.env[varName]) {
+      if (process.env.NODE_ENV === 'production') {
+        errors.push(varName);
+      } else {
+        warnings.push(varName);
+      }
     } else {
       console.log(`✅ ${varName} is configured`);
     }
