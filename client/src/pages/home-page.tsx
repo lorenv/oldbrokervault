@@ -421,7 +421,7 @@ export default function HomePage() {
                 }
               >
                 <video
-                  src="/attached_assets/investor database clip_1758978869521.mp4"
+                  src="/attached_assets/investor database clip optimized_1758979349645.mp4"
                   muted
                   autoPlay
                   loop
