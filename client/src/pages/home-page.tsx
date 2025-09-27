@@ -498,7 +498,7 @@ export default function HomePage() {
                 onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
               >
                 <video
-                  src="/nda management clip_1758978874848.mp4"
+                  src="/nda-management-feature.mp4"
                   muted
                   autoPlay
                   loop
