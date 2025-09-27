@@ -4,6 +4,7 @@ import { Eye, Users, Calendar, TrendingUp, Globe, FileSignature } from "lucide-r
 import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
+import { useLocation } from "wouter";
 
 interface DocumentAnalyticsTabProps {
   cimDocument: any;
@@ -11,6 +12,8 @@ interface DocumentAnalyticsTabProps {
 }
 
 export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAnalyticsTabProps) {
+  const [, setLocation] = useLocation();
+
   // Fetch view analytics
   const { data: viewStats } = useQuery({
     queryKey: [`/api/cim/${cimDocument.id}/analytics`],
@@ -195,8 +198,14 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
               <div className="space-y-3">
                 {recentSignatures.map((signature, index) => (
                   <div key={signature.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                    <div>
-                      <p className="text-sm font-medium">{signature.signerName}</p>
+                    <div
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        // Navigate to investor database with contact email as query parameter
+                        setLocation(`/investor-database?contact=${encodeURIComponent(signature.signerEmail)}`);
+                      }}
+                    >
+                      <p className="text-sm font-medium text-blue-600 hover:underline">{signature.signerName}</p>
                       <p className="text-xs text-muted-foreground">{signature.signerEmail}</p>
                     </div>
                     <div className="text-right">
