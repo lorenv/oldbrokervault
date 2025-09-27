@@ -89,9 +89,9 @@ export default function VirtualDataRoomPage() {
               Stop drowning in spreadsheet chaos. Get the AI-powered platform where only the deal creators need a subscription.
               Invite unlimited team members from both sides of the transaction - they can view, upload, and collaborate at no additional cost.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <div className="flex justify-center mb-12">
               <a
-                href="https://www.vettingvault.com"
+                href="vettingvault.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block"
@@ -101,11 +101,6 @@ export default function VirtualDataRoomPage() {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </a>
-              <Link href="/contact">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-3">
-                  Learn More
-                </Button>
-              </Link>
             </div>
           </div>
 
@@ -256,9 +251,9 @@ export default function VirtualDataRoomPage() {
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Join the modern approach to virtual data rooms. Free to try, unlimited team access, and built for deal success.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex justify-center">
             <a
-              href="https://www.vettingvault.com"
+              href="vettingvault.com"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block"
@@ -268,11 +263,6 @@ export default function VirtualDataRoomPage() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </a>
-            <Link href="/contact">
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-gray-900">
-                Contact Sales
-              </Button>
-            </Link>
           </div>
         </div>
       </section>

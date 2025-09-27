@@ -98,7 +98,7 @@ export function Navbar() {
                   className={`${location === '/investor-database' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
                 >
                   <Database className="mr-1 h-4 w-4" />
-                  Investors
+                  CRM
                 </Button>
               </Link>
             </nav>
@@ -273,7 +273,7 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/investor-database" className="w-full cursor-pointer">
                       <Database className="mr-2 h-4 w-4" />
-                      Investor Database
+                      CRM
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
