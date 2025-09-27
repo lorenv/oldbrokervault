@@ -426,14 +426,8 @@ export default function HomePage() {
                   autoPlay
                   loop
                   playsInline
-                  preload="metadata"
-                  onError={(e) => console.error('Video error:', e)}
-                  onLoadedData={() => console.log('Video loaded successfully')}
-                  onCanPlay={() => console.log('Video can play')}
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
-                >
-                  <p className="text-gray-500 p-4">Your browser does not support video playback.</p>
-                </video>
+                />
               </div>
               <div
                 className={`space-y-6 transition-all duration-1000 delay-200 ${
@@ -509,14 +503,8 @@ export default function HomePage() {
                   autoPlay
                   loop
                   playsInline
-                  preload="metadata"
-                  onError={(e) => console.error('Video error:', e)}
-                  onLoadedData={() => console.log('Video loaded successfully')}
-                  onCanPlay={() => console.log('Video can play')}
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
-                >
-                  <p className="text-gray-500 p-4">Your browser does not support video playback.</p>
-                </video>
+                />
               </div>
             </div>
 
@@ -614,14 +602,8 @@ export default function HomePage() {
                   autoPlay
                   loop
                   playsInline
-                  preload="metadata"
-                  onError={(e) => console.error('Video error:', e)}
-                  onLoadedData={() => console.log('Video loaded successfully')}
-                  onCanPlay={() => console.log('Video can play')}
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
-                >
-                  <p className="text-gray-500 p-4">Your browser does not support video playback.</p>
-                </video>
+                />
               </div>
             </div>
           </div>
