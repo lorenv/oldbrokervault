@@ -421,7 +421,7 @@ export default function HomePage() {
                 }
               >
                 <video
-                  src="/attached_assets/investor database clip optimized_1758979349645.mp4"
+                  src="/investor database clip optimized_1758979349645.mp4"
                   muted
                   autoPlay
                   loop
@@ -504,7 +504,7 @@ export default function HomePage() {
                 onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
               >
                 <video
-                  src="/attached_assets/nda management clip_1758978874848.mp4"
+                  src="/nda management clip_1758978874848.mp4"
                   muted
                   autoPlay
                   loop
@@ -609,7 +609,7 @@ export default function HomePage() {
                 }
               >
                 <video
-                  src="/attached_assets/esignature feature_1758978879478.mp4"
+                  src="/esignature feature_1758978879478.mp4"
                   muted
                   autoPlay
                   loop
