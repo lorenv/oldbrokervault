@@ -421,7 +421,7 @@ export default function HomePage() {
                 }
               >
                 <video
-                  src="/investor database clip optimized_1758979349645.mp4"
+                  src="/investor-database-feature.mp4"
                   muted
                   autoPlay
                   loop
@@ -597,7 +597,7 @@ export default function HomePage() {
                 }
               >
                 <video
-                  src="/esignature feature_1758978879478.mp4"
+                  src="/esignature-feature.mp4"
                   muted
                   autoPlay
                   loop
