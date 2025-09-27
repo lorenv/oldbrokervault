@@ -6,7 +6,9 @@ import { AuthProvider } from "./hooks/use-auth";
 import { Navbar } from "@/components/ui/navbar";
 import { Footer } from "@/components/ui/footer";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { initGA } from "./lib/analytics";
+import { useAnalytics } from "./hooks/use-analytics";
 import HomePage from "@/pages/home-page";
 import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
@@ -52,6 +54,9 @@ function Router() {
   const [location] = useLocation();
   const { user } = useAuth();
   const isSharePage = location.startsWith('/share/') || location.startsWith('/cims/');
+  
+  // Track page views when routes change
+  useAnalytics();
 
   return (
     <>
@@ -131,6 +136,16 @@ function Router() {
 }
 
 function App() {
+  // Initialize Google Analytics when app loads
+  useEffect(() => {
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

@@ -4,17 +4,25 @@ import { eq } from 'drizzle-orm';
 import { users, cimDocuments } from '@shared/schema.ts';
 
 // Critical: Check for SENDGRID_API_KEY with detailed production debugging
-if (!process.env.SENDGRID_API_KEY) {
-  console.error("🚨 CRITICAL: SENDGRID_API_KEY environment variable not found");
-  console.error("Environment:", process.env.NODE_ENV || 'unknown');
-  console.error("Platform:", process.platform);
-  console.error("Available env vars with SENDGRID:", Object.keys(process.env).filter(k => k.includes('SENDGRID')));
-  console.error("This will cause all email functionality to fail");
-  throw new Error("SENDGRID_API_KEY environment variable must be set - check deployment configuration");
-}
+let mailService: MailService | null = null;
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+if (!process.env.SENDGRID_API_KEY) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error("🚨 CRITICAL: SENDGRID_API_KEY environment variable not found");
+    console.error("Environment:", process.env.NODE_ENV || 'unknown');
+    console.error("Platform:", process.platform);
+    console.error("Available env vars with SENDGRID:", Object.keys(process.env).filter(k => k.includes('SENDGRID')));
+    console.error("This will cause all email functionality to fail");
+    throw new Error("SENDGRID_API_KEY environment variable must be set - check deployment configuration");
+  } else {
+    console.warn("⚠️ SENDGRID_API_KEY not found - email functionality will be disabled in development mode");
+    mailService = null;
+  }
+} else {
+  mailService = new MailService();
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log("✅ SendGrid configured successfully");
+}
 
 interface EmailParams {
   to: string;
@@ -42,6 +50,12 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
     console.log('- API Key length:', process.env.SENDGRID_API_KEY?.length || 0);
     console.log('- Environment:', process.env.NODE_ENV || 'unknown');
     console.log('- Platform:', process.platform);
+    
+    // Check if SendGrid is available
+    if (!mailService) {
+      console.warn('⚠️ SendGrid not configured - email functionality disabled');
+      return false;
+    }
     
     // Additional validation for production
     if (!process.env.SENDGRID_API_KEY) {
