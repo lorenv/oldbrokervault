@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,7 +115,8 @@ interface FilterRule {
 export default function InvestorDatabasePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const searchParams = useSearch();
+
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -419,6 +421,30 @@ export default function InvestorDatabasePage() {
 
   // Use filtered contacts as the main contacts array
   const contacts = filteredAndSortedContacts;
+
+  // Check for contact query parameter and open modal
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const contactEmail = params.get('contact');
+
+    if (contactEmail && contacts.length > 0) {
+      // Find the contact by email
+      const contact = contacts.find((c: EnrichedContact) =>
+        c.email.toLowerCase() === contactEmail.toLowerCase()
+      );
+
+      if (contact) {
+        // Open the contact modal
+        setViewingContact(contact);
+
+        // Clear the query parameter after opening
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('contact');
+        const newSearch = newParams.toString();
+        window.history.replaceState({}, '', newSearch ? `?${newSearch}` : window.location.pathname);
+      }
+    }
+  }, [searchParams, contacts]);
 
   // Sync contacts from signatures
   const syncMutation = useMutation({
