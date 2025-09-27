@@ -596,9 +596,12 @@ export default function HomePage() {
                   setEnlargedImage("/e-signature-template-editor.png")
                 }
               >
-                <img
-                  src="/e-signature-template-editor.png"
-                  alt="E-Signature Template Editor with Drag & Drop Fields"
+                <video
+                  src="/attached_assets/esignature feature_1758978879478.mp4"
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
