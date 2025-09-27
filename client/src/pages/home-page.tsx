@@ -420,9 +420,12 @@ export default function HomePage() {
                   setEnlargedImage("/investor-database-preview.png")
                 }
               >
-                <img
-                  src="/investor-database-preview.png"
-                  alt="Investor Database Interface"
+                <video
+                  src="/attached_assets/investor database clip_1758978869521.mp4"
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -494,9 +497,12 @@ export default function HomePage() {
                 style={{ transitionDelay: "200ms" }}
                 onClick={() => setEnlargedImage("/nda-signatures-preview.png")}
               >
-                <img
-                  src="/nda-signatures-preview.png"
-                  alt="NDA Signatures Management"
+                <video
+                  src="/attached_assets/nda management clip_1758978874848.mp4"
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
