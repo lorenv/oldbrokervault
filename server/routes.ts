@@ -414,11 +414,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       await handleStripeWebhook(req, res, stripe);
+      // Response is handled inside handleStripeWebhook
     } catch (error) {
-      console.error("❌ Stripe webhook processing failed:", error);
-      return res.status(500).json({ 
-        error: "Webhook processing failed",
-        details: error instanceof Error ? error.message : String(error)
+      // This catch should rarely be hit since handleStripeWebhook now handles its own errors
+      // But if it does, we still need to acknowledge the webhook to Stripe
+      console.error("❌ Unexpected Stripe webhook error:", error);
+
+      // CRITICAL: Always return 200 to acknowledge receipt to prevent Stripe from disabling the endpoint
+      return res.status(200).json({
+        received: true,
+        warning: "Webhook received but encountered unexpected error - logged for review"
       });
     }
   });
