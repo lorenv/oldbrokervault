@@ -42,7 +42,10 @@
       "Bash(cat:*)",
       "Bash(netstat:*)",
       "Bash(ss:*)",
-      "Bash(killall:*)"
+      "Bash(killall:*)",
+      "Bash(npm install:*)",
+      "Bash(awk:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": [],
