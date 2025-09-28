@@ -7065,7 +7065,7 @@ ${finalQuestion}
           signedNdaContent = await processor.embedFields(ndaTemplate.signatureFields, processedFieldValues);
           
           // Add completion certificate
-          await processor.addCompletionCertificate(signerName, signerEmail, signedAt);
+          await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
           signedNdaContent = await processor.saveAsBase64();
           
         } else {

@@ -101,7 +101,7 @@ export class PdfSignatureProcessor {
 
     } catch (error) {
       console.error('Error in embedFields:', error);
-      throw new Error(`Failed to process PDF signature: ${error.message}`);
+      throw new Error(`Failed to process PDF signature: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -142,7 +142,7 @@ export class PdfSignatureProcessor {
     } catch (error) {
       console.error('Error embedding signature image:', error);
       // Fallback to text if image embedding fails
-      const font = await this.pdfDoc.embedFont(StandardFonts.HelveticaItalic);
+      const font = await this.pdfDoc.embedFont(StandardFonts.Helvetica);
       page.drawText('[Signature]', {
         x: x + 5,
         y: y + height / 2,
@@ -191,7 +191,7 @@ export class PdfSignatureProcessor {
     });
   }
 
-  async addCompletionCertificate(signerName: string, signerEmail: string, signedAt: Date): Promise<void> {
+  async addCompletionCertificate(signerName: string, signerEmail: string, signedAt: Date, signerIpAddress?: string): Promise<void> {
     const page = this.pdfDoc.addPage([612, 792]); // Standard letter size
     const { width, height } = page.getSize();
     
@@ -217,49 +217,133 @@ export class PdfSignatureProcessor {
       color: rgb(0.94, 0.94, 0.94), // Very light grey background
     });
     
+    // Draw certificate icon (shield shape) - professional icon
+    const shieldX = 60;
+    const shieldY = height - 105;
+    page.drawRectangle({
+      x: shieldX,
+      y: shieldY,
+      width: 20,
+      height: 24,
+      color: rgb(0.2, 0.6, 0.2),
+    });
+    // Shield top
+    page.drawCircle({
+      x: shieldX + 10,
+      y: shieldY + 20,
+      size: 10,
+      color: rgb(0.2, 0.6, 0.2),
+    });
+    // Checkmark inside shield
+    page.drawText('✓', {
+      x: shieldX + 6,
+      y: shieldY + 8,
+      size: 12,
+      color: rgb(1, 1, 1),
+    });
+    
     // Certificate title
     page.drawText('Certificate of Completion', {
-      x: 50,
-      y: height - 70,
+      x: 90,
+      y: height - 80,
       size: 18,
       font: titleFont,
       color: rgb(0.2, 0.2, 0.2),
     });
     
-    // Status indicator (right aligned)
-    page.drawText('Status: Completed', {
-      x: width - 170,
-      y: height - 70,
+    // Status indicator with icon (right aligned)
+    const statusText = 'Status: Completed';
+    const statusWidth = titleFont.widthOfTextAtSize(statusText, 12);
+    page.drawCircle({
+      x: width - 190,
+      y: height - 75,
+      size: 6,
+      color: rgb(0.0, 0.6, 0.0),
+    });
+    page.drawText(statusText, {
+      x: width - 175,
+      y: height - 80,
       size: 12,
       font: titleFont,
       color: rgb(0.0, 0.6, 0.0), // Green color for completed status
     });
     
-    // Main content area with clean background
-    page.drawRectangle({
-      x: 50,
-      y: height - 280,
-      width: width - 100,
-      height: 140,
-      color: rgb(0.98, 0.98, 0.98), // Very light background
-      borderColor: rgb(0.85, 0.85, 0.85),
-      borderWidth: 1,
-    });
-    
-    // Certificate content with better spacing
+    // Certificate content with better spacing (no second gray box)
     let yPosition = height - 160;
     
-    page.drawText(`This document was electronically signed by ${signerName} (${signerEmail})`, {
-      x: 60,
-      y: yPosition,
-      size: 12,
-      font: bodyFont,
-      color: rgb(0.3, 0.3, 0.3),
+    // Document icon
+    page.drawRectangle({
+      x: 50,
+      y: yPosition - 5,
+      width: 12,
+      height: 16,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    page.drawRectangle({
+      x: 52,
+      y: yPosition + 7,
+      width: 8,
+      height: 1,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    page.drawRectangle({
+      x: 52,
+      y: yPosition + 4,
+      width: 6,
+      height: 1,
+      color: rgb(0.4, 0.4, 0.4),
     });
     
-    yPosition -= 20;
+    const maxLineWidth = width - 120; // Leave margin for text overflow prevention
+    const signatureText = `This document was electronically signed by ${signerName} (${signerEmail})`;
+    
+    // Split long text if needed
+    if (bodyFont.widthOfTextAtSize(signatureText, 12) > maxLineWidth) {
+      page.drawText(`This document was electronically signed by ${signerName}`, {
+        x: 70,
+        y: yPosition,
+        size: 12,
+        font: bodyFont,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+      yPosition -= 18;
+      page.drawText(`(${signerEmail})`, {
+        x: 70,
+        y: yPosition,
+        size: 12,
+        font: bodyFont,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+    } else {
+      page.drawText(signatureText, {
+        x: 70,
+        y: yPosition,
+        size: 12,
+        font: bodyFont,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+    }
+    
+    yPosition -= 25;
+    // Clock icon
+    page.drawCircle({
+      x: 56,
+      y: yPosition + 6,
+      size: 6,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    page.drawText('12', {
+      x: 54,
+      y: yPosition + 9,
+      size: 4,
+      font: bodyFont,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
     page.drawText(`on ${signedAt.toLocaleDateString()} at ${signedAt.toLocaleTimeString()}.`, {
-      x: 60,
+      x: 70,
       y: yPosition,
       size: 12,
       font: bodyFont,
@@ -267,8 +351,25 @@ export class PdfSignatureProcessor {
     });
     
     yPosition -= 30;
+    // Security icon (lock)
+    page.drawRectangle({
+      x: 53,
+      y: yPosition + 2,
+      width: 6,
+      height: 8,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    page.drawCircle({
+      x: 56,
+      y: yPosition + 8,
+      size: 3,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    
     page.drawText('This signature is legally binding and was captured using secure', {
-      x: 60,
+      x: 70,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -277,7 +378,7 @@ export class PdfSignatureProcessor {
     
     yPosition -= 16;
     page.drawText('electronic signature technology with audit trail verification.', {
-      x: 60,
+      x: 70,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -286,8 +387,25 @@ export class PdfSignatureProcessor {
     
     // Document IDs section
     yPosition -= 40;
+    // ID icon
+    page.drawRectangle({
+      x: 50,
+      y: yPosition - 2,
+      width: 12,
+      height: 8,
+      borderColor: rgb(0.2, 0.2, 0.2),
+      borderWidth: 1,
+    });
+    page.drawText('#', {
+      x: 54,
+      y: yPosition,
+      size: 8,
+      font: titleFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
     page.drawText(`Document ID: ${this.generateDocumentId()}`, {
-      x: 60,
+      x: 70,
       y: yPosition,
       size: 10,
       font: titleFont,
@@ -295,8 +413,23 @@ export class PdfSignatureProcessor {
     });
     
     yPosition -= 20;
+    // Verification icon
+    page.drawCircle({
+      x: 56,
+      y: yPosition + 4,
+      size: 6,
+      borderColor: rgb(0.2, 0.2, 0.2),
+      borderWidth: 1,
+    });
+    page.drawText('✓', {
+      x: 53,
+      y: yPosition + 1,
+      size: 8,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
     page.drawText(`Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`, {
-      x: 60,
+      x: 70,
       y: yPosition,
       size: 10,
       font: titleFont,
@@ -305,18 +438,52 @@ export class PdfSignatureProcessor {
     
     // Digital signature details section
     yPosition -= 50;
-    page.drawText('Digital Signature Details:', {
+    // Section icon
+    page.drawRectangle({
       x: 50,
+      y: yPosition - 2,
+      width: 12,
+      height: 12,
+      borderColor: rgb(0.2, 0.2, 0.2),
+      borderWidth: 1,
+    });
+    page.drawText('i', {
+      x: 55,
+      y: yPosition + 2,
+      size: 10,
+      font: titleFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    
+    page.drawText('Digital Signature Details:', {
+      x: 70,
       y: yPosition,
       size: 14,
       font: titleFont,
       color: rgb(0.2, 0.2, 0.2),
     });
     
-    // Details with proper indentation
+    // Details with proper indentation and icons
     yPosition -= 30;
+    // User icon
+    page.drawCircle({
+      x: 76,
+      y: yPosition + 6,
+      size: 4,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    page.drawRectangle({
+      x: 73,
+      y: yPosition + 1,
+      width: 6,
+      height: 4,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    
     page.drawText(`Signer: ${signerName}`, {
-      x: 80,
+      x: 90,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -324,8 +491,25 @@ export class PdfSignatureProcessor {
     });
     
     yPosition -= 20;
+    // Email icon
+    page.drawRectangle({
+      x: 72,
+      y: yPosition + 2,
+      width: 8,
+      height: 6,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    // Envelope flap
+    page.drawText('✉', {
+      x: 74,
+      y: yPosition + 1,
+      size: 6,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
     page.drawText(`Email: ${signerEmail}`, {
-      x: 80,
+      x: 90,
       y: yPosition,
       size: 11,
       font: bodyFont,
@@ -333,13 +517,49 @@ export class PdfSignatureProcessor {
     });
     
     yPosition -= 20;
+    // Timestamp icon (same as clock but smaller)
+    page.drawCircle({
+      x: 76,
+      y: yPosition + 4,
+      size: 4,
+      borderColor: rgb(0.4, 0.4, 0.4),
+      borderWidth: 1,
+    });
+    
     page.drawText(`Timestamp: ${signedAt.toISOString()}`, {
-      x: 80,
+      x: 90,
       y: yPosition,
       size: 11,
       font: bodyFont,
       color: rgb(0.4, 0.4, 0.4),
     });
+    
+    // Add IP address if provided
+    if (signerIpAddress) {
+      yPosition -= 20;
+      // IP icon (globe)
+      page.drawCircle({
+        x: 76,
+        y: yPosition + 4,
+        size: 4,
+        borderColor: rgb(0.4, 0.4, 0.4),
+        borderWidth: 1,
+      });
+      page.drawText('🌐', {
+        x: 74,
+        y: yPosition + 1,
+        size: 6,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      
+      page.drawText(`IP Address: ${signerIpAddress}`, {
+        x: 90,
+        y: yPosition,
+        size: 11,
+        font: bodyFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+    }
   }
 
   private generateDocumentId(): string {
