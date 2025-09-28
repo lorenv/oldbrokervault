@@ -645,22 +645,22 @@ export default function EnhancedNdaTemplateEditor({
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col min-h-0">
+          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
             {/* NDA Signer Section */}
             <div className="flex-shrink-0 border-b border-gray-200 bg-white">
               <NdaSignerDisplay />
             </div>
 
             {/* Field Types Section */}
-            <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200 min-h-0">
+            <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200 pb-4">
               <NdaFieldPalette
-                className="h-full border-0 shadow-none"
+                className="border-0 shadow-none"
               />
             </div>
           </div>
 
           {/* Document Editor */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col" style={{ height: 'calc(100vh - 180px)' }}>
             
 
             {/* Document Viewer */}
