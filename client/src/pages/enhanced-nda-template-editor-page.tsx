@@ -1,16 +1,20 @@
 import React from 'react';
-import { useRoute } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useRoute, useLocation } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { EnhancedNdaTemplateEditor } from '@/components/esignature/enhanced-nda-template-editor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EnhancedNdaTemplateEditorPage() {
   const [match, params] = useRoute('/nda-templates/enhanced/:id/edit');
+  const [, setLocation] = useLocation();
   const templateId = params?.id ? parseInt(params.id) : null;
   const isCreating = !templateId;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch template data if editing
   const { data: template, isLoading, error } = useQuery({
@@ -18,6 +22,90 @@ export default function EnhancedNdaTemplateEditorPage() {
     queryFn: () => templateId ? apiRequest(`/api/nda-templates/${templateId}`) : null,
     enabled: !!templateId,
   });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (templateData: {
+      name: string;
+      fileContent: string;
+      signatureFields: any[];
+      recipients: any[];
+    }) => {
+      const response = await apiRequest('POST', '/api/nda-templates', { body: templateData });
+      return response.json();
+    },
+    onSuccess: async () => {
+      // Invalidate queries to ensure the list is updated
+      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+
+      toast({
+        title: "Template created",
+        description: "NDA template has been created successfully"
+      });
+
+      // Small delay to ensure cache is updated before navigation
+      setTimeout(() => {
+        setLocation('/account?tab=nda-templates');
+      }, 100);
+    },
+    onError: (error) => {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create template. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update template mutation
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (templateData: {
+      name: string;
+      fileContent: string;
+      signatureFields: any[];
+      recipients: any[];
+    }) => {
+      const response = await apiRequest('PUT', `/api/nda-templates/${templateId}`, { body: templateData });
+      return response.json();
+    },
+    onSuccess: async () => {
+      // Invalidate queries to ensure the list is updated
+      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+
+      toast({
+        title: "Template updated",
+        description: "NDA template has been updated successfully"
+      });
+
+      // Small delay to ensure cache is updated before navigation
+      setTimeout(() => {
+        setLocation('/account?tab=nda-templates');
+      }, 100);
+    },
+    onError: (error) => {
+      console.error('Error updating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update template. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle save function
+  const handleSave = (data: {
+    name: string;
+    fileContent: string;
+    signatureFields: any[];
+    recipients: any[];
+  }) => {
+    if (isCreating) {
+      createTemplateMutation.mutate(data);
+    } else {
+      updateTemplateMutation.mutate(data);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -76,9 +164,10 @@ export default function EnhancedNdaTemplateEditorPage() {
           </p>
         </div>
 
-        <EnhancedNdaTemplateEditor 
+        <EnhancedNdaTemplateEditor
           initialTemplate={template}
-          isLoading={isLoading}
+          onSave={handleSave}
+          isLoading={createTemplateMutation.isPending || updateTemplateMutation.isPending}
         />
       </div>
     </div>

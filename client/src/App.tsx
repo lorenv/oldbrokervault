@@ -91,11 +91,15 @@ function Router() {
             <Route path="/cims/:shareSlug" component={SharePage} />
             <Route path="/nda/redirect/:redirectId" component={NdaRedirectPage} />
             <ProtectedRoute path="/nda-templates" component={NdaTemplatesPage} />
-            <ProtectedRoute path="/nda-templates/create" component={NdaTemplateEditorPage} />
-            <ProtectedRoute path="/nda-templates/:id/edit" component={NdaTemplateEditorPage} />
-            <ProtectedRoute path="/nda-templates/edit/:id" component={NdaTemplateEditorPage} />
+
+            {/* Main template editor routes - using EnhancedTemplateEditorPage */}
             <ProtectedRoute path="/template-editor" component={EnhancedTemplateEditorPage} />
             <ProtectedRoute path="/template-editor/:id" component={EnhancedTemplateEditorPage} />
+
+            {/* Legacy routes - redirect to main template editor */}
+            <ProtectedRoute path="/nda-templates/create" component={EnhancedTemplateEditorPage} />
+            <ProtectedRoute path="/nda-templates/:id/edit" component={EnhancedTemplateEditorPage} />
+            <ProtectedRoute path="/nda-templates/edit/:id" component={EnhancedTemplateEditorPage} />
             <Route path="/share/:shareSlug/sign-nda" component={EnhancedNdaSigningPage} />
             <Route path="/sign/:accessToken" component={SignDocumentPage} />
             {/* SEO Feature Pages */}

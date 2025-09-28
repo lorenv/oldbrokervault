@@ -1574,7 +1574,15 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
     // Process PDF to images if fileContent has changed
     let updateData = { ...template };
-    
+
+    console.log('Storage: Updating NDA template in database:', {
+      id,
+      hasSignatureFields: !!updateData.signatureFields,
+      signatureFieldsType: typeof updateData.signatureFields,
+      signatureFieldsCount: Array.isArray(updateData.signatureFields) ? updateData.signatureFields.length : 'not array',
+      signatureFields: updateData.signatureFields
+    });
+
     // Skip PDF processing for now to avoid compilation errors
     if (template.fileContent && !template.pageImages) {
       console.log('PDF processing skipped - would reprocess images here');
@@ -1584,6 +1592,14 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .set(updateData)
       .where(eq(ndaTemplates.id, id))
       .returning();
+
+    console.log('Storage: Updated NDA template result:', {
+      id: updated.id,
+      hasSignatureFields: !!updated.signatureFields,
+      signatureFieldsType: typeof updated.signatureFields,
+      signatureFieldsCount: Array.isArray(updated.signatureFields) ? updated.signatureFields.length : 'not array'
+    });
+
     return updated;
   }
 
@@ -1791,6 +1807,17 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
 
   async getNdaTemplate(id: number): Promise<NdaTemplate | undefined> {
     const [template] = await db.select().from(ndaTemplates).where(eq(ndaTemplates.id, id));
+
+    if (template) {
+      console.log('Storage: Retrieved NDA template from database:', {
+        id: template.id,
+        hasSignatureFields: !!template.signatureFields,
+        signatureFieldsType: typeof template.signatureFields,
+        signatureFieldsCount: Array.isArray(template.signatureFields) ? template.signatureFields.length : 'not array',
+        signatureFields: template.signatureFields
+      });
+    }
+
     return template;
   }
 

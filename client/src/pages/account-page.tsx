@@ -113,9 +113,13 @@ function TemplatesContent() {
       const response = await apiRequest('POST', '/api/nda-templates', { body: templateData });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+    onSuccess: async () => {
+      // First hide the editor
       setShowNewTemplateEditor(false);
+
+      // Then invalidate queries to refetch the list
+      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+
       toast({
         title: "Template created",
         description: "NDA template has been created successfully"
@@ -144,9 +148,13 @@ function TemplatesContent() {
       const response = await apiRequest('PUT', `/api/nda-templates/${id}`, { body: data });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+    onSuccess: async () => {
+      // First hide the editor
       setEditingTemplate(null);
+
+      // Then invalidate queries to refetch the list
+      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+
       toast({
         title: "Template updated",
         description: "NDA template has been updated successfully"
