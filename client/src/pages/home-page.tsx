@@ -327,49 +327,55 @@ export default function HomePage() {
       </section>
 
       {/* Partners Section */}
-      <section className="py-12 bg-white overflow-hidden">
+      <section className="py-8 sm:py-12 bg-white overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <p className="text-gray-500 text-sm font-medium tracking-wider uppercase mb-6" data-testid="partners-label">
+          <div className="text-center mb-6 sm:mb-8">
+            <p className="text-gray-500 text-sm font-medium tracking-wider uppercase mb-4 sm:mb-6" data-testid="partners-label">
               Trusted by Leading Business Advisors
             </p>
           </div>
           <div className="relative">
             <div className="flex animate-carousel">
               {/* First set of logos */}
-              <div className="flex items-center justify-around min-w-full px-8">
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-transworld">
+              <div className="flex items-center gap-5 sm:gap-6 md:gap-3 min-w-full px-4 sm:px-8 md:justify-around">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-transworld">
                   <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-sunbelt">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-sunbelt">
                   <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-dealveinc">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-dealveinc">
                   <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-business-exits">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-business-exits">
                   <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-songline">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-songline">
                   <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-ravenstone">
+                  <img src="/ravenstonelogo.png" alt="Ravenstone" className="h-full w-auto object-contain max-w-full" />
                 </div>
               </div>
               {/* Duplicate set for seamless loop */}
-              <div className="flex items-center justify-around min-w-full px-8">
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+              <div className="flex items-center gap-5 sm:gap-6 md:gap-3 min-w-full px-4 sm:px-8 md:justify-around">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/ravenstonelogo.png" alt="Ravenstone" className="h-full w-auto object-contain max-w-full" />
                 </div>
               </div>
             </div>
@@ -378,9 +384,9 @@ export default function HomePage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20">
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -466,8 +472,8 @@ export default function HomePage() {
           </div>
 
           <div className="max-w-7xl mx-auto space-y-20">
-            {/* Investor Database Feature - Image Left, Text Right */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Investor Database Feature - Responsive Layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
                 className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
                   isVisible("showcase-1")
@@ -489,66 +495,66 @@ export default function HomePage() {
                 />
               </div>
               <div
-                className={`space-y-6 transition-all duration-1000 delay-200 ${
+                className={`space-y-4 sm:space-y-6 transition-all duration-1000 delay-200 ${
                   isVisible("showcase-1")
                     ? "translate-x-0 opacity-100"
                     : "translate-x-8 opacity-0"
                 }`}
               >
-                <h3 className="text-3xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-300">
                   Investor Database
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                   Track investor contacts across all documents with analytics
                   and export capabilities. Manage relationships with
                   comprehensive contact tracking and automated data collection.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">
                     Contact Tracking
                   </span>
-                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">
                     Export Tools
                   </span>
-                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
                     Relationship Management
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* NDA Signatures Feature - Text Left, Image Right */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* NDA Signatures Feature - Responsive Layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
-                className={`space-y-6 lg:order-1 transition-all duration-1000 ${
+                className={`space-y-4 sm:space-y-6 order-2 sm:order-1 lg:order-1 transition-all duration-1000 ${
                   isVisible("showcase-2")
                     ? "translate-x-0 opacity-100"
                     : "-translate-x-8 opacity-0"
                 }`}
                 data-animate-id="showcase-2"
               >
-                <h3 className="text-3xl font-bold text-gray-900 hover:text-red-600 transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 hover:text-red-600 transition-colors duration-300">
                   NDA Management
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                   Digital signatures, approval controls, and comprehensive audit
                   trails for legal compliance. Streamline your NDA process with
                   automated workflows and tracking.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium hover:bg-red-200 transition-colors duration-300 cursor-pointer">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 text-red-800 rounded-full text-xs sm:text-sm font-medium hover:bg-red-200 transition-colors duration-300 cursor-pointer">
                     Digital Signatures
                   </span>
-                  <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium hover:bg-yellow-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-yellow-100 text-yellow-800 rounded-full text-xs sm:text-sm font-medium hover:bg-yellow-200 transition-colors duration-300 cursor-pointer">
                     Approval Controls
                   </span>
-                  <span className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium hover:bg-indigo-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-100 text-indigo-800 rounded-full text-xs sm:text-sm font-medium hover:bg-indigo-200 transition-colors duration-300 cursor-pointer">
                     Audit Trails
                   </span>
                 </div>
               </div>
               <div
-                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 lg:order-2 group ${
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 order-1 sm:order-2 lg:order-2 group ${
                   isVisible("showcase-2")
                     ? "translate-x-0 opacity-100"
                     : "translate-x-8 opacity-0"
@@ -567,8 +573,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Analytics Feature - Image Left, Text Right */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Analytics Feature - Responsive Layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
                 className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
                   isVisible("showcase-3")
@@ -585,67 +591,67 @@ export default function HomePage() {
                 />
               </div>
               <div
-                className={`space-y-6 transition-all duration-1000 delay-200 ${
+                className={`space-y-4 sm:space-y-6 transition-all duration-1000 delay-200 ${
                   isVisible("showcase-3")
                     ? "translate-x-0 opacity-100"
                     : "translate-x-8 opacity-0"
                 }`}
               >
-                <h3 className="text-3xl font-bold text-gray-900 hover:text-teal-600 transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 hover:text-teal-600 transition-colors duration-300">
                   Analytics Dashboard
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                   Comprehensive analytics with activity tracking, conversion
                   metrics, and detailed reporting. Make data-driven decisions
                   with powerful insights into document performance.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 bg-teal-100 text-teal-800 rounded-full text-sm font-medium hover:bg-teal-200 transition-colors duration-300 cursor-pointer">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-teal-100 text-teal-800 rounded-full text-xs sm:text-sm font-medium hover:bg-teal-200 transition-colors duration-300 cursor-pointer">
                     Activity Tracking
                   </span>
-                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
                     Conversion Metrics
                   </span>
-                  <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-medium hover:bg-orange-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-orange-100 text-orange-800 rounded-full text-xs sm:text-sm font-medium hover:bg-orange-200 transition-colors duration-300 cursor-pointer">
                     Performance Insights
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* E-Signature Template Editor Feature - Text Left, Image Right */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* E-Signature Template Editor Feature - Responsive Layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
-                className={`space-y-6 lg:order-1 transition-all duration-1000 ${
+                className={`space-y-4 sm:space-y-6 order-2 sm:order-1 lg:order-1 transition-all duration-1000 ${
                   isVisible("showcase-4")
                     ? "translate-x-0 opacity-100"
                     : "-translate-x-8 opacity-0"
                 }`}
                 data-animate-id="showcase-4"
               >
-                <h3 className="text-3xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 hover:text-purple-600 transition-colors duration-300">
                   E-Signature Templates
                 </h3>
-                <p className="text-lg text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                   Create custom PDF templates with drag-and-drop signature
                   fields. Upload any PDF document and position signature, name,
                   date, email, and text fields exactly where you need them for
                   professional document signing workflows.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium hover:bg-blue-200 transition-colors duration-300 cursor-pointer">
                     PDF Template Editor
                   </span>
-                  <span className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-100 text-green-800 rounded-full text-xs sm:text-sm font-medium hover:bg-green-200 transition-colors duration-300 cursor-pointer">
                     Drag & Drop Fields
                   </span>
-                  <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
+                  <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-purple-100 text-purple-800 rounded-full text-xs sm:text-sm font-medium hover:bg-purple-200 transition-colors duration-300 cursor-pointer">
                     Custom Positioning
                   </span>
                 </div>
               </div>
               <div
-                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 lg:order-2 group ${
+                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 order-1 sm:order-2 lg:order-2 group ${
                   isVisible("showcase-4")
                     ? "translate-x-0 opacity-100"
                     : "translate-x-8 opacity-0"
@@ -872,30 +878,78 @@ export default function HomePage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div
-            className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
-              isVisible("testimonial")
+            className={`text-center mb-12 transition-all duration-1000 ${
+              isVisible("testimonial-header")
                 ? "translate-y-0 opacity-100"
                 : "translate-y-8 opacity-0"
             }`}
-            data-animate-id="testimonial"
+            data-animate-id="testimonial-header"
           >
-            <div className="flex justify-center mb-8">
-              <div className="flex gap-1">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              What Our Users Are Saying
+            </h2>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Join thousands of professionals who trust CIM Share
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* First Testimonial Card */}
+            <div
+              className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 ${
+                isVisible("testimonial-1")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="testimonial-1"
+            >
+              <div className="flex gap-1 mb-6">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                  <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
+              <blockquote className="text-lg text-gray-100 leading-relaxed mb-6">
+                <span className="text-3xl text-blue-400 leading-none">"</span>
+                I used to have my team create my CIMs and it would take days.
+                Now they're created in minutes, with AI grabbing info and
+                formatting tables and everything. Total game-changer.
+                <span className="text-3xl text-blue-400 leading-none">"</span>
+              </blockquote>
+              <p className="text-gray-400 text-sm font-medium">— CIM Share User</p>
             </div>
 
-            <blockquote className="text-2xl md:text-3xl lg:text-4xl text-white font-light leading-relaxed mb-8">
-              <span className="text-blue-400 text-5xl leading-none">"</span>
-              I used to have my team create my CIMs and it would take days.
-              Now they're created in minutes, with AI grabbing info and
-              formatting tables and everything. Total game-changer.
-              <span className="text-blue-400 text-5xl leading-none">"</span>
-            </blockquote>
-
-            <p className="text-gray-300 text-lg font-medium">— CIM Share User</p>
+            {/* Second Testimonial Card */}
+            <div
+              className={`bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 ${
+                isVisible("testimonial-2")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="testimonial-2"
+              style={{ transitionDelay: "200ms" }}
+            >
+              <div className="flex gap-1 mb-6">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <blockquote className="text-lg text-gray-100 leading-relaxed mb-6">
+                <span className="text-3xl text-blue-400 leading-none">"</span>
+                I love it and my clients think I'm awesome for making it so fast
+                and so nice-looking. I'm glad the guys that made{" "}
+                <a
+                  href="https://vettingvault.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline decoration-dotted underline-offset-2 transition-colors"
+                >
+                  Vetting Vault
+                </a>{" "}
+                also made this for brokers.
+                <span className="text-3xl text-blue-400 leading-none">"</span>
+              </blockquote>
+              <p className="text-gray-400 text-sm font-medium">— CIM Share User</p>
+            </div>
           </div>
         </div>
       </section>
