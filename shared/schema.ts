@@ -131,6 +131,7 @@ export const cimDocuments = pgTable("cim_documents", {
   ndaProtected: boolean("nda_protected").default(false).notNull(),
   ndaTemplateId: integer("nda_template_id"),
   ndaApprovalRequired: boolean("nda_approval_required").default(false).notNull(),
+  copyMeOnEmails: boolean("copy_me_on_emails").default(false).notNull(),
   // Financial data fields - always enabled by default
   financialsEnabled: boolean("financials_enabled").default(true).notNull(),
   askingPrice: text("asking_price"),

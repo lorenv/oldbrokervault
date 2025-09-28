@@ -141,6 +141,7 @@ export interface IStorage {
     ndaProtected?: boolean;
     ndaTemplateId?: number | null;
     ndaApprovalRequired?: boolean;
+    copyMeOnEmails?: boolean;
   }): Promise<CimDocument>;
   getCimByShareSlug(slug: string): Promise<CimDocument | undefined>;
   incrementShareViewCount(id: number): Promise<void>;
@@ -1116,6 +1117,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     ndaProtected?: boolean;
     ndaTemplateId?: number | null;
     ndaApprovalRequired?: boolean;
+    copyMeOnEmails?: boolean;
   }): Promise<CimDocument> {
     const [doc] = await db.update(cimDocuments)
       .set({
@@ -1127,6 +1129,7 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         ndaProtected: settings.ndaProtected,
         ndaTemplateId: settings.ndaTemplateId,
         ndaApprovalRequired: settings.ndaApprovalRequired,
+        copyMeOnEmails: settings.copyMeOnEmails,
       })
       .where(eq(cimDocuments.id, id))
       .returning();
