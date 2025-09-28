@@ -597,7 +597,7 @@ export default function EnhancedNdaTemplateEditor({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full max-h-full'} bg-gray-50`}>
+      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'min-h-[calc(100vh-200px)]'} bg-gray-50`}>
         {/* Header - only show when not in fullScreen mode */}
         {!fullScreen && (
           <div className="bg-white border-b shadow-sm">
