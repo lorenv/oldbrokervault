@@ -597,7 +597,7 @@ export default function EnhancedNdaTemplateEditor({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'min-h-[calc(100vh-200px)]'} bg-gray-50`}>
+      <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-full'} bg-gray-50`}>
         {/* Header - only show when not in fullScreen mode */}
         {!fullScreen && (
           <div className="bg-white border-b shadow-sm">
@@ -645,14 +645,14 @@ export default function EnhancedNdaTemplateEditor({
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar */}
-          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
+          <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col min-h-0">
             {/* NDA Signer Section */}
-            <div className="border-b border-gray-200 bg-white">
+            <div className="flex-shrink-0 border-b border-gray-200 bg-white">
               <NdaSignerDisplay />
             </div>
 
             {/* Field Types Section */}
-            <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200">
+            <div className="flex-1 overflow-y-auto bg-white border-t border-gray-200 min-h-0">
               <NdaFieldPalette
                 className="h-full border-0 shadow-none"
               />
