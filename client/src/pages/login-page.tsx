@@ -304,7 +304,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <h3 className="text-white font-semibold mb-1">Bank-Level Encryption</h3>
-                <p className="text-blue-200 text-sm">Enterprise-grade security with SOC 2 compliance and end-to-end encryption</p>
+                <p className="text-blue-200 text-sm">Enterprise-grade security with end-to-end encryption</p>
               </div>
             </div>
           </div>

@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="bg-gray-900 text-white">
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -33,6 +33,23 @@ export function Footer() {
               <li>
                 <Link href="/virtual-data-room" className="text-gray-400 hover:text-white transition-colors">
                   Virtual Data Room
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Solutions */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Solutions</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/solutions/business-brokers" className="text-gray-400 hover:text-white transition-colors">
+                  For Business Brokers
+                </Link>
+              </li>
+              <li>
+                <Link href="/solutions/investment-banking" className="text-gray-400 hover:text-white transition-colors">
+                  For Investment Banks
                 </Link>
               </li>
             </ul>
