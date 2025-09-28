@@ -14,14 +14,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Search, 
-  Download, 
-  Filter, 
-  ChevronUp, 
-  ChevronDown, 
+import { InvestorHeatMap } from "@/components/investor-heat-map";
+import {
+  Search,
+  Download,
+  Filter,
+  ChevronUp,
+  ChevronDown,
   ChevronRight,
-  Edit, 
+  Edit,
   Calendar,
   Users,
   FileText,
@@ -32,8 +33,10 @@ import {
   Plus,
   X,
   Eye,
-  HelpCircle
+  HelpCircle,
+  MapPin
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { InvestorContact } from "@shared/schema";
 
 interface DocumentInfo {
@@ -164,6 +167,9 @@ export default function InvestorDatabasePage() {
   const [newTagName, setNewTagName] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
+
+  // Collapsible state for heat map
+  const [isHeatMapOpen, setIsHeatMapOpen] = useState(true);
 
   // Fetch custom tags
   const { data: customTags = [] } = useQuery<Array<{id: number, name: string, color: string}>>({
@@ -758,32 +764,37 @@ export default function InvestorDatabasePage() {
             <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             <div className="absolute -top-16 -left-16 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl" />
 
-            <div className="relative z-10 flex justify-between items-center">
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-2">Investor Database</h1>
-                <p className="text-blue-100 text-lg">
-                  Manage and track your investor contacts across all documents
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleExport}
-                      disabled={isLoading || selectedContacts.length === 0}
-                      className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Selected ({selectedContacts.length})
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Export selected contacts to CSV format</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+            <div className="relative z-10">
+              <h1 className="text-4xl font-bold text-white mb-2">Investor Database</h1>
+              <p className="text-blue-100 text-lg">
+                Manage and track your investor contacts across all documents
+              </p>
             </div>
           </div>
+
+      {/* Collapsible Heat Map */}
+      <Collapsible open={isHeatMapOpen} onOpenChange={setIsHeatMapOpen}>
+        <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b cursor-pointer hover:bg-gradient-to-r hover:from-indigo-100 hover:to-blue-100 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-indigo-600" />
+                  <span>Investor Geographic Distribution</span>
+                </div>
+                {isHeatMapOpen ? (
+                  <ChevronUp className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                )}
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <InvestorHeatMap contacts={contacts} />
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Stats Cards with gradient backgrounds */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -992,13 +1003,14 @@ export default function InvestorDatabasePage() {
                         />
                       )}
                       
-                      <Button 
+                      <Button
                         onClick={() => removeFilterRule(filter.id)}
-                        size="sm" 
+                        size="sm"
                         variant="ghost"
-                        className="text-red-500 hover:text-red-700"
+                        className="bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800 h-8 w-8 p-0 rounded font-bold"
+                        title="Remove filter"
                       >
-                        ×
+                        ✕
                       </Button>
                     </div>
                   ))}
@@ -1017,6 +1029,24 @@ export default function InvestorDatabasePage() {
               <span>Contacts</span>
               <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
             </CardTitle>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleExport}
+                    disabled={isLoading || selectedContacts.length === 0}
+                    variant={selectedContacts.length > 0 ? "default" : "outline"}
+                    className={selectedContacts.length > 0 ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Selected ({selectedContacts.length})
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export selected contacts to CSV format</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -1061,6 +1091,7 @@ export default function InvestorDatabasePage() {
                       {getSortIcon('email')}
                     </div>
                   </TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Tags</TableHead>
                   <TableHead 
@@ -1107,6 +1138,11 @@ export default function InvestorDatabasePage() {
                       <span className="font-medium">{contact.name}</span>
                     </TableCell>
                     <TableCell>{contact.email}</TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {contact.location || 'Unknown'}
+                      </span>
+                    </TableCell>
                     <TableCell>{getStatusBadge(contact.status)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
