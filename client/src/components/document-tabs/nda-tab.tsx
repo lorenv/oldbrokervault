@@ -80,9 +80,10 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     setNdaSettings({
       ndaProtected: cimDocument.ndaProtected || false,
       ndaTemplateId: cimDocument.ndaTemplateId || null,
-      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+      ndaApprovalRequired: cimDocument.ndaApprovalRequired || false,
+      copyMeOnEmails: cimDocument.copyMeOnEmails || false
     });
-  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired]);
+  }, [cimDocument.ndaProtected, cimDocument.ndaTemplateId, cimDocument.ndaApprovalRequired, cimDocument.copyMeOnEmails]);
 
   // Initialize and maintain stable sort order for signatures
   useEffect(() => {
@@ -126,7 +127,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         body: {
           ndaProtected: settings.ndaProtected,
           ndaTemplateId: settings.ndaTemplateId,
-          ndaApprovalRequired: settings.ndaApprovalRequired
+          ndaApprovalRequired: settings.ndaApprovalRequired,
+          copyMeOnEmails: settings.copyMeOnEmails
         }
       });
       if (!response.ok) throw new Error('Failed to update NDA settings');
@@ -145,7 +147,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         const newSettings = {
           ndaProtected: data.ndaProtected !== undefined ? data.ndaProtected : ndaSettings.ndaProtected,
           ndaTemplateId: data.ndaTemplateId !== undefined ? data.ndaTemplateId : ndaSettings.ndaTemplateId,
-          ndaApprovalRequired: data.ndaApprovalRequired !== undefined ? data.ndaApprovalRequired : ndaSettings.ndaApprovalRequired
+          ndaApprovalRequired: data.ndaApprovalRequired !== undefined ? data.ndaApprovalRequired : ndaSettings.ndaApprovalRequired,
+          copyMeOnEmails: data.copyMeOnEmails !== undefined ? data.copyMeOnEmails : ndaSettings.copyMeOnEmails
         };
         setNdaSettings(newSettings);
       }
@@ -232,7 +235,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     const backendSettings: any = {
       ndaProtected: newSettings.ndaProtected,
       ndaApprovalRequired: newSettings.ndaApprovalRequired,
-      ndaTemplateId: newSettings.ndaTemplateId // Always include template ID
+      ndaTemplateId: newSettings.ndaTemplateId, // Always include template ID
+      copyMeOnEmails: newSettings.copyMeOnEmails
     };
 
     updateNdaSettingsMutation.mutate(backendSettings);
@@ -520,6 +524,16 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                     <UserCheck className="h-4 w-4 text-gray-500" />
                     Manual Approval
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>When enabled, you must manually approve each NDA signer before they can access the document. This adds an extra layer of security for sensitive information.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </Label>
                   <p className="text-xs text-gray-500">
                     Review each signature before granting access
@@ -531,6 +545,38 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     checked={ndaSettings.ndaApprovalRequired}
                     onCheckedChange={(checked) =>
                       handleSettingChange('ndaApprovalRequired', checked)
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Copy Me on CIM Emails Toggle - New */}
+              <div className="flex items-center justify-between py-3 px-4 rounded-md border border-gray-200 bg-gray-50/50">
+                <div className="space-y-1">
+                  <Label htmlFor="copy-emails" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    Copy me on CIM emails
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>When enabled, you'll be CC'd on all emails sent to NDA signers when they receive access to your CIM document. This helps you track who has been granted access.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Get CC'd when documents are sent to signers
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="copy-emails"
+                    checked={ndaSettings.copyMeOnEmails}
+                    onCheckedChange={(checked) =>
+                      handleSettingChange('copyMeOnEmails', checked)
                     }
                   />
                 </div>

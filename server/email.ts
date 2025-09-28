@@ -210,7 +210,8 @@ async function sendCimLinkEmail(
     businessName?: string;
     profilePhotoUrl?: string;
     businessLogoUrl?: string;
-  }
+  },
+  copyMeOnEmails?: boolean
 ): Promise<boolean> {
   const profilePhotoHtml = ownerProfile.profilePhotoUrl 
     ? `<img src="${ownerProfile.profilePhotoUrl}" alt="Profile Photo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">` 
@@ -220,7 +221,8 @@ async function sendCimLinkEmail(
     ? `<img src="${ownerProfile.businessLogoUrl}" alt="Business Logo" style="max-width: 150px; max-height: 60px; margin-bottom: 15px;">` 
     : '';
 
-  return await sendEmail({
+  // Build email options with optional CC
+  const emailOptions: any = {
     to: viewerEmail,
     from: 'system@cimshare.com',
     replyTo: ownerProfile.email,
@@ -289,7 +291,14 @@ async function sendCimLinkEmail(
       
       Please feel free to reach out if you have any questions about the opportunity.
     `
-  });
+  };
+
+  // Add CC if copyMeOnEmails is enabled
+  if (copyMeOnEmails && ownerProfile.email) {
+    emailOptions.cc = ownerProfile.email;
+  }
+
+  return await sendEmail(emailOptions);
 }
 
 // Send owner notification email (unchanged)
@@ -478,7 +487,7 @@ async function sendApprovalEmail(
   ownerProfile?: any
 ): Promise<boolean> {
   const { signerEmail, signerName, accessToken } = signature;
-  const { title, shareSlug, userId } = cimDoc;
+  const { title, shareSlug, userId, copyMeOnEmails } = cimDoc;
   
   // Create direct share URL with access token
   const shareUrl = `https://cimshare.com/share/${shareSlug}?token=${accessToken}`;
@@ -511,7 +520,8 @@ async function sendApprovalEmail(
       signerName,
       title,
       shareUrl,
-      profile
+      profile,
+      copyMeOnEmails // Pass the CC flag
     );
   }
   
