@@ -368,24 +368,215 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonial Section */}
-      <section className="py-16 bg-white">
+      {/* How it Works Section */}
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div
-            className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
-              isVisible("testimonial")
+            className={`text-center mb-16 transition-all duration-1000 ${
+              isVisible("how-it-works-header")
                 ? "translate-y-0 opacity-100"
                 : "translate-y-8 opacity-0"
             }`}
-            data-animate-id="testimonial"
+            data-animate-id="how-it-works-header"
           >
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 md:p-12 shadow-lg">
-              <blockquote className="text-xl md:text-2xl text-gray-700 font-medium leading-relaxed mb-6">
-                "I used to have my team create my CIMs and it would take days.
-                Now they're created in minutes, with AI grabbing info and
-                formatting tables and everything. Total game-changer."
-              </blockquote>
-              <div className="text-gray-500 text-sm">— CIM Share User</div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="how-it-works-title">
+              How it Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto" data-testid="how-it-works-description">
+              Get from business details to professional CIM in 3 simple steps
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+              {/* Step 1 */}
+              <div
+                className={`text-center transition-all duration-1000 ${
+                  isVisible("step-1")
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
+                }`}
+                data-animate-id="step-1"
+              >
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-blue-600">1</span>
+                  </div>
+                  <div className="hidden md:block absolute top-8 left-full w-8 border-t-2 border-dashed border-gray-300 -translate-x-4"></div>
+                </div>
+                <h3 className="text-xl font-semibold mb-3" data-testid="step-1-title">Upload & Analyze</h3>
+                <p className="text-gray-600 text-sm leading-relaxed" data-testid="step-1-description">
+                  Upload financial documents or enter a website URL. Our AI extracts and analyzes all the key business information automatically.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div
+                className={`text-center transition-all duration-1000 delay-200 ${
+                  isVisible("step-2")
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
+                }`}
+                data-animate-id="step-2"
+              >
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-green-600">2</span>
+                  </div>
+                  <div className="hidden md:block absolute top-8 left-full w-8 border-t-2 border-dashed border-gray-300 -translate-x-4"></div>
+                </div>
+                <h3 className="text-xl font-semibold mb-3" data-testid="step-2-title">Customize & Brand</h3>
+                <p className="text-gray-600 text-sm leading-relaxed" data-testid="step-2-description">
+                  Review the generated CIM, add your branding, and customize any sections. Everything is editable and professional.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div
+                className={`text-center transition-all duration-1000 delay-400 ${
+                  isVisible("step-3")
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-8 opacity-0"
+                }`}
+                data-animate-id="step-3"
+              >
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-purple-600">3</span>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-3" data-testid="step-3-title">Share & Track</h3>
+                <p className="text-gray-600 text-sm leading-relaxed" data-testid="step-3-description">
+                  Send to qualified buyers with built-in NDAs. Track who views your CIM and get alerts when NDAs are signed.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA in How it Works */}
+            <div className="text-center mt-12">
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  className="px-8 py-3 text-lg hover:scale-105 transition-all duration-300"
+                  data-testid="how-it-works-cta"
+                >
+                  Start Creating Your CIM
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section - Business Focused */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div
+            className={`text-center mb-16 transition-all duration-1000 ${
+              isVisible("testimonials-header")
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+            data-animate-id="testimonials-header"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="testimonials-title">
+              Loved by Business Brokers Worldwide
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto" data-testid="testimonials-description">
+              Join hundreds of brokers who've transformed their CIM creation process
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Testimonial 1 */}
+            <div
+              className={`transition-all duration-1000 ${
+                isVisible("testimonial-1")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="testimonial-1"
+            >
+              <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 h-full">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-gray-700 mb-6 leading-relaxed">
+                  "What used to take me 3 weeks now takes 30 minutes. My clients are amazed by the quality and I'm closing deals faster than ever. This is the future of business brokerage."
+                </blockquote>
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-blue-600 font-semibold">SH</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Sarah Henderson</div>
+                    <div className="text-gray-500 text-sm">Senior Business Broker</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial 2 */}
+            <div
+              className={`transition-all duration-1000 delay-200 ${
+                isVisible("testimonial-2")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="testimonial-2"
+            >
+              <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 h-full">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-gray-700 mb-6 leading-relaxed">
+                  "The NDA management alone is worth the subscription. I used to spend hours chasing signatures. Now it's automatic and I never lose track of who has access."
+                </blockquote>
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-green-600 font-semibold">MJ</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Michael Johnson</div>
+                    <div className="text-gray-500 text-sm">Investment Banking Director</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial 3 */}
+            <div
+              className={`transition-all duration-1000 delay-400 ${
+                isVisible("testimonial-3")
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              }`}
+              data-animate-id="testimonial-3"
+            >
+              <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 h-full">
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="text-gray-700 mb-6 leading-relaxed">
+                  "My CIMs look like they were created by a Fortune 500 company. The AI pulls in all the right data and the formatting is consistently professional. Game changer."
+                </blockquote>
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-purple-600 font-semibold">LR</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">Lisa Rodriguez</div>
+                    <div className="text-gray-500 text-sm">M&A Advisor</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
