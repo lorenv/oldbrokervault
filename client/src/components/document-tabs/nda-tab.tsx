@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
   Shield,
@@ -29,7 +30,8 @@ import {
   Plus,
   Users,
   Tag,
-  FileText
+  FileText,
+  Info
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +54,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [ndaSettings, setNdaSettings] = useState({
     ndaProtected: cimDocument.ndaProtected || false,
     ndaTemplateId: cimDocument.ndaTemplateId || null,
-    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false
+    ndaApprovalRequired: cimDocument.ndaApprovalRequired || false,
+    copyMeOnEmails: cimDocument.copyMeOnEmails || false
   });
 
   // Maintain a stable sort order for signatures by storing IDs
