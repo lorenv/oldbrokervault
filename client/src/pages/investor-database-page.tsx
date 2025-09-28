@@ -749,7 +749,12 @@ export default function InvestorDatabasePage() {
         <div className="container mx-auto p-6 space-y-6">
           {/* Header with gradient background */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 p-8 shadow-xl mb-8">
-            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6))]" />
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}
+            />
             <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             <div className="absolute -top-16 -left-16 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl" />
 
@@ -760,47 +765,60 @@ export default function InvestorDatabasePage() {
                   Manage and track your investor contacts across all documents
                 </p>
               </div>
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleExport} disabled={isLoading || selectedContacts.length === 0}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Selected ({selectedContacts.length})
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export selected contacts to CSV format</p>
-              </TooltipContent>
-            </Tooltip>
+              <div className="flex gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleExport}
+                      disabled={isLoading || selectedContacts.length === 0}
+                      className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Selected ({selectedContacts.length})
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Export selected contacts to CSV format</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </div>
-        </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards with gradient backgrounds */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent" />
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-blue-900">Total Contacts</CardTitle>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{contacts.length}</div>
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-blue-900">{contacts.length}</div>
+            <p className="text-xs text-blue-600 mt-1">Active investor relationships</p>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Signatures</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-50 to-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-green-900">Total Signatures</CardTitle>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FileText className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-green-900">
               {contacts.reduce((sum, c) => sum + c.totalNdaSignatures, 0)}
             </div>
+            <p className="text-xs text-green-600 mt-1">Documents signed</p>
           </CardContent>
         </Card>
         
-        <Card 
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
+        <Card
+          className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-orange-50 to-white cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
           onClick={() => {
             // Filter to show only contacts that need follow-up
             const needsFollowUpContacts = contacts.filter(c => 
@@ -824,25 +842,31 @@ export default function InvestorDatabasePage() {
             }
           }}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Needs Follow-up</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent" />
+          <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-900">Needs Follow-up</CardTitle>
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Calendar className="h-4 w-4 text-orange-600" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative">
+            <div className="text-3xl font-bold text-orange-900">
               {contacts.filter(c => c.nextFollowUpDate && new Date(c.nextFollowUpDate) <= new Date()).length}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Click to filter</p>
+            <p className="text-xs text-orange-600 mt-1">Click to filter • Due today</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+      <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-5 w-5 text-indigo-600" />
+            <span>Search & Filter</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -890,10 +914,13 @@ export default function InvestorDatabasePage() {
           </div>
 
           {/* Advanced Filters */}
-            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+            <div className="mt-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-gradient-to-r from-indigo-50/50 to-blue-50/50">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium">Advanced Filters</h3>
-                <Button onClick={addFilterRule} size="sm" variant="outline">
+                <h3 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Advanced Filters
+                </h3>
+                <Button onClick={addFilterRule} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
                   <Plus className="h-3 w-3 mr-1" />
                   Add Filter
                 </Button>
@@ -982,13 +1009,17 @@ export default function InvestorDatabasePage() {
       </Card>
 
       {/* Contacts Table */}
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-lg bg-white/95 backdrop-blur-sm overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
           <div className="flex justify-between items-center">
-            <CardTitle>Contacts ({contacts.length})</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-indigo-600" />
+              <span>Contacts</span>
+              <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
+            </CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="text-center py-8">Loading contacts...</div>
           ) : contacts.length === 0 ? (
@@ -1000,7 +1031,7 @@ export default function InvestorDatabasePage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50">
                   <TableHead className="w-12">
                     <Checkbox
                       checked={selectAll}
@@ -1054,10 +1085,10 @@ export default function InvestorDatabasePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((contact) => (
-                  <TableRow 
+                {contacts.map((contact, index) => (
+                  <TableRow
                     key={contact.id}
-                    className={`cursor-pointer hover:bg-muted/50 ${selectedContacts.includes(contact.id) ? "bg-muted/50" : ""}`}
+                    className={`cursor-pointer hover:bg-indigo-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} ${selectedContacts.includes(contact.id) ? "ring-2 ring-indigo-500 bg-indigo-50/30" : ""}`}
                     onClick={() => setViewingContact(contact)}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -1665,6 +1696,7 @@ export default function InvestorDatabasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </div>
       </div>
     </TooltipProvider>
   );

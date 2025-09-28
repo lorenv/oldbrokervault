@@ -19,7 +19,11 @@ export default function EnhancedNdaTemplateEditorPage() {
   // Fetch template data if editing
   const { data: template, isLoading, error } = useQuery({
     queryKey: ['/api/nda-templates', templateId],
-    queryFn: () => templateId ? apiRequest(`/api/nda-templates/${templateId}`) : null,
+    queryFn: async () => {
+      if (!templateId) return null;
+      const response = await apiRequest('GET', `/api/nda-templates/${templateId}`);
+      return response.json();
+    },
     enabled: !!templateId,
   });
 
@@ -153,9 +157,9 @@ export default function EnhancedNdaTemplateEditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
+    <div className="h-full bg-gray-50 flex flex-col">
+      <div className="flex-shrink-0 max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-4">
           <h1 className="text-3xl font-bold text-gray-900">
             {isCreating ? 'Create Enhanced NDA Template' : 'Edit Enhanced NDA Template'}
           </h1>
@@ -163,9 +167,11 @@ export default function EnhancedNdaTemplateEditorPage() {
             Create professional NDA templates with interactive signing fields and recipient management.
           </p>
         </div>
+      </div>
 
+      <div className="flex-1 max-w-7xl mx-auto px-4 pb-6 w-full">
         <EnhancedNdaTemplateEditor
-          initialTemplate={template}
+          initialTemplate={template as any}
           onSave={handleSave}
           isLoading={createTemplateMutation.isPending || updateTemplateMutation.isPending}
         />
