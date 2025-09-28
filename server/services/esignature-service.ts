@@ -15,7 +15,7 @@ import {
   NdaFieldAssignment,
   NdaAuditLog
 } from '@shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { generateSecureToken } from '../token-utils';
 import { sendEmail, sendNdaConfirmationEmail } from '../email';
 import geoip from 'geoip-lite';
@@ -506,11 +506,40 @@ export class ESignatureService {
       const signatureFields = template[0].signatureFields || [];
       const signedContent = await processor.embedFields(signatureFields, fieldValues);
 
+      // Get signer information
+      const signer = sessionData.recipients.find(r => r.role === 'signer');
+      const signerName = signer?.name || 'Unknown Signer';
+      const signerEmail = signer?.email || 'unknown@email.com';
+      const completedAt = sessionData.session.completedAt || new Date();
+      
+      // Get IP address from audit logs for the signer
+      let signerIpAddress: string | undefined;
+      try {
+        if (signer) {
+          const auditEntries = await db.select()
+            .from(ndaAuditLog)
+            .where(
+              and(
+                eq(ndaAuditLog.signingSessionId, sessionId),
+                eq(ndaAuditLog.recipientId, signer.id),
+                isNotNull(ndaAuditLog.ipAddress)
+              )
+            )
+            .orderBy(desc(ndaAuditLog.timestamp))
+            .limit(1);
+          
+          signerIpAddress = auditEntries[0]?.ipAddress || undefined;
+        }
+      } catch (error) {
+        console.log('Could not retrieve IP address from audit logs:', error);
+      }
+
       // Add completion certificate with grey header
       await processor.addCompletionCertificate(
-        sessionData.recipients.find(r => r.role === 'signer')?.name || 'Unknown Signer',
-        sessionData.recipients.find(r => r.role === 'signer')?.email || 'unknown@email.com',
-        sessionData.session.completedAt || new Date()
+        signerName,
+        signerEmail,
+        completedAt,
+        signerIpAddress
       );
 
       // Save final PDF
