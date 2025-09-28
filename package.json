@@ -104,7 +104,6 @@
     "jspdf": "^3.0.1",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
-    "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.453.0",
     "mammoth": "^1.9.1",
     "memoizee": "^0.4.17",

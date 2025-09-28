@@ -1,12 +1,7 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import "leaflet.heat";
-
-declare module "leaflet" {
-  function heatLayer(latlngs: any[], options?: any): any;
-}
 
 interface InvestorHeatMapProps {
   contacts: Array<{
@@ -192,68 +187,98 @@ const cityCoordinates: Record<string, [number, number]> = {
   "Unknown": [0, 0]
 };
 
-function HeatMapLayer({ contacts }: { contacts: InvestorHeatMapProps['contacts'] }) {
-  const map = useMap();
+function LocationMarkers({ contacts }: { contacts: InvestorHeatMapProps['contacts'] }) {
+  const locationData: Array<{ location: string; coords: [number, number]; count: number; investors: string[] }> = [];
+  const locationMap: Record<string, { count: number; investors: string[] }> = {};
 
-  useEffect(() => {
-    const heatData: Array<[number, number, number]> = [];
-    const locationCounts: Record<string, number> = {};
-
-    contacts.forEach(contact => {
-      if (contact.location) {
-        const location = contact.location.trim();
-        locationCounts[location] = (locationCounts[location] || 0) + 1;
+  // Group contacts by location
+  contacts.forEach(contact => {
+    if (contact.location && contact.location !== "Unknown") {
+      const location = contact.location.trim();
+      if (!locationMap[location]) {
+        locationMap[location] = { count: 0, investors: [] };
       }
-    });
-
-    Object.entries(locationCounts).forEach(([location, count]) => {
-      const normalizedLocation = location
-        .split(',')[0]
-        .trim()
-        .replace(/^(City of |Greater |Metro )/i, '');
-
-      let coords = cityCoordinates[normalizedLocation];
-
-      if (!coords) {
-        const partialMatch = Object.keys(cityCoordinates).find(city =>
-          city.toLowerCase().includes(normalizedLocation.toLowerCase()) ||
-          normalizedLocation.toLowerCase().includes(city.toLowerCase())
-        );
-        if (partialMatch) {
-          coords = cityCoordinates[partialMatch];
-        }
-      }
-
-      if (coords) {
-        heatData.push([coords[0], coords[1], count * 0.5]);
-      }
-    });
-
-    if (heatData.length > 0) {
-      const heat = L.heatLayer(heatData, {
-        radius: 25,
-        blur: 15,
-        maxZoom: 10,
-        max: Math.max(...heatData.map(d => d[2])),
-        gradient: {
-          0.0: 'blue',
-          0.2: 'cyan',
-          0.4: 'lime',
-          0.6: 'yellow',
-          0.8: 'orange',
-          1.0: 'red'
-        }
-      });
-
-      heat.addTo(map);
-
-      return () => {
-        map.removeLayer(heat);
-      };
+      locationMap[location].count++;
+      locationMap[location].investors.push(contact.name || contact.email);
     }
-  }, [contacts, map]);
+  });
 
-  return null;
+  // Convert to coordinates
+  Object.entries(locationMap).forEach(([location, data]) => {
+    const normalizedLocation = location
+      .split(',')[0]
+      .trim()
+      .replace(/^(City of |Greater |Metro )/i, '');
+
+    let coords = cityCoordinates[normalizedLocation];
+
+    if (!coords) {
+      const partialMatch = Object.keys(cityCoordinates).find(city =>
+        city.toLowerCase().includes(normalizedLocation.toLowerCase()) ||
+        normalizedLocation.toLowerCase().includes(city.toLowerCase())
+      );
+      if (partialMatch) {
+        coords = cityCoordinates[partialMatch];
+      }
+    }
+
+    if (coords) {
+      locationData.push({
+        location,
+        coords,
+        count: data.count,
+        investors: data.investors.slice(0, 5) // Show first 5 investors
+      });
+    }
+  });
+
+  // Calculate max count for scaling
+  const maxCount = Math.max(...locationData.map(d => d.count), 1);
+
+  return (
+    <>
+      {locationData.map((data, index) => {
+        // Scale radius based on count (min 8px, max 25px)
+        const radius = Math.max(8, Math.min(25, 8 + (data.count / maxCount) * 17));
+
+        return (
+          <CircleMarker
+            key={`${data.location}-${index}`}
+            center={data.coords}
+            radius={radius}
+            pathOptions={{
+              fillColor: '#dc2626',  // Red color
+              color: 'transparent',   // No border
+              weight: 0,
+              opacity: 0,
+              fillOpacity: 0.5        // 50% opacity
+            }}
+          >
+            <Popup>
+              <div className="font-sans">
+                <p className="font-bold text-sm mb-1">{data.location}</p>
+                <p className="text-xs text-gray-600 mb-2">
+                  {data.count} investor{data.count !== 1 ? 's' : ''}
+                </p>
+                <div className="text-xs">
+                  {data.investors.map((name, i) => (
+                    <div key={i} className="truncate max-w-[200px]">
+                      • {name}
+                    </div>
+                  ))}
+                  {data.count > 5 && (
+                    <div className="text-gray-500 italic">
+                      and {data.count - 5} more...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
 }
 
 export function InvestorHeatMap({ contacts }: InvestorHeatMapProps) {
@@ -280,14 +305,14 @@ export function InvestorHeatMap({ contacts }: InvestorHeatMapProps) {
           <MapContainer
             center={[39.8283, -98.5795]}
             zoom={4}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', background: '#f5f5f5' }}
             ref={mapRef}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
-            <HeatMapLayer contacts={validContacts} />
+            <LocationMarkers contacts={validContacts} />
           </MapContainer>
         </div>
       </div>

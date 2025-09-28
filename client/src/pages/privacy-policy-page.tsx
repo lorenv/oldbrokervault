@@ -40,11 +40,23 @@ export default function PrivacyPolicyPage() {
             <h3 className="text-lg font-medium mb-2 mt-4">Technical Information</h3>
             <p>We automatically collect certain information, including:</p>
             <ul className="list-disc pl-6 space-y-1">
-              <li>IP address, browser type, and operating system</li>
+              <li>Browser type and operating system</li>
               <li>Usage patterns and feature interactions</li>
               <li>Device identifiers and performance data</li>
               <li>Cookies and similar tracking technologies</li>
             </ul>
+
+            <h3 className="text-lg font-medium mb-2 mt-4">E-Signature Information</h3>
+            <p>For electronic signatures on NDAs and other documents, we collect:</p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li><strong>IP Addresses:</strong> Collected at the time of signature to comply with the Electronic Signatures in Global and National Commerce Act (E-SIGN Act) and similar regulations</li>
+              <li><strong>Estimated City Location:</strong> Derived from IP addresses to approximate the signer's city-level location only (never precise location)</li>
+              <li><strong>Timestamp:</strong> Exact date and time of signature</li>
+              <li><strong>Signer Information:</strong> Name and email address as provided</li>
+            </ul>
+            <p className="mt-2 text-sm text-gray-600">
+              <strong>Important:</strong> IP addresses are collected solely for e-signature compliance and fraud prevention. We only derive estimated city-level location from IP addresses - we do not track precise locations or use GPS data. IP addresses are not used for marketing or sold to third parties.
+            </p>
           </section>
 
           <section>
@@ -58,7 +70,9 @@ export default function PrivacyPolicyPage() {
               <li>Communicate with you about your account and our services</li>
               <li>Provide customer support and respond to inquiries</li>
               <li>Ensure security and prevent fraud</li>
-              <li>Comply with legal obligations</li>
+              <li>Comply with legal obligations including e-signature regulations</li>
+              <li>Maintain audit trails for electronic signatures as required by law</li>
+              <li>Display aggregated geographic distribution of document signers (city-level only)</li>
             </ul>
           </section>
 
@@ -84,14 +98,14 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">6. Data Security</h2>
             <p>
-              We implement appropriate technical and organizational security measures to protect your information against unauthorized access, alteration, disclosure, or destruction. This includes encryption in transit and at rest, access controls, and regular security assessments. However, no method of transmission over the internet is 100% secure.
+              We implement appropriate technical and organizational security measures to protect your information against unauthorized access, alteration, disclosure, or destruction. This includes encryption in transit and at rest, access controls, and regular security assessments. E-signature records, including IP addresses, are encrypted and stored securely in compliance with regulatory requirements. However, no method of transmission over the internet is 100% secure.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold mb-3">7. Data Retention</h2>
             <p>
-              We retain your information for as long as necessary to provide the service and fulfill the purposes outlined in this policy. Account information is retained until you delete your account. CIM documents and associated content are retained according to your subscription plan and may be deleted after account termination.
+              We retain your information for as long as necessary to provide the service and fulfill the purposes outlined in this policy. Account information is retained until you delete your account. CIM documents and associated content are retained according to your subscription plan and may be deleted after account termination. E-signature records, including IP addresses and audit trails, are retained for a minimum of 7 years to comply with legal requirements.
             </p>
           </section>
 
