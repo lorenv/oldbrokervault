@@ -75,70 +75,78 @@ export default function HomePage() {
   const features = [
     {
       icon: Shield,
-      title: "NDA Protection",
+      title: "Protect Your Deal Flow",
       description:
-        "Built-in confidentiality agreements with secure document sharing and password protection.",
+        "Share confidential information safely with built-in NDAs that get signed before anyone sees your documents.",
       color: "text-green-500",
       link: "/features/nda-protection",
-    },
-    {
-      icon: Palette,
-      title: "Fully Customizable",
-      description:
-        "Tailor every section, add your company branding, and control document layout with drag-and-drop editing.",
-      color: "text-blue-500",
-    },
-    {
-      icon: Download,
-      title: "PDF Export",
-      description:
-        "Export to professional PDF format with formatting that maintains your brand identity.",
-      color: "text-purple-500",
+      size: "large",
     },
     {
       icon: Zap,
-      title: "AI-Powered Analysis",
+      title: "Save Days of Work",
       description:
-        "Extract information from websites, summarize business transcripts, and structure data into professional documents using advanced AI technology.",
+        "Let AI extract business data from websites and documents, turning hours of research into minutes.",
       color: "text-orange-500",
       link: "/features/ai-powered-cim",
+      size: "large",
+    },
+    {
+      icon: Palette,
+      title: "Make It Yours",
+      description:
+        "Drag, drop, and edit to match your brand perfectly—no design skills needed.",
+      color: "text-blue-500",
+      size: "medium",
     },
     {
       icon: Database,
-      title: "Investor Database",
+      title: "Never Lose a Lead",
       description:
-        "Track and manage investor contacts across all documents with comprehensive NDA signature management.",
+        "Keep every investor contact organized with automatic tracking of who viewed what and when.",
       color: "text-indigo-500",
       link: "/features/investor-database",
+      size: "medium",
     },
-
+    {
+      icon: Download,
+      title: "Share Anywhere",
+      description:
+        "Export polished PDFs that look exactly how you designed them, ready for any meeting.",
+      color: "text-purple-500",
+      size: "small",
+    },
     {
       icon: Lock,
-      title: "Enterprise Security",
+      title: "Sleep Easy",
       description:
-        "Bank-level encryption, secure hosting, and compliance with industry data protection standards.",
+        "Bank-level security keeps your deals safe and compliant.",
       color: "text-red-500",
+      size: "small",
     },
     {
       icon: PenTool,
-      title: "Digital Signatures",
+      title: "Close Faster",
       description:
-        "Secure electronic signature collection with NDA management, approval workflows, and comprehensive audit trails.",
+        "Get signatures instantly with built-in e-signing that tracks every approval.",
       color: "text-yellow-500",
+      size: "small",
     },
     {
       icon: Globe,
-      title: "Website Integration",
+      title: "Look Professional",
       description:
-        "Extract company logos and images from websites to enhance your CIM documents automatically.",
+        "Auto-import logos and images to create stunning documents in clicks.",
       color: "text-cyan-500",
+      size: "small",
     },
     {
       icon: Smartphone,
-      title: "Mobile Responsive",
+      title: "Work From Anywhere",
       description:
-        "Access and edit your CIM documents from any device with our responsive web interface.",
+        "Edit on your phone, tablet, or laptop—your CIMs go where you go.",
       color: "text-pink-500",
+      size: "small",
     },
   ];
 
@@ -288,25 +296,51 @@ export default function HomePage() {
       </section>
 
       {/* Partners Section */}
-      <section className="py-12 bg-white">
+      <section className="py-12 bg-white overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <p className="text-gray-500 text-sm font-medium tracking-wider uppercase mb-6" data-testid="partners-label">
               Trusted by Leading Business Advisors
             </p>
           </div>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60 grayscale hover:opacity-80 hover:grayscale-0 transition-all duration-300">
-            <div className="h-12 md:h-16 bg-gray-200 rounded px-8 flex items-center justify-center" data-testid="partner-transworld">
-              <span className="text-gray-600 font-semibold">Transworld</span>
-            </div>
-            <div className="h-12 md:h-16 bg-gray-200 rounded px-8 flex items-center justify-center" data-testid="partner-sunbelt">
-              <span className="text-gray-600 font-semibold">Sunbelt</span>
-            </div>
-            <div className="h-12 md:h-16 bg-gray-200 rounded px-8 flex items-center justify-center" data-testid="partner-business-exits">
-              <span className="text-gray-600 font-semibold">Business Exits</span>
-            </div>
-            <div className="h-12 md:h-16 bg-gray-200 rounded px-8 flex items-center justify-center" data-testid="partner-dealveinc">
-              <span className="text-gray-600 font-semibold">DealveInc</span>
+          <div className="relative">
+            <div className="flex animate-carousel">
+              {/* First set of logos */}
+              <div className="flex items-center justify-around min-w-full px-8">
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-transworld">
+                  <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-sunbelt">
+                  <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-dealveinc">
+                  <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-business-exits">
+                  <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-songline">
+                  <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
+                </div>
+              </div>
+              {/* Duplicate set for seamless loop */}
+              <div className="flex items-center justify-around min-w-full px-8">
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
+                </div>
+                <div className="h-12 md:h-16 w-32 md:w-40 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                  <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -344,7 +378,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -356,30 +390,41 @@ export default function HomePage() {
                 }`}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
-                <Card className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group h-full">
-                  <CardHeader className="p-4 sm:p-6">
+                <Card className="border-0 shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group h-full bg-gradient-to-br from-white to-gray-50">
+                  <CardHeader className="p-6">
                     <div
-                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-100 flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}
+                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${
+                        feature.color === 'text-green-500' ? 'from-green-100 to-green-200' :
+                        feature.color === 'text-orange-500' ? 'from-orange-100 to-orange-200' :
+                        feature.color === 'text-blue-500' ? 'from-blue-100 to-blue-200' :
+                        feature.color === 'text-indigo-500' ? 'from-indigo-100 to-indigo-200' :
+                        feature.color === 'text-purple-500' ? 'from-purple-100 to-purple-200' :
+                        feature.color === 'text-red-500' ? 'from-red-100 to-red-200' :
+                        feature.color === 'text-yellow-500' ? 'from-yellow-100 to-yellow-200' :
+                        feature.color === 'text-cyan-500' ? 'from-cyan-100 to-cyan-200' :
+                        'from-pink-100 to-pink-200'
+                      } flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
                     >
                       <feature.icon
-                        className={`w-5 h-5 sm:w-6 sm:h-6 ${feature.color} group-hover:scale-110 transition-transform duration-300`}
+                        className={`w-6 h-6 ${feature.color} group-hover:scale-110 transition-transform duration-300`}
                       />
                     </div>
-                    <CardTitle className="text-lg sm:text-xl font-semibold group-hover:text-blue-600 transition-colors duration-300">
+                    <CardTitle className="text-xl font-bold group-hover:text-blue-600 transition-colors duration-300">
                       {feature.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 sm:p-6 pt-0 flex-1 flex flex-col">
-                    <p className="text-gray-600 text-sm sm:text-base flex-1">
+                  <CardContent className="p-6 pt-0 flex-1 flex flex-col">
+                    <p className="text-gray-600 text-sm flex-1">
                       {feature.description}
                     </p>
                     {feature.link && (
                       <Link href={feature.link}>
                         <Button
-                          variant="link"
-                          className="mt-3 p-0 h-auto font-medium group-hover:translate-x-1 transition-transform duration-300"
+                          variant="ghost"
+                          className="mt-4 p-0 h-auto font-medium text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-all duration-300"
                         >
-                          Learn more →
+                          Learn more
+                          <ArrowRight className="w-4 h-4 ml-1 inline" />
                         </Button>
                       </Link>
                     )}
@@ -1068,14 +1113,31 @@ export default function HomePage() {
         }
         
         @keyframes gentle-float {
-          0%, 100% { 
+          0%, 100% {
             transform: translateY(0px);
           }
-          50% { 
+          50% {
             transform: translateY(-8px);
           }
         }
-        
+
+        @keyframes carousel {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .animate-carousel {
+          animation: carousel 30s linear infinite;
+        }
+
+        .animate-carousel:hover {
+          animation-play-state: paused;
+        }
+
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
         }
