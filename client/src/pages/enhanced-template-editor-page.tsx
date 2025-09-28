@@ -51,12 +51,14 @@ export default function EnhancedTemplateEditorPage() {
       if (isEditingTemplate && id) {
         // Update existing template
         await apiRequest('PUT', `/api/nda-templates/${id}`, {
-          name: data.name,
-          fileContent: data.fileContent,
-          signatureFields: data.signatureFields,
-          recipients: data.recipients || [],
-          totalPages: data.totalPages,
-          pageImages: data.pageImages
+          body: {
+            name: data.name,
+            fileContent: data.fileContent,
+            signatureFields: data.signatureFields,
+            recipients: data.recipients || [],
+            totalPages: data.totalPages,
+            pageImages: data.pageImages
+          }
         });
 
         toast({
@@ -66,12 +68,14 @@ export default function EnhancedTemplateEditorPage() {
       } else {
         // Create new template
         await apiRequest('POST', '/api/nda-templates', {
-          name: data.name,
-          fileContent: data.fileContent,
-          signatureFields: data.signatureFields,
-          recipients: data.recipients || [],
-          totalPages: data.totalPages,
-          pageImages: data.pageImages
+          body: {
+            name: data.name,
+            fileContent: data.fileContent,
+            signatureFields: data.signatureFields,
+            recipients: data.recipients || [],
+            totalPages: data.totalPages,
+            pageImages: data.pageImages
+          }
         });
 
         toast({
@@ -80,11 +84,14 @@ export default function EnhancedTemplateEditorPage() {
         });
       }
 
-      // Invalidate the templates cache so it refreshes instantly
-      queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
+      // Invalidate the templates cache and wait for it to complete
+      await queryClient.invalidateQueries({ queryKey: ['/api/nda-templates'] });
 
-      // Navigate back to account settings templates tab
-      setLocation('/account?tab=templates');
+      // Small delay to ensure the cache is updated
+      setTimeout(() => {
+        // Navigate back to account settings templates tab
+        setLocation('/account?tab=templates');
+      }, 100);
     } catch (error) {
       console.error('=== SAVE ERROR DETAILS ===');
       console.error('Error object:', error);

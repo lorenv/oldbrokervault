@@ -110,13 +110,37 @@ export default function EnhancedNdaTemplateEditor({
   // Load template data on mount
   useEffect(() => {
     if (initialTemplate) {
+      console.log('Loading template:', {
+        id: initialTemplate.id,
+        name: initialTemplate.name,
+        hasFileContent: !!initialTemplate.fileContent,
+        signatureFields: initialTemplate.signatureFields,
+        signatureFieldsCount: Array.isArray(initialTemplate.signatureFields) ? initialTemplate.signatureFields.length : 0
+      });
+
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
-      setFields((initialTemplate.signatureFields as EnhancedSignatureField[]) || []);
-      
+
+      // Parse signature fields - they might be a JSON string
+      let parsedFields: EnhancedSignatureField[] = [];
+      if (initialTemplate.signatureFields) {
+        if (typeof initialTemplate.signatureFields === 'string') {
+          try {
+            parsedFields = JSON.parse(initialTemplate.signatureFields);
+          } catch (e) {
+            console.error('Failed to parse signature fields:', e);
+            parsedFields = [];
+          }
+        } else if (Array.isArray(initialTemplate.signatureFields)) {
+          parsedFields = initialTemplate.signatureFields as EnhancedSignatureField[];
+        }
+      }
+
+      console.log('Parsed signature fields:', parsedFields);
+
       // For NDA templates, always use the single designated signer
       // Update existing fields to assign to the NDA signer if they're unassigned
-      const updatedFields = (initialTemplate.signatureFields as EnhancedSignatureField[] || []).map(field => ({
+      const updatedFields = parsedFields.map(field => ({
         ...field,
         assignedTo: field.assignedTo || '999999'
       }));
@@ -394,6 +418,19 @@ export default function EnhancedNdaTemplateEditor({
 
     setIsSaving(true);
 
+    console.log('Saving template with signature fields:', {
+      fieldsCount: fields.length,
+      fields: fields,
+      fieldsDetails: fields.map(f => ({
+        id: f.id,
+        type: f.type,
+        x: f.x,
+        y: f.y,
+        pageNumber: f.pageNumber,
+        assignedTo: f.assignedTo
+      }))
+    });
+
     try {
       const saveData = {
         name: templateName,
@@ -408,9 +445,8 @@ export default function EnhancedNdaTemplateEditor({
           height: img.height
         }))
       };
-      
 
-      
+      console.log('Calling onSave with data:', saveData);
       await onSave(saveData);
 
       toast({

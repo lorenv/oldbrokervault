@@ -21,20 +21,28 @@ export function registerNdaTemplateRoutes(app: Express) {
   // Get specific NDA template
   app.get("/api/nda-templates/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const templateId = parseInt(req.params.id);
       const template = await storage.getNdaTemplate(templateId);
-      
+
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
       }
-      
+
       // Verify ownership
       if (template.userId !== req.user!.id) {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
+      console.log('Fetching NDA template:', {
+        templateId,
+        hasSignatureFields: !!template.signatureFields,
+        signatureFieldsType: typeof template.signatureFields,
+        signatureFieldsCount: Array.isArray(template.signatureFields) ? template.signatureFields.length : 'not array',
+        signatureFields: template.signatureFields
+      });
+
       res.json(template);
     } catch (error) {
       console.error("Error fetching NDA template:", error);
@@ -66,16 +74,22 @@ export function registerNdaTemplateRoutes(app: Express) {
   // Update NDA template
   app.put("/api/nda-templates/:id", validateZodSchema(insertNdaTemplateSchema.partial()), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const templateId = parseInt(req.params.id);
-      
+
       // Verify ownership first
       const existingTemplate = await storage.getNdaTemplate(templateId);
       if (!existingTemplate || existingTemplate.userId !== req.user!.id) {
         return res.status(404).json({ error: "Template not found" });
       }
-      
+
+      console.log('Updating NDA template:', {
+        templateId,
+        hasSignatureFields: !!req.body.signatureFields,
+        signatureFieldsCount: Array.isArray(req.body.signatureFields) ? req.body.signatureFields.length : 0,
+        signatureFields: req.body.signatureFields
+      });
 
       const template = await storage.updateNdaTemplate(templateId, {
         name: req.body.name,
