@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Link } from "wouter";
 import {
   Shield,
@@ -15,8 +21,6 @@ import {
   BarChart3,
   PenTool,
   X,
-  Briefcase,
-  Building,
   CheckCircle,
   ArrowRight,
   Users,
@@ -30,6 +34,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
@@ -38,6 +43,32 @@ export default function HomePage() {
   );
   const [scrollY, setScrollY] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { toast } = useToast();
+
+  const handlePricingClick = (planId: string) => {
+    if (planId === 'enterprise') {
+      // For Enterprise plan, open contact form
+      window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
+    } else if (planId === 'free') {
+      // For free trial, go to register page
+      toast({
+        title: "🎉 Awesome choice!",
+        description: "Let's get you set up with your free trial. Create your account in just 30 seconds!",
+      });
+      setTimeout(() => {
+        window.location.href = '/login?tab=register';
+      }, 1000);
+    } else {
+      // For paid plans, notify and redirect to register
+      toast({
+        title: "🚀 Great decision!",
+        description: "You're one step away from creating professional CIMs in minutes. Let's set up your account!",
+      });
+      setTimeout(() => {
+        window.location.href = '/login?tab=register';
+      }, 1500);
+    }
+  };
 
   // Parallax scroll effect
   useEffect(() => {
@@ -349,35 +380,6 @@ export default function HomePage() {
       {/* Features Grid */}
       <section className="py-20">
         <div className="container mx-auto px-4">
-          <div
-            className={`text-center mb-12 sm:mb-16 transition-all duration-1000 ${
-              isVisible("features-header")
-                ? "translate-y-0 opacity-100"
-                : "translate-y-8 opacity-0"
-            }`}
-            data-animate-id="features-header"
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-              Complete CIM Solution
-            </h2>
-            <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto px-2">
-              From AI-powered analysis to secure sharing, we've built everything
-              you need for professional business documentation.
-            </p>
-
-            {/* Video Section */}
-            <div className="max-w-4xl mx-auto mt-12">
-              <video 
-                className="w-full rounded-lg shadow-lg"
-                controls
-                data-testid="video-demo"
-              >
-                <source src="/Video_1757976371111.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <div
@@ -432,29 +434,6 @@ export default function HomePage() {
                 </Card>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div
-            className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
-              isVisible("testimonial")
-                ? "translate-y-0 opacity-100"
-                : "translate-y-8 opacity-0"
-            }`}
-            data-animate-id="testimonial"
-          >
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 md:p-12 shadow-lg">
-              <blockquote className="text-xl md:text-2xl text-gray-700 font-medium leading-relaxed mb-6">
-                "I used to have my team create my CIMs and it would take days.
-                Now they're created in minutes, with AI grabbing info and
-                formatting tables and everything. Total game-changer."
-              </blockquote>
-              <div className="text-gray-500 text-sm">— CIM Share User</div>
-            </div>
           </div>
         </div>
       </section>
@@ -690,6 +669,237 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="container mx-auto px-4">
+          <div
+            className={`text-center mb-16 transition-all duration-1000 ${
+              isVisible("pricing-header")
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+            data-animate-id="pricing-header"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-2">
+              Choose the plan that fits your deal flow
+            </p>
+            <p className="text-lg font-semibold text-blue-600">
+              As low as $100 per CIM document
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            {/* Free Trial */}
+            <Card className="relative border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mb-4">
+                  <Sparkles className="w-6 h-6 text-gray-600" />
+                </div>
+                <CardTitle className="text-xl">Free Trial</CardTitle>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">$0</span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-600 mb-4">Perfect for trying out CIM Share</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>1 CIM document (trial only)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Basic export options</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>7-day trial period</span>
+                  </li>
+                </ul>
+                <Button
+                  className="w-full mt-6"
+                  variant="outline"
+                  onClick={() => handlePricingClick('free')}
+                >
+                  Start Free Trial
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Starter Plan */}
+            <Card className="relative border-2 border-green-500 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Starter Plan</CardTitle>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">$599</span>
+                  <span className="text-gray-600 ml-1">/year</span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-600 mb-4">For individual professionals</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>3 CIM documents per year</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Unlimited regenerations</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>NDA management</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Custom branding</span>
+                  </li>
+                </ul>
+                <Button
+                  className="w-full mt-6"
+                  variant="outline"
+                  onClick={() => handlePricingClick('starter')}
+                >
+                  Get Started
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Pro Plan */}
+            <Card className="relative border-2 border-blue-500 hover:shadow-xl transition-all duration-300 transform lg:scale-105">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  Most Popular
+                </span>
+              </div>
+              <CardHeader className="pb-4">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">Pro Plan</CardTitle>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">$999</span>
+                  <span className="text-gray-600 ml-1">/year</span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-600 mb-4">Everything for your business</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>10 CIM documents per year</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Unlimited regenerations</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Priority support</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>All features included</span>
+                  </li>
+                </ul>
+                <Button
+                  className="w-full mt-6"
+                  onClick={() => handlePricingClick('standard')}
+                >
+                  Get Started
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise Plan */}
+            <Card className="relative border-2 border-purple-500 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                  <Shield className="w-6 h-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl">Enterprise</CardTitle>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">Custom</span>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-600 mb-4">For large organizations</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Unlimited CIMs</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Dedicated support</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Custom integrations</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Team training</span>
+                  </li>
+                </ul>
+                <Button
+                  className="w-full mt-6"
+                  variant="outline"
+                  onClick={() => handlePricingClick('enterprise')}
+                >
+                  Contact Sales
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonial Section - Dark Background */}
+      <section className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+        {/* Subtle animated background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-40 h-40 bg-purple-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 left-1/2 w-36 h-36 bg-indigo-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div
+            className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
+              isVisible("testimonial")
+                ? "translate-y-0 opacity-100"
+                : "translate-y-8 opacity-0"
+            }`}
+            data-animate-id="testimonial"
+          >
+            <div className="flex justify-center mb-8">
+              <div className="flex gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+            </div>
+
+            <blockquote className="text-2xl md:text-3xl lg:text-4xl text-white font-light leading-relaxed mb-8">
+              <span className="text-blue-400 text-5xl leading-none">"</span>
+              I used to have my team create my CIMs and it would take days.
+              Now they're created in minutes, with AI grabbing info and
+              formatting tables and everything. Total game-changer.
+              <span className="text-blue-400 text-5xl leading-none">"</span>
+            </blockquote>
+
+            <p className="text-gray-300 text-lg font-medium">— CIM Share User</p>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div
@@ -774,91 +984,74 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Solutions Section */}
+      {/* FAQ Section */}
       <section className="py-16 sm:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-              Tailored Solutions for Your Industry
+              Frequently Asked Questions
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-              Whether you're a business broker or investment banker, we have the
-              right tools for your M&A transactions.
+              Everything you need to know about creating professional CIMs with our platform
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <Briefcase className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl font-semibold">
-                  For Business Brokers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <p className="text-muted-foreground mb-4">
-                  Professional CIM creation platform designed for business
-                  brokers and M&A advisors.
-                </p>
-                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Professional CIM creation in hours
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Contact tracking and management
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Automated NDA management
-                  </li>
-                </ul>
-                <Link href="/solutions/business-brokers">
-                  <Button variant="outline" className="w-full">
-                    Learn More →
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-4">
+              <AccordionItem value="item-1" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">How quickly can I create a CIM?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  Most users can create a complete, professional CIM in under 30 minutes. Our AI-powered tools extract information from websites and documents automatically, and our templates handle all the formatting. What used to take days now takes minutes.
+                </AccordionContent>
+              </AccordionItem>
 
-            <Card className="border-primary/20 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="p-6">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <Building className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl font-semibold">
-                  For Investment Banks
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <p className="text-muted-foreground mb-4">
-                  Enhanced features for larger organizations with additional
-                  security and customization options.
-                </p>
-                <ul className="space-y-2 text-sm text-muted-foreground mb-4">
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Enhanced security features
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    API access for custom integrations
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    Custom branding options
-                  </li>
-                </ul>
-                <Link href="/solutions/investment-banking">
-                  <Button variant="outline" className="w-full">
-                    Learn More →
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+              <AccordionItem value="item-2" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">What's included in the $100 per CIM cost?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  Each CIM includes unlimited regenerations, full customization options, NDA management with digital signatures, secure sharing links, PDF exports, and investor tracking. You can edit and update your CIM as many times as needed without additional charges.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">How does the NDA protection work?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  When you share a CIM, recipients must first review and digitally sign your NDA before accessing the document. We track all signatures, timestamps, and document access automatically. You can use our standard NDA template or upload your own.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">Can I customize the CIM with my branding?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  Yes! You can add your company logo, choose custom colors, fonts, and layouts. Every section is fully editable with our drag-and-drop editor. Your CIMs will look like they were professionally designed specifically for your firm.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">Is my data secure?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  Absolutely. We use bank-level encryption for all data transmission and storage. Your documents are hosted on secure servers with industry-standard security protocols. Only you and the people you explicitly share with can access your CIMs. We never share or sell your data.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6" className="bg-white border rounded-lg px-6">
+                <AccordionTrigger className="text-left hover:no-underline py-4">
+                  <span className="text-lg font-medium">What if I need more than 10 CIMs per year?</span>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-gray-600">
+                  Our Enterprise plan offers unlimited CIM creation along with dedicated support, custom integrations, and team training. Contact our sales team for custom pricing that fits your business volume.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </div>
       </section>

@@ -76,8 +76,8 @@ export const SEO_PAGES: Record<string, PageMeta> = {
   },
   '/solutions/investment-banking': {
     title: 'Investment Banking Platform - Enterprise M&A Tools | CIM Share',
-    description: 'Institutional-grade M&A platform for investment banks. SOC 2 certified with advanced analytics, API integrations, and white-label options. Trusted by 250+ investment banks.',
-    keywords: 'investment banking software, M&A platform enterprise, virtual data room, deal marketing platform, investment bank CIM tools, SOC 2 compliant M&A, cross-border transactions',
+    description: 'Institutional-grade M&A platform for investment banks with advanced analytics, API integrations, and white-label options. Trusted by 250+ investment banks.',
+    keywords: 'investment banking software, M&A platform enterprise, virtual data room, deal marketing platform, investment bank CIM tools, secure M&A platform, cross-border transactions',
     ogTitle: 'Enterprise M&A Platform for Investment Banking Teams',
     ogDescription: 'Streamline complex transactions with bank-grade security, AI-powered documentation, and seamless integrations. $15B+ in deal volume processed.',
     canonicalUrl: '/solutions/investment-banking'
