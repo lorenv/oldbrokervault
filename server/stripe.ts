@@ -487,8 +487,16 @@ export async function handleStripeWebhook(req: any, res: any, stripeInstance: St
       res.status(200).json({ received: true, message: 'Event not processed' });
     }
   } catch (error) {
-    console.error('❌ Error processing webhook event:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    // CRITICAL: Always return 200 to Stripe to acknowledge receipt
+    // Log the error for debugging but don't fail the webhook
+    console.error('❌ Error processing webhook event (acknowledging anyway):', error);
+
+    // You might want to store failed events for retry or send alert notifications
+    // But MUST return 200 to prevent Stripe from disabling the endpoint
+    res.status(200).json({
+      received: true,
+      warning: 'Event received but processing failed - logged for review'
+    });
   }
 }
 
