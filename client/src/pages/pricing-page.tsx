@@ -46,12 +46,17 @@ export default function PricingPage() {
   const handleSubscriptionAction = async (planId?: string) => {
     try {
       if (planId === 'enterprise') {
+        // Track Enterprise conversion
+        if (window.lintrk) {
+          window.lintrk('track', { conversion_id: 21789796 });
+        }
+
         // For Enterprise plan, open contact form
         try {
           const response = await fetch('/api/config');
           const config = await response.json();
           const supportEmail = config.company?.supportEmail || 'contact@cimshare.com';
-          
+
           window.open(`mailto:${supportEmail}?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.`, '_blank');
         } catch (error) {
           // Fallback to hardcoded email if config fails
@@ -59,8 +64,17 @@ export default function PricingPage() {
         }
         return;
       }
-      
+
       if (planId === 'starter' || planId === 'standard') {
+        // Track conversions
+        if (window.lintrk) {
+          if (planId === 'starter') {
+            window.lintrk('track', { conversion_id: 21789780 });
+          } else if (planId === 'standard') {
+            window.lintrk('track', { conversion_id: 21789788 });
+          }
+        }
+
         // Only authenticated users can create checkout sessions
         if (!user) {
           const planName = planId === 'starter' ? 'Starter plan' : 'Pro plan';
@@ -71,7 +85,7 @@ export default function PricingPage() {
           });
           return;
         }
-        
+
         // For authenticated users, create a checkout session directly
         const response = await apiRequest("POST", "/api/subscription/create-checkout", {
           body: {
@@ -79,7 +93,7 @@ export default function PricingPage() {
           }
         });
         const { url } = await response.json();
-        
+
         // Try to open in new tab, with fallback to same window
         const newWindow = window.open(url, '_blank');
         if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {

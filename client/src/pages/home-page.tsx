@@ -46,6 +46,17 @@ export default function HomePage() {
   const { toast } = useToast();
 
   const handlePricingClick = (planId: string) => {
+    // Track LinkedIn conversions
+    if (window.lintrk) {
+      if (planId === 'enterprise') {
+        window.lintrk('track', { conversion_id: 21789796 });
+      } else if (planId === 'starter') {
+        window.lintrk('track', { conversion_id: 21789780 });
+      } else if (planId === 'standard') {
+        window.lintrk('track', { conversion_id: 21789788 });
+      }
+    }
+
     if (planId === 'enterprise') {
       // For Enterprise plan, open contact form
       window.open('mailto:contact@cimshare.com?subject=Enterprise Plan Inquiry&body=I am interested in learning more about your Enterprise plan for unlimited CIM generation.', '_blank');
