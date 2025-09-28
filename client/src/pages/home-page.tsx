@@ -348,44 +348,44 @@ export default function HomePage() {
           <div className="relative">
             <div className="flex animate-carousel">
               {/* First set of logos */}
-              <div className="flex items-center gap-5 sm:gap-6 md:gap-3 min-w-full px-4 sm:px-8 md:justify-around">
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-transworld">
+              <div className="flex items-center gap-3 sm:gap-6 md:gap-3 min-w-full px-2 sm:px-8 md:justify-around">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-transworld">
                   <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-sunbelt">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-sunbelt">
                   <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-dealveinc">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-dealveinc">
                   <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-business-exits">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-business-exits">
                   <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-songline">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-songline">
                   <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-ravenstone">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale" data-testid="partner-ravenstone">
                   <img src="/ravenstonelogo.png" alt="Ravenstone" className="h-full w-auto object-contain max-w-full" />
                 </div>
               </div>
               {/* Duplicate set for seamless loop */}
-              <div className="flex items-center gap-5 sm:gap-6 md:gap-3 min-w-full px-4 sm:px-8 md:justify-around">
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+              <div className="flex items-center gap-3 sm:gap-6 md:gap-3 min-w-full px-2 sm:px-8 md:justify-around">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/tworld.png" alt="Transworld" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/sunbelt-logo.png" alt="Sunbelt" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/dealveinc-logo.png" alt="DealveInc" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/bizexitslogo.png" alt="Business Exits" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/songline.png" alt="Songline" className="h-full w-auto object-contain max-w-full" />
                 </div>
-                <div className="h-10 sm:h-12 md:h-16 w-20 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
+                <div className="h-10 sm:h-12 md:h-16 w-16 sm:w-24 md:w-32 lg:w-36 flex items-center justify-center flex-shrink-0 opacity-60 grayscale">
                   <img src="/ravenstonelogo.png" alt="Ravenstone" className="h-full w-auto object-contain max-w-full" />
                 </div>
               </div>
