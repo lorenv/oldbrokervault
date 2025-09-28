@@ -46,11 +46,6 @@ export default function NdaTemplateEditor({ initialTemplate, onSave, isLoading }
   // Update state when initialTemplate changes
   React.useEffect(() => {
     if (initialTemplate) {
-      console.log('Loading template data:', {
-        name: initialTemplate.name,
-        hasFileContent: !!initialTemplate.fileContent,
-        fieldsCount: initialTemplate.signatureFields?.length || 0
-      });
       setTemplateName(initialTemplate.name || '');
       setPdfBase64(initialTemplate.fileContent || '');
       setSignatureFields(initialTemplate.signatureFields || []);
