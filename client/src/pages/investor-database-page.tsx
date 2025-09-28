@@ -745,15 +745,21 @@ export default function InvestorDatabasePage() {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Investor Database</h1>
-            <p className="text-muted-foreground">
-              Manage and track your investor contacts across all documents
-            </p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/20">
+        <div className="container mx-auto p-6 space-y-6">
+          {/* Header with gradient background */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 p-8 shadow-xl mb-8">
+            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6))]" />
+            <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute -top-16 -left-16 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl" />
+
+            <div className="relative z-10 flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">Investor Database</h1>
+                <p className="text-blue-100 text-lg">
+                  Manage and track your investor contacts across all documents
+                </p>
+              </div>
           <div className="flex gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
