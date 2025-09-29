@@ -146,7 +146,8 @@ const cspDirectives = {
     "https://js.stripe.com",
     "https://api.stripe.com",
     "https://www.googletagmanager.com",
-    "https://www.google-analytics.com"
+    "https://www.google-analytics.com",
+    "https://snap.licdn.com"
   ],
   workerSrc: [
     "'self'",
@@ -167,7 +168,8 @@ const cspDirectives = {
     "blob:",
     "https:",
     "https://*.replit.dev", // Allow images from Replit external domains
-    "https://*.replit.app"  // Allow images from Replit deployment domains
+    "https://*.replit.app",  // Allow images from Replit deployment domains
+    "https://px.ads.linkedin.com"
   ],
   connectSrc: [
     "'self'",
@@ -175,6 +177,8 @@ const cspDirectives = {
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://analytics.google.com",
+    "https://px.ads.linkedin.com",
+    "https://snap.licdn.com",
     "ws://localhost:*", // WebSocket for development
     "wss://localhost:*"
   ],
