@@ -110,8 +110,23 @@ export default function EnhancedNdaSigningPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to sign NDA');
+        console.error('Response not OK. Status:', response.status, 'Status Text:', response.statusText);
+        const contentType = response.headers.get('content-type');
+        console.error('Content-Type:', contentType);
+
+        let error;
+        try {
+          error = await response.json();
+          console.error('NDA signing error from server (parsed JSON):', error);
+        } catch (e) {
+          const text = await response.text();
+          console.error('Failed to parse JSON. Raw response:', text);
+          throw new Error(`Server error: ${response.status} - ${text.substring(0, 200)}`);
+        }
+
+        const errorMessage = error.details || error.error || 'Failed to sign NDA';
+        console.error('Final error message:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       return response.json();
