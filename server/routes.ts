@@ -6949,11 +6949,13 @@ ${finalQuestion}
   });
 
   app.post("/api/share/:shareSlug/sign-nda", async (req, res) => {
+    console.log("=== NDA SIGNING REQUEST STARTED ===");
     console.log("Request method:", req.method);
     console.log("Request URL:", req.url);
-    console.log("Request body:", req.body);
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
     console.log("Request params:", req.params);
-    
+    console.log("=====================================");
+
     try {
       const { shareSlug } = req.params;
       const { signerName, signerEmail, fieldValues = {} } = req.body;
@@ -7316,7 +7318,21 @@ ${finalQuestion}
 
     } catch (error) {
       console.error('NDA signing error:', error);
-      res.status(500).json({ error: "Failed to process NDA signature" });
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined
+      });
+
+      // Return more detailed error in development
+      const errorMessage = error instanceof Error ? error.message : "Failed to process NDA signature";
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      res.status(500).json({
+        error: "Failed to process NDA signature",
+        details: errorMessage, // Always return details for debugging
+        stack: errorStack?.split('\n').slice(0, 5).join('\n') // First 5 lines of stack
+      });
     }
   });
 

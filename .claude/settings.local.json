@@ -45,7 +45,9 @@
       "Bash(killall:*)",
       "Bash(npm install:*)",
       "Bash(awk:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Read(//tmp/**)",
+      "Bash(journalctl:*)"
     ],
     "deny": [],
     "ask": [],
