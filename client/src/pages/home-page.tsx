@@ -912,7 +912,7 @@ export default function HomePage() {
               {/* First set of testimonials */}
               <div className="flex gap-6 min-w-full">
                 {/* Testimonial 1 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -928,7 +928,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 2 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -952,7 +952,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 3 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -966,7 +966,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 4 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -980,7 +980,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 5 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -994,7 +994,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 6 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1011,7 +1011,7 @@ export default function HomePage() {
               {/* Duplicate set for seamless loop */}
               <div className="flex gap-6 min-w-full">
                 {/* Testimonial 1 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1027,7 +1027,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 2 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1051,7 +1051,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 3 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1065,7 +1065,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 4 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1079,7 +1079,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 5 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -1093,7 +1093,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Testimonial 6 */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                   <div className="flex gap-1 mb-6">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
