@@ -140,8 +140,10 @@ function Router() {
 }
 
 function App() {
-  // Google Analytics is now initialized via static HTML tag in index.html
-  // Page view tracking is handled by useAnalytics() hook
+  // Initialize Google Analytics
+  useEffect(() => {
+    initGA();
+  }, []);
 
   return (
     <ErrorBoundary>
