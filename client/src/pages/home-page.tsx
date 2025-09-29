@@ -902,208 +902,214 @@ export default function HomePage() {
               What Our Users Are Saying
             </h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Join thousands of professionals who trust CIM Share
+              Join the many others that have modernized their CIMs
             </p>
           </div>
 
           {/* Testimonial Carousel */}
-          <div className="relative overflow-hidden">
-            <div className="flex animate-testimonial-scroll gap-6 px-4">
-              {/* First set of testimonials */}
-              <div className="flex gap-6 min-w-full">
-                {/* Testimonial 1 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+          <div className="relative space-y-8">
+            {/* Row 1 - Scrolls left */}
+            <div className="relative overflow-hidden px-4 lg:block">
+              <div className="flex animate-testimonial-scroll">
+                <div className="flex gap-8 pr-8">
+                  {/* Testimonial 1 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      I used to have my team create my CIMs and it would take days.
+                      Now they're created in minutes, with AI grabbing info and
+                      formatting tables and everything. Total game-changer.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    I used to have my team create my CIMs and it would take days.
-                    Now they're created in minutes, with AI grabbing info and
-                    formatting tables and everything. Total game-changer.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
+
+                  {/* Testimonial 2 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      eSign NDAs too?? This is what I need, thank you! Now I can move faster on deals.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
+                  </div>
+
+                  {/* Testimonial 3 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Our CIMs used to look like crap - the easy part here was cimshare makes our CIMs look great. To buyers and sellers.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
+                  </div>
                 </div>
 
-                {/* Testimonial 2 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                {/* Duplicate for seamless loop */}
+                <div className="flex gap-8 pr-8">
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      I used to have my team create my CIMs and it would take days.
+                      Now they're created in minutes, with AI grabbing info and
+                      formatting tables and everything. Total game-changer.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    I love it and my clients think I'm awesome for making it so fast
-                    and so nice-looking. I'm glad the guys that made{" "}
-                    <a
-                      href="https://vettingvault.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 underline decoration-dotted underline-offset-2 transition-colors"
-                    >
-                      Vetting Vault
-                    </a>{" "}
-                    also made this for brokers.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
 
-                {/* Testimonial 3 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      eSign NDAs too?? This is what I need, thank you! Now I can move faster on deals.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    eSign NDAs too?? This is what I need, thank you! Now I can move faster on deals.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
 
-                {/* Testimonial 4 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[90vw] md:w-[45vw] lg:w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Our CIMs used to look like crap - the easy part here was cimshare makes our CIMs look great. To buyers and sellers.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Love the geographic distribution map of my buyers, and it's easy to filter - very cool.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
-
-                {/* Testimonial 5 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Our CIMs used to look like crap - the easy part here was cimshare makes our CIMs look great. To buyers and sellers.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
-
-                {/* Testimonial 6 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Would pay 5x the price for this.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
                 </div>
               </div>
+            </div>
 
-              {/* Duplicate set for seamless loop */}
-              <div className="flex gap-6 min-w-full">
-                {/* Testimonial 1 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+            {/* Row 2 - Scrolls right (only on desktop) */}
+            <div className="relative overflow-hidden px-4 hidden lg:block">
+              <div className="flex animate-testimonial-scroll-reverse">
+                <div className="flex gap-8 pr-8">
+                  {/* Testimonial 4 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      I love it and my clients think I'm awesome for making it so fast
+                      and so nice-looking. I'm glad the guys that made{" "}
+                      <a
+                        href="https://vettingvault.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 underline decoration-dotted underline-offset-2 transition-colors"
+                      >
+                        Vetting Vault
+                      </a>{" "}
+                      also made this for brokers.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    I used to have my team create my CIMs and it would take days.
-                    Now they're created in minutes, with AI grabbing info and
-                    formatting tables and everything. Total game-changer.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
+
+                  {/* Testimonial 5 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Love the geographic distribution map of my buyers, and it's easy to filter - very cool.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
+                  </div>
+
+                  {/* Testimonial 6 */}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Would pay 5x the price for this.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
+                  </div>
                 </div>
 
-                {/* Testimonial 2 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                {/* Duplicate for seamless loop */}
+                <div className="flex gap-8 pr-8">
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      I love it and my clients think I'm awesome for making it so fast
+                      and so nice-looking. I'm glad the guys that made{" "}
+                      <a
+                        href="https://vettingvault.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 underline decoration-dotted underline-offset-2 transition-colors"
+                      >
+                        Vetting Vault
+                      </a>{" "}
+                      also made this for brokers.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    I love it and my clients think I'm awesome for making it so fast
-                    and so nice-looking. I'm glad the guys that made{" "}
-                    <a
-                      href="https://vettingvault.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 underline decoration-dotted underline-offset-2 transition-colors"
-                    >
-                      Vetting Vault
-                    </a>{" "}
-                    also made this for brokers.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
 
-                {/* Testimonial 3 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Love the geographic distribution map of my buyers, and it's easy to filter - very cool.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    eSign NDAs too?? This is what I need, thank you! Now I can move faster on deals.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
 
-                {/* Testimonial 4 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
+                  <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-[400px]">
+                    <div className="flex gap-1 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <blockquote className="text-lg text-gray-100 leading-relaxed">
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                      Would pay 5x the price for this.
+                      <span className="text-3xl text-blue-400 leading-none">"</span>
+                    </blockquote>
                   </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Love the geographic distribution map of my buyers, and it's easy to filter - very cool.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
-
-                {/* Testimonial 5 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Our CIMs used to look like crap - the easy part here was cimshare makes our CIMs look great. To buyers and sellers.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
-                </div>
-
-                {/* Testimonial 6 */}
-                <div className="bg-gray-800/50 rounded-xl p-8 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <blockquote className="text-lg text-gray-100 leading-relaxed">
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                    Would pay 5x the price for this.
-                    <span className="text-3xl text-blue-400 leading-none">"</span>
-                  </blockquote>
                 </div>
               </div>
             </div>
@@ -1543,6 +1549,15 @@ export default function HomePage() {
           }
         }
 
+        @keyframes testimonial-scroll-reverse {
+          0% {
+            transform: translateX(-50%);
+          }
+          100% {
+            transform: translateX(0);
+          }
+        }
+
         .animate-carousel {
           animation: carousel 30s linear infinite;
         }
@@ -1556,6 +1571,14 @@ export default function HomePage() {
         }
 
         .animate-testimonial-scroll:hover {
+          animation-play-state: paused;
+        }
+
+        .animate-testimonial-scroll-reverse {
+          animation: testimonial-scroll-reverse 60s linear infinite;
+        }
+
+        .animate-testimonial-scroll-reverse:hover {
           animation-play-state: paused;
         }
 
