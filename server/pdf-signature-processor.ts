@@ -235,8 +235,8 @@ export class PdfSignatureProcessor {
       color: rgb(0.2, 0.6, 0.2),
     });
     // Checkmark inside shield
-    page.drawText('✓', {
-      x: shieldX + 6,
+    page.drawText('X', {
+      x: shieldX + 7,
       y: shieldY + 8,
       size: 12,
       color: rgb(1, 1, 1),
