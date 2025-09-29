@@ -414,12 +414,6 @@ export class PdfSignatureProcessor {
       borderColor: rgb(0.2, 0.2, 0.2),
       borderWidth: 1,
     });
-    page.drawText('✓', {
-      x: 53,
-      y: yPosition + 1,
-      size: 8,
-      color: rgb(0.2, 0.2, 0.2),
-    });
     
     page.drawText(`Verification: ${this.generateVerificationHash(signerEmail, signedAt)}`, {
       x: 70,
@@ -493,13 +487,6 @@ export class PdfSignatureProcessor {
       borderColor: rgb(0.4, 0.4, 0.4),
       borderWidth: 1,
     });
-    // Envelope flap
-    page.drawText('✉', {
-      x: 74,
-      y: yPosition + 1,
-      size: 6,
-      color: rgb(0.4, 0.4, 0.4),
-    });
     
     page.drawText(`Email: ${signerEmail}`, {
       x: 90,
@@ -537,12 +524,6 @@ export class PdfSignatureProcessor {
         size: 4,
         borderColor: rgb(0.4, 0.4, 0.4),
         borderWidth: 1,
-      });
-      page.drawText('🌐', {
-        x: 74,
-        y: yPosition + 1,
-        size: 6,
-        color: rgb(0.4, 0.4, 0.4),
       });
       
       page.drawText(`IP Address: ${signerIpAddress}`, {
