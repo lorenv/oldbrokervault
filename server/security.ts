@@ -144,7 +144,9 @@ const cspDirectives = {
     "'unsafe-eval'", // Required for Vite in development
     "blob:", // Required for canvas-confetti web workers
     "https://js.stripe.com",
-    "https://api.stripe.com"
+    "https://api.stripe.com",
+    "https://www.googletagmanager.com",
+    "https://www.google-analytics.com"
   ],
   workerSrc: [
     "'self'",
@@ -170,6 +172,9 @@ const cspDirectives = {
   connectSrc: [
     "'self'",
     "https://api.stripe.com",
+    "https://www.google-analytics.com",
+    "https://www.googletagmanager.com",
+    "https://analytics.google.com",
     "ws://localhost:*", // WebSocket for development
     "wss://localhost:*"
   ],
