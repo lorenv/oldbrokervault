@@ -7080,8 +7080,18 @@ ${finalQuestion}
           signedNdaContent = await processor.embedFields(signatureFields, processedFieldValues);
           
           // Add completion certificate
-          await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
-          signedNdaContent = await processor.saveAsBase64();
+          try {
+            await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
+            signedNdaContent = await processor.saveAsBase64();
+          } catch (certError) {
+            console.error('Error adding completion certificate:', certError);
+            console.error('Certificate error details:', {
+              message: certError instanceof Error ? certError.message : String(certError),
+              stack: certError instanceof Error ? certError.stack : undefined
+            });
+            // Continue without certificate if it fails
+            console.log('Continuing without completion certificate');
+          }
           
         } else {
           console.log("Using certificate-only processing (no signature fields)");
@@ -7298,6 +7308,8 @@ ${finalQuestion}
 
       } catch (innerError) {
         console.error('Inner NDA signing error:', innerError);
+        console.error('Inner error message:', innerError instanceof Error ? innerError.message : String(innerError));
+        console.error('Inner error stack:', innerError instanceof Error ? innerError.stack : 'No stack trace');
         throw innerError;
       }
 
