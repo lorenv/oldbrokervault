@@ -7046,7 +7046,12 @@ ${finalQuestion}
         // Enhanced signature processing with field values
         let signedNdaContent: string;
         
-        if (ndaTemplate.signatureFields && ndaTemplate.signatureFields.length > 0) {
+        // Ensure signatureFields is an array (JSONB field might return object)
+        const signatureFields = Array.isArray(ndaTemplate.signatureFields) 
+          ? ndaTemplate.signatureFields 
+          : [];
+        
+        if (signatureFields && signatureFields.length > 0) {
           console.log("Processing signature using enhanced field-based system");
           const processor = await PdfSignatureProcessor.fromBase64(ndaTemplate.fileContent);
           
@@ -7054,25 +7059,25 @@ ${finalQuestion}
           const processedFieldValues = { ...fieldValues };
           
           // Auto-populate standard fields if not provided
-          if (!processedFieldValues.name && ndaTemplate.signatureFields.some((f: any) => f.type === 'name')) {
-            const nameField = ndaTemplate.signatureFields.find((f: any) => f.type === 'name');
+          if (!processedFieldValues.name && signatureFields.some((f: any) => f.type === 'name')) {
+            const nameField = signatureFields.find((f: any) => f.type === 'name');
             if (nameField) processedFieldValues[nameField.id] = signerName;
           }
           
-          if (!processedFieldValues.email && ndaTemplate.signatureFields.some((f: any) => f.type === 'email')) {
-            const emailField = ndaTemplate.signatureFields.find((f: any) => f.type === 'email');
+          if (!processedFieldValues.email && signatureFields.some((f: any) => f.type === 'email')) {
+            const emailField = signatureFields.find((f: any) => f.type === 'email');
             if (emailField) processedFieldValues[emailField.id] = signerEmail;
           }
           
           // Process date fields
-          ndaTemplate.signatureFields.filter((f: any) => f.type === 'date').forEach((field: any) => {
+          signatureFields.filter((f: any) => f.type === 'date').forEach((field: any) => {
             if (!processedFieldValues[field.id]) {
               processedFieldValues[field.id] = signedAt.toLocaleDateString();
             }
           });
           
           // Embed fields into PDF
-          signedNdaContent = await processor.embedFields(ndaTemplate.signatureFields, processedFieldValues);
+          signedNdaContent = await processor.embedFields(signatureFields, processedFieldValues);
           
           // Add completion certificate
           await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
@@ -7102,28 +7107,8 @@ ${finalQuestion}
           fieldValues
         };
         
-        console.log("🔍 Signature data structure:", {
-          cimDocumentId: signatureData.cimDocumentId,
-          signerName: signatureData.signerName,
-          signerEmail: signatureData.signerEmail,
-          signerIpAddress: signatureData.signerIpAddress,
-          signerLocation: signatureData.signerLocation,
-          contentLength: signatureData.signedNdaContent.length
-        });
-
-        console.log("✅ Validating signature data against schema...");
         const validatedData = insertNdaSignatureSchema.parse(signatureData);
-        console.log("✅ Signature data validated successfully");
-
-        console.log("💾 Creating signature record in database...");
         const signature = await storage.createNdaSignature(validatedData);
-        console.log("✅ Signature created successfully with ID:", signature.id);
-        console.log("📊 Database signature record:", {
-          id: signature.id,
-          cimDocumentId: signature.cimDocumentId,
-          signerName: signature.signerName,
-          signerEmail: signature.signerEmail
-        });
 
         // Get owner information for email
         console.log("Getting document owner information...");
@@ -7318,11 +7303,6 @@ ${finalQuestion}
 
     } catch (error) {
       console.error('NDA signing error:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : undefined
-      });
 
       // Return more detailed error in development
       const errorMessage = error instanceof Error ? error.message : "Failed to process NDA signature";
