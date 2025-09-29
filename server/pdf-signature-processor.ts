@@ -234,13 +234,6 @@ export class PdfSignatureProcessor {
       size: 10,
       color: rgb(0.2, 0.6, 0.2),
     });
-    // Checkmark inside shield
-    page.drawText('X', {
-      x: shieldX + 7,
-      y: shieldY + 8,
-      size: 12,
-      color: rgb(1, 1, 1),
-    });
     
     // Certificate title
     page.drawText('Certificate of Completion', {
