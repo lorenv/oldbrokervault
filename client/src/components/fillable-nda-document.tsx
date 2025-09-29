@@ -248,13 +248,13 @@ export default function FillableNdaDocument({
       const pageFields = signatureFields.filter(field => field.pageNumber === pageNumber);
       
       return (
-        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden mx-auto" style={{ maxWidth: '800px' }}>
+        <div key={pageIndex} className="relative mb-8 shadow-lg rounded-lg overflow-hidden mx-auto w-full" style={{ maxWidth: '800px' }}>
           {/* PDF Page as Background */}
           <img
             src={pageData.imageUrl}
             alt={`Document page ${pageNumber}`}
-            className="block border border-gray-200"
-            style={{ width: '800px', height: 'auto' }}
+            className="block border border-gray-200 w-full h-auto"
+            style={{ maxWidth: '100%' }}
             onError={(e) => {
               // Don't hide the image - instead show a placeholder background
               console.error('Image failed to render in browser:', pageData.imageUrl);
@@ -273,33 +273,17 @@ export default function FillableNdaDocument({
               const Icon = FIELD_ICONS[field.type];
               const isRequired = field.required !== false;
               
-              // FIXED COORDINATE SYSTEM: Template editor saves percentage coordinates (0-100)
-              // Convert percentage coordinates to pixel positions for 800px display width
-              const FIXED_DISPLAY_WIDTH = 800;
-              const displayHeight = (pageData.height / pageData.width) * FIXED_DISPLAY_WIDTH;
-              
-              // Convert percentage coordinates to pixel positions
-              const fieldXPixels = (field.x / 100) * FIXED_DISPLAY_WIDTH;
-              const fieldYPixels = (field.y / 100) * displayHeight;
-              const fieldWidthPixels = (field.width / 100) * FIXED_DISPLAY_WIDTH;
-              const fieldHeightPixels = (field.height / 100) * displayHeight;
-              
-              console.log(`Field ${field.id} coordinate conversion:`, {
-                percentages: { x: field.x, y: field.y, w: field.width, h: field.height },
-                displaySize: { w: FIXED_DISPLAY_WIDTH, h: displayHeight },
-                pixels: { x: fieldXPixels, y: fieldYPixels, w: fieldWidthPixels, h: fieldHeightPixels },
-                originalPageSize: { w: pageData.width, h: pageData.height }
-              });
-              
+              // RESPONSIVE COORDINATE SYSTEM: Use percentages for all screen sizes
+              // Template editor saves percentage coordinates (0-100)
               const style = {
                 position: 'absolute' as const,
-                left: `${fieldXPixels}px`,
-                top: `${fieldYPixels}px`, 
-                width: `${fieldWidthPixels}px`,
-                height: `${fieldHeightPixels}px`,
-                // Respect template sizing - only apply minimums for very small fields
-                minHeight: fieldHeightPixels < 20 ? '20px' : undefined,
-                minWidth: fieldWidthPixels < 60 ? '60px' : undefined,
+                left: `${field.x}%`,
+                top: `${field.y}%`, 
+                width: `${field.width}%`,
+                height: `${field.height}%`,
+                // Apply minimum sizes for very small fields on mobile
+                minHeight: '20px',
+                minWidth: '60px',
                 zIndex: 10
               };
 
