@@ -202,6 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Remove the general static serving from here - it will be handled by index.ts
   // Only keep specific route static serving that's needed
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
+  app.use('/logos', express.static(path.join(process.cwd(), 'public', 'logos')));
   
   // IMPORTANT: Register webhook endpoints BEFORE authentication middleware
   // These endpoints need to be accessible by external services without authentication
@@ -501,8 +502,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Image serving endpoints - serve user images statically
+  // Image serving endpoints - serve user images and logos statically
   app.use('/user-images', express.static(path.join(process.cwd(), 'public', 'user-images')));
+  app.use('/logos', express.static(path.join(process.cwd(), 'public', 'logos')));
 
   // Migration endpoint - disabled for deployment stability
   app.post("/api/admin/migrate-images", async (req, res) => {

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFormattingConfig, type FormattingProfile, FORMATTING_PROFILES } from '@shared/formatting-config';
 import { CheckCircle, Circle } from 'lucide-react';
 
@@ -78,72 +80,42 @@ export function FormattingProfileSelector({
     return features;
   };
 
+  const selectedProfileData = profiles.find(p => p.profile === value);
+
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div>
-        <h3 className="text-base font-medium mb-2">Formatting Style</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Select how you want your AI-generated content to be formatted and structured.
+    <div className={`space-y-4 ${className}`}>
+      <div className="space-y-1">
+        <Label className="text-lg font-semibold text-slate-700">Writing Style</Label>
+        <p className="text-sm text-muted-foreground">
+          Choose the tone and format for your document.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {profiles.map(({ profile, title, description, features, wordCount, bestFor }) => {
-          const isSelected = value === profile;
-          const isPreview = previewProfile === profile;
-          
-          return (
-            <Card
-              key={profile}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 
-                isPreview ? 'ring-1 ring-gray-300 bg-gray-50' : ''
-              }`}
-              onMouseEnter={() => setPreviewProfile(profile)}
-              onMouseLeave={() => setPreviewProfile(null)}
-              onClick={() => onChange(profile)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {isSelected ? (
-                      <CheckCircle className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-400" />
-                    )}
-                    {title}
-                  </CardTitle>
+      <Select value={value} onValueChange={(val) => onChange(val as FormattingProfile)}>
+        <SelectTrigger className="w-full h-auto py-3">
+          <SelectValue placeholder="Select a writing style" />
+        </SelectTrigger>
+        <SelectContent className="max-w-md">
+          {profiles.map(({ profile, title, description, features, wordCount }) => (
+            <SelectItem key={profile} value={profile} className="py-3">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-base">{title}</span>
+                  <span className="text-xs text-muted-foreground">• {wordCount}</span>
                 </div>
-                <CardDescription className="text-sm">
-                  {description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-700 mb-1">Features:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {features.map((feature, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
+                <span className="text-xs text-muted-foreground">{description}</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {features.slice(0, 3).map((feature, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {feature}
+                    </Badge>
+                  ))}
                 </div>
-                
-                <div className="space-y-1">
-                  <div className="text-xs text-gray-600">
-                    <strong>Length:</strong> {wordCount}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    <strong>Best for:</strong> {bestFor}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

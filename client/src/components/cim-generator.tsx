@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -852,6 +852,141 @@ export function CimGenerator() {
       {!analysis ? (
         <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
 
+          {/* Cover Image Section - Now at the top */}
+          <div className="space-y-0">
+            <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+              <ImageIcon className="h-5 w-5" />
+              <div className="flex-1">
+                <h3 className="font-semibold">Cover Image</h3>
+                <p className="text-sm text-slate-200">Add a professional cover image to enhance your CIM</p>
+              </div>
+              {selectedCoverImage && <Badge variant="secondary" className="bg-white/20 text-white border-white/30">Set</Badge>}
+            </div>
+            <div className="p-4 border border-t-0 rounded-b-lg bg-white space-y-4">
+              {selectedCoverImage && (
+                <div className="space-y-3">
+                  <DraggableImagePositioner
+                    imageUrl={selectedCoverImage}
+                    position={coverImagePosition}
+                    onPositionChange={setCoverImagePosition}
+                    className="w-full"
+                  />
+
+                  {coverImageAttribution && (
+                    <div
+                      className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
+                      dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
+                    />
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCoverImage(null);
+                      setCoverImageAttribution('');
+                      setCoverImagePosition({ x: 50, y: 50 });
+                    }}
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove Cover Image
+                  </Button>
+                </div>
+              )}
+
+              {!selectedCoverImage && (
+                <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
+                  <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                  <p className="text-xs text-gray-500 mb-3">
+                    Add a cover image to enhance your CIM presentation
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => coverImageFileInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Image
+                </Button>
+
+                <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <UnsplashIcon className="h-4 w-4 mr-2" />
+                      Search Unsplash
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle>Search Unsplash Images</DialogTitle>
+                      <DialogDescription>
+                        Find professional cover images for your CIM document
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Search for images..."
+                          value={unsplashSearchQuery}
+                          onChange={(e) => setUnsplashSearchQuery(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && searchUnsplash()}
+                        />
+                        <Button onClick={searchUnsplash} disabled={isSearchingUnsplash}>
+                          {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+                        {unsplashResults.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative cursor-pointer border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                            onClick={() => selectUnsplashImage(image)}
+                          >
+                            <img
+                              src={image.urls.small}
+                              alt={image.alt_description || `Image ${index + 1}`}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs">
+                              by {image.user.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {unsplashResults.length === 0 && !isSearchingUnsplash && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Search for images above to get started
+                        </div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <input
+                type="file"
+                ref={coverImageFileInputRef}
+                onChange={handleCoverImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+          </div>
+
           {/* Document Information Section */}
           <div className="space-y-0">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
@@ -912,11 +1047,11 @@ export function CimGenerator() {
                           onCheckedChange={setEnableWebsiteAnalysis}
                         />
                         <div className="flex-1">
-                          <label 
-                            htmlFor="website-analysis" 
+                          <label
+                            htmlFor="website-analysis"
                             className="text-sm font-medium cursor-pointer"
                           >
-                            Enhanced Website Analysis
+                            AI Website Information Extraction
                           </label>
                           <p className="text-xs text-muted-foreground">
                             Automatically extract additional business information from the website to enhance your CIM
@@ -933,6 +1068,61 @@ export function CimGenerator() {
                   </div>
                 </div>
               </div>
+
+          {/* Image extraction and selection section - moved above Business Notes */}
+          {form.watch("websiteUrl") && extractedImages.length > 0 && (
+            <div className="space-y-0">
+              <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+                <ImageIcon className="h-5 w-5" />
+                <div>
+                  <h3 className="font-semibold">Website Images</h3>
+                  <p className="text-sm text-slate-200">Select images to include in your CIM document</p>
+                </div>
+              </div>
+              <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+                <div className="space-y-3">
+                  <div className="text-xs text-muted-foreground">
+                    Click to select/deselect images:
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {extractedImages.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
+                          selectedImages.includes(imageUrl)
+                            ? "border-primary ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        onClick={() => toggleImageSelection(imageUrl)}
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`Website image ${index + 1}`}
+                          className="w-full h-24 object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                        {selectedImages.includes(imageUrl) && (
+                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                            <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                              ✓
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {selectedImages.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Business Notes Section */}
           <div className="space-y-0">
@@ -1053,198 +1243,6 @@ export function CimGenerator() {
               )}
             </div>
           </div>
-
-          {/* Image extraction and selection section */}
-          {form.watch("websiteUrl") && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium">Website Images</h4>
-                  </div>
-
-                  {extractedImages.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="text-xs text-muted-foreground">
-                        Select images to include in your CIM document (click to select/deselect):
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {extractedImages.map((imageUrl, index) => (
-                          <div
-                            key={index}
-                            className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all hover:shadow-md ${
-                              selectedImages.includes(imageUrl)
-                                ? "border-primary ring-2 ring-primary/20"
-                                : "border-border hover:border-primary/50"
-                            }`}
-                            onClick={() => toggleImageSelection(imageUrl)}
-                          >
-                            <img
-                              src={imageUrl}
-                              alt={`Website image ${index + 1}`}
-                              className="w-full h-24 object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                            {selectedImages.includes(imageUrl) && (
-                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                  ✓
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      {selectedImages.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {selectedImages.length} image{selectedImages.length !== 1 ? 's' : ''} selected
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {extractedImages.length === 0 && !isExtractingImages && (
-                    <div className="text-xs text-muted-foreground">
-                      Click "Extract Images" to find images from the website
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Cover Image Section - Always visible */}
-              <div className="border rounded-lg bg-background">
-                <div className="p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    <span className="text-sm font-medium">Cover Image</span>
-                    {selectedCoverImage && <Badge variant="secondary">Set</Badge>}
-                  </div>
-                </div>
-                <div className="p-4 space-y-4">
-                  {selectedCoverImage && (
-                    <div className="space-y-3">
-                      <DraggableImagePositioner
-                        imageUrl={selectedCoverImage}
-                        position={coverImagePosition}
-                        onPositionChange={setCoverImagePosition}
-                        className="w-full"
-                      />
-
-                      {coverImageAttribution && (
-                        <div 
-                          className="text-xs text-gray-500 p-2 bg-gray-50 rounded"
-                          dangerouslySetInnerHTML={{ __html: coverImageAttribution }}
-                        />
-                      )}
-
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setSelectedCoverImage(null);
-                          setCoverImageAttribution('');
-                          setCoverImagePosition({ x: 50, y: 50 });
-                        }}
-                        className="w-full"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Remove Cover Image
-                      </Button>
-                    </div>
-                  )}
-
-                  {!selectedCoverImage && (
-                    <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
-                      <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                      <p className="text-xs text-gray-500 mb-3">
-                        Add a cover image to enhance your CIM presentation
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button 
-                      type="button"
-                      variant="outline" 
-                      onClick={() => coverImageFileInputRef.current?.click()}
-                      className="flex-1"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Image
-                    </Button>
-
-                    <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          type="button"
-                          variant="outline" 
-                          className="flex-1"
-                        >
-                          <UnsplashIcon className="h-4 w-4 mr-2" />
-                          Search Unsplash
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-                        <DialogHeader>
-                          <DialogTitle>Search Unsplash Images</DialogTitle>
-                          <DialogDescription>
-                            Find professional cover images for your CIM document
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Search for images..."
-                              value={unsplashSearchQuery}
-                              onChange={(e) => setUnsplashSearchQuery(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && searchUnsplash()}
-                            />
-                            <Button onClick={searchUnsplash} disabled={isSearchingUnsplash}>
-                              {isSearchingUnsplash ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
-                            {unsplashResults.map((image, index) => (
-                              <div
-                                key={index}
-                                className="relative cursor-pointer border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                                onClick={() => selectUnsplashImage(image)}
-                              >
-                                <img
-                                  src={image.urls.small}
-                                  alt={image.alt_description || `Image ${index + 1}`}
-                                  className="w-full h-32 object-cover"
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-xs">
-                                  by {image.user.name}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {unsplashResults.length === 0 && !isSearchingUnsplash && (
-                            <div className="text-center py-8 text-muted-foreground">
-                              Search for images above to get started
-                            </div>
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-
-                  <input
-                    type="file"
-                    ref={coverImageFileInputRef}
-                    onChange={handleCoverImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                </div>
-              </div>
 
           {/* Financial Information Section - Simplified */}
           <div className="space-y-0">
@@ -1474,22 +1472,25 @@ export function CimGenerator() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="w-full">
-                  <Button 
-                    type="submit" 
-                    className={`w-full border-0 shadow-lg ${
+                  <Button
+                    type="submit"
+                    className={`w-full border-0 shadow-lg h-14 text-lg ${
                       userLimits && !userLimits.canCreateDocument && !generateMutation.isPending
-                        ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50" 
+                        ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50"
                         : "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700"
                     } text-white`}
                     disabled={generateMutation.isPending || (userLimits && !userLimits.canCreateDocument)}
                   >
                     {generateMutation.isPending ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         {generationStage ? 'Generating your CIM document...' : 'Starting generation...'}
                       </>
                     ) : (
-                      "Generate CIM"
+                      <>
+                        <Zap className="mr-2 h-5 w-5" />
+                        Generate CIM
+                      </>
                     )}
                   </Button>
 
@@ -1497,7 +1498,7 @@ export function CimGenerator() {
               </TooltipTrigger>
               {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
                 <TooltipContent>
-                  <p>You've reached your monthly CIM generation limit ({userLimits.documentsCreated}/{userLimits.documentLimit}). 
+                  <p>You've reached your monthly CIM generation limit ({userLimits.documentsCreated}/{userLimits.documentLimit}).
                      Upgrade your subscription to continue creating CIMs.</p>
                 </TooltipContent>
               )}
