@@ -92,6 +92,7 @@ export const users = pgTable("users", {
   emailPreferences: jsonb("email_preferences").default({ onboarding: true, marketing: true, transactional: true }),
   unsubscribeToken: text("unsubscribe_token"),
   unsubscribeTokenExpiry: timestamp("unsubscribe_token_expiry"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const cimDocuments = pgTable("cim_documents", {

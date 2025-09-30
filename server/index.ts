@@ -258,6 +258,16 @@ startServer().then(async (server) => {
     console.error('❌ Failed to initialize onboarding email system:', emailError);
     // Don't fail server startup if email system fails
   }
+
+  // Initialize daily signup summary system
+  try {
+    const { dailySignupSummary } = await import('./daily-signup-summary');
+    await dailySignupSummary.scheduleDaily();
+    console.log('📊 Daily signup summary system initialized and scheduled');
+  } catch (summaryError) {
+    console.error('❌ Failed to initialize daily signup summary system:', summaryError);
+    // Don't fail server startup if summary system fails
+  }
   
   // Enhanced error handling for server startup
   server.on('error', (error: any) => {
