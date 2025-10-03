@@ -611,48 +611,56 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               />
             </div>
           </div>
-          {selectedSignatures.length > 0 && (
-            <div className="flex items-center gap-2 pt-4 border-t">
-              <span className="text-sm text-muted-foreground">
-                {selectedSignatures.length} selected
-              </span>
-              {cimDocument.ndaApprovalRequired && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleBatchApproval}
-                  disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  {batchApproveSignersMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}
-                </Button>
-              )}
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <span className="text-sm text-muted-foreground">
+              {selectedSignatures.length > 0 ? `${selectedSignatures.length} selected` : 'Select signatures for bulk actions'}
+            </span>
+            {cimDocument.ndaApprovalRequired && (
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                onClick={handleBulkResendEmails}
-                disabled={bulkResendEmailMutation.isPending || selectedSignatures.length === 0}
+                onClick={handleBatchApproval}
+                disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
               >
-                <Mail className="h-4 w-4 mr-2" />
-                {bulkResendEmailMutation.isPending ? "Sending..." : `Email ${selectedSignatures.length}`}
+                <Check className="h-4 w-4 mr-2" />
+                {batchApproveSignersMutation.isPending ? "Approving..." : selectedSignatures.length > 0 ? `Approve ${selectedSignatures.length}` : "Approve"}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportSignaturesToCSV}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearSelections}
-              >
-                Clear
-              </Button>
-            </div>
-          )}
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const selectedSigs = stablySortedSignatures.filter(sig => selectedSignatures.includes(sig.id));
+                const emails = selectedSigs.map(sig => sig.signerEmail).join(', ');
+                navigator.clipboard.writeText(emails);
+                toast({
+                  title: "Email addresses copied",
+                  description: `${selectedSigs.length} email address${selectedSigs.length > 1 ? 'es' : ''} copied to clipboard`
+                });
+              }}
+              disabled={selectedSignatures.length === 0}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Emails
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportSignaturesToCSV}
+              disabled={selectedSignatures.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelections}
+              disabled={selectedSignatures.length === 0}
+            >
+              Clear
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           {filteredSignatures.length > 0 ? (

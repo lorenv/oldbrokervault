@@ -870,20 +870,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (isOwner) {
             // Track owner view but don't increment general view count to avoid inflating analytics
-            console.log("Tracking document owner view");
-            await storage.trackDocumentView(cimDoc.id, 'owner', {
-              userId: req.user.id,
-              ipAddress: clientIp,
-              userAgent: userAgent
-            });
+            console.log("Tracking document owner view (skipping to avoid inflating analytics)");
+            // Don't track owner views in documentViews table to keep analytics clean
           } else if (cimDoc.ndaProtected && token) {
             // Track NDA signer view when accessing CIM content with token
             const accessToken = await storage.getNdaAccessToken(token as string);
             if (accessToken && accessToken.isActive) {
               await Promise.all([
                 storage.trackDocumentView(cimDoc.id, 'nda_signer', {
-                  ndaAccessTokenId: accessToken.id,
-                  signerEmail: accessToken.signerEmail,
+                  viewerIdentifier: accessToken.signerEmail,
                   ipAddress: clientIp,
                   userAgent: userAgent
                 }),
@@ -6584,10 +6579,14 @@ ${finalQuestion}
 
     try {
       const cimId = parseInt(req.params.id);
-      
+
       // Get basic signature data
       const signatures = await storage.getNdaSignatures(cimId);
-      
+
+      // Import documentViews table
+      const { documentViews } = await import('@shared/schema');
+      const { sql, count } = await import('drizzle-orm');
+
       // Enhance signatures with access tokens and view count
       const enhancedSignatures = await Promise.all(signatures.map(async (signature) => {
         // Get access token for this signature
@@ -6595,14 +6594,23 @@ ${finalQuestion}
           .select()
           .from(ndaAccessTokens)
           .where(eq(ndaAccessTokens.ndaSignatureId, signature.id));
-        
+
+        // Count views by this signer (matching by email)
+        const viewCountResult = await db
+          .select({ count: count() })
+          .from(documentViews)
+          .where(
+            sql`${documentViews.cimDocumentId} = ${cimId}
+            AND ${documentViews.viewerIdentifier} = ${signature.signerEmail}`
+          );
+
         return {
           ...signature,
           accessToken: accessToken?.token || null,
-          viewCount: 0 // You can implement view tracking later
+          viewCount: viewCountResult[0]?.count || 0
         };
       }));
-      
+
       res.json(enhancedSignatures);
     } catch (error) {
       console.error('Error fetching NDA signatures:', error);
@@ -6629,8 +6637,11 @@ ${finalQuestion}
       // Approve the signature
       const approvedSignature = await storage.approveNdaSignature(signatureId, req.user.id);
 
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
       // Send approval email to the signer
-      await sendApprovalEmail(approvedSignature, doc);
+      await sendApprovalEmail(approvedSignature, doc, ownerProfile);
 
       res.json({ 
         success: true, 
@@ -6666,9 +6677,12 @@ ${finalQuestion}
       // Batch approve signatures
       const approvedSignatures = await storage.approveNdaSignaturesBatch(signatureIds, req.user.id);
 
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
       // Send approval emails to all signers
       await Promise.all(
-        approvedSignatures.map(signature => sendApprovalEmail(signature, doc))
+        approvedSignatures.map(signature => sendApprovalEmail(signature, doc, ownerProfile))
       );
 
       res.json({ 
@@ -6934,6 +6948,44 @@ ${finalQuestion}
         signatureData.signerEmail,
         undefined // Never expires for manual entries
       );
+
+      // Add contact to CRM (investor database)
+      try {
+        const { investorContacts } = await import('@shared/schema');
+
+        // Check if contact already exists
+        const existingContact = await db.select()
+          .from(investorContacts)
+          .where(and(
+            eq(investorContacts.userId, req.user.id),
+            eq(investorContacts.email, signatureData.signerEmail)
+          ))
+          .limit(1);
+
+        if (existingContact.length === 0) {
+          // Create new contact in CRM
+          await db.insert(investorContacts).values({
+            userId: req.user.id,
+            email: signatureData.signerEmail,
+            name: signerName,
+            notes: 'Added via manual NDA signature entry',
+            tags: [],
+            status: 'new',
+            location: 'Offline Signature',
+            totalDocumentViews: 0,
+            totalTimeSpentMinutes: 0,
+            firstSeenAt: new Date(),
+            lastSeenAt: new Date(),
+            ipAddress: 'Manual Entry',
+            isPotentialVpn: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
+      } catch (crmError) {
+        console.error('Error adding contact to CRM:', crmError);
+        // Don't fail the whole request if CRM addition fails
+      }
 
       // Return the approved signature with access token
       res.json({
@@ -8174,6 +8226,65 @@ ${finalQuestion}
     }
   });
 
+  // Create investor contact manually
+  app.post("/api/investor-contacts", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { investorContacts, insertInvestorContactSchema } = await import('@shared/schema');
+
+      // Validate input
+      const validatedData = insertInvestorContactSchema.parse(req.body);
+
+      // Check if contact with this email already exists for this user
+      const existingContact = await db.select()
+        .from(investorContacts)
+        .where(and(
+          eq(investorContacts.userId, req.user.id),
+          eq(investorContacts.email, validatedData.email)
+        ))
+        .limit(1);
+
+      if (existingContact.length > 0) {
+        return res.status(400).json({ error: "A contact with this email already exists" });
+      }
+
+      // Create new contact
+      const [newContact] = await db
+        .insert(investorContacts)
+        .values({
+          userId: req.user.id,
+          email: validatedData.email,
+          name: validatedData.name,
+          notes: validatedData.notes || '',
+          tags: validatedData.tags || [],
+          status: validatedData.status || 'new',
+          location: req.body.location || null,
+          nextFollowUpDate: validatedData.nextFollowUpDate ? new Date(validatedData.nextFollowUpDate) : null,
+          lastContactDate: validatedData.lastContactDate ? new Date(validatedData.lastContactDate) : null,
+          totalDocumentViews: 0,
+          totalTimeSpentMinutes: 0,
+          firstSeenAt: new Date(),
+          lastSeenAt: new Date(),
+          ipAddress: null,
+          isPotentialVpn: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      res.json(newContact);
+    } catch (error: any) {
+      console.error('Error creating investor contact:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid contact data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create contact" });
+    }
+  });
+
   // Update investor contact
   app.put("/api/investor-contacts/:id", async (req, res) => {
     if (!req.user) {
@@ -8186,14 +8297,14 @@ ${finalQuestion}
       const contactId = parseInt(req.params.id);
       const { investorContacts } = await import('@shared/schema');
       const { and } = await import('drizzle-orm');
-      
+
       // Process request body to handle date fields properly
       const updateData = {
         ...req.body,
         nextFollowUpDate: req.body.nextFollowUpDate ? new Date(req.body.nextFollowUpDate) : null,
         updatedAt: new Date()
       };
-      
+
       const [updated] = await db
         .update(investorContacts)
         .set(updateData)
@@ -8202,11 +8313,11 @@ ${finalQuestion}
           eq(investorContacts.userId, req.user.id)
         ))
         .returning();
-      
+
       if (!updated) {
         return res.status(404).json({ error: "Contact not found" });
       }
-      
+
       res.json(updated);
     } catch (error) {
       console.error('Error updating investor contact:', error);
