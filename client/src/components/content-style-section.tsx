@@ -342,6 +342,9 @@ export function ContentStyleSection({
           </Button>
         </div>
 
+        {/* Separator Line */}
+        <div className="border-t border-slate-200 my-6"></div>
+
         {/* Formatting Profile - Below in 2 columns */}
         <div className="space-y-4">
           <FormattingProfileSelector
