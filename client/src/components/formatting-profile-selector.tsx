@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFormattingConfig, type FormattingProfile, FORMATTING_PROFILES } from '@shared/formatting-config';
-import { CheckCircle, Circle } from 'lucide-react';
+import { CheckCircle, Circle, Scale, Briefcase, ListChecks, FileText } from 'lucide-react';
 
 interface FormattingProfileSelectorProps {
   value: FormattingProfile;
@@ -28,6 +30,8 @@ export function FormattingProfileSelector({
     features: string[];
     wordCount: string;
     bestFor: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
   }> = [
     {
       profile: 'balanced',
@@ -35,7 +39,9 @@ export function FormattingProfileSelector({
       description: 'Mix of paragraphs and lists for comprehensive coverage',
       features: ['Mixed format', 'Moderate length', 'Lists + paragraphs', 'Clear structure'],
       wordCount: '800-1200 words',
-      bestFor: 'General business documents'
+      bestFor: 'General business documents',
+      icon: Scale,
+      color: 'text-blue-600'
     },
     {
       profile: 'professional',
@@ -43,7 +49,9 @@ export function FormattingProfileSelector({
       description: 'Clean, formal documents with structured paragraphs',
       features: ['Paragraph format only', 'Minimal formatting', 'Bold for key terms', 'Italic for market terms'],
       wordCount: '1000-1200 words',
-      bestFor: 'Investor presentations, formal CIMs'
+      bestFor: 'Investor presentations, formal CIMs',
+      icon: Briefcase,
+      color: 'text-indigo-600'
     },
     {
       profile: 'memo',
@@ -51,7 +59,9 @@ export function FormattingProfileSelector({
       description: 'Concise, scannable format with bullet points',
       features: ['Bullet points', 'Short sentences', 'Numbered lists', 'Bold emphasis'],
       wordCount: 'Under 800 words',
-      bestFor: 'Quick overviews, executive summaries'
+      bestFor: 'Quick overviews, executive summaries',
+      icon: ListChecks,
+      color: 'text-emerald-600'
     },
     {
       profile: 'robust',
@@ -59,7 +69,9 @@ export function FormattingProfileSelector({
       description: 'Detailed analysis with comprehensive formatting',
       features: ['Detailed paragraphs', 'Rich formatting', 'Tables supported', 'Comprehensive lists'],
       wordCount: '1200-1800 words',
-      bestFor: 'Due diligence, detailed analysis'
+      bestFor: 'Due diligence, detailed analysis',
+      icon: FileText,
+      color: 'text-purple-600'
     }
   ];
 
@@ -78,72 +90,58 @@ export function FormattingProfileSelector({
     return features;
   };
 
+  const selectedProfileData = profiles.find(p => p.profile === value);
+
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div>
-        <h3 className="text-base font-medium mb-2">Formatting Style</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Select how you want your AI-generated content to be formatted and structured.
+    <div className={`space-y-4 ${className}`}>
+      <div className="space-y-1">
+        <Label className="text-lg font-semibold text-slate-700">Writing Style</Label>
+        <p className="text-sm text-muted-foreground">
+          Choose the tone and format for your document.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {profiles.map(({ profile, title, description, features, wordCount, bestFor }) => {
-          const isSelected = value === profile;
-          const isPreview = previewProfile === profile;
-          
-          return (
-            <Card
+      <Select value={value} onValueChange={(val) => onChange(val as FormattingProfile)}>
+        <SelectTrigger className="w-full h-auto py-3">
+          <SelectValue placeholder="Select a writing style">
+            {selectedProfileData && (
+              <div className="flex items-center gap-3">
+                <selectedProfileData.icon className={`h-5 w-5 ${selectedProfileData.color}`} />
+                <span className="font-medium">{selectedProfileData.title}</span>
+              </div>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="max-w-md">
+          {profiles.map(({ profile, title, description, features, wordCount, icon: Icon, color }) => (
+            <SelectItem
               key={profile}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 
-                isPreview ? 'ring-1 ring-gray-300 bg-gray-50' : ''
-              }`}
-              onMouseEnter={() => setPreviewProfile(profile)}
-              onMouseLeave={() => setPreviewProfile(null)}
-              onClick={() => onChange(profile)}
+              value={profile}
+              className="py-4 cursor-pointer hover:bg-slate-50 transition-colors"
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {isSelected ? (
-                      <CheckCircle className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-gray-400" />
-                    )}
-                    {title}
-                  </CardTitle>
+              <div className="flex gap-3">
+                <div className={`flex-shrink-0 ${color}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
-                <CardDescription className="text-sm">
-                  {description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-700 mb-1">Features:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {features.map((feature, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-base">{title}</span>
+                    <span className="text-xs text-muted-foreground">• {wordCount}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground leading-relaxed">{description}</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {features.slice(0, 3).map((feature, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5 font-normal">
                         {feature}
                       </Badge>
                     ))}
                   </div>
                 </div>
-                
-                <div className="space-y-1">
-                  <div className="text-xs text-gray-600">
-                    <strong>Length:</strong> {wordCount}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    <strong>Best for:</strong> {bestFor}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

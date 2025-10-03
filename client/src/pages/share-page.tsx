@@ -444,9 +444,17 @@ export function SharePage() {
           <div className="max-w-6xl mx-auto px-6 py-12">
             <div className="text-center">
               {/* Website extracted logo above title - only when no cover image */}
-              {shareData.logoUrl && (
+              {(shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo) && (
                 <div className="flex justify-center mb-6 animate-fade-in delay-200">
-                  <img src={shareData.logoUrl} alt="Company Logo" className="h-16 md:h-20 max-w-[200px] object-contain" />
+                  <img
+                    src={shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo}
+                    alt="Company Logo"
+                    className="h-16 md:h-20 max-w-[200px] object-contain"
+                    onError={(e) => {
+                      console.error('Logo failed to load:', shareData.cim.logoUrl);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                 </div>
               )}
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-600 to-blue-600 bg-clip-text text-transparent mb-8 tracking-tight break-words px-4 animate-slide-up delay-300">
@@ -629,6 +637,14 @@ export function SharePage() {
                             src={shareData.cim.logoUrl || shareData.cim.userProfile?.businessLogo}
                             alt="Company Logo"
                             className="h-24 md:h-36 object-contain"
+                            onError={(e) => {
+                              console.error('Financial section logo failed to load:', {
+                                attemptedUrl: shareData.cim.logoUrl,
+                                fallbackUrl: shareData.cim.userProfile?.businessLogo,
+                                fullShareData: shareData.cim
+                              });
+                              e.currentTarget.style.display = 'none';
+                            }}
                           />
                         </div>
                       )}

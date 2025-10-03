@@ -798,7 +798,8 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         cimDocuments.ndaApprovalRequired
       )
       .orderBy(desc(cimDocuments.createdAt))
-      .limit(limit + 1); // Get one extra to check for more
+      .limit(limit + 1) // Get one extra to check for more
+      .offset(offset);
 
     const hasMore = results.length > limit;
     const documents = results.slice(0, limit).map(result => ({

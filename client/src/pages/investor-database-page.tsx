@@ -171,6 +171,18 @@ export default function InvestorDatabasePage() {
   // Collapsible state for heat map
   const [isHeatMapOpen, setIsHeatMapOpen] = useState(true);
 
+  // Manual add contact state
+  const [showAddContactDialog, setShowAddContactDialog] = useState(false);
+  const [addContactForm, setAddContactForm] = useState({
+    name: '',
+    email: '',
+    notes: '',
+    tags: [] as string[],
+    status: 'new',
+    location: '',
+    nextFollowUpDate: ''
+  });
+
   // Fetch custom tags
   const { data: customTags = [] } = useQuery<Array<{id: number, name: string, color: string}>>({
     queryKey: ['/api/custom-tags'],
@@ -488,11 +500,11 @@ export default function InvestorDatabasePage() {
       // Process nextFollowUpDate to ensure proper format
       const processedData = {
         ...data,
-        nextFollowUpDate: data.nextFollowUpDate ? 
-          (data.nextFollowUpDate instanceof Date ? data.nextFollowUpDate.toISOString() : data.nextFollowUpDate) 
+        nextFollowUpDate: data.nextFollowUpDate ?
+          (data.nextFollowUpDate instanceof Date ? data.nextFollowUpDate.toISOString() : data.nextFollowUpDate)
           : null
       };
-      
+
       const response = await fetch(`/api/investor-contacts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -527,6 +539,47 @@ export default function InvestorDatabasePage() {
       toast({
         title: "Update Failed",
         description: "Failed to update contact information.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Add contact mutation
+  const addContactMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/investor-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add contact');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/investor-contacts'] });
+      setShowAddContactDialog(false);
+      setAddContactForm({
+        name: '',
+        email: '',
+        notes: '',
+        tags: [],
+        status: 'new',
+        location: '',
+        nextFollowUpDate: ''
+      });
+      toast({
+        title: "Contact Added",
+        description: "New contact has been added successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Add Contact",
+        description: error.message || "An error occurred while adding the contact.",
         variant: "destructive"
       });
     }
@@ -1030,6 +1083,14 @@ export default function InvestorDatabasePage() {
               <Badge className="bg-indigo-100 text-indigo-700 ml-2">{contacts.length}</Badge>
             </CardTitle>
             <div className="flex gap-2">
+              <Button
+                onClick={() => setShowAddContactDialog(true)}
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Contact
+              </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1683,7 +1744,7 @@ export default function InvestorDatabasePage() {
               Create and manage custom tags for organizing your contacts
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Add New Tag */}
             <div className="flex gap-2">
@@ -1698,7 +1759,7 @@ export default function InvestorDatabasePage() {
                 Add Tag
               </Button>
             </div>
-            
+
             {/* Existing Tags */}
             <div>
               <Label className="text-sm font-medium">Your Custom Tags</Label>
@@ -1724,10 +1785,130 @@ export default function InvestorDatabasePage() {
               )}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTagManager(false)}>
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Contact Dialog */}
+      <Dialog open={showAddContactDialog} onOpenChange={setShowAddContactDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Contact Manually</DialogTitle>
+            <DialogDescription>
+              Add a new contact to your investor database
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Name *</Label>
+              <Input
+                placeholder="Enter contact name..."
+                value={addContactForm.name}
+                onChange={(e) => setAddContactForm({...addContactForm, name: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                placeholder="Enter email address..."
+                value={addContactForm.email}
+                onChange={(e) => setAddContactForm({...addContactForm, email: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label>Location</Label>
+              <Input
+                placeholder="e.g., New York, NY"
+                value={addContactForm.location}
+                onChange={(e) => setAddContactForm({...addContactForm, location: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label>Status</Label>
+              <Select value={addContactForm.status} onValueChange={(value) => setAddContactForm({...addContactForm, status: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Tags (comma-separated)</Label>
+              <Input
+                placeholder="e.g., Hot Lead, Strategic Partner"
+                value={addContactForm.tags.join(', ')}
+                onChange={(e) => setAddContactForm({
+                  ...addContactForm,
+                  tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                })}
+              />
+            </div>
+
+            <div>
+              <Label>Next Follow-up Date</Label>
+              <Input
+                type="date"
+                value={addContactForm.nextFollowUpDate}
+                onChange={(e) => setAddContactForm({...addContactForm, nextFollowUpDate: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                placeholder="Add notes about this contact..."
+                value={addContactForm.notes}
+                onChange={(e) => setAddContactForm({...addContactForm, notes: e.target.value})}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddContactDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!addContactForm.name || !addContactForm.email) {
+                  toast({
+                    title: "Missing Required Fields",
+                    description: "Please enter both name and email.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+
+                addContactMutation.mutate({
+                  name: addContactForm.name,
+                  email: addContactForm.email,
+                  location: addContactForm.location || undefined,
+                  status: addContactForm.status,
+                  tags: addContactForm.tags,
+                  notes: addContactForm.notes || undefined,
+                  nextFollowUpDate: addContactForm.nextFollowUpDate ? new Date(addContactForm.nextFollowUpDate + 'T00:00:00') : undefined
+                });
+              }}
+              disabled={addContactMutation.isPending || !addContactForm.name || !addContactForm.email}
+            >
+              {addContactMutation.isPending ? 'Adding...' : 'Add Contact'}
             </Button>
           </DialogFooter>
         </DialogContent>

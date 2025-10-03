@@ -147,7 +147,9 @@ const cspDirectives = {
     "https://api.stripe.com",
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
-    "https://snap.licdn.com"
+    "https://analytics.google.com",
+    "https://snap.licdn.com",
+    "https://www.linkedin.com"
   ],
   workerSrc: [
     "'self'",
@@ -177,8 +179,11 @@ const cspDirectives = {
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://analytics.google.com",
+    "https://region1.google-analytics.com",
+    "https://www.google.com",
     "https://px.ads.linkedin.com",
     "https://snap.licdn.com",
+    "https://www.linkedin.com",
     "ws://localhost:*", // WebSocket for development
     "wss://localhost:*"
   ],

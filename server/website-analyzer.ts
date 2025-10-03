@@ -5,6 +5,7 @@
  */
 import { PERPLEXITY_API_URL } from './perplexity';
 import fetch from 'node-fetch';
+import { objectStorage } from './object-storage';
 
 
 
@@ -328,35 +329,32 @@ export async function captureWebsiteScreenshot(websiteUrl: string): Promise<stri
  */
 async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: number = 1): Promise<string | null> {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
     const crypto = await import('crypto');
-    
-    // Create logos directory if it doesn't exist
-    const logosDir = path.join(process.cwd(), 'public', 'logos');
-    if (!fs.existsSync(logosDir)) {
-      fs.mkdirSync(logosDir, { recursive: true });
-    }
-    
+
     // Generate filename based on website - always use PNG for better compatibility
     const websiteHash = crypto.createHash('md5').update(websiteUrl).digest('hex').substring(0, 8);
     const filename = `logo_${websiteHash}.png`;
-    const filepath = path.join(logosDir, filename);
-    const publicPath = `/logos/${filename}`;
-    
-    // Check if converted logo already exists
-    if (fs.existsSync(filepath)) {
-      console.log(`Converted logo already exists: ${publicPath}`);
-      return publicPath;
+
+    // Check if logo already exists in object storage
+    const existingPath = `/api/object-storage/user_${userId}/logos/${filename}`;
+    try {
+      const existsCheck = await objectStorage.getObject(`user_${userId}/logos/${filename}`);
+      if (existsCheck) {
+        console.log(`Logo already exists in object storage: ${existingPath}`);
+        return existingPath;
+      }
+    } catch (checkError) {
+      // File doesn't exist, continue with upload
+      console.log('Logo not found in storage, proceeding with download');
     }
-    
+
     // Download the logo
     const response = await fetch(logoUrl);
     if (!response.ok) {
       console.error(`Failed to download logo: ${response.statusText}`);
       return null;
     }
-    
+
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
@@ -389,26 +387,45 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: 
         });
         
         await browser.close();
-        
-        // Save the converted PNG
-        fs.writeFileSync(filepath, pngBuffer);
-        console.log(`Successfully converted SVG to PNG: ${publicPath}`);
-        
+
+        // Save the converted PNG to object storage
+        await objectStorage.putObject(
+          `user_${userId}/logos/${filename}`,
+          pngBuffer,
+          'image/png'
+        );
+        console.log(`Successfully converted SVG to PNG and saved to object storage: ${existingPath}`);
+        return existingPath;
+
       } catch (conversionError) {
-        console.error('SVG conversion failed:', conversionError);
-        // Fallback: save as original file with different name
-        const fallbackFilename = `logo_${websiteHash}.svg`;
-        const fallbackPath = path.join(logosDir, fallbackFilename);
-        fs.writeFileSync(fallbackPath, buffer);
-        return `/logos/${fallbackFilename}`;
+        console.error('SVG conversion failed, saving original SVG:', conversionError);
+        // Fallback: save as original SVG
+        const svgFilename = `logo_${websiteHash}.svg`;
+        const svgPath = `/api/object-storage/user_${userId}/logos/${svgFilename}`;
+        await objectStorage.putObject(
+          `user_${userId}/logos/${svgFilename}`,
+          buffer,
+          'image/svg+xml'
+        );
+        console.log(`Saved original SVG to object storage: ${svgPath}`);
+        return svgPath;
       }
     } else {
-      // Save non-SVG logos directly
-      fs.writeFileSync(filepath, buffer);
-      console.log(`Downloaded and saved logo: ${publicPath}`);
+      // Save non-SVG logos directly to object storage
+      const mimeType = logoUrl.endsWith('.png') ? 'image/png' :
+                       logoUrl.endsWith('.jpg') || logoUrl.endsWith('.jpeg') ? 'image/jpeg' :
+                       logoUrl.endsWith('.webp') ? 'image/webp' :
+                       'image/png'; // default to PNG
+
+      await objectStorage.putObject(
+        `user_${userId}/logos/${filename}`,
+        buffer,
+        mimeType
+      );
+      console.log(`Downloaded and saved logo to object storage: ${existingPath}`);
     }
-    
-    return publicPath;
+
+    return existingPath;
     
   } catch (error) {
     console.error('Error downloading logo:', error);

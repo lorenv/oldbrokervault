@@ -47,7 +47,8 @@
       "Bash(awk:*)",
       "Bash(npm uninstall:*)",
       "Read(//tmp/**)",
-      "Bash(journalctl:*)"
+      "Bash(journalctl:*)",
+      "WebFetch(domain:cimshare.com)"
     ],
     "deny": [],
     "ask": [],

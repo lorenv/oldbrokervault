@@ -301,10 +301,12 @@ export function ContentStyleSection({
       <div className="space-y-6 p-4 border border-t-0 rounded-b-lg bg-white">
         {/* Section Directions - Above */}
         <div className="space-y-4">
-          <Label className="text-base font-medium">Section Directions</Label>
-          <p className="text-sm text-muted-foreground">
-            Define what sections to generate and their specific requirements.
-          </p>
+          <div className="space-y-1">
+            <Label className="text-lg font-semibold text-slate-700">Sections</Label>
+            <p className="text-sm text-muted-foreground">
+              AI will generate these sections with your specific instructions.
+            </p>
+          </div>
           <div className="space-y-3">
             {sectionDirections.map((line, index) => (
               <div key={line.id} className="flex items-center space-x-2">
@@ -339,6 +341,9 @@ export function ContentStyleSection({
             Add Section
           </Button>
         </div>
+
+        {/* Separator Line */}
+        <div className="border-t border-slate-200 my-6"></div>
 
         {/* Formatting Profile - Below in 2 columns */}
         <div className="space-y-4">
