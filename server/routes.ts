@@ -5159,14 +5159,6 @@ ${finalQuestion}
 
       const { isPublic, requireNda, password, expiresAt, customSlug, ndaProtected, ndaTemplateId, ndaApprovalRequired, copyMeOnEmails } = req.body;
       
-      console.log("📧 Share settings update received:", {
-        docId,
-        copyMeOnEmails,
-        ndaApprovalRequired,
-        ndaProtected,
-        fullBody: req.body
-      });
-      
       // Generate share slug if enabling sharing and no slug exists
       let shareSlug = doc.shareSlug;
       if (isPublic && !shareSlug) {
