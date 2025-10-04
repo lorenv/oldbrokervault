@@ -367,7 +367,15 @@ async function downloadAndSaveLogo(logoUrl: string, websiteUrl: string, userId: 
         const browser = await puppeteer.launch({
           headless: true,
           executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser',
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-audio-output',
+            '--mute-audio',
+            '--no-audio',
+            '--disable-background-networking'
+          ]
         });
         
         const page = await browser.newPage();
