@@ -429,143 +429,122 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             Control who can access your confidential information
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-8">
-          {/* Main Protection Toggle - Enhanced Design */}
-          <div className="flex items-center justify-between py-6 px-8 rounded-2xl border-2 border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg">
-            <div className="space-y-2">
-              <Label htmlFor="nda-protection" className="text-lg font-semibold text-emerald-900">
+        <CardContent className="space-y-4 pt-6">
+          {/* Main Protection Toggle with Template - Combined on One Line */}
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="nda-protection" className="text-base font-semibold text-gray-900">
                 Require NDA Before Access
               </Label>
-              <p className="text-sm text-emerald-700 max-w-md">
-                Visitors must sign an agreement before viewing this document
+              <div className="flex items-center gap-3">
+                {/* Template Selection - Inline when toggle is on */}
+                {ndaSettings.ndaProtected && (
+                  <div className="flex-shrink-0 animate-in slide-in-from-left-2 duration-200">
+                    <Select
+                      value={ndaSettings.ndaTemplateId?.toString() || ""}
+                      onValueChange={(value) => {
+                        if (value === "manage-templates") {
+                          setLocation('/account?tab=templates');
+                        } else {
+                          handleSettingChange('ndaTemplateId', parseInt(value));
+                        }
+                      }}
+                      disabled={updateNdaSettingsMutation.isPending}
+                    >
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Choose template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ndaTemplates.map((template: any) => (
+                          <SelectItem key={template.id} value={template.id.toString()}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem
+                          value="manage-templates"
+                          className="text-blue-600 font-medium border-t border-gray-200"
+                        >
+                          Manage Templates
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                  ndaSettings.ndaProtected
+                    ? 'text-emerald-700 bg-emerald-100'
+                    : 'text-gray-600 bg-gray-100'
+                }`}>
+                  {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
+                </span>
+                <Switch
+                  id="nda-protection"
+                  checked={ndaSettings.ndaProtected}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange('ndaProtected', checked)
+                  }
+                />
+              </div>
+            </div>
+            {/* Warning message if no templates */}
+            {ndaSettings.ndaProtected && ndaTemplates.length === 0 && (
+              <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md mt-3">
+                No templates available. Create one to enable NDA protection.
               </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className={`text-sm font-medium px-3 py-1.5 rounded-full ${
-                ndaSettings.ndaProtected
-                  ? 'text-emerald-700 bg-emerald-100'
-                  : 'text-gray-600 bg-gray-100'
-              }`}>
-                {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
-              </span>
-              <Switch
-                id="nda-protection"
-                checked={ndaSettings.ndaProtected}
-                onCheckedChange={(checked) =>
-                  handleSettingChange('ndaProtected', checked)
-                }
-              />
-            </div>
+            )}
           </div>
 
-          {/* Protected Content Settings - Cleaner Nested Options */}
+          {/* Additional Settings - Flat and Compact */}
           {ndaSettings.ndaProtected && (
-            <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-              {/* Template Selection - Simplified */}
-              <div className="space-y-3">
-                <Label htmlFor="nda-template" className="text-sm font-medium text-gray-700">
-                  NDA Template
+            <div className="space-y-3 pt-3 border-t border-gray-200 animate-in slide-in-from-top-2 duration-200">
+              {/* Manual Approval Toggle - Flat */}
+              <div className="flex items-center justify-between py-2">
+                <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-gray-500" />
+                  Manual Approval
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>When enabled, you must manually approve each NDA signer before they can access the document. Signers will receive the document only after you approve them. This adds an extra layer of security for sensitive information.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Label>
-                <Select
-                  value={ndaSettings.ndaTemplateId?.toString() || ""}
-                  onValueChange={(value) => {
-                    if (value === "manage-templates") {
-                      setLocation('/account?tab=templates');
-                    } else {
-                      handleSettingChange('ndaTemplateId', parseInt(value));
-                    }
-                  }}
-                  disabled={updateNdaSettingsMutation.isPending}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a template" />
-                    {updateNdaSettingsMutation.isPending && (
-                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ndaTemplates.map((template: any) => (
-                      <SelectItem key={template.id} value={template.id.toString()}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem
-                      value="manage-templates"
-                      className="text-blue-600 font-medium border-t border-gray-200"
-                    >
-                      Manage Templates
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {ndaTemplates.length === 0 && (
-                  <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
-                    No templates available. Create one to enable NDA protection.
-                  </p>
-                )}
+                <Switch
+                  id="manual-approval"
+                  checked={ndaSettings.ndaApprovalRequired}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange('ndaApprovalRequired', checked)
+                  }
+                />
               </div>
 
-              {/* Manual Approval Toggle - Simplified */}
-              <div className="flex items-center justify-between py-3 px-4 rounded-md border border-gray-200 bg-gray-50/50">
-                <div className="space-y-1">
-                  <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-gray-500" />
-                    Manual Approval
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-gray-400 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>When enabled, you must manually approve each NDA signer before they can access the document. This adds an extra layer of security for sensitive information.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <p className="text-xs text-gray-500">
-                    Review each signature before granting access
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="manual-approval"
-                    checked={ndaSettings.ndaApprovalRequired}
-                    onCheckedChange={(checked) =>
-                      handleSettingChange('ndaApprovalRequired', checked)
-                    }
-                  />
-                </div>
-              </div>
-
-              {/* Copy Me on CIM Emails Toggle - New */}
-              <div className="flex items-center justify-between py-3 px-4 rounded-md border border-gray-200 bg-gray-50/50">
-                <div className="space-y-1">
-                  <Label htmlFor="copy-emails" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    Copy me on CIM emails
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-gray-400 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>When enabled, you'll be CC'd on all emails sent to NDA signers when they receive access to your CIM document. This helps you track who has been granted access.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <p className="text-xs text-gray-500">
-                    Get CC'd when documents are sent to signers
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="copy-emails"
-                    checked={ndaSettings.copyMeOnEmails}
-                    onCheckedChange={(checked) =>
-                      handleSettingChange('copyMeOnEmails', checked)
-                    }
-                  />
-                </div>
+              {/* Copy Me on CIM Emails Toggle - Flat */}
+              <div className="flex items-center justify-between py-2">
+                <Label htmlFor="copy-emails" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  Copy me on CIM emails
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>When enabled, you'll be CC'd on all emails sent to NDA signers when they receive access to your CIM document. This helps you track who has been granted access and when documents are sent.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
+                <Switch
+                  id="copy-emails"
+                  checked={ndaSettings.copyMeOnEmails}
+                  onCheckedChange={(checked) =>
+                    handleSettingChange('copyMeOnEmails', checked)
+                  }
+                />
               </div>
             </div>
           )}
@@ -580,117 +559,128 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
       {/* NDA Signatures Table */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
-        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-6 shadow-lg">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+        <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-4 sm:px-6 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-white flex-wrap">
               <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
-                <FileSignature className="h-5 w-5 text-white" />
+                <FileSignature className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              NDA Signatures ({ndaSignatures.length})
+              <span className="whitespace-nowrap">NDA Signatures ({ndaSignatures.length})</span>
               {cimDocument.ndaApprovalRequired && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 shadow-sm text-xs">
-                  {ndaSignatures.filter(sig => !sig.approved).length} Pending Approval
+                  {ndaSignatures.filter(sig => !sig.approved).length} Pending
                 </Badge>
               )}
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => setIsAddManualSignerOpen(true)}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0"
                 title="Add manual NDA signer"
               >
                 <Plus className="h-4 w-4" />
               </Button>
               <Input
-                placeholder="Search signatures..."
+                placeholder="Search..."
                 value={signatureSearchTerm}
                 onChange={(e) => setSignatureSearchTerm(e.target.value)}
-                className="w-64"
+                className="flex-1 sm:w-64"
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 pt-4 border-t">
-            <span className="text-sm text-muted-foreground">
-              {selectedSignatures.length > 0 ? `${selectedSignatures.length} selected` : 'Select signatures for bulk actions'}
-            </span>
-            {cimDocument.ndaApprovalRequired && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleBatchApproval}
-                disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                {batchApproveSignersMutation.isPending ? "Approving..." : selectedSignatures.length > 0 ? `Approve ${selectedSignatures.length}` : "Approve"}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const selectedSigs = stablySortedSignatures.filter(sig => selectedSignatures.includes(sig.id));
-                const emails = selectedSigs.map(sig => sig.signerEmail).join(', ');
-                navigator.clipboard.writeText(emails);
-                toast({
-                  title: "Email addresses copied",
-                  description: `${selectedSigs.length} email address${selectedSigs.length > 1 ? 'es' : ''} copied to clipboard`
-                });
-              }}
-              disabled={selectedSignatures.length === 0}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Emails
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportSignaturesToCSV}
-              disabled={selectedSignatures.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearSelections}
-              disabled={selectedSignatures.length === 0}
-            >
-              Clear
-            </Button>
-          </div>
+          {selectedSignatures.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-4 border-t border-white/20">
+              <span className="text-xs sm:text-sm text-white/90">
+                {selectedSignatures.length} selected
+              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {cimDocument.ndaApprovalRequired && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleBatchApproval}
+                    disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
+                    className="bg-white/20 hover:bg-white/30 border-white/30"
+                  >
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{batchApproveSignersMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}</span>
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const selectedSigs = stablySortedSignatures.filter(sig => selectedSignatures.includes(sig.id));
+                    const emails = selectedSigs.map(sig => sig.signerEmail).join(', ');
+                    navigator.clipboard.writeText(emails);
+                    toast({
+                      title: "Email addresses copied",
+                      description: `${selectedSigs.length} email address${selectedSigs.length > 1 ? 'es' : ''} copied to clipboard`
+                    });
+                  }}
+                  disabled={selectedSignatures.length === 0}
+                  className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                >
+                  <Copy className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Copy Emails</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportSignaturesToCSV}
+                  disabled={selectedSignatures.length === 0}
+                  className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export CSV</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearSelections}
+                  disabled={selectedSignatures.length === 0}
+                  className="bg-white/10 hover:bg-white/20 border-white/30 text-white"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 px-2 sm:px-6">
           {filteredSignatures.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <input
-                      type="checkbox"
-                      checked={selectedSignatures.length === filteredSignatures.length && filteredSignatures.length > 0}
-                      onChange={() => {
-                        if (selectedSignatures.length === filteredSignatures.length) {
-                          clearSelections();
-                        } else {
-                          selectAllSignatures();
-                        }
-                      }}
-                      className="rounded"
-                    />
-                  </TableHead>
-                  <TableHead>Signer</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Signed Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Views</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedSignatures.length === filteredSignatures.length && filteredSignatures.length > 0}
+                          onChange={() => {
+                            if (selectedSignatures.length === filteredSignatures.length) {
+                              clearSelections();
+                            } else {
+                              selectAllSignatures();
+                            }
+                          }}
+                          className="rounded"
+                        />
+                      </TableHead>
+                      <TableHead>Signer</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Signed Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Views</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                 {filteredSignatures.map((signature) => (
                   <TableRow 
                     key={signature.id}
@@ -914,8 +904,238 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {filteredSignatures.map((signature) => (
+                  <div
+                    key={signature.id}
+                    className={`p-4 rounded-lg border ${
+                      selectedSignatures.includes(signature.id)
+                        ? 'bg-muted/50 border-primary'
+                        : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedSignatures.includes(signature.id)}
+                          onChange={() => toggleSignatureSelection(signature.id)}
+                          className="rounded mt-1 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <button
+                            className="text-left font-medium text-base hover:text-blue-600 hover:underline transition-colors truncate w-full"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const response = await apiRequest('GET', `/api/investor-contacts?email=${encodeURIComponent(signature.signerEmail)}`);
+                                if (response.ok) {
+                                  const contacts = await response.json();
+                                  if (contacts && contacts.length > 0) {
+                                    const contact = {
+                                      ...contacts[0],
+                                      totalNdaSignatures: 1,
+                                      documents: [{
+                                        documentId: cimDocument.id,
+                                        documentTitle: cimDocument.title,
+                                        signedAt: signature.signedAt,
+                                        signerName: signature.signerName,
+                                        cimDocumentId: cimDocument.id,
+                                        signatureId: signature.id
+                                      }],
+                                      lastNdaSigned: new Date(signature.signedAt).getTime()
+                                    };
+                                    setViewingContact(contact);
+                                  } else {
+                                    setViewingContact({
+                                      id: null,
+                                      name: signature.signerName,
+                                      email: signature.signerEmail,
+                                      company: signature.signerCompany || '',
+                                      phone: signature.signerPhone || '',
+                                      notes: '',
+                                      tags: [],
+                                      status: 'new',
+                                      totalNdaSignatures: 1,
+                                      documents: [{
+                                        documentId: cimDocument.id,
+                                        documentTitle: cimDocument.title,
+                                        signedAt: signature.signedAt,
+                                        signerName: signature.signerName,
+                                        cimDocumentId: cimDocument.id,
+                                        signatureId: signature.id
+                                      }],
+                                      lastNdaSigned: new Date(signature.signedAt).getTime(),
+                                      createdAt: new Date(),
+                                      lastSeenAt: new Date(signature.signedAt)
+                                    });
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Failed to fetch investor contact:', error);
+                                setViewingContact({
+                                  id: null,
+                                  name: signature.signerName,
+                                  email: signature.signerEmail,
+                                  company: signature.signerCompany || '',
+                                  phone: signature.signerPhone || '',
+                                  notes: '',
+                                  tags: [],
+                                  status: 'new',
+                                  totalNdaSignatures: 1,
+                                  documents: [{
+                                    documentId: cimDocument.id,
+                                    documentTitle: cimDocument.title,
+                                    signedAt: signature.signedAt,
+                                    signerName: signature.signerName,
+                                    cimDocumentId: cimDocument.id,
+                                    signatureId: signature.id
+                                  }],
+                                  lastNdaSigned: new Date(signature.signedAt).getTime(),
+                                  createdAt: new Date(),
+                                  lastSeenAt: new Date(signature.signedAt)
+                                });
+                              }
+                            }}
+                          >
+                            {signature.signerName}
+                          </button>
+                          <p className="text-sm text-muted-foreground truncate">{signature.signerEmail}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {cimDocument.ndaApprovalRequired ? (
+                          signature.approved ? (
+                            <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
+                              <Check className="h-3 w-3 mr-1" />
+                              Approved
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pending
+                            </Badge>
+                          )
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" />
+                            Active
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{signature.signerLocation || 'Unknown'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground justify-end">
+                        <Eye className="h-3 w-3 shrink-0" />
+                        <span>{signature.viewCount || 0} views</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span className="text-xs">
+                          {format(new Date(signature.signedAt), 'MMM dd, yyyy')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap pt-3 border-t">
+                      {cimDocument.ndaApprovalRequired && !signature.approved && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleApproveSignature(signature.id)}
+                          disabled={approvingSignatureId === signature.id}
+                          className="flex-1 min-w-[100px]"
+                        >
+                          {approvingSignatureId === signature.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                          ) : (
+                            <Check className="h-3 w-3 mr-2" />
+                          )}
+                          Approve
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copySignerShareLink(signature)}
+                        className="flex-1"
+                        title="Copy link"
+                      >
+                        <Copy className="h-3 w-3 mr-2" />
+                        Copy
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => resendShareLink(signature)}
+                        disabled={resendEmailMutation.isPending}
+                        className="flex-1"
+                        title="Email"
+                      >
+                        <Mail className="h-3 w-3 mr-2" />
+                        Email
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(`/api/cim/${cimDocument.id}/nda-signatures/${signature.id}/download`, {
+                              method: 'GET',
+                              credentials: 'include'
+                            });
+                            if (response.ok) {
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `nda-${signature.signerName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                              toast({
+                                title: "Download Started",
+                                description: `Signed NDA for ${signature.signerName} is being downloaded.`
+                              });
+                            } else {
+                              throw new Error('Failed to download NDA');
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Download Failed",
+                              description: "Failed to download the signed NDA. Please try again.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                        title="Download"
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => revokeShareLink(signature)}
+                        title="Revoke"
+                      >
+                        <Link2Off className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="text-center py-8">
               <FileSignature className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
@@ -923,7 +1143,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 {ndaSignatures.length === 0 ? "No signatures yet" : "No signatures match your search"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {ndaSignatures.length === 0 
+                {ndaSignatures.length === 0
                   ? "Enable NDA protection and share your document to start collecting signatures"
                   : "Try adjusting your search terms"
                 }
