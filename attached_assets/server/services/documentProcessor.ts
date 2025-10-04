@@ -203,7 +203,11 @@ async function processWordDocument(file: FileUpload, id: number, isTemplate: boo
             '--disable-gpu',
             '--disable-web-security',
             '--single-process',
-            '--no-first-run'
+            '--no-first-run',
+            '--disable-audio-output',
+            '--mute-audio',
+            '--no-audio',
+            '--disable-background-networking'
           ],
           headless: true,
           timeout: 30000
