@@ -8,9 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ContactDetailModal } from "@/components/contact-detail-modal";
 
 import {
   Shield,
@@ -93,6 +92,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
   const [isAddManualSignerOpen, setIsAddManualSignerOpen] = useState(false);
   const [viewingContact, setViewingContact] = useState<any | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -502,7 +502,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-gray-500" />
                   Manual Approval
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
@@ -527,7 +527,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Label htmlFor="copy-emails" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-500" />
                   Copy me on CIM emails
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
@@ -720,6 +720,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   lastNdaSigned: new Date(signature.signedAt).getTime()
                                 };
                                 setViewingContact(contact);
+                                setIsContactModalOpen(true);
                               } else {
                                 // Create a temporary contact object for viewing
                                 setViewingContact({
@@ -744,6 +745,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   createdAt: new Date(),
                                   lastSeenAt: new Date(signature.signedAt)
                                 });
+                                setIsContactModalOpen(true);
                               }
                             }
                           } catch (error) {
@@ -771,6 +773,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                               createdAt: new Date(),
                               lastSeenAt: new Date(signature.signedAt)
                             });
+                            setIsContactModalOpen(true);
                           }
                         }}
                       >
@@ -951,6 +954,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                       lastNdaSigned: new Date(signature.signedAt).getTime()
                                     };
                                     setViewingContact(contact);
+                                    setIsContactModalOpen(true);
                                   } else {
                                     setViewingContact({
                                       id: null,
@@ -974,6 +978,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                       createdAt: new Date(),
                                       lastSeenAt: new Date(signature.signedAt)
                                     });
+                                    setIsContactModalOpen(true);
                                   }
                                 }
                               } catch (error) {
@@ -1000,6 +1005,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   createdAt: new Date(),
                                   lastSeenAt: new Date(signature.signedAt)
                                 });
+                                setIsContactModalOpen(true);
                               }
                             }}
                           >
@@ -1165,152 +1171,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         }}
       />
 
-      {/* Contact Detail Modal */}
-      <Dialog open={!!viewingContact} onOpenChange={() => setViewingContact(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Contact Details
-            </DialogTitle>
-            <DialogDescription>
-              View detailed information for this NDA signer
-            </DialogDescription>
-          </DialogHeader>
-
-          {viewingContact && (
-            <div className="space-y-6 mt-6">
-              {/* Main Contact Information Card */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                        <p className="text-base font-medium mt-1">{viewingContact.name}</p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                        <p className="text-base mt-1">
-                          <a
-                            href={`mailto:${viewingContact.email}`}
-                            className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                          >
-                            <Mail className="h-3 w-3" />
-                            {viewingContact.email}
-                          </a>
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.phone || 'Not provided'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Company</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.company || 'Not provided'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.location || 'Not provided'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                        <Badge variant="outline" className="mt-1">
-                          {viewingContact.status || 'New'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Document History Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Document History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-3 bg-muted/50 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signature(s)</span>
-                      </div>
-                      {viewingContact.lastNdaSigned && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Last signed: {new Date(viewingContact.lastNdaSigned).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-
-                    {viewingContact.documents && viewingContact.documents.length > 0 && (
-                      <div className="space-y-2">
-                        {viewingContact.documents.map((doc: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-2 border rounded-md">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium text-sm">{doc.documentTitle}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Signed on {new Date(doc.signedAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes Section */}
-              {viewingContact.notes && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{viewingContact.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setViewingContact(null)}>
-              Close
-            </Button>
-            {viewingContact?.id && (
-              <Button
-                onClick={() => {
-                  // Navigate to investor database with this contact selected
-                  setLocation(`/investors?contact=${viewingContact.id}`);
-                }}
-              >
-                View in Investor Database
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Contact Detail Modal - using shared component */}
+      <ContactDetailModal
+        contact={viewingContact}
+        open={isContactModalOpen}
+        onOpenChange={(open) => {
+          setIsContactModalOpen(open);
+          if (!open) setViewingContact(null);
+        }}
+      />
     </div>
   );
 }
