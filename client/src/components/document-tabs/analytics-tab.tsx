@@ -156,9 +156,9 @@ export function DocumentAnalyticsTab({ cimDocument, ndaSignatures }: DocumentAna
             
             <div className="flex items-center justify-between">
               <span className="text-sm">NDA Protection</span>
-              <Badge variant={cimDocument.ndaProtected ? "default" : "secondary"}>
+              <span className="text-sm text-muted-foreground">
                 {cimDocument.ndaProtected ? "Enabled" : "Disabled"}
-              </Badge>
+              </span>
             </div>
             
             {cimDocument.shareEnabled && (

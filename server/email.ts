@@ -585,7 +585,8 @@ async function sendOwnerApprovalNotification(
   ownerName: string,
   cimTitle: string,
   signerName: string,
-  signerEmail: string
+  signerEmail: string,
+  signerLocation?: string
 ): Promise<boolean> {
   return await sendEmail({
     to: ownerEmail,
@@ -602,6 +603,7 @@ async function sendOwnerApprovalNotification(
           <h3 style="margin-top: 0;">Signer Details:</h3>
           <p><strong>Name:</strong> ${signerName}</p>
           <p><strong>Email:</strong> ${signerEmail}</p>
+          ${signerLocation ? `<p><strong>Location:</strong> ${signerLocation}</p>` : ''}
           <p><strong>Signed:</strong> ${new Date().toLocaleString()}</p>
           <p><strong>Status:</strong> Awaiting your approval</p>
         </div>
@@ -631,6 +633,7 @@ async function sendOwnerApprovalNotification(
       Signer Details:
       Name: ${signerName}
       Email: ${signerEmail}
+      ${signerLocation ? `Location: ${signerLocation}` : ''}
       Signed: ${new Date().toLocaleString()}
       Status: Awaiting your approval
       

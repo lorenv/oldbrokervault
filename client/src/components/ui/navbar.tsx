@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle } from "lucide-react";
+import { Settings, FileText, LogOut, User, HelpCircle, Zap, Database, Menu, MessageCircle, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { SupportDialog } from "./support-dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -60,45 +60,73 @@ export function Navbar() {
         {/* Navigation for logged-in users - right aligned */}
         {user && (
           <>
-            <nav className="hidden md:flex items-center space-x-4 mr-4">
+            <nav className="hidden md:flex items-center space-x-1 mr-4">
               <Link href="/dashboard">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/dashboard' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
+                  className={`relative ${
+                    location === '/dashboard'
+                      ? 'text-blue-700 font-semibold'
+                      : isHomePage ? 'text-white' : 'text-gray-700'
+                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
                   <Zap className="mr-1 h-4 w-4" />
                   Create CIM
+                  {location === '/dashboard' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
                 </Button>
               </Link>
               <Link href="/documents">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/documents' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
+                  className={`relative ${
+                    location === '/documents' || location.startsWith('/documents/')
+                      ? 'text-blue-700 font-semibold'
+                      : isHomePage ? 'text-white' : 'text-gray-700'
+                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
                   <FileText className="mr-1 h-4 w-4" />
                   My CIMs
+                  {(location === '/documents' || location.startsWith('/documents/')) && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
                 </Button>
               </Link>
-              <Link href="/messages">
+              <Link href="/analytics">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/messages' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
+                  className={`relative ${
+                    location === '/analytics'
+                      ? 'text-blue-700 font-semibold'
+                      : isHomePage ? 'text-white' : 'text-gray-700'
+                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
-                  <MessageCircle className="mr-1 h-4 w-4" />
-                  Messages
+                  <BarChart3 className="mr-1 h-4 w-4" />
+                  Analytics
+                  {location === '/analytics' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
                 </Button>
               </Link>
               <Link href="/investor-database">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`${location === '/investor-database' ? 'bg-white text-gray-900' : isHomePage ? 'text-white' : ''} hover:bg-white/80 ${isHomePage ? 'hover:text-gray-900' : ''}`}
+                  className={`relative ${
+                    location === '/investor-database'
+                      ? 'text-blue-700 font-semibold'
+                      : isHomePage ? 'text-white' : 'text-gray-700'
+                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
                 >
                   <Database className="mr-1 h-4 w-4" />
                   CRM
+                  {location === '/investor-database' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
                 </Button>
               </Link>
             </nav>
@@ -265,9 +293,9 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/messages" className="w-full cursor-pointer">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Messages
+                    <Link href="/analytics" className="w-full cursor-pointer">
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Analytics
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

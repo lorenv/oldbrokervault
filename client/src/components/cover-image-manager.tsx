@@ -296,13 +296,13 @@ export function CoverImageManager({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
+      <Card className="border-2 border-gray-200 overflow-hidden">
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+          <CardHeader className="cursor-pointer bg-gradient-to-r from-slate-600 to-blue-600 text-white hover:from-slate-700 hover:to-blue-700 transition-colors">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <ImageIcon className="h-4 w-4" />
-                <span className="text-sm font-medium">Cover Image</span>
+                <ImageIcon className="h-5 w-5" />
+                <span className="font-semibold">Cover Image</span>
               </div>
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </div>
@@ -310,7 +310,7 @@ export function CoverImageManager({
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="space-y-4 pt-0">
+          <CardContent className="space-y-4 pt-6">
             {selectedImage && (
               <div className="space-y-4">
                 <div className="relative group">
@@ -343,11 +343,10 @@ export function CoverImageManager({
             )}
 
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={updateCoverImageMutation.isPending}
-                className="flex-1"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Image
@@ -355,10 +354,9 @@ export function CoverImageManager({
 
               <Dialog open={isUnsplashDialogOpen} onOpenChange={setIsUnsplashDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button 
+                  <Button
                     type="button"
-                    variant="outline"
-                    className="flex-1"
+                    className="flex-1 border-2 border-blue-600 text-blue-700 bg-white hover:bg-blue-50 shadow-sm hover:shadow-md transition-all"
                   >
                     <UnsplashIcon className="h-4 w-4 mr-2" />
                     Unsplash
@@ -376,9 +374,10 @@ export function CoverImageManager({
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleUnsplashSearch()}
                       />
-                      <Button 
+                      <Button
                         onClick={handleUnsplashSearch}
                         disabled={isSearching || !searchQuery.trim()}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all"
                       >
                         Search
                       </Button>

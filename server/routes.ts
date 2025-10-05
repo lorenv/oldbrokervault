@@ -7297,7 +7297,8 @@ ${finalQuestion}
             owner.name || owner.email,
             cimDoc.title,
             signerName,
-            signerEmail
+            signerEmail,
+            signerLocation
           );
           
           if (!ownerNotificationSent) {

@@ -777,40 +777,78 @@ export function CimGenerator() {
 
   if (cimMode === 'choice') {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold">Generate Your CIM</h2>
-          <p className="text-muted-foreground">
+      <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl font-bold text-gray-900">Generate Your CIM</h2>
+          <p className="text-gray-600 text-lg">
             Choose how you'd like to create your Confidential Information Memorandum
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCimMode('generate')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+        <div className="grid md:grid-cols-2 gap-8 relative">
+          {/* First Option Card */}
+          <Card className="border-2 hover:border-blue-400 hover:shadow-xl transition-all duration-200 flex flex-col">
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                <NotebookPen className="h-6 w-6 text-blue-600" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">
                 Generate from Notes/Transcript
               </CardTitle>
+              <CardDescription className="text-base mt-2">
+                Upload or paste your business notes and let AI generate a professional CIM for you.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Upload or paste a business meeting transcript and let AI generate a professional CIM for you.
-              </p>
+            <CardContent className="flex-1 flex flex-col justify-end pt-4">
+              <Button
+                onClick={() => setCimMode('generate')}
+                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-11"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Generate CIM
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCimMode('upload')}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
+          {/* OR Divider */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center">
+            <div className="bg-white border-2 border-gray-300 rounded-full w-14 h-14 flex items-center justify-center shadow-md">
+              <span className="text-gray-600 font-bold text-sm">OR</span>
+            </div>
+          </div>
+
+          {/* Mobile OR Divider */}
+          <div className="md:hidden flex items-center justify-center -my-4">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="px-4">
+              <div className="bg-white border-2 border-gray-300 rounded-full w-12 h-12 flex items-center justify-center">
+                <span className="text-gray-600 font-bold text-sm">OR</span>
+              </div>
+            </div>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+
+          {/* Second Option Card */}
+          <Card className="border-2 hover:border-blue-400 hover:shadow-xl transition-all duration-200 flex flex-col">
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                <Upload className="h-6 w-6 text-green-600" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900">
                 Upload Existing Document
               </CardTitle>
+              <CardDescription className="text-base mt-2">
+                Upload your own CIM to enhance it with NDA protection, sharing, and analytics.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Upload your own CIM to enhance it with NDA, sharing, and analytics
-              </p>
+            <CardContent className="flex-1 flex flex-col justify-end pt-4">
+              <Button
+                onClick={() => setCimMode('upload')}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-11"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
             </CardContent>
           </Card>
         </div>
