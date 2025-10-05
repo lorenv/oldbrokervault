@@ -172,6 +172,8 @@ export interface IStorage {
   // NDA Approval
   approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature>;
   approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]>;
+  // NDA Stage Management
+  updateNdaSignatureStage(signatureId: number, stage: string | null): Promise<NdaSignature>;
   // NDA Access Tokens
   createNdaAccessToken(token: string, cimDocumentId: number, ndaSignatureId: number, signerEmail: string, expiresAt?: Date): Promise<any>;
   getNdaAccessToken(token: string): Promise<any | undefined>;
@@ -1723,6 +1725,14 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       ...signature,
       accessToken: tokenMap.get(signature.id) || ''
     }));
+  }
+
+  async updateNdaSignatureStage(signatureId: number, stage: string | null): Promise<NdaSignature> {
+    const [updatedSignature] = await db.update(ndaSignatures)
+      .set({ stage })
+      .where(eq(ndaSignatures.id, signatureId))
+      .returning();
+    return updatedSignature;
   }
 
   // NDA Access Tokens
