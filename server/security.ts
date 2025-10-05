@@ -179,7 +179,7 @@ const cspDirectives = {
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://analytics.google.com",
-    "https://region1.google-analytics.com",
+    "https://*.google-analytics.com",
     "https://www.google.com",
     "https://px.ads.linkedin.com",
     "https://snap.licdn.com",
