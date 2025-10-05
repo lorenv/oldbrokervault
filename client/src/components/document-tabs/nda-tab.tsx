@@ -8,9 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ContactDetailModal } from "@/components/contact-detail-modal";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import {
   Shield,
@@ -31,7 +34,12 @@ import {
   Users,
   Tag,
   FileText,
-  Info
+  Info,
+  LayoutGrid,
+  List,
+  Filter,
+  GripVertical,
+  Settings
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +51,46 @@ import type { InvestorContact } from "@shared/schema";
 interface DocumentNdaTabProps {
   cimDocument: any;
   ndaSignatures: any[];
+}
+
+// Draggable Kanban Card Component
+function DraggableKanbanCard({ signature, onClick }: { signature: any, onClick?: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: signature.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white p-3 rounded-md shadow-sm border hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-2">
+        <GripVertical className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-gray-900 truncate">{signature.signerName}</div>
+          <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+          <div className="text-xs text-gray-400 mt-1">
+            {new Date(signature.signedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabProps) {
@@ -93,6 +141,29 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [approvingSignatureId, setApprovingSignatureId] = useState<number | null>(null);
   const [isAddManualSignerOpen, setIsAddManualSignerOpen] = useState(false);
   const [viewingContact, setViewingContact] = useState<any | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
+  // View mode and filter state
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>(() => {
+    return (localStorage.getItem('ndaViewMode') as 'table' | 'kanban') || 'table';
+  });
+  const [quickFilter, setQuickFilter] = useState<'all' | 'pending' | 'approved' | 'viewed'>('all');
+  const [customStages, setCustomStages] = useState<string[]>([]);
+  const [isManagingStages, setIsManagingStages] = useState(false);
+  const [newStageName, setNewStageName] = useState('');
+
+  // Drag and drop state  - track which signature stage each signature belongs to
+  const [signatureStages, setSignatureStages] = useState<Record<number, string>>({});
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  // Setup DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -237,12 +308,26 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         .filter((sig): sig is NonNullable<typeof sig> => sig !== undefined)
     : ndaSignatures;
 
-  // Filter signatures based on search term
-  const filteredSignatures = stablySortedSignatures.filter(signature =>
-    signature.signerName.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
-    signature.signerEmail.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
-    (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()))
-  );
+  // Filter signatures based on search term and quick filters
+  const filteredSignatures = stablySortedSignatures.filter(signature => {
+    // Apply search filter
+    const matchesSearch = signature.signerName.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
+      signature.signerEmail.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
+      (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    // Apply quick filter
+    if (quickFilter === 'pending') {
+      return cimDocument.ndaApprovalRequired && !signature.approved;
+    } else if (quickFilter === 'approved') {
+      return !cimDocument.ndaApprovalRequired || signature.approved;
+    } else if (quickFilter === 'viewed') {
+      return signature.documentViewedAt != null;
+    }
+
+    return true; // 'all' filter
+  });
 
   // Separate pending and approved signatures
   const pendingSignatures = filteredSignatures.filter(signature => !signature.approved);
@@ -502,7 +587,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Label htmlFor="manual-approval" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <UserCheck className="h-4 w-4 text-gray-500" />
                   Manual Approval
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
@@ -527,7 +612,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 <Label htmlFor="copy-emails" className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Mail className="h-4 w-4 text-gray-500" />
                   Copy me on CIM emails
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
@@ -573,6 +658,33 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               )}
             </CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* View toggle buttons */}
+              <div className="flex gap-0.5 bg-white/10 rounded-lg p-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setViewMode('table');
+                    localStorage.setItem('ndaViewMode', 'table');
+                  }}
+                  className={`h-8 px-2 ${viewMode === 'table' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                  title="Table View"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setViewMode('kanban');
+                    localStorage.setItem('ndaViewMode', 'kanban');
+                  }}
+                  className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                  title="Kanban View"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
               <Button
                 variant="default"
                 size="sm"
@@ -589,6 +701,46 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 className="flex-1 sm:w-64"
               />
             </div>
+          </div>
+
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className="flex items-center gap-1 text-sm text-white/90">
+              <Filter className="h-3.5 w-3.5" />
+              <span className="font-medium">Quick Filter:</span>
+            </div>
+            {(['all', 'pending', 'approved', 'viewed'] as const).map((filter) => {
+              const isActive = quickFilter === filter;
+              const labels = {
+                all: 'All',
+                pending: 'Pending',
+                approved: 'Approved',
+                viewed: 'Viewed Document'
+              };
+              const counts = {
+                all: ndaSignatures.length,
+                pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
+                approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
+                viewed: ndaSignatures.filter(sig => sig.documentViewedAt).length
+              };
+
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setQuickFilter(filter)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-white text-slate-700 shadow-md'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <span>{labels[filter]}</span>
+                  <Badge className={`ml-0.5 px-1.5 py-0 text-[10px] ${isActive ? 'bg-slate-700 text-white' : 'bg-white/20 text-white'}`}>
+                    {counts[filter]}
+                  </Badge>
+                </button>
+              );
+            })}
           </div>
           {selectedSignatures.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-4 border-t border-white/20">
@@ -652,7 +804,141 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         <CardContent className="pt-6 px-2 sm:px-6">
           {filteredSignatures.length > 0 ? (
             <>
+              {/* Kanban Board View */}
+              {viewMode === 'kanban' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium text-gray-700">Pipeline Stages</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsManagingStages(true)}
+                      className="text-xs"
+                    >
+                      <Settings className="h-3 w-3 mr-1" />
+                      Manage Stages
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Pending Stage */}
+                    {cimDocument.ndaApprovalRequired && (
+                      <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-orange-900 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Pending
+                          </h4>
+                          <Badge className="bg-orange-200 text-orange-800">
+                            {filteredSignatures.filter(sig => !sig.approved).length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {filteredSignatures
+                            .filter(sig => !sig.approved)
+                            .map(signature => (
+                              <div
+                                key={signature.id}
+                                className="bg-white p-3 rounded-md shadow-sm border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => {
+                                  // Open contact detail modal
+                                }}
+                              >
+                                <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                                <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {new Date(signature.signedAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Approved Stage */}
+                    <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          Approved
+                        </h4>
+                        <Badge className="bg-green-200 text-green-800">
+                          {filteredSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).filter(sig => !sig.documentViewedAt).length}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSignatures
+                          .filter(sig => !cimDocument.ndaApprovalRequired || sig.approved)
+                          .filter(sig => !sig.documentViewedAt)
+                          .map(signature => (
+                            <div
+                              key={signature.id}
+                              className="bg-white p-3 rounded-md shadow-sm border border-green-200 hover:shadow-md transition-shadow cursor-pointer"
+                            >
+                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {new Date(signature.signedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Viewed Document Stage */}
+                    <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          Viewed Document
+                        </h4>
+                        <Badge className="bg-blue-200 text-blue-800">
+                          {filteredSignatures.filter(sig => sig.documentViewedAt).length}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSignatures
+                          .filter(sig => sig.documentViewedAt)
+                          .map(signature => (
+                            <div
+                              key={signature.id}
+                              className="bg-white p-3 rounded-md shadow-sm border border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+                            >
+                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Viewed: {new Date(signature.documentViewedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Stages */}
+                    {customStages.map((stageName, index) => (
+                      <div key={index} className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-purple-900 flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            {stageName}
+                          </h4>
+                          <Badge className="bg-purple-200 text-purple-800">
+                            0
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          <div className="text-center text-xs text-gray-400 py-8">
+                            No contacts in this stage yet
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Desktop Table View */}
+              {viewMode === 'table' && (
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
@@ -681,8 +967,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                {filteredSignatures.map((signature) => (
-                  <TableRow 
+                    {filteredSignatures.map((signature) => (
+                      <TableRow 
                     key={signature.id}
                     className={selectedSignatures.includes(signature.id) ? "bg-muted/50" : ""}
                   >
@@ -720,6 +1006,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   lastNdaSigned: new Date(signature.signedAt).getTime()
                                 };
                                 setViewingContact(contact);
+                                setIsContactModalOpen(true);
                               } else {
                                 // Create a temporary contact object for viewing
                                 setViewingContact({
@@ -744,6 +1031,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   createdAt: new Date(),
                                   lastSeenAt: new Date(signature.signedAt)
                                 });
+                                setIsContactModalOpen(true);
                               }
                             }
                           } catch (error) {
@@ -771,6 +1059,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                               createdAt: new Date(),
                               lastSeenAt: new Date(signature.signedAt)
                             });
+                            setIsContactModalOpen(true);
                           }
                         }}
                       >
@@ -902,14 +1191,16 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
+              )}
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
+
                 {filteredSignatures.map((signature) => (
                   <div
                     key={signature.id}
@@ -951,6 +1242,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                       lastNdaSigned: new Date(signature.signedAt).getTime()
                                     };
                                     setViewingContact(contact);
+                                    setIsContactModalOpen(true);
                                   } else {
                                     setViewingContact({
                                       id: null,
@@ -974,6 +1266,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                       createdAt: new Date(),
                                       lastSeenAt: new Date(signature.signedAt)
                                     });
+                                    setIsContactModalOpen(true);
                                   }
                                 }
                               } catch (error) {
@@ -1000,6 +1293,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                                   createdAt: new Date(),
                                   lastSeenAt: new Date(signature.signedAt)
                                 });
+                                setIsContactModalOpen(true);
                               }
                             }}
                           >
@@ -1165,149 +1459,83 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         }}
       />
 
-      {/* Contact Detail Modal */}
-      <Dialog open={!!viewingContact} onOpenChange={() => setViewingContact(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      {/* Contact Detail Modal - using shared component */}
+      <ContactDetailModal
+        contact={viewingContact}
+        open={isContactModalOpen}
+        onOpenChange={(open) => {
+          setIsContactModalOpen(open);
+          if (!open) setViewingContact(null);
+        }}
+      />
+
+      {/* Stage Management Dialog */}
+      <Dialog open={isManagingStages} onOpenChange={setIsManagingStages}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Contact Details
-            </DialogTitle>
+            <DialogTitle>Manage Pipeline Stages</DialogTitle>
             <DialogDescription>
-              View detailed information for this NDA signer
+              Add custom stages to organize your NDA signers. The default stages (Pending, Approved, Viewed Document) cannot be removed.
             </DialogDescription>
           </DialogHeader>
 
-          {viewingContact && (
-            <div className="space-y-6 mt-6">
-              {/* Main Contact Information Card */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Name</Label>
-                        <p className="text-base font-medium mt-1">{viewingContact.name}</p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                        <p className="text-base mt-1">
-                          <a
-                            href={`mailto:${viewingContact.email}`}
-                            className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                          >
-                            <Mail className="h-3 w-3" />
-                            {viewingContact.email}
-                          </a>
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.phone || 'Not provided'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Company</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.company || 'Not provided'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                        <p className="text-base mt-1">
-                          {viewingContact.location || 'Not provided'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                        <Badge variant="outline" className="mt-1">
-                          {viewingContact.status || 'New'}
-                        </Badge>
-                      </div>
-                    </div>
+          <div className="space-y-4">
+            {/* List of custom stages */}
+            {customStages.length > 0 && (
+              <div className="space-y-2">
+                <Label>Custom Stages</Label>
+                {customStages.map((stageName, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm">{stageName}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newStages = customStages.filter((_, i) => i !== index);
+                        setCustomStages(newStages);
+                      }}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      ×
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Document History Card */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Document History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-3 bg-muted/50 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="font-medium">{viewingContact.totalNdaSignatures} NDA signature(s)</span>
-                      </div>
-                      {viewingContact.lastNdaSigned && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Last signed: {new Date(viewingContact.lastNdaSigned).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-
-                    {viewingContact.documents && viewingContact.documents.length > 0 && (
-                      <div className="space-y-2">
-                        {viewingContact.documents.map((doc: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-2 border rounded-md">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="font-medium text-sm">{doc.documentTitle}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Signed on {new Date(doc.signedAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Notes Section */}
-              {viewingContact.notes && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{viewingContact.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setViewingContact(null)}>
-              Close
-            </Button>
-            {viewingContact?.id && (
-              <Button
-                onClick={() => {
-                  // Navigate to investor database with this contact selected
-                  setLocation(`/investors?contact=${viewingContact.id}`);
-                }}
-              >
-                View in Investor Database
-              </Button>
+                ))}
+              </div>
             )}
+
+            {/* Add new stage */}
+            <div className="space-y-2">
+              <Label htmlFor="new-stage">Add New Stage</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-stage"
+                  placeholder="Enter stage name..."
+                  value={newStageName}
+                  onChange={(e) => setNewStageName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newStageName.trim()) {
+                      setCustomStages([...customStages, newStageName.trim()]);
+                      setNewStageName('');
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    if (newStageName.trim()) {
+                      setCustomStages([...customStages, newStageName.trim()]);
+                      setNewStageName('');
+                    }
+                  }}
+                  disabled={!newStageName.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setIsManagingStages(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

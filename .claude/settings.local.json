@@ -48,7 +48,9 @@
       "Bash(npm uninstall:*)",
       "Read(//tmp/**)",
       "Bash(journalctl:*)",
-      "WebFetch(domain:cimshare.com)"
+      "WebFetch(domain:cimshare.com)",
+      "Bash(dmesg:*)",
+      "Read(//proc/595/net/**)"
     ],
     "deny": [],
     "ask": [],

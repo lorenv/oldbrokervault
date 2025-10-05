@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CimDocument } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar } from "lucide-react";
+import { FileText, Download, Lock, Copy, Globe, Search, Trash2, FileDown, Clock, Share2, Mail, Loader2, PenTool, Eye, ChevronLeft, ChevronRight, Plus, Copy as DuplicateIcon, Link as LinkIcon, MoreVertical, Edit, LayoutGrid, List, Shield, Users, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -42,6 +42,11 @@ export default function DocumentsPage() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>(() => {
     return (localStorage.getItem('documentsViewMode') as 'card' | 'list') || 'card';
   });
+
+  // Filter and sort state
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'date' | 'views' | 'signatures'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -101,10 +106,78 @@ export default function DocumentsPage() {
     refetchOnWindowFocus: false
   });
 
-  const documents = paginatedData?.documents || [];
+  const rawDocuments = paginatedData?.documents || [];
+
+  // Apply client-side filters and sorting
+  const documents = useMemo(() => {
+    let filtered = [...rawDocuments];
+
+    // Apply filters
+    if (activeFilters.includes('nda-protected')) {
+      filtered = filtered.filter(doc => doc.ndaProtected);
+    }
+    if (activeFilters.includes('has-signatures')) {
+      filtered = filtered.filter(doc => doc.ndaSignatureCount && doc.ndaSignatureCount > 0);
+    }
+    if (activeFilters.includes('created-this-week')) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      filtered = filtered.filter(doc => new Date(doc.createdAt) >= oneWeekAgo);
+    }
+    if (activeFilters.includes('has-views')) {
+      filtered = filtered.filter(doc => doc.shareViewCount && doc.shareViewCount > 0);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let compareValue = 0;
+
+      if (sortBy === 'date') {
+        compareValue = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === 'views') {
+        compareValue = (a.shareViewCount || 0) - (b.shareViewCount || 0);
+      } else if (sortBy === 'signatures') {
+        compareValue = (a.ndaSignatureCount || 0) - (b.ndaSignatureCount || 0);
+      }
+
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+
+    return filtered;
+  }, [rawDocuments, activeFilters, sortBy, sortOrder]);
+
   const totalDocuments = paginatedData?.total || 0;
   const hasMore = paginatedData?.hasMore || false;
   const totalPages = Math.ceil(totalDocuments / 12);
+
+  // Filter options
+  const filterOptions = [
+    { id: 'nda-protected', label: 'NDA Protected', icon: Shield, color: 'purple' },
+    { id: 'has-signatures', label: 'Has Signatures', icon: Users, color: 'blue' },
+    { id: 'created-this-week', label: 'Created This Week', icon: Calendar, color: 'green' },
+    { id: 'has-views', label: 'Has Views', icon: Eye, color: 'orange' },
+  ];
+
+  const toggleFilter = (filterId: string) => {
+    setActiveFilters(prev =>
+      prev.includes(filterId)
+        ? prev.filter(f => f !== filterId)
+        : [...prev, filterId]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters([]);
+  };
+
+  const toggleSort = (newSortBy: 'date' | 'views' | 'signatures') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('desc');
+    }
+  };
 
   // Delete document mutation
   const deleteMutation = useMutation({
@@ -254,6 +327,90 @@ export default function DocumentsPage() {
               >
                 <List className="h-4 w-4" />
               </Button>
+            </div>
+          </div>
+
+          {/* Filter Chips and Sorting */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            {/* Filter Chips */}
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                <Filter className="h-4 w-4" />
+                <span className="font-medium">Filters:</span>
+              </div>
+              {filterOptions.map((filter) => {
+                const Icon = filter.icon;
+                const isActive = activeFilters.includes(filter.id);
+                const colorClasses = {
+                  purple: isActive ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50',
+                  blue: isActive ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50',
+                  green: isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-green-600 border-green-200 hover:bg-green-50',
+                  orange: isActive ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50',
+                };
+
+                return (
+                  <button
+                    key={filter.id}
+                    onClick={() => toggleFilter(filter.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ${colorClasses[filter.color as keyof typeof colorClasses]} ${isActive ? 'shadow-sm' : ''}`}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span>{filter.label}</span>
+                    {isActive && <X className="h-3 w-3 ml-0.5" />}
+                  </button>
+                );
+              })}
+              {activeFilters.length > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 font-medium">Sort:</span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleSort('date')}
+                  className={`text-xs ${sortBy === 'date' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'text-gray-600'}`}
+                >
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Date
+                  {sortBy === 'date' && (
+                    sortOrder === 'desc' ? <ArrowDown className="h-3 w-3 ml-1" /> : <ArrowUp className="h-3 w-3 ml-1" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleSort('views')}
+                  className={`text-xs ${sortBy === 'views' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'text-gray-600'}`}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Views
+                  {sortBy === 'views' && (
+                    sortOrder === 'desc' ? <ArrowDown className="h-3 w-3 ml-1" /> : <ArrowUp className="h-3 w-3 ml-1" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleSort('signatures')}
+                  className={`text-xs ${sortBy === 'signatures' ? 'bg-blue-50 text-blue-700 border-blue-300' : 'text-gray-600'}`}
+                >
+                  <Users className="h-3 w-3 mr-1" />
+                  Signatures
+                  {sortBy === 'signatures' && (
+                    sortOrder === 'desc' ? <ArrowDown className="h-3 w-3 ml-1" /> : <ArrowUp className="h-3 w-3 ml-1" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
