@@ -30,7 +30,12 @@ import {
   Users,
   Tag,
   FileText,
-  Info
+  Info,
+  LayoutGrid,
+  List,
+  Filter,
+  GripVertical,
+  Settings
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +98,15 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [isAddManualSignerOpen, setIsAddManualSignerOpen] = useState(false);
   const [viewingContact, setViewingContact] = useState<any | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
+  // View mode and filter state
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>(() => {
+    return (localStorage.getItem('ndaViewMode') as 'table' | 'kanban') || 'table';
+  });
+  const [quickFilter, setQuickFilter] = useState<'all' | 'pending' | 'approved' | 'viewed'>('all');
+  const [customStages, setCustomStages] = useState<string[]>([]);
+  const [isManagingStages, setIsManagingStages] = useState(false);
+  const [newStageName, setNewStageName] = useState('');
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -237,12 +251,26 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         .filter((sig): sig is NonNullable<typeof sig> => sig !== undefined)
     : ndaSignatures;
 
-  // Filter signatures based on search term
-  const filteredSignatures = stablySortedSignatures.filter(signature =>
-    signature.signerName.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
-    signature.signerEmail.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
-    (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()))
-  );
+  // Filter signatures based on search term and quick filters
+  const filteredSignatures = stablySortedSignatures.filter(signature => {
+    // Apply search filter
+    const matchesSearch = signature.signerName.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
+      signature.signerEmail.toLowerCase().includes(signatureSearchTerm.toLowerCase()) ||
+      (signature.signerLocation && signature.signerLocation.toLowerCase().includes(signatureSearchTerm.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    // Apply quick filter
+    if (quickFilter === 'pending') {
+      return cimDocument.ndaApprovalRequired && !signature.approved;
+    } else if (quickFilter === 'approved') {
+      return !cimDocument.ndaApprovalRequired || signature.approved;
+    } else if (quickFilter === 'viewed') {
+      return signature.documentViewedAt != null;
+    }
+
+    return true; // 'all' filter
+  });
 
   // Separate pending and approved signatures
   const pendingSignatures = filteredSignatures.filter(signature => !signature.approved);
@@ -573,6 +601,33 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               )}
             </CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* View toggle buttons */}
+              <div className="flex gap-0.5 bg-white/10 rounded-lg p-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setViewMode('table');
+                    localStorage.setItem('ndaViewMode', 'table');
+                  }}
+                  className={`h-8 px-2 ${viewMode === 'table' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                  title="Table View"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setViewMode('kanban');
+                    localStorage.setItem('ndaViewMode', 'kanban');
+                  }}
+                  className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                  title="Kanban View"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
               <Button
                 variant="default"
                 size="sm"
@@ -589,6 +644,46 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 className="flex-1 sm:w-64"
               />
             </div>
+          </div>
+
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className="flex items-center gap-1 text-sm text-white/90">
+              <Filter className="h-3.5 w-3.5" />
+              <span className="font-medium">Quick Filter:</span>
+            </div>
+            {(['all', 'pending', 'approved', 'viewed'] as const).map((filter) => {
+              const isActive = quickFilter === filter;
+              const labels = {
+                all: 'All',
+                pending: 'Pending',
+                approved: 'Approved',
+                viewed: 'Viewed Document'
+              };
+              const counts = {
+                all: ndaSignatures.length,
+                pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
+                approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
+                viewed: ndaSignatures.filter(sig => sig.documentViewedAt).length
+              };
+
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setQuickFilter(filter)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-white text-slate-700 shadow-md'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <span>{labels[filter]}</span>
+                  <Badge className={`ml-0.5 px-1.5 py-0 text-[10px] ${isActive ? 'bg-slate-700 text-white' : 'bg-white/20 text-white'}`}>
+                    {counts[filter]}
+                  </Badge>
+                </button>
+              );
+            })}
           </div>
           {selectedSignatures.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-4 border-t border-white/20">
@@ -652,7 +747,141 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
         <CardContent className="pt-6 px-2 sm:px-6">
           {filteredSignatures.length > 0 ? (
             <>
+              {/* Kanban Board View */}
+              {viewMode === 'kanban' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-medium text-gray-700">Pipeline Stages</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsManagingStages(true)}
+                      className="text-xs"
+                    >
+                      <Settings className="h-3 w-3 mr-1" />
+                      Manage Stages
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Pending Stage */}
+                    {cimDocument.ndaApprovalRequired && (
+                      <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-orange-900 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Pending
+                          </h4>
+                          <Badge className="bg-orange-200 text-orange-800">
+                            {filteredSignatures.filter(sig => !sig.approved).length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {filteredSignatures
+                            .filter(sig => !sig.approved)
+                            .map(signature => (
+                              <div
+                                key={signature.id}
+                                className="bg-white p-3 rounded-md shadow-sm border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => {
+                                  // Open contact detail modal
+                                }}
+                              >
+                                <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                                <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {new Date(signature.signedAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Approved Stage */}
+                    <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          Approved
+                        </h4>
+                        <Badge className="bg-green-200 text-green-800">
+                          {filteredSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).filter(sig => !sig.documentViewedAt).length}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSignatures
+                          .filter(sig => !cimDocument.ndaApprovalRequired || sig.approved)
+                          .filter(sig => !sig.documentViewedAt)
+                          .map(signature => (
+                            <div
+                              key={signature.id}
+                              className="bg-white p-3 rounded-md shadow-sm border border-green-200 hover:shadow-md transition-shadow cursor-pointer"
+                            >
+                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {new Date(signature.signedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Viewed Document Stage */}
+                    <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          Viewed Document
+                        </h4>
+                        <Badge className="bg-blue-200 text-blue-800">
+                          {filteredSignatures.filter(sig => sig.documentViewedAt).length}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {filteredSignatures
+                          .filter(sig => sig.documentViewedAt)
+                          .map(signature => (
+                            <div
+                              key={signature.id}
+                              className="bg-white p-3 rounded-md shadow-sm border border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+                            >
+                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
+                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Viewed: {new Date(signature.documentViewedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Stages */}
+                    {customStages.map((stageName, index) => (
+                      <div key={index} className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-purple-900 flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            {stageName}
+                          </h4>
+                          <Badge className="bg-purple-200 text-purple-800">
+                            0
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          <div className="text-center text-xs text-gray-400 py-8">
+                            No contacts in this stage yet
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Desktop Table View */}
+              {viewMode === 'table' && (
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
@@ -681,8 +910,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                {filteredSignatures.map((signature) => (
-                  <TableRow 
+                    {filteredSignatures.map((signature) => (
+                      <TableRow 
                     key={signature.id}
                     className={selectedSignatures.includes(signature.id) ? "bg-muted/50" : ""}
                   >
@@ -905,14 +1134,16 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
+              )}
 
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
+
                 {filteredSignatures.map((signature) => (
                   <div
                     key={signature.id}
