@@ -42,9 +42,9 @@ export function DocumentEditTab({ cimDocument, financialFiles, customSections }:
               disabled={!cimDocument.shareSlug}
               className={`
                 px-6 py-3 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2
-                ${cimDocument.shareSlug 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ${cimDocument.shareSlug
+                  ? 'border-2 border-blue-600 text-blue-700 bg-white hover:bg-blue-50 shadow-sm hover:shadow-md'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
                 }
               `}
             >

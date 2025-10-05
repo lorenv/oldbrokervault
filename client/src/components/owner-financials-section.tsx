@@ -316,15 +316,15 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
 
   // Always render the financial section in owner view so users can enable it
   return (
-    <Card className="bg-white shadow-lg rounded-2xl border-0 mb-12">
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 pb-4 pt-6 px-8 rounded-t-2xl">
-        <CardTitle className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+    <Card className="bg-white border-2 border-gray-200 mb-4 overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white pb-4 pt-4 px-6">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
           Financial Information
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-10 pt-8 px-8 pb-10">
+      <CardContent className="space-y-6 pt-6 px-6 pb-6">
         {/* Financial Fields - Simplified, always included */}
         <div className="space-y-6">
           <div className="grid md:grid-cols-3 gap-8">
@@ -403,11 +403,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                     <Upload className="h-5 w-5 text-gray-400" />
                   )}
                   <Button
-                    variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadFileMutation.isPending}
-                    className="h-8 px-4 text-sm"
+                    className="h-8 px-4 text-sm bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     {uploadFileMutation.isPending ? 'Uploading...' : 'Browse Files'}
                   </Button>
@@ -435,10 +434,9 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-sm font-semibold text-slate-800">Uploaded Documents ({files.length})</Label>
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={handleBulkDownload}
-                  className="h-8 px-3 text-xs"
+                  className="h-8 px-3 text-xs border-2 border-blue-600 text-blue-700 bg-white hover:bg-blue-50 shadow-sm hover:shadow-md transition-all"
                 >
                   <Download className="h-3 w-3 mr-1" />
                   Download All
@@ -471,11 +469,10 @@ export function OwnerFinancialsSection({ docId, cimDocument: propCimDocument }: 
                     </div>
                     
                     <Button
-                      variant="outline"
                       size="sm"
                       onClick={() => deleteFileMutation.mutate(file.id)}
                       disabled={deleteFileMutation.isPending}
-                      className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors flex-shrink-0 ml-2"
+                      className="h-7 w-7 p-0 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-sm hover:shadow-md transition-all flex-shrink-0 ml-2"
                     >
                       <X className="h-3 w-3" />
                     </Button>

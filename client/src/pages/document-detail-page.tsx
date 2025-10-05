@@ -471,12 +471,12 @@ export function DocumentDetailPage() {
                       onClick={handleCopyShareLink}
                       disabled={!cimDocument?.shareSlug}
                       className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all duration-200 ${
-                        copyButtonState === 'copied' 
-                          ? 'text-green-700 bg-green-100' 
+                        copyButtonState === 'copied'
+                          ? 'text-green-700 bg-green-100'
                           : copyButtonState === 'error'
                           ? 'text-red-700 bg-red-100'
-                          : cimDocument?.shareSlug 
-                          ? 'text-blue-600 hover:bg-blue-50' 
+                          : cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
                           : 'text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -496,8 +496,8 @@ export function DocumentDetailPage() {
                       onClick={handlePreviewShareLink}
                       disabled={!cimDocument?.shareSlug}
                       className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all ${
-                        cimDocument?.shareSlug 
-                          ? 'text-green-600 hover:bg-green-50' 
+                        cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
                           : 'text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -576,17 +576,17 @@ export function DocumentDetailPage() {
                     <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
                           onClick={handleCopyShareLink}
                           disabled={!cimDocument?.shareSlug}
                           className={`flex-1 transition-all duration-200 ${
-                            copyButtonState === 'copied' 
-                              ? 'bg-green-100 border-green-300 text-green-700'
+                            copyButtonState === 'copied'
+                              ? 'bg-green-100 text-green-700'
                               : copyButtonState === 'error'
-                              ? 'bg-red-100 border-red-300 text-red-700'
-                              : cimDocument?.shareSlug 
-                              ? 'hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600' 
+                              ? 'bg-red-100 text-red-700'
+                              : cimDocument?.shareSlug
+                              ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
                               : 'opacity-50 cursor-not-allowed'
                           }`}
                         >
@@ -602,13 +602,13 @@ export function DocumentDetailPage() {
                     <Tooltip delayDuration={0}>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="icon"
                           onClick={handlePreviewShareLink}
                           disabled={!cimDocument?.shareSlug}
-                          className={`flex-1 ${
-                            cimDocument?.shareSlug 
-                              ? 'hover:bg-green-50 hover:border-green-300 hover:text-green-600' 
+                          className={`flex-1 transition-all duration-200 ${
+                            cimDocument?.shareSlug
+                              ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
                               : 'opacity-50 cursor-not-allowed'
                           }`}
                         >

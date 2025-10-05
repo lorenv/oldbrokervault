@@ -691,9 +691,9 @@ export function CimDisplay({
 
         {/* Logo section - only in edit view */}
         {!isSharedView && (
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Company Logo</h3>
+          <div className="mb-4 border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center">
+              <h3 className="font-semibold">Company Logo</h3>
               <div className="flex gap-2">
                 <input
                   type="file"
@@ -703,10 +703,9 @@ export function CimDisplay({
                   onChange={handleLogoUpload}
                 />
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={() => document.getElementById('logo-upload')?.click()}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all"
                   disabled={isLogoUploading}
                 >
                   {isLogoUploading ? (
@@ -718,37 +717,38 @@ export function CimDisplay({
                 </Button>
               </div>
             </div>
-            {localLogoUrl && !logoError ? (
-              <div className="flex justify-center relative group">
-                <img 
-                  src={localLogoUrl} 
-                  alt="Company Logo" 
-                  className="h-32" 
-                  onError={() => setLogoError(true)}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
-                  onClick={handleDeleteLogo}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">No logo uploaded yet</p>
-              </div>
-            )}
+            <div className="bg-white p-6">
+              {localLogoUrl && !logoError ? (
+                <div className="flex justify-center relative group">
+                  <img
+                    src={localLogoUrl}
+                    alt="Company Logo"
+                    className="h-32"
+                    onError={() => setLogoError(true)}
+                  />
+                  <Button
+                    size="sm"
+                    className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg"
+                    onClick={handleDeleteLogo}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
+                  <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">No logo uploaded</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Business Images */}
         {(localSelectedImages && localSelectedImages.length > 0 || !isSharedView) && (
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Business Images</h3>
+          <div className="mb-4 border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 flex justify-between items-center">
+              <h3 className="font-semibold">Business Images</h3>
               {!isSharedView && (
                 <div className="flex gap-2">
                   <input
@@ -760,10 +760,9 @@ export function CimDisplay({
                     onChange={handleBusinessImageUpload}
                   />
                   <Button
-                    variant="outline"
                     size="sm"
                     onClick={() => document.getElementById('business-image-upload')?.click()}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     <Upload className="h-4 w-4" />
                     Upload Images
@@ -771,8 +770,9 @@ export function CimDisplay({
                 </div>
               )}
             </div>
-            {localSelectedImages && localSelectedImages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white p-6">
+              {localSelectedImages && localSelectedImages.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {localSelectedImages.map((image: any, index: number) => (
                   <div key={index} className="relative group">
                     {!brokenImages.has(index) ? (
@@ -819,9 +819,8 @@ export function CimDisplay({
                     )}
                     {!isSharedView && (
                       <Button
-                        variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteImage(index);
@@ -832,13 +831,14 @@ export function CimDisplay({
                     )}
                   </div>
                 ))}
-              </div>
-            ) : !isSharedView ? (
-              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">No business images uploaded yet</p>
-              </div>
-            ) : null}
+                </div>
+              ) : !isSharedView ? (
+                <div className="text-center py-4 border-2 border-dashed border-gray-300 rounded-lg">
+                  <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">No business images uploaded</p>
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
 
@@ -859,26 +859,18 @@ export function CimDisplay({
                 const sectionId = unifiedSection.id;
                 return (
                   <DraggableSection key={sectionId} id={sectionId} isSharedView={isSharedView}>
-                    <Card className="mb-4 relative group">
+                    <Card className="mb-4 relative group border-2 border-gray-200 shadow-none overflow-hidden">
                       {!isSharedView && (
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg z-10"
                           onClick={() => setConfirmDeleteSectionId(sectionId)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <CardHeader className={isSharedView ? "bg-blue-50" : ""}>
-                        <CardTitle className="text-lg pr-8">
-                          {!isSharedView && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs">
-                                Section {section.order}
-                              </Badge>
-                            </div>
-                          )}
+                      <CardHeader className={isSharedView ? "bg-blue-50" : "bg-gradient-to-r from-slate-600 to-blue-600 text-white"}>
+                        <CardTitle className={`text-lg pr-8 ${!isSharedView ? "text-white" : ""}`}>
                           {section.title}
                         </CardTitle>
                       </CardHeader>
