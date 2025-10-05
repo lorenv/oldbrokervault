@@ -9,7 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import {
   Shield,
@@ -47,6 +51,46 @@ import type { InvestorContact } from "@shared/schema";
 interface DocumentNdaTabProps {
   cimDocument: any;
   ndaSignatures: any[];
+}
+
+// Draggable Kanban Card Component
+function DraggableKanbanCard({ signature, onClick }: { signature: any, onClick?: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: signature.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white p-3 rounded-md shadow-sm border hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-2">
+        <GripVertical className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-gray-900 truncate">{signature.signerName}</div>
+          <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
+          <div className="text-xs text-gray-400 mt-1">
+            {new Date(signature.signedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabProps) {
@@ -107,6 +151,19 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [customStages, setCustomStages] = useState<string[]>([]);
   const [isManagingStages, setIsManagingStages] = useState(false);
   const [newStageName, setNewStageName] = useState('');
+
+  // Drag and drop state  - track which signature stage each signature belongs to
+  const [signatureStages, setSignatureStages] = useState<Record<number, string>>({});
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  // Setup DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -1411,6 +1468,77 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
           if (!open) setViewingContact(null);
         }}
       />
+
+      {/* Stage Management Dialog */}
+      <Dialog open={isManagingStages} onOpenChange={setIsManagingStages}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Pipeline Stages</DialogTitle>
+            <DialogDescription>
+              Add custom stages to organize your NDA signers. The default stages (Pending, Approved, Viewed Document) cannot be removed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* List of custom stages */}
+            {customStages.length > 0 && (
+              <div className="space-y-2">
+                <Label>Custom Stages</Label>
+                {customStages.map((stageName, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm">{stageName}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newStages = customStages.filter((_, i) => i !== index);
+                        setCustomStages(newStages);
+                      }}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new stage */}
+            <div className="space-y-2">
+              <Label htmlFor="new-stage">Add New Stage</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-stage"
+                  placeholder="Enter stage name..."
+                  value={newStageName}
+                  onChange={(e) => setNewStageName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newStageName.trim()) {
+                      setCustomStages([...customStages, newStageName.trim()]);
+                      setNewStageName('');
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    if (newStageName.trim()) {
+                      setCustomStages([...customStages, newStageName.trim()]);
+                      setNewStageName('');
+                    }
+                  }}
+                  disabled={!newStageName.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setIsManagingStages(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
