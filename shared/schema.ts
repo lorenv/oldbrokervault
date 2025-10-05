@@ -295,6 +295,7 @@ export const ndaSignatures = pgTable("nda_signatures", {
   approvedBy: integer("approved_by"), // User ID who approved
   fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
   signingSessionId: integer("signing_session_id"), // Link to new signing session
+  stage: text("stage"), // Kanban stage for organizing signers
 });
 
 // NDA Access Tokens - unique tokens for users who signed NDAs
