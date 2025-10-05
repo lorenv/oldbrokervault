@@ -6,7 +6,7 @@ import { Link } from "wouter";
 
 export function AnalyticsOverviewCard() {
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ["/api/analytics/overview"],
+    queryKey: ["/api/analytics/overview", "30d"], // Default to 30 days
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 

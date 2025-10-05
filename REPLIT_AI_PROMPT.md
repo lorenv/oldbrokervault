@@ -84,6 +84,61 @@ Returns per-document analytics for table display.
 - Sort by views descending
 - Return array of document analytics
 
+### 4. GET /api/analytics/pending-approvals
+Returns all pending NDA approvals across all user's documents.
+
+**Response format:**
+```json
+[
+  {
+    "id": number,  // signature ID
+    "documentId": number,
+    "documentTitle": string,
+    "signerName": string,
+    "signerEmail": string,
+    "signerLocation": string,
+    "signedAt": string  // ISO date
+  }
+  // ... more pending approvals
+]
+```
+
+**Implementation notes:**
+- Get all user's CIM documents
+- Query `ndaSignatures` table where:
+  - `cimDocumentId` matches user's documents
+  - `approved = false`
+  - The document has `ndaApprovalRequired = true`
+- Join with `cimDocuments` to get document title
+- Sort by `signedAt` descending (most recent first)
+- Return array of pending approvals
+
+### 5. GET /api/analytics/all-signatures
+Returns all NDA signatures across all user's documents (for location map).
+
+**Response format:**
+```json
+[
+  {
+    "id": number,  // signature ID
+    "documentId": number,
+    "documentTitle": string,
+    "signerName": string,
+    "signerEmail": string,
+    "signerLocation": string,
+    "signedAt": string  // ISO date
+  }
+  // ... more signatures
+]
+```
+
+**Implementation notes:**
+- Get all user's CIM documents
+- Query ALL `ndaSignatures` (approved and unapproved) where `cimDocumentId` matches user's documents
+- Join with `cimDocuments` to get document title
+- Sort by `signedAt` descending (most recent first)
+- Return array of all signatures
+
 ## Database Tables to Use:
 
 **cimDocuments** - user's documents
@@ -131,7 +186,24 @@ app.get("/api/analytics/overview", async (req, res) => {
 });
 ```
 
-Please implement all three endpoints with proper SQL queries using Drizzle ORM. Make sure to handle edge cases like:
+## Important Notes on Analytics Stats and Time Range:
+
+For the `/api/analytics/overview` endpoint, the stats should be **dynamic based on the `range` query parameter**:
+
+**Query param:**
+- `range`: one of `7d`, `30d`, `90d`, `all` (defaults to `30d`)
+
+**How to calculate stats for selected range:**
+- **totalViews**: Count views within the selected date range
+- **totalSignatures**: Count signatures within the selected date range
+- **viewsTrend**: Compare current range vs previous range of same length
+  - Example for `30d`: Compare last 30 days vs 30 days before that
+  - Formula: `((current - previous) / previous) * 100`
+- **signaturesTrend**: Same logic as viewsTrend
+- **pendingApprovals**: Always show total pending (not affected by date range)
+- **activeDocuments**: Always show total active (not affected by date range)
+
+Please implement all five endpoints with proper SQL queries using Drizzle ORM. Make sure to handle edge cases like:
 - Users with no documents
 - Documents with no views/signatures
 - Division by zero when calculating conversion rates
