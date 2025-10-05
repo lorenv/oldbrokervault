@@ -39,7 +39,9 @@ import {
   List,
   Filter,
   GripVertical,
-  Settings
+  Settings,
+  Search,
+  X
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -727,20 +729,127 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       {/* NDA Signatures Table */}
       <Card className="border-0 shadow-xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden ring-1 ring-gray-200/50">
         <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 pb-4 pt-6 px-4 sm:px-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-white flex-wrap">
-              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
-                <FileSignature className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-              </div>
-              <span className="whitespace-nowrap">NDA Signatures ({ndaSignatures.length})</span>
-              {cimDocument.ndaApprovalRequired && (
+          <div className="flex flex-col gap-3">
+            {/* Title and Action Buttons Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Title */}
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-white flex-wrap">
+                <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg shadow-sm">
+                  <FileSignature className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <span className="whitespace-nowrap">NDA Signatures</span>
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30 shadow-sm text-xs">
-                  {ndaSignatures.filter(sig => !sig.approved).length} Pending
+                  {ndaSignatures.length}
                 </Badge>
-              )}
-            </CardTitle>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              {/* View toggle buttons */}
+                {cimDocument.ndaApprovalRequired && ndaSignatures.filter(sig => !sig.approved).length > 0 && (
+                  <Badge className="bg-amber-500 text-white border-amber-400 shadow-md text-xs font-semibold animate-pulse">
+                    {ndaSignatures.filter(sig => !sig.approved).length} Pending
+                  </Badge>
+                )}
+              </CardTitle>
+
+              {/* Action Buttons - Desktop */}
+              <div className="hidden sm:flex items-center gap-2">
+                {/* View Toggle */}
+                <div className="flex gap-0.5 bg-white/10 rounded-lg p-0.5">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setViewMode('table');
+                            localStorage.setItem('ndaViewMode', 'table');
+                          }}
+                          className={`h-8 px-2 ${viewMode === 'table' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                        >
+                          <List className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Table View</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setViewMode('kanban');
+                            localStorage.setItem('ndaViewMode', 'kanban');
+                          }}
+                          className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
+                        >
+                          <LayoutGrid className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Kanban View</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 pointer-events-none" />
+                  <Input
+                    placeholder="Search..."
+                    value={signatureSearchTerm}
+                    onChange={(e) => setSignatureSearchTerm(e.target.value)}
+                    className="pl-8 pr-8 h-8 w-48 bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50"
+                  />
+                  {signatureSearchTerm && (
+                    <button
+                      onClick={() => setSignatureSearchTerm('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Add Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setIsAddManualSignerOpen(true)}
+                        className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-8 px-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Add manual NDA signer</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
+            {/* Mobile Search and Actions Row */}
+            <div className="flex sm:hidden items-center gap-2">
+              {/* Search - Full Width on Mobile */}
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 pointer-events-none" />
+                <Input
+                  placeholder="Search..."
+                  value={signatureSearchTerm}
+                  onChange={(e) => setSignatureSearchTerm(e.target.value)}
+                  className="pl-8 pr-8 h-8 w-full bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50"
+                />
+                {signatureSearchTerm && (
+                  <button
+                    onClick={() => setSignatureSearchTerm('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* View Toggle */}
               <div className="flex gap-0.5 bg-white/10 rounded-lg p-0.5">
                 <Button
                   variant="ghost"
@@ -750,7 +859,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     localStorage.setItem('ndaViewMode', 'table');
                   }}
                   className={`h-8 px-2 ${viewMode === 'table' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
-                  title="Table View"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -762,69 +870,66 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     localStorage.setItem('ndaViewMode', 'kanban');
                   }}
                   className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-white text-slate-700' : 'text-white hover:bg-white/20'}`}
-                  title="Kanban View"
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Add Button */}
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => setIsAddManualSignerOpen(true)}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0"
-                title="Add manual NDA signer"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-8 px-2"
               >
                 <Plus className="h-4 w-4" />
               </Button>
-              <Input
-                placeholder="Search..."
-                value={signatureSearchTerm}
-                onChange={(e) => setSignatureSearchTerm(e.target.value)}
-                className="flex-1 sm:w-64"
-              />
             </div>
-          </div>
 
-          {/* Quick Filters */}
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            <div className="flex items-center gap-1 text-sm text-white/90">
-              <Filter className="h-3.5 w-3.5" />
-              <span className="font-medium">Quick Filter:</span>
+            {/* Quick Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(['all', 'pending', 'approved', 'viewed'] as const).map((filter) => {
+                const isActive = quickFilter === filter;
+                const labels = {
+                  all: 'All',
+                  pending: 'Pending',
+                  approved: 'Approved',
+                  viewed: 'Viewed'
+                };
+                const counts = {
+                  all: ndaSignatures.length,
+                  pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
+                  approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
+                  viewed: ndaSignatures.filter(sig => sig.documentViewedAt).length
+                };
+
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setQuickFilter(filter)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-white text-slate-700 shadow-md'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <span>{labels[filter]}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      isActive
+                        ? filter === 'pending' && counts[filter] > 0
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-slate-100 text-slate-700'
+                        : 'bg-white/20 text-white'
+                    }`}>
+                      {counts[filter]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            {(['all', 'pending', 'approved', 'viewed'] as const).map((filter) => {
-              const isActive = quickFilter === filter;
-              const labels = {
-                all: 'All',
-                pending: 'Pending',
-                approved: 'Approved',
-                viewed: 'Viewed Document'
-              };
-              const counts = {
-                all: ndaSignatures.length,
-                pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
-                approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
-                viewed: ndaSignatures.filter(sig => sig.documentViewedAt).length
-              };
 
-              return (
-                <button
-                  key={filter}
-                  onClick={() => setQuickFilter(filter)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-white text-slate-700 shadow-md'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  <span>{labels[filter]}</span>
-                  <Badge className={`ml-0.5 px-1.5 py-0 text-[10px] ${isActive ? 'bg-slate-700 text-white' : 'bg-white/20 text-white'}`}>
-                    {counts[filter]}
-                  </Badge>
-                </button>
-              );
-            })}
-          </div>
-          {selectedSignatures.length > 0 && (
+            {/* Bulk Actions */}
+            {selectedSignatures.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-4 border-t border-white/20">
               <span className="text-xs sm:text-sm text-white/90">
                 {selectedSignatures.length} selected
@@ -881,7 +986,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                 </Button>
               </div>
             </div>
-          )}
+            )}
+          </div>
         </CardHeader>
         <CardContent className="pt-6 px-2 sm:px-6">
           {filteredSignatures.length > 0 ? (
@@ -1046,6 +1152,29 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                       ))}
                     </div>
                   </div>
+
+                  {/* Drag Overlay - shows the card following the cursor */}
+                  <DragOverlay>
+                    {activeId ? (
+                      <div className="bg-white p-3 rounded-md shadow-lg border-2 border-blue-500 opacity-90 rotate-3 scale-105">
+                        <div className="flex items-start gap-2">
+                          <GripVertical className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate">
+                              {filteredSignatures.find(sig => sig.id === activeId)?.signerName}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {filteredSignatures.find(sig => sig.id === activeId)?.signerEmail}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {filteredSignatures.find(sig => sig.id === activeId)?.signedAt &&
+                                new Date(filteredSignatures.find(sig => sig.id === activeId)!.signedAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </DragOverlay>
                 </DndContext>
               )}
 

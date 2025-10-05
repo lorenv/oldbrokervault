@@ -409,11 +409,64 @@ export function DocumentDetailPage() {
         <div className="lg:hidden mt-6">
           <div className="w-full overflow-x-auto">
             <div className="flex w-max min-w-full bg-muted p-1 rounded-lg gap-1">
+              {/* Mobile Share Link Action Buttons */}
+              <TooltipProvider delayDuration={0}>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handlePreviewShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
+                        cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span>Preview</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Preview Share Link</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider delayDuration={0}>
+                <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleCopyShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all duration-200 ${
+                        copyButtonState === 'copied'
+                          ? 'text-green-700 bg-green-100'
+                          : copyButtonState === 'error'
+                          ? 'text-red-700 bg-red-100'
+                          : cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <LinkIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Copy Share Link</span>
+                      <span className="sm:hidden">Copy</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
+                    <p>{getCopyTooltipText()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Visual separator between action buttons and tabs */}
+              <div className="w-px bg-gray-300 mx-1 my-1" />
+
               <button
                 onClick={() => handleTabChange('analytics')}
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
-                  activeTab === 'analytics' 
-                    ? 'bg-background text-foreground shadow-sm' 
+                  activeTab === 'analytics'
+                    ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -424,8 +477,8 @@ export function DocumentDetailPage() {
               <button
                 onClick={() => handleTabChange('edit')}
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
-                  activeTab === 'edit' 
-                    ? 'bg-background text-foreground shadow-sm' 
+                  activeTab === 'edit'
+                    ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -453,8 +506,8 @@ export function DocumentDetailPage() {
               <button
                 onClick={() => handleTabChange('share')}
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm whitespace-nowrap rounded-md transition-all ${
-                  activeTab === 'share' 
-                    ? 'bg-background text-foreground shadow-sm' 
+                  activeTab === 'share'
+                    ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -462,53 +515,6 @@ export function DocumentDetailPage() {
                 <span className="hidden sm:inline">Share CIM</span>
                 <span className="sm:hidden">Share</span>
               </button>
-              
-              {/* Mobile Share Link Action Buttons */}
-              <TooltipProvider delayDuration={0}>
-                <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleCopyShareLink}
-                      disabled={!cimDocument?.shareSlug}
-                      className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all duration-200 ${
-                        copyButtonState === 'copied'
-                          ? 'text-green-700 bg-green-100'
-                          : copyButtonState === 'error'
-                          ? 'text-red-700 bg-red-100'
-                          : cimDocument?.shareSlug
-                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
-                          : 'text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <LinkIcon className="h-3 w-3" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
-                    <p>{getCopyTooltipText()}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider delayDuration={0}>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handlePreviewShareLink}
-                      disabled={!cimDocument?.shareSlug}
-                      className={`flex items-center gap-1 px-3 py-2 text-xs rounded-md transition-all ${
-                        cimDocument?.shareSlug
-                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
-                          : 'text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <Eye className="h-3 w-3" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Preview Share Link</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -518,11 +524,63 @@ export function DocumentDetailPage() {
           {/* Desktop Sidebar Navigation */}
           <div className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="space-y-2 sticky top-6">
+              {/* Share Link Action Buttons */}
+              <TooltipProvider delayDuration={0}>
+                {/* Preview Share Link Button */}
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handlePreviewShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-all duration-200 ${
+                        cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                          : 'opacity-50 cursor-not-allowed text-gray-400'
+                      }`}
+                    >
+                      <Eye className="h-5 w-5" />
+                      <span className="text-sm font-medium">Preview</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Preview Share Link</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Copy Share Link Button */}
+                <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleCopyShareLink}
+                      disabled={!cimDocument?.shareSlug}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-all duration-200 ${
+                        copyButtonState === 'copied'
+                          ? 'bg-green-100 text-green-700'
+                          : copyButtonState === 'error'
+                          ? 'bg-red-100 text-red-700'
+                          : cimDocument?.shareSlug
+                          ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                          : 'opacity-50 cursor-not-allowed text-gray-400'
+                      }`}
+                    >
+                      <LinkIcon className="h-5 w-5" />
+                      <span className="text-sm font-medium">Copy Share Link</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
+                    <p>{getCopyTooltipText()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Separator */}
+              <div className="border-t pt-2 mt-2" />
+
               <button
                 onClick={() => setActiveTab('analytics')}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
-                  activeTab === 'analytics' 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  activeTab === 'analytics'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -532,8 +590,8 @@ export function DocumentDetailPage() {
               <button
                 onClick={() => setActiveTab('edit')}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
-                  activeTab === 'edit' 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  activeTab === 'edit'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -559,69 +617,14 @@ export function DocumentDetailPage() {
               <button
                 onClick={() => setActiveTab('share')}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg transition-colors ${
-                  activeTab === 'share' 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                  activeTab === 'share'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <Share2 className="h-5 w-5" />
                 Share CIM
               </button>
-              
-              {/* Share Link Action Buttons */}
-              <div className="border-t pt-2 mt-2">
-                <TooltipProvider delayDuration={0}>
-                  <div className="flex gap-2">
-                    {/* Copy Share Link Button */}
-                    <Tooltip delayDuration={0} open={copyButtonState === 'copied' || copyButtonState === 'error' ? true : copyButtonState === 'hidden' ? false : undefined}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleCopyShareLink}
-                          disabled={!cimDocument?.shareSlug}
-                          className={`flex-1 transition-all duration-200 ${
-                            copyButtonState === 'copied'
-                              ? 'bg-green-100 text-green-700'
-                              : copyButtonState === 'error'
-                              ? 'bg-red-100 text-red-700'
-                              : cimDocument?.shareSlug
-                              ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
-                              : 'opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent className={copyButtonState === 'copied' ? 'bg-green-700 text-white' : copyButtonState === 'error' ? 'bg-red-700 text-white' : ''}>
-                        <p>{getCopyTooltipText()}</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    {/* Preview Share Link Button */}
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={handlePreviewShareLink}
-                          disabled={!cimDocument?.shareSlug}
-                          className={`flex-1 transition-all duration-200 ${
-                            cimDocument?.shareSlug
-                              ? 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
-                              : 'opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Preview Share Link</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </div>
             </nav>
           </div>
           
