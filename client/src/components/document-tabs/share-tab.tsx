@@ -8,6 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Share2,
   Copy,
   Mail,
@@ -19,12 +25,15 @@ import {
   Lock,
   Eye,
   FileDown,
-  Settings // Imported Settings icon, assuming it was intended for Share Settings
+  Settings,
+  ChevronsDown,
+  ChevronsUp,
+  Send,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DocumentExport } from "@/components/document-export";
-import { EmailShareDialog } from "@/components/email-share-dialog";
 
 interface DocumentShareTabProps {
   cimDocument: any;
@@ -33,6 +42,9 @@ interface DocumentShareTabProps {
 
 export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const { toast } = useToast();
+
+  // Accordion state for expand/collapse all
+  const [accordionValue, setAccordionValue] = useState<string[]>([]);
 
   // Share settings state
   const [shareSettings, setShareSettings] = useState({
@@ -48,12 +60,10 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
   const [shareUrl, setShareUrl] = useState('');
   const [isUpdatingShare, setIsUpdatingShare] = useState(false);
 
-  // Email sharing state
-  const [emailShareDialog, setEmailShareDialog] = useState<{
-    open: boolean;
-    documentTitle?: string;
-    shareUrl?: string;
-  }>({ open: false });
+  // Email sharing state (inline form)
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [customMessage, setCustomMessage] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Embed settings state
   const [embedSettings, setEmbedSettings] = useState({
@@ -250,6 +260,79 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
     }
   };
 
+  // Expand/Collapse all functions
+  const expandAll = () => {
+    setAccordionValue(['share-link', 'email', 'export', 'embed']);
+  };
+
+  const collapseAll = () => {
+    setAccordionValue([]);
+  };
+
+  // Send email function
+  const handleSendEmail = async () => {
+    if (!recipientEmail.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter a recipient email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail.trim())) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!shareUrl || !cimDocument.title) {
+      toast({
+        title: "Share Data Missing",
+        description: "Unable to send email - missing document information",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+
+    try {
+      await apiRequest("POST", "/api/share/email", {
+        body: {
+          recipientEmail: recipientEmail.trim(),
+          shareUrl,
+          documentTitle: cimDocument.title,
+          customMessage: customMessage.trim(),
+          senderName: user?.name
+        }
+      });
+
+      toast({
+        title: "Email Sent",
+        description: `Share link sent successfully to ${recipientEmail}`
+      });
+
+      // Reset form
+      setRecipientEmail("");
+      setCustomMessage("");
+    } catch (error) {
+      console.error("Email sharing error:", error);
+      toast({
+        title: "Send Failed",
+        description: error instanceof Error ? error.message : "Failed to send email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const downloadPdf = async () => {
     setIsPdfLoading(true);
     try {
@@ -290,118 +373,97 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
 
 
   return (
-    <div className="space-y-6">
-      {/* Share Link */}
-      {shareSettings.shareEnabled && shareUrl && (
-        <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-teal-500 to-slate-600 text-white rounded-t-xl shadow-lg">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Link className="h-5 w-5" />
-              Share Link
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
+    <div className="space-y-4">
+      {/* Expand/Collapse All Controls */}
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={expandAll}
+          className="text-sm"
+        >
+          <ChevronsDown className="h-4 w-4 mr-2" />
+          Expand All
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={collapseAll}
+          className="text-sm"
+        >
+          <ChevronsUp className="h-4 w-4 mr-2" />
+          Collapse All
+        </Button>
+      </div>
+
+      {/* Accordion Sections */}
+      <Accordion
+        type="multiple"
+        value={accordionValue}
+        onValueChange={setAccordionValue}
+        className="space-y-4"
+      >
+        {/* Share Link & Settings */}
+        <AccordionItem value="share-link" className="border rounded-xl bg-white shadow-lg">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
             <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={copyShareUrl}
-                className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Input
-                value={shareUrl}
-                readOnly
-                className="flex-1 font-mono text-sm bg-gray-50"
-              />
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
+                <Link className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold">Share Link & Settings</h3>
+                <p className="text-sm text-muted-foreground">Configure public sharing and access controls</p>
+              </div>
             </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-6 pt-4">
+              {/* Share Link Display */}
+              {shareSettings.shareEnabled && shareUrl && (
+                <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <Label className="text-sm font-medium text-blue-900">Your Share Link</Label>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={copyShareUrl}
+                      className="bg-white hover:bg-blue-100"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      value={shareUrl}
+                      readOnly
+                      className="flex-1 font-mono text-sm bg-white"
+                    />
+                  </div>
 
-            <div className="flex items-center gap-2">
-              {shareSettings.sharePassword && (
-                <Badge variant="outline">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Password Protected
-                </Badge>
+                  <div className="flex items-center gap-2">
+                    {shareSettings.sharePassword && (
+                      <Badge variant="outline" className="bg-white">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Password Protected
+                      </Badge>
+                    )}
+                    {shareSettings.ndaProtected && (
+                      <Badge variant="outline" className="bg-white">
+                        <Eye className="h-3 w-3 mr-1" />
+                        NDA Required
+                      </Badge>
+                    )}
+                    {shareSettings.shareExpiresAt && (
+                      <Badge variant="outline" className="bg-white">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        Expires {new Date(shareSettings.shareExpiresAt).toLocaleDateString()}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               )}
-              {shareSettings.ndaProtected && (
-                <Badge variant="outline">
-                  <Eye className="h-3 w-3 mr-1" />
-                  NDA Required
-                </Badge>
-              )}
-              {shareSettings.shareExpiresAt && (
-                <Badge variant="outline">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Expires {new Date(shareSettings.shareExpiresAt).toLocaleDateString()}
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Export Document */}
-      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-cyan-500 to-slate-600 text-white rounded-t-xl shadow-lg">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Download className="h-5 w-5" />
-            Export Document
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handlePdfExport}
-              disabled={isPdfLoading}
-              className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300"
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {isPdfLoading ? "Exporting..." : "Export PDF"}
-            </Button>
-          </div>
-          <p className="text-sm text-gray-600">
-            Download your CIM as PDF document for offline sharing
-          </p>
-        </CardContent>
-      </Card>
+              {/* Share Settings */}
+              <Separator />
 
-      {/* Send via Email */}
-      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-slate-600 text-white rounded-t-xl shadow-lg">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Mail className="h-5 w-5" />
-            Send via Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <p className="text-sm text-gray-600 mb-4">
-            Share this document directly via email with custom message
-          </p>
-          <Button
-            onClick={() => setEmailShareDialog({
-              open: true,
-              documentTitle: cimDocument.title,
-              shareUrl: shareUrl
-            })}
-            disabled={!shareSettings.shareEnabled}
-            className="bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300"
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Send Email
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Share Settings */}
-      <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-slate-500 to-gray-600 text-white rounded-t-xl shadow-lg">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Settings className="h-5 w-5" />
-            Share Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-8">{/* Main Toggle */}
+              {/* Main Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="share-enabled">Enable Public Sharing</Label>
@@ -467,26 +529,142 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
             </>
           )}
 
-          <Button
-            onClick={updateShareSettings}
-            disabled={isUpdatingShare}
-            className="bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700"
-          >
-            {isUpdatingShare ? "Updating..." : "Update Share Settings"}
-          </Button>
-        </CardContent>
-      </Card>
+              <Button
+                onClick={updateShareSettings}
+                disabled={isUpdatingShare}
+                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isUpdatingShare ? "Updating..." : "Update Share Settings"}
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* Embed Code */}
-      {shareSettings.shareEnabled && shareUrl && (
-        <Card className="bg-white shadow-lg border border-gray-200 rounded-xl">
-          <CardHeader className="bg-gradient-to-r from-emerald-500 to-slate-600 text-white rounded-t-xl shadow-lg">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Code className="h-5 w-5" />
-              Embed Code
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">{/* Content */}
+        {/* Email Sharing */}
+        <AccordionItem value="email" className="border rounded-xl bg-white shadow-lg">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg">
+                <Send className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold">Send via Email</h3>
+                <p className="text-sm text-muted-foreground">Share this document directly via email</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4 pt-4">
+              {shareSettings.shareEnabled ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="recipient-email">Recipient Email Address</Label>
+                    <Input
+                      id="recipient-email"
+                      type="email"
+                      placeholder="Enter email address"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      disabled={isSendingEmail}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-message">Custom Message (Optional)</Label>
+                    <Textarea
+                      id="custom-message"
+                      placeholder="Add a personal message..."
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      disabled={isSendingEmail}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                    <p className="text-sm text-gray-700">
+                      <strong>Document:</strong> {cimDocument.title}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      The recipient will receive an email with a secure link to view this document.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail}
+                    className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                  >
+                    {isSendingEmail ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Email
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-amber-600">
+                  Please enable public sharing first in the Share Link & Settings section above
+                </p>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Export Document */}
+        <AccordionItem value="export" className="border rounded-xl bg-white shadow-lg">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg">
+                <Download className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold">Export Document</h3>
+                <p className="text-sm text-muted-foreground">Download your CIM as a PDF</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-gray-600">
+                Download your CIM as a PDF document for offline sharing
+              </p>
+              <Button
+                onClick={handlePdfExport}
+                disabled={isPdfLoading}
+                className="w-full bg-green-600 text-white hover:bg-green-700"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {isPdfLoading ? "Exporting..." : "Export PDF"}
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Embed Code */}
+        <AccordionItem value="embed" className="border rounded-xl bg-white shadow-lg">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg">
+                <Code className="h-5 w-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold">Embed on Website</h3>
+                <p className="text-sm text-muted-foreground">Generate embed code for your website</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6">
+            <div className="space-y-4 pt-4">
+              {shareSettings.shareEnabled && shareUrl ? (
+                <>
+                  {/* Embed Settings */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="embed-width">Width</Label>
@@ -533,36 +711,33 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="embed-code">Embed Code</Label>
-              <Textarea
-                id="embed-code"
-                value={generateEmbedCode()}
-                readOnly
-                rows={6}
-                className="font-mono text-sm"
-              />
-              <Button
-                variant="outline"
-                onClick={copyEmbedCode}
-                className="w-full"
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Embed Code
-              </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="embed-code">Embed Code</Label>
+                    <Textarea
+                      id="embed-code"
+                      value={generateEmbedCode()}
+                      readOnly
+                      rows={6}
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      onClick={copyEmbedCode}
+                      className="w-full bg-orange-600 text-white hover:bg-orange-700"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Embed Code
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-amber-600">
+                  Please enable public sharing first in the Share Link & Settings section above
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Email Share Dialog */}
-      <EmailShareDialog
-        open={emailShareDialog.open}
-        onOpenChange={(open) => setEmailShareDialog(prev => ({ ...prev, open }))}
-        documentTitle={emailShareDialog.documentTitle || ''}
-        shareUrl={emailShareDialog.shareUrl || shareUrl}
-        senderName={user?.name}
-      />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
