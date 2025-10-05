@@ -6696,6 +6696,38 @@ ${finalQuestion}
     }
   });
 
+  // Update NDA signature stage (for Kanban drag-and-drop)
+  app.patch("/api/nda-signatures/:signatureId/stage", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const signatureId = parseInt(req.params.signatureId);
+      const { stage } = req.body;
+
+      // Get the signature to verify document ownership
+      const signature = await storage.getNdaSignatureById(signatureId);
+      if (!signature) {
+        return res.status(404).json({ error: "Signature not found" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(signature.cimDocumentId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Update the stage
+      const updatedSignature = await storage.updateNdaSignatureStage(signatureId, stage);
+
+      res.json({ success: true, signature: updatedSignature });
+    } catch (error) {
+      console.error('Error updating signature stage:', error);
+      res.status(500).json({ error: "Failed to update signature stage" });
+    }
+  });
+
   // Resend share link email to NDA signer
   app.post("/api/cim/:docId/nda-signatures/:signatureId/resend-email", async (req, res) => {
     if (!req.user) {
