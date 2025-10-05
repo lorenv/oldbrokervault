@@ -596,17 +596,19 @@ export default function HomePage() {
             {/* Analytics Feature - Responsive Layout */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
               <div
-                className={`bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
+                className={`bg-white rounded-lg shadow-xl overflow-hidden hover:shadow-2xl hover:scale-105 transition-all duration-500 group ${
                   isVisible("showcase-3")
                     ? "translate-x-0 opacity-100"
                     : "-translate-x-8 opacity-0"
                 }`}
                 data-animate-id="showcase-3"
-                onClick={() => setEnlargedImage("/analytics-preview.png")}
               >
-                <img
-                  src="/analytics-preview.png"
-                  alt="Analytics Dashboard"
+                <video
+                  src="/analytics optimized_1759637064475.mp4"
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
                   className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>

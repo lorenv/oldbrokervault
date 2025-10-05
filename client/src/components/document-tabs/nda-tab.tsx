@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ContactDetailModal } from "@/components/contact-detail-modal";
-import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor, closestCorners, useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -93,6 +93,25 @@ function DraggableKanbanCard({ signature, onClick }: { signature: any, onClick?:
   );
 }
 
+// Droppable Stage Component
+function DroppableStage({
+  id,
+  children,
+  className
+}: {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { setNodeRef } = useDroppable({ id });
+
+  return (
+    <div ref={setNodeRef} className={className}>
+      {children}
+    </div>
+  );
+}
+
 export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -164,6 +183,45 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       },
     })
   );
+
+  // Initialize signature stages from database when signatures load
+  useEffect(() => {
+    if (ndaSignatures.length > 0) {
+      const stages: Record<number, string> = {};
+      ndaSignatures.forEach(sig => {
+        stages[sig.id] = sig.stage || 'pending';
+      });
+      setSignatureStages(stages);
+    }
+  }, [ndaSignatures]);
+
+  // Handle drag end - update stage in database
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const signatureId = active.id as number;
+    const newStage = over.id as string;
+    const currentStage = signatureStages[signatureId];
+
+    // If stage changed, update in database
+    if (newStage !== currentStage) {
+      // Optimistic update
+      setSignatureStages(prev => ({
+        ...prev,
+        [signatureId]: newStage
+      }));
+
+      // Persist to database
+      updateStageMutation.mutate({ signatureId, stage: newStage });
+    }
+  };
+
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
+  };
 
   // Fetch NDA templates
   const { data: ndaTemplates = [] } = useQuery({
@@ -281,7 +339,31 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     }
   });
 
-
+  // Update signature stage mutation
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ signatureId, stage }: { signatureId: number, stage: string }) => {
+      const response = await fetch(`/api/nda-signatures/${signatureId}/stage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ stage })
+      });
+      if (!response.ok) throw new Error('Failed to update stage');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update signature stage. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Auto-save NDA settings when they change
   const handleSettingChange = (setting: string, value: any) => {
@@ -806,135 +888,165 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
             <>
               {/* Kanban Board View */}
               {viewMode === 'kanban' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-gray-700">Pipeline Stages</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsManagingStages(true)}
-                      className="text-xs"
-                    >
-                      <Settings className="h-3 w-3 mr-1" />
-                      Manage Stages
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* Pending Stage */}
-                    {cimDocument.ndaApprovalRequired && (
-                      <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-orange-900 flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            Pending
-                          </h4>
-                          <Badge className="bg-orange-200 text-orange-800">
-                            {filteredSignatures.filter(sig => !sig.approved).length}
-                          </Badge>
-                        </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          {filteredSignatures
-                            .filter(sig => !sig.approved)
-                            .map(signature => (
-                              <div
-                                key={signature.id}
-                                className="bg-white p-3 rounded-md shadow-sm border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
-                                onClick={() => {
-                                  // Open contact detail modal
-                                }}
-                              >
-                                <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
-                                <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
-                                <div className="text-xs text-gray-400 mt-1">
-                                  {new Date(signature.signedAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Approved Stage */}
-                    <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-green-900 flex items-center gap-2">
-                          <Check className="h-4 w-4" />
-                          Approved
-                        </h4>
-                        <Badge className="bg-green-200 text-green-800">
-                          {filteredSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).filter(sig => !sig.documentViewedAt).length}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {filteredSignatures
-                          .filter(sig => !cimDocument.ndaApprovalRequired || sig.approved)
-                          .filter(sig => !sig.documentViewedAt)
-                          .map(signature => (
-                            <div
-                              key={signature.id}
-                              className="bg-white p-3 rounded-md shadow-sm border border-green-200 hover:shadow-md transition-shadow cursor-pointer"
-                            >
-                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
-                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                {new Date(signature.signedAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
+                <DndContext
+                  sensors={sensors}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  collisionDetection={closestCorners}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-medium text-gray-700">Pipeline Stages</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsManagingStages(true)}
+                        className="text-xs"
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        Manage Stages
+                      </Button>
                     </div>
 
-                    {/* Viewed Document Stage */}
-                    <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-blue-900 flex items-center gap-2">
-                          <Eye className="h-4 w-4" />
-                          Viewed Document
-                        </h4>
-                        <Badge className="bg-blue-200 text-blue-800">
-                          {filteredSignatures.filter(sig => sig.documentViewedAt).length}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {filteredSignatures
-                          .filter(sig => sig.documentViewedAt)
-                          .map(signature => (
-                            <div
-                              key={signature.id}
-                              className="bg-white p-3 rounded-md shadow-sm border border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
-                            >
-                              <div className="font-medium text-sm text-gray-900">{signature.signerName}</div>
-                              <div className="text-xs text-gray-500 truncate">{signature.signerEmail}</div>
-                              <div className="text-xs text-gray-400 mt-1">
-                                Viewed: {new Date(signature.documentViewedAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Custom Stages */}
-                    {customStages.map((stageName, index) => (
-                      <div key={index} className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-purple-900 flex items-center gap-2">
-                            <Tag className="h-4 w-4" />
-                            {stageName}
-                          </h4>
-                          <Badge className="bg-purple-200 text-purple-800">
-                            0
-                          </Badge>
-                        </div>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          <div className="text-center text-xs text-gray-400 py-8">
-                            No contacts in this stage yet
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {/* Pending Stage */}
+                      {cimDocument.ndaApprovalRequired && (
+                        <DroppableStage id="pending" className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-orange-900 flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              Pending
+                            </h4>
+                            <Badge className="bg-orange-200 text-orange-800">
+                              {filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').length}
+                            </Badge>
                           </div>
+                          <div className="space-y-2 max-h-96 overflow-y-auto">
+                            <SortableContext
+                              items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').map(s => s.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {filteredSignatures
+                                .filter(sig => signatureStages[sig.id] === 'pending')
+                                .map(signature => (
+                                  <DraggableKanbanCard
+                                    key={signature.id}
+                                    signature={signature}
+                                  />
+                                ))}
+                            </SortableContext>
+                            {filteredSignatures.filter(sig => signatureStages[sig.id] === 'pending').length === 0 && (
+                              <div className="text-center text-xs text-gray-400 py-8">
+                                No contacts in this stage
+                              </div>
+                            )}
+                          </div>
+                        </DroppableStage>
+                      )}
+
+                      {/* Approved Stage */}
+                      <DroppableStage id="approved" className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-green-900 flex items-center gap-2">
+                            <Check className="h-4 w-4" />
+                            Approved
+                          </h4>
+                          <Badge className="bg-green-200 text-green-800">
+                            {filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').length}
+                          </Badge>
                         </div>
-                      </div>
-                    ))}
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          <SortableContext
+                            items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').map(s => s.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {filteredSignatures
+                              .filter(sig => signatureStages[sig.id] === 'approved')
+                              .map(signature => (
+                                <DraggableKanbanCard
+                                  key={signature.id}
+                                  signature={signature}
+                                />
+                              ))}
+                          </SortableContext>
+                          {filteredSignatures.filter(sig => signatureStages[sig.id] === 'approved').length === 0 && (
+                            <div className="text-center text-xs text-gray-400 py-8">
+                              No contacts in this stage
+                            </div>
+                          )}
+                        </div>
+                      </DroppableStage>
+
+                      {/* Viewed Document Stage */}
+                      <DroppableStage id="viewed" className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Viewed Document
+                          </h4>
+                          <Badge className="bg-blue-200 text-blue-800">
+                            {filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').length}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          <SortableContext
+                            items={filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').map(s => s.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {filteredSignatures
+                              .filter(sig => signatureStages[sig.id] === 'viewed')
+                              .map(signature => (
+                                <DraggableKanbanCard
+                                  key={signature.id}
+                                  signature={signature}
+                                />
+                              ))}
+                          </SortableContext>
+                          {filteredSignatures.filter(sig => signatureStages[sig.id] === 'viewed').length === 0 && (
+                            <div className="text-center text-xs text-gray-400 py-8">
+                              No contacts in this stage
+                            </div>
+                          )}
+                        </div>
+                      </DroppableStage>
+
+                      {/* Custom Stages */}
+                      {customStages.map((stageName, index) => (
+                        <DroppableStage key={index} id={stageName} className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-purple-900 flex items-center gap-2">
+                              <Tag className="h-4 w-4" />
+                              {stageName}
+                            </h4>
+                            <Badge className="bg-purple-200 text-purple-800">
+                              {filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).length}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2 max-h-96 overflow-y-auto">
+                            <SortableContext
+                              items={filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).map(s => s.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {filteredSignatures
+                                .filter(sig => signatureStages[sig.id] === stageName)
+                                .map(signature => (
+                                  <DraggableKanbanCard
+                                    key={signature.id}
+                                    signature={signature}
+                                  />
+                                ))}
+                            </SortableContext>
+                            {filteredSignatures.filter(sig => signatureStages[sig.id] === stageName).length === 0 && (
+                              <div className="text-center text-xs text-gray-400 py-8">
+                                No contacts in this stage yet
+                              </div>
+                            )}
+                          </div>
+                        </DroppableStage>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </DndContext>
               )}
 
               {/* Desktop Table View */}
