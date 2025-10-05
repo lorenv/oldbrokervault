@@ -407,7 +407,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     } else if (quickFilter === 'approved') {
       return !cimDocument.ndaApprovalRequired || signature.approved;
     } else if (quickFilter === 'viewed') {
-      return signature.documentViewedAt != null;
+      return signature.viewCount > 0;
     }
 
     return true; // 'all' filter
@@ -900,7 +900,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                   all: ndaSignatures.length,
                   pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
                   approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
-                  viewed: ndaSignatures.filter(sig => sig.documentViewedAt).length
+                  viewed: ndaSignatures.filter(sig => sig.viewCount > 0).length
                 };
 
                 return (

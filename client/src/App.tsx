@@ -14,6 +14,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import LoginPage from "@/pages/login-page";
 import AdminPage from "@/pages/admin-page";
 import DocumentsPage from "@/pages/documents-page";
+import AnalyticsPage from "@/pages/analytics-page";
 import AccountPage from "@/pages/account-page";
 import ProfilePage from "@/pages/profile-page";
 import PricingPage from "@/pages/pricing-page";
@@ -69,6 +70,7 @@ function Router() {
             <ProtectedRoute path="/dashboard" component={DashboardPage} />
             <ProtectedRoute path="/documents" component={DocumentsPage} />
             <ProtectedRoute path="/documents/:id" component={DocumentDetailPage} />
+            <ProtectedRoute path="/analytics" component={AnalyticsPage} />
             <ProtectedRoute path="/premium" component={PremiumDashboard} />
             <ProtectedRoute path="/investor-database" component={InvestorDatabasePage} />
             <ProtectedRoute path="/messages" component={Messages} />
