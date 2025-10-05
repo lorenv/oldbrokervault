@@ -1,19 +1,27 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw } from "lucide-react";
+import { Eye, FileSignature, UserCheck, FileText, TrendingUp, TrendingDown, Download, RefreshCw, Check, X, CheckCheck, MapPin } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { InvestorHeatMap } from "@/components/investor-heat-map";
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const [selectedDocument, setSelectedDocument] = useState<string>('all');
+  const [pendingDocFilter, setPendingDocFilter] = useState<string>('all');
+  const [mapDocFilter, setMapDocFilter] = useState<string>('all');
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Fetch analytics data
+  // Fetch analytics data with date range
   const { data: analytics, isLoading, refetch } = useQuery({
-    queryKey: ["/api/analytics/overview"],
+    queryKey: ["/api/analytics/overview", dateRange],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -27,12 +35,112 @@ export default function AnalyticsPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: pendingApprovalsData } = useQuery({
+    queryKey: ["/api/analytics/pending-approvals"],
+    staleTime: 1000 * 60 * 1, // 1 minute - keep fresh
+  });
+
+  const { data: allSignaturesData } = useQuery({
+    queryKey: ["/api/analytics/all-signatures"],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   const totalViews = analytics?.totalViews || 0;
   const totalSignatures = analytics?.totalSignatures || 0;
   const pendingApprovals = analytics?.pendingApprovals || 0;
   const activeDocuments = analytics?.activeDocuments || 0;
   const viewsTrend = analytics?.viewsTrend || 0;
   const signaturesTrend = analytics?.signaturesTrend || 0;
+
+  // Filter pending approvals by document
+  const filteredPendingApprovals = pendingApprovalsData?.filter((approval: any) =>
+    pendingDocFilter === 'all' || approval.documentId.toString() === pendingDocFilter
+  ) || [];
+
+  // Approve single NDA mutation
+  const approveMutation = useMutation({
+    mutationFn: async ({ docId, signatureId }: { docId: number; signatureId: number }) => {
+      const response = await apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/approve`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Approved",
+        description: "NDA signature has been approved successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve NDA",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject single NDA mutation
+  const rejectMutation = useMutation({
+    mutationFn: async ({ docId, signatureId }: { docId: number; signatureId: number }) => {
+      const response = await apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/reject`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Rejected",
+        description: "NDA signature has been rejected",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reject NDA",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bulk approve all mutation
+  const bulkApproveMutation = useMutation({
+    mutationFn: async () => {
+      const approvals = filteredPendingApprovals.map((approval: any) => ({
+        docId: approval.documentId,
+        signatureId: approval.id
+      }));
+
+      await Promise.all(
+        approvals.map(({ docId, signatureId }) =>
+          apiRequest("POST", `/api/cim/${docId}/nda-signatures/${signatureId}/approve`, {})
+        )
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "Bulk Approved",
+        description: `${filteredPendingApprovals.length} NDA signatures have been approved`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/overview"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve NDAs",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Scroll to pending approvals section
+  const scrollToPendingApprovals = () => {
+    const element = document.getElementById('pending-approvals');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Generate chart data
   const generateChartData = () => {
@@ -162,7 +270,10 @@ export default function AnalyticsPage() {
           </Card>
 
           {/* Pending Approvals */}
-          <Card className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+          <Card
+            className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={scrollToPendingApprovals}
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-sm font-medium text-gray-600">
                 <span>Pending Approvals</span>
@@ -176,7 +287,9 @@ export default function AnalyticsPage() {
                   <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-2">Requires action</p>
+              <p className="text-sm text-gray-500 mt-2">
+                {pendingApprovals > 0 ? 'Click to view & approve' : 'All caught up!'}
+              </p>
             </CardContent>
           </Card>
 
@@ -242,10 +355,188 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Document Performance Table */}
-        <Card className="bg-white shadow-md border border-gray-200">
+        {/* Pending NDA Approvals Section */}
+        <Card className="bg-white shadow-md border border-gray-200" id="pending-approvals">
           <CardHeader>
-            <CardTitle className="text-xl font-bold">Document Performance</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <UserCheck className="h-5 w-5 text-orange-600" />
+                Pending NDA Approvals
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                {/* Document Filter */}
+                <Select value={pendingDocFilter} onValueChange={setPendingDocFilter}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Filter by document" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Documents</SelectItem>
+                    {documentsData?.map((doc: any) => (
+                      <SelectItem key={doc.id} value={doc.id.toString()}>
+                        {doc.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Bulk Approve Button */}
+                {filteredPendingApprovals.length > 0 && (
+                  <Button
+                    onClick={() => bulkApproveMutation.mutate()}
+                    disabled={bulkApproveMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCheck className="h-4 w-4 mr-2" />
+                    Approve All ({filteredPendingApprovals.length})
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              {filteredPendingApprovals.length > 0 ? (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document</th>
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Location</th>
+                      <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
+                      <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPendingApprovals.map((approval: any) => (
+                      <tr key={approval.id} className="border-b hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <a
+                            href={`/documents/${approval.documentId}?tab=nda`}
+                            className="text-blue-600 hover:underline font-medium"
+                          >
+                            {approval.documentTitle}
+                          </a>
+                        </td>
+                        <td className="py-3 px-4">{approval.signerName}</td>
+                        <td className="py-3 px-4 text-sm text-gray-600">{approval.signerEmail}</td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {approval.signerLocation || 'Unknown'}
+                        </td>
+                        <td className="text-center py-3 px-4 text-sm text-gray-600">
+                          {format(new Date(approval.signedAt), 'MMM dd, yyyy')}
+                        </td>
+                        <td className="text-center py-3 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => approveMutation.mutate({
+                                docId: approval.documentId,
+                                signatureId: approval.id
+                              })}
+                              disabled={approveMutation.isPending}
+                              className="text-green-600 border-green-300 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => rejectMutation.mutate({
+                                docId: approval.documentId,
+                                signatureId: approval.id
+                              })}
+                              disabled={rejectMutation.isPending}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">All Caught Up!</h3>
+                  <p className="text-gray-600">
+                    {pendingDocFilter === 'all'
+                      ? 'No pending NDA approvals across all documents'
+                      : 'No pending NDA approvals for this document'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Signature Location Map */}
+        <Card className="bg-white shadow-md border border-gray-200 mt-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-blue-600" />
+                Signature Locations
+              </CardTitle>
+              <Select value={mapDocFilter} onValueChange={setMapDocFilter}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Filter by document" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Documents</SelectItem>
+                  {documentsData?.map((doc: any) => (
+                    <SelectItem key={doc.id} value={doc.id.toString()}>
+                      {doc.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <InvestorHeatMap
+              contacts={
+                (allSignaturesData || [])
+                  .filter((sig: any) => mapDocFilter === 'all' || sig.documentId.toString() === mapDocFilter)
+                  .map((sig: any) => ({
+                    location: sig.signerLocation || 'Unknown',
+                    email: sig.signerEmail,
+                    name: sig.signerName
+                  }))
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Document Performance Table - Top 5 */}
+        <Card className="bg-white shadow-md border border-gray-200 mt-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold">Top Performing Documents</CardTitle>
+              {documentsData && documentsData.length > 5 && !showAllDocuments && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllDocuments(true)}
+                >
+                  See All ({documentsData.length})
+                </Button>
+              )}
+              {showAllDocuments && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllDocuments(false)}
+                >
+                  Show Top 5
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -261,7 +552,7 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody>
                   {documentsData && documentsData.length > 0 ? (
-                    documentsData.map((doc: any) => (
+                    (showAllDocuments ? documentsData : documentsData.slice(0, 5)).map((doc: any) => (
                       <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
                         <td className="py-3 px-4">
                           <a href={`/documents/${doc.id}`} className="text-blue-600 hover:underline font-medium">

@@ -3870,6 +3870,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cimDocuments, documentViews, ndaSignatures } = await import('@shared/schema');
       const { count: countFn, gte, lt, isNull } = await import('drizzle-orm');
 
+      const range = (req.query.range as string) || '30d';
+
       // Get all user's CIM documents
       const userDocs = await db
         .select({ id: cimDocuments.id })
@@ -3892,21 +3894,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Count total views
-      const [viewsResult] = await db
+      // Calculate date ranges based on range parameter
+      const now = new Date();
+      let rangeDays: number;
+      let currentStartDate: Date;
+      let previousStartDate: Date;
+      let previousEndDate: Date;
+
+      switch (range) {
+        case '7d':
+          rangeDays = 7;
+          break;
+        case '30d':
+          rangeDays = 30;
+          break;
+        case '90d':
+          rangeDays = 90;
+          break;
+        case 'all':
+          rangeDays = 0;
+          break;
+        default:
+          rangeDays = 30;
+      }
+
+      if (range === 'all') {
+        currentStartDate = new Date(0);
+        previousStartDate = new Date(0);
+        previousEndDate = new Date(0);
+      } else {
+        currentStartDate = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
+        previousEndDate = currentStartDate;
+        previousStartDate = new Date(currentStartDate.getTime() - rangeDays * 24 * 60 * 60 * 1000);
+      }
+
+      // Count views in current period
+      const [currentViewsResult] = await db
         .select({ count: countFn() })
         .from(documentViews)
-        .where(inArray(documentViews.cimDocumentId, docIds));
-      const totalViews = Number(viewsResult?.count || 0);
+        .where(and(
+          inArray(documentViews.cimDocumentId, docIds),
+          range === 'all' ? sql`1=1` : gte(documentViews.viewedAt, currentStartDate)
+        ));
+      const totalViews = Number(currentViewsResult?.count || 0);
 
-      // Count total signatures
-      const [signaturesResult] = await db
+      // Count signatures in current period
+      const [currentSigsResult] = await db
         .select({ count: countFn() })
         .from(ndaSignatures)
-        .where(inArray(ndaSignatures.cimDocumentId, docIds));
-      const totalSignatures = Number(signaturesResult?.count || 0);
+        .where(and(
+          inArray(ndaSignatures.cimDocumentId, docIds),
+          range === 'all' ? sql`1=1` : gte(ndaSignatures.signedAt, currentStartDate)
+        ));
+      const totalSignatures = Number(currentSigsResult?.count || 0);
 
-      // Count pending approvals
+      // Count pending approvals (always total, not affected by date range)
       const [pendingResult] = await db
         .select({ count: countFn() })
         .from(ndaSignatures)
@@ -3916,7 +3958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ));
       const pendingApprovals = Number(pendingResult?.count || 0);
 
-      // Count active documents (shareEnabled = true)
+      // Count active documents (always total, not affected by date range)
       const [activeResult] = await db
         .select({ count: countFn() })
         .from(cimDocuments)
@@ -3927,61 +3969,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ));
       const activeDocuments = Number(activeResult?.count || 0);
 
-      // Calculate trends (last 30 days vs previous 30 days)
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      // Calculate trends (compare current period vs previous period of same length)
+      let viewsTrend = 0;
+      let signaturesTrend = 0;
 
-      // Current period views (last 30 days)
-      const [currentViewsResult] = await db
-        .select({ count: countFn() })
-        .from(documentViews)
-        .where(and(
-          inArray(documentViews.cimDocumentId, docIds),
-          gte(documentViews.viewedAt, thirtyDaysAgo)
-        ));
-      const currentViews = Number(currentViewsResult?.count || 0);
+      if (range !== 'all') {
+        // Previous period views
+        const [previousViewsResult] = await db
+          .select({ count: countFn() })
+          .from(documentViews)
+          .where(and(
+            inArray(documentViews.cimDocumentId, docIds),
+            gte(documentViews.viewedAt, previousStartDate),
+            lt(documentViews.viewedAt, previousEndDate)
+          ));
+        const previousViews = Number(previousViewsResult?.count || 0);
 
-      // Previous period views (30-60 days ago)
-      const [previousViewsResult] = await db
-        .select({ count: countFn() })
-        .from(documentViews)
-        .where(and(
-          inArray(documentViews.cimDocumentId, docIds),
-          gte(documentViews.viewedAt, sixtyDaysAgo),
-          lt(documentViews.viewedAt, thirtyDaysAgo)
-        ));
-      const previousViews = Number(previousViewsResult?.count || 0);
+        // Previous period signatures
+        const [previousSigsResult] = await db
+          .select({ count: countFn() })
+          .from(ndaSignatures)
+          .where(and(
+            inArray(ndaSignatures.cimDocumentId, docIds),
+            gte(ndaSignatures.signedAt, previousStartDate),
+            lt(ndaSignatures.signedAt, previousEndDate)
+          ));
+        const previousSignatures = Number(previousSigsResult?.count || 0);
 
-      // Current period signatures (last 30 days)
-      const [currentSigsResult] = await db
-        .select({ count: countFn() })
-        .from(ndaSignatures)
-        .where(and(
-          inArray(ndaSignatures.cimDocumentId, docIds),
-          gte(ndaSignatures.signedAt, thirtyDaysAgo)
-        ));
-      const currentSignatures = Number(currentSigsResult?.count || 0);
+        // Calculate percentage trends (handle division by zero)
+        viewsTrend = previousViews > 0 
+          ? Math.round(((totalViews - previousViews) / previousViews) * 100)
+          : totalViews > 0 ? 100 : 0;
 
-      // Previous period signatures (30-60 days ago)
-      const [previousSigsResult] = await db
-        .select({ count: countFn() })
-        .from(ndaSignatures)
-        .where(and(
-          inArray(ndaSignatures.cimDocumentId, docIds),
-          gte(ndaSignatures.signedAt, sixtyDaysAgo),
-          lt(ndaSignatures.signedAt, thirtyDaysAgo)
-        ));
-      const previousSignatures = Number(previousSigsResult?.count || 0);
-
-      // Calculate percentage trends (handle division by zero)
-      const viewsTrend = previousViews > 0 
-        ? Math.round(((currentViews - previousViews) / previousViews) * 100)
-        : currentViews > 0 ? 100 : 0;
-
-      const signaturesTrend = previousSignatures > 0
-        ? Math.round(((currentSignatures - previousSignatures) / previousSignatures) * 100)
-        : currentSignatures > 0 ? 100 : 0;
+        signaturesTrend = previousSignatures > 0
+          ? Math.round(((totalSignatures - previousSignatures) / previousSignatures) * 100)
+          : totalSignatures > 0 ? 100 : 0;
+      }
 
       res.json({
         totalViews,
@@ -4190,6 +4213,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching document analytics:', error);
       res.status(500).json({ error: "Failed to fetch document analytics" });
+    }
+  });
+
+  // Analytics Pending Approvals - Get all pending NDA approvals
+  app.get("/api/analytics/pending-approvals", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { cimDocuments, ndaSignatures } = await import('@shared/schema');
+      const { isNull } = await import('drizzle-orm');
+
+      // Get all user's CIM documents that have approval required
+      const userDocs = await db
+        .select({
+          id: cimDocuments.id,
+          title: cimDocuments.title
+        })
+        .from(cimDocuments)
+        .where(and(
+          eq(cimDocuments.userId, req.user.id),
+          eq(cimDocuments.ndaApprovalRequired, true),
+          isNull(cimDocuments.deletedAt)
+        ));
+
+      if (userDocs.length === 0) {
+        return res.json([]);
+      }
+
+      const docIds = userDocs.map(doc => doc.id);
+
+      // Get all pending signatures (approved = false)
+      const pendingSignatures = await db
+        .select({
+          id: ndaSignatures.id,
+          cimDocumentId: ndaSignatures.cimDocumentId,
+          signerName: ndaSignatures.signerName,
+          signerEmail: ndaSignatures.signerEmail,
+          signerLocation: ndaSignatures.signerLocation,
+          signedAt: ndaSignatures.signedAt
+        })
+        .from(ndaSignatures)
+        .where(and(
+          inArray(ndaSignatures.cimDocumentId, docIds),
+          eq(ndaSignatures.approved, false)
+        ))
+        .orderBy(desc(ndaSignatures.signedAt));
+
+      // Create a map for document titles
+      const docTitlesMap = new Map(userDocs.map(doc => [doc.id, doc.title]));
+
+      // Format the response
+      const pendingApprovals = pendingSignatures.map(sig => ({
+        id: sig.id,
+        documentId: sig.cimDocumentId,
+        documentTitle: docTitlesMap.get(sig.cimDocumentId) || 'Unknown Document',
+        signerName: sig.signerName,
+        signerEmail: sig.signerEmail,
+        signerLocation: sig.signerLocation || '',
+        signedAt: sig.signedAt.toISOString()
+      }));
+
+      res.json(pendingApprovals);
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      res.status(500).json({ error: "Failed to fetch pending approvals" });
+    }
+  });
+
+  // Analytics All Signatures - Get all NDA signatures across all user's documents
+  app.get("/api/analytics/all-signatures", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { cimDocuments, ndaSignatures } = await import('@shared/schema');
+      const { isNull } = await import('drizzle-orm');
+
+      // Get all user's CIM documents
+      const userDocs = await db
+        .select({
+          id: cimDocuments.id,
+          title: cimDocuments.title
+        })
+        .from(cimDocuments)
+        .where(and(
+          eq(cimDocuments.userId, req.user.id),
+          isNull(cimDocuments.deletedAt)
+        ));
+
+      if (userDocs.length === 0) {
+        return res.json([]);
+      }
+
+      const docIds = userDocs.map(doc => doc.id);
+
+      // Get all signatures (approved and unapproved)
+      const allSignatures = await db
+        .select({
+          id: ndaSignatures.id,
+          cimDocumentId: ndaSignatures.cimDocumentId,
+          signerName: ndaSignatures.signerName,
+          signerEmail: ndaSignatures.signerEmail,
+          signerLocation: ndaSignatures.signerLocation,
+          signedAt: ndaSignatures.signedAt
+        })
+        .from(ndaSignatures)
+        .where(inArray(ndaSignatures.cimDocumentId, docIds))
+        .orderBy(desc(ndaSignatures.signedAt));
+
+      // Create a map for document titles
+      const docTitlesMap = new Map(userDocs.map(doc => [doc.id, doc.title]));
+
+      // Format the response
+      const signatures = allSignatures.map(sig => ({
+        id: sig.id,
+        documentId: sig.cimDocumentId,
+        documentTitle: docTitlesMap.get(sig.cimDocumentId) || 'Unknown Document',
+        signerName: sig.signerName,
+        signerEmail: sig.signerEmail,
+        signerLocation: sig.signerLocation || '',
+        signedAt: sig.signedAt.toISOString()
+      }));
+
+      res.json(signatures);
+    } catch (error) {
+      console.error('Error fetching all signatures:', error);
+      res.status(500).json({ error: "Failed to fetch signatures" });
     }
   });
 
