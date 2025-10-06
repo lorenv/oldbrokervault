@@ -168,7 +168,7 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>(() => {
     return (localStorage.getItem('ndaViewMode') as 'table' | 'kanban') || 'table';
   });
-  const [quickFilter, setQuickFilter] = useState<'all' | 'pending' | 'approved' | 'viewed'>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'viewed'>('all');
   const [customStages, setCustomStages] = useState<string[]>([]);
   const [isManagingStages, setIsManagingStages] = useState(false);
   const [newStageName, setNewStageName] = useState('');
@@ -457,9 +457,11 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
     // Apply quick filter
     if (quickFilter === 'pending') {
-      return cimDocument.ndaApprovalRequired && !signature.approved;
+      return cimDocument.ndaApprovalRequired && !signature.approved && !signature.rejected;
     } else if (quickFilter === 'approved') {
       return !cimDocument.ndaApprovalRequired || signature.approved;
+    } else if (quickFilter === 'rejected') {
+      return signature.rejected;
     } else if (quickFilter === 'viewed') {
       return signature.viewCount > 0;
     }
@@ -524,8 +526,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
       'Email': sig.signerEmail,
       'Location': sig.signerLocation || 'Unknown',
       'Signed Date': format(new Date(sig.signedAt), 'yyyy-MM-dd HH:mm:ss'),
-      'Status': cimDocument.ndaApprovalRequired 
-        ? (sig.approved ? 'Approved' : 'Pending') 
+      'Status': cimDocument.ndaApprovalRequired
+        ? (sig.rejected ? 'Rejected' : sig.approved ? 'Approved' : 'Pending')
         : 'Active',
       'Views': sig.viewCount || 0
     }));
@@ -668,7 +670,8 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
           <div>
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor="nda-protection" className="text-base font-semibold text-gray-900">
-                Require NDA Before Access
+                <span className="hidden sm:inline">Require NDA Before Access</span>
+                <span className="sm:hidden">Require NDA</span>
               </Label>
               <div className="flex items-center gap-3">
                 {/* Template Selection - Inline when toggle is on */}
@@ -704,13 +707,6 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </Select>
                   </div>
                 )}
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                  ndaSettings.ndaProtected
-                    ? 'text-emerald-700 bg-emerald-100'
-                    : 'text-gray-600 bg-gray-100'
-                }`}>
-                  {ndaSettings.ndaProtected ? '🔒 Protected' : '🌐 Open'}
-                </span>
                 <Switch
                   id="nda-protection"
                   checked={ndaSettings.ndaProtected}
@@ -953,18 +949,20 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
 
             {/* Quick Filters */}
             <div className="flex flex-wrap items-center gap-2">
-              {(['all', 'pending', 'approved', 'viewed'] as const).map((filter) => {
+              {(['all', 'pending', 'approved', 'rejected', 'viewed'] as const).map((filter) => {
                 const isActive = quickFilter === filter;
                 const labels = {
                   all: 'All',
                   pending: 'Pending',
                   approved: 'Approved',
+                  rejected: 'Rejected',
                   viewed: 'Viewed'
                 };
                 const counts = {
                   all: ndaSignatures.length,
-                  pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved).length,
+                  pending: ndaSignatures.filter(sig => cimDocument.ndaApprovalRequired && !sig.approved && !sig.rejected).length,
                   approved: ndaSignatures.filter(sig => !cimDocument.ndaApprovalRequired || sig.approved).length,
+                  rejected: ndaSignatures.filter(sig => sig.rejected).length,
                   viewed: ndaSignatures.filter(sig => sig.viewCount > 0).length
                 };
 
@@ -1001,16 +999,28 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {cimDocument.ndaApprovalRequired && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleBatchApproval}
-                    disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
-                    className="bg-white/20 hover:bg-white/30 border-white/30"
-                  >
-                    <Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">{batchApproveSignersMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}</span>
-                  </Button>
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleBatchApproval}
+                      disabled={batchApproveSignersMutation.isPending || selectedSignatures.length === 0}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Check className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">{batchApproveSignersMutation.isPending ? "Approving..." : `Approve ${selectedSignatures.length}`}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBatchRejection}
+                      disabled={batchRejectSignersMutation.isPending || selectedSignatures.length === 0}
+                      className="text-red-600 border-red-300 hover:bg-red-50 bg-white"
+                    >
+                      <X className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">{batchRejectSignersMutation.isPending ? "Rejecting..." : `Reject ${selectedSignatures.length}`}</span>
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="outline"
@@ -1389,7 +1399,12 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </TableCell>
                     <TableCell>
                       {cimDocument.ndaApprovalRequired ? (
-                        signature.approved ? (
+                        signature.rejected ? (
+                          <Badge variant="destructive" className="bg-red-100 text-red-800">
+                            <X className="h-3 w-3 mr-1" />
+                            Rejected
+                          </Badge>
+                        ) : signature.approved ? (
                           <Badge variant="default" className="bg-green-100 text-green-800">
                             <Check className="h-3 w-3 mr-1" />
                             Approved
@@ -1415,20 +1430,33 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {cimDocument.ndaApprovalRequired && !signature.approved && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleApproveSignature(signature.id)}
-                            disabled={approvingSignatureId === signature.id}
-                            title="Approve signer"
-                          >
-                            {approvingSignatureId === signature.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Check className="h-3 w-3" />
-                            )}
-                          </Button>
+                        {cimDocument.ndaApprovalRequired && !signature.approved && !signature.rejected && (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveSignature(signature.id)}
+                              disabled={approvingSignatureId === signature.id}
+                              title="Approve signer"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              {approvingSignatureId === signature.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRejectSignature(signature.id)}
+                              disabled={rejectSignerMutation.isPending}
+                              title="Reject signer"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
                         )}
                         <Button
                           variant="outline"
@@ -1610,7 +1638,12 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {cimDocument.ndaApprovalRequired ? (
-                          signature.approved ? (
+                          signature.rejected ? (
+                            <Badge variant="destructive" className="bg-red-100 text-red-800 text-xs">
+                              <X className="h-3 w-3 mr-1" />
+                              Rejected
+                            </Badge>
+                          ) : signature.approved ? (
                             <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
                               <Check className="h-3 w-3 mr-1" />
                               Approved
@@ -1648,21 +1681,33 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap pt-3 border-t">
-                      {cimDocument.ndaApprovalRequired && !signature.approved && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleApproveSignature(signature.id)}
-                          disabled={approvingSignatureId === signature.id}
-                          className="flex-1 min-w-[100px]"
-                        >
-                          {approvingSignatureId === signature.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                          ) : (
-                            <Check className="h-3 w-3 mr-2" />
-                          )}
-                          Approve
-                        </Button>
+                      {cimDocument.ndaApprovalRequired && !signature.approved && !signature.rejected && (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleApproveSignature(signature.id)}
+                            disabled={approvingSignatureId === signature.id}
+                            className="flex-1 min-w-[100px] bg-green-600 hover:bg-green-700"
+                          >
+                            {approvingSignatureId === signature.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                            ) : (
+                              <Check className="h-3 w-3 mr-2" />
+                            )}
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectSignature(signature.id)}
+                            disabled={rejectSignerMutation.isPending}
+                            className="flex-1 min-w-[100px] text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            <X className="h-3 w-3 mr-2" />
+                            Reject
+                          </Button>
+                        </>
                       )}
                       <Button
                         variant="outline"

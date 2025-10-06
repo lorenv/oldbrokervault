@@ -82,25 +82,29 @@ export function SubscriptionCard({
   };
 
   return (
-    <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200/50 hover:shadow-xl transition-all duration-200 rounded-xl">
-      <CardHeader className="pb-4 pt-6 px-6">
+    <Card className="bg-white shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
+      <CardHeader className="pb-4 pt-6 px-6 bg-slate-700 border-b border-slate-600">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <CreditCard className="h-5 w-5 text-gray-600" />
+            <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+              <CreditCard className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-gray-900">Subscription Status</CardTitle>
-              <p className="text-gray-600 mt-1 text-sm">
-                {status === "admin" ? "Administrator account with unlimited access" : 
-                 status !== "free" ? "Your subscription details and usage" : 
-                 "Upgrade to generate more CIMs per month"}
+              <CardTitle className="text-lg font-bold text-white">Subscription Status</CardTitle>
+              <p className="text-white/90 mt-0.5 text-sm font-medium">
+                {status === "admin" ? "Administrator account with unlimited access" :
+                 status !== "free" ? "Your subscription details and usage" :
+                 "Unlock unlimited potential"}
               </p>
             </div>
           </div>
           <Badge
             variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
-            className="text-xs px-3 py-1 font-semibold flex-shrink-0"
+            className={`text-xs px-3 py-1.5 font-bold flex-shrink-0 shadow-sm ${
+              status === "free" ? "bg-white/90 text-gray-700" :
+              isCanceled ? "bg-red-100 text-red-700" :
+              "bg-white/90 text-slate-700"
+            }`}
           >
             {isCanceled ? "CANCELED" :
              status === "standard" ? "PRO" :
@@ -166,34 +170,34 @@ export function SubscriptionCard({
             ) : null}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Documents Created This Month</p>
-              <div className="w-full bg-muted rounded-full h-2">
+              <p className="text-sm font-semibold text-gray-700">Documents Created This Month</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 shadow-inner">
                 <div
-                  className="bg-primary rounded-full h-2"
+                  className="bg-blue-600 rounded-full h-2.5 transition-all duration-500"
                   style={{
                     width: `${getLimit() === "Unlimited" ? 0 : Math.min((monthlyDocumentsCreated / (getLimit() as number)) * 100, 100)}%`,
                   }}
                 />
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-medium text-gray-600">
                 {monthlyDocumentsCreated} / {getLimit()} documents created
               </p>
             </div>
 
             {!hideRegenerations && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Regenerations Used This Month</p>
-                <div className="w-full bg-muted rounded-full h-2">
+                <p className="text-sm font-semibold text-gray-700">Regenerations Used This Month</p>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 shadow-inner">
                   <div
-                    className="bg-secondary rounded-full h-2"
+                    className="bg-slate-600 rounded-full h-2.5 transition-all duration-500"
                     style={{
                       width: `${getRegenerationLimit() === "Unlimited" ? 0 : Math.min((monthlyRegenerationsUsed / (getRegenerationLimit() as number)) * 100, 100)}%`,
                     }}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm font-medium text-gray-600">
                   {monthlyRegenerationsUsed} / {getRegenerationLimit()} regenerations used
                 </p>
               </div>
@@ -202,8 +206,8 @@ export function SubscriptionCard({
 
           {!isPremium && !isAdmin && !isCanceled && !isStandard && (
             <Button
-              className="w-full"
-              size={subtle ? "sm" : "default"}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              size={subtle ? "sm" : "lg"}
               onClick={handleUpgrade}
             >
               {subtle ? "Upgrade Plan" : "Upgrade Subscription"}
@@ -213,24 +217,33 @@ export function SubscriptionCard({
           {(isPremium || isStandard || isCanceled) && !isAdmin &&
            !(hideProButtons && isStandard) && (
             <Button
-              className="w-full"
-              variant={isCanceled ? "default" : "outline"}
-              size={subtle ? "sm" : "default"}
+              className={`w-full font-semibold shadow-md hover:shadow-lg transition-all duration-200 ${
+                isCanceled
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-slate-700 hover:bg-slate-800 text-white border-0"
+              }`}
+              size={subtle ? "sm" : "lg"}
               onClick={handleCustomerPortal}
               disabled={isLoading}
             >
-              {isLoading ? "Loading..." : isCanceled ? "Reactivate Subscription" : "Change your plan"}
+              {isLoading ? "Loading..." : isCanceled ? "Reactivate Subscription" : "Change Your Plan"}
             </Button>
           )}
 
           
 
           {status === "free" && (
-            <div className="text-sm text-muted-foreground mt-4">
-              <p>Upgrade for more CIM documents:</p>
-              <ul className="list-disc pl-4 mt-2">
-                <li>Pro: 20 CIMs per month, unlimited regenerations</li>
-                <li>Enterprise: Unlimited CIMs and regenerations</li>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <p className="text-sm font-semibold text-gray-800 mb-3">Unlock More with Premium:</p>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">•</span>
+                  <span><strong>Pro:</strong> 10 CIMs per month, unlimited regenerations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-600 font-bold">•</span>
+                  <span><strong>Enterprise:</strong> Unlimited CIMs and regenerations</span>
+                </li>
               </ul>
             </div>
           )}
