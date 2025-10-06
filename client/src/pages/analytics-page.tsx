@@ -9,6 +9,7 @@ import { format, subDays, eachDayOfInterval } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { InvestorHeatMap } from "@/components/investor-heat-map";
+import { ContactDetailModal } from "@/components/contact-detail-modal";
 
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
@@ -19,6 +20,8 @@ export default function AnalyticsPage() {
   const [showAllPendingApprovals, setShowAllPendingApprovals] = useState(false);
   const [docStatusFilter, setDocStatusFilter] = useState<string>('all');
   const [docTimeFilter, setDocTimeFilter] = useState<string>('all');
+  const [viewingContact, setViewingContact] = useState<any | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -481,8 +484,8 @@ export default function AnalyticsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Signer Name</th>
+                      <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Email</th>
                       <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Location</th>
                       <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signed Date</th>
@@ -493,6 +496,28 @@ export default function AnalyticsPage() {
                     {(showAllPendingApprovals ? filteredPendingApprovals : filteredPendingApprovals.slice(0, 10)).map((approval: any) => (
                       <tr key={approval.id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4">
+                          <button
+                            onClick={() => {
+                              setViewingContact({
+                                id: approval.id,
+                                name: approval.signerName,
+                                email: approval.signerEmail,
+                                location: approval.signerLocation,
+                                status: 'new',
+                                totalDocumentViews: 1,
+                                firstSeenAt: approval.signedAt,
+                                lastSeenAt: approval.signedAt,
+                                ipAddress: approval.signerIpAddress || '',
+                                tags: []
+                              });
+                              setIsContactModalOpen(true);
+                            }}
+                            className="text-blue-600 hover:underline font-medium text-left"
+                          >
+                            {approval.signerName}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4">
                           <a
                             href={`/documents/${approval.documentId}?tab=nda`}
                             className="text-blue-600 hover:underline font-medium"
@@ -500,7 +525,6 @@ export default function AnalyticsPage() {
                             {approval.documentTitle}
                           </a>
                         </td>
-                        <td className="py-3 px-4">{approval.signerName}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">{approval.signerEmail}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">
                           {approval.signerLocation || 'Unknown'}
@@ -692,6 +716,20 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Contact Detail Modal */}
+      <ContactDetailModal
+        contact={viewingContact}
+        isOpen={isContactModalOpen}
+        onClose={() => {
+          setIsContactModalOpen(false);
+          setViewingContact(null);
+        }}
+        onUpdate={() => {
+          // Optionally refresh the data if contact is updated
+          queryClient.invalidateQueries({ queryKey: ["/api/analytics/pending-approvals"] });
+        }}
+      />
     </div>
   );
 }

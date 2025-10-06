@@ -293,6 +293,9 @@ export const ndaSignatures = pgTable("nda_signatures", {
   approved: boolean("approved").default(false).notNull(),
   approvedAt: timestamp("approved_at"),
   approvedBy: integer("approved_by"), // User ID who approved
+  rejected: boolean("rejected").default(false).notNull(),
+  rejectedAt: timestamp("rejected_at"),
+  rejectedBy: integer("rejected_by"), // User ID who rejected
   fieldValues: jsonb("field_values").default({}).notNull(), // Field ID to value mapping
   signingSessionId: integer("signing_session_id"), // Link to new signing session
   stage: text("stage"), // Kanban stage for organizing signers
