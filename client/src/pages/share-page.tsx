@@ -13,6 +13,7 @@ import { ShareStickySidebar } from "@/components/share-sticky-sidebar";
 import { Shield, FileText, AlertCircle, Download, Package, DollarSign, TrendingUp, BarChart3, Loader2, Globe, ExternalLink, Clock, Phone } from "lucide-react";
 import { OwnerToolbar } from "@/components/owner-toolbar";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export function SharePage() {
   const [matchShare, paramsShare] = useRoute("/share/:shareSlug");
@@ -24,6 +25,8 @@ export function SharePage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [hasShownBypassNotification, setHasShownBypassNotification] = useState(false);
 
   // Parallax effect state
   const [scrollY, setScrollY] = useState(0);
@@ -158,6 +161,21 @@ export function SharePage() {
       setShowNdaDialog(true);
     }
   }, [shareData, hasSignedNda, error, isLoading, ndaCheck]);
+
+  // Show notification when NDA is bypassed for collaborators/owners
+  useEffect(() => {
+    if (shareData?.bypassedNda && !hasShownBypassNotification) {
+      const role = shareData.isOwner ? "document owner" : shareData.isCollaborator ? "collaborator" : "";
+      if (role) {
+        toast({
+          title: "NDA Requirement Bypassed",
+          description: `As a ${role}, you can access this NDA-protected document without signing.`,
+          duration: 5000,
+        });
+        setHasShownBypassNotification(true);
+      }
+    }
+  }, [shareData?.bypassedNda, shareData?.isOwner, shareData?.isCollaborator, hasShownBypassNotification, toast]);
 
   if (isCheckingNda || isLoading || isValidatingToken) {
     return (

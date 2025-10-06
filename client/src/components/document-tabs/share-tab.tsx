@@ -34,6 +34,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DocumentExport } from "@/components/document-export";
+import { CollaboratorsSection } from "@/components/document-tabs/collaborators-section";
+import { DocumentActivityLog } from "@/components/document-activity-log";
 
 interface DocumentShareTabProps {
   cimDocument: any;
@@ -738,6 +740,20 @@ export function DocumentShareTab({ cimDocument, user }: DocumentShareTabProps) {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Collaborators Section */}
+      <div className="mt-6">
+        <CollaboratorsSection
+          documentId={cimDocument.id}
+          isOwner={cimDocument.userId === user?.id}
+          user={user}
+        />
+      </div>
+
+      {/* Activity Log */}
+      <div className="mt-6">
+        <DocumentActivityLog documentId={cimDocument.id} />
+      </div>
     </div>
   );
 }
