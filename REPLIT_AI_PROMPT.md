@@ -2,10 +2,21 @@
 
 Please create the following API endpoints for the analytics dashboard feature. Add these to `/home/runner/workspace/server/routes.ts`.
 
+## IMPORTANT CLARIFICATIONS:
+
+1. **Dynamic Range Support is REQUIRED**: The `/api/analytics/overview` endpoint MUST accept a `range` query parameter and return data for that specific time period.
+
+2. **Signatures Count Must Be Time-Period Specific**: The `totalSignatures` in the overview endpoint should count ONLY the signatures that occurred within the selected time range, NOT all-time signatures. This is crucial for user understanding.
+
+3. **The frontend is already implemented** and expects these endpoints to work with the specified query parameters and response formats.
+
 ## Required Endpoints:
 
-### 1. GET /api/analytics/overview
-Returns aggregate analytics across all user's documents.
+### 1. GET /api/analytics/overview?range=30d
+Returns aggregate analytics across all user's documents for the specified time range.
+
+**Query params:**
+- `range`: one of `7d`, `30d`, `90d`, `all` (defaults to `30d`)
 
 **Response format:**
 ```json
@@ -21,11 +32,23 @@ Returns aggregate analytics across all user's documents.
 
 **Implementation notes:**
 - Get all CIM documents for the authenticated user
-- Count total views from `documentViews` table where `cimDocumentId` matches user's documents
-- Count total signatures from `ndaSignatures` table where `cimDocumentId` matches user's documents
-- Count pending approvals: signatures where `ndaApprovalRequired = true` AND `approved = false`
-- Count active documents: documents where `shareEnabled = true`
-- Calculate trends by comparing current period (last 30 days) vs previous period (30 days before that)
+- **IMPORTANT**: Filter views and signatures by the time range specified in the `range` parameter
+  - For `7d`: Count views/signatures from last 7 days only
+  - For `30d`: Count views/signatures from last 30 days only
+  - For `90d`: Count views/signatures from last 90 days only
+  - For `all`: Count all views/signatures ever
+- Count total views from `documentViews` table where:
+  - `cimDocumentId` matches user's documents
+  - **AND `viewedAt` is within the selected time range**
+- Count total signatures from `ndaSignatures` table where:
+  - `cimDocumentId` matches user's documents
+  - **AND `signedAt` is within the selected time range**
+- Count pending approvals: signatures where `ndaApprovalRequired = true` AND `approved = false` (NOT time-filtered, always show all pending)
+- Count active documents: documents where `shareEnabled = true` (NOT time-filtered, always show all active)
+- Calculate trends by comparing current period vs previous period of same length:
+  - Example for `30d`: Compare last 30 days vs 30 days before that
+  - Formula: `((current - previous) / previous) * 100`
+  - Handle division by zero: if previous === 0, set trend to 0
 
 ### 2. GET /api/analytics/timeline?range=30d
 Returns time-series data for views and signatures.
