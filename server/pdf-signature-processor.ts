@@ -279,6 +279,8 @@ export class PdfSignatureProcessor {
         color: rgb(0.3, 0.3, 0.3),
       });
 
+      // Add space before the legal text
+      yPosition -= 25;
       page.drawText('This signature is legally binding and was captured using secure', {
         x: 60,
         y: yPosition,

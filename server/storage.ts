@@ -177,6 +177,9 @@ export interface IStorage {
   // NDA Approval
   approveNdaSignature(signatureId: number, userId: number): Promise<NdaSignature>;
   approveNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]>;
+  // NDA Rejection
+  rejectNdaSignature(signatureId: number, userId: number): Promise<NdaSignature>;
+  rejectNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]>;
   // NDA Stage Management
   updateNdaSignatureStage(signatureId: number, stage: string | null): Promise<NdaSignature>;
   // NDA Access Tokens
@@ -1745,6 +1748,42 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
       .where(eq(ndaSignatures.id, signatureId))
       .returning();
     return updatedSignature;
+  }
+
+  async rejectNdaSignature(signatureId: number, userId: number): Promise<NdaSignature> {
+    const [rejectedSignature] = await db.update(ndaSignatures)
+      .set({
+        rejected: true,
+        rejectedAt: new Date(),
+        rejectedBy: userId
+      })
+      .where(eq(ndaSignatures.id, signatureId))
+      .returning();
+
+    // Deactivate any access tokens for this signature
+    await db.update(ndaAccessTokens)
+      .set({ isActive: false })
+      .where(eq(ndaAccessTokens.ndaSignatureId, signatureId));
+
+    return rejectedSignature;
+  }
+
+  async rejectNdaSignaturesBatch(signatureIds: number[], userId: number): Promise<NdaSignature[]> {
+    const rejectedSignatures = await db.update(ndaSignatures)
+      .set({
+        rejected: true,
+        rejectedAt: new Date(),
+        rejectedBy: userId
+      })
+      .where(inArray(ndaSignatures.id, signatureIds))
+      .returning();
+
+    // Deactivate all access tokens for these signatures
+    await db.update(ndaAccessTokens)
+      .set({ isActive: false })
+      .where(inArray(ndaAccessTokens.ndaSignatureId, signatureIds));
+
+    return rejectedSignatures;
   }
 
   // NDA Access Tokens

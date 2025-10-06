@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 import sharp from 'sharp';
 import archiver from 'archiver';
 import { addCertificateToNda } from "./pdf-utils";
-import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
+import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
@@ -7182,14 +7182,110 @@ ${finalQuestion}
         approvedSignatures.map(signature => sendApprovalEmail(signature, doc, ownerProfile))
       );
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         signatures: approvedSignatures,
         message: `${approvedSignatures.length} signers approved and notified`
       });
     } catch (error) {
       console.error('Error batch approving NDA signatures:', error);
       res.status(500).json({ error: "Failed to approve signatures" });
+    }
+  });
+
+  // Reject single NDA signature
+  app.post("/api/cim/:docId/nda-signatures/:signatureId/reject", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signatureId = parseInt(req.params.signatureId);
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Reject the signature
+      const rejectedSignature = await storage.rejectNdaSignature(signatureId, req.user.id);
+
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
+      // Send rejection email to the signer
+      await sendRejectionEmail(
+        rejectedSignature.signerEmail,
+        rejectedSignature.signerName,
+        doc.title,
+        {
+          name: req.user.name || req.user.email,
+          email: req.user.email,
+          businessName: ownerProfile?.businessName || undefined
+        }
+      );
+
+      res.json({
+        success: true,
+        signature: rejectedSignature,
+        message: "Signer rejected and notified"
+      });
+    } catch (error) {
+      console.error('Error rejecting NDA signature:', error);
+      res.status(500).json({ error: "Failed to reject signature" });
+    }
+  });
+
+  // Batch reject NDA signatures
+  app.post("/api/cim/:docId/nda-signatures/reject-batch", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const { signatureIds } = req.body;
+
+      if (!Array.isArray(signatureIds) || signatureIds.length === 0) {
+        return res.status(400).json({ error: "Invalid signature IDs" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Batch reject signatures
+      const rejectedSignatures = await storage.rejectNdaSignaturesBatch(signatureIds, req.user.id);
+
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
+      // Send rejection emails to all signers
+      await Promise.all(
+        rejectedSignatures.map(signature => sendRejectionEmail(
+          signature.signerEmail,
+          signature.signerName,
+          doc.title,
+          {
+            name: req.user.name || req.user.email,
+            email: req.user.email,
+            businessName: ownerProfile?.businessName || undefined
+          }
+        ))
+      );
+
+      res.json({
+        success: true,
+        signatures: rejectedSignatures,
+        message: `${rejectedSignatures.length} signers rejected and notified`
+      });
+    } catch (error) {
+      console.error('Error batch rejecting NDA signatures:', error);
+      res.status(500).json({ error: "Failed to reject signatures" });
     }
   });
 
@@ -7635,49 +7731,61 @@ ${finalQuestion}
           : [];
         
         if (signatureFields && signatureFields.length > 0) {
+          console.log("=== PDF GENERATION START ===");
           console.log("Processing signature using enhanced field-based system");
+          console.log("Template file content length:", ndaTemplate.fileContent?.length || 0);
+
           const processor = await PdfSignatureProcessor.fromBase64(ndaTemplate.fileContent);
-          
+
           // Prepare field values with signature data
           const processedFieldValues = { ...fieldValues };
-          
+
           // Auto-populate standard fields if not provided
           if (!processedFieldValues.name && signatureFields.some((f: any) => f.type === 'name')) {
             const nameField = signatureFields.find((f: any) => f.type === 'name');
             if (nameField) processedFieldValues[nameField.id] = signerName;
           }
-          
+
           if (!processedFieldValues.email && signatureFields.some((f: any) => f.type === 'email')) {
             const emailField = signatureFields.find((f: any) => f.type === 'email');
             if (emailField) processedFieldValues[emailField.id] = signerEmail;
           }
-          
+
           // Process date fields
           signatureFields.filter((f: any) => f.type === 'date').forEach((field: any) => {
             if (!processedFieldValues[field.id]) {
               processedFieldValues[field.id] = signedAt.toLocaleDateString();
             }
           });
-          
+
           // Embed fields into PDF
+          console.log("Embedding fields into PDF...");
           signedNdaContent = await processor.embedFields(signatureFields, processedFieldValues);
-          
+          console.log("Fields embedded, PDF length:", signedNdaContent?.length || 0);
+
           // Add completion certificate
           try {
+            console.log("Adding completion certificate...");
             await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
             signedNdaContent = await processor.saveAsBase64();
+            console.log("✅ Certificate added successfully, final PDF length:", signedNdaContent?.length || 0);
           } catch (certError) {
-            console.error('Error adding completion certificate:', certError);
+            console.error('❌ Error adding completion certificate:', certError);
             console.error('Certificate error details:', {
               message: certError instanceof Error ? certError.message : String(certError),
               stack: certError instanceof Error ? certError.stack : undefined
             });
             // Continue without certificate if it fails
-            console.log('Continuing without completion certificate');
+            console.log('⚠️ Continuing without completion certificate, using PDF without certificate');
+            console.log('PDF length without certificate:', signedNdaContent?.length || 0);
           }
-          
+
+          console.log("=== PDF GENERATION COMPLETE ===");
         } else {
+          console.log("=== PDF GENERATION START (CERTIFICATE ONLY) ===");
           console.log("Using certificate-only processing (no signature fields)");
+          console.log("Template file content length:", ndaTemplate.fileContent?.length || 0);
+
           signedNdaContent = await addCertificateToNda(
             ndaTemplate.fileContent,
             signerName,
@@ -7685,6 +7793,33 @@ ${finalQuestion}
             signerEmail,
             signerIpAddress
           );
+
+          console.log("✅ Certificate added, final PDF length:", signedNdaContent?.length || 0);
+          console.log("=== PDF GENERATION COMPLETE ===");
+        }
+
+        // Validate PDF before proceeding
+        console.log("=== VALIDATING GENERATED PDF ===");
+        if (!signedNdaContent || signedNdaContent.length === 0) {
+          console.error("❌ CRITICAL ERROR: Generated PDF is empty!");
+          throw new Error("PDF generation failed - resulting content is empty");
+        }
+
+        try {
+          const pdfBuffer = Buffer.from(signedNdaContent, 'base64');
+          const pdfHeader = pdfBuffer.toString('utf8', 0, 4);
+          console.log("PDF header check:", pdfHeader);
+
+          if (!pdfHeader.startsWith('%PDF')) {
+            console.error("❌ CRITICAL ERROR: Generated PDF has invalid header!");
+            console.error("First 100 chars:", signedNdaContent.substring(0, 100));
+            throw new Error("PDF generation failed - invalid PDF format");
+          }
+
+          console.log("✅ PDF validation passed - header is correct");
+        } catch (validationError) {
+          console.error("❌ PDF validation failed:", validationError);
+          throw new Error("PDF validation failed: " + (validationError instanceof Error ? validationError.message : String(validationError)));
         }
 
         // Save signature record

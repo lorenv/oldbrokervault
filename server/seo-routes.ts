@@ -46,12 +46,14 @@ export function setupSEORoutes(app: Express) {
   seoRoutes.forEach(route => {
     app.get(route, async (req: Request, res: Response, next: any) => {
       try {
-        // Check if this is a bot/crawler
+        // Check if this is a bot/crawler - including social media crawlers
         const userAgent = req.headers['user-agent'] || '';
-        const isBot = /bot|crawler|spider|crawling/i.test(userAgent) || 
-                     /googlebot|bingbot|slurp|duckduckbot/i.test(userAgent);
-        
-        // Serve SEO HTML to bots only
+        const isBot = /bot|crawler|spider|crawling/i.test(userAgent) ||
+                     /googlebot|bingbot|slurp|duckduckbot/i.test(userAgent) ||
+                     /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|slackbot|discordbot/i.test(userAgent) ||
+                     /pinterest|tumblr|reddit|instagram/i.test(userAgent);
+
+        // Serve SEO HTML to bots and social media crawlers
         const shouldServeSEO = isBot;
         
         if (shouldServeSEO) {

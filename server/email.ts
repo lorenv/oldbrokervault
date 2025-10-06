@@ -152,6 +152,37 @@ async function sendNdaConfirmationEmail(
   cimTitle: string,
   signedNdaBase64: string
 ): Promise<boolean> {
+  // Validate PDF content before attempting to send
+  console.log('=== NDA CONFIRMATION EMAIL VALIDATION ===');
+  console.log('PDF base64 length:', signedNdaBase64?.length || 0);
+  console.log('PDF base64 prefix:', signedNdaBase64?.substring(0, 50) || 'EMPTY');
+
+  if (!signedNdaBase64 || signedNdaBase64.length === 0) {
+    console.error('❌ ERROR: signedNdaBase64 is empty or undefined');
+    return false;
+  }
+
+  // Check if it's valid base64
+  try {
+    const buffer = Buffer.from(signedNdaBase64, 'base64');
+    console.log('PDF buffer size:', buffer.length, 'bytes');
+
+    // Check if it looks like a PDF (should start with %PDF)
+    const pdfHeader = buffer.toString('utf8', 0, 4);
+    console.log('PDF header:', pdfHeader);
+
+    if (!pdfHeader.startsWith('%PDF')) {
+      console.error('❌ ERROR: PDF content does not start with %PDF header');
+      console.error('First 100 bytes:', buffer.toString('utf8', 0, 100));
+      return false;
+    }
+
+    console.log('✅ PDF validation passed');
+  } catch (error) {
+    console.error('❌ ERROR: Invalid base64 content:', error);
+    return false;
+  }
+
   const attachment = {
     content: signedNdaBase64,
     filename: `signed-nda-${cimTitle.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
@@ -311,6 +342,30 @@ async function sendOwnerNdaNotification(
   shareLink: string,
   signedNdaBase64: string
 ): Promise<boolean> {
+  // Validate PDF content before attempting to send
+  console.log('=== OWNER NOTIFICATION EMAIL VALIDATION ===');
+  console.log('PDF base64 length:', signedNdaBase64?.length || 0);
+
+  if (!signedNdaBase64 || signedNdaBase64.length === 0) {
+    console.error('❌ ERROR: signedNdaBase64 is empty or undefined for owner notification');
+    return false;
+  }
+
+  try {
+    const buffer = Buffer.from(signedNdaBase64, 'base64');
+    const pdfHeader = buffer.toString('utf8', 0, 4);
+
+    if (!pdfHeader.startsWith('%PDF')) {
+      console.error('❌ ERROR: PDF content invalid for owner notification');
+      return false;
+    }
+
+    console.log('✅ PDF validation passed for owner notification');
+  } catch (error) {
+    console.error('❌ ERROR: Invalid base64 content for owner notification:', error);
+    return false;
+  }
+
   const attachment = {
     content: signedNdaBase64,
     filename: `signed-nda-${cimTitle.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
@@ -382,17 +437,20 @@ async function sendNdaSignedEmail(
   console.log('Owner email:', ownerEmail);
   console.log('CIM title:', cimTitle);
   console.log('Share link:', shareLink);
-  
+  console.log('PDF base64 length:', signedNdaBase64?.length || 0);
+
   // Send NDA confirmation email first
+  console.log('📧 STEP 1: Sending NDA confirmation email to viewer...');
   const ndaConfirmationSuccess = await sendNdaConfirmationEmail(
     viewerEmail,
     viewerName || 'Valued Investor',
     cimTitle,
     signedNdaBase64
   );
+  console.log('NDA confirmation email result:', ndaConfirmationSuccess ? '✅ SUCCESS' : '❌ FAILED');
 
   // Send CIM link email with contact information
-  console.log('Sending CIM link email...');
+  console.log('📧 STEP 2: Sending CIM link email to viewer...');
   const cimLinkSuccess = await sendCimLinkEmail(
     viewerEmail,
     viewerName || 'Valued Investor',
@@ -403,10 +461,10 @@ async function sendNdaSignedEmail(
       email: ownerEmail
     }
   );
-  console.log('CIM link email result:', cimLinkSuccess);
+  console.log('CIM link email result:', cimLinkSuccess ? '✅ SUCCESS' : '❌ FAILED');
 
   // Send owner notification
-  console.log('Sending owner notification email...');
+  console.log('📧 STEP 3: Sending owner notification email...');
   const ownerNotificationSuccess = await sendOwnerNdaNotification(
     ownerEmail,
     ownerName,
@@ -416,10 +474,14 @@ async function sendNdaSignedEmail(
     shareLink,
     signedNdaBase64
   );
-  console.log('Owner notification email result:', ownerNotificationSuccess);
-  
+  console.log('Owner notification email result:', ownerNotificationSuccess ? '✅ SUCCESS' : '❌ FAILED');
+
   const allSuccess = ndaConfirmationSuccess && cimLinkSuccess && ownerNotificationSuccess;
-  console.log('All emails sent successfully:', allSuccess);
+  console.log('=== EMAIL SUMMARY ===');
+  console.log('NDA Confirmation:', ndaConfirmationSuccess ? '✅' : '❌');
+  console.log('CIM Link:', cimLinkSuccess ? '✅' : '❌');
+  console.log('Owner Notification:', ownerNotificationSuccess ? '✅' : '❌');
+  console.log('All emails successful:', allSuccess ? '✅ YES' : '❌ NO');
   console.log('=== END EMAIL DEBUG ===');
   
   return allSuccess;
@@ -644,13 +706,79 @@ async function sendOwnerApprovalNotification(
   });
 }
 
-export { 
-  sendEmail, 
-  sendNdaSignedEmail, 
+// Send rejection email to NDA signer
+async function sendRejectionEmail(
+  signerEmail: string,
+  signerName: string,
+  cimTitle: string,
+  ownerProfile?: {
+    name: string;
+    email: string;
+    businessName?: string;
+  }
+): Promise<boolean> {
+  const ownerName = ownerProfile?.name || 'the team';
+  const businessName = ownerProfile?.businessName || 'our organization';
+
+  return await sendEmail({
+    to: signerEmail,
+    from: 'system@cimshare.com',
+    replyTo: ownerProfile?.email || 'system@cimshare.com',
+    subject: `Application Update - ${cimTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Application Update</h2>
+        <p>Hello ${signerName},</p>
+
+        <p>Thank you for your interest in <strong>${cimTitle}</strong>.</p>
+
+        <p>After careful review of your application, ${ownerName} has determined that this opportunity may not be the right fit at this time.</p>
+
+        <p>We appreciate you taking the time to review the confidential information and sign the non-disclosure agreement. While this particular deal isn't a match, we encourage you to stay engaged with future opportunities from ${businessName}.</p>
+
+        ${ownerProfile?.email ? `
+        <p>If you have any questions or would like to discuss other opportunities, please feel free to reach out to ${ownerName} directly at <a href="mailto:${ownerProfile.email}">${ownerProfile.email}</a>.</p>
+        ` : ''}
+
+        <p>Thank you again for your interest.</p>
+
+        <p>Best regards,<br>${ownerName}</p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from CIM Share.
+        </p>
+      </div>
+    `,
+    text: `
+      Application Update
+
+      Hello ${signerName},
+
+      Thank you for your interest in ${cimTitle}.
+
+      After careful review of your application, ${ownerName} has determined that this opportunity may not be the right fit at this time.
+
+      We appreciate you taking the time to review the confidential information and sign the non-disclosure agreement. While this particular deal isn't a match, we encourage you to stay engaged with future opportunities from ${businessName}.
+
+      ${ownerProfile?.email ? `If you have any questions or would like to discuss other opportunities, please reach out to ${ownerName} directly at ${ownerProfile.email}.` : ''}
+
+      Thank you again for your interest.
+
+      Best regards,
+      ${ownerName}
+    `
+  });
+}
+
+export {
+  sendEmail,
+  sendNdaSignedEmail,
   sendNdaConfirmationEmail,
   sendCimLinkEmail,
   sendOwnerNdaNotification,
-  sendPasswordResetEmail, 
-  sendApprovalEmail, 
-  sendOwnerApprovalNotification 
+  sendPasswordResetEmail,
+  sendApprovalEmail,
+  sendOwnerApprovalNotification,
+  sendRejectionEmail
 };
