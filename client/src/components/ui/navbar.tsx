@@ -112,6 +112,23 @@ export function Navbar() {
                   )}
                 </Button>
               </Link>
+              <Link href="/messages">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`relative ${
+                    location === '/messages'
+                      ? 'text-blue-700 font-semibold'
+                      : isHomePage ? 'text-white' : 'text-gray-700'
+                  } hover:bg-white/10 transition-colors ${isHomePage ? 'hover:text-white' : 'hover:text-gray-900'}`}
+                >
+                  <MessageCircle className="mr-1 h-4 w-4" />
+                  Messages
+                  {location === '/messages' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
+                </Button>
+              </Link>
               <Link href="/investor-database">
                 <Button
                   variant="ghost"
@@ -296,6 +313,12 @@ export function Navbar() {
                     <Link href="/analytics" className="w-full cursor-pointer">
                       <BarChart3 className="mr-2 h-4 w-4" />
                       Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="w-full cursor-pointer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

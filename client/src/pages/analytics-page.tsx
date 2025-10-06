@@ -272,15 +272,6 @@ export default function AnalyticsPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
             </div>
           </div>
         </div>

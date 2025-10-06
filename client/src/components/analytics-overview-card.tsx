@@ -85,20 +85,22 @@ export function AnalyticsOverviewCard() {
           </div>
 
           {/* Pending Approvals */}
-          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-md">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                <UserCheck className="w-4 h-4 text-orange-600" />
+          <Link href="/analytics#pending-approvals">
+            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-md cursor-pointer hover:bg-orange-100 transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <UserCheck className="w-4 h-4 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Pending Approvals</p>
+                  <p className="text-lg font-bold text-gray-900">{pendingApprovals}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-600">Pending Approvals</p>
-                <p className="text-lg font-bold text-gray-900">{pendingApprovals}</p>
-              </div>
+              {pendingApprovals > 0 && (
+                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              )}
             </div>
-            {pendingApprovals > 0 && (
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-            )}
-          </div>
+          </Link>
 
           {/* View Full Analytics Button */}
           <Link href="/analytics">
