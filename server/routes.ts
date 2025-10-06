@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 import sharp from 'sharp';
 import archiver from 'archiver';
 import { addCertificateToNda } from "./pdf-utils";
-import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification } from "./email";
+import { sendNdaSignedEmail, sendEmail, sendApprovalEmail, sendOwnerApprovalNotification, sendRejectionEmail } from "./email";
 import { generateSecureToken, generateRedirectId } from "./token-utils";
 import { sanitizeUser, sanitizeUserForSharing, sanitizeForLogging, validateResponseSafety } from "./data-sanitizer";
 import { responseSanitizationMiddleware, securityHeadersMiddleware, sensitiveEndpointLimiter } from "./security-middleware";
@@ -7182,14 +7182,110 @@ ${finalQuestion}
         approvedSignatures.map(signature => sendApprovalEmail(signature, doc, ownerProfile))
       );
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         signatures: approvedSignatures,
         message: `${approvedSignatures.length} signers approved and notified`
       });
     } catch (error) {
       console.error('Error batch approving NDA signatures:', error);
       res.status(500).json({ error: "Failed to approve signatures" });
+    }
+  });
+
+  // Reject single NDA signature
+  app.post("/api/cim/:docId/nda-signatures/:signatureId/reject", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const signatureId = parseInt(req.params.signatureId);
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Reject the signature
+      const rejectedSignature = await storage.rejectNdaSignature(signatureId, req.user.id);
+
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
+      // Send rejection email to the signer
+      await sendRejectionEmail(
+        rejectedSignature.signerEmail,
+        rejectedSignature.signerName,
+        doc.title,
+        {
+          name: req.user.name || req.user.email,
+          email: req.user.email,
+          businessName: ownerProfile?.businessName || undefined
+        }
+      );
+
+      res.json({
+        success: true,
+        signature: rejectedSignature,
+        message: "Signer rejected and notified"
+      });
+    } catch (error) {
+      console.error('Error rejecting NDA signature:', error);
+      res.status(500).json({ error: "Failed to reject signature" });
+    }
+  });
+
+  // Batch reject NDA signatures
+  app.post("/api/cim/:docId/nda-signatures/reject-batch", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const { signatureIds } = req.body;
+
+      if (!Array.isArray(signatureIds) || signatureIds.length === 0) {
+        return res.status(400).json({ error: "Invalid signature IDs" });
+      }
+
+      // Verify document ownership
+      const doc = await storage.getCimDocument(docId);
+      if (!doc || doc.userId !== req.user.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Batch reject signatures
+      const rejectedSignatures = await storage.rejectNdaSignaturesBatch(signatureIds, req.user.id);
+
+      // Fetch owner profile for email
+      const ownerProfile = await storage.getUserProfile(doc.userId);
+
+      // Send rejection emails to all signers
+      await Promise.all(
+        rejectedSignatures.map(signature => sendRejectionEmail(
+          signature.signerEmail,
+          signature.signerName,
+          doc.title,
+          {
+            name: req.user.name || req.user.email,
+            email: req.user.email,
+            businessName: ownerProfile?.businessName || undefined
+          }
+        ))
+      );
+
+      res.json({
+        success: true,
+        signatures: rejectedSignatures,
+        message: `${rejectedSignatures.length} signers rejected and notified`
+      });
+    } catch (error) {
+      console.error('Error batch rejecting NDA signatures:', error);
+      res.status(500).json({ error: "Failed to reject signatures" });
     }
   });
 

@@ -706,13 +706,79 @@ async function sendOwnerApprovalNotification(
   });
 }
 
-export { 
-  sendEmail, 
-  sendNdaSignedEmail, 
+// Send rejection email to NDA signer
+async function sendRejectionEmail(
+  signerEmail: string,
+  signerName: string,
+  cimTitle: string,
+  ownerProfile?: {
+    name: string;
+    email: string;
+    businessName?: string;
+  }
+): Promise<boolean> {
+  const ownerName = ownerProfile?.name || 'the team';
+  const businessName = ownerProfile?.businessName || 'our organization';
+
+  return await sendEmail({
+    to: signerEmail,
+    from: 'system@cimshare.com',
+    replyTo: ownerProfile?.email || 'system@cimshare.com',
+    subject: `Application Update - ${cimTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Application Update</h2>
+        <p>Hello ${signerName},</p>
+
+        <p>Thank you for your interest in <strong>${cimTitle}</strong>.</p>
+
+        <p>After careful review of your application, ${ownerName} has determined that this opportunity may not be the right fit at this time.</p>
+
+        <p>We appreciate you taking the time to review the confidential information and sign the non-disclosure agreement. While this particular deal isn't a match, we encourage you to stay engaged with future opportunities from ${businessName}.</p>
+
+        ${ownerProfile?.email ? `
+        <p>If you have any questions or would like to discuss other opportunities, please feel free to reach out to ${ownerName} directly at <a href="mailto:${ownerProfile.email}">${ownerProfile.email}</a>.</p>
+        ` : ''}
+
+        <p>Thank you again for your interest.</p>
+
+        <p>Best regards,<br>${ownerName}</p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          This is an automated notification from CIM Share.
+        </p>
+      </div>
+    `,
+    text: `
+      Application Update
+
+      Hello ${signerName},
+
+      Thank you for your interest in ${cimTitle}.
+
+      After careful review of your application, ${ownerName} has determined that this opportunity may not be the right fit at this time.
+
+      We appreciate you taking the time to review the confidential information and sign the non-disclosure agreement. While this particular deal isn't a match, we encourage you to stay engaged with future opportunities from ${businessName}.
+
+      ${ownerProfile?.email ? `If you have any questions or would like to discuss other opportunities, please reach out to ${ownerName} directly at ${ownerProfile.email}.` : ''}
+
+      Thank you again for your interest.
+
+      Best regards,
+      ${ownerName}
+    `
+  });
+}
+
+export {
+  sendEmail,
+  sendNdaSignedEmail,
   sendNdaConfirmationEmail,
   sendCimLinkEmail,
   sendOwnerNdaNotification,
-  sendPasswordResetEmail, 
-  sendApprovalEmail, 
-  sendOwnerApprovalNotification 
+  sendPasswordResetEmail,
+  sendApprovalEmail,
+  sendOwnerApprovalNotification,
+  sendRejectionEmail
 };
