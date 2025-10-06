@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Settings2, Save, FolderOpen } from "lucide-react";
+import { Plus, X, Settings2, Save, FolderOpen, Trash2 } from "lucide-react";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { useToast } from "@/hooks/use-toast";
@@ -325,23 +325,23 @@ export function ContentStyleSection({
                 {sectionDirections.length > 1 && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => removeSectionLine(index)}
-                    className="shrink-0"
+                    className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
           </div>
-          
+
           <Button
             type="button"
             variant="outline"
             onClick={addSectionLine}
-            className="w-full"
+            className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-600 hover:text-blue-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Section

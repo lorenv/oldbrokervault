@@ -94,6 +94,11 @@ export interface IStorage {
     filePath?: string;
     fileSize?: number;
     mimeType?: string;
+    ndaSettings?: {
+      ndaProtected: boolean;
+      ndaTemplateId: number | null;
+      ndaApprovalRequired: boolean;
+    } | null;
   }): Promise<CimDocument>;
   createUploadedFile(data: {
     cimDocumentId: number;
@@ -671,6 +676,11 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     filePath?: string;
     fileSize?: number;
     mimeType?: string;
+    ndaSettings?: {
+      ndaProtected: boolean;
+      ndaTemplateId: number | null;
+      ndaApprovalRequired: boolean;
+    } | null;
   }): Promise<CimDocument> {
     // Check if user is within their limit
     const canCreate = await this.checkUserLimit(userId);
@@ -704,8 +714,10 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
         shareSlug: shareSlug,
         sharePassword: null,
         shareExpiresAt: null,
-        ndaProtected: false,
-        ndaTemplateId: null,
+        // NDA settings from request or defaults
+        ndaProtected: data.ndaSettings?.ndaProtected ?? false,
+        ndaTemplateId: data.ndaSettings?.ndaTemplateId ?? null,
+        ndaApprovalRequired: data.ndaSettings?.ndaApprovalRequired ?? false,
       })
       .returning();
 

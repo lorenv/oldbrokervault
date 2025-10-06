@@ -786,7 +786,7 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
 
   if (cimMode === 'choice') {
     return (
-      <div className="space-y-8 max-w-5xl mx-auto">
+      <div className="space-y-8 max-w-3xl mx-auto">
         <div className="text-center space-y-3">
           <h2 className="text-3xl font-bold text-gray-900">Generate Your CIM</h2>
           <p className="text-gray-600 text-lg">
@@ -794,66 +794,66 @@ export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 relative">
-          {/* First Option Card */}
-          <Card className="border-2 hover:border-blue-400 hover:shadow-xl transition-all duration-200 flex flex-col">
+        <div className="space-y-6">
+          {/* Primary Option - Generate CIM */}
+          <Card className="border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-200 shadow-lg">
             <CardHeader className="pb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <Sparkles className="h-6 w-6 text-blue-600" />
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-7 w-7 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+                    Generate from Notes/Transcript
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Upload or paste your business notes and let AI generate a professional CIM for you with comprehensive analysis.
+                  </CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-xl font-bold text-gray-900">
-                Generate from Notes/Transcript
-              </CardTitle>
-              <CardDescription className="text-base mt-2">
-                Upload or paste your business notes and let AI generate a professional CIM for you.
-              </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-end pt-4">
+            <CardContent>
               <Button
                 onClick={() => setCimMode('generate')}
-                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-11"
+                className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-12 text-base font-semibold shadow-md"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate CIM
+                <Sparkles className="h-5 w-5 mr-2" />
+                Generate CIM with AI
               </Button>
             </CardContent>
           </Card>
 
           {/* OR Divider */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center">
-            <div className="bg-white border-2 border-gray-300 rounded-full w-14 h-14 flex items-center justify-center shadow-md">
-              <span className="text-gray-600 font-bold text-sm">OR</span>
-            </div>
-          </div>
-
-          {/* Mobile OR Divider */}
-          <div className="md:hidden flex items-center justify-center -my-4">
+          <div className="flex items-center justify-center">
             <div className="flex-1 border-t border-gray-300"></div>
             <div className="px-4">
-              <div className="bg-white border-2 border-gray-300 rounded-full w-12 h-12 flex items-center justify-center">
-                <span className="text-gray-600 font-bold text-sm">OR</span>
-              </div>
+              <span className="text-gray-400 font-medium text-sm">or</span>
             </div>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
 
-          {/* Second Option Card */}
-          <Card className="border-2 hover:border-blue-400 hover:shadow-xl transition-all duration-200 flex flex-col">
-            <CardHeader className="pb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                <Upload className="h-6 w-6 text-green-600" />
+          {/* Secondary Option - Upload Document (De-emphasized) */}
+          <Card className="border border-gray-200 hover:border-gray-300 transition-all duration-200 bg-gray-50/50 scale-95">
+            <CardHeader className="pb-3 pt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Upload className="h-4 w-4 text-gray-500" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-base font-semibold text-gray-600">
+                    Upload Existing Document
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-500 mt-1">
+                    Upload your own CIM to enhance it with NDA protection, sharing, and analytics.
+                  </CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-xl font-bold text-gray-900">
-                Upload Existing Document
-              </CardTitle>
-              <CardDescription className="text-base mt-2">
-                Upload your own CIM to enhance it with NDA protection, sharing, and analytics.
-              </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-end pt-4">
+            <CardContent className="pt-2">
               <Button
                 onClick={() => setCimMode('upload')}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-11"
+                variant="outline"
+                className="w-full h-10 text-sm text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-700"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Document
