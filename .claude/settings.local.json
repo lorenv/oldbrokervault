@@ -50,7 +50,9 @@
       "Bash(journalctl:*)",
       "WebFetch(domain:cimshare.com)",
       "Bash(dmesg:*)",
-      "Read(//proc/595/net/**)"
+      "Read(//proc/595/net/**)",
+      "Bash(git fetch:*)",
+      "Bash(git merge-base:*)"
     ],
     "deny": [],
     "ask": [],
