@@ -186,36 +186,27 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Explanatory Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Info className="h-6 w-6 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Upload Your Existing CIM Documents
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Upload one or more CIM documents to enhance them with powerful features. Add NDA protection to control access,
-              require viewer approvals, track who views your documents with detailed analytics, manage sharing with secure links,
-              and maintain complete control over your confidential information. You can upload multiple documents at once.
-            </p>
-          </div>
-        </div>
+      {/* Explanatory Header - De-emphasized */}
+      <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Upload your existing CIM documents to enhance them with NDA protection, viewer approvals, sharing controls, and detailed analytics. You can upload multiple documents at once.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Document Title Section */}
-        <div className="space-y-0">
-          <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
-            <FileText className="h-5 w-5" />
-            <div>
-              <h3 className="font-semibold">Document Information</h3>
-              <p className="text-sm text-slate-200">Give your document a title</p>
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-0">
+        {/* Combined Section */}
+        <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
+          <Upload className="h-5 w-5" />
+          <div>
+            <h3 className="font-semibold">Upload Document</h3>
+            <p className="text-sm text-slate-200">Configure your document settings and upload files</p>
           </div>
-          <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+        </div>
+
+        <div className="p-6 border border-t-0 rounded-b-lg bg-white space-y-6">
+          {/* Document Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-sm font-medium">Document Title</Label>
             <Input
               id="title"
               placeholder="Enter a title for your CIM document"
@@ -223,18 +214,10 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-        </div>
 
-        {/* File Upload Section */}
-        <div className="space-y-0">
-          <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
-            <Upload className="h-5 w-5" />
-            <div>
-              <h3 className="font-semibold">Upload Files</h3>
-              <p className="text-sm text-slate-200">Select one or more CIM documents to upload</p>
-            </div>
-          </div>
-          <div className="p-4 border border-t-0 rounded-b-lg bg-white">
+          {/* File Upload */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Upload Files</Label>
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 dragActive
@@ -320,18 +303,17 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
               />
             </div>
           </div>
-        </div>
 
-        {/* NDA Protection Section */}
-        <div className="space-y-0">
-          <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
-            <Shield className="h-5 w-5" />
-            <div>
-              <h3 className="font-semibold">NDA Protection</h3>
-              <p className="text-sm text-slate-200">Configure confidentiality settings for your documents</p>
+          {/* Separator */}
+          <div className="border-t border-gray-200"></div>
+
+          {/* NDA Protection */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-gray-700" />
+              <Label className="text-sm font-medium">NDA Protection</Label>
             </div>
-          </div>
-          <div className="p-4 border border-t-0 rounded-b-lg bg-white space-y-4">
+
             <div className="flex items-center space-x-2">
               <Switch
                 id="nda-protected"
@@ -411,26 +393,26 @@ export function CimFileUpload({ onSuccess }: CimFileUploadProps) {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          disabled={uploadMutation.isPending}
-          className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-12 text-base font-semibold shadow-lg"
-        >
-          {uploadMutation.isPending ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Processing Upload...
-            </>
-          ) : (
-            <>
-              <Upload className="w-5 h-5 mr-2" />
-              Complete Upload
-            </>
-          )}
-        </Button>
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={uploadMutation.isPending}
+            className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-12 text-base font-semibold shadow-lg"
+          >
+            {uploadMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Processing Upload...
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mr-2" />
+                Complete Upload
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   );
