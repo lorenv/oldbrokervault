@@ -16,6 +16,9 @@ export default function AnalyticsPage() {
   const [pendingDocFilter, setPendingDocFilter] = useState<string>('all');
   const [mapDocFilter, setMapDocFilter] = useState<string>('all');
   const [showAllDocuments, setShowAllDocuments] = useState(false);
+  const [showAllPendingApprovals, setShowAllPendingApprovals] = useState(false);
+  const [docStatusFilter, setDocStatusFilter] = useState<string>('all');
+  const [docTimeFilter, setDocTimeFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -56,6 +59,18 @@ export default function AnalyticsPage() {
   const filteredPendingApprovals = pendingApprovalsData?.filter((approval: any) =>
     pendingDocFilter === 'all' || approval.documentId.toString() === pendingDocFilter
   ) || [];
+
+  // Filter documents by status and time period
+  const filteredDocuments = (documentsData || []).filter((doc: any) => {
+    // Status filter
+    if (docStatusFilter === 'active' && !doc.shareEnabled) return false;
+    if (docStatusFilter === 'inactive' && doc.shareEnabled) return false;
+
+    // Time period filter would need backend support - for now just status
+    // TODO: Backend needs to support time filtering on documents endpoint
+
+    return true;
+  });
 
   // Approve single NDA mutation
   const approveMutation = useMutation({
@@ -142,6 +157,48 @@ export default function AnalyticsPage() {
     }
   };
 
+  // Export analytics data as CSV
+  const handleExport = () => {
+    if (!documentsData || documentsData.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No analytics data available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Document Name', 'Views', 'Signatures', 'Status'];
+    const rows = documentsData.map((doc: any) => [
+      doc.title,
+      doc.views,
+      doc.signatures,
+      doc.shareEnabled ? 'Active' : 'Inactive'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exported",
+      description: "Analytics data has been downloaded as CSV",
+    });
+  };
+
   // Generate chart data
   const generateChartData = () => {
     if (!timelineData) return [];
@@ -218,6 +275,7 @@ export default function AnalyticsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleExport}
                 className="bg-white/10 text-white border-white/20 hover:bg-white/20"
               >
                 <Download className="h-4 w-4 mr-2" />
@@ -241,6 +299,9 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">{totalViews}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {dateRange === '7d' ? 'Last 7 days' : dateRange === '30d' ? 'Last 30 days' : dateRange === '90d' ? 'Last 90 days' : 'All time'}
+              </p>
               {viewsTrend !== 0 && (
                 <div className={`flex items-center gap-1 text-sm mt-2 ${viewsTrend > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {viewsTrend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -260,6 +321,9 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">{totalSignatures}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {dateRange === '7d' ? 'Last 7 days' : dateRange === '30d' ? 'Last 30 days' : dateRange === '90d' ? 'Last 90 days' : 'All time'}
+              </p>
               {signaturesTrend !== 0 && (
                 <div className={`flex items-center gap-1 text-sm mt-2 ${signaturesTrend > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {signaturesTrend > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -364,6 +428,19 @@ export default function AnalyticsPage() {
                 Pending NDA Approvals
               </CardTitle>
               <div className="flex items-center gap-3">
+                {/* See All / Show Less Toggle */}
+                {filteredPendingApprovals.length > 10 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllPendingApprovals(!showAllPendingApprovals)}
+                  >
+                    {showAllPendingApprovals
+                      ? 'Show Less'
+                      : `See All (${filteredPendingApprovals.length})`}
+                  </Button>
+                )}
+
                 {/* Document Filter */}
                 <Select value={pendingDocFilter} onValueChange={setPendingDocFilter}>
                   <SelectTrigger className="w-56">
@@ -408,7 +485,7 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPendingApprovals.map((approval: any) => (
+                    {(showAllPendingApprovals ? filteredPendingApprovals : filteredPendingApprovals.slice(0, 10)).map((approval: any) => (
                       <tr key={approval.id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4">
                           <a
@@ -517,25 +594,53 @@ export default function AnalyticsPage() {
         <Card className="bg-white shadow-md border border-gray-200 mt-8">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold">Top Performing Documents</CardTitle>
-              {documentsData && documentsData.length > 5 && !showAllDocuments && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAllDocuments(true)}
-                >
-                  See All ({documentsData.length})
-                </Button>
-              )}
-              {showAllDocuments && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAllDocuments(false)}
-                >
-                  Show Top 5
-                </Button>
-              )}
+              <CardTitle className="text-xl font-bold">Most Active Documents</CardTitle>
+              <div className="flex items-center gap-3">
+                {/* Status Filter */}
+                <Select value={docStatusFilter} onValueChange={setDocStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active Only</SelectItem>
+                    <SelectItem value="inactive">Inactive Only</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Time Period Filter */}
+                <Select value={docTimeFilter} onValueChange={setDocTimeFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="7d">Last 7 days</SelectItem>
+                    <SelectItem value="30d">Last 30 days</SelectItem>
+                    <SelectItem value="90d">Last 90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* See All Toggle */}
+                {documentsData && documentsData.length > 5 && !showAllDocuments && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllDocuments(true)}
+                  >
+                    See All ({documentsData.length})
+                  </Button>
+                )}
+                {showAllDocuments && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllDocuments(false)}
+                  >
+                    Show Top 5
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -546,13 +651,12 @@ export default function AnalyticsPage() {
                     <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">Document Name</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Views</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Signatures</th>
-                    <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Conversion</th>
                     <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {documentsData && documentsData.length > 0 ? (
-                    (showAllDocuments ? documentsData : documentsData.slice(0, 5)).map((doc: any) => (
+                  {filteredDocuments && filteredDocuments.length > 0 ? (
+                    (showAllDocuments ? filteredDocuments : filteredDocuments.slice(0, 5)).map((doc: any) => (
                       <tr key={doc.id} className="border-b hover:bg-gray-50 cursor-pointer transition-colors">
                         <td className="py-3 px-4">
                           <a href={`/documents/${doc.id}`} className="text-blue-600 hover:underline font-medium">
@@ -561,9 +665,6 @@ export default function AnalyticsPage() {
                         </td>
                         <td className="text-center py-3 px-4">{doc.views}</td>
                         <td className="text-center py-3 px-4">{doc.signatures}</td>
-                        <td className="text-center py-3 px-4">
-                          {doc.views > 0 ? `${((doc.signatures / doc.views) * 100).toFixed(1)}%` : '0%'}
-                        </td>
                         <td className="text-center py-3 px-4">
                           <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                             doc.shareEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
@@ -575,7 +676,7 @@ export default function AnalyticsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500">
+                      <td colSpan={4} className="text-center py-8 text-gray-500">
                         No documents found
                       </td>
                     </tr>
