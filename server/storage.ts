@@ -1,4 +1,4 @@
-import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue } from "@shared/schema";
+import { User, CimDocument, InsertUser, InsertCimDocument, subscriptionPlans, users, cimDocuments, uploadedFiles, customSections, ndaTemplates, ndaSignatures, ndaAccessTokens, ndaRedirectLinks, documentViews, shareLinks, NdaTemplate, InsertNdaTemplate, NdaSignature, InsertNdaSignature, NdaAccessToken, InsertNdaAccessToken, NdaRedirectLink, InsertNdaRedirectLink, ShareLink, InsertShareLink, CustomSection, collaborators, Collaborator, InsertCollaborator, documentLocks, DocumentLock, documentActivityLog, DocumentActivityLog, customTags, analysisTemplates, AnalysisTemplate, InsertAnalysisTemplate, financialFiles, documentVersions, documentAnalytics, documentBaselines, DocumentBaseline, InsertDocumentBaseline, contentStyleTemplates, ContentStyleTemplate, InsertContentStyleTemplate, messageAttachments, MessageAttachment, InsertMessageAttachment, onboardingEmailSequences, userEmailQueue, OnboardingEmailSequence, UserEmailQueue, InsertUserEmailQueue } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -198,6 +198,21 @@ export interface IStorage {
   inviteCollaborator(collaborator: InsertCollaborator): Promise<Collaborator>;
   getCollaborators(cimDocumentId: number): Promise<Collaborator[]>;
   getCollaboratorAccess(cimDocumentId: number, userId: number): Promise<{ permission: string } | null>;
+  getCollaboratorByToken(token: string): Promise<Collaborator | null>;
+  getCollaboratorCount(documentId: number): Promise<number>;
+  getUserCollaboration(documentId: number, userId: number): Promise<Collaborator | null>;
+  updateCollaborator(id: number, updates: Partial<Collaborator>): Promise<void>;
+  deleteCollaborator(id: number): Promise<void>;
+  // Document Locks
+  getLock(documentId: number): Promise<any | null>;
+  createLock(documentId: number, userId: number, userName: string, userEmail: string, takenOverFrom?: number): Promise<any>;
+  updateLockActivity(documentId: number): Promise<void>;
+  releaseLock(documentId: number): Promise<void>;
+  releaseUserLocks(userId: number, documentId: number): Promise<void>;
+  cleanupStaleLocks(minutesOld: number): Promise<number>;
+  // Activity Log
+  logActivity(documentId: number, userId: number | null, userName: string | null, userEmail: string | null, action: string, metadata?: any): Promise<void>;
+  getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]>;
   // Custom Tags
   createCustomTag(userId: number, name: string, color: string): Promise<any>;
   getCustomTags(userId: number): Promise<any[]>;
@@ -1974,10 +1989,142 @@ Current annual revenues are $5,500,000 with EBITDA of $1,600,000. Over the past 
     const [collaborator] = await db.select({ permission: collaborators.permission })
       .from(collaborators)
       .where(
-        sql`${collaborators.cimDocumentId} = ${cimDocumentId} AND ${collaborators.userId} = ${userId} AND ${collaborators.status} = 'accepted'`
+        sql`${collaborators.cimDocumentId} = ${cimDocumentId} AND ${collaborators.userId} = ${userId} AND ${collaborators.status} = 'active'`
       );
-    
+
     return collaborator || null;
+  }
+
+  async getCollaboratorByToken(token: string): Promise<Collaborator | null> {
+    const [collaborator] = await db.select()
+      .from(collaborators)
+      .where(eq(collaborators.inviteToken, token));
+
+    return collaborator || null;
+  }
+
+  async getCollaboratorCount(documentId: number): Promise<number> {
+    const result = await db.select({ count: count() })
+      .from(collaborators)
+      .where(
+        and(
+          eq(collaborators.cimDocumentId, documentId),
+          eq(collaborators.status, 'active')
+        )
+      );
+
+    return result[0]?.count || 0;
+  }
+
+  async getUserCollaboration(documentId: number, userId: number): Promise<Collaborator | null> {
+    const [collaborator] = await db.select()
+      .from(collaborators)
+      .where(
+        and(
+          eq(collaborators.cimDocumentId, documentId),
+          eq(collaborators.userId, userId),
+          eq(collaborators.status, 'active')
+        )
+      );
+
+    return collaborator || null;
+  }
+
+  async updateCollaborator(id: number, updates: Partial<Collaborator>): Promise<void> {
+    await db.update(collaborators)
+      .set(updates)
+      .where(eq(collaborators.id, id));
+  }
+
+  async deleteCollaborator(id: number): Promise<void> {
+    await db.update(collaborators)
+      .set({ status: 'removed' as const })
+      .where(eq(collaborators.id, id));
+  }
+
+  // Document Lock functions
+  async getLock(documentId: number): Promise<any | null> {
+    const [lock] = await db.select()
+      .from(documentLocks)
+      .where(eq(documentLocks.documentId, documentId));
+
+    return lock || null;
+  }
+
+  async createLock(documentId: number, userId: number, userName: string, userEmail: string, takenOverFrom?: number): Promise<any> {
+    // First delete any existing lock
+    await db.delete(documentLocks)
+      .where(eq(documentLocks.documentId, documentId));
+
+    const [lock] = await db.insert(documentLocks)
+      .values({
+        documentId,
+        userId,
+        userName,
+        userEmail,
+        takenOverFrom: takenOverFrom || null,
+      })
+      .returning();
+
+    return lock;
+  }
+
+  async updateLockActivity(documentId: number): Promise<void> {
+    await db.update(documentLocks)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(documentLocks.documentId, documentId));
+  }
+
+  async releaseLock(documentId: number): Promise<void> {
+    await db.delete(documentLocks)
+      .where(eq(documentLocks.documentId, documentId));
+  }
+
+  async releaseUserLocks(userId: number, documentId: number): Promise<void> {
+    await db.delete(documentLocks)
+      .where(
+        and(
+          eq(documentLocks.documentId, documentId),
+          eq(documentLocks.userId, userId)
+        )
+      );
+  }
+
+  async cleanupStaleLocks(minutesOld: number): Promise<number> {
+    const staleTimestamp = new Date(Date.now() - minutesOld * 60 * 1000);
+
+    const staleLocks = await db.select()
+      .from(documentLocks)
+      .where(sql`${documentLocks.lastActivityAt} < ${staleTimestamp}`);
+
+    if (staleLocks.length > 0) {
+      await db.delete(documentLocks)
+        .where(sql`${documentLocks.lastActivityAt} < ${staleTimestamp}`);
+    }
+
+    return staleLocks.length;
+  }
+
+  // Activity Log functions
+  async logActivity(documentId: number, userId: number | null, userName: string | null, userEmail: string | null, action: string, metadata?: any): Promise<void> {
+    await db.insert(documentActivityLog)
+      .values({
+        documentId,
+        userId,
+        userName,
+        userEmail,
+        action,
+        metadata: metadata || null,
+      });
+  }
+
+  async getActivityLog(documentId: number, limit: number, offset: number): Promise<any[]> {
+    return await db.select()
+      .from(documentActivityLog)
+      .where(eq(documentActivityLog.documentId, documentId))
+      .orderBy(desc(documentActivityLog.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 
   async createCustomTag(userId: number, name: string, color: string): Promise<any> {

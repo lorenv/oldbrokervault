@@ -352,14 +352,36 @@ export const financialFiles = pgTable("financial_files", {
 export const collaborators = pgTable("collaborators", {
   id: serial("id").primaryKey(),
   cimDocumentId: integer("cim_document_id").notNull(),
-  userId: integer("user_id").notNull(),
-  invitedBy: integer("invited_by").notNull(),
   email: text("email").notNull(),
-  permission: text("permission").notNull(), // 'view' or 'edit'
-  status: text("status").notNull(), // 'pending', 'accepted', 'declined'
-  inviteToken: text("invite_token").unique(),
+  userId: integer("user_id"),
+  permission: text("permission").notNull().$type<"Edit" | "Assist">(),
+  invitedBy: integer("invited_by").notNull(),
   invitedAt: timestamp("invited_at").defaultNow().notNull(),
-  respondedAt: timestamp("responded_at")
+  acceptedAt: timestamp("accepted_at"),
+  status: text("status").notNull().default("pending").$type<"pending" | "active" | "removed">(),
+  inviteToken: text("invite_token").notNull().unique(),
+});
+
+export const documentLocks = pgTable("document_locks", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  userEmail: text("user_email").notNull(),
+  lockedAt: timestamp("locked_at").defaultNow().notNull(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+  takenOverFrom: integer("taken_over_from"),
+});
+
+export const documentActivityLog = pgTable("document_activity_log", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull(),
+  userId: integer("user_id"),
+  userName: text("user_name"),
+  userEmail: text("user_email"),
+  action: text("action").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Premium feature: Document version history
@@ -735,7 +757,7 @@ export const insertCollaboratorSchema = createInsertSchema(collaborators).pick({
   permission: true,
   invitedBy: true
 }).extend({
-  permission: z.enum(["view", "edit"]),
+  permission: z.enum(["Edit", "Assist"]),
   email: z.string().email("Please enter a valid email address")
 });
 
@@ -863,6 +885,8 @@ export type InsertInvestorContact = z.infer<typeof insertInvestorContactSchema>;
 export type InsertFinancialFile = z.infer<typeof insertFinancialFileSchema>;
 export type Collaborator = typeof collaborators.$inferSelect;
 export type InsertCollaborator = z.infer<typeof insertCollaboratorSchema>;
+export type DocumentLock = typeof documentLocks.$inferSelect;
+export type DocumentActivityLog = typeof documentActivityLog.$inferSelect;
 export type DocumentVersion = typeof documentVersions.$inferSelect;
 export type DocumentAnalytics = typeof documentAnalytics.$inferSelect;
 export type SearchIndex = typeof searchIndex.$inferSelect;
