@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Settings2, Save, FolderOpen } from "lucide-react";
+import { Plus, X, Settings2, Save, FolderOpen, Trash2 } from "lucide-react";
 import { FormattingProfileSelector } from "./formatting-profile-selector";
 import type { FormattingProfile } from "@shared/formatting-config";
 import { useToast } from "@/hooks/use-toast";
@@ -302,7 +302,12 @@ export function ContentStyleSection({
         {/* Section Directions - Above */}
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label className="text-lg font-semibold text-slate-700">Sections</Label>
+            <Label className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+              <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Sections
+            </Label>
             <p className="text-sm text-muted-foreground">
               AI will generate these sections with your specific instructions.
             </p>
@@ -310,6 +315,7 @@ export function ContentStyleSection({
           <div className="space-y-3">
             {sectionDirections.map((line, index) => (
               <div key={line.id} className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-400 w-6 flex-shrink-0">{index + 1}.</span>
                 <Input
                   value={line.content}
                   onChange={(e) => updateSectionLine(index, e.target.value)}
@@ -319,23 +325,23 @@ export function ContentStyleSection({
                 {sectionDirections.length > 1 && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => removeSectionLine(index)}
-                    className="shrink-0"
+                    className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
           </div>
-          
+
           <Button
             type="button"
             variant="outline"
             onClick={addSectionLine}
-            className="w-full"
+            className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-600 hover:text-blue-700"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Section

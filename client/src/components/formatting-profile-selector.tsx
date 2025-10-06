@@ -95,7 +95,12 @@ export function FormattingProfileSelector({
   return (
     <div className={`space-y-4 ${className}`}>
       <div className="space-y-1">
-        <Label className="text-lg font-semibold text-slate-700">Writing Style</Label>
+        <Label className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+          <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Writing Style
+        </Label>
         <p className="text-sm text-muted-foreground">
           Choose the tone and format for your document.
         </p>
@@ -105,9 +110,12 @@ export function FormattingProfileSelector({
         <SelectTrigger className="w-full h-auto py-3">
           <SelectValue placeholder="Select a writing style">
             {selectedProfileData && (
-              <div className="flex items-center gap-3">
-                <selectedProfileData.icon className={`h-5 w-5 ${selectedProfileData.color}`} />
-                <span className="font-medium">{selectedProfileData.title}</span>
+              <div className="flex items-center gap-3 w-full">
+                <selectedProfileData.icon className={`h-5 w-5 flex-shrink-0 ${selectedProfileData.color}`} />
+                <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0">
+                  <span className="font-medium">{selectedProfileData.title}</span>
+                  <span className="text-xs text-gray-500">{selectedProfileData.description}</span>
+                </div>
               </div>
             )}
           </SelectValue>

@@ -2523,10 +2523,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const { title } = req.body;
+      const { title, ndaSettings } = req.body;
       if (!title || title.trim() === '') {
         console.log("No title provided:", title);
         return res.status(400).json({ error: "Title is required" });
+      }
+
+      // Parse NDA settings if provided
+      let parsedNdaSettings = null;
+      if (ndaSettings) {
+        try {
+          parsedNdaSettings = typeof ndaSettings === 'string' ? JSON.parse(ndaSettings) : ndaSettings;
+        } catch (error) {
+          console.error("Failed to parse NDA settings:", error);
+        }
       }
 
       // Validate file types
@@ -2537,9 +2547,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create CIM document record first
+      // Create CIM document record first with NDA settings
       const cimDoc = await storage.createUploadedCimDocument(req.user!.id, {
-        title: title.trim()
+        title: title.trim(),
+        ndaSettings: parsedNdaSettings
       });
 
       // Process and save each file to object storage

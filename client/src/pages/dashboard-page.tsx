@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { CimGenerator } from "@/components/cim-generator";
 
@@ -10,6 +11,7 @@ import { FileText, Clock, ArrowRight } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
 
   // Removed guided tour - now using get started checklist instead
   const { data: documentsResponse, isLoading: documentsLoading } = useQuery({
@@ -53,19 +55,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="container mx-auto px-2 lg:px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4">
           {/* Main Content Area */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="p-8">
-                <CimGenerator />
+          <div className={`transition-all duration-[2000ms] ease-in-out ${
+            cimMode === 'choice' ? 'lg:col-span-9' : 'lg:col-span-12'
+          }`}>
+            <div className="bg-white rounded-xl shadow-xl border-2 border-blue-100 ring-2 ring-blue-50">
+              <div className="p-3 lg:p-4">
+                <CimGenerator onModeChange={setCimMode} />
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {/* Sidebar - Only show when in 'choice' mode */}
+          <div className={`lg:col-span-3 transition-all duration-[2000ms] ease-in-out ${
+            cimMode === 'choice'
+              ? 'opacity-100 scale-100'
+              : 'opacity-0 scale-95 max-h-0 overflow-hidden pointer-events-none'
+          }`}>
+            <div className="space-y-6 pb-8">
             {/* Recent Documents Card */}
             <Card className="bg-white shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 rounded-lg">
               <CardHeader className="pb-3 pt-5 px-5">
@@ -145,9 +154,12 @@ export default function DashboardPage() {
                 monthlyDocumentsCreated={user?.monthlyDocumentsCreated}
                 monthlyRegenerationsUsed={user?.monthlyRegenerationsUsed}
                 subtle={true}
-                hideProButtons={true} // Hide upgrade/change plan buttons for Pro users on dashboard
+                hideProButtons={true}
+                hideActiveUntil={true}
+                hideRegenerations={true}
               />
             </div>
+          </div>
           </div>
         </div>
       </main>
