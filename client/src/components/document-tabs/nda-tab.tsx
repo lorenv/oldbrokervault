@@ -341,6 +341,60 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
     }
   });
 
+  // Reject signer mutation
+  const rejectSignerMutation = useMutation({
+    mutationFn: async (signatureId: number) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/${signatureId}/reject`);
+      if (!response.ok) throw new Error('Failed to reject signer');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Signer Rejected",
+        description: "The signer has been rejected and will receive a notification email."
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+    },
+    onError: () => {
+      toast({
+        title: "Rejection Failed",
+        description: "Failed to reject signer. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Batch reject signers mutation
+  const batchRejectSignersMutation = useMutation({
+    mutationFn: async (signatureIds: number[]) => {
+      const response = await apiRequest('POST', `/api/cim/${cimDocument.id}/nda-signatures/reject-batch`, {
+        body: {
+          signatureIds
+        }
+      });
+      if (!response.ok) throw new Error('Failed to reject signers');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const rejectedCount = data.signatures?.length || 0;
+      toast({
+        title: "Signers Rejected",
+        description: `${rejectedCount} signers have been rejected and will receive notification emails.`
+      });
+      setSelectedSignatures([]);
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cim/${cimDocument.id}/nda-signatures`] });
+    },
+    onError: () => {
+      toast({
+        title: "Batch Rejection Failed",
+        description: "Failed to reject signers. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Update signature stage mutation
   const updateStageMutation = useMutation({
     mutationFn: async ({ signatureId, stage }: { signatureId: number, stage: string }) => {
@@ -426,6 +480,17 @@ export function DocumentNdaTab({ cimDocument, ndaSignatures }: DocumentNdaTabPro
   const handleBatchApproval = () => {
     if (selectedSignatures.length === 0) return;
     batchApproveSignersMutation.mutate(selectedSignatures);
+  };
+
+  // Handle individual rejection
+  const handleRejectSignature = (signatureId: number) => {
+    rejectSignerMutation.mutate(signatureId);
+  };
+
+  // Handle batch rejection
+  const handleBatchRejection = () => {
+    if (selectedSignatures.length === 0) return;
+    batchRejectSignersMutation.mutate(selectedSignatures);
   };
 
   // Toggle signature selection
