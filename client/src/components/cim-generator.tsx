@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap } from "lucide-react";
+import { Loader2, Settings, Upload, X, FileText, Download, Copy, File, Save, FolderOpen, NotebookPen, DollarSign, Settings2, Shield, UserCheck, ExternalLink, Paperclip, Check, Zap, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -65,10 +65,19 @@ const DEFAULT_SECTION_LINES = [
 
 // Remove this line as it's not needed
 
-export function CimGenerator() {
+interface CimGeneratorProps {
+  onModeChange?: (mode: 'choice' | 'generate' | 'upload') => void;
+}
+
+export function CimGenerator({ onModeChange }: CimGeneratorProps = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [cimMode, setCimMode] = useState<'choice' | 'generate' | 'upload'>('choice');
+
+  // Notify parent component when mode changes
+  useEffect(() => {
+    onModeChange?.(cimMode);
+  }, [cimMode, onModeChange]);
 
   // Fetch user limits
   const { data: userLimits, isLoading: limitsLoading } = useQuery<{
@@ -790,7 +799,7 @@ export function CimGenerator() {
           <Card className="border-2 hover:border-blue-400 hover:shadow-xl transition-all duration-200 flex flex-col">
             <CardHeader className="pb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <NotebookPen className="h-6 w-6 text-blue-600" />
+                <Sparkles className="h-6 w-6 text-blue-600" />
               </div>
               <CardTitle className="text-xl font-bold text-gray-900">
                 Generate from Notes/Transcript
@@ -804,7 +813,7 @@ export function CimGenerator() {
                 onClick={() => setCimMode('generate')}
                 className="w-full bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white h-11"
               >
-                <Zap className="h-4 w-4 mr-2" />
+                <Sparkles className="h-4 w-4 mr-2" />
                 Generate CIM
               </Button>
             </CardContent>
@@ -873,8 +882,17 @@ export function CimGenerator() {
     );
   }
 
+  // Calculate progress
+  const hasTitle = !!form.watch('title');
+  const hasTranscript = !!form.watch('transcript') && form.watch('transcript').length > 0;
+  const hasWebsite = !!form.watch('websiteUrl');
+  const hasFinancials = !!(financialData.askingPrice || financialData.revenue || financialData.ebitda || financialFiles.length > 0);
+  const hasCoverImage = !!selectedCoverImage;
+
+  const transcriptWordCount = form.watch('transcript')?.split(/\s+/).filter(word => word.length > 0).length || 0;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {!analysis && (
         <div className="flex items-center gap-4">
           <Button
@@ -888,10 +906,12 @@ export function CimGenerator() {
       )}
 
       {!analysis ? (
-        <form onSubmit={form.handleSubmit(handleGenerate)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(handleGenerate)} className="lg:grid lg:grid-cols-12 lg:gap-4 space-y-5 lg:space-y-0 relative">
+          {/* Main Form Content */}
+          <div className="lg:col-span-9 space-y-5">
 
           {/* Cover Image Section - Now at the top */}
-          <div className="space-y-0">
+          <div id="cover-image-section" className="space-y-0 scroll-mt-8">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
               <ImageIcon className="h-5 w-5" />
               <div className="flex-1">
@@ -1026,7 +1046,7 @@ export function CimGenerator() {
           </div>
 
           {/* Document Information Section */}
-          <div className="space-y-0">
+          <div id="document-info-section" className="space-y-0 scroll-mt-8">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
               <FileText className="h-5 w-5" />
               <div>
@@ -1163,7 +1183,7 @@ export function CimGenerator() {
           )}
 
           {/* Business Notes Section */}
-          <div className="space-y-0">
+          <div id="business-notes-section" className="space-y-0 scroll-mt-8">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
               <NotebookPen className="h-5 w-5" />
               <div className="flex-1">
@@ -1283,7 +1303,7 @@ export function CimGenerator() {
           </div>
 
           {/* Financial Information Section - Simplified */}
-          <div className="space-y-0">
+          <div id="financial-info-section" className="space-y-0 scroll-mt-8">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center gap-3">
               <DollarSign className="h-5 w-5" />
               <div>
@@ -1394,6 +1414,7 @@ export function CimGenerator() {
           </div>
 
           {/* Content & Style Section */}
+          <div id="content-style-section" className="scroll-mt-8">
           <ContentStyleSection
             sectionDirections={sectionDirections}
             onSectionDirectionsChange={setSectionDirections}
@@ -1403,8 +1424,10 @@ export function CimGenerator() {
               form.setValue("formattingProfile", profile);
             }}
           />
+          </div>
 
-          {/* NDA Protection Section */}
+          {/* NDA Protection Section - This will be moved to sidebar on desktop */}
+          <div id="nda-section" className="lg:hidden scroll-mt-8">
           <Card className="w-full">
             <div className="bg-slate-600 bg-opacity-80 bg-gradient-to-r from-slate-600 to-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1505,7 +1528,10 @@ export function CimGenerator() {
               )}
             </CardContent>
           </Card>
+          </div>
 
+          {/* Mobile Generate Button */}
+          <div className="lg:hidden">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1552,15 +1578,268 @@ export function CimGenerator() {
                   <CimGenerationProgress
                     stage={generationStage}
                     hasFinancials={
-                      financialFiles.length > 0 || 
-                      !!financialData.askingPrice || 
-                      !!financialData.revenue || 
+                      financialFiles.length > 0 ||
+                      !!financialData.askingPrice ||
+                      !!financialData.revenue ||
                       !!financialData.ebitda
                     }
                     hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
                   />
                 </div>
               )}
+          </div>
+          </div>
+
+          {/* Sticky Summary Sidebar - Desktop Only */}
+          <div className="hidden lg:block lg:col-span-3">
+            <div className="sticky top-4 space-y-3">
+              {/* Progress Checklist Card */}
+              <Card className="border border-gray-200 shadow-sm bg-gray-50/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-bold text-gray-700 flex items-center gap-2">
+                    <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {/* Cover Image */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('cover-image-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasCoverImage ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasCoverImage && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasCoverImage ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Cover Image
+                      </p>
+                      {hasCoverImage && (
+                        <p className="text-xs text-green-600">Added</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Document Title */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasTitle ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasTitle && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasTitle ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Document Title
+                      </p>
+                      {hasTitle && (
+                        <p className="text-xs text-gray-500 truncate">{form.watch('title')}</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Website Analysis */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('document-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasWebsite && enableWebsiteAnalysis ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasWebsite && enableWebsiteAnalysis && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasWebsite && enableWebsiteAnalysis ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Website Analyzed by AI
+                      </p>
+                      {hasWebsite && enableWebsiteAnalysis && (
+                        <p className="text-xs text-green-600">Enabled</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Business Notes */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('business-notes-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasTranscript ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasTranscript && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasTranscript ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Business Notes
+                      </p>
+                      {hasTranscript && (
+                        <p className="text-xs text-gray-500">{transcriptWordCount} words</p>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Financial Data */}
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('financial-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="w-full text-left flex items-center gap-2 p-1.5 rounded-lg hover:bg-white transition-colors"
+                  >
+                    <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                      hasFinancials ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {hasFinancials && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${hasFinancials ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Financial Data
+                      </p>
+                      <p className="text-xs text-gray-500">Optional</p>
+                    </div>
+                  </button>
+                </CardContent>
+              </Card>
+
+              {/* Separator */}
+              <div className="border-t border-gray-200"></div>
+
+              {/* NDA Protection Card */}
+              <Card className="border border-gray-200 shadow-sm bg-gray-50/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-purple-600" />
+                    <CardTitle className="text-base font-bold text-gray-700">NDA Protection</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="nda-protected-sidebar"
+                      checked={ndaSettings.ndaProtected}
+                      onCheckedChange={(checked) => {
+                        setNdaSettings(prev => ({ ...prev, ndaProtected: checked }));
+                        if (!checked) {
+                          setNdaSettings(prev => ({ ...prev, ndaTemplateId: null, ndaApprovalRequired: false }));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="nda-protected-sidebar" className="text-sm font-medium cursor-pointer">
+                      Enable NDA Protection
+                    </Label>
+                  </div>
+
+                  {ndaSettings.ndaProtected && (
+                    <div className="space-y-3 pl-1">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-600">NDA Template</Label>
+                        <Select
+                          value={ndaSettings.ndaTemplateId?.toString() || ''}
+                          onValueChange={(value) => {
+                            setNdaSettings(prev => ({ ...prev, ndaTemplateId: value ? parseInt(value) : null }));
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ndaTemplates.length > 0 ? (
+                              ndaTemplates.map((template: any) => (
+                                <SelectItem key={template.id} value={template.id.toString()}>
+                                  {template.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="" disabled>
+                                {ndaTemplatesLoading ? "Loading..." : "No templates"}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-start space-x-2">
+                        <Switch
+                          id="manual-approval-sidebar"
+                          checked={ndaSettings.ndaApprovalRequired}
+                          onCheckedChange={(checked) => {
+                            setNdaSettings(prev => ({ ...prev, ndaApprovalRequired: checked }));
+                          }}
+                          className="mt-1"
+                        />
+                        <div className="space-y-1">
+                          <Label htmlFor="manual-approval-sidebar" className="text-xs font-medium cursor-pointer">
+                            Require Manual Approval
+                          </Label>
+                          <p className="text-xs text-gray-500">
+                            Approve each viewer manually
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Generate Button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-full">
+                      <Button
+                        type="submit"
+                        className={`w-full border-0 shadow-xl h-14 text-lg ${
+                          userLimits && !userLimits.canCreateDocument && !generateMutation.isPending
+                            ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-50"
+                            : "bg-gradient-to-r from-slate-600 to-blue-600 hover:from-slate-700 hover:to-blue-700"
+                        } text-white`}
+                        disabled={generateMutation.isPending || (userLimits && !userLimits.canCreateDocument)}
+                      >
+                        {generateMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="mr-2 h-5 w-5" />
+                            Generate CIM
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {userLimits && !userLimits.canCreateDocument && !generateMutation.isPending && (
+                    <TooltipContent>
+                      <p>You've reached your monthly limit ({userLimits.documentsCreated}/{userLimits.documentLimit})</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Show progress during generation */}
+              {generateMutation.isPending && generationStage && (
+                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <div className="text-sm text-blue-600 mb-2 font-medium">
+                    Generating your CIM...
+                  </div>
+                  <CimGenerationProgress
+                    stage={generationStage}
+                    hasFinancials={hasFinancials}
+                    hasLargeContent={(form.getValues("transcript")?.length || 0) > 4000}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </form>
       ) : (
         <div className="space-y-6">

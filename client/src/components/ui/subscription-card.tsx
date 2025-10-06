@@ -14,6 +14,8 @@ interface SubscriptionCardProps {
   monthlyRegenerationsUsed?: number;
   subtle?: boolean;
   hideProButtons?: boolean; // New prop to hide buttons for Pro users
+  hideActiveUntil?: boolean; // Hide the "active until" date
+  hideRegenerations?: boolean; // Hide regenerations section
 }
 
 export function SubscriptionCard({
@@ -23,7 +25,9 @@ export function SubscriptionCard({
   monthlyDocumentsCreated = 0,
   monthlyRegenerationsUsed = 0,
   subtle = false,
-  hideProButtons = false
+  hideProButtons = false,
+  hideActiveUntil = false,
+  hideRegenerations = false
 }: SubscriptionCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isPremium = status === "premium";
@@ -96,15 +100,15 @@ export function SubscriptionCard({
           </div>
           <Badge
             variant={status === "free" ? "secondary" : isCanceled ? "destructive" : "default"}
-            className="text-xs"
+            className="text-xs px-3 py-1 font-semibold flex-shrink-0"
           >
             {isCanceled ? "CANCELED" :
              status === "standard" ? "PRO" :
              status === "starter" ? "STARTER" :
-             status === "free" ? "FREE TRIAL" :
+             status === "free" ? "FREE" :
              status === "admin" ? "ADMIN" :
              status === "enterprise" ? "ENTERPRISE" :
-             "FREE TRIAL"}
+             "FREE"}
           </Badge>
         </div>
       </CardHeader>
@@ -143,7 +147,7 @@ export function SubscriptionCard({
                   )}
                 </div>
               </div>
-            ) : status !== "free" ? (
+            ) : status !== "free" && !hideActiveUntil ? (
               <>
                 <p className="text-sm text-muted-foreground">
                   Your {status} subscription is active until:
@@ -152,14 +156,14 @@ export function SubscriptionCard({
                   {endsAt ? new Date(endsAt).toLocaleDateString() : "N/A"}
                 </p>
               </>
-            ) : (
+            ) : status === "free" ? (
               <div className="flex items-center space-x-2 text-muted-foreground">
                 <Lock className="h-4 w-4" />
                 <span className="text-sm">
                   Upgrade to generate more CIMs per month
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="space-y-3">
@@ -178,20 +182,22 @@ export function SubscriptionCard({
               </p>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Regenerations Used This Month</p>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-secondary rounded-full h-2"
-                  style={{
-                    width: `${getRegenerationLimit() === "Unlimited" ? 0 : Math.min((monthlyRegenerationsUsed / (getRegenerationLimit() as number)) * 100, 100)}%`,
-                  }}
-                />
+            {!hideRegenerations && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Regenerations Used This Month</p>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-secondary rounded-full h-2"
+                    style={{
+                      width: `${getRegenerationLimit() === "Unlimited" ? 0 : Math.min((monthlyRegenerationsUsed / (getRegenerationLimit() as number)) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {monthlyRegenerationsUsed} / {getRegenerationLimit()} regenerations used
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {monthlyRegenerationsUsed} / {getRegenerationLimit()} regenerations used
-              </p>
-            </div>
+            )}
           </div>
 
           {!isPremium && !isAdmin && !isCanceled && !isStandard && (
