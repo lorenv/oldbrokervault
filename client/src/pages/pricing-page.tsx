@@ -275,9 +275,17 @@ export default function PricingPage() {
                   <CardTitle className="text-2xl font-bold mb-2">{plan.name}</CardTitle>
                   <CardDescription className="text-base mb-4">{plan.description}</CardDescription>
                   <div className="mt-4">
-                    <span className="text-5xl font-bold">{plan.price}</span>
-                    {plan.priceLabel && (
-                      <span className="text-muted-foreground text-lg ml-1">{plan.priceLabel}</span>
+                    <div>
+                      <span className="text-5xl font-bold">{plan.price}</span>
+                      {plan.priceLabel && (
+                        <span className="text-muted-foreground text-lg ml-1">{plan.priceLabel}</span>
+                      )}
+                    </div>
+                    {plan.id === 'starter' && (
+                      <p className="text-xs text-gray-400 mt-1">that's only $50/month!</p>
+                    )}
+                    {plan.id === 'standard' && (
+                      <p className="text-xs text-gray-400 mt-1">that's only $83/month!</p>
                     )}
                   </div>
                 </CardHeader>
