@@ -3703,6 +3703,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function for access control
+  async function getUserDocumentPermission(
+    documentId: number,
+    userId: number
+  ): Promise<"owner" | "edit" | "assist" | null> {
+    const document = await storage.getCimDocument(documentId);
+    if (!document) return null;
+    if (document.userId === userId) return "owner";
+
+    const collaboration = await storage.getCollaboratorAccess(documentId, userId);
+    if (collaboration?.permission === "Edit") return "edit";
+    if (collaboration?.permission === "Assist") return "assist";
+
+    return null;
+  }
+
   // Get collaborators for a document
   app.get("/api/cim/:id/collaborators", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -3731,6 +3747,319 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get collaborators error:", error);
       res.status(500).json({ error: "Failed to get collaborators" });
+    }
+  });
+
+  // Update collaborator permission
+  app.patch("/api/cim/:docId/collaborators/:collaboratorId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const collaboratorId = parseInt(req.params.collaboratorId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (permission !== "owner") {
+        return res.status(403).json({ error: "Only document owner can update collaborator permissions" });
+      }
+
+      const { permission: newPermission } = req.body;
+      if (!newPermission || !["Edit", "Assist"].includes(newPermission)) {
+        return res.status(400).json({ error: "Invalid permission. Must be 'Edit' or 'Assist'" });
+      }
+
+      await storage.updateCollaborator(collaboratorId, { permission: newPermission });
+      
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_permission_changed", {
+        collaboratorId,
+        newPermission
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update collaborator error:", error);
+      res.status(500).json({ error: "Failed to update collaborator" });
+    }
+  });
+
+  // Remove collaborator
+  app.delete("/api/cim/:docId/collaborators/:collaboratorId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const collaboratorId = parseInt(req.params.collaboratorId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (permission !== "owner") {
+        return res.status(403).json({ error: "Only document owner can remove collaborators" });
+      }
+
+      const collaborators = await storage.getCollaborators(docId);
+      const collaborator = collaborators.find(c => c.id === collaboratorId);
+
+      if (!collaborator) {
+        return res.status(404).json({ error: "Collaborator not found" });
+      }
+
+      await storage.deleteCollaborator(collaboratorId);
+
+      if (collaborator.userId) {
+        await storage.releaseUserLocks(collaborator.userId, docId);
+      }
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_removed", {
+        collaboratorId,
+        collaboratorEmail: collaborator.email
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove collaborator error:", error);
+      res.status(500).json({ error: "Failed to remove collaborator" });
+    }
+  });
+
+  // Accept collaboration invitation
+  app.post("/api/collaborator/accept/:token", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const token = req.params.token;
+      const userId = req.user!.id;
+
+      const collaborator = await storage.getCollaboratorByToken(token);
+      if (!collaborator) {
+        return res.status(404).json({ error: "Invalid or expired invitation" });
+      }
+
+      if (collaborator.status === "active") {
+        return res.status(400).json({ error: "Invitation already accepted" });
+      }
+
+      await storage.updateCollaborator(collaborator.id, {
+        status: "active",
+        acceptedAt: new Date(),
+        userId
+      });
+
+      await storage.logActivity(collaborator.cimDocumentId, userId, req.user!.name || null, req.user!.email, "collaborator_accepted", {
+        collaboratorId: collaborator.id
+      });
+
+      res.json({ success: true, documentId: collaborator.cimDocumentId });
+    } catch (error) {
+      console.error("Accept invitation error:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
+  // Self-remove from document
+  app.post("/api/cim/:docId/collaborators/:collaboratorId/leave", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const collaboratorId = parseInt(req.params.collaboratorId);
+      const userId = req.user!.id;
+
+      const collaborators = await storage.getCollaborators(docId);
+      const collaborator = collaborators.find(c => c.id === collaboratorId);
+
+      if (!collaborator || collaborator.userId !== userId) {
+        return res.status(403).json({ error: "You can only remove yourself" });
+      }
+
+      await storage.deleteCollaborator(collaboratorId);
+      await storage.releaseUserLocks(userId, docId);
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "collaborator_left", {
+        collaboratorId
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Leave collaboration error:", error);
+      res.status(500).json({ error: "Failed to leave collaboration" });
+    }
+  });
+
+  // Get lock status
+  app.get("/api/cim/:docId/lock/status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (!permission) {
+        return res.status(403).json({ error: "No access to this document" });
+      }
+
+      const lock = await storage.getLock(docId);
+      if (!lock) {
+        return res.json({ locked: false });
+      }
+
+      const duration = Date.now() - new Date(lock.lockedAt).getTime();
+      res.json({
+        locked: true,
+        user: {
+          name: lock.userName,
+          email: lock.userEmail,
+          lockedAt: lock.lockedAt,
+          duration
+        }
+      });
+    } catch (error) {
+      console.error("Get lock status error:", error);
+      res.status(500).json({ error: "Failed to get lock status" });
+    }
+  });
+
+  // Acquire edit lock
+  app.post("/api/cim/:docId/lock", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (permission !== "owner" && permission !== "edit") {
+        return res.status(403).json({ error: "Only owners and editors can acquire locks" });
+      }
+
+      const existingLock = await storage.getLock(docId);
+      if (existingLock && existingLock.userId !== userId) {
+        return res.status(409).json({ 
+          success: false, 
+          error: "Document is locked by another user",
+          user: {
+            name: existingLock.userName,
+            email: existingLock.userEmail
+          }
+        });
+      }
+
+      const lock = await storage.createLock(docId, userId, req.user!.name || "Unknown", req.user!.email);
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "lock_acquired", {});
+
+      res.json({ success: true, lock });
+    } catch (error) {
+      console.error("Acquire lock error:", error);
+      res.status(500).json({ error: "Failed to acquire lock" });
+    }
+  });
+
+  // Take over edit lock
+  app.post("/api/cim/:docId/lock/takeover", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (permission !== "owner" && permission !== "edit") {
+        return res.status(403).json({ error: "Only owners and editors can take over locks" });
+      }
+
+      const existingLock = await storage.getLock(docId);
+      const previousUser = existingLock ? existingLock.userName : null;
+      const previousUserId = existingLock ? existingLock.userId : null;
+
+      const lock = await storage.createLock(docId, userId, req.user!.name || "Unknown", req.user!.email, previousUserId || undefined);
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "lock_taken_over", {
+        previousUser,
+        previousUserId
+      });
+
+      res.json({ success: true, previousUser });
+    } catch (error) {
+      console.error("Takeover lock error:", error);
+      res.status(500).json({ error: "Failed to take over lock" });
+    }
+  });
+
+  // Release edit lock
+  app.delete("/api/cim/:docId/lock", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (permission !== "owner" && permission !== "edit") {
+        return res.status(403).json({ error: "Only owners and editors can release locks" });
+      }
+
+      const existingLock = await storage.getLock(docId);
+      if (existingLock && existingLock.userId !== userId) {
+        return res.status(403).json({ error: "You can only release your own locks" });
+      }
+
+      await storage.releaseLock(docId);
+
+      await storage.logActivity(docId, userId, req.user!.name || null, req.user!.email, "lock_released", {});
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Release lock error:", error);
+      res.status(500).json({ error: "Failed to release lock" });
+    }
+  });
+
+  // Lock heartbeat
+  app.post("/api/cim/:docId/lock/heartbeat", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const existingLock = await storage.getLock(docId);
+      if (!existingLock || existingLock.userId !== userId) {
+        return res.status(403).json({ error: "You don't hold the lock" });
+      }
+
+      await storage.updateLockActivity(docId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Lock heartbeat error:", error);
+      res.status(500).json({ error: "Failed to update heartbeat" });
+    }
+  });
+
+  // Get activity log
+  app.get("/api/cim/:docId/activity", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const docId = parseInt(req.params.docId);
+      const userId = req.user!.id;
+
+      const permission = await getUserDocumentPermission(docId, userId);
+      if (!permission) {
+        return res.status(403).json({ error: "No access to this document" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const activities = await storage.getActivityLog(docId, limit, offset);
+
+      res.json(activities);
+    } catch (error) {
+      console.error("Get activity log error:", error);
+      res.status(500).json({ error: "Failed to get activity log" });
     }
   });
 
@@ -9518,6 +9847,23 @@ ${finalQuestion}
   
   // Register e-signature routes
   app.use('/api/esignature', eSignatureRoutes);
+
+  // Background job: Clean up stale document locks (15+ minutes old)
+  async function cleanupStaleLocks() {
+    try {
+      const staleLocks = await storage.cleanupStaleLocks(15);
+      if (staleLocks > 0) {
+        console.log(`Cleaned up ${staleLocks} stale document locks`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up stale locks:', error);
+    }
+  }
+
+  // Run cleanup every 5 minutes
+  setInterval(cleanupStaleLocks, 5 * 60 * 1000);
+  // Run once at startup
+  cleanupStaleLocks();
 
   const httpServer = createServer(app);
   return httpServer;

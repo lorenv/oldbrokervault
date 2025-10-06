@@ -36,10 +36,10 @@ export function Navbar() {
 
   return (
     <nav className={
-      isHomePage 
-        ? "absolute top-0 left-0 right-0 z-50" 
-        : user 
-          ? "border-b bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-blue-200" 
+      isHomePage
+        ? "absolute top-0 left-0 right-0 z-50"
+        : user
+          ? "border-b bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-blue-200"
           : "border-b"
     }>
       <div className="container mx-auto px-4 h-16 flex items-center">
@@ -288,74 +288,127 @@ export function Navbar() {
         {/* Mobile Menu Button for logged-in users */}
         {user && (
             <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-2">
                     <Menu className="h-5 w-5" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Navigation</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="w-full cursor-pointer">
-                      <Zap className="mr-2 h-4 w-4" />
-                      Create CIM
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                  <SheetHeader className="border-b pb-4">
+                    <div className="flex items-center gap-3">
+                      {(profile as any)?.profilePhoto ? (
+                        <img
+                          src={(profile as any).profilePhoto}
+                          alt="Profile"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-blue-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-blue-100 border-2 border-blue-200 flex items-center justify-center">
+                          <User className="h-6 w-6 text-blue-600" />
+                        </div>
+                      )}
+                      <div className="flex flex-col text-left">
+                        <SheetTitle className="text-base">{user.email}</SheetTitle>
+                      </div>
+                    </div>
+                  </SheetHeader>
+
+                  <div className="flex flex-col gap-2 py-6">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
+                      Navigation
+                    </div>
+                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/dashboard' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-12 text-base"
+                      >
+                        <Zap className="mr-3 h-5 w-5" />
+                        Create CIM
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/documents" className="w-full cursor-pointer">
-                      <FileText className="mr-2 h-4 w-4" />
-                      My CIMs
+                    <Link href="/documents" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/documents' || location.startsWith('/documents/') ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-12 text-base"
+                      >
+                        <FileText className="mr-3 h-5 w-5" />
+                        My CIMs
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/analytics" className="w-full cursor-pointer">
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      Analytics
+                    <Link href="/analytics" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/analytics' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-12 text-base"
+                      >
+                        <BarChart3 className="mr-3 h-5 w-5" />
+                        Analytics
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/messages" className="w-full cursor-pointer">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Messages
+                    <Link href="/messages" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/messages' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-12 text-base"
+                      >
+                        <MessageCircle className="mr-3 h-5 w-5" />
+                        Messages
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/investor-database" className="w-full cursor-pointer">
-                      <Database className="mr-2 h-4 w-4" />
-                      CRM
+                    <Link href="/investor-database" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button
+                        variant={location === '/investor-database' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-left h-12 text-base"
+                      >
+                        <Database className="mr-3 h-5 w-5" />
+                        CRM
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/account" className="w-full cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Account Settings
+
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2 mt-6">
+                      Account
+                    </div>
+                    <Link href="/account" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
+                        <Settings className="mr-3 h-5 w-5" />
+                        Account Settings
+                      </Button>
                     </Link>
-                  </DropdownMenuItem>
-                  {user.isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="w-full cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Admin Panel
+                    {user.isAdmin && (
+                      <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start text-left h-12 text-base">
+                          <User className="mr-3 h-5 w-5" />
+                          Admin Panel
+                        </Button>
                       </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => setIsSupportOpen(true)}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Support
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => logoutMutation.mutate()}
-                    className="text-red-600"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    )}
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-left h-12 text-base"
+                      onClick={() => {
+                        setIsSupportOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <HelpCircle className="mr-3 h-5 w-5" />
+                      Support
+                    </Button>
+
+                    <div className="border-t mt-6 pt-6">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-left h-12 text-base text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          logoutMutation.mutate();
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Sign Out
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
         )}
       </div>
