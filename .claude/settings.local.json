@@ -52,7 +52,8 @@
       "Bash(dmesg:*)",
       "Read(//proc/595/net/**)",
       "Bash(git fetch:*)",
-      "Bash(git merge-base:*)"
+      "Bash(git merge-base:*)",
+      "Read(//proc/132/fd/**)"
     ],
     "deny": [],
     "ask": [],

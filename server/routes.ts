@@ -7635,49 +7635,61 @@ ${finalQuestion}
           : [];
         
         if (signatureFields && signatureFields.length > 0) {
+          console.log("=== PDF GENERATION START ===");
           console.log("Processing signature using enhanced field-based system");
+          console.log("Template file content length:", ndaTemplate.fileContent?.length || 0);
+
           const processor = await PdfSignatureProcessor.fromBase64(ndaTemplate.fileContent);
-          
+
           // Prepare field values with signature data
           const processedFieldValues = { ...fieldValues };
-          
+
           // Auto-populate standard fields if not provided
           if (!processedFieldValues.name && signatureFields.some((f: any) => f.type === 'name')) {
             const nameField = signatureFields.find((f: any) => f.type === 'name');
             if (nameField) processedFieldValues[nameField.id] = signerName;
           }
-          
+
           if (!processedFieldValues.email && signatureFields.some((f: any) => f.type === 'email')) {
             const emailField = signatureFields.find((f: any) => f.type === 'email');
             if (emailField) processedFieldValues[emailField.id] = signerEmail;
           }
-          
+
           // Process date fields
           signatureFields.filter((f: any) => f.type === 'date').forEach((field: any) => {
             if (!processedFieldValues[field.id]) {
               processedFieldValues[field.id] = signedAt.toLocaleDateString();
             }
           });
-          
+
           // Embed fields into PDF
+          console.log("Embedding fields into PDF...");
           signedNdaContent = await processor.embedFields(signatureFields, processedFieldValues);
-          
+          console.log("Fields embedded, PDF length:", signedNdaContent?.length || 0);
+
           // Add completion certificate
           try {
+            console.log("Adding completion certificate...");
             await processor.addCompletionCertificate(signerName, signerEmail, signedAt, signerIpAddress);
             signedNdaContent = await processor.saveAsBase64();
+            console.log("✅ Certificate added successfully, final PDF length:", signedNdaContent?.length || 0);
           } catch (certError) {
-            console.error('Error adding completion certificate:', certError);
+            console.error('❌ Error adding completion certificate:', certError);
             console.error('Certificate error details:', {
               message: certError instanceof Error ? certError.message : String(certError),
               stack: certError instanceof Error ? certError.stack : undefined
             });
             // Continue without certificate if it fails
-            console.log('Continuing without completion certificate');
+            console.log('⚠️ Continuing without completion certificate, using PDF without certificate');
+            console.log('PDF length without certificate:', signedNdaContent?.length || 0);
           }
-          
+
+          console.log("=== PDF GENERATION COMPLETE ===");
         } else {
+          console.log("=== PDF GENERATION START (CERTIFICATE ONLY) ===");
           console.log("Using certificate-only processing (no signature fields)");
+          console.log("Template file content length:", ndaTemplate.fileContent?.length || 0);
+
           signedNdaContent = await addCertificateToNda(
             ndaTemplate.fileContent,
             signerName,
@@ -7685,6 +7697,33 @@ ${finalQuestion}
             signerEmail,
             signerIpAddress
           );
+
+          console.log("✅ Certificate added, final PDF length:", signedNdaContent?.length || 0);
+          console.log("=== PDF GENERATION COMPLETE ===");
+        }
+
+        // Validate PDF before proceeding
+        console.log("=== VALIDATING GENERATED PDF ===");
+        if (!signedNdaContent || signedNdaContent.length === 0) {
+          console.error("❌ CRITICAL ERROR: Generated PDF is empty!");
+          throw new Error("PDF generation failed - resulting content is empty");
+        }
+
+        try {
+          const pdfBuffer = Buffer.from(signedNdaContent, 'base64');
+          const pdfHeader = pdfBuffer.toString('utf8', 0, 4);
+          console.log("PDF header check:", pdfHeader);
+
+          if (!pdfHeader.startsWith('%PDF')) {
+            console.error("❌ CRITICAL ERROR: Generated PDF has invalid header!");
+            console.error("First 100 chars:", signedNdaContent.substring(0, 100));
+            throw new Error("PDF generation failed - invalid PDF format");
+          }
+
+          console.log("✅ PDF validation passed - header is correct");
+        } catch (validationError) {
+          console.error("❌ PDF validation failed:", validationError);
+          throw new Error("PDF validation failed: " + (validationError instanceof Error ? validationError.message : String(validationError)));
         }
 
         // Save signature record
