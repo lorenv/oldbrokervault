@@ -25,11 +25,25 @@ export default function AnalyticsPage() {
   // Fetch analytics data with date range
   const { data: analytics, isLoading, refetch } = useQuery({
     queryKey: ["/api/analytics/overview", dateRange],
+    queryFn: async () => {
+      const response = await fetch(`/api/analytics/overview?range=${dateRange}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics overview');
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const { data: timelineData } = useQuery({
     queryKey: ["/api/analytics/timeline", dateRange],
+    queryFn: async () => {
+      const response = await fetch(`/api/analytics/timeline?range=${dateRange}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch timeline data');
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5,
   });
 
